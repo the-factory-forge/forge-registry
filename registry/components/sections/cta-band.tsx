@@ -1,27 +1,36 @@
-import { CtaLink, CtaExternal } from "@/components/forge/ui/cta-button"
-import {
-  type SectionVariant,
-  sectionVariantClasses,
-} from "@/lib/forge/section-variants"
-import { cn } from "@/lib/forge/utils"
+import { CtaLink, CtaExternal } from "@/components/forge/ui/cta-button";
+import { type SectionVariant, sectionVariantClasses } from "@/lib/forge/section-variants";
+import { cn } from "@/lib/forge/utils";
 
 export interface CtaBandProps {
-  title: string
-  description?: string
-  cta: { label: string; href: string; external?: boolean }
-  variant?: SectionVariant
-  className?: string
+  title: string;
+  description?: string;
+  cta: { label: string; href: string; external?: boolean };
+  variant?: SectionVariant;
+  className?: string;
 }
 
 export function CtaBand({ title, description, cta, variant = "primary", className }: CtaBandProps) {
-  const colors = sectionVariantClasses[variant]
-  const isDark = variant === "primary" || variant === "secondary"
-  const ctaVariant = isDark ? "onDark" : "primary"
+  const colors = sectionVariantClasses[variant];
+  const isDark = variant === "primary" || variant === "secondary";
+  const ctaVariant = isDark ? "onDark" : "primary";
 
   return (
-    <section className={cn("section-padding", "[content-visibility:auto] [contain-intrinsic-size:auto_800px]", colors.section, className)}>
+    <section
+      className={cn(
+        "section-padding",
+        "[contain-intrinsic-size:auto_800px] [content-visibility:auto]",
+        colors.section,
+        className,
+      )}
+    >
       <div className="container-premium text-center">
-        <h2 className={cn("font-heading text-pretty text-2xl font-bold sm:text-3xl md:text-4xl", colors.heading)}>
+        <h2
+          className={cn(
+            "font-heading text-2xl font-bold text-pretty sm:text-3xl md:text-4xl",
+            colors.heading,
+          )}
+        >
           {title}
         </h2>
         {description && (
@@ -42,5 +51,5 @@ export function CtaBand({ title, description, cta, variant = "primary", classNam
         </div>
       </div>
     </section>
-  )
+  );
 }

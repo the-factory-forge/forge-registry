@@ -1,11 +1,11 @@
 export interface PrivacySection {
-  title: string
-  content: string
+  title: string;
+  content: string;
 }
 
-export type PrivacyLocale = "fr" | "en" | "de" | "it"
+export type PrivacyLocale = "fr" | "en" | "de" | "it";
 
-export const PRIVACY_UPDATED_AT = "2026-07-31"
+export const PRIVACY_UPDATED_AT = "2026-07-31";
 
 /**
  * Reference legal content for the privacy policy page (Swiss nLPD/FADP).
@@ -19,8 +19,7 @@ export const PRIVACY_SECTIONS: Record<PrivacyLocale, PrivacySection[]> = {
   fr: [
     {
       title: "Responsable du traitement",
-      content:
-        "{businessName}\n{address}\nSuisse\nEmail : {email}",
+      content: "{businessName}\n{address}\nSuisse\nEmail : {email}",
     },
     {
       title: "Données collectées",
@@ -66,7 +65,7 @@ export const PRIVACY_SECTIONS: Record<PrivacyLocale, PrivacySection[]> = {
     {
       title: "Cookies and tracking",
       content:
-        "This site uses Google Analytics (GA4) to measure audience. These cookies are only activated after your explicit consent. You can change your preferences at any time using the \"Cookie settings\" link in the footer. Data collected by Google Analytics may be transferred to and processed in the United States.",
+        'This site uses Google Analytics (GA4) to measure audience. These cookies are only activated after your explicit consent. You can change your preferences at any time using the "Cookie settings" link in the footer. Data collected by Google Analytics may be transferred to and processed in the United States.',
     },
     {
       title: "Data retention",
@@ -141,4 +140,4 @@ export const PRIVACY_SECTIONS: Record<PrivacyLocale, PrivacySection[]> = {
         "Avete diritto di accesso, modifica, cancellazione e portabilità dei vostri dati personali, nonché il diritto di revocare il vostro consenso in qualsiasi momento. Per esercitare questi diritti, contattateci via email. I dati di navigazione aggregati (Google Analytics) non consentono di identificare una singola persona.",
     },
   ],
-}
+};

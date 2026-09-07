@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
 // Framework-agnostic pathname hook (replaces `usePathname` from next/navigation).
 // Each site provides the implementation for its framework:
 //   - Next.js  : re-export of `next/navigation`'s usePathname
 //   - TanStack : re-export of `@tanstack/react-router`'s useLocation().pathname
 
-import { useSyncExternalStore } from "react"
+import { useSyncExternalStore } from "react";
 
 function subscribe() {
-  return () => {}
+  return () => {};
 }
 
 /**
@@ -20,5 +20,5 @@ export function usePathname(): string {
     subscribe,
     () => (typeof window === "undefined" ? "" : window.location.pathname),
     () => "",
-  )
+  );
 }

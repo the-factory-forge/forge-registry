@@ -1,45 +1,46 @@
-/* eslint-disable @next/next/no-img-element -- img brut volontaire (registry framework-agnostic) */
-"use client"
+/* oxlint-disable nextjs/no-img-element -- img brut volontaire (registry framework-agnostic) */
+"use client";
 
-import { useState, useEffect } from "react"
-import { Link } from "@/components/forge/ui/link"
-import { usePathname } from "@/components/forge/ui/use-location"
-import { Menu, X, ChevronDown } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/forge/ui/sheet"
+import { Menu, X, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+
+import { LanguageSwitcher } from "@/components/forge/navigation/language-switcher";
+import { CtaExternal } from "@/components/forge/ui/cta-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/forge/ui/dropdown-menu"
-import { CtaExternal } from "@/components/forge/ui/cta-button"
-import { LanguageSwitcher } from "@/components/forge/navigation/language-switcher"
-import { cn } from "@/lib/forge/utils"
+} from "@/components/forge/ui/dropdown-menu";
+import { Link } from "@/components/forge/ui/link";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/forge/ui/sheet";
+import { usePathname } from "@/components/forge/ui/use-location";
+import { cn } from "@/lib/forge/utils";
 
 export interface NavItem {
-  label: string
-  href: string
-  children?: NavItem[]
+  label: string;
+  href: string;
+  children?: NavItem[];
 }
 
 export interface NavbarProps {
-  logo: { src?: string; alt: string; href: string; initial?: string }
-  items: NavItem[]
-  cta: { label: string; href: string }
+  logo: { src?: string; alt: string; href: string; initial?: string };
+  items: NavItem[];
+  cta: { label: string; href: string };
   /** Optional login link (auth enabled) - desktop beside CTA, mobile below it. */
-  loginHref?: string
-  loginLabel?: string
-  locale: string
-  locales: string[]
-  localeNames: Record<string, string>
-  localeShort: Record<string, string>
-  siteName: string
-  menuLabel?: string
-  languageLabel?: string
-  closeLabel?: string
-  navLabel?: string
-  mobileNavLabel?: string
-  controls?: React.ReactNode
+  loginHref?: string;
+  loginLabel?: string;
+  locale: string;
+  locales: string[];
+  localeNames: Record<string, string>;
+  localeShort: Record<string, string>;
+  siteName: string;
+  menuLabel?: string;
+  languageLabel?: string;
+  closeLabel?: string;
+  navLabel?: string;
+  mobileNavLabel?: string;
+  controls?: React.ReactNode;
 }
 
 export function Navbar({
@@ -60,21 +61,21 @@ export function Navbar({
   mobileNavLabel = "Mobile navigation",
   controls,
 }: NavbarProps) {
-  const pathname = usePathname()
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const isActive = (href: string) => {
-    if (href === `/${locale}`) return pathname === `/${locale}`
-    return pathname.startsWith(href)
-  }
+    if (href === `/${locale}`) return pathname === `/${locale}`;
+    return pathname.startsWith(href);
+  };
 
   return (
     <header
@@ -97,9 +98,7 @@ export function Navbar({
               {logo.initial ?? siteName.charAt(0)}
             </span>
           )}
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            {siteName}
-          </span>
+          <span className="text-lg font-bold tracking-tight text-foreground">{siteName}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label={navLabel}>
@@ -108,7 +107,7 @@ export function Navbar({
               <DropdownMenu key={item.href}>
                 <DropdownMenuTrigger
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                    "inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive(item.href)
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-secondary",
@@ -130,7 +129,7 @@ export function Navbar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                  "rounded-full px-4 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive(item.href)
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground hover:bg-secondary",
@@ -170,7 +169,7 @@ export function Navbar({
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               aria-label={menuLabel}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </SheetTrigger>
@@ -187,13 +186,16 @@ export function Navbar({
                   <X className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
-              <nav className="flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto px-5 py-6" aria-label={mobileNavLabel}>
+              <nav
+                className="flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto px-5 py-6"
+                aria-label={mobileNavLabel}
+              >
                 {items.map((item) => (
                   <div key={item.href}>
                     <Link
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className="block rounded-2xl px-4 py-3 font-medium outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
+                      className="block rounded-2xl px-4 py-3 font-medium transition-colors outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {item.label}
                     </Link>
@@ -202,7 +204,7 @@ export function Navbar({
                         key={child.href}
                         href={child.href}
                         onClick={() => setMobileOpen(false)}
-                        className="block rounded-2xl py-3 pl-8 pr-4 text-sm font-medium text-foreground/80 outline-none transition-colors hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
+                        className="block rounded-2xl py-3 pr-4 pl-8 text-sm font-medium text-foreground/80 transition-colors outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {child.label}
                       </Link>
@@ -241,5 +243,5 @@ export function Navbar({
         {loginHref && <Link href={loginHref}>{loginLabel}</Link>}
       </nav>
     </header>
-  )
+  );
 }

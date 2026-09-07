@@ -91,9 +91,7 @@ export function NotFoundPage({
           </CtaLink>
         )}
       </div>
-      {footnote && (
-        <div className="mt-12 border-t border-border pt-8">{footnote}</div>
-      )}
+      {footnote && <div className="mt-12 border-t border-border pt-8">{footnote}</div>}
     </main>
   );
 }

@@ -146,7 +146,7 @@ export default function BackOfficeExample() {
         )}
         <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-16 sm:px-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Registry preview
             </p>
             <h1 className="mt-2 text-3xl font-semibold">Back-office sidebar</h1>

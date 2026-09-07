@@ -1,16 +1,17 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { Share2, Check } from "lucide-react"
-import { cn } from "@/lib/forge/utils"
+import { Share2, Check } from "lucide-react";
+import { useState, useRef } from "react";
+
+import { cn } from "@/lib/forge/utils";
 
 export interface ShareButtonProps {
-  title: string
-  text: string
-  shareLabel?: string
-  copiedLabel?: string
-  url?: string
-  className?: string
+  title: string;
+  text: string;
+  shareLabel?: string;
+  copiedLabel?: string;
+  url?: string;
+  className?: string;
 }
 
 export function ShareButton({
@@ -21,29 +22,29 @@ export function ShareButton({
   url,
   className,
 }: ShareButtonProps) {
-  const [copied, setCopied] = useState(false)
-  const sharing = useRef(false)
+  const [copied, setCopied] = useState(false);
+  const sharing = useRef(false);
 
   const handleShare = async () => {
-    if (sharing.current) return
-    sharing.current = true
+    if (sharing.current) return;
+    sharing.current = true;
 
-    const shareUrl = url ?? window.location.href
+    const shareUrl = url ?? window.location.href;
 
     try {
       if (navigator.share) {
-        await navigator.share({ title, text, url: shareUrl })
+        await navigator.share({ title, text, url: shareUrl });
       } else {
-        await navigator.clipboard.writeText(`${text} : ${shareUrl}`)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        await navigator.clipboard.writeText(`${text} : ${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
     } catch {
       /* user cancelled — ignore */
     } finally {
-      sharing.current = false
+      sharing.current = false;
     }
-  }
+  };
 
   return (
     <button
@@ -66,5 +67,5 @@ export function ShareButton({
         </>
       )}
     </button>
-  )
+  );
 }

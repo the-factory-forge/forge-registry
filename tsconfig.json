@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -23,18 +19,10 @@
       }
     ],
     "paths": {
-      "@/components/forge/*": [
-        "./registry/components/*"
-      ],
-      "@/lib/forge/content/*": [
-        "./registry/content/*"
-      ],
-      "@/lib/forge/*": [
-        "./registry/lib/*"
-      ],
-      "@/*": [
-        "./src/*"
-      ]
+      "@/components/forge/*": ["./registry/components/*"],
+      "@/lib/forge/content/*": ["./registry/content/*"],
+      "@/lib/forge/*": ["./registry/lib/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": [
@@ -45,7 +33,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

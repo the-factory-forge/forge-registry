@@ -24,7 +24,8 @@ generated source files. See its guide before changing the shared contract.
 - [README.md](./README.md): overview, inventory, distribution, and commands.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
 - `registry/registry.json`: authoritative list of shipped items and files.
-- `package.json`: official shadcn build command and pinned CLI version.
+- `package.json`: build, validation, and formatting commands with pinned tool versions.
+- `vite.config.ts`: Vite Plus lint and format settings; Next.js remains the app framework.
 - [docs/back-office-sidebar.md](./docs/back-office-sidebar.md): sidebar props,
   toggle placement, Better Auth integration, and consumer updates.
 - [MECHANICS.md](./MECHANICS.md): historical notes and known gaps; verify claims
@@ -36,20 +37,24 @@ props unless the requested change calls for a breaking change.
 
 ## Repository map
 
-| Path | Role |
-| --- | --- |
-| `registry/components/ui/` | Shared primitives, animations, providers, framework shims |
-| `registry/components/sections/` | Composed sections such as heroes, FAQs, and pricing |
-| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms |
-| `registry/lib/`, `registry/content/` | Shared utilities, presets, SEO helpers, reference content |
-| `registry/registry.json` | Editable source manifest |
-| `public/r/registry.json`, `public/r/{name}.json` | Generated shadcn catalog and item endpoints; do not hand-edit |
-| `src/app/` | Next.js App Router showroom; currently home and newsletter demo pages |
-| `src/styles/globals.css` | Showroom tokens, typography, animations, layout utilities |
-| `src/lib/i18n/`, `src/middleware.ts` | Exception to the showroom boundary: shipped by `i18n-engine` |
+| Path                                                    | Role                                                                  |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| `registry/components/ui/`                               | Shared primitives, animations, providers, framework shims             |
+| `registry/components/sections/`                         | Composed sections such as heroes, FAQs, and pricing                   |
+| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms                                     |
+| `registry/lib/`, `registry/content/`                    | Shared utilities, presets, SEO helpers, reference content             |
+| `registry/registry.json`                                | Editable source manifest                                              |
+| `vite.config.ts`                                        | Vite Plus lint/format configuration                                   |
+| `public/r/registry.json`, `public/r/{name}.json`        | Generated shadcn catalog and item endpoints; do not hand-edit         |
+| `src/app/`                                              | Next.js App Router showroom; currently home and newsletter demo pages |
+| `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities             |
+| `src/lib/i18n/`, `src/middleware.ts`                    | Exception to the showroom boundary: shipped by `i18n-engine`          |
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in Next.js 16. Use the pnpm version pinned in `package.json`.
+Vite Plus 0.3.0 provides Oxlint and Oxfmt through `vite.config.ts`; `dev`, `build`,
+and `start` continue to use Next.js. Lint settings enable type-aware rules and
+type checking. `pnpm typecheck` remains the separate `tsc --noEmit` check.
 Registry source imports use `@/components/forge/*` and `@/lib/forge/*`, mapped to
 `registry/components/*` and `registry/lib/*`; `@/lib/forge/content/*` maps to
 `registry/content/*`. The general `@/*` alias resolves `src/*`. Check
@@ -138,14 +143,20 @@ automatically. Keep host adapters outside generated `components/forge/` and
 `lib/forge/` files so updates preserve them. See the
 [official shadcn registry guide](https://ui.shadcn.com/docs/registry/getting-started).
 
-For component or manifest changes, run `pnpm registry:sync`,
-`pnpm registry:check`, and `pnpm typecheck`. Use `pnpm lint` and `pnpm build` when
-the changes affect application code or integration, and inspect relevant demo
-states for visual changes. `registry:check` only parses JSON; it does not validate
-the shadcn schema, dependency completeness, or installation in another project.
-Report checks actually run and any blockers. Documentation-only changes need a
-diff and factual/link review, without dependency installation or app builds.
-When changing distribution behavior, also check a shadcn consumer install.
+For implementation changes, run `pnpm format && pnpm lint:fix` and review the
+automatic edits. When registry source or its manifest changes, run
+`pnpm registry:sync` after formatting; generated `public/r/` JSON is excluded
+from the formatter and linter and must come from the official builder. Run
+`pnpm registry:check`, `pnpm typecheck`, and `pnpm check` before handoff.
+`pnpm check` combines formatting, linting, and type checks; `pnpm fix` applies
+its available fixes. Use `pnpm build` when changes affect application code or
+integration, and inspect relevant demo states for visual changes.
+
+`registry:check` only parses JSON; it does not validate the shadcn schema,
+dependency completeness, or installation in another project. When changing
+distribution behavior, also check a shadcn consumer install. Report checks
+actually run and any blockers. Documentation-only changes need formatting, a
+diff, and factual/link review, without dependency installation or app builds.
 
 Known limitations to verify when touching affected items:
 

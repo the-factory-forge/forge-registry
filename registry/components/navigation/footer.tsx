@@ -1,25 +1,26 @@
-import { Image } from "@/components/forge/ui/image"
-import { Link } from "@/components/forge/ui/link"
-import { Mail, MapPin, Phone, Clock } from "lucide-react"
-import { type SocialPlatform, socialIconMap } from "@/components/forge/ui/social-icons"
-import { ManageCookiesButton } from "@/components/forge/navigation/manage-cookies-button"
-import { cn } from "@/lib/forge/utils"
+import { Mail, MapPin, Phone, Clock } from "lucide-react";
+
+import { ManageCookiesButton } from "@/components/forge/navigation/manage-cookies-button";
+import { Image } from "@/components/forge/ui/image";
+import { Link } from "@/components/forge/ui/link";
+import { type SocialPlatform, socialIconMap } from "@/components/forge/ui/social-icons";
+import { cn } from "@/lib/forge/utils";
 
 export interface SocialLink {
-  platform: SocialPlatform
-  url: string
+  platform: SocialPlatform;
+  url: string;
 }
 
 export interface FooterColumn {
-  title: string
-  links: { label: string; href: string }[]
+  title: string;
+  links: { label: string; href: string }[];
 }
 
 export interface NewsletterProps {
-  title: string
-  placeholder: string
-  buttonLabel: string
-  action?: string
+  title: string;
+  placeholder: string;
+  buttonLabel: string;
+  action?: string;
 }
 
 /**
@@ -42,49 +43,49 @@ export interface NewsletterProps {
  */
 export interface FooterProps {
   brand: {
-    name: string
-    description: string
-    tagline?: string
-    logo?: string
-    initial?: string
-    hideMonogram?: boolean
+    name: string;
+    description: string;
+    tagline?: string;
+    logo?: string;
+    initial?: string;
+    hideMonogram?: boolean;
     /** @deprecated Use colors.brandName instead. */
-    brandColor?: "primary" | "foreground"
-  }
-  columns: FooterColumn[]
+    brandColor?: "primary" | "foreground";
+  };
+  columns: FooterColumn[];
   contact: {
-    title?: string
-    address?: string
-    phone?: string
-    phoneLabel?: string
-    email?: string
-    mapsUrl?: string
-    hours?: string
-    hoursLabel?: string
+    title?: string;
+    address?: string;
+    phone?: string;
+    phoneLabel?: string;
+    email?: string;
+    mapsUrl?: string;
+    hours?: string;
+    hoursLabel?: string;
     /** Structured opening hours — days left, hours right, one row each. */
-    hoursRows?: { days: string; hours: string }[]
-  }
-  socials?: SocialLink[]
+    hoursRows?: { days: string; hours: string }[];
+  };
+  socials?: SocialLink[];
   legal: {
-    links: { label: string; href: string }[]
-    copyright: string
-  }
-  attribution?: { text: string; href: string; logo?: string }
-  newsletter?: NewsletterProps
-  manageCookiesLabel?: string
-  manageCookiesEvent?: string
-  variant?: "default" | "dark"
+    links: { label: string; href: string }[];
+    copyright: string;
+  };
+  attribution?: { text: string; href: string; logo?: string };
+  newsletter?: NewsletterProps;
+  manageCookiesLabel?: string;
+  manageCookiesEvent?: string;
+  variant?: "default" | "dark";
   /** Column headings color. */
-  accentColor?: "accent" | "primary" | "secondary" | "foreground"
+  accentColor?: "accent" | "primary" | "secondary" | "foreground";
   /** Contact icon color. */
-  iconColor?: "accent" | "primary" | "secondary" | "foreground"
+  iconColor?: "accent" | "primary" | "secondary" | "foreground";
   /** Grouped color overrides (preferred over accentColor/iconColor/brandColor). */
   colors?: {
-    headings?: "accent" | "primary" | "secondary" | "foreground"
-    icons?: "accent" | "primary" | "secondary" | "foreground"
-    brandName?: "primary" | "foreground"
-  }
-  className?: string
+    headings?: "accent" | "primary" | "secondary" | "foreground";
+    icons?: "accent" | "primary" | "secondary" | "foreground";
+    brandName?: "primary" | "foreground";
+  };
+  className?: string;
 }
 
 export function Footer({
@@ -103,11 +104,9 @@ export function Footer({
   colors,
   className,
 }: FooterProps) {
-  const dark = variant === "dark"
+  const dark = variant === "dark";
 
-  const root = dark
-    ? "bg-dark text-dark-foreground"
-    : "border-t border-border bg-muted/50"
+  const root = dark ? "bg-dark text-dark-foreground" : "border-t border-border bg-muted/50";
 
   const colorClass = (color: "accent" | "primary" | "secondary" | "foreground" | undefined) =>
     color === "primary"
@@ -118,37 +117,37 @@ export function Footer({
           ? "text-foreground"
           : dark
             ? "text-accent"
-            : "text-primary"
+            : "text-primary";
 
-  const headingsColor = colors?.headings ?? accentColor
-  const iconsColor = colors?.icons ?? iconColor
-  const brandNameColor = colors?.brandName ?? brand.brandColor
-  const accentClass = colorClass(headingsColor)
+  const headingsColor = colors?.headings ?? accentColor;
+  const iconsColor = colors?.icons ?? iconColor;
+  const brandNameColor = colors?.brandName ?? brand.brandColor;
+  const accentClass = colorClass(headingsColor);
 
   const brandName =
     brandNameColor === "primary"
       ? "text-primary"
       : dark
         ? "text-dark-foreground"
-        : "text-foreground"
-  const description = dark ? "text-dark-foreground/70" : "text-muted-foreground"
-  const heading = accentClass
-  const icon = iconsColor ? colorClass(iconsColor) : accentClass
+        : "text-foreground";
+  const description = dark ? "text-dark-foreground/70" : "text-muted-foreground";
+  const heading = accentClass;
+  const icon = iconsColor ? colorClass(iconsColor) : accentClass;
   const link = dark
     ? "text-dark-foreground/70 transition-colors hover:text-secondary"
-    : "text-muted-foreground transition-colors hover:text-primary"
+    : "text-muted-foreground transition-colors hover:text-primary";
   const socialIcon = dark
     ? "text-dark-foreground/80 transition-colors hover:text-secondary"
-    : "text-muted-foreground transition-colors hover:text-primary"
-  const bottomBorder = dark ? "border-dark-foreground/10" : "border-border"
-  const bottomText = dark ? "text-dark-foreground/60" : "text-muted-foreground"
+    : "text-muted-foreground transition-colors hover:text-primary";
+  const bottomBorder = dark ? "border-dark-foreground/10" : "border-border";
+  const bottomText = dark ? "text-dark-foreground/60" : "text-muted-foreground";
   const bottomLink = dark
     ? "transition-colors hover:text-secondary"
-    : "transition-colors hover:text-primary"
+    : "transition-colors hover:text-primary";
 
   const inputClass = dark
     ? "border-dark-foreground/20 bg-dark-foreground/10 text-dark-foreground placeholder:text-dark-foreground/50"
-    : "border-border bg-background text-foreground placeholder:text-muted-foreground"
+    : "border-border bg-background text-foreground placeholder:text-muted-foreground";
 
   return (
     <footer className={cn(root, className)}>
@@ -176,38 +175,45 @@ export function Footer({
             {brand.tagline && (
               <p
                 className={cn(
-                  "text-xs font-medium uppercase tracking-[0.18em]",
+                  "text-xs font-medium tracking-[0.18em] uppercase",
                   dark ? "text-dark-foreground/60" : "text-foreground/60",
                 )}
               >
                 {brand.tagline}
               </p>
             )}
-            <p className={cn("text-sm leading-relaxed", description)}>
-              {brand.description}
-            </p>
+            <p className={cn("text-sm leading-relaxed", description)}>{brand.description}</p>
             {socials && socials.length > 0 && (
               <div className="flex gap-3 pt-2">
                 {socials.map((social) => {
-                  const Icon = socialIconMap[social.platform]
+                  const Icon = socialIconMap[social.platform];
                   return (
                     <a
                       key={social.platform}
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cn(socialIcon, dark && "flex h-9 w-9 items-center justify-center rounded-full bg-dark-foreground/10")}
+                      className={cn(
+                        socialIcon,
+                        dark &&
+                          "flex h-9 w-9 items-center justify-center rounded-full bg-dark-foreground/10",
+                      )}
                       aria-label={social.platform}
                     >
                       <Icon className="h-5 w-5" />
                     </a>
-                  )
+                  );
                 })}
               </div>
             )}
             {newsletter && (
               <form action={newsletter.action} method="post" className="pt-2">
-                <h3 className={cn("mb-3 font-heading text-sm font-semibold uppercase tracking-wide", heading)}>
+                <h3
+                  className={cn(
+                    "mb-3 font-heading text-sm font-semibold tracking-wide uppercase",
+                    heading,
+                  )}
+                >
                   {newsletter.title}
                 </h3>
                 <div className="flex max-w-xs gap-2">
@@ -218,13 +224,13 @@ export function Footer({
                     placeholder={newsletter.placeholder}
                     aria-label={newsletter.placeholder}
                     className={cn(
-                      "h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/40",
+                      "h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
                       inputClass,
                     )}
                   />
                   <button
                     type="submit"
-                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-primary/40"
+                    className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-primary/40"
                   >
                     {newsletter.buttonLabel}
                   </button>
@@ -236,7 +242,12 @@ export function Footer({
           {/* Navigation columns */}
           {columns.map((col) => (
             <div key={col.title}>
-              <h3 className={cn("mb-4 font-heading text-sm font-semibold uppercase tracking-wide", heading)}>
+              <h3
+                className={cn(
+                  "mb-4 font-heading text-sm font-semibold tracking-wide uppercase",
+                  heading,
+                )}
+              >
                 {col.title}
               </h3>
               <ul className="space-y-2.5">
@@ -253,7 +264,12 @@ export function Footer({
 
           {/* Contact column */}
           <div>
-            <h3 className={cn("mb-4 font-heading text-sm font-semibold uppercase tracking-wide", heading)}>
+            <h3
+              className={cn(
+                "mb-4 font-heading text-sm font-semibold tracking-wide uppercase",
+                heading,
+              )}
+            >
               {contact.title}
             </h3>
             <ul className="space-y-3">
@@ -288,7 +304,7 @@ export function Footer({
                     {contact.phoneLabel && (
                       <>
                         <span aria-hidden="true"> · </span>
-                        <span className="text-xs font-semibold uppercase text-primary">
+                        <span className="text-xs font-semibold text-primary uppercase">
                           {contact.phoneLabel}
                         </span>
                       </>
@@ -329,7 +345,12 @@ export function Footer({
       {/* Bottom bar */}
       <div className={cn("border-t", bottomBorder)}>
         <div className="container-premium flex flex-col gap-6 py-8">
-          <div className={cn("flex flex-col items-center justify-between gap-3 text-xs sm:flex-row", bottomText)}>
+          <div
+            className={cn(
+              "flex flex-col items-center justify-between gap-3 text-xs sm:flex-row",
+              bottomText,
+            )}
+          >
             <span>{legal.copyright}</span>
             <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
               {legal.links.map((linkItem) => (
@@ -346,10 +367,7 @@ export function Footer({
                   label={manageCookiesLabel}
                   manageEvent={manageCookiesEvent}
                   size="xs"
-                  className={cn(
-                    bottomLink,
-                    dark && "text-dark-foreground/70 hover:text-secondary",
-                  )}
+                  className={cn(bottomLink, dark && "text-dark-foreground/70 hover:text-secondary")}
                 />
               )}
             </nav>
@@ -381,5 +399,5 @@ export function Footer({
         </div>
       </div>
     </footer>
-  )
+  );
 }

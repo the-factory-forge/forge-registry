@@ -5,12 +5,12 @@
 // The registry imports this shim and never imports a framework script API.
 
 export interface ScriptProps extends React.ScriptHTMLAttributes<HTMLScriptElement> {
-  id?: string
+  id?: string;
   /** Framework hint — Next.js uses strategies; other frameworks ignore it. */
-  strategy?: "afterInteractive" | "beforeInteractive" | "lazyOnload"
+  strategy?: "afterInteractive" | "beforeInteractive" | "lazyOnload";
   /** Inline script source (JS string). */
-  code?: string
-  children?: string
+  code?: string;
+  children?: string;
 }
 
 /**
@@ -19,6 +19,13 @@ export interface ScriptProps extends React.ScriptHTMLAttributes<HTMLScriptElemen
  * component — the props above keep the component contract stable.
  */
 export function Script({ id, strategy, code, children, ...props }: ScriptProps) {
-  const source = code ?? children ?? ""
-  return <script id={id} data-strategy={strategy} dangerouslySetInnerHTML={{ __html: source }} {...props} />
+  const source = code ?? children ?? "";
+  return (
+    <script
+      id={id}
+      data-strategy={strategy}
+      dangerouslySetInnerHTML={{ __html: source }}
+      {...props}
+    />
+  );
 }

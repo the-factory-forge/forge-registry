@@ -9,7 +9,7 @@
   "files": [
     {
       "path": "registry/lib/utils.ts",
-      "content": "export { cn } from \"cnfast\"\n",
+      "content": "export { cn } from \"cnfast\";\n",
       "type": "registry:lib",
       "target": "@lib/forge/utils.ts"
     }

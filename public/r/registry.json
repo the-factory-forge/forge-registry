@@ -15,9 +15,7 @@
           "target": "@lib/forge/utils.ts"
         }
       ],
-      "dependencies": [
-        "cnfast"
-      ]
+      "dependencies": ["cnfast"]
     },
     {
       "name": "section-variants",
@@ -74,10 +72,7 @@
           "target": "~/src/middleware.ts"
         }
       ],
-      "dependencies": [
-        "server-only",
-        "next"
-      ]
+      "dependencies": ["server-only", "next"]
     },
     {
       "name": "build-metadata",
@@ -91,12 +86,8 @@
           "target": "@lib/forge/seo/build-metadata.ts"
         }
       ],
-      "dependencies": [
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/i18n-engine"
-      ]
+      "dependencies": ["next"],
+      "registryDependencies": ["@forge/i18n-engine"]
     },
     {
       "name": "json-ld",
@@ -141,13 +132,8 @@
           "target": "@components/forge/ui/accordion.css"
         }
       ],
-      "dependencies": [
-        "@base-ui/react",
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "animations",
@@ -161,9 +147,7 @@
           "target": "@components/forge/ui/animations.tsx"
         }
       ],
-      "dependencies": [
-        "motion"
-      ]
+      "dependencies": ["motion"]
     },
     {
       "name": "reveal",
@@ -177,9 +161,7 @@
           "target": "@components/forge/ui/reveal.tsx"
         }
       ],
-      "dependencies": [
-        "motion"
-      ]
+      "dependencies": ["motion"]
     },
     {
       "name": "share-button",
@@ -193,9 +175,7 @@
           "target": "@components/forge/ui/share-button.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ]
+      "dependencies": ["lucide-react"]
     },
     {
       "name": "back-to-top",
@@ -209,9 +189,7 @@
           "target": "@components/forge/ui/back-to-top.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ]
+      "dependencies": ["lucide-react"]
     },
     {
       "name": "section-heading",
@@ -225,10 +203,7 @@
           "target": "@components/forge/ui/section-heading.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/section-variants"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/section-variants"]
     },
     {
       "name": "image-with-fallback",
@@ -242,13 +217,8 @@
           "target": "@components/forge/ui/image-with-fallback.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "lightbox",
@@ -262,13 +232,8 @@
           "target": "@components/forge/ui/lightbox.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "cta-button",
@@ -282,12 +247,8 @@
           "target": "@components/forge/ui/cta-button.tsx"
         }
       ],
-      "dependencies": [
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["next"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "breadcrumb",
@@ -301,13 +262,8 @@
           "target": "@components/forge/ui/breadcrumb.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "dropdown-menu",
@@ -321,13 +277,8 @@
           "target": "@components/forge/ui/dropdown-menu.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "@base-ui/react"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["lucide-react", "@base-ui/react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "sheet",
@@ -341,13 +292,8 @@
           "target": "@components/forge/ui/sheet.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "@base-ui/react"
-      ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "dependencies": ["lucide-react", "@base-ui/react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "ui-shims",
@@ -376,9 +322,7 @@
           "target": "@components/forge/ui/use-location.ts"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "newsletter",
@@ -397,9 +341,7 @@
           "target": "@components/forge/forms/newsletter-example.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "cookie-banner",
@@ -413,9 +355,7 @@
           "target": "@components/forge/layouts/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "language-switcher",
@@ -429,14 +369,8 @@
           "target": "@components/forge/navigation/language-switcher.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/dropdown-menu"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu"]
     },
     {
       "name": "navbar",
@@ -450,10 +384,7 @@
           "target": "@components/forge/navigation/navbar.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
+      "dependencies": ["lucide-react", "next"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/cta-button",
@@ -487,15 +418,8 @@
           "target": "@components/forge/navigation/footer.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/social-icons",
-        "@forge/manage-cookies-button"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/manage-cookies-button"]
     },
     {
       "name": "home-hero",
@@ -509,14 +433,8 @@
           "target": "@components/forge/sections/home-hero.tsx"
         }
       ],
-      "dependencies": [
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/cta-button",
-        "@forge/animations"
-      ]
+      "dependencies": ["next"],
+      "registryDependencies": ["@forge/cn", "@forge/cta-button", "@forge/animations"]
     },
     {
       "name": "page-hero",
@@ -530,13 +448,8 @@
           "target": "@components/forge/sections/page-hero.tsx"
         }
       ],
-      "dependencies": [
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/breadcrumb"
-      ]
+      "dependencies": ["next"],
+      "registryDependencies": ["@forge/cn", "@forge/breadcrumb"]
     },
     {
       "name": "cta-band",
@@ -550,11 +463,7 @@
           "target": "@components/forge/sections/cta-band.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/cta-button",
-        "@forge/section-variants"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/cta-button", "@forge/section-variants"]
     },
     {
       "name": "trust-section",
@@ -568,9 +477,7 @@
           "target": "@components/forge/sections/trust-section.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ],
+      "dependencies": ["lucide-react"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/section-heading",
@@ -590,14 +497,8 @@
           "target": "@components/forge/sections/service-card.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react",
-        "next"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/image-with-fallback"
-      ]
+      "dependencies": ["lucide-react", "next"],
+      "registryDependencies": ["@forge/cn", "@forge/image-with-fallback"]
     },
     {
       "name": "services-grid",
@@ -630,11 +531,7 @@
           "target": "@components/forge/sections/faq-list.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/section-heading",
-        "@forge/section-variants"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
     },
     {
       "name": "testimonials",
@@ -648,9 +545,7 @@
           "target": "@components/forge/sections/testimonials.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ],
+      "dependencies": ["lucide-react"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/section-heading",
@@ -689,11 +584,7 @@
           "target": "@components/forge/sections/pricing-table.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/section-heading",
-        "@forge/section-variants"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
     },
     {
       "name": "contact-info",
@@ -707,14 +598,8 @@
           "target": "@components/forge/sections/contact-info.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/social-icons",
-        "@forge/section-variants"
-      ]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/section-variants"]
     },
     {
       "name": "legal-page",
@@ -728,9 +613,7 @@
           "target": "@components/forge/sections/legal-page.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn"
-      ]
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "not-found-page",
@@ -744,10 +627,7 @@
           "target": "@components/forge/layouts/not-found-page.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/cta-button"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/cta-button"]
     },
     {
       "name": "theme-presets",
@@ -799,10 +679,7 @@
           "target": "@components/forge/ui/theme-provider.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/theme-presets"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/theme-presets"]
     },
     {
       "name": "theme-switcher",
@@ -816,14 +693,8 @@
           "target": "@components/forge/navigation/theme-switcher.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/dropdown-menu",
-        "@forge/theme-provider"
-      ]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu", "@forge/theme-provider"]
     },
     {
       "name": "font-presets",
@@ -885,10 +756,7 @@
           "target": "@components/forge/ui/font-provider.tsx"
         }
       ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/font-presets"
-      ]
+      "registryDependencies": ["@forge/cn", "@forge/font-presets"]
     },
     {
       "name": "font-switcher",
@@ -902,14 +770,8 @@
           "target": "@components/forge/navigation/font-switcher.tsx"
         }
       ],
-      "dependencies": [
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/dropdown-menu",
-        "@forge/font-provider"
-      ]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu", "@forge/font-provider"]
     },
     {
       "name": "privacy-content",
@@ -936,23 +798,15 @@
           "target": "@lib/forge/footer-helpers.ts"
         }
       ],
-      "registryDependencies": [
-        "@forge/footer"
-      ]
+      "registryDependencies": ["@forge/footer"]
     },
     {
       "name": "back-office-sidebar",
       "type": "registry:block",
       "title": "Back-office Sidebar",
       "description": "Responsive sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
-      "dependencies": [
-        "@base-ui/react",
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "@forge/cn",
-        "@forge/ui-shims"
-      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
       "files": [
         {
           "path": "registry/components/navigation/back-office-sidebar.tsx",

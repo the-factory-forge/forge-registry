@@ -1,25 +1,23 @@
-import { MapPin, Phone, Mail, Clock } from "lucide-react"
-import { type SocialPlatform, socialIconMap } from "@/components/forge/ui/social-icons"
-import {
-  type SectionVariant,
-  sectionVariantClasses,
-} from "@/lib/forge/section-variants"
-import { cn } from "@/lib/forge/utils"
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
+
+import { type SocialPlatform, socialIconMap } from "@/components/forge/ui/social-icons";
+import { type SectionVariant, sectionVariantClasses } from "@/lib/forge/section-variants";
+import { cn } from "@/lib/forge/utils";
 
 export interface ContactInfoProps {
-  title?: string
-  address?: string
-  mapsUrl?: string
-  mapsEmbed?: string
-  phone?: string
-  email?: string
-  hours?: { label: string; value: string }[]
-  socials?: { platform: SocialPlatform; url: string }[]
-  hoursLabel?: string
-  mapPlaceholder?: string
-  mapsTitle?: string
-  variant?: SectionVariant
-  className?: string
+  title?: string;
+  address?: string;
+  mapsUrl?: string;
+  mapsEmbed?: string;
+  phone?: string;
+  email?: string;
+  hours?: { label: string; value: string }[];
+  socials?: { platform: SocialPlatform; url: string }[];
+  hoursLabel?: string;
+  mapPlaceholder?: string;
+  mapsTitle?: string;
+  variant?: SectionVariant;
+  className?: string;
 }
 
 export function ContactInfo({
@@ -37,16 +35,14 @@ export function ContactInfo({
   variant = "default",
   className,
 }: ContactInfoProps) {
-  const colors = sectionVariantClasses[variant]
+  const colors = sectionVariantClasses[variant];
 
   return (
     <section className={cn("section-padding", colors.section, className)}>
       <div className="container-premium">
         <div className="grid gap-12 lg:grid-cols-2">
           <div className="space-y-8">
-            {title && (
-              <h2 className="font-heading text-3xl font-bold text-foreground">{title}</h2>
-            )}
+            {title && <h2 className="font-heading text-3xl font-bold text-foreground">{title}</h2>}
 
             <div className="space-y-5">
               {address && (
@@ -94,7 +90,7 @@ export function ContactInfo({
 
             {hours && hours.length > 0 && (
               <div>
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-foreground">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground uppercase">
                   <Clock className="h-4 w-4" aria-hidden="true" />
                   {hoursLabel}
                 </div>
@@ -112,7 +108,7 @@ export function ContactInfo({
             {socials && socials.length > 0 && (
               <div className="flex gap-3">
                 {socials.map((s) => {
-                  const Icon = socialIconMap[s.platform]
+                  const Icon = socialIconMap[s.platform];
                   return (
                     <a
                       key={s.platform}
@@ -124,7 +120,7 @@ export function ContactInfo({
                     >
                       <Icon className="h-5 w-5" />
                     </a>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -144,14 +140,12 @@ export function ContactInfo({
               />
             ) : (
               <div className="flex h-full min-h-[400px] items-center justify-center">
-                <p className="p-12 text-center text-sm text-muted-foreground">
-                  {mapPlaceholder}
-                </p>
+                <p className="p-12 text-center text-sm text-muted-foreground">{mapPlaceholder}</p>
               </div>
             )}
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }

@@ -1,21 +1,16 @@
-export type SectionVariant =
-  | "default"
-  | "muted"
-  | "accent"
-  | "primary"
-  | "secondary"
+export type SectionVariant = "default" | "muted" | "accent" | "primary" | "secondary";
 
 export const sectionVariantClasses: Record<
   SectionVariant,
   {
-    section: string
-    heading: string
-    body: string
-    eyebrow: string
-    card: string
-    cardBorder: string
-    iconBadge: string
-    iconColor: string
+    section: string;
+    heading: string;
+    body: string;
+    eyebrow: string;
+    card: string;
+    cardBorder: string;
+    iconBadge: string;
+    iconColor: string;
   }
 > = {
   default: {
@@ -68,4 +63,4 @@ export const sectionVariantClasses: Record<
     iconBadge: "bg-secondary-foreground/20",
     iconColor: "text-secondary-foreground",
   },
-}
+};

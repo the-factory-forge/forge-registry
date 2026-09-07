@@ -43,8 +43,9 @@ pnpm lint
 That command uses the pinned CLI with `shadcn add @forge/back-office-sidebar --yes --overwrite`
 for this item and its dependencies.
 Keep custom branding, routing, navigation, and auth code outside the generated
-`forge` directories. Fix shared behavior in this repository, regenerate with
-`pnpm registry:sync`, publish the change, then update and redeploy consumers.
+`forge` directories. Fix shared behavior in this repository, run
+`pnpm format && pnpm lint:fix`, then regenerate with `pnpm registry:sync`, publish
+the change, and update and redeploy consumers.
 shadcn copies source: an existing deployed website does not change automatically
 when the registry changes. The namespace URL tracks `main`; consumers can replace
 `main` with a GitHub commit in `components.json` to pin all `@forge` items to a revision.
@@ -78,7 +79,12 @@ import {
   type BackOfficeSidebarProps,
 } from "@/components/forge/navigation/back-office-sidebar";
 
-export function AdminLayout({ children, user, pathname, onSignOut }: {
+export function AdminLayout({
+  children,
+  user,
+  pathname,
+  onSignOut,
+}: {
   children: ReactNode;
   user: BackOfficeSidebarProps["user"];
   pathname: string;
@@ -92,16 +98,20 @@ export function AdminLayout({ children, user, pathname, onSignOut }: {
         pathname={pathname}
         profileHref="/account"
         onSignOut={onSignOut}
-        groups={[{
-          id: "workspace",
-          label: "Workspace",
-          items: [
-            { id: "projects", label: "Projects", href: "/projects" },
-            { id: "reports", label: "Reports", items: [
-              { id: "monthly", label: "Monthly", href: "/reports/monthly" },
-            ] },
-          ],
-        }]}
+        groups={[
+          {
+            id: "workspace",
+            label: "Workspace",
+            items: [
+              { id: "projects", label: "Projects", href: "/projects" },
+              {
+                id: "reports",
+                label: "Reports",
+                items: [{ id: "monthly", label: "Monthly", href: "/reports/monthly" }],
+              },
+            ],
+          },
+        ]}
       />
       <BackOfficeSidebarInset>{children}</BackOfficeSidebarInset>
     </BackOfficeSidebarProvider>
@@ -118,21 +128,21 @@ mobile visibility is independent.
 
 ## Inputs and integration points
 
-| Input | Contract |
-| --- | --- |
-| `brand` | Required `name` and `href`; optional `logo` React node owned by the site |
-| `groups` | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host |
-| Navigation item | Stable `id`, `label`, optional icon node, and either `href` or nested `items` |
-| `exact` | Match a link only at its exact pathname; otherwise child path segments also activate it |
-| `collapsible: false` | Display nested items under a static label, useful for policy subgroups |
-| Group `footer` | Optional site-owned actions, such as an impersonation dialog |
-| `user` | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials |
-| `profileHref` | Required profile destination; the profile menu is always present |
-| `onSignOut` | Async host action; must reject on failure, including Better Auth's returned `error` |
-| `linkComponent` | Optional router adapter accepting anchor props, `href`, children, and ref |
-| `version` | Optional display text, for example `v1.2.3` |
-| `labels` | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error labels |
-| `togglePlacement` | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider |
+| Input                | Contract                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                         |
+| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host  |
+| Navigation item      | Stable `id`, `label`, optional icon node, and either `href` or nested `items`                    |
+| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it          |
+| `collapsible: false` | Display nested items under a static label, useful for policy subgroups                           |
+| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                     |
+| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials |
+| `profileHref`        | Required profile destination; the profile menu is always present                                 |
+| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`              |
+| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                        |
+| `version`            | Optional display text, for example `v1.2.3`                                                      |
+| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error labels               |
+| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider              |
 
 For a custom navbar, set `togglePlacement="external"` and render
 `<BackOfficeSidebarToggle />` in that navbar, inside the same provider. Its
@@ -165,6 +175,8 @@ profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
 
 Verify desktop collapse/reopen, keyboard focus after collapse, mobile Escape and
-focus restoration, profile actions, and navigation with long labels. Run
-`pnpm registry:sync`, `pnpm registry:check`, `pnpm typecheck`, `pnpm lint`, and
-`pnpm build`. When changing distribution behavior, verify a shadcn consumer install.
+focus restoration, profile actions, and navigation with long labels. Follow the
+[contributor validation flow](../CONTRIBUTING.md#formatting-and-validation), then
+run `pnpm build` for layout or integration changes. Vite Plus reads lint/format
+settings from `vite.config.ts`; regenerate excluded `public/r/` JSON after source
+formatting. When changing distribution behavior, verify a shadcn consumer install.

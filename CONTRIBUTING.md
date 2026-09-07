@@ -2,20 +2,33 @@
 
 Component conventions and checklist for the shared registry.
 
+## Formatting and validation
+
+Vite Plus 0.3.0 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
+type-aware rules and type checking; `pnpm typecheck` also runs `tsc --noEmit`.
+Next.js continues to run the showroom's dev server, build, and production server.
+
+After implementation, run `pnpm format && pnpm lint:fix` and review automatic
+edits. Regenerate affected registry artifacts with `pnpm registry:sync`, then
+run `pnpm registry:check`, `pnpm typecheck`, and `pnpm check`. The last command
+checks formatting, lint, and types together; `pnpm fix` applies available fixes.
+Generated `public/r/` JSON is excluded from linting and formatting, so rebuild it
+after changing or formatting source files.
+
 ## Design tokens
 
 Always use shadcn semantic tokens. Never hardcode colors.
 
 ```tsx
 // Correct
-className="border border-border bg-background text-foreground"
-className="text-muted-foreground"
-className="bg-primary text-primary-foreground hover:bg-primary/90"
-className="focus-visible:ring-2 focus-visible:ring-ring"
+className = "border border-border bg-background text-foreground";
+className = "text-muted-foreground";
+className = "bg-primary text-primary-foreground hover:bg-primary/90";
+className = "focus-visible:ring-2 focus-visible:ring-ring";
 
 // Wrong
-className="border border-zinc-300 bg-white text-zinc-950"
-className="text-zinc-600 dark:text-zinc-400"
+className = "border border-zinc-300 bg-white text-zinc-950";
+className = "text-zinc-600 dark:text-zinc-400";
 ```
 
 Tokens: `bg-background`, `text-foreground`, `border-border`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`, `focus-visible:ring-ring`, `bg-muted`, `bg-accent`, `text-accent-foreground`, `bg-secondary`, `text-secondary-foreground`.
@@ -24,14 +37,14 @@ Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700
 
 ## File placement
 
-| Type | Directory |
-|------|-----------|
-| UI primitives (button, input, badge…) | `registry/components/ui/` |
-| Page sections (hero, grid, faq…) | `registry/components/sections/` |
-| Navigation (navbar, footer…) | `registry/components/navigation/` |
-| Layout helpers (cookie banner, consent…) | `registry/components/layouts/` |
-| Forms (newsletter…) | `registry/components/forms/` |
-| Libraries (utils, i18n, seo…) | `registry/lib/` |
+| Type                                     | Directory                         |
+| ---------------------------------------- | --------------------------------- |
+| UI primitives (button, input, badge…)    | `registry/components/ui/`         |
+| Page sections (hero, grid, faq…)         | `registry/components/sections/`   |
+| Navigation (navbar, footer…)             | `registry/components/navigation/` |
+| Layout helpers (cookie banner, consent…) | `registry/components/layouts/`    |
+| Forms (newsletter…)                      | `registry/components/forms/`      |
+| Libraries (utils, i18n, seo…)            | `registry/lib/`                   |
 
 ## Props conventions
 
@@ -44,6 +57,7 @@ Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700
 ## Client/Server
 
 Prefer Server Components. Add `"use client"` only when the component uses:
+
 - `useState`, `useEffect`, `useRef`, `useCallback`
 - Event handlers (`onClick`, `onChange`) that manage local state
 - Browser APIs (`window`, `navigator`, `localStorage`)
@@ -51,6 +65,7 @@ Prefer Server Components. Add `"use client"` only when the component uses:
 ## Accessibility
 
 Every component must include:
+
 - Semantic HTML elements (`<form>`, `<nav>`, `<section>`, `<button>`)
 - Visible `focus-visible:ring-2 focus-visible:ring-ring` states
 - `aria-*` attributes when state changes (e.g. `aria-invalid`, `aria-describedby`)
@@ -87,22 +102,24 @@ After creating a component, add it to `registry/registry.json`:
   "type": "registry:ui",
   "title": "My Component",
   "description": "Short description of what it does.",
-  "files": [{
-    "path": "registry/components/ui/my-component.tsx",
-    "type": "registry:component",
-    "target": "@components/forge/ui/my-component.tsx"
-  }],
+  "files": [
+    {
+      "path": "registry/components/ui/my-component.tsx",
+      "type": "registry:component",
+      "target": "@components/forge/ui/my-component.tsx"
+    }
+  ],
   "dependencies": ["lucide-react"],
   "registryDependencies": ["@forge/cn"]
 }
 ```
 
-| Field | Notes |
-|-------|-------|
-| `type` | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries |
-| `dependencies` | npm packages the consumer must install |
-| `registryDependencies` | Required registry items, using `@forge/item-name` for local items |
-| File `target` | Explicit consumer destination; use `@components/forge/`, `@lib/forge/`, or `@lib/forge/content/` |
+| Field                  | Notes                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `type`                 | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries |
+| `dependencies`         | npm packages the consumer must install                                                             |
+| `registryDependencies` | Required registry items, using `@forge/item-name` for local items                                  |
+| File `target`          | Explicit consumer destination; use `@components/forge/`, `@lib/forge/`, or `@lib/forge/content/`   |
 
 Use `@/components/forge/...` and `@/lib/forge/...` source imports to match those
 installation paths. The showroom's TypeScript aliases resolve them to `registry/`;
@@ -122,5 +139,4 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)
 - [ ] Registry entry added to `registry/registry.json`
 - [ ] Example usage provided (optional but recommended)
-- [ ] `pnpm registry:sync` ran successfully
-- [ ] `pnpm typecheck` passes
+- [ ] Formatting and validation flow above completed; generated artifacts match the final source

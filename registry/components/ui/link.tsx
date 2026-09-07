@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 // Framework-agnostic Link shim.
 // Each site provides the implementation for its framework:
@@ -6,13 +6,13 @@
 //   - TanStack  : re-export of `@tanstack/react-router`'s Link (typed `to`)
 // The registry imports this shim and never imports a framework router directly.
 
-import { forwardRef } from "react"
+import { forwardRef } from "react";
 
-import { cn } from "@/lib/forge/utils"
+import { cn } from "@/lib/forge/utils";
 
 export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
-  href: string
-  children?: React.ReactNode
+  href: string;
+  children?: React.ReactNode;
 }
 
 /**
@@ -28,5 +28,5 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     <a href={href} ref={ref} className={cn(className)} {...props}>
       {children}
     </a>
-  )
-})
+  );
+});

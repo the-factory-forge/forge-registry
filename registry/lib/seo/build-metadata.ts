@@ -14,39 +14,39 @@ const ogLocales: Record<Locale, string> = {
  *   - TanStack : feed the fields into the route `head` meta tags
  */
 export interface SiteMetadata {
-  title?: string
-  description?: string
+  title?: string;
+  description?: string;
   alternates?: {
-    canonical?: string
-    languages?: Record<string, string>
-  }
-  robots?: { index: boolean; follow: boolean } | string
+    canonical?: string;
+    languages?: Record<string, string>;
+  };
+  robots?: { index: boolean; follow: boolean } | string;
   openGraph?: {
-    title?: string
-    description?: string
-    url?: string
-    siteName?: string
-    locale?: string
-    type?: string
-    images?: { url: string; width?: number; height?: number; alt?: string }[]
-  }
+    title?: string;
+    description?: string;
+    url?: string;
+    siteName?: string;
+    locale?: string;
+    type?: string;
+    images?: { url: string; width?: number; height?: number; alt?: string }[];
+  };
   twitter?: {
-    card?: string
-    title?: string
-    description?: string
-    images?: string[]
-  }
+    card?: string;
+    title?: string;
+    description?: string;
+    images?: string[];
+  };
 }
 
 interface BuildMetadataOptions {
-  locale: Locale
-  title: string
-  description: string
-  path: string
-  siteUrl: string
-  siteName: string
-  ogImage?: string
-  noIndex?: boolean
+  locale: Locale;
+  title: string;
+  description: string;
+  path: string;
+  siteUrl: string;
+  siteName: string;
+  ogImage?: string;
+  noIndex?: boolean;
 }
 
 export function buildMetadata({
@@ -59,15 +59,15 @@ export function buildMetadata({
   ogImage,
   noIndex = false,
 }: BuildMetadataOptions): SiteMetadata {
-  const cleanPath = path === "/" ? "" : path
-  const canonical = `${siteUrl}/${locale}${cleanPath}`
-  const ogImageUrl = ogImage ?? `${siteUrl}/images/hero.webp`
+  const cleanPath = path === "/" ? "" : path;
+  const canonical = `${siteUrl}/${locale}${cleanPath}`;
+  const ogImageUrl = ogImage ?? `${siteUrl}/images/hero.webp`;
 
-  const languages: Record<string, string> = {}
+  const languages: Record<string, string> = {};
   for (const l of locales) {
-    languages[l] = `${siteUrl}/${l}${cleanPath}`
+    languages[l] = `${siteUrl}/${l}${cleanPath}`;
   }
-  languages["x-default"] = `${siteUrl}/${locales[0]}${cleanPath}`
+  languages["x-default"] = `${siteUrl}/${locales[0]}${cleanPath}`;
 
   return {
     title,
@@ -89,5 +89,5 @@ export function buildMetadata({
       description,
       images: [ogImageUrl],
     },
-  }
+  };
 }

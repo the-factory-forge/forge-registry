@@ -14,6 +14,7 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 
 - Next.js 16 (App Router) + React 19 showroom shell for previewing shared UI
 - TypeScript strict with `@/components/forge/*` and `@/lib/forge/*` aliases for registry source files; `@/*` resolves showroom files
+- Vite Plus 0.3.0 for linting and formatting, configured in `vite.config.ts`
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
@@ -66,65 +67,65 @@ The source of truth for this inventory is `registry/registry.json`.
 
 ### Libs (9)
 
-| Name | Description |
-|------|-------------|
-| `cn` | Class-name utility (re-exports `cnfast`) |
-| `section-variants` | Shared SectionVariant type and color map for themeable sections |
-| `i18n-engine` | getDictionary, t(), locale middleware (fr/en/de/it) |
-| `build-metadata` | Canonical, hreflang, Open Graph, Twitter cards |
-| `json-ld` | Organization, Breadcrumb, FAQ, Service schemas |
-| `theme-presets` | Industry + mood based theme preset system with 5 starter presets |
-| `font-presets` | Category/family based font preset system with 7 shipped presets (13 in source) |
-| `privacy-content` | Reference privacy-policy content in fr/en/de/it for site adaptation |
-| `footer-helpers` | Builds footer props from site data, including attribution defaults |
+| Name               | Description                                                                    |
+| ------------------ | ------------------------------------------------------------------------------ |
+| `cn`               | Class-name utility (re-exports `cnfast`)                                       |
+| `section-variants` | Shared SectionVariant type and color map for themeable sections                |
+| `i18n-engine`      | getDictionary, t(), locale middleware (fr/en/de/it)                            |
+| `build-metadata`   | Canonical, hreflang, Open Graph, Twitter cards                                 |
+| `json-ld`          | Organization, Breadcrumb, FAQ, Service schemas                                 |
+| `theme-presets`    | Industry + mood based theme preset system with 5 starter presets               |
+| `font-presets`     | Category/family based font preset system with 7 shipped presets (13 in source) |
+| `privacy-content`  | Reference privacy-policy content in fr/en/de/it for site adaptation            |
+| `footer-helpers`   | Builds footer props from site data, including attribution defaults             |
 
 ### UI Primitives (21)
 
-| Name | Description |
-|------|-------------|
-| `social-icons` | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube |
-| `accordion` | Base UI accordion with a bundled animation stylesheet |
-| `animations` | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal |
-| `reveal` | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays) |
-| `share-button` | Web Share API + clipboard fallback |
-| `back-to-top` | Floating scroll-to-top button |
-| `section-heading` | Eyebrow + title + subtitle, alignment and inverted variants |
-| `image-with-fallback` | Image (shim) with error placeholder |
-| `lightbox` | Click-to-enlarge image with overlay |
-| `cta-button` | CtaLink + CtaExternal, 4 variants, 2 sizes |
-| `breadcrumb` | Semantic breadcrumb navigation |
-| `dropdown-menu` | Base UI dropdown menu |
-| `sheet` | Base UI slide-out panel (drawer) |
-| `ui-shims` | Framework shims: link/image/script/use-location (every site must install this item) |
-| `newsletter` | Email signup form |
-| `language-switcher` | Language selector dropdown |
-| `manage-cookies-button` | Client-side button to reopen cookie banner |
-| `theme-provider` | React context provider that applies a theme preset by injecting CSS custom properties |
-| `theme-switcher` | Dropdown menu switcher for theme presets with color swatches |
-| `font-provider` | React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties |
-| `font-switcher` | Dropdown menu switcher for font presets, grouped by mood |
+| Name                    | Description                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                                                            |
+| `accordion`             | Base UI accordion with a bundled animation stylesheet                                                               |
+| `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal                                               |
+| `reveal`                | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)                                      |
+| `share-button`          | Web Share API + clipboard fallback                                                                                  |
+| `back-to-top`           | Floating scroll-to-top button                                                                                       |
+| `section-heading`       | Eyebrow + title + subtitle, alignment and inverted variants                                                         |
+| `image-with-fallback`   | Image (shim) with error placeholder                                                                                 |
+| `lightbox`              | Click-to-enlarge image with overlay                                                                                 |
+| `cta-button`            | CtaLink + CtaExternal, 4 variants, 2 sizes                                                                          |
+| `breadcrumb`            | Semantic breadcrumb navigation                                                                                      |
+| `dropdown-menu`         | Base UI dropdown menu                                                                                               |
+| `sheet`                 | Base UI slide-out panel (drawer)                                                                                    |
+| `ui-shims`              | Framework shims: link/image/script/use-location (every site must install this item)                                 |
+| `newsletter`            | Email signup form                                                                                                   |
+| `language-switcher`     | Language selector dropdown                                                                                          |
+| `manage-cookies-button` | Client-side button to reopen cookie banner                                                                          |
+| `theme-provider`        | React context provider that applies a theme preset by injecting CSS custom properties                               |
+| `theme-switcher`        | Dropdown menu switcher for theme presets with color swatches                                                        |
+| `font-provider`         | React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties |
+| `font-switcher`         | Dropdown menu switcher for font presets, grouped by mood                                                            |
 
 ### Blocks (17)
 
-| Name | Description |
-|------|-------------|
-| `cookie-banner` | GA4 Consent Mode v2 with localStorage |
-| `navbar` | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA |
+| Name                                                 | Description                                                                                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `cookie-banner`                                      | GA4 Consent Mode v2 with localStorage                                                                       |
+| `navbar`                                             | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
 | [back-office-sidebar](./docs/back-office-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
-| `footer` | Multi-column with brand, contact, socials, legal links |
-| `home-hero` | Full-viewport hero with image, gradient, CTA |
-| `page-hero` | Inner page hero with breadcrumb |
-| `cta-band` | Full-width CTA banner |
-| `trust-section` | Trust/expertise icon grid |
-| `service-card` | Service card with image, icon, hover effect |
-| `services-grid` | Responsive grid of service cards |
-| `faq-list` | Accordion FAQ with category filters |
-| `testimonials` | Client testimonials |
-| `method-steps` | Numbered steps with connecting line |
-| `pricing-table` | Dynamic pricing table |
-| `contact-info` | Contact details + hours + Google Maps embed |
-| `legal-page` | Prose layout for legal pages |
-| `not-found-page` | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName` |
+| `footer`                                             | Multi-column with brand, contact, socials, legal links                                                      |
+| `home-hero`                                          | Full-viewport hero with image, gradient, CTA                                                                |
+| `page-hero`                                          | Inner page hero with breadcrumb                                                                             |
+| `cta-band`                                           | Full-width CTA banner                                                                                       |
+| `trust-section`                                      | Trust/expertise icon grid                                                                                   |
+| `service-card`                                       | Service card with image, icon, hover effect                                                                 |
+| `services-grid`                                      | Responsive grid of service cards                                                                            |
+| `faq-list`                                           | Accordion FAQ with category filters                                                                         |
+| `testimonials`                                       | Client testimonials                                                                                         |
+| `method-steps`                                       | Numbered steps with connecting line                                                                         |
+| `pricing-table`                                      | Dynamic pricing table                                                                                       |
+| `contact-info`                                       | Contact details + hours + Google Maps embed                                                                 |
+| `legal-page`                                         | Prose layout for legal pages                                                                                |
+| `not-found-page`                                     | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
 ## Design system
 
@@ -152,12 +153,12 @@ The shared UI never imports `next/link`, `next/image`, `next/script` or `next/na
 It imports `@/components/forge/ui/{link,image,script,use-location}` instead — those files are
 shipped by the `ui-shims` registry item. Consumers adapt them to their framework as needed:
 
-| Shim | Next.js site | TanStack site |
-|---|---|---|
-| `link.tsx` | Adapt `next/link` | Adapt router Link, mapping `href` to `to` |
-| `image.tsx` | Adapt `next/image` as needed | Plain `<img>` or site image component |
-| `script.tsx` | Adapt `next/script`, including the `code` prop | Site script/head handling |
-| `use-location.ts` | Expose `next/navigation` usePathname | Expose router `useLocation().pathname` |
+| Shim              | Next.js site                                   | TanStack site                             |
+| ----------------- | ---------------------------------------------- | ----------------------------------------- |
+| `link.tsx`        | Adapt `next/link`                              | Adapt router Link, mapping `href` to `to` |
+| `image.tsx`       | Adapt `next/image` as needed                   | Plain `<img>` or site image component     |
+| `script.tsx`      | Adapt `next/script`, including the `code` prop | Site script/head handling                 |
+| `use-location.ts` | Expose `next/navigation` usePathname           | Expose router `useLocation().pathname`    |
 
 The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname snapshot). Consumers must include `ui-shims` when required and review them for their routing, image, and script needs. Preserve the exported names and props when adapting them; a direct framework re-export is not always compatible.
 
@@ -166,17 +167,29 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 1. Create reusable source files under `/registry/components/*`.
 2. Add corresponding registry items to `/registry/registry.json`.
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
-4. Run `pnpm registry:sync` to build the shadcn catalog and items in `/public/r/` with the official CLI.
-5. Check JSON syntax with `pnpm registry:check` and run `pnpm typecheck`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
+4. Run `pnpm format && pnpm lint:fix`, review automatic edits, then `pnpm registry:sync` to rebuild the shadcn catalog and items from the final source.
+5. Run `pnpm registry:check`, `pnpm typecheck`, and `pnpm check`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
 6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
 ## Scripts
 
+Vite Plus runs Oxlint and Oxfmt using `vite.config.ts`; linting includes type-aware
+rules and type checking. Next.js still handles development, production builds,
+and serving. Generated `public/r/` JSON is excluded from linting and formatting:
+format source files first, then regenerate it with `pnpm registry:sync`.
+
 ```bash
-pnpm dev              # Dev server
-pnpm build            # Production build
-pnpm typecheck        # TypeScript verification
+pnpm dev              # next dev
+pnpm build            # next build
+pnpm start            # next start
+pnpm lint             # vp lint (type-aware, with type checking)
+pnpm lint:fix         # vp lint --fix
+pnpm format           # vp fmt
+pnpm format:check     # vp fmt --check
+pnpm check            # vp check (format, lint, and type checks)
+pnpm fix              # vp check --fix
+pnpm typecheck        # tsc --noEmit
 pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Official shadcn catalog and item build
 ```
@@ -184,6 +197,7 @@ pnpm registry:sync    # Official shadcn catalog and item build
 ## Project structure
 
 ```
+vite.config.ts        # Vite Plus lint/format configuration
 registry/              ← Distributed UI, utilities, and reference content
   components/
     ui/             # Primitives (cta-button, section-heading, animations...)

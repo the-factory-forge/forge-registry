@@ -1,9 +1,10 @@
 "use client";
 
-import { Image } from "@/components/forge/ui/image";
-import { cn } from "@/lib/forge/utils";
 import { ImageIcon } from "lucide-react";
 import { useState } from "react";
+
+import { Image } from "@/components/forge/ui/image";
+import { cn } from "@/lib/forge/utils";
 
 export interface ImageWithFallbackProps {
   src: string;

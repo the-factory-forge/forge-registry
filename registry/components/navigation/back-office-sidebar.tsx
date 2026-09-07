@@ -267,7 +267,7 @@ function NavigationItem({
     if (item.collapsible === false)
       return (
         <li>
-          <p className="px-2 pt-2 text-xs font-medium uppercase text-muted-foreground">
+          <p className="px-2 pt-2 text-xs font-medium text-muted-foreground uppercase">
             {item.label}
           </p>
           {childList}
@@ -326,7 +326,7 @@ function UserAvatar({ user }: Pick<BackOfficeSidebarProps, "user">) {
   return (
     <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-medium text-foreground">
       {user.image && user.image !== failedImage ? (
-        // eslint-disable-next-line @next/next/no-img-element -- an unoptimized, consumer-owned profile image
+        // oxlint-disable-next-line nextjs/no-img-element -- an unoptimized, consumer-owned profile image
         <img
           src={user.image}
           alt=""
@@ -471,7 +471,7 @@ export function BackOfficeSidebar({
                   disabled={signingOut}
                   onClick={() => void signOut()}
                   className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-2 text-sm data-highlighted:bg-accent data-disabled:opacity-50",
+                    "flex items-center gap-2 rounded-md px-2 py-2 text-sm data-disabled:opacity-50 data-highlighted:bg-accent",
                     focusClassName,
                   )}
                 >
@@ -546,7 +546,7 @@ export function BackOfficeSidebar({
             data-state={open ? "expanded" : "collapsed"}
             className={cn(
               "fixed inset-y-0 left-0 z-20 flex h-svh w-64 flex-col border-r border-border bg-background text-foreground transition-transform duration-200 motion-reduce:transition-none",
-              !open && "-translate-x-full invisible",
+              !open && "invisible -translate-x-full",
               className,
             )}
           >
