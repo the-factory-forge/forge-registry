@@ -16,11 +16,10 @@ for future extractions. Its presence is not a request to migrate components now.
 When asked to extract one, implement the reusable version here. Changes to the
 source website belong to tasks that request them. There is no workspace package
 dependency between the two repositories; never import from the sibling project.
-`back-office-sidebar` is now extracted here and consumed by `tc-website` through
+`intranet-sidebar` is extracted here and consumed by `tc-website` through
 generated source files. See its guide before changing the shared contract.
 Use `intranet` for the complete internal website layout. `intranet-shell`
-composes the shared sidebar; preserve the `back-office-sidebar` item and export
-names for existing consumers. Corner branding is an optional addition.
+composes the shared sidebar. Corner branding is an optional addition.
 
 ## Read first and source of truth
 
@@ -29,7 +28,7 @@ names for existing consumers. Corner branding is an optional addition.
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.
 - `vite.config.ts`: Vite Plus lint and format settings; Next.js remains the app framework.
-- [docs/back-office-sidebar.md](./docs/back-office-sidebar.md): sidebar props,
+- [docs/intranet-sidebar.md](./docs/intranet-sidebar.md): sidebar props,
   toggle placement, Better Auth integration, and consumer updates.
 - [docs/intranet.md](./docs/intranet.md): shell composition and optional Corner CSS.
 - [MECHANICS.md](./MECHANICS.md): historical notes and known gaps; verify claims
@@ -41,20 +40,20 @@ props unless the requested change calls for a breaking change.
 
 ## Repository map
 
-| Path                                                    | Role                                                                |
-| ------------------------------------------------------- | ------------------------------------------------------------------- |
-| `registry/components/ui/`                               | Shared primitives, animations, providers, framework shims           |
-| `registry/components/sections/`                         | Composed sections such as heroes, FAQs, and pricing                 |
-| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms                                   |
-| `registry/components/intranet/`                         | Intranet shell and optional Corner components                       |
-| `registry/lib/`, `registry/content/`                    | Shared utilities, presets, SEO helpers, reference content           |
-| `registry/registry.json`                                | Editable source manifest                                            |
-| `vite.config.ts`                                        | Vite Plus lint/format configuration                                 |
-| `public/r/registry.json`, `public/r/{name}.json`        | Generated shadcn catalog and item endpoints; do not hand-edit       |
-| `src/app/`                                              | Next.js showroom: home, newsletter, back-office, and intranet demos |
-| `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities           |
-| `src/lib/i18n/`                                         | Dictionary helpers and locale config shipped by `i18n-engine`       |
-| `src/middleware.ts`                                     | Showroom-only Next.js locale routing                                |
+| Path                                                    | Role                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `registry/components/ui/`                               | Shared primitives, animations, providers, framework shims                |
+| `registry/components/sections/`                         | Composed sections such as heroes, FAQs, and pricing                      |
+| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms                                        |
+| `registry/components/intranet/`                         | Intranet shell and optional Corner components                            |
+| `registry/lib/`, `registry/content/`                    | Shared utilities, presets, SEO helpers, reference content                |
+| `registry/registry.json`                                | Editable source manifest                                                 |
+| `vite.config.ts`                                        | Vite Plus lint/format configuration                                      |
+| `public/r/registry.json`, `public/r/{name}.json`        | Generated shadcn catalog and item endpoints; do not hand-edit            |
+| `src/app/`                                              | Next.js showroom: home, newsletter, intranet-sidebar, and intranet demos |
+| `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities                |
+| `src/lib/i18n/`                                         | Dictionary helpers and locale config shipped by `i18n-engine`            |
+| `src/middleware.ts`                                     | Showroom-only Next.js locale routing                                     |
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in Next.js 16. Use the pnpm version pinned in `package.json`.
@@ -143,7 +142,7 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and
 `forge-template`, must migrate to standard `@forge` shadcn installs; do not assume
 those projects have already migrated. `tc-website` already provides
 `pnpm registry:sidebar`, which runs its pinned shadcn CLI with
-`add @forge/back-office-sidebar --yes --overwrite`. Fix shared behavior here,
+`add @forge/intranet-sidebar --yes --overwrite`. Fix shared behavior here,
 publish the generated artifacts, then update and validate each consumer before
 deploying. Source distribution does not push fixes into running websites
 automatically. Keep host adapters outside generated `components/forge/` and

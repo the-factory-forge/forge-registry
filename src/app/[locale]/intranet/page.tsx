@@ -4,9 +4,9 @@ import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
 import { IntranetShell } from "@/components/forge/intranet/intranet-shell";
-import type { BackOfficeNavGroup } from "@/components/forge/navigation/back-office-sidebar";
+import type { IntranetNavGroup } from "@/components/forge/navigation/intranet-sidebar";
 
-const groups: BackOfficeNavGroup[] = [
+const groups: IntranetNavGroup[] = [
   {
     id: "workspace",
     label: "Workspace",

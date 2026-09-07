@@ -8,7 +8,7 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
 
-The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared back-office sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
+The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared intranet sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
 
 ## What is included
 
@@ -43,12 +43,12 @@ Add this namespace to the consuming project's existing `components.json`:
 Then install an item from an initialized shadcn project:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/back-office-sidebar
+pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
 ```
 
 For local development, run `pnpm registry:sync` and `pnpm dev` here. Temporarily set the consumer's `@forge` URL to `http://localhost:3000/r/{name}.json`, then run the same install command. The namespace routes both the requested item and its dependencies to the local server; no different build is needed. Restore the published URL before committing the consumer's configuration.
 
-The [back-office sidebar guide](./docs/back-office-sidebar.md) covers props, toggles, Better Auth integration, and updating consumers. See the official [registry guide](https://ui.shadcn.com/docs/registry/getting-started) and [namespace configuration](https://ui.shadcn.com/docs/registry/namespace) for the distribution model.
+The [intranet sidebar guide](./docs/intranet-sidebar.md) covers props, toggles, Better Auth integration, and updating consumers. See the official [registry guide](https://ui.shadcn.com/docs/registry/getting-started) and [namespace configuration](https://ui.shadcn.com/docs/registry/namespace) for the distribution model.
 
 After publishing changes to `main`, update the sidebar in `tc-website` with its consumer-owned command:
 
@@ -107,39 +107,37 @@ The source of truth for this inventory is `registry/registry.json`.
 
 ### Blocks (17)
 
-| Name                                                 | Description                                                                                                 |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `cookie-banner`                                      | GA4 Consent Mode v2 with localStorage                                                                       |
-| `navbar`                                             | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
-| [back-office-sidebar](./docs/back-office-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
-| `footer`                                             | Multi-column with brand, contact, socials, legal links                                                      |
-| `home-hero`                                          | Full-viewport hero with image, gradient, CTA                                                                |
-| `page-hero`                                          | Inner page hero with breadcrumb                                                                             |
-| `cta-band`                                           | Full-width CTA banner                                                                                       |
-| `trust-section`                                      | Trust/expertise icon grid                                                                                   |
-| `service-card`                                       | Service card with image, icon, hover effect                                                                 |
-| `services-grid`                                      | Responsive grid of service cards                                                                            |
-| `faq-list`                                           | Accordion FAQ with category filters                                                                         |
-| `testimonials`                                       | Client testimonials                                                                                         |
-| `method-steps`                                       | Numbered steps with connecting line                                                                         |
-| `pricing-table`                                      | Dynamic pricing table                                                                                       |
-| `contact-info`                                       | Contact details + hours + Google Maps embed                                                                 |
-| `legal-page`                                         | Prose layout for legal pages                                                                                |
-| `not-found-page`                                     | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
+| Name                                           | Description                                                                                                 |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `cookie-banner`                                | GA4 Consent Mode v2 with localStorage                                                                       |
+| `navbar`                                       | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
+| [intranet-sidebar](./docs/intranet-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
+| `footer`                                       | Multi-column with brand, contact, socials, legal links                                                      |
+| `home-hero`                                    | Full-viewport hero with image, gradient, CTA                                                                |
+| `page-hero`                                    | Inner page hero with breadcrumb                                                                             |
+| `cta-band`                                     | Full-width CTA banner                                                                                       |
+| `trust-section`                                | Trust/expertise icon grid                                                                                   |
+| `service-card`                                 | Service card with image, icon, hover effect                                                                 |
+| `services-grid`                                | Responsive grid of service cards                                                                            |
+| `faq-list`                                     | Accordion FAQ with category filters                                                                         |
+| `testimonials`                                 | Client testimonials                                                                                         |
+| `method-steps`                                 | Numbered steps with connecting line                                                                         |
+| `pricing-table`                                | Dynamic pricing table                                                                                       |
+| `contact-info`                                 | Contact details + hours + Google Maps embed                                                                 |
+| `legal-page`                                   | Prose layout for legal pages                                                                                |
+| `not-found-page`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
 ### Intranet (3)
 
-| Name             | Description                                                                                          |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `intranet-shell` | Full internal layout composed from `back-office-sidebar`, with optional banner, topbar, and controls |
-| `corner-tokens`  | Optional Corner palette and signature CSS classes, including system dark mode                        |
-| `corner`         | Optional CornerFrame, CornerLabel, and CornerRule components; installs `corner-tokens`               |
+| Name             | Description                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| `intranet-shell` | Full internal layout composed from `intranet-sidebar`, with optional banner, topbar, and controls |
+| `corner-tokens`  | Optional Corner palette and signature CSS classes, including system dark mode                     |
+| `corner`         | Optional CornerFrame, CornerLabel, and CornerRule components; installs `corner-tokens`            |
 
-Use **intranet** for the full internal website layout. The existing
-`back-office-sidebar` item and exported names stay stable for current consumers.
-The [intranet guide](./docs/intranet.md) covers the shell and optional Corner
-styling. Preview it at `/en/intranet`; `/en/back-office` remains the focused
-sidebar demo.
+Use **intranet** for the full internal website layout. The
+[intranet guide](./docs/intranet.md) covers the shell and optional Corner styling.
+Preview it at `/en/intranet`; `/en/intranet-sidebar` is the focused sidebar demo.
 
 ```bash
 pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
@@ -221,7 +219,7 @@ vite.config.ts        # Vite Plus lint/format configuration
 registry/              ← Distributed UI, utilities, and reference content
   components/
     ui/             # Primitives (cta-button, section-heading, animations...)
-    navigation/     # back-office-sidebar, navbar, footer, language/theme/font switchers
+    navigation/     # intranet-sidebar, navbar, footer, language/theme/font switchers
     sections/       # home-hero, services-grid, faq-list, testimonials...
     layouts/        # cookie-banner, not-found-page
     intranet/       # intranet-shell composition and optional Corner components
@@ -236,7 +234,7 @@ registry/              ← Distributed UI, utilities, and reference content
   content/          # Reference content for site adaptation
   registry.json     # Source manifest (50 items)
 src/                  ← Next.js showroom plus the shipped i18n-engine files
-  app/              # Demo pages (home, newsletter, back-office, intranet)
+  app/              # Demo pages (home, newsletter, intranet-sidebar, intranet)
   lib/i18n/         # Dictionaries (shipped via the `i18n-engine` item, project-specific)
   styles/globals.css     # Design system
   middleware.ts     # Showroom-only Next.js locale detection + redirect
@@ -245,7 +243,7 @@ public/
     registry.json   # shadcn catalog
     {name}.json     # Official shadcn output with forge/ targets and @forge dependencies
 docs/
-  back-office-sidebar.md # Usage, host integration, and updates
+  intranet-sidebar.md # Usage, host integration, and updates
   intranet.md       # Full layout and optional Corner styling
 ```
 

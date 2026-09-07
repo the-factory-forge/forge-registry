@@ -16,35 +16,35 @@ import * as React from "react";
 import { Link } from "@/components/forge/ui/link";
 import { cn } from "@/lib/forge/utils";
 
-export type BackOfficeLinkProps = React.ComponentProps<"a"> & { href: string };
+export type IntranetLinkProps = React.ComponentProps<"a"> & { href: string };
 
 type NavItemBase = { id: string; label: string; icon?: React.ReactNode };
-export type BackOfficeNavItem = NavItemBase &
+export type IntranetNavItem = NavItemBase &
   (
     | { href: string; exact?: boolean; items?: never; collapsible?: never }
-    | { items: BackOfficeNavItem[]; collapsible?: boolean; href?: never; exact?: never }
+    | { items: IntranetNavItem[]; collapsible?: boolean; href?: never; exact?: never }
   );
 
-export interface BackOfficeNavGroup {
+export interface IntranetNavGroup {
   id: string;
   label?: string;
-  items: BackOfficeNavItem[];
+  items: IntranetNavItem[];
   /** Site-owned actions, such as opening an impersonation dialog. */
   footer?: React.ReactNode;
 }
 
-export interface BackOfficeSidebarProps {
+export interface IntranetSidebarProps {
   brand: { name: string; href: string; logo?: React.ReactNode };
   /** Compatible with Better Auth's standard session user fields. */
   user: { name: string; email: string; image?: string | null };
-  groups: BackOfficeNavGroup[];
+  groups: IntranetNavGroup[];
   pathname: string;
   profileHref: string;
   /** Call Better Auth, throw on result.error, then invalidate the host session. */
   onSignOut: () => Promise<void>;
-  linkComponent?: React.ComponentType<BackOfficeLinkProps>;
+  linkComponent?: React.ComponentType<IntranetLinkProps>;
   version?: string;
-  /** External requires a BackOfficeSidebarToggle inside the same provider. */
+  /** External requires an IntranetSidebarToggle inside the same provider. */
   togglePlacement?: "sidebar" | "external";
   labels?: Partial<typeof defaultLabels>;
   className?: string;
@@ -82,20 +82,20 @@ type SidebarContextValue = {
 };
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
-export function useBackOfficeSidebar() {
+export function useIntranetSidebar() {
   const context = React.useContext(SidebarContext);
   if (!context)
-    throw new Error("Use a BackOfficeSidebarProvider around the sidebar and its toggle.");
+    throw new Error("Use an IntranetSidebarProvider around the sidebar and its toggle.");
   return context;
 }
 
-export type BackOfficeSidebarProviderProps = React.ComponentProps<"div"> & {
+export type IntranetSidebarProviderProps = React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
 
-export function BackOfficeSidebarProvider({
+export function IntranetSidebarProvider({
   children,
   defaultOpen = true,
   open: controlledOpen,
@@ -103,7 +103,7 @@ export function BackOfficeSidebarProvider({
   className,
   onFocusCapture,
   ...props
-}: BackOfficeSidebarProviderProps) {
+}: IntranetSidebarProviderProps) {
   const [localOpen, setLocalOpen] = React.useState(defaultOpen);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isMobile = React.useSyncExternalStore(
@@ -169,16 +169,16 @@ export function BackOfficeSidebarProvider({
   );
 }
 
-export type BackOfficeSidebarToggleProps = React.ComponentProps<"button">;
+export type IntranetSidebarToggleProps = React.ComponentProps<"button">;
 
-export function BackOfficeSidebarToggle({
+export function IntranetSidebarToggle({
   className,
   onClick,
   children,
   "aria-label": label = defaultLabels.toggle,
   ...props
-}: BackOfficeSidebarToggleProps) {
-  const { id, isMobile, open, mobileOpen, toggle, triggerRef } = useBackOfficeSidebar();
+}: IntranetSidebarToggleProps) {
+  const { id, isMobile, open, mobileOpen, toggle, triggerRef } = useIntranetSidebar();
   return (
     <button
       type="button"
@@ -205,8 +205,8 @@ export function BackOfficeSidebarToggle({
   );
 }
 
-export type BackOfficeSidebarInsetProps = React.ComponentProps<"main">;
-export function BackOfficeSidebarInset({ className, ...props }: BackOfficeSidebarInsetProps) {
+export type IntranetSidebarInsetProps = React.ComponentProps<"main">;
+export function IntranetSidebarInset({ className, ...props }: IntranetSidebarInsetProps) {
   return (
     <main
       data-slot="sidebar-inset"
@@ -216,7 +216,7 @@ export function BackOfficeSidebarInset({ className, ...props }: BackOfficeSideba
   );
 }
 
-function itemIsActive(item: BackOfficeNavItem, pathname: string): boolean {
+function itemIsActive(item: IntranetNavItem, pathname: string): boolean {
   if (item.items) return item.items.some((child) => itemIsActive(child, pathname));
   const path = item.href.replace(/\/$/, "") || "/";
   const current = pathname.replace(/\/$/, "") || "/";
@@ -229,9 +229,9 @@ function NavigationItem({
   LinkComponent,
   closeMobile,
 }: {
-  item: BackOfficeNavItem;
+  item: IntranetNavItem;
   pathname: string;
-  LinkComponent: React.ComponentType<BackOfficeLinkProps>;
+  LinkComponent: React.ComponentType<IntranetLinkProps>;
   closeMobile: () => void;
 }) {
   const active = itemIsActive(item, pathname);
@@ -315,7 +315,7 @@ function NavigationItem({
   );
 }
 
-function UserAvatar({ user }: Pick<BackOfficeSidebarProps, "user">) {
+function UserAvatar({ user }: Pick<IntranetSidebarProps, "user">) {
   const [failedImage, setFailedImage] = React.useState<string>();
   const initials = (user.name.trim() || user.email)
     .split(/\s+/)
@@ -340,7 +340,7 @@ function UserAvatar({ user }: Pick<BackOfficeSidebarProps, "user">) {
   );
 }
 
-export function BackOfficeSidebar({
+export function IntranetSidebar({
   brand,
   user,
   groups,
@@ -352,8 +352,8 @@ export function BackOfficeSidebar({
   togglePlacement = "sidebar",
   labels: overrides,
   className,
-}: BackOfficeSidebarProps) {
-  const { id, open, isMobile, mobileOpen, setMobileOpen, triggerRef } = useBackOfficeSidebar();
+}: IntranetSidebarProps) {
+  const { id, open, isMobile, mobileOpen, setMobileOpen, triggerRef } = useIntranetSidebar();
   const labels = { ...defaultLabels, ...overrides };
   const [signingOut, setSigningOut] = React.useState(false);
   const [signOutFailed, setSignOutFailed] = React.useState(false);
@@ -490,7 +490,7 @@ export function BackOfficeSidebar({
   return (
     <>
       {togglePlacement === "sidebar" && (
-        <BackOfficeSidebarToggle
+        <IntranetSidebarToggle
           aria-label={labels.toggle}
           className={cn(
             "fixed top-2 left-2 z-30 border border-border bg-background text-foreground shadow-sm",

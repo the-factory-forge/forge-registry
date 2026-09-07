@@ -1,14 +1,12 @@
-# Back-office sidebar
+# Intranet sidebar
 
-The `back-office-sidebar` registry item extracts the sidenav used by
+The `intranet-sidebar` registry item extracts the sidenav used by
 `tc-website`: customer identity at the top, grouped and nested navigation in a
 scrollable middle section, and the signed-in user's profile at the bottom.
 The website supplies its branding, allowed destinations, and Better Auth actions.
 
 For a complete internal website layout, use [IntranetShell](./intranet.md).
-It composes this sidebar with optional banner, topbar, and controls. The
-`back-office-sidebar` item and exported names remain stable for existing
-consumers, including `tc-website`.
+It composes this sidebar with optional banner, topbar, and controls.
 
 ## Install and update
 
@@ -27,7 +25,7 @@ to the project's existing `components.json`:
 Then install the item:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/back-office-sidebar
+pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
 ```
 
 Files install under `src/components/forge/` and `src/lib/forge/` with default
@@ -45,7 +43,7 @@ pnpm format && pnpm lint:fix
 pnpm lint
 ```
 
-That command uses the pinned CLI with `shadcn add @forge/back-office-sidebar --yes --overwrite`
+That command uses the pinned CLI with `shadcn add @forge/intranet-sidebar --yes --overwrite`
 for this item and its dependencies.
 Keep custom branding, routing, navigation, and auth code outside the generated
 `forge` directories. Fix shared behavior in this repository, run
@@ -63,7 +61,7 @@ to `http://localhost:3010/r/{name}.json`, then:
 pnpm registry:sync
 pnpm dev --port 3010
 # In the consumer project:
-pnpm exec shadcn add @forge/back-office-sidebar --yes --overwrite
+pnpm exec shadcn add @forge/intranet-sidebar --yes --overwrite
 ```
 
 The official build is identical for local and published installs. Restore the
@@ -78,11 +76,11 @@ Use a client component when integrating into an RSC application:
 
 import type { ReactNode } from "react";
 import {
-  BackOfficeSidebar,
-  BackOfficeSidebarInset,
-  BackOfficeSidebarProvider,
-  type BackOfficeSidebarProps,
-} from "@/components/forge/navigation/back-office-sidebar";
+  IntranetSidebar,
+  IntranetSidebarInset,
+  IntranetSidebarProvider,
+  type IntranetSidebarProps,
+} from "@/components/forge/navigation/intranet-sidebar";
 
 export function AdminLayout({
   children,
@@ -91,13 +89,13 @@ export function AdminLayout({
   onSignOut,
 }: {
   children: ReactNode;
-  user: BackOfficeSidebarProps["user"];
+  user: IntranetSidebarProps["user"];
   pathname: string;
   onSignOut: () => Promise<void>;
 }) {
   return (
-    <BackOfficeSidebarProvider>
-      <BackOfficeSidebar
+    <IntranetSidebarProvider>
+      <IntranetSidebar
         brand={{ name: "Customer name", href: "/" }}
         user={user}
         pathname={pathname}
@@ -118,8 +116,8 @@ export function AdminLayout({
           },
         ]}
       />
-      <BackOfficeSidebarInset>{children}</BackOfficeSidebarInset>
-    </BackOfficeSidebarProvider>
+      <IntranetSidebarInset>{children}</IntranetSidebarInset>
+    </IntranetSidebarProvider>
   );
 }
 ```
@@ -150,7 +148,7 @@ mobile visibility is independent.
 | `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider              |
 
 For a custom navbar, set `togglePlacement="external"` and render
-`<BackOfficeSidebarToggle />` in that navbar, inside the same provider. Its
+`<IntranetSidebarToggle />` in that navbar, inside the same provider. Its
 `aria-label`, classes, and icon children can be customized. `tc-website` uses this
 arrangement; the navbar itself remains site-owned.
 
@@ -158,9 +156,9 @@ For TanStack Router, pass a stable adapter declared outside the layout component
 
 ```tsx
 import { Link as RouterLink } from "@tanstack/react-router";
-import type { BackOfficeLinkProps } from "@/components/forge/navigation/back-office-sidebar";
+import type { IntranetLinkProps } from "@/components/forge/navigation/intranet-sidebar";
 
-function SidebarLink({ href, ...props }: BackOfficeLinkProps) {
+function SidebarLink({ href, ...props }: IntranetLinkProps) {
   return <RouterLink to={href} {...props} />;
 }
 // Pass linkComponent={SidebarLink} and the router's current pathname.
@@ -175,7 +173,7 @@ navigation visibility; existing server authorization remains authoritative.
 
 ## Preview and verification
 
-Run `pnpm dev --port 3010` and open `/en/back-office`. The showroom uses mock
+Run `pnpm dev --port 3010` and open `/en/intranet-sidebar`. The showroom uses mock
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
 

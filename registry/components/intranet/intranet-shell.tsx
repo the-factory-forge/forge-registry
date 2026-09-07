@@ -3,16 +3,16 @@
 import type { ReactNode } from "react";
 
 import {
-  BackOfficeSidebar,
-  BackOfficeSidebarInset,
-  BackOfficeSidebarProvider,
-  BackOfficeSidebarToggle,
-  type BackOfficeSidebarProps,
-} from "@/components/forge/navigation/back-office-sidebar";
+  IntranetSidebar,
+  IntranetSidebarInset,
+  IntranetSidebarProvider,
+  IntranetSidebarToggle,
+  type IntranetSidebarProps,
+} from "@/components/forge/navigation/intranet-sidebar";
 import { cn } from "@/lib/forge/utils";
 
 export interface IntranetShellProps extends Omit<
-  BackOfficeSidebarProps,
+  IntranetSidebarProps,
   "togglePlacement" | "className"
 > {
   banner?: ReactNode;
@@ -36,13 +36,13 @@ export function IntranetShell({
   ...sidebarProps
 }: IntranetShellProps) {
   return (
-    <BackOfficeSidebarProvider>
-      <BackOfficeSidebar {...sidebarProps} togglePlacement={showTopbar ? "external" : "sidebar"} />
-      <BackOfficeSidebarInset className={cn(!showTopbar && "pt-12", className)}>
+    <IntranetSidebarProvider>
+      <IntranetSidebar {...sidebarProps} togglePlacement={showTopbar ? "external" : "sidebar"} />
+      <IntranetSidebarInset className={cn(!showTopbar && "pt-12", className)}>
         {banner && <div className="border-b border-border px-4 py-2">{banner}</div>}
         {showTopbar && (
           <header className="flex min-h-14 items-center gap-2 border-b border-border px-4 py-2">
-            <BackOfficeSidebarToggle aria-label={sidebarProps.labels?.toggle} />
+            <IntranetSidebarToggle aria-label={sidebarProps.labels?.toggle} />
             <div className="flex min-w-0 flex-1 items-center gap-2">
               {topbar ?? (
                 <span className="truncate text-sm font-medium">{sidebarProps.brand.name}</span>
@@ -52,7 +52,7 @@ export function IntranetShell({
           </header>
         )}
         <div className={cn("flex-1 p-4 sm:p-6", contentClassName)}>{children}</div>
-      </BackOfficeSidebarInset>
-    </BackOfficeSidebarProvider>
+      </IntranetSidebarInset>
+    </IntranetSidebarProvider>
   );
 }

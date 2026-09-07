@@ -14,14 +14,14 @@ import {
 import { useState, useSyncExternalStore } from "react";
 
 import {
-  BackOfficeSidebar,
-  BackOfficeSidebarInset,
-  BackOfficeSidebarProvider,
-  BackOfficeSidebarToggle,
-  type BackOfficeNavGroup,
-} from "@/components/forge/navigation/back-office-sidebar";
+  IntranetSidebar,
+  IntranetSidebarInset,
+  IntranetSidebarProvider,
+  IntranetSidebarToggle,
+  type IntranetNavGroup,
+} from "@/components/forge/navigation/intranet-sidebar";
 
-const groups: BackOfficeNavGroup[] = [
+const groups: IntranetNavGroup[] = [
   {
     id: "my-space",
     label: "My space",
@@ -102,7 +102,7 @@ function subscribePath(onChange: () => void) {
   return () => window.removeEventListener("hashchange", onChange);
 }
 
-export default function BackOfficeExample() {
+export default function IntranetSidebarExample() {
   const pathname = useSyncExternalStore(
     subscribePath,
     () => window.location.hash || "#profile",
@@ -114,8 +114,8 @@ export default function BackOfficeExample() {
   const [name, setName] = useState("The Corner");
 
   return (
-    <BackOfficeSidebarProvider>
-      <BackOfficeSidebar
+    <IntranetSidebarProvider>
+      <IntranetSidebar
         brand={{
           name,
           href: "#profile",
@@ -137,10 +137,10 @@ export default function BackOfficeExample() {
           setSignedOut(true);
         }}
       />
-      <BackOfficeSidebarInset>
+      <IntranetSidebarInset>
         {externalToggle && (
           <header className="flex h-12 items-center gap-3 border-b border-border px-4">
-            <BackOfficeSidebarToggle />
+            <IntranetSidebarToggle />
             <span className="text-sm font-medium">Example navbar</span>
           </header>
         )}
@@ -149,7 +149,7 @@ export default function BackOfficeExample() {
             <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Registry preview
             </p>
-            <h1 className="mt-2 text-3xl font-semibold">Back-office sidebar</h1>
+            <h1 className="mt-2 text-3xl font-semibold">Intranet sidebar</h1>
             <p className="mt-3 text-muted-foreground">
               Customer branding, nested navigation, and a user profile. The sidebar works with or
               without a navbar.
@@ -193,7 +193,7 @@ export default function BackOfficeExample() {
             Use the toggle or Ctrl/Cmd+B. On smaller screens, navigation opens in a modal drawer.
           </p>
         </div>
-      </BackOfficeSidebarInset>
-    </BackOfficeSidebarProvider>
+      </IntranetSidebarInset>
+    </IntranetSidebarProvider>
   );
 }

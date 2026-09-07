@@ -2,13 +2,12 @@
 
 `intranet-shell` is the layout for an internal website: customer branding,
 configurable navigation, a user profile, and a content area with optional banner,
-topbar, and controls. It composes the existing `back-office-sidebar` so both
+topbar, and controls. It composes `intranet-sidebar` so both
 layouts share navigation, toggle, mobile drawer, and profile behavior.
 
-Use **intranet** for the complete internal website. The `back-office-sidebar`
-registry item and exported names remain stable for existing consumers such as
-`tc-website`. See the [sidebar guide](./back-office-sidebar.md) for its full
-navigation, router, and Better Auth contracts.
+Use **intranet** for the complete internal website. See the
+[sidebar guide](./intranet-sidebar.md) for its full navigation, router, and
+Better Auth contracts.
 
 ## Install
 
@@ -96,7 +95,7 @@ The shell manages its provider and toggle placement. On desktop, navigation
 collapses offcanvas; on mobile, it uses the shared modal drawer. The profile
 remains part of the sidebar in either configuration. For more control over the
 provider, toggle placement, or a custom navbar structure, compose the
-[sidebar exports](./back-office-sidebar.md#minimal-layout-without-a-navbar)
+[sidebar exports](./intranet-sidebar.md#minimal-layout-without-a-navbar)
 directly.
 
 ## Optional Corner styling
@@ -143,8 +142,8 @@ components.
 ## Preview and update
 
 Run `pnpm dev --port 3010` and open `/en/intranet`. The showroom uses mock user
-and navigation data, a banner control, and a topbar toggle. `/en/back-office`
-remains available for focused sidebar behavior checks.
+and navigation data, a banner control, and a topbar toggle.
+`/en/intranet-sidebar` provides focused sidebar behavior checks.
 
 Use the [local registry workflow](../README.md#installing-from-the-registry) to
 test changes in a consumer. Publish generated artifacts before updating from the

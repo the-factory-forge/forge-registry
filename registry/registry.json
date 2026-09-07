@@ -799,17 +799,17 @@
       "registryDependencies": ["@forge/footer"]
     },
     {
-      "name": "back-office-sidebar",
+      "name": "intranet-sidebar",
       "type": "registry:block",
-      "title": "Back-office Sidebar",
-      "description": "Responsive sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
+      "title": "Intranet Sidebar",
+      "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
       "files": [
         {
-          "path": "registry/components/navigation/back-office-sidebar.tsx",
+          "path": "registry/components/navigation/intranet-sidebar.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/back-office-sidebar.tsx"
+          "target": "@components/forge/navigation/intranet-sidebar.tsx"
         }
       ]
     },
@@ -844,8 +844,8 @@
       "name": "intranet-shell",
       "type": "registry:block",
       "title": "Intranet Shell",
-      "description": "Authenticated intranet layout using the shared back-office sidebar, with customer branding, navigation, user profile, optional banner, topbar and controls. Works with or without a topbar.",
-      "registryDependencies": ["@forge/back-office-sidebar", "@forge/cn"],
+      "description": "Authenticated intranet layout using the shared intranet sidebar, with customer branding, navigation, user profile, optional banner, topbar and controls. Works with or without a topbar.",
+      "registryDependencies": ["@forge/intranet-sidebar", "@forge/cn"],
       "files": [
         {
           "path": "registry/components/intranet/intranet-shell.tsx",
