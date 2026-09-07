@@ -3,9 +3,9 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Image } from "#/components/ui/image"
+import { Image } from "@/components/forge/ui/image"
 import { X } from "lucide-react"
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface LightboxProps {
   src: string

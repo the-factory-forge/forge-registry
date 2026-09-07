@@ -1,4 +1,4 @@
-import type { FooterProps } from "#/components/navigation/footer"
+import type { FooterProps } from "@/components/forge/navigation/footer"
 
 export interface FooterOptions {
   /** Brand name shown in the footer and copyright line. */

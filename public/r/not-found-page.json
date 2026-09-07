@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "not-found-page",
+  "title": "404 Page",
+  "description": "Styled 404 page with themed branding: optional logo, icon pastille, badge, dual CTAs and foot line.",
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/cta-button"
+  ],
+  "files": [
+    {
+      "path": "registry/components/layouts/not-found-page.tsx",
+      "content": "import type { ReactNode } from \"react\";\n\nimport { CtaLink } from \"@/components/forge/ui/cta-button\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface NotFoundCta {\n  label: string;\n  href: string;\n}\n\nexport interface NotFoundLogo {\n  src: string;\n  alt: string;\n  href?: string;\n}\n\nexport interface NotFoundPageProps {\n  title?: string;\n  description?: string;\n  /** Badge pill shown above the error code (e.g. \"Erreur 404\"). */\n  badge?: string;\n  /** Brand logo shown at the top, linked to home by default. */\n  logo?: NotFoundLogo;\n  /** Themed icon in a round pastille (used when the site has no logo). */\n  icon?: ReactNode;\n  /** Primary CTA (defaults to ctaLabel/ctaHref for backward compatibility). */\n  primaryCta?: NotFoundCta;\n  /** Secondary CTA rendered as an outline button next to the primary one. */\n  secondaryCta?: NotFoundCta;\n  /** Foot line below the CTAs (e.g. an emergency line with a phone link). */\n  footnote?: ReactNode;\n  errorCode?: string;\n  ctaClassName?: string;\n  className?: string;\n}\n\nexport function NotFoundPage({\n  title = \"Page not found\",\n  description = \"The page you are looking for does not exist or has been moved.\",\n  badge,\n  logo,\n  icon,\n  primaryCta,\n  secondaryCta,\n  footnote,\n  ctaLabel,\n  ctaHref,\n  errorCode = \"404\",\n  ctaClassName,\n  className,\n}: NotFoundPageProps & { ctaLabel?: string; ctaHref?: string }) {\n  const cta = primaryCta ?? { label: ctaLabel ?? \"Back to home\", href: ctaHref ?? \"/\" };\n\n  return (\n    <main\n      className={cn(\n        \"flex min-h-[60vh] flex-col items-center justify-center px-5 py-20 text-center\",\n        className,\n      )}\n    >\n      {logo && (\n        <a\n          href={logo.href ?? \"/\"}\n          className=\"mb-8 inline-block\"\n          aria-label={logo.alt}\n          title={logo.alt}\n        >\n          <img src={logo.src} alt={logo.alt} className=\"h-11 w-auto\" />\n        </a>\n      )}\n      {icon && (\n        <div className=\"mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10\">\n          {icon}\n        </div>\n      )}\n      {badge && (\n        <span className=\"mb-2 inline-block rounded-full bg-secondary px-4 py-1.5 text-sm font-semibold text-secondary-foreground\">\n          {badge}\n        </span>\n      )}\n      <span className=\"text-8xl font-bold text-primary/20\">{errorCode}</span>\n      <h1 className=\"mt-4 font-heading text-3xl font-bold text-foreground sm:text-4xl\">{title}</h1>\n      <p className=\"mt-4 max-w-md text-lg text-muted-foreground\">{description}</p>\n      <div className=\"mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row\">\n        <CtaLink href={cta.href} size=\"lg\" className={ctaClassName}>\n          {cta.label}\n        </CtaLink>\n        {secondaryCta && (\n          <CtaLink href={secondaryCta.href} size=\"lg\" variant=\"outline\">\n            {secondaryCta.label}\n          </CtaLink>\n        )}\n      </div>\n      {footnote && (\n        <div className=\"mt-12 border-t border-border pt-8\">{footnote}</div>\n      )}\n    </main>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/layouts/not-found-page.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

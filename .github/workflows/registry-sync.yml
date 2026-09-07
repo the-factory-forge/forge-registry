@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - "public/registry/registry.json"
+      - "public/r/**"
 
 permissions:
   contents: write
@@ -30,13 +30,13 @@ jobs:
 
       - run: pnpm typecheck
 
-      - name: Commit updated manifest
+      - name: Commit updated registry
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/registry/registry.json
+          git add public/r
           if git diff --staged --quiet; then
-            echo "No changes to manifest"
+            echo "No changes to registry"
           else
             git commit -m "chore(registry): auto-sync manifest [skip ci]"
             git push

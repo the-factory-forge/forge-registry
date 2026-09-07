@@ -1,0 +1,45 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "theme-presets",
+  "title": "Theme Presets",
+  "description": "Industry + mood based theme preset system with 5 starter presets (example-colors, sage-clinic, swiss-corporate, alpine-table, solar-libre).",
+  "files": [
+    {
+      "path": "registry/lib/themes/index.ts",
+      "content": "import exampleColors from \"./presets/example-colors.json\"\nimport sageClinic from \"./presets/sage-clinic.json\"\nimport swissCorporate from \"./presets/swiss-corporate.json\"\nimport alpineTable from \"./presets/alpine-table.json\"\nimport solarLibre from \"./presets/solar-libre.json\"\nimport medieval from \"./presets/medieval.json\"\nimport houseOfTheDragon from \"./presets/house-of-the-dragon.json\"\nimport worldOfWarcraft from \"./presets/world-of-warcraft.json\"\nimport banners from \"./presets/banners.json\"\nimport bannersDark from \"./presets/banners-dark.json\"\n\nexport type ThemeTokenKey =\n  | \"--background\"\n  | \"--foreground\"\n  | \"--primary\"\n  | \"--primary-foreground\"\n  | \"--secondary\"\n  | \"--secondary-foreground\"\n  | \"--accent\"\n  | \"--accent-foreground\"\n  | \"--muted\"\n  | \"--muted-foreground\"\n  | \"--border\"\n  | \"--ring\"\n  | \"--dark-foreground\"\n\nexport type ThemeTokens = Partial<Record<ThemeTokenKey, string>>\n\nexport interface ThemePreset {\n  id: string\n  label: string\n  industry: string\n  mood: string\n  tokens: ThemeTokens\n}\n\nexport const defaultPresetId = \"example-colors\"\n\nexport const presets: ThemePreset[] = [\n  exampleColors as ThemePreset,\n  alpineTable as ThemePreset,\n  sageClinic as ThemePreset,\n  swissCorporate as ThemePreset,\n  solarLibre as ThemePreset,\n  medieval as ThemePreset,\n  houseOfTheDragon as ThemePreset,\n  worldOfWarcraft as ThemePreset,\n  banners as ThemePreset,\n  bannersDark as ThemePreset,\n]\n\nexport function getPreset(id: string): ThemePreset | undefined {\n  return presets.find((p) => p.id === id)\n}\n\nexport function groupByIndustry(): Record<string, ThemePreset[]> {\n  const groups: Record<string, ThemePreset[]> = {}\n  for (const preset of presets) {\n    if (!groups[preset.industry]) {\n      groups[preset.industry] = []\n    }\n    groups[preset.industry].push(preset)\n  }\n  return groups\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/index.ts"
+    },
+    {
+      "path": "registry/lib/themes/presets/example-colors.json",
+      "content": "{\n  \"id\": \"example-colors\",\n  \"label\": \"Example Colors\",\n  \"industry\": \"default\",\n  \"mood\": \"default\",\n  \"tokens\": {\n    \"--background\": \"#ffffff\",\n    \"--foreground\": \"#171717\",\n    \"--primary\": \"#2563eb\",\n    \"--primary-foreground\": \"#ffffff\",\n    \"--secondary\": \"#f59e0b\",\n    \"--secondary-foreground\": \"#0f172a\",\n    \"--accent\": \"#f1f5f9\",\n    \"--accent-foreground\": \"#0f172a\",\n    \"--muted\": \"#f1f5f9\",\n    \"--muted-foreground\": \"#64748b\",\n    \"--border\": \"#e2e8f0\",\n    \"--ring\": \"#2563eb\",\n    \"--dark-foreground\": \"#fafafa\"\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/presets/example-colors.json"
+    },
+    {
+      "path": "registry/lib/themes/presets/sage-clinic.json",
+      "content": "{\n  \"id\": \"sage-clinic\",\n  \"label\": \"Sage Clinic\",\n  \"industry\": \"medical\",\n  \"mood\": \"soft\",\n  \"tokens\": {\n    \"--background\": \"#FAF8F5\",\n    \"--foreground\": \"#2C2A25\",\n    \"--primary\": \"#6B7F5E\",\n    \"--primary-foreground\": \"#FFFFFF\",\n    \"--secondary\": \"#F0EBE3\",\n    \"--secondary-foreground\": \"#2C2A25\",\n    \"--accent\": \"#D4C5A9\",\n    \"--accent-foreground\": \"#2C2A25\",\n    \"--muted\": \"#F0EBE3\",\n    \"--muted-foreground\": \"#78756E\",\n    \"--border\": \"#E5DFD5\",\n    \"--ring\": \"#6B7F5E\",\n    \"--dark-foreground\": \"#FAF8F5\"\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/presets/sage-clinic.json"
+    },
+    {
+      "path": "registry/lib/themes/presets/swiss-corporate.json",
+      "content": "{\n  \"id\": \"swiss-corporate\",\n  \"label\": \"Swiss Corporate\",\n  \"industry\": \"finance\",\n  \"mood\": \"corporate\",\n  \"tokens\": {\n    \"--background\": \"#ffffff\",\n    \"--foreground\": \"#35322e\",\n    \"--primary\": \"#729fc6\",\n    \"--primary-foreground\": \"#ffffff\",\n    \"--secondary\": \"#f3f1ee\",\n    \"--secondary-foreground\": \"#35322e\",\n    \"--accent\": \"#729fc6\",\n    \"--accent-foreground\": \"#ffffff\",\n    \"--muted\": \"#f3f1ee\",\n    \"--muted-foreground\": \"#6b6760\",\n    \"--border\": \"#e6e3df\",\n    \"--ring\": \"#729fc6\",\n    \"--dark-foreground\": \"#ffffff\"\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/presets/swiss-corporate.json"
+    },
+    {
+      "path": "registry/lib/themes/presets/alpine-table.json",
+      "content": "{\n  \"id\": \"alpine-table\",\n  \"label\": \"Alpine Table\",\n  \"industry\": \"hospitality\",\n  \"mood\": \"warm\",\n  \"tokens\": {\n    \"--background\": \"#FAF6EE\",\n    \"--foreground\": \"#3B3630\",\n    \"--primary\": \"#2E5D43\",\n    \"--primary-foreground\": \"#FBF6EC\",\n    \"--secondary\": \"#EFE7D6\",\n    \"--secondary-foreground\": \"#3B3630\",\n    \"--accent\": \"#C66B3E\",\n    \"--accent-foreground\": \"#FFFBF4\",\n    \"--muted\": \"#EEE7DA\",\n    \"--muted-foreground\": \"#7A6F5E\",\n    \"--border\": \"#E0D8C6\",\n    \"--ring\": \"#2E5D43\",\n    \"--dark-foreground\": \"#FBF6EC\"\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/presets/alpine-table.json"
+    },
+    {
+      "path": "registry/lib/themes/presets/solar-libre.json",
+      "content": "{\n  \"id\": \"solar-libre\",\n  \"label\": \"Solar Libre\",\n  \"industry\": \"energy\",\n  \"mood\": \"bold\",\n  \"tokens\": {\n    \"--background\": \"#ffffff\",\n    \"--foreground\": \"#1f2a2a\",\n    \"--primary\": \"#ff803e\",\n    \"--primary-foreground\": \"#ffffff\",\n    \"--secondary\": \"#005f60\",\n    \"--secondary-foreground\": \"#ffffff\",\n    \"--accent\": \"#fff4ec\",\n    \"--accent-foreground\": \"#005f60\",\n    \"--muted\": \"#eef4f3\",\n    \"--muted-foreground\": \"#5a6b6a\",\n    \"--border\": \"#e2e8f0\",\n    \"--ring\": \"#ff803e\",\n    \"--dark-foreground\": \"#fdf6f0\"\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/themes/presets/solar-libre.json"
+    }
+  ],
+  "type": "registry:lib"
+}

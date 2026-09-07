@@ -1,6 +1,6 @@
-import { Link } from "#/components/ui/link"
+import { Link } from "@/components/forge/ui/link"
 import { ChevronRight } from "lucide-react"
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface Crumb {
   label: string

@@ -1,8 +1,8 @@
 import {
   type SectionVariant,
   sectionVariantClasses,
-} from "#/lib/section-variants"
-import { cn } from "#/lib/utils"
+} from "@/lib/forge/section-variants"
+import { cn } from "@/lib/forge/utils"
 
 export interface SectionHeadingProps {
   eyebrow?: string

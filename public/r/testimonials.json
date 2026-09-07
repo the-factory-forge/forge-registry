@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "testimonials",
+  "title": "Testimonials",
+  "description": "Social proof section displaying client testimonials with color variant.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/section-heading",
+    "@forge/reveal",
+    "@forge/section-variants"
+  ],
+  "files": [
+    {
+      "path": "registry/components/sections/testimonials.tsx",
+      "content": "import { Quote } from \"lucide-react\"\nimport { SectionHeading } from \"@/components/forge/ui/section-heading\"\nimport { Reveal } from \"@/components/forge/ui/reveal\"\nimport {\n  type SectionVariant,\n  sectionVariantClasses,\n} from \"@/lib/forge/section-variants\"\nimport { cn } from \"@/lib/forge/utils\"\n\nexport interface Testimonial {\n  quote: string\n  name: string\n  role?: string\n  company?: string\n}\n\nexport interface TestimonialsProps {\n  eyebrow?: string\n  title: string\n  subtitle?: string\n  items: Testimonial[]\n  variant?: SectionVariant\n  className?: string\n}\n\nexport function Testimonials({\n  eyebrow,\n  title,\n  subtitle,\n  items,\n  variant = \"default\",\n  className,\n}: TestimonialsProps) {\n  const colors = sectionVariantClasses[variant]\n  const isDark = variant === \"primary\" || variant === \"secondary\"\n\n  return (\n    <section className={cn(\"section-padding\", \"[content-visibility:auto] [contain-intrinsic-size:auto_800px]\", colors.section, className)}>\n      <div className=\"container-premium\">\n        <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />\n        <div className=\"mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3\">\n          {items.map((t, i) => (\n            <Reveal key={t.name} delay={i * 0.1}>\n              <figure className={cn(\"flex h-full flex-col rounded-xl border p-6 shadow-sm\", colors.card, colors.cardBorder)}>\n                <Quote className={cn(\"mb-4 h-8 w-8 opacity-20\", isDark ? \"text-primary-foreground\" : \"text-secondary\")} aria-hidden=\"true\" />\n                <blockquote className={cn(\"flex-1 text-sm leading-relaxed\", colors.heading)}>\n                  &ldquo;{t.quote}&rdquo;\n                </blockquote>\n                <figcaption className={cn(\"mt-6 border-t pt-4\", colors.cardBorder)}>\n                  <p className={cn(\"font-semibold\", colors.heading)}>{t.name}</p>\n                  {(t.role || t.company) && (\n                    <p className={cn(\"text-sm\", colors.body)}>\n                      {[t.role, t.company].filter(Boolean).join(\" — \")}\n                    </p>\n                  )}\n                </figcaption>\n              </figure>\n            </Reveal>\n          ))}\n        </div>\n      </div>\n    </section>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/sections/testimonials.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

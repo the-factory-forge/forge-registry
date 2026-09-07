@@ -1,8 +1,8 @@
-import { Link } from "#/components/ui/link"
+import { Link } from "@/components/forge/ui/link"
 import type { LucideIcon } from "lucide-react"
 import { ArrowRight } from "lucide-react"
-import { ImageWithFallback } from "#/components/ui/image-with-fallback"
-import { cn } from "#/lib/utils"
+import { ImageWithFallback } from "@/components/forge/ui/image-with-fallback"
+import { cn } from "@/lib/forge/utils"
 
 export interface ServiceCardProps {
   title: string

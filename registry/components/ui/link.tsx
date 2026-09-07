@@ -8,7 +8,7 @@
 
 import { forwardRef } from "react"
 
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string

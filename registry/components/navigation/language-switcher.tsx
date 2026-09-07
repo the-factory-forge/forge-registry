@@ -1,15 +1,15 @@
 "use client"
 
-import { Link } from "#/components/ui/link"
-import { usePathname } from "#/components/ui/use-location"
+import { Link } from "@/components/forge/ui/link"
+import { usePathname } from "@/components/forge/ui/use-location"
 import { Globe, Check } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu"
-import { cn } from "#/lib/utils"
+} from "@/components/forge/ui/dropdown-menu"
+import { cn } from "@/lib/forge/utils"
 
 export interface LanguageSwitcherProps {
   locale: string

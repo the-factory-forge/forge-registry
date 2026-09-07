@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Newsletter } from "#/components/forms/newsletter";
+import { Newsletter } from "@/components/forge/forms/newsletter";
 
 export function NewsletterExample() {
   const [loading, setLoading] = React.useState(false);

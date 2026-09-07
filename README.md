@@ -8,31 +8,59 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
 
-The attached sibling project `../tc-website` is a reference and a source of components we will extract in future tasks. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate a migration.
+The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared back-office sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
 
 ## What is included
 
 - Next.js 16 (App Router) + React 19 showroom shell for previewing shared UI
-- TypeScript strict with path aliases (`#/*` for registry files; `@/*` resolves registry files first, then showroom files)
+- TypeScript strict with `@/components/forge/*` and `@/lib/forge/*` aliases for registry source files; `@/*` resolves showroom files
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
-- Registry manifests (`/registry/registry.json` → `/public/registry/registry.json`)
+- Registry manifest (`/registry/registry.json`) and generated shadcn catalog and item endpoints in `/public/r/`
 
 ## Installing from the registry
 
-The existing integration documented for `forge-template` uses a consumer-owned pull script:
+`pnpm registry:sync` uses the pinned official shadcn CLI to build the catalog (`public/r/registry.json`) and installable items (`public/r/{name}.json`):
 
 ```bash
-# From the forge-template project
-pnpm registry:pull
+shadcn build registry/registry.json --output public/r
 ```
 
-The generated `public/registry/registry.json` embeds all listed source file contents, so a consumer script can copy components without cloning this repo. `registry:pull` is not a script in this repository or the attached `tc-website`; check the target project's implementation before using it.
+The source manifest declares file targets and `@forge/...` dependencies. Components install under the consumer's configured `components/forge/` directory; utilities install under `lib/forge/`, with reference content under `lib/forge/content/`. Source imports already match those paths; shadcn resolves the consumer's configured aliases.
 
-Direct shadcn installation is part of the project's goal. The current custom build emits one aggregate manifest, with no individual item endpoints. The [standard shadcn workflow](https://ui.shadcn.com/docs/registry/getting-started) uses item URLs for individual installs. Those endpoints and an end-to-end install check still need to be implemented before documenting a working `shadcn add` command for this registry.
+Add this namespace to the consuming project's existing `components.json`:
 
-## Registry items (46)
+```json
+{
+  "registries": {
+    "@forge": "https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json"
+  }
+}
+```
+
+Then install an item from an initialized shadcn project:
+
+```bash
+pnpm dlx shadcn@4.19.1 add @forge/back-office-sidebar
+```
+
+For local development, run `pnpm registry:sync` and `pnpm dev` here. Temporarily set the consumer's `@forge` URL to `http://localhost:3000/r/{name}.json`, then run the same install command. The namespace routes both the requested item and its dependencies to the local server; no different build is needed. Restore the published URL before committing the consumer's configuration.
+
+The [back-office sidebar guide](./docs/back-office-sidebar.md) covers props, toggles, Better Auth integration, and updating consumers. See the official [registry guide](https://ui.shadcn.com/docs/registry/getting-started) and [namespace configuration](https://ui.shadcn.com/docs/registry/namespace) for the distribution model.
+
+After publishing changes to `main`, update the sidebar in `tc-website` with its consumer-owned command:
+
+```bash
+# In tc-website
+pnpm registry:sidebar
+```
+
+This reruns shadcn with `--overwrite` for the sidebar and its registry dependencies. Shared fixes reach each website when it pulls the new source and deploys; they do not update running sites automatically. Keep site adapters outside generated `forge/` directories, and review the update diff before deploying.
+
+The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Existing consumers such as `forge-template` must migrate to standard shadcn installs using `@forge`; this change does not migrate those projects automatically. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
+
+## Registry items (47)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -76,12 +104,13 @@ The source of truth for this inventory is `registry/registry.json`.
 | `font-provider` | React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties |
 | `font-switcher` | Dropdown menu switcher for font presets, grouped by mood |
 
-### Blocks (16)
+### Blocks (17)
 
 | Name | Description |
 |------|-------------|
 | `cookie-banner` | GA4 Consent Mode v2 with localStorage |
 | `navbar` | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA |
+| [back-office-sidebar](./docs/back-office-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
 | `footer` | Multi-column with brand, contact, socials, legal links |
 | `home-hero` | Full-viewport hero with image, gradient, CTA |
 | `page-hero` | Inner page hero with breadcrumb |
@@ -120,7 +149,7 @@ Components using `inverted` (e.g. `section-heading`) rely on `text-dark-foregrou
 ### Framework shims (ui-shims item)
 
 The shared UI never imports `next/link`, `next/image`, `next/script` or `next/navigation`.
-It imports `#/components/ui/{link,image,script,use-location}` instead — those files are
+It imports `@/components/forge/ui/{link,image,script,use-location}` instead — those files are
 shipped by the `ui-shims` registry item. Consumers adapt them to their framework as needed:
 
 | Shim | Next.js site | TanStack site |
@@ -136,10 +165,11 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 
 1. Create reusable source files under `/registry/components/*`.
 2. Add corresponding registry items to `/registry/registry.json`.
-3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), and file references.
-4. Run `pnpm registry:sync` to build the publishable manifest (with embedded file content) to `/public/registry/`.
+3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
+4. Run `pnpm registry:sync` to build the shadcn catalog and items in `/public/r/` with the official CLI.
 5. Check JSON syntax with `pnpm registry:check` and run `pnpm typecheck`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
-6. Push to `main` — the GitHub Actions `sync` workflow auto-rebuilds the manifest and commits it back. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
+6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
+7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
 ## Scripts
 
@@ -148,7 +178,7 @@ pnpm dev              # Dev server
 pnpm build            # Production build
 pnpm typecheck        # TypeScript verification
 pnpm registry:check   # Parse source registry JSON (syntax only)
-pnpm registry:sync    # Build publishable registry with embedded content
+pnpm registry:sync    # Official shadcn catalog and item build
 ```
 
 ## Project structure
@@ -157,7 +187,7 @@ pnpm registry:sync    # Build publishable registry with embedded content
 registry/              ← Distributed UI, utilities, and reference content
   components/
     ui/             # Primitives (cta-button, section-heading, animations...)
-    navigation/     # navbar, footer, language-switcher, manage-cookies-button, theme-switcher, font-switcher
+    navigation/     # back-office-sidebar, navbar, footer, language/theme/font switchers
     sections/       # home-hero, services-grid, faq-list, testimonials...
     layouts/        # cookie-banner, not-found-page
     forms/          # newsletter, newsletter-example
@@ -168,17 +198,18 @@ registry/              ← Distributed UI, utilities, and reference content
     fonts/          # Font preset data (index.ts + presets/*.json)
     seo/            # build-metadata, json-ld
   content/          # Reference content for site adaptation
-  registry.json     # Source manifest (46 items)
+  registry.json     # Source manifest (47 items)
 src/                  ← Next.js showroom plus the shipped i18n-engine files
   app/              # Demo pages (home, newsletter...)
   lib/i18n/         # Dictionaries (shipped via the `i18n-engine` item, project-specific)
   styles/globals.css     # Design system
   middleware.ts     # Next.js locale detection + redirect (shipped in i18n-engine)
-scripts/
-  build-registry.mjs  # Reads source files, builds publishable manifest
 public/
-  registry/
-    registry.json   # Published copy with embedded content, target=src/ for consumers
+  r/
+    registry.json   # shadcn catalog
+    {name}.json     # Official shadcn output with forge/ targets and @forge dependencies
+docs/
+  back-office-sidebar.md # Usage, host integration, and updates
 ```
 
 ## Adding a new component

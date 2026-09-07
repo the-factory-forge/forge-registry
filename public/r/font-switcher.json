@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "font-switcher",
+  "title": "Font Switcher",
+  "description": "Dropdown menu switcher for font presets, grouped by family (Sans / Serif / Mono). Each item previews its own font. Only renders in preview mode.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/dropdown-menu",
+    "@forge/font-provider"
+  ],
+  "files": [
+    {
+      "path": "registry/components/navigation/font-switcher.tsx",
+      "content": "\"use client\"\n\nimport { Type, Check, ChevronRight } from \"lucide-react\"\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuSub,\n  DropdownMenuSubContent,\n  DropdownMenuSubTrigger,\n  DropdownMenuTrigger,\n} from \"@/components/forge/ui/dropdown-menu\"\nimport { cn } from \"@/lib/forge/utils\"\nimport { type FontRole, groupByCategory } from \"@/lib/forge/fonts\"\nimport { useFont } from \"@/components/forge/ui/font-provider\"\n\nexport interface FontSwitcherProps {\n  label?: string\n  ariaLabel?: string\n  roleLabels?: Partial<Record<FontRole, string>>\n  className?: string\n}\n\nconst DEFAULT_ROLE_LABELS: Record<FontRole, string> = {\n  heading: \"Titres\",\n  eyebrow: \"Eyebrow\",\n  body: \"Texte\",\n}\n\nexport function FontSwitcher({\n  label,\n  ariaLabel = \"Font\",\n  roleLabels,\n  className,\n}: FontSwitcherProps) {\n  const { isLocked, config, setRoleFont, allFonts } = useFont()\n\n  if (isLocked) return null\n\n  const labels: Record<FontRole, string> = {\n    ...DEFAULT_ROLE_LABELS,\n    ...roleLabels,\n  }\n\n  const roles = Object.keys(DEFAULT_ROLE_LABELS) as FontRole[]\n  const categories = groupByCategory()\n\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger\n        aria-label={ariaLabel}\n        className={cn(\n          \"inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring\",\n          className,\n        )}\n      >\n        <Type className=\"h-4 w-4\" aria-hidden=\"true\" />\n        {label && <span>{label}</span>}\n      </DropdownMenuTrigger>\n      <DropdownMenuContent align=\"end\" className=\"w-60\">\n        {roles.map((role) => (\n          <DropdownMenuSub key={role}>\n            <DropdownMenuSubTrigger className=\"justify-between\">\n              {labels[role]}\n              <span className=\"text-xs font-normal text-muted-foreground\">\n                {allFonts.find((f) => f.id === config[role])?.label ?? \"\"}\n              </span>\n            </DropdownMenuSubTrigger>\n            <DropdownMenuSubContent className=\"w-52\">\n              {Object.entries(categories).map(([category, fonts]) => (\n                <DropdownMenuSub key={category}>\n                  <DropdownMenuSubTrigger className=\"justify-between\">\n                    <span>{category}</span>\n                    <ChevronRight className=\"h-3.5 w-3.5\" aria-hidden=\"true\" />\n                  </DropdownMenuSubTrigger>\n                  <DropdownMenuSubContent className=\"w-44\">\n                    {fonts.map((font) => (\n                      <DropdownMenuItem\n                        key={font.id}\n                        className=\"justify-between\"\n                        onClick={() => setRoleFont(role, font.id)}\n                      >\n                        <span style={{ fontFamily: font.cssVar }}>{font.label}</span>\n                        {font.id === config[role] && (\n                          <Check className=\"h-4 w-4 shrink-0 text-primary\" aria-hidden=\"true\" />\n                        )}\n                      </DropdownMenuItem>\n                    ))}\n                  </DropdownMenuSubContent>\n                </DropdownMenuSub>\n              ))}\n            </DropdownMenuSubContent>\n          </DropdownMenuSub>\n        ))}\n      </DropdownMenuContent>\n    </DropdownMenu>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/navigation/font-switcher.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

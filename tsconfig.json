@@ -23,12 +23,17 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./registry/*",
-        "./src/*"
+      "@/components/forge/*": [
+        "./registry/components/*"
       ],
-      "#/*": [
-        "./registry/*"
+      "@/lib/forge/content/*": [
+        "./registry/content/*"
+      ],
+      "@/lib/forge/*": [
+        "./registry/lib/*"
+      ],
+      "@/*": [
+        "./src/*"
       ]
     }
   },

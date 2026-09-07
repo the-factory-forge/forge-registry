@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { Share2, Check } from "lucide-react"
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface ShareButtonProps {
   title: string

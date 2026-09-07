@@ -3,7 +3,7 @@
 import { motion, useInView } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface RevealProps {
   children: ReactNode

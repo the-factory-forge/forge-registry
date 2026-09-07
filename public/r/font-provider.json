@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "font-provider",
+  "title": "Font Provider",
+  "description": "React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties on <html>. Supports preview mode (localStorage) and locked mode (fixed font).",
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/font-presets"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/font-provider.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport {\n  type FontConfig,\n  type FontPreset,\n  type FontRole,\n  fonts as allFonts,\n  getFont,\n  groupByFamily,\n  resolveConfig,\n} from \"@/lib/forge/fonts\"\n\ninterface FontContextValue {\n  config: FontConfig\n  getRoleFont: (role: FontRole) => FontPreset\n  setRoleFont: (role: FontRole, id: string) => void\n  isLocked: boolean\n  allFonts: FontPreset[]\n  groupedFonts: Record<string, FontPreset[]>\n}\n\nconst FontContext = React.createContext<FontContextValue | null>(null)\n\nexport interface FontProviderProps {\n  children: React.ReactNode\n  defaultConfig?: Partial<FontConfig>\n  locked?: boolean\n  storageKey?: string\n}\n\nexport function FontProvider({\n  children,\n  defaultConfig,\n  locked = false,\n  storageKey = \"font-config\",\n}: FontProviderProps) {\n  const [config, setConfig] = React.useState<FontConfig>(() =>\n    resolveConfig(defaultConfig ?? {}),\n  )\n\n  React.useEffect(() => {\n    if (locked) return\n    try {\n      const saved = localStorage.getItem(storageKey)\n      if (saved) {\n        const parsed = JSON.parse(saved) as Partial<FontConfig>\n        if (parsed && typeof parsed === \"object\") {\n          // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate depuis localStorage au montage\n          setConfig(resolveConfig(parsed))\n        }\n      }\n    } catch {\n      // ignore storage errors (private mode, etc.)\n    }\n  }, [locked, storageKey])\n\n  React.useEffect(() => {\n    const heading = getFont(config.heading)\n    const eyebrow = getFont(config.eyebrow)\n    const body = getFont(config.body)\n    if (!heading || !eyebrow || !body) return\n\n    const id = \"font-config-style\"\n    const existing = document.getElementById(id)\n    if (existing) existing.remove()\n\n    const style = document.createElement(\"style\")\n    style.id = id\n    style.textContent = [\n      `body,.font-sans{font-family:${body.cssVar}!important}`,\n      `.font-heading,h1,h2,h3,h4,h5,h6{font-family:${heading.cssVar}!important}`,\n      `.font-eyebrow{font-family:${eyebrow.cssVar}!important}`,\n    ].join(\"\")\n    document.head.appendChild(style)\n\n    return () => {\n      const el = document.getElementById(id)\n      if (el) el.remove()\n    }\n  }, [config])\n\n  const setRoleFont = React.useCallback(\n    (role: FontRole, id: string) => {\n      if (locked) return\n      if (!getFont(id)) return\n      setConfig((prev) => {\n        const next = { ...prev, [role]: id }\n        try {\n          localStorage.setItem(storageKey, JSON.stringify(next))\n        } catch {\n          // ignore storage errors\n        }\n        return next\n      })\n    },\n    [locked, storageKey],\n  )\n\n  const value = React.useMemo<FontContextValue>(\n    () => ({\n      config,\n      getRoleFont: (role) => getFont(config[role]) ?? allFonts[0],\n      setRoleFont,\n      isLocked: locked,\n      allFonts,\n      groupedFonts: groupByFamily(),\n    }),\n    [config, setRoleFont, locked],\n  )\n\n  return <FontContext.Provider value={value}>{children}</FontContext.Provider>\n}\n\nexport function useFont(): FontContextValue {\n  const ctx = React.useContext(FontContext)\n  if (!ctx) {\n    throw new Error(\"useFont must be used within a FontProvider\")\n  }\n  return ctx\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/font-provider.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

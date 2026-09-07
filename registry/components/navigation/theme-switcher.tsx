@@ -9,9 +9,9 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu"
-import { cn } from "#/lib/utils"
-import { useTheme } from "#/components/ui/theme-provider"
+} from "@/components/forge/ui/dropdown-menu"
+import { cn } from "@/lib/forge/utils"
+import { useTheme } from "@/components/forge/ui/theme-provider"
 
 export interface ThemeSwitcherProps {
   label?: string

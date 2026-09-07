@@ -2,19 +2,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "#/components/ui/link"
-import { usePathname } from "#/components/ui/use-location"
+import { Link } from "@/components/forge/ui/link"
+import { usePathname } from "@/components/forge/ui/use-location"
 import { Menu, X, ChevronDown } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "#/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/forge/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu"
-import { CtaExternal } from "#/components/ui/cta-button"
-import { LanguageSwitcher } from "#/components/navigation/language-switcher"
-import { cn } from "#/lib/utils"
+} from "@/components/forge/ui/dropdown-menu"
+import { CtaExternal } from "@/components/forge/ui/cta-button"
+import { LanguageSwitcher } from "@/components/forge/navigation/language-switcher"
+import { cn } from "@/lib/forge/utils"
 
 export interface NavItem {
   label: string

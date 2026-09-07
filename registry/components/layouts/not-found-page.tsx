@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { CtaLink } from "#/components/ui/cta-button";
-import { cn } from "#/lib/utils";
+import { CtaLink } from "@/components/forge/ui/cta-button";
+import { cn } from "@/lib/forge/utils";
 
 export interface NotFoundCta {
   label: string;

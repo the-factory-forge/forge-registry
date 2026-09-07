@@ -7,7 +7,7 @@
 // Next-specific props (fill, priority, sizes, quality) are translated to
 // plain <img> equivalents so components keep working everywhere.
 
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils"
 
 export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string

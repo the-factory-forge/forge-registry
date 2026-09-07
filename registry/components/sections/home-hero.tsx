@@ -1,7 +1,7 @@
-import { HeroAnimation } from "#/components/ui/animations";
-import { CtaExternal, CtaLink } from "#/components/ui/cta-button";
-import { cn } from "#/lib/utils";
-import { Image } from "#/components/ui/image";
+import { HeroAnimation } from "@/components/forge/ui/animations";
+import { CtaExternal, CtaLink } from "@/components/forge/ui/cta-button";
+import { cn } from "@/lib/forge/utils";
+import { Image } from "@/components/forge/ui/image";
 
 export interface HomeHeroProps {
   eyebrow?: string;

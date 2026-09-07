@@ -1,9 +1,9 @@
-import { Image } from "#/components/ui/image"
-import { Link } from "#/components/ui/link"
+import { Image } from "@/components/forge/ui/image"
+import { Link } from "@/components/forge/ui/link"
 import { Mail, MapPin, Phone, Clock } from "lucide-react"
-import { type SocialPlatform, socialIconMap } from "#/components/ui/social-icons"
-import { ManageCookiesButton } from "#/components/navigation/manage-cookies-button"
-import { cn } from "#/lib/utils"
+import { type SocialPlatform, socialIconMap } from "@/components/forge/ui/social-icons"
+import { ManageCookiesButton } from "@/components/forge/navigation/manage-cookies-button"
+import { cn } from "@/lib/forge/utils"
 
 export interface SocialLink {
   platform: SocialPlatform

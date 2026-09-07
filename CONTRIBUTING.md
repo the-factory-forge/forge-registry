@@ -37,9 +37,9 @@ Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700
 
 - Every visible string is a prop with an English default value
 - Components never import data — everything comes via props
-- Use `cn()` from `#/lib/utils` for all className merging
+- Use `cn()` from `@/lib/forge/utils` for all className merging
 - Export both the component and its Props type
-- For section components that support color themes, use `SectionVariant` from `#/lib/section-variants`
+- For section components that support color themes, use `SectionVariant` from `@/lib/forge/section-variants`
 
 ## Client/Server
 
@@ -87,9 +87,13 @@ After creating a component, add it to `registry/registry.json`:
   "type": "registry:ui",
   "title": "My Component",
   "description": "Short description of what it does.",
-  "files": [{ "path": "registry/components/ui/my-component.tsx", "type": "registry:component" }],
+  "files": [{
+    "path": "registry/components/ui/my-component.tsx",
+    "type": "registry:component",
+    "target": "@components/forge/ui/my-component.tsx"
+  }],
   "dependencies": ["lucide-react"],
-  "registryDependencies": ["cn"]
+  "registryDependencies": ["@forge/cn"]
 }
 ```
 
@@ -97,15 +101,22 @@ After creating a component, add it to `registry/registry.json`:
 |-------|-------|
 | `type` | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries |
 | `dependencies` | npm packages the consumer must install |
-| `registryDependencies` | Other items from this registry that are required |
+| `registryDependencies` | Required registry items, using `@forge/item-name` for local items |
+| File `target` | Explicit consumer destination; use `@components/forge/`, `@lib/forge/`, or `@lib/forge/content/` |
 
-Then run `pnpm registry:sync` to rebuild the publishable manifest.
+Use `@/components/forge/...` and `@/lib/forge/...` source imports to match those
+installation paths. The showroom's TypeScript aliases resolve them to `registry/`;
+the shadcn CLI adapts them to each consumer's configured aliases.
+
+Then run `pnpm registry:sync` to build the catalog and item endpoints with the
+pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
+[README.md](./README.md).
 
 ## Component checklist
 
 - [ ] Uses shadcn design tokens (no hardcoded colors)
 - [ ] All strings are props with English defaults
-- [ ] Imports `cn` from `#/lib/utils` for className merging
+- [ ] Imports `cn` from `@/lib/forge/utils` for className merging
 - [ ] `"use client"` only when necessary
 - [ ] Props type is exported
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)

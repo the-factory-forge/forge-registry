@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lightbox",
+  "title": "Lightbox",
+  "description": "Click-to-enlarge image overlay with Escape and click-outside dismiss.",
+  "dependencies": [
+    "lucide-react",
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/lightbox.tsx",
+      "content": "/* eslint-disable @next/next/no-img-element -- img brut volontaire (registry framework-agnostic) */\n\"use client\"\n\nimport { useState, useCallback, useEffect } from \"react\"\nimport { createPortal } from \"react-dom\"\nimport { Image } from \"@/components/forge/ui/image\"\nimport { X } from \"lucide-react\"\nimport { cn } from \"@/lib/forge/utils\"\n\nexport interface LightboxProps {\n  src: string\n  alt: string\n  width?: number\n  height?: number\n  fill?: boolean\n  sizes?: string\n  className?: string\n  enlargeLabel?: string\n  closeLabel?: string\n  children?: React.ReactNode\n}\n\nexport function Lightbox({\n  src,\n  alt,\n  width,\n  height,\n  fill,\n  sizes,\n  className,\n  enlargeLabel = \"Click to enlarge\",\n  closeLabel = \"Close\",\n  children,\n}: LightboxProps) {\n  const [open, setOpen] = useState(false)\n  const openModal = useCallback(() => setOpen(true), [])\n  const closeModal = useCallback(() => setOpen(false), [])\n\n  useEffect(() => {\n    if (!open) return\n    const onKey = (e: KeyboardEvent) => {\n      if (e.key === \"Escape\") closeModal()\n    }\n    document.addEventListener(\"keydown\", onKey)\n    document.body.style.overflow = \"hidden\"\n    return () => {\n      document.removeEventListener(\"keydown\", onKey)\n      document.body.style.overflow = \"\"\n    }\n  }, [open, closeModal])\n\n  return (\n    <>\n      <button\n        type=\"button\"\n        onClick={openModal}\n        className={cn(\n          \"group/lightbox relative block w-full cursor-zoom-in overflow-hidden border-0 bg-transparent p-0\",\n          className,\n        )}\n        aria-label={alt ? `${enlargeLabel} : ${alt}` : enlargeLabel}\n      >\n        {children ?? (\n          <Image\n            src={src}\n            alt={alt}\n            fill={fill}\n            width={!fill ? width : undefined}\n            height={!fill ? height : undefined}\n            sizes={sizes}\n            className=\"object-cover transition-transform duration-500 group-hover/lightbox:scale-105\"\n          />\n        )}\n        <span className=\"pointer-events-none absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover/lightbox:bg-foreground/10\">\n          <span className=\"rounded-full bg-foreground/50 px-3 py-1.5 text-xs font-medium text-background opacity-0 backdrop-blur-sm transition-opacity group-hover/lightbox:opacity-100\">\n            {enlargeLabel}\n          </span>\n        </span>\n      </button>\n\n      {open &&\n        createPortal(\n          <div\n            className=\"fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm\"\n            role=\"dialog\"\n            aria-modal=\"true\"\n            onClick={closeModal}\n          >\n            <button\n              type=\"button\"\n              onClick={closeModal}\n              className=\"absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20\"\n              aria-label={closeLabel}\n            >\n              <X className=\"h-5 w-5\" />\n            </button>\n            <img\n              src={src}\n              alt={alt}\n              className=\"max-h-[90vh] max-w-[90vw] rounded-lg object-contain\"\n              onClick={(e) => e.stopPropagation()}\n            />\n          </div>,\n          document.body,\n        )}\n    </>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/lightbox.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

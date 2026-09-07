@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cta-button",
+  "title": "CTA Button",
+  "description": "Call-to-action button with CtaLink (internal) and CtaExternal (new tab) variants in 4 styles.",
+  "dependencies": [
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/cta-button.tsx",
+      "content": "import { Link } from \"@/components/forge/ui/link\"\nimport { cn } from \"@/lib/forge/utils\"\n\nexport type CtaVariant = \"primary\" | \"secondary\" | \"outline\" | \"onDark\"\nexport type CtaSize = \"default\" | \"lg\"\n\nconst variantClasses: Record<CtaVariant, string> = {\n  primary:\n    \"bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/40\",\n  secondary:\n    \"bg-secondary text-secondary-foreground hover:bg-secondary/90 focus-visible:ring-secondary/40\",\n  outline:\n    \"border border-border bg-background text-foreground hover:bg-muted focus-visible:ring-ring/40\",\n  onDark:\n    \"bg-background text-foreground hover:bg-background/90 focus-visible:ring-background/50\",\n}\n\nconst sizeClasses: Record<CtaSize, string> = {\n  default: \"h-11 px-5 text-sm\",\n  lg: \"h-12 px-7 text-base\",\n}\n\nconst base =\n  \"inline-flex items-center justify-center gap-2 rounded-lg font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0\"\n\nexport interface CtaButtonProps {\n  children: React.ReactNode\n  variant?: CtaVariant\n  size?: CtaSize\n  className?: string\n}\n\nexport function CtaLink({\n  href,\n  children,\n  variant = \"primary\",\n  size = \"default\",\n  className,\n}: CtaButtonProps & { href: string }) {\n  return (\n    <Link\n      href={href}\n      className={cn(base, variantClasses[variant], sizeClasses[size], className)}\n    >\n      {children}\n    </Link>\n  )\n}\n\nexport function CtaExternal({\n  href,\n  children,\n  variant = \"primary\",\n  size = \"default\",\n  className,\n}: CtaButtonProps & { href: string }) {\n  return (\n    <a\n      href={href}\n      target=\"_blank\"\n      rel=\"noopener noreferrer\"\n      className={cn(base, variantClasses[variant], sizeClasses[size], className)}\n    >\n      {children}\n    </a>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/cta-button.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

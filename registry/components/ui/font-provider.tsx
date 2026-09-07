@@ -9,7 +9,7 @@ import {
   getFont,
   groupByFamily,
   resolveConfig,
-} from "#/lib/fonts"
+} from "@/lib/forge/fonts"
 
 interface FontContextValue {
   config: FontConfig

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { NewsletterExample } from "@/components/forms/newsletter-example";
+import { NewsletterExample } from "@/components/forge/forms/newsletter-example";
 
 export default function NewsletterPage() {
   return (
