@@ -1,11 +1,19 @@
 # forge-registry
 
-Reusable shadcn component registry for generating showcase websites (Next.js today, TanStack Start next). 45 props-driven, multilingual (fr/en/de/it) components, **framework-agnostic** (no `next/*` imports, no Radix — Base UI primitives).
+Shared registry of reusable React components, page sections, and utilities for use across different projects through shadcn's registry model. Consumers receive editable source files. The Next.js app in this repository is the development showroom.
+
+The UI uses Base UI primitives, props-driven content, and framework shims. The registry also includes fr/en/de/it helpers; some supporting items still require Next.js integration (see below).
+
+## Context for contributors and AI
+
+Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
+
+The attached sibling project `../tc-website` is a reference and a source of components we will extract in future tasks. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate a migration.
 
 ## What is included
 
-- Next.js 16 (App Router) + React 19 project shell (showroom app only — components are framework-agnostic)
-- TypeScript strict with path aliases (`#/*` for registry files, `@/*` for the showroom)
+- Next.js 16 (App Router) + React 19 showroom shell for previewing shared UI
+- TypeScript strict with path aliases (`#/*` for registry files; `@/*` resolves registry files first, then showroom files)
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
@@ -13,16 +21,20 @@ Reusable shadcn component registry for generating showcase websites (Next.js tod
 
 ## Installing from the registry
 
-The factory template includes a pull script that fetches all components from the published registry:
+The existing integration documented for `forge-template` uses a consumer-owned pull script:
 
 ```bash
 # From the forge-template project
 pnpm registry:pull
 ```
 
-The published `public/registry/registry.json` embeds all source file contents, so consumers can pull components without cloning this repo.
+The generated `public/registry/registry.json` embeds all listed source file contents, so a consumer script can copy components without cloning this repo. `registry:pull` is not a script in this repository or the attached `tc-website`; check the target project's implementation before using it.
 
-## Components (46)
+Direct shadcn installation is part of the project's goal. The current custom build emits one aggregate manifest, with no individual item endpoints. The [standard shadcn workflow](https://ui.shadcn.com/docs/registry/getting-started) uses item URLs for individual installs. Those endpoints and an end-to-end install check still need to be implemented before documenting a working `shadcn add` command for this registry.
+
+## Registry items (46)
+
+The source of truth for this inventory is `registry/registry.json`.
 
 ### Libs (9)
 
@@ -35,12 +47,15 @@ The published `public/registry/registry.json` embeds all source file contents, s
 | `json-ld` | Organization, Breadcrumb, FAQ, Service schemas |
 | `theme-presets` | Industry + mood based theme preset system with 5 starter presets |
 | `font-presets` | Category/family based font preset system with 7 shipped presets (13 in source) |
+| `privacy-content` | Reference privacy-policy content in fr/en/de/it for site adaptation |
+| `footer-helpers` | Builds footer props from site data, including attribution defaults |
 
-### UI Primitives (20)
+### UI Primitives (21)
 
 | Name | Description |
 |------|-------------|
 | `social-icons` | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube |
+| `accordion` | Base UI accordion with a bundled animation stylesheet |
 | `animations` | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal |
 | `reveal` | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays) |
 | `share-button` | Web Share API + clipboard fallback |
@@ -96,27 +111,26 @@ Components using `inverted` (e.g. `section-heading`) rely on `text-dark-foregrou
 
 ## Principles
 
-1. **Props-driven**: no component imports its own data — everything comes via props
-2. **Framework-agnostic**: NO `next/*` imports (link/image/script/pathname go through the `ui-shims` item — each site provides the implementation for its framework); NO Radix — Base UI primitives only
+1. **Props-driven UI**: site content and integration callbacks come via props; shared presets and reference content live in library items
+2. **Portable UI**: no `next/*` imports in shared UI (link/image/script/pathname go through the `ui-shims` item); Base UI primitives. The `i18n-engine` item currently includes Next.js middleware and `server-only`, so not all supporting items are framework-independent
 3. **Server Components by default**: `"use client"` only when necessary
 4. **No non-overridable hardcoded text**: all labels are props with English defaults
 5. **a11y**: semantic HTML, aria-labels, keyboard nav, focus states
 
 ### Framework shims (ui-shims item)
 
-The registry never imports `next/link`, `next/image`, `next/script` or `next/navigation`.
+The shared UI never imports `next/link`, `next/image`, `next/script` or `next/navigation`.
 It imports `#/components/ui/{link,image,script,use-location}` instead — those files are
-shipped by the `ui-shims` registry item, and **each site provides its own implementation**:
+shipped by the `ui-shims` registry item. Consumers adapt them to their framework as needed:
 
 | Shim | Next.js site | TanStack site |
 |---|---|---|
-| `link.tsx` | re-export `next/link` | re-export `@tanstack/react-router` Link |
-| `image.tsx` | re-export `next/image` | plain `<img>` |
-| `script.tsx` | re-export `next/script` (strategies) | plain `<script>` in route head |
-| `use-location.ts` | re-export `next/navigation` usePathname | router `useLocation().pathname` |
+| `link.tsx` | Adapt `next/link` | Adapt router Link, mapping `href` to `to` |
+| `image.tsx` | Adapt `next/image` as needed | Plain `<img>` or site image component |
+| `script.tsx` | Adapt `next/script`, including the `code` prop | Site script/head handling |
+| `use-location.ts` | Expose `next/navigation` usePathname | Expose router `useLocation().pathname` |
 
-> After pulling components, a site MUST provide the 4 shim implementations before `pnpm build`.
-> The shipped defaults are minimal (plain `<a>`, `<img>`, `<script>`, `window.location`).
+The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname snapshot). Consumers must include `ui-shims` when required and review them for their routing, image, and script needs. Preserve the exported names and props when adapting them; a direct framework re-export is not always compatible.
 
 ## Registry workflow
 
@@ -124,7 +138,7 @@ shipped by the `ui-shims` registry item, and **each site provides its own implem
 2. Add corresponding registry items to `/registry/registry.json`.
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), and file references.
 4. Run `pnpm registry:sync` to build the publishable manifest (with embedded file content) to `/public/registry/`.
-5. Validate JSON with `pnpm registry:check`.
+5. Check JSON syntax with `pnpm registry:check` and run `pnpm typecheck`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
 6. Push to `main` — the GitHub Actions `sync` workflow auto-rebuilds the manifest and commits it back. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
 
 ## Scripts
@@ -133,14 +147,14 @@ shipped by the `ui-shims` registry item, and **each site provides its own implem
 pnpm dev              # Dev server
 pnpm build            # Production build
 pnpm typecheck        # TypeScript verification
-pnpm registry:check   # Validate registry.json
+pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Build publishable registry with embedded content
 ```
 
 ## Project structure
 
 ```
-registry/              ← Distributed component library (stack-agnostic)
+registry/              ← Distributed UI, utilities, and reference content
   components/
     ui/             # Primitives (cta-button, section-heading, animations...)
     navigation/     # navbar, footer, language-switcher, manage-cookies-button, theme-switcher, font-switcher
@@ -153,12 +167,13 @@ registry/              ← Distributed component library (stack-agnostic)
     themes/         # Theme preset data (index.ts + presets/*.json)
     fonts/          # Font preset data (index.ts + presets/*.json)
     seo/            # build-metadata, json-ld
-  registry.json     # Source manifest (45 items)
-src/                  ← Next.js showroom app (not distributed)
+  content/          # Reference content for site adaptation
+  registry.json     # Source manifest (46 items)
+src/                  ← Next.js showroom plus the shipped i18n-engine files
   app/              # Demo pages (home, newsletter...)
   lib/i18n/         # Dictionaries (shipped via the `i18n-engine` item, project-specific)
   styles/globals.css     # Design system
-  middleware.ts     # Locale detection + redirect
+  middleware.ts     # Next.js locale detection + redirect (shipped in i18n-engine)
 scripts/
   build-registry.mjs  # Reads source files, builds publishable manifest
 public/
