@@ -1,27 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { SectionHeading } from "#/components/ui/section-heading"
-import {
-  type SectionVariant,
-  sectionVariantClasses,
-} from "#/lib/section-variants"
-import { cn } from "#/lib/utils"
+import { useState } from "react";
+
+import { SectionHeading } from "@/components/forge/ui/section-heading";
+import { type SectionVariant, sectionVariantClasses } from "@/lib/forge/section-variants";
+import { cn } from "@/lib/forge/utils";
 
 export interface FaqItem {
-  question: string
-  answer: string
-  category?: string
+  question: string;
+  answer: string;
+  category?: string;
 }
 
 export interface FaqListProps {
-  eyebrow?: string
-  title: string
-  subtitle?: string
-  items: FaqItem[]
-  allLabel?: string
-  variant?: SectionVariant
-  className?: string
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  items: FaqItem[];
+  allLabel?: string;
+  variant?: SectionVariant;
+  className?: string;
 }
 
 export function FaqList({
@@ -33,16 +31,23 @@ export function FaqList({
   variant = "default",
   className,
 }: FaqListProps) {
-  const categories = Array.from(new Set(items.map((f) => f.category).filter(Boolean))) as string[]
-  const hasCategories = categories.length > 1
-  const [active, setActive] = useState<string | null>(null)
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const categories = Array.from(new Set(items.map((f) => f.category).filter(Boolean))) as string[];
+  const hasCategories = categories.length > 1;
+  const [active, setActive] = useState<string | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const colors = sectionVariantClasses[variant]
-  const filtered = active ? items.filter((f) => f.category === active) : items
+  const colors = sectionVariantClasses[variant];
+  const filtered = active ? items.filter((f) => f.category === active) : items;
 
   return (
-    <section className={cn("section-padding", "[content-visibility:auto] [contain-intrinsic-size:auto_800px]", colors.section, className)}>
+    <section
+      className={cn(
+        "section-padding",
+        "[contain-intrinsic-size:auto_800px] [content-visibility:auto]",
+        colors.section,
+        className,
+      )}
+    >
       <div className="container-premium">
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />
 
@@ -80,7 +85,7 @@ export function FaqList({
 
         <div className="mx-auto mt-10 max-w-3xl divide-y divide-border">
           {filtered.map((faq, i) => {
-            const isOpen = openIndex === i
+            const isOpen = openIndex === i;
             return (
               <div key={faq.question} className="py-4">
                 <button
@@ -113,10 +118,10 @@ export function FaqList({
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

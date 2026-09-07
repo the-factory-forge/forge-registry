@@ -8,8 +8,7 @@ export default function Home() {
           Components Showcase
         </h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Explore reusable components from this registry and open their
-          dedicated pages.
+          Explore reusable components from this registry and open their dedicated pages.
         </p>
       </header>
 
@@ -18,7 +17,7 @@ export default function Home() {
           href="/newsletter"
           className="group rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-zinc-300 hover:shadow dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
             Form
           </p>
           <h2 className="mt-2 text-lg font-semibold text-zinc-950 transition group-hover:text-zinc-700 dark:text-zinc-50 dark:group-hover:text-zinc-200">

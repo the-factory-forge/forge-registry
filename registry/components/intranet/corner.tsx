@@ -1,14 +1,15 @@
-import type { HTMLAttributes, ReactNode } from "react"
-import { cn } from "#/lib/utils"
+import type { HTMLAttributes, ReactNode } from "react";
+
+import { cn } from "@/lib/forge/utils";
 
 export interface CornerFrameProps extends HTMLAttributes<HTMLElement> {
-  as?: "div" | "section" | "article" | "header" | "aside"
+  as?: "div" | "section" | "article" | "header" | "aside";
   /** Adds the signature conic-gradient glow sweep on hover/focus. */
-  accent?: boolean
+  accent?: boolean;
   /** Size of the clipped corner cut-out. Defaults to "md". */
-  cut?: "sm" | "md" | "lg"
+  cut?: "sm" | "md" | "lg";
   /** Surface fill for the frame body. Defaults to "quiet". */
-  surface?: "paper" | "elevated" | "tinted" | "quiet"
+  surface?: "paper" | "elevated" | "tinted" | "quiet";
 }
 
 export function CornerFrame({
@@ -34,30 +35,30 @@ export function CornerFrame({
       )}
       {...props}
     />
-  )
+  );
 }
 
 export interface CornerLabelProps {
-  children: ReactNode
-  className?: string
+  children: ReactNode;
+  className?: string;
 }
 
 export function CornerLabel({ children, className }: CornerLabelProps) {
   return (
     <span
       className={cn(
-        "corner-frame corner-cut-sm corner-surface-tinted inline-flex w-fit items-center px-3 py-1 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-primary",
+        "corner-frame corner-cut-sm corner-surface-tinted inline-flex w-fit items-center px-3 py-1 text-[0.7rem] font-bold tracking-[0.16em] text-primary uppercase",
         className,
       )}
     >
       <span>{children}</span>
     </span>
-  )
+  );
 }
 
 export interface CornerRuleProps extends HTMLAttributes<HTMLDivElement> {
   /** Adds a left-aligned, origin-scaled reveal. */
-  animated?: boolean
+  animated?: boolean;
 }
 
 export function CornerRule({ animated = false, className, ...props }: CornerRuleProps) {
@@ -67,5 +68,5 @@ export function CornerRule({ animated = false, className, ...props }: CornerRule
       aria-hidden="true"
       {...props}
     />
-  )
+  );
 }

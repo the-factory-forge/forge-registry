@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "service-card",
+  "title": "Service Card",
+  "description": "Service card with image banner, floating icon, hover effect, and link.",
+  "dependencies": [
+    "lucide-react",
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/image-with-fallback"
+  ],
+  "files": [
+    {
+      "path": "registry/components/sections/service-card.tsx",
+      "content": "import type { LucideIcon } from \"lucide-react\";\nimport { ArrowRight } from \"lucide-react\";\n\nimport { ImageWithFallback } from \"@/components/forge/ui/image-with-fallback\";\nimport { Link } from \"@/components/forge/ui/link\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface ServiceCardProps {\n  title: string;\n  description: string;\n  image: string;\n  href: string;\n  icon?: LucideIcon;\n  iconVariant?: \"primary\" | \"secondary\" | \"accent\";\n  imageAlt?: string;\n  imageSrcSet?: string;\n  readMoreLabel?: string;\n  fallbackLabel?: string;\n  className?: string;\n}\n\nconst iconVariantClasses = {\n  primary: { badge: \"bg-primary\", icon: \"text-primary-foreground\" },\n  secondary: { badge: \"bg-secondary\", icon: \"text-secondary-foreground\" },\n  accent: { badge: \"bg-accent\", icon: \"text-accent-foreground\" },\n} as const;\n\nexport function ServiceCard({\n  title,\n  description,\n  image,\n  href,\n  icon: Icon,\n  iconVariant = \"primary\",\n  imageAlt,\n  imageSrcSet,\n  readMoreLabel = \"Read more\",\n  fallbackLabel,\n  className,\n}: ServiceCardProps) {\n  const iv = iconVariantClasses[iconVariant];\n\n  return (\n    <Link\n      href={href}\n      className={cn(\n        \"group block rounded-xl border border-border bg-background shadow-sm transition-shadow hover:shadow-lg\",\n        className,\n      )}\n    >\n      <div className=\"relative aspect-[16/10] overflow-hidden rounded-t-[calc(0.75rem-1px)]\">\n        <ImageWithFallback\n          src={image}\n          alt={imageAlt ?? title}\n          fill\n          sizes=\"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw\"\n          srcSet={imageSrcSet}\n          className=\"transition-transform duration-500 group-hover:scale-105\"\n          fallbackLabel={fallbackLabel}\n        />\n      </div>\n      {Icon && (\n        <div\n          className={cn(\n            \"relative z-10 -mt-5 ml-5 inline-flex rounded-lg p-2.5 shadow-md\",\n            iv.badge,\n          )}\n        >\n          <Icon className={cn(\"h-5 w-5\", iv.icon)} aria-hidden=\"true\" />\n        </div>\n      )}\n      <div className={cn(\"px-5 pb-5\", Icon ? \"pt-3\" : \"pt-5\")}>\n        <h3 className=\"mb-2 text-lg font-semibold text-foreground\">{title}</h3>\n        <p className=\"mb-4 line-clamp-3 text-sm leading-relaxed text-muted-foreground\">\n          {description}\n        </p>\n        <span className=\"inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors group-hover:gap-2\">\n          {readMoreLabel}\n          <ArrowRight\n            className=\"h-4 w-4 transition-transform group-hover:translate-x-1\"\n            aria-hidden=\"true\"\n          />\n        </span>\n      </div>\n    </Link>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/sections/service-card.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

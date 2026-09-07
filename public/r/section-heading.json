@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "section-heading",
+  "title": "Section Heading",
+  "description": "Reusable section heading with eyebrow label, title, subtitle, alignment, and color variant support.",
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/section-variants"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/section-heading.tsx",
+      "content": "import { type SectionVariant, sectionVariantClasses } from \"@/lib/forge/section-variants\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface SectionHeadingProps {\n  eyebrow?: string;\n  title: string;\n  subtitle?: string;\n  align?: \"center\" | \"left\";\n  as?: \"h1\" | \"h2\" | \"h3\";\n  variant?: SectionVariant;\n  /** @deprecated Use variant=\"primary\" instead */\n  inverted?: boolean;\n  className?: string;\n}\n\nexport function SectionHeading({\n  eyebrow,\n  title,\n  subtitle,\n  align = \"center\",\n  as: Tag = \"h2\",\n  variant: variantProp,\n  inverted = false,\n  className,\n}: SectionHeadingProps) {\n  const variant = variantProp ?? (inverted ? \"primary\" : \"default\");\n  const colors = sectionVariantClasses[variant];\n  const isDark = variant === \"primary\" || variant === \"secondary\";\n\n  return (\n    <div\n      className={cn(\n        \"max-w-3xl\",\n        align === \"center\" ? \"mx-auto text-center\" : \"text-left\",\n        className,\n      )}\n    >\n      {eyebrow ? (\n        <>\n          <span\n            className={cn(\n              \"font-eyebrow mb-3 inline-block text-sm font-semibold tracking-[0.18em] uppercase\",\n              colors.eyebrow,\n            )}\n          >\n            {eyebrow}\n          </span>\n          <span\n            className={cn(\n              \"mb-4 block h-0.5 w-10 rounded-full\",\n              isDark ? \"bg-primary-foreground/40\" : \"bg-secondary\",\n              align === \"center\" ? \"mx-auto\" : \"\",\n            )}\n          />\n        </>\n      ) : null}\n      <Tag\n        className={cn(\n          \"font-heading text-3xl leading-tight font-bold tracking-tight text-pretty sm:text-4xl\",\n          colors.heading,\n        )}\n      >\n        {title}\n      </Tag>\n      {subtitle ? (\n        <p className={cn(\"mt-4 text-lg leading-relaxed text-pretty\", colors.body)}>{subtitle}</p>\n      ) : null}\n    </div>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/section-heading.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

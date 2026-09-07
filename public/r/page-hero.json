@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "page-hero",
+  "title": "Page Hero",
+  "description": "Inner page hero with optional background image and integrated breadcrumb.",
+  "dependencies": [
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/breadcrumb"
+  ],
+  "files": [
+    {
+      "path": "registry/components/sections/page-hero.tsx",
+      "content": "import { Breadcrumb, type Crumb } from \"@/components/forge/ui/breadcrumb\";\nimport { Image } from \"@/components/forge/ui/image\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface PageHeroProps {\n  title: string;\n  subtitle?: string;\n  eyebrow?: string;\n  backgroundImage?: string;\n  overlayClass?: string;\n  homeLabel: string;\n  breadcrumbs: Crumb[];\n  className?: string;\n}\n\nexport function PageHero({\n  title,\n  subtitle,\n  eyebrow,\n  backgroundImage,\n  overlayClass,\n  homeLabel,\n  breadcrumbs,\n  className,\n}: PageHeroProps) {\n  const hasImage = !!backgroundImage;\n\n  return (\n    <section className={cn(\"relative\", hasImage ? \"text-dark-foreground\" : \"bg-muted\", className)}>\n      {hasImage && (\n        <>\n          <Image\n            src={backgroundImage}\n            alt=\"\"\n            fill\n            priority\n            sizes=\"100vw\"\n            className=\"object-cover\"\n            aria-hidden=\"true\"\n          />\n          <div className={cn(\"absolute inset-0 bg-black/50\", overlayClass)} />\n        </>\n      )}\n\n      <div className=\"relative z-10\">\n        <Breadcrumb\n          homeLabel={homeLabel}\n          items={breadcrumbs}\n          className={\n            hasImage\n              ? \"text-dark-foreground/70 [&_a]:text-dark-foreground/70 [&_a:hover]:text-dark-foreground [&_span]:text-dark-foreground\"\n              : \"\"\n          }\n        />\n\n        <div className=\"container-premium pt-8 pb-16 md:pt-12 md:pb-20\">\n          {eyebrow && (\n            <span\n              className={cn(\n                \"font-eyebrow mb-3 inline-block text-sm font-semibold tracking-[0.18em] uppercase\",\n                hasImage ? \"text-dark-foreground/80\" : \"text-primary\",\n              )}\n            >\n              {eyebrow}\n            </span>\n          )}\n          <h1\n            className={cn(\n              \"font-heading text-3xl leading-tight font-bold text-pretty sm:text-4xl md:text-5xl\",\n              hasImage ? \"text-dark-foreground\" : \"text-foreground\",\n            )}\n          >\n            {title}\n          </h1>\n          {subtitle && (\n            <p\n              className={cn(\n                \"mt-4 max-w-2xl text-lg leading-relaxed\",\n                hasImage ? \"text-dark-foreground/80\" : \"text-muted-foreground\",\n              )}\n            >\n              {subtitle}\n            </p>\n          )}\n        </div>\n      </div>\n    </section>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/sections/page-hero.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { ChevronDownIcon } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "#/lib/utils";
+import { cn } from "@/lib/forge/utils";
 
 type AccordionValue = string;
 
@@ -88,7 +88,7 @@ function AccordionContent({ className, children, ...props }: AccordionPrimitive.
     <AccordionPrimitive.Panel
       data-slot="accordion-content"
       className={cn(
-        "overflow-hidden text-sm data-open:animate-[accordion-down_0.2s_ease-out] data-closed:animate-[accordion-up_0.2s_ease-out]",
+        "overflow-hidden text-sm data-closed:animate-[accordion-up_0.2s_ease-out] data-open:animate-[accordion-down_0.2s_ease-out]",
         className,
       )}
       {...props}

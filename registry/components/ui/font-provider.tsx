@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
+
 import {
   type FontConfig,
   type FontPreset,
@@ -9,24 +10,24 @@ import {
   getFont,
   groupByFamily,
   resolveConfig,
-} from "#/lib/fonts"
+} from "@/lib/forge/fonts";
 
 interface FontContextValue {
-  config: FontConfig
-  getRoleFont: (role: FontRole) => FontPreset
-  setRoleFont: (role: FontRole, id: string) => void
-  isLocked: boolean
-  allFonts: FontPreset[]
-  groupedFonts: Record<string, FontPreset[]>
+  config: FontConfig;
+  getRoleFont: (role: FontRole) => FontPreset;
+  setRoleFont: (role: FontRole, id: string) => void;
+  isLocked: boolean;
+  allFonts: FontPreset[];
+  groupedFonts: Record<string, FontPreset[]>;
 }
 
-const FontContext = React.createContext<FontContextValue | null>(null)
+const FontContext = React.createContext<FontContextValue | null>(null);
 
 export interface FontProviderProps {
-  children: React.ReactNode
-  defaultConfig?: Partial<FontConfig>
-  locked?: boolean
-  storageKey?: string
+  children: React.ReactNode;
+  defaultConfig?: Partial<FontConfig>;
+  locked?: boolean;
+  storageKey?: string;
 }
 
 export function FontProvider({
@@ -35,67 +36,65 @@ export function FontProvider({
   locked = false,
   storageKey = "font-config",
 }: FontProviderProps) {
-  const [config, setConfig] = React.useState<FontConfig>(() =>
-    resolveConfig(defaultConfig ?? {}),
-  )
+  const [config, setConfig] = React.useState<FontConfig>(() => resolveConfig(defaultConfig ?? {}));
 
   React.useEffect(() => {
-    if (locked) return
+    if (locked) return;
     try {
-      const saved = localStorage.getItem(storageKey)
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
-        const parsed = JSON.parse(saved) as Partial<FontConfig>
+        const parsed = JSON.parse(saved) as Partial<FontConfig>;
         if (parsed && typeof parsed === "object") {
-          // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate depuis localStorage au montage
-          setConfig(resolveConfig(parsed))
+          // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- hydrate depuis localStorage au montage
+          setConfig(resolveConfig(parsed));
         }
       }
     } catch {
       // ignore storage errors (private mode, etc.)
     }
-  }, [locked, storageKey])
+  }, [locked, storageKey]);
 
   React.useEffect(() => {
-    const heading = getFont(config.heading)
-    const eyebrow = getFont(config.eyebrow)
-    const body = getFont(config.body)
-    if (!heading || !eyebrow || !body) return
+    const heading = getFont(config.heading);
+    const eyebrow = getFont(config.eyebrow);
+    const body = getFont(config.body);
+    if (!heading || !eyebrow || !body) return;
 
-    const id = "font-config-style"
-    const existing = document.getElementById(id)
-    if (existing) existing.remove()
+    const id = "font-config-style";
+    const existing = document.getElementById(id);
+    if (existing) existing.remove();
 
-    const style = document.createElement("style")
-    style.id = id
+    const style = document.createElement("style");
+    style.id = id;
     style.textContent = [
       `body,.font-sans{font-family:${body.cssVar}!important}`,
       `.font-heading,h1,h2,h3,h4,h5,h6{font-family:${heading.cssVar}!important}`,
       `.font-eyebrow{font-family:${eyebrow.cssVar}!important}`,
-    ].join("")
-    document.head.appendChild(style)
+    ].join("");
+    document.head.appendChild(style);
 
     return () => {
-      const el = document.getElementById(id)
-      if (el) el.remove()
-    }
-  }, [config])
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    };
+  }, [config]);
 
   const setRoleFont = React.useCallback(
     (role: FontRole, id: string) => {
-      if (locked) return
-      if (!getFont(id)) return
+      if (locked) return;
+      if (!getFont(id)) return;
       setConfig((prev) => {
-        const next = { ...prev, [role]: id }
+        const next = { ...prev, [role]: id };
         try {
-          localStorage.setItem(storageKey, JSON.stringify(next))
+          localStorage.setItem(storageKey, JSON.stringify(next));
         } catch {
           // ignore storage errors
         }
-        return next
-      })
+        return next;
+      });
     },
     [locked, storageKey],
-  )
+  );
 
   const value = React.useMemo<FontContextValue>(
     () => ({
@@ -107,15 +106,15 @@ export function FontProvider({
       groupedFonts: groupByFamily(),
     }),
     [config, setRoleFont, locked],
-  )
+  );
 
-  return <FontContext.Provider value={value}>{children}</FontContext.Provider>
+  return <FontContext.Provider value={value}>{children}</FontContext.Provider>;
 }
 
 export function useFont(): FontContextValue {
-  const ctx = React.useContext(FontContext)
+  const ctx = React.useContext(FontContext);
   if (!ctx) {
-    throw new Error("useFont must be used within a FontProvider")
+    throw new Error("useFont must be used within a FontProvider");
   }
-  return ctx
+  return ctx;
 }

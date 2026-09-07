@@ -1,23 +1,24 @@
-/* eslint-disable @next/next/no-img-element -- img brut volontaire (registry framework-agnostic) */
-"use client"
+/* oxlint-disable nextjs/no-img-element -- img brut volontaire (registry framework-agnostic) */
+"use client";
 
-import { useState, useCallback, useEffect } from "react"
-import { createPortal } from "react-dom"
-import { Image } from "#/components/ui/image"
-import { X } from "lucide-react"
-import { cn } from "#/lib/utils"
+import { X } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
+
+import { Image } from "@/components/forge/ui/image";
+import { cn } from "@/lib/forge/utils";
 
 export interface LightboxProps {
-  src: string
-  alt: string
-  width?: number
-  height?: number
-  fill?: boolean
-  sizes?: string
-  className?: string
-  enlargeLabel?: string
-  closeLabel?: string
-  children?: React.ReactNode
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  fill?: boolean;
+  sizes?: string;
+  className?: string;
+  enlargeLabel?: string;
+  closeLabel?: string;
+  children?: React.ReactNode;
 }
 
 export function Lightbox({
@@ -32,22 +33,22 @@ export function Lightbox({
   closeLabel = "Close",
   children,
 }: LightboxProps) {
-  const [open, setOpen] = useState(false)
-  const openModal = useCallback(() => setOpen(true), [])
-  const closeModal = useCallback(() => setOpen(false), [])
+  const [open, setOpen] = useState(false);
+  const openModal = useCallback(() => setOpen(true), []);
+  const closeModal = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal()
-    }
-    document.addEventListener("keydown", onKey)
-    document.body.style.overflow = "hidden"
+      if (e.key === "Escape") closeModal();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey)
-      document.body.style.overflow = ""
-    }
-  }, [open, closeModal])
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, closeModal]);
 
   return (
     <>
@@ -104,5 +105,5 @@ export function Lightbox({
           document.body,
         )}
     </>
-  )
+  );
 }

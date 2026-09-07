@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "share-button",
+  "title": "Share Button",
+  "description": "Web Share API button with clipboard fallback.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/share-button.tsx",
+      "content": "\"use client\";\n\nimport { Share2, Check } from \"lucide-react\";\nimport { useState, useRef } from \"react\";\n\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface ShareButtonProps {\n  title: string;\n  text: string;\n  shareLabel?: string;\n  copiedLabel?: string;\n  url?: string;\n  className?: string;\n}\n\nexport function ShareButton({\n  title,\n  text,\n  shareLabel = \"Share\",\n  copiedLabel = \"Link copied\",\n  url,\n  className,\n}: ShareButtonProps) {\n  const [copied, setCopied] = useState(false);\n  const sharing = useRef(false);\n\n  const handleShare = async () => {\n    if (sharing.current) return;\n    sharing.current = true;\n\n    const shareUrl = url ?? window.location.href;\n\n    try {\n      if (navigator.share) {\n        await navigator.share({ title, text, url: shareUrl });\n      } else {\n        await navigator.clipboard.writeText(`${text} : ${shareUrl}`);\n        setCopied(true);\n        setTimeout(() => setCopied(false), 2000);\n      }\n    } catch {\n      /* user cancelled — ignore */\n    } finally {\n      sharing.current = false;\n    }\n  };\n\n  return (\n    <button\n      type=\"button\"\n      onClick={handleShare}\n      className={cn(\n        \"inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80\",\n        className,\n      )}\n    >\n      {copied ? (\n        <>\n          <Check className=\"h-4 w-4\" />\n          {copiedLabel}\n        </>\n      ) : (\n        <>\n          <Share2 className=\"h-4 w-4\" />\n          {shareLabel}\n        </>\n      )}\n    </button>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/share-button.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

@@ -7,20 +7,20 @@
 // Next-specific props (fill, priority, sizes, quality) are translated to
 // plain <img> equivalents so components keep working everywhere.
 
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils";
 
 export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  src: string
-  alt: string
-  width?: number
-  height?: number
-  unoptimized?: boolean
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  unoptimized?: boolean;
   /** Fill the parent (absolute inset-0) — next/image compatible. */
-  fill?: boolean
+  fill?: boolean;
   /** Load eagerly with high fetch priority — next/image compatible. */
-  priority?: boolean
-  sizes?: string
-  quality?: number
+  priority?: boolean;
+  sizes?: string;
+  quality?: number;
 }
 
 /**
@@ -43,7 +43,7 @@ export function Image({
   ...props
 }: ImageProps) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- framework-agnostic shim
+    // oxlint-disable-next-line nextjs/no-img-element -- framework-agnostic shim
     <img
       src={src}
       alt={alt}
@@ -57,5 +57,5 @@ export function Image({
       className={cn(fill && "absolute inset-0 h-full w-full", className)}
       {...props}
     />
-  )
+  );
 }

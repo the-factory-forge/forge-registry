@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "language-switcher",
+  "title": "Language Switcher",
+  "description": "Locale dropdown switcher for i18n navigation.",
+  "dependencies": [
+    "lucide-react",
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/dropdown-menu"
+  ],
+  "files": [
+    {
+      "path": "registry/components/navigation/language-switcher.tsx",
+      "content": "\"use client\";\n\nimport { Globe, Check } from \"lucide-react\";\n\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuTrigger,\n} from \"@/components/forge/ui/dropdown-menu\";\nimport { Link } from \"@/components/forge/ui/link\";\nimport { usePathname } from \"@/components/forge/ui/use-location\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface LanguageSwitcherProps {\n  locale: string;\n  locales: string[];\n  localeNames: Record<string, string>;\n  localeShort: Record<string, string>;\n  ariaLabel?: string;\n  className?: string;\n}\n\nexport function LanguageSwitcher({\n  locale,\n  locales,\n  localeNames,\n  localeShort,\n  ariaLabel = \"Language\",\n  className,\n}: LanguageSwitcherProps) {\n  const pathname = usePathname();\n  const pathnameWithoutLocale = pathname.replace(new RegExp(`^/(${locales.join(\"|\")})`), \"\") || \"\";\n\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger\n        aria-label={ariaLabel}\n        className={cn(\n          \"inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring\",\n          className,\n        )}\n      >\n        <Globe className=\"h-4 w-4\" aria-hidden=\"true\" />\n        <span>{localeShort[locale] ?? locale.toUpperCase()}</span>\n      </DropdownMenuTrigger>\n      <DropdownMenuContent align=\"end\" className=\"w-40\">\n        {locales.map((l) => (\n          <DropdownMenuItem key={l} asChild className=\"justify-between\">\n            <Link href={`/${l}${pathnameWithoutLocale}`}>\n              {localeNames[l] ?? l}\n              {l === locale && <Check className=\"h-4 w-4 text-primary\" aria-hidden=\"true\" />}\n            </Link>\n          </DropdownMenuItem>\n        ))}\n      </DropdownMenuContent>\n    </DropdownMenu>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/navigation/language-switcher.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import { Type, Check, ChevronRight } from "lucide-react"
+import { Type, Check, ChevronRight } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,23 +10,23 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu"
-import { cn } from "#/lib/utils"
-import { type FontRole, groupByCategory } from "#/lib/fonts"
-import { useFont } from "#/components/ui/font-provider"
+} from "@/components/forge/ui/dropdown-menu";
+import { useFont } from "@/components/forge/ui/font-provider";
+import { type FontRole, groupByCategory } from "@/lib/forge/fonts";
+import { cn } from "@/lib/forge/utils";
 
 export interface FontSwitcherProps {
-  label?: string
-  ariaLabel?: string
-  roleLabels?: Partial<Record<FontRole, string>>
-  className?: string
+  label?: string;
+  ariaLabel?: string;
+  roleLabels?: Partial<Record<FontRole, string>>;
+  className?: string;
 }
 
 const DEFAULT_ROLE_LABELS: Record<FontRole, string> = {
   heading: "Titres",
   eyebrow: "Eyebrow",
   body: "Texte",
-}
+};
 
 export function FontSwitcher({
   label,
@@ -33,24 +34,24 @@ export function FontSwitcher({
   roleLabels,
   className,
 }: FontSwitcherProps) {
-  const { isLocked, config, setRoleFont, allFonts } = useFont()
+  const { isLocked, config, setRoleFont, allFonts } = useFont();
 
-  if (isLocked) return null
+  if (isLocked) return null;
 
   const labels: Record<FontRole, string> = {
     ...DEFAULT_ROLE_LABELS,
     ...roleLabels,
-  }
+  };
 
-  const roles = Object.keys(DEFAULT_ROLE_LABELS) as FontRole[]
-  const categories = groupByCategory()
+  const roles = Object.keys(DEFAULT_ROLE_LABELS) as FontRole[];
+  const categories = groupByCategory();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={ariaLabel}
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
           className,
         )}
       >
@@ -94,5 +95,5 @@ export function FontSwitcher({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

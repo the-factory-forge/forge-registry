@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "theme-switcher",
+  "title": "Theme Switcher",
+  "description": "Dropdown menu switcher for theme presets, grouped by industry. Only renders in preview mode (when theme is not locked).",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/dropdown-menu",
+    "@forge/theme-provider"
+  ],
+  "files": [
+    {
+      "path": "registry/components/navigation/theme-switcher.tsx",
+      "content": "\"use client\";\n\nimport { Palette, Check } from \"lucide-react\";\n\nimport {\n  DropdownMenu,\n  DropdownMenuContent,\n  DropdownMenuItem,\n  DropdownMenuSub,\n  DropdownMenuSubContent,\n  DropdownMenuSubTrigger,\n  DropdownMenuTrigger,\n} from \"@/components/forge/ui/dropdown-menu\";\nimport { useTheme } from \"@/components/forge/ui/theme-provider\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface ThemeSwitcherProps {\n  label?: string;\n  ariaLabel?: string;\n  className?: string;\n}\n\nfunction Swatch({ color }: { color: string }) {\n  return (\n    <span\n      className=\"inline-block h-3 w-3 shrink-0 rounded-full border border-border\"\n      style={{ backgroundColor: color }}\n      aria-hidden=\"true\"\n    />\n  );\n}\n\nfunction capitalize(str: string): string {\n  return str.charAt(0).toUpperCase() + str.slice(1);\n}\n\nexport function ThemeSwitcher({ label, ariaLabel = \"Theme\", className }: ThemeSwitcherProps) {\n  const { isLocked, presetId, setPreset, groupedPresets } = useTheme();\n\n  if (isLocked) return null;\n\n  return (\n    <DropdownMenu>\n      <DropdownMenuTrigger\n        aria-label={ariaLabel}\n        className={cn(\n          \"inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring\",\n          className,\n        )}\n      >\n        <Palette className=\"h-4 w-4\" aria-hidden=\"true\" />\n        {label && <span>{label}</span>}\n      </DropdownMenuTrigger>\n      <DropdownMenuContent align=\"end\" className=\"w-52\">\n        {Object.entries(groupedPresets).map(([industry, moods]) => {\n          const industryColor = moods[0]?.tokens[\"--primary\"] ?? \"#000\";\n          return (\n            <DropdownMenuSub key={industry}>\n              <DropdownMenuSubTrigger>\n                <span className=\"flex items-center gap-2\">\n                  <Swatch color={industryColor} />\n                  {capitalize(industry)}\n                </span>\n              </DropdownMenuSubTrigger>\n              <DropdownMenuSubContent className=\"w-40\">\n                {moods.map((preset) => (\n                  <DropdownMenuItem\n                    key={preset.id}\n                    className=\"justify-between\"\n                    onClick={() => setPreset(preset.id)}\n                  >\n                    <span className=\"flex items-center gap-2\">\n                      <Swatch color={preset.tokens[\"--primary\"] ?? \"#000\"} />\n                      {preset.label}\n                    </span>\n                    {preset.id === presetId && (\n                      <Check className=\"h-4 w-4 text-primary\" aria-hidden=\"true\" />\n                    )}\n                  </DropdownMenuItem>\n                ))}\n              </DropdownMenuSubContent>\n            </DropdownMenuSub>\n          );\n        })}\n      </DropdownMenuContent>\n    </DropdownMenu>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/navigation/theme-switcher.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { cn } from "#/lib/utils";
+import { cn } from "@/lib/forge/utils";
 
 export type NewsletterProps = Omit<React.ComponentPropsWithoutRef<"section">, "onSubmit"> & {
   title?: string;
@@ -106,7 +106,7 @@ export function Newsletter({
     >
       <div className="space-y-2">
         {eyebrow ? (
-          <p className="font-eyebrow text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          <p className="font-eyebrow text-xs font-semibold tracking-[0.14em] text-primary uppercase">
             {eyebrow}
           </p>
         ) : null}
@@ -138,12 +138,12 @@ export function Newsletter({
             disabled={isDisabled}
             aria-invalid={hasError}
             aria-describedby={describedBy || undefined}
-            className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={isDisabled}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? loadingLabel : buttonLabel}
           </button>
@@ -156,13 +156,23 @@ export function Newsletter({
         ) : null}
 
         {inlineError ? (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400" id={errorId} role="alert" aria-live="assertive">
+          <p
+            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            id={errorId}
+            role="alert"
+            aria-live="assertive"
+          >
             {inlineError}
           </p>
         ) : null}
 
         {inlineSuccess ? (
-          <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-400" id={successId} role="status" aria-live="polite">
+          <p
+            className="mt-2 text-sm text-emerald-700 dark:text-emerald-400"
+            id={successId}
+            role="status"
+            aria-live="polite"
+          >
             {inlineSuccess}
           </p>
         ) : null}

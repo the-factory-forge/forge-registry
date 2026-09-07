@@ -1,22 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Image } from "#/components/ui/image"
-import { ImageIcon } from "lucide-react"
-import { cn } from "#/lib/utils"
+import { ImageIcon } from "lucide-react";
+import { useState } from "react";
+
+import { Image } from "@/components/forge/ui/image";
+import { cn } from "@/lib/forge/utils";
 
 export interface ImageWithFallbackProps {
-  src: string
-  alt: string
-  width?: number
-  height?: number
-  fill?: boolean
-  priority?: boolean
-  sizes?: string
-  srcSet?: string
-  quality?: number
-  className?: string
-  fallbackLabel?: string
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  fill?: boolean;
+  priority?: boolean;
+  sizes?: string;
+  srcSet?: string;
+  quality?: number;
+  className?: string;
+  fallbackLabel?: string;
 }
 
 export function ImageWithFallback({
@@ -32,7 +33,7 @@ export function ImageWithFallback({
   className,
   fallbackLabel = "Photo coming soon",
 }: ImageWithFallbackProps) {
-  const [errored, setErrored] = useState(false)
+  const [errored, setErrored] = useState(false);
 
   if (errored || !src) {
     return (
@@ -49,7 +50,7 @@ export function ImageWithFallback({
         <ImageIcon className="h-8 w-8 opacity-50" aria-hidden="true" />
         <span className="text-xs font-medium">{fallbackLabel}</span>
       </div>
-    )
+    );
   }
 
   return (
@@ -67,5 +68,5 @@ export function ImageWithFallback({
       onError={() => setErrored(true)}
       className={cn(fill ? "object-cover" : "", className)}
     />
-  )
+  );
 }

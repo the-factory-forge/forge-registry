@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { cn } from "#/lib/utils"
+import { cn } from "@/lib/forge/utils";
 
 export interface ManageCookiesButtonProps {
-  label: string
-  manageEvent?: string
-  size?: "xs" | "sm"
-  className?: string
+  label: string;
+  manageEvent?: string;
+  size?: "xs" | "sm";
+  className?: string;
 }
 
 export function ManageCookiesButton({
@@ -27,5 +27,5 @@ export function ManageCookiesButton({
     >
       {label}
     </button>
-  )
+  );
 }

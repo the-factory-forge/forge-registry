@@ -1,14 +1,11 @@
 interface JsonLdProps {
-  data: Record<string, unknown>
+  data: Record<string, unknown>;
 }
 
 export function JsonLd({ data }: JsonLdProps) {
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
-  )
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+  );
 }
 
 export function organizationJsonLd({
@@ -19,12 +16,12 @@ export function organizationJsonLd({
   email,
   address,
 }: {
-  name: string
-  url: string
-  logo?: string
-  phone?: string
-  email?: string
-  address?: { street: string; city: string; postalCode: string; country: string }
+  name: string;
+  url: string;
+  logo?: string;
+  phone?: string;
+  email?: string;
+  address?: { street: string; city: string; postalCode: string; country: string };
 }) {
   return {
     "@context": "https://schema.org",
@@ -44,7 +41,7 @@ export function organizationJsonLd({
         addressCountry: address.country,
       },
     }),
-  }
+  };
 }
 
 export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
@@ -57,7 +54,7 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
       name: item.name,
       item: item.url,
     })),
-  }
+  };
 }
 
 export function faqJsonLd(items: { question: string; answer: string }[]) {
@@ -69,7 +66,7 @@ export function faqJsonLd(items: { question: string; answer: string }[]) {
       name: item.question,
       acceptedAnswer: { "@type": "Answer", text: item.answer },
     })),
-  }
+  };
 }
 
 export function serviceJsonLd({
@@ -78,10 +75,10 @@ export function serviceJsonLd({
   provider,
   url,
 }: {
-  name: string
-  description: string
-  provider: { name: string; url: string }
-  url: string
+  name: string;
+  description: string;
+  provider: { name: string; url: string };
+  url: string;
 }) {
   return {
     "@context": "https://schema.org",
@@ -94,5 +91,5 @@ export function serviceJsonLd({
       name: provider.name,
       url: provider.url,
     },
-  }
+  };
 }

@@ -1,19 +1,16 @@
-import {
-  type SectionVariant,
-  sectionVariantClasses,
-} from "#/lib/section-variants"
-import { cn } from "#/lib/utils"
+import { type SectionVariant, sectionVariantClasses } from "@/lib/forge/section-variants";
+import { cn } from "@/lib/forge/utils";
 
 export interface SectionHeadingProps {
-  eyebrow?: string
-  title: string
-  subtitle?: string
-  align?: "center" | "left"
-  as?: "h1" | "h2" | "h3"
-  variant?: SectionVariant
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  align?: "center" | "left";
+  as?: "h1" | "h2" | "h3";
+  variant?: SectionVariant;
   /** @deprecated Use variant="primary" instead */
-  inverted?: boolean
-  className?: string
+  inverted?: boolean;
+  className?: string;
 }
 
 export function SectionHeading({
@@ -26,9 +23,9 @@ export function SectionHeading({
   inverted = false,
   className,
 }: SectionHeadingProps) {
-  const variant = variantProp ?? (inverted ? "primary" : "default")
-  const colors = sectionVariantClasses[variant]
-  const isDark = variant === "primary" || variant === "secondary"
+  const variant = variantProp ?? (inverted ? "primary" : "default");
+  const colors = sectionVariantClasses[variant];
+  const isDark = variant === "primary" || variant === "secondary";
 
   return (
     <div
@@ -42,7 +39,7 @@ export function SectionHeading({
         <>
           <span
             className={cn(
-              "mb-3 inline-block font-eyebrow text-sm font-semibold uppercase tracking-[0.18em]",
+              "font-eyebrow mb-3 inline-block text-sm font-semibold tracking-[0.18em] uppercase",
               colors.eyebrow,
             )}
           >
@@ -59,22 +56,15 @@ export function SectionHeading({
       ) : null}
       <Tag
         className={cn(
-          "text-pretty font-heading text-3xl font-bold leading-tight tracking-tight sm:text-4xl",
+          "font-heading text-3xl leading-tight font-bold tracking-tight text-pretty sm:text-4xl",
           colors.heading,
         )}
       >
         {title}
       </Tag>
       {subtitle ? (
-        <p
-          className={cn(
-            "mt-4 text-lg leading-relaxed text-pretty",
-            colors.body,
-          )}
-        >
-          {subtitle}
-        </p>
+        <p className={cn("mt-4 text-lg leading-relaxed text-pretty", colors.body)}>{subtitle}</p>
       ) : null}
     </div>
-  )
+  );
 }

@@ -1,30 +1,31 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
+
 import {
   type ThemePreset,
   presets as allPresets,
   defaultPresetId,
   getPreset,
   groupByIndustry,
-} from "#/lib/themes"
+} from "@/lib/forge/themes";
 
 interface ThemeContextValue {
-  preset: ThemePreset
-  presetId: string
-  setPreset: (id: string) => void
-  isLocked: boolean
-  allPresets: ThemePreset[]
-  groupedPresets: Record<string, ThemePreset[]>
+  preset: ThemePreset;
+  presetId: string;
+  setPreset: (id: string) => void;
+  isLocked: boolean;
+  allPresets: ThemePreset[];
+  groupedPresets: Record<string, ThemePreset[]>;
 }
 
-const ThemeContext = React.createContext<ThemeContextValue | null>(null)
+const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
 export interface ThemeProviderProps {
-  children: React.ReactNode
-  defaultPreset?: string
-  locked?: boolean
-  storageKey?: string
+  children: React.ReactNode;
+  defaultPreset?: string;
+  locked?: boolean;
+  storageKey?: string;
 }
 
 export function ThemeProvider({
@@ -33,45 +34,45 @@ export function ThemeProvider({
   locked = false,
   storageKey = "theme-preset",
 }: ThemeProviderProps) {
-  const [presetId, setPresetId] = React.useState(defaultPreset)
+  const [presetId, setPresetId] = React.useState(defaultPreset);
 
   React.useEffect(() => {
-    if (locked) return
+    if (locked) return;
     try {
-      const saved = localStorage.getItem(storageKey)
+      const saved = localStorage.getItem(storageKey);
       if (saved && getPreset(saved)) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from localStorage on mount
-        setPresetId(saved)
+        // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- one-time sync from localStorage on mount
+        setPresetId(saved);
       }
     } catch {
       // ignore storage errors (private mode, etc.)
     }
-  }, [locked, storageKey])
+  }, [locked, storageKey]);
 
   React.useEffect(() => {
-    const preset = getPreset(presetId) ?? getPreset(defaultPreset)
-    if (!preset) return
-    const root = document.documentElement
+    const preset = getPreset(presetId) ?? getPreset(defaultPreset);
+    if (!preset) return;
+    const root = document.documentElement;
     for (const [key, value] of Object.entries(preset.tokens)) {
-      root.style.setProperty(key, value)
+      root.style.setProperty(key, value);
     }
-  }, [presetId, defaultPreset])
+  }, [presetId, defaultPreset]);
 
   const setPreset = React.useCallback(
     (id: string) => {
-      if (locked) return
-      if (!getPreset(id)) return
-      setPresetId(id)
+      if (locked) return;
+      if (!getPreset(id)) return;
+      setPresetId(id);
       try {
-        localStorage.setItem(storageKey, id)
+        localStorage.setItem(storageKey, id);
       } catch {
         // ignore storage errors
       }
     },
     [locked, storageKey],
-  )
+  );
 
-  const preset = getPreset(presetId) ?? getPreset(defaultPreset)!
+  const preset = getPreset(presetId) ?? getPreset(defaultPreset)!;
   const value = React.useMemo<ThemeContextValue>(
     () => ({
       preset,
@@ -82,15 +83,15 @@ export function ThemeProvider({
       groupedPresets: groupByIndustry(),
     }),
     [preset, setPreset, locked],
-  )
+  );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {
-  const ctx = React.useContext(ThemeContext)
+  const ctx = React.useContext(ThemeContext);
   if (!ctx) {
-    throw new Error("useTheme must be used within a ThemeProvider")
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
-  return ctx
+  return ctx;
 }

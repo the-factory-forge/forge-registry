@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import { Palette, Check } from "lucide-react"
+import { Palette, Check } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +10,14 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "#/components/ui/dropdown-menu"
-import { cn } from "#/lib/utils"
-import { useTheme } from "#/components/ui/theme-provider"
+} from "@/components/forge/ui/dropdown-menu";
+import { useTheme } from "@/components/forge/ui/theme-provider";
+import { cn } from "@/lib/forge/utils";
 
 export interface ThemeSwitcherProps {
-  label?: string
-  ariaLabel?: string
-  className?: string
+  label?: string;
+  ariaLabel?: string;
+  className?: string;
 }
 
 function Swatch({ color }: { color: string }) {
@@ -26,28 +27,24 @@ function Swatch({ color }: { color: string }) {
       style={{ backgroundColor: color }}
       aria-hidden="true"
     />
-  )
+  );
 }
 
 function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export function ThemeSwitcher({
-  label,
-  ariaLabel = "Theme",
-  className,
-}: ThemeSwitcherProps) {
-  const { isLocked, presetId, setPreset, groupedPresets } = useTheme()
+export function ThemeSwitcher({ label, ariaLabel = "Theme", className }: ThemeSwitcherProps) {
+  const { isLocked, presetId, setPreset, groupedPresets } = useTheme();
 
-  if (isLocked) return null
+  if (isLocked) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={ariaLabel}
         className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-sm font-medium text-foreground/80 transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
           className,
         )}
       >
@@ -56,7 +53,7 @@ export function ThemeSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         {Object.entries(groupedPresets).map(([industry, moods]) => {
-          const industryColor = moods[0]?.tokens["--primary"] ?? "#000"
+          const industryColor = moods[0]?.tokens["--primary"] ?? "#000";
           return (
             <DropdownMenuSub key={industry}>
               <DropdownMenuSubTrigger>
@@ -83,9 +80,9 @@ export function ThemeSwitcher({
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-          )
+          );
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

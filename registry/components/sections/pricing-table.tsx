@@ -1,16 +1,13 @@
-import { SectionHeading } from "#/components/ui/section-heading"
-import {
-  type SectionVariant,
-  sectionVariantClasses,
-} from "#/lib/section-variants"
-import { cn } from "#/lib/utils"
+import { SectionHeading } from "@/components/forge/ui/section-heading";
+import { type SectionVariant, sectionVariantClasses } from "@/lib/forge/section-variants";
+import { cn } from "@/lib/forge/utils";
 
 export interface PricingItem {
-  code?: string
-  name: string
-  description?: string
-  duration?: string
-  price: string
+  code?: string;
+  name: string;
+  description?: string;
+  duration?: string;
+  price: string;
 }
 
 export const DEFAULT_PRICING_COLUMNS = {
@@ -19,18 +16,18 @@ export const DEFAULT_PRICING_COLUMNS = {
   description: "Description",
   duration: "Duration",
   price: "Price",
-}
+};
 
 interface PricingTableProps {
-  eyebrow?: string
-  title: string
-  subtitle?: string
-  items: PricingItem[]
-  insuranceNote?: string
-  cancellationNote?: string
-  columns?: Partial<typeof DEFAULT_PRICING_COLUMNS>
-  variant?: SectionVariant
-  className?: string
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  items: PricingItem[];
+  insuranceNote?: string;
+  cancellationNote?: string;
+  columns?: Partial<typeof DEFAULT_PRICING_COLUMNS>;
+  variant?: SectionVariant;
+  className?: string;
 }
 
 export function PricingTable({
@@ -44,15 +41,22 @@ export function PricingTable({
   variant = "default",
   className,
 }: PricingTableProps) {
-  const colors = sectionVariantClasses[variant]
-  const cols = { ...DEFAULT_PRICING_COLUMNS, ...columns }
+  const colors = sectionVariantClasses[variant];
+  const cols = { ...DEFAULT_PRICING_COLUMNS, ...columns };
 
-  const hasCode = items.some((i) => i.code)
-  const hasDuration = items.some((i) => i.duration)
-  const hasDescription = items.some((i) => i.description)
+  const hasCode = items.some((i) => i.code);
+  const hasDuration = items.some((i) => i.duration);
+  const hasDescription = items.some((i) => i.description);
 
   return (
-    <section className={cn("section-padding", "[content-visibility:auto] [contain-intrinsic-size:auto_800px]", colors.section, className)}>
+    <section
+      className={cn(
+        "section-padding",
+        "[contain-intrinsic-size:auto_800px] [content-visibility:auto]",
+        colors.section,
+        className,
+      )}
+    >
       <div className="container-premium">
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />
         <div className="mx-auto mt-10 max-w-4xl overflow-x-auto">
@@ -71,9 +75,7 @@ export function PricingTable({
                 {hasDuration && (
                   <th className="px-4 py-3 font-semibold text-foreground">{cols.duration}</th>
                 )}
-                <th className="px-4 py-3 text-right font-semibold text-foreground">
-                  {cols.price}
-                </th>
+                <th className="px-4 py-3 text-right font-semibold text-foreground">{cols.price}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -109,5 +111,5 @@ export function PricingTable({
         )}
       </div>
     </section>
-  )
+  );
 }

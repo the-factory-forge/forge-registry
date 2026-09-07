@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-import { CtaLink } from "#/components/ui/cta-button";
-import { cn } from "#/lib/utils";
+import { CtaLink } from "@/components/forge/ui/cta-button";
+import { cn } from "@/lib/forge/utils";
 
 export interface NotFoundCta {
   label: string;
@@ -91,9 +91,7 @@ export function NotFoundPage({
           </CtaLink>
         )}
       </div>
-      {footnote && (
-        <div className="mt-12 border-t border-border pt-8">{footnote}</div>
-      )}
+      {footnote && <div className="mt-12 border-t border-border pt-8">{footnote}</div>}
     </main>
   );
 }

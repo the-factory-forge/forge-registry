@@ -16,5 +16,8 @@
     "ui": "@/components/ui",
     "lib": "@/lib"
   },
-  "iconLibrary": "lucide"
+  "iconLibrary": "lucide",
+  "registries": {
+    "@forge": "https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json"
+  }
 }

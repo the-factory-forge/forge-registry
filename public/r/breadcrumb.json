@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "breadcrumb",
+  "title": "Breadcrumb",
+  "description": "Semantic breadcrumb navigation with accessible markup.",
+  "dependencies": [
+    "lucide-react",
+    "next"
+  ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/ui/breadcrumb.tsx",
+      "content": "import { ChevronRight } from \"lucide-react\";\n\nimport { Link } from \"@/components/forge/ui/link\";\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface Crumb {\n  label: string;\n  href: string;\n}\n\nexport interface BreadcrumbProps {\n  homeLabel: string;\n  items: Crumb[];\n  className?: string;\n}\n\nexport function Breadcrumb({ homeLabel, items, className }: BreadcrumbProps) {\n  const all: Crumb[] = [{ label: homeLabel, href: \"/\" }, ...items];\n\n  return (\n    <nav aria-label=\"Breadcrumb\" className={cn(\"container-premium pt-24 md:pt-28\", className)}>\n      <ol className=\"flex flex-wrap items-center gap-1 text-sm text-muted-foreground\">\n        {all.map((crumb, i) => {\n          const isLast = i === all.length - 1;\n          return (\n            <li key={crumb.href} className=\"flex items-center gap-1\">\n              {isLast ? (\n                <span className=\"font-medium text-foreground\" aria-current=\"page\">\n                  {crumb.label}\n                </span>\n              ) : (\n                <>\n                  <Link href={crumb.href} className=\"transition-colors hover:text-primary\">\n                    {crumb.label}\n                  </Link>\n                  <ChevronRight className=\"h-4 w-4\" aria-hidden=\"true\" />\n                </>\n              )}\n            </li>\n          );\n        })}\n      </ol>\n    </nav>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/ui/breadcrumb.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

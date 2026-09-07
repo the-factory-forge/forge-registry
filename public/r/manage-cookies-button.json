@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "manage-cookies-button",
+  "title": "Manage Cookies Button",
+  "description": "Client-side button that dispatches a manage-cookies event for the cookie banner.",
+  "files": [
+    {
+      "path": "registry/components/navigation/manage-cookies-button.tsx",
+      "content": "\"use client\";\n\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface ManageCookiesButtonProps {\n  label: string;\n  manageEvent?: string;\n  size?: \"xs\" | \"sm\";\n  className?: string;\n}\n\nexport function ManageCookiesButton({\n  label,\n  manageEvent = \"manage-cookies\",\n  size = \"sm\",\n  className,\n}: ManageCookiesButtonProps) {\n  return (\n    <button\n      type=\"button\"\n      onClick={() => window.dispatchEvent(new Event(manageEvent))}\n      className={cn(\n        size === \"xs\" ? \"text-xs\" : \"text-sm\",\n        \"text-muted-foreground transition-colors hover:text-primary\",\n        className,\n      )}\n    >\n      {label}\n    </button>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/navigation/manage-cookies-button.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

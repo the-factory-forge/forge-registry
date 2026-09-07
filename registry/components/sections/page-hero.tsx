@@ -1,16 +1,16 @@
-import { Image } from "#/components/ui/image"
-import { Breadcrumb, type Crumb } from "#/components/ui/breadcrumb"
-import { cn } from "#/lib/utils"
+import { Breadcrumb, type Crumb } from "@/components/forge/ui/breadcrumb";
+import { Image } from "@/components/forge/ui/image";
+import { cn } from "@/lib/forge/utils";
 
 export interface PageHeroProps {
-  title: string
-  subtitle?: string
-  eyebrow?: string
-  backgroundImage?: string
-  overlayClass?: string
-  homeLabel: string
-  breadcrumbs: Crumb[]
-  className?: string
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+  backgroundImage?: string;
+  overlayClass?: string;
+  homeLabel: string;
+  breadcrumbs: Crumb[];
+  className?: string;
 }
 
 export function PageHero({
@@ -23,7 +23,7 @@ export function PageHero({
   breadcrumbs,
   className,
 }: PageHeroProps) {
-  const hasImage = !!backgroundImage
+  const hasImage = !!backgroundImage;
 
   return (
     <section className={cn("relative", hasImage ? "text-dark-foreground" : "bg-muted", className)}>
@@ -46,14 +46,18 @@ export function PageHero({
         <Breadcrumb
           homeLabel={homeLabel}
           items={breadcrumbs}
-          className={hasImage ? "text-dark-foreground/70 [&_a]:text-dark-foreground/70 [&_a:hover]:text-dark-foreground [&_span]:text-dark-foreground" : ""}
+          className={
+            hasImage
+              ? "text-dark-foreground/70 [&_a]:text-dark-foreground/70 [&_a:hover]:text-dark-foreground [&_span]:text-dark-foreground"
+              : ""
+          }
         />
 
-        <div className="container-premium pb-16 pt-8 md:pb-20 md:pt-12">
+        <div className="container-premium pt-8 pb-16 md:pt-12 md:pb-20">
           {eyebrow && (
             <span
               className={cn(
-                "mb-3 inline-block font-eyebrow text-sm font-semibold uppercase tracking-[0.18em]",
+                "font-eyebrow mb-3 inline-block text-sm font-semibold tracking-[0.18em] uppercase",
                 hasImage ? "text-dark-foreground/80" : "text-primary",
               )}
             >
@@ -62,7 +66,7 @@ export function PageHero({
           )}
           <h1
             className={cn(
-              "font-heading text-pretty text-3xl font-bold leading-tight sm:text-4xl md:text-5xl",
+              "font-heading text-3xl leading-tight font-bold text-pretty sm:text-4xl md:text-5xl",
               hasImage ? "text-dark-foreground" : "text-foreground",
             )}
           >
@@ -81,5 +85,5 @@ export function PageHero({
         </div>
       </div>
     </section>
-  )
+  );
 }

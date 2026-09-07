@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "corner",
+  "title": "Corner Frame / Label / Rule",
+  "description": "The Corner signature components: CornerFrame (clipped frame with conic-gradient glow), CornerLabel, and CornerRule. Props-driven, stateless, framework-agnostic.",
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/corner-tokens"
+  ],
+  "files": [
+    {
+      "path": "registry/components/intranet/corner.tsx",
+      "content": "import type { HTMLAttributes, ReactNode } from \"react\";\n\nimport { cn } from \"@/lib/forge/utils\";\n\nexport interface CornerFrameProps extends HTMLAttributes<HTMLElement> {\n  as?: \"div\" | \"section\" | \"article\" | \"header\" | \"aside\";\n  /** Adds the signature conic-gradient glow sweep on hover/focus. */\n  accent?: boolean;\n  /** Size of the clipped corner cut-out. Defaults to \"md\". */\n  cut?: \"sm\" | \"md\" | \"lg\";\n  /** Surface fill for the frame body. Defaults to \"quiet\". */\n  surface?: \"paper\" | \"elevated\" | \"tinted\" | \"quiet\";\n}\n\nexport function CornerFrame({\n  as: Component = \"div\",\n  accent = false,\n  cut = \"md\",\n  surface = \"quiet\",\n  className,\n  ...props\n}: CornerFrameProps) {\n  return (\n    <Component\n      className={cn(\n        \"corner-frame\",\n        cut === \"sm\" && \"corner-cut-sm\",\n        cut === \"lg\" && \"corner-cut-lg\",\n        surface === \"paper\" && \"corner-surface-paper\",\n        surface === \"elevated\" && \"corner-surface-elevated\",\n        surface === \"tinted\" && \"corner-surface-tinted\",\n        surface === \"quiet\" && \"corner-surface-quiet\",\n        accent && \"corner-accent\",\n        className,\n      )}\n      {...props}\n    />\n  );\n}\n\nexport interface CornerLabelProps {\n  children: ReactNode;\n  className?: string;\n}\n\nexport function CornerLabel({ children, className }: CornerLabelProps) {\n  return (\n    <span\n      className={cn(\n        \"corner-frame corner-cut-sm corner-surface-tinted inline-flex w-fit items-center px-3 py-1 text-[0.7rem] font-bold tracking-[0.16em] text-primary uppercase\",\n        className,\n      )}\n    >\n      <span>{children}</span>\n    </span>\n  );\n}\n\nexport interface CornerRuleProps extends HTMLAttributes<HTMLDivElement> {\n  /** Adds a left-aligned, origin-scaled reveal. */\n  animated?: boolean;\n}\n\nexport function CornerRule({ animated = false, className, ...props }: CornerRuleProps) {\n  return (\n    <div\n      className={cn(\"corner-rule\", animated && \"corner-rule-animated\", className)}\n      aria-hidden=\"true\"\n      {...props}\n    />\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/forge/intranet/corner.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

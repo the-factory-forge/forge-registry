@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "cn",
+  "title": "cn Utility",
+  "description": "Class name utility via cnfast.",
+  "dependencies": [
+    "cnfast"
+  ],
+  "files": [
+    {
+      "path": "registry/lib/utils.ts",
+      "content": "export { cn } from \"cnfast\";\n",
+      "type": "registry:lib",
+      "target": "@lib/forge/utils.ts"
+    }
+  ],
+  "type": "registry:lib"
+}
