@@ -2,6 +2,12 @@ import Link from "next/link";
 
 const examples = [
   {
+    href: "/en/customers",
+    category: "Plugin",
+    title: "Customers",
+    description: "Customer directory, contact details, and creation with host-owned actions.",
+  },
+  {
     href: "/cookie-banner",
     category: "Layout",
     title: "Cookie banner",

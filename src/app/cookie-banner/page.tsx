@@ -71,8 +71,9 @@ export default function CookieBannerPage() {
       <CookieBanner
         consentKey="forge-cookie-banner-preview"
         text="We use cookies to improve your experience and analyze site traffic."
-        acceptSelectionLabel="Save selection"
-        rejectLabel="Reject all"
+        acceptSelectionLabel="Custom selection"
+        cancelLabel="Cancel"
+        confirmLabel="Confirm selection"
         showAnalytics={showAnalytics}
         showMarketing={showMarketing}
         onConsentChange={setAppliedConsent}

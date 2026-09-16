@@ -51,17 +51,18 @@ Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700
 
 ## File placement
 
-| Type                                                     | Source directory               | Install target          |
-| -------------------------------------------------------- | ------------------------------ | ----------------------- |
-| Components that render their own UI                      | `registry/components/`         | `@components/*`         |
-| Page-building sections; item and file names use `page-*` | `registry/components/pages/`   | `@components/pages/*`   |
-| Layouts whose purpose is arranging other elements        | `registry/components/layouts/` | `@components/layouts/*` |
-| Non-visual helpers, data, hooks, providers, and styles   | `registry/components/utils/`   | `@components/utils/*`   |
+| Type                                                     | Source directory                      | Install target                 |
+| -------------------------------------------------------- | ------------------------------------- | ------------------------------ |
+| Components that render their own UI                      | `registry/components/`                | `@components/*`                |
+| Page-building sections; item and file names use `page-*` | `registry/components/pages/`          | `@components/pages/*`          |
+| Layouts whose purpose is arranging other elements        | `registry/components/layouts/`        | `@components/layouts/*`        |
+| Feature UI and its colocated types, labels, and helpers  | `registry/components/plugins/{name}/` | `@components/plugins/{name}/*` |
+| Non-visual helpers, data, hooks, providers, and styles   | `registry/components/utils/`          | `@components/utils/*`          |
 
 Internal i18n helpers, locale dictionaries, theme/font presets, and their
 providers belong in `src/lib/`. Preview switcher components belong in
 `src/showroom/`. Neither directory may be listed in `registry/registry.json` or
-imported by shared registry components. Consumer-facing helpers remain in
+imported by shared registry components. Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in
 `registry/components/utils/`.
 
 ## Props conventions
@@ -132,12 +133,12 @@ After creating a component, add it to `registry/registry.json`:
 }
 ```
 
-| Field                  | Notes                                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `type`                 | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries                                   |
-| `dependencies`         | npm packages the consumer must install                                                                                               |
-| `registryDependencies` | Required registry items, using `@forge/item-name` for local items                                                                    |
-| File `target`          | Use `@components/*`, `@components/pages/*`, `@components/layouts/*`, or `@components/utils/*` according to the placement rules above |
+| Field                  | Notes                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries                                                                   |
+| `dependencies`         | npm packages the consumer must install                                                                                                                               |
+| `registryDependencies` | Required registry items, using `@forge/item-name` for local items                                                                                                    |
+| File `target`          | Use `@components/*`, `@components/pages/*`, `@components/layouts/*`, `@components/plugins/{name}/*`, or `@components/utils/*` according to the placement rules above |
 
 Use `@/components/...`, `@/components/pages/...`, `@/components/layouts/...`, and
 `@/components/utils/...` source imports to match those installation paths. The showroom's TypeScript aliases resolve them to `registry/`;

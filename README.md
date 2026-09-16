@@ -61,7 +61,7 @@ This reruns shadcn with `--overwrite` for the sidebar and its registry dependenc
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Existing consumers such as `forge-template` must migrate to standard shadcn installs using `@forge`; this change does not migrate those projects automatically. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (41)
+## Registry items (42)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -107,7 +107,7 @@ supply their own translations and theme configuration.
 
 | Name                                           | Description                                                                                                 |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `cookie-banner`                                | Category controls, accept/save/reject, saved consent, and host analytics callback                           |
+| `cookie-banner`                                | Compact custom selection, accept all, saved consent, and host analytics callback                            |
 | `navbar`                                       | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
 | [intranet-sidebar](./docs/intranet-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
 | `footer`                                       | Multi-column with brand, contact, socials, legal links                                                      |
@@ -124,6 +124,15 @@ supply their own translations and theme configuration.
 | `page-contact-info`                            | Contact details + hours + Google Maps embed                                                                 |
 | `page-legal`                                   | Prose layout for legal pages                                                                                |
 | `page-not-found`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
+
+### Plugins (1)
+
+| Name                             | Description                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| [customers](./docs/customers.md) | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions |
+
+Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.
+Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
 ### Intranet (1)
 
@@ -179,7 +188,7 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 
 ## Registry workflow
 
-1. Create reusable source files under `/registry/components/*`, using `pages/` for page-building sections, `layouts/` for arranging other elements, and `utils/` for non-visual code.
+1. Create reusable source files under `/registry/components/*`, using `pages/` for page-building sections, `layouts/` for arranging other elements, `plugins/` for cohesive feature UI, and `utils/` for shared non-visual code.
 2. Add corresponding registry items to `/registry/registry.json`.
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
 4. Run `pnpm format && pnpm lint:fix`, review automatic edits, then `pnpm registry:sync` to rebuild the shadcn catalog and items from the final source.
@@ -219,6 +228,7 @@ registry/
   components/
     *.tsx             # Rendered components
     layouts/          # Components whose purpose is arranging other elements
+    plugins/          # Feature UI and its colocated supporting code
     utils/            # Non-visual helpers, data, hooks, providers, and styles
   registry.json       # Source manifest
 src/

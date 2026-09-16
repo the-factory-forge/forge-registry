@@ -559,7 +559,7 @@
       "name": "page-legal",
       "type": "registry:block",
       "title": "Legal Page",
-      "description": "Prose layout for legal pages (CGV, mentions légales, confidentialité).",
+      "description": "Prose layout for legal pages (CGV, mentions l\u00e9gales, confidentialit\u00e9).",
       "files": [
         {
           "path": "registry/components/pages/page-legal.tsx",
@@ -600,7 +600,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -643,6 +643,46 @@
           "target": "@components/layouts/intranet-shell.tsx"
         }
       ]
+    },
+    {
+      "name": "customers",
+      "type": "registry:block",
+      "title": "Customers",
+      "description": "Customer directory, detail sections, and creation form with host-owned actions.",
+      "files": [
+        {
+          "path": "registry/components/plugins/customers/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/customers/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/customers/customer-form.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/customers/customer-form.tsx"
+        },
+        {
+          "path": "registry/components/plugins/customers/types.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/customers/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/customers/utils.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/utils.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
     }
   ]
 }
