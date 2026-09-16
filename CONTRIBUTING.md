@@ -2,6 +2,9 @@
 
 Component conventions and checklist for the shared registry.
 
+Keep TC-specific components, visual styling, and branding in `tc-website`.
+Registry components must be reusable across customers.
+
 ## Formatting and validation
 
 Vite Plus 0.3.0 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
@@ -37,37 +40,37 @@ Use the same CSS vocabulary as `forge-template` and `tc-website`:
 
 - Typography: `font-sans` for body text, `font-serif` for headings, and
   `font-mono` for code. `font-serif` names the heading role; each website chooses
-  its font family. `font-eyebrow` remains available through `FontProvider`.
+  its font family. Consumers define any `font-eyebrow` styling in their own CSS.
 - Sidebar surfaces and navigation: `bg-sidebar`, `text-sidebar-foreground`,
   `border-sidebar-border`, `bg-sidebar-accent`, `text-sidebar-accent-foreground`,
   `text-sidebar-primary`, and `ring-sidebar-ring`. Profile menus use
   `bg-popover` and `text-popover-foreground`.
-- Optional Corner branding: `--brand-*` color variables expose `bg-brand`,
-  `text-brand-strong`, `text-brand-contrast`, `bg-brand-tint`, `bg-surface`,
-  `bg-elevated`, `bg-paper`, `text-ink`, and `border-frame` utilities.
-  Keep `--corner-*` for frame geometry and component internals.
 - Layout helpers: `container-premium` and `section-padding`.
 
 Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700`) as they are semantic, not theme-dependent.
 
 ## File placement
 
-| Type                                     | Directory                         |
-| ---------------------------------------- | --------------------------------- |
-| UI primitives (button, input, badge…)    | `registry/components/ui/`         |
-| Page sections (hero, grid, faq…)         | `registry/components/sections/`   |
-| Navigation (navbar, footer…)             | `registry/components/navigation/` |
-| Layout helpers (cookie banner, consent…) | `registry/components/layouts/`    |
-| Forms (newsletter…)                      | `registry/components/forms/`      |
-| Libraries (utils, i18n, seo…)            | `registry/lib/`                   |
+| Type                                                     | Source directory               | Install target          |
+| -------------------------------------------------------- | ------------------------------ | ----------------------- |
+| Components that render their own UI                      | `registry/components/`         | `@components/*`         |
+| Page-building sections; item and file names use `page-*` | `registry/components/pages/`   | `@components/pages/*`   |
+| Layouts whose purpose is arranging other elements        | `registry/components/layouts/` | `@components/layouts/*` |
+| Non-visual helpers, data, hooks, providers, and styles   | `registry/components/utils/`   | `@components/utils/*`   |
+
+Internal i18n helpers, locale dictionaries, theme/font presets, and their
+providers belong in `src/lib/`. Preview switcher components belong in
+`src/showroom/`. Neither directory may be listed in `registry/registry.json` or
+imported by shared registry components. Consumer-facing helpers remain in
+`registry/components/utils/`.
 
 ## Props conventions
 
 - Every visible string is a prop with an English default value
 - Components never import data — everything comes via props
-- Use `cn()` from `@/lib/forge/utils` for all className merging
+- Use `cn()` from `@/components/utils/cn` for all className merging
 - Export both the component and its Props type
-- For section components that support color themes, use `SectionVariant` from `@/lib/forge/section-variants`
+- For section components that support color themes, use `SectionVariant` from `@/components/utils/section-variants`
 
 ## Client/Server
 
@@ -93,7 +96,7 @@ Every component must include:
 Components rendering display images must support responsive variants:
 
 - The `Image` shim passes `srcSet`/`sizes` through; `ImageWithFallback` exposes a
-  `srcSet` prop; `service-card` exposes `imageSrcSet`; `home-hero` exposes
+  `srcSet` prop; `service-card` exposes `imageSrcSet`; `page-home-hero` exposes
   `backgroundSrcSet`.
 - Variant convention: `<name>-480.webp` / `<name>-800.webp` generated from the
   source with `scripts/generate-image-variants.mjs` in the **forge-template**
@@ -119,9 +122,9 @@ After creating a component, add it to `registry/registry.json`:
   "description": "Short description of what it does.",
   "files": [
     {
-      "path": "registry/components/ui/my-component.tsx",
+      "path": "registry/components/my-component.tsx",
       "type": "registry:component",
-      "target": "@components/forge/ui/my-component.tsx"
+      "target": "@components/my-component.tsx"
     }
   ],
   "dependencies": ["lucide-react"],
@@ -129,15 +132,15 @@ After creating a component, add it to `registry/registry.json`:
 }
 ```
 
-| Field                  | Notes                                                                                              |
-| ---------------------- | -------------------------------------------------------------------------------------------------- |
-| `type`                 | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries |
-| `dependencies`         | npm packages the consumer must install                                                             |
-| `registryDependencies` | Required registry items, using `@forge/item-name` for local items                                  |
-| File `target`          | Explicit consumer destination; use `@components/forge/`, `@lib/forge/`, or `@lib/forge/content/`   |
+| Field                  | Notes                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `type`                 | `registry:ui` for primitives, `registry:block` for composed sections, `registry:lib` for libraries                                   |
+| `dependencies`         | npm packages the consumer must install                                                                                               |
+| `registryDependencies` | Required registry items, using `@forge/item-name` for local items                                                                    |
+| File `target`          | Use `@components/*`, `@components/pages/*`, `@components/layouts/*`, or `@components/utils/*` according to the placement rules above |
 
-Use `@/components/forge/...` and `@/lib/forge/...` source imports to match those
-installation paths. The showroom's TypeScript aliases resolve them to `registry/`;
+Use `@/components/...`, `@/components/pages/...`, `@/components/layouts/...`, and
+`@/components/utils/...` source imports to match those installation paths. The showroom's TypeScript aliases resolve them to `registry/`;
 the shadcn CLI adapts them to each consumer's configured aliases.
 
 Then run `pnpm registry:sync` to build the catalog and item endpoints with the
@@ -148,7 +151,7 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 
 - [ ] Uses shadcn design tokens (no hardcoded colors)
 - [ ] All strings are props with English defaults
-- [ ] Imports `cn` from `@/lib/forge/utils` for className merging
+- [ ] Imports `cn` from `@/components/utils/cn` for className merging
 - [ ] `"use client"` only when necessary
 - [ ] Props type is exported
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)

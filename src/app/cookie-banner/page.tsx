@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { CookieBanner } from "@/components/forge/layouts/cookie-banner";
-import { ManageCookiesButton } from "@/components/forge/navigation/manage-cookies-button";
+import { CookieBanner } from "@/components/cookie-banner";
+import { ManageCookiesButton } from "@/components/manage-cookies-button";
 
 export default function CookieBannerPage() {
   return (

@@ -4,8 +4,8 @@ import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
-import { IntranetShell } from "@/components/forge/intranet/intranet-shell";
-import type { IntranetNavGroup } from "@/components/forge/navigation/intranet-sidebar";
+import type { IntranetNavGroup } from "@/components/intranet-sidebar";
+import { IntranetShell } from "@/components/layouts/intranet-shell";
 
 const groups: IntranetNavGroup[] = [
   {

@@ -20,7 +20,7 @@ import {
   IntranetSidebarProvider,
   IntranetSidebarToggle,
   type IntranetNavGroup,
-} from "@/components/forge/navigation/intranet-sidebar";
+} from "@/components/intranet-sidebar";
 
 const groups: IntranetNavGroup[] = [
   {

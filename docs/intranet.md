@@ -19,9 +19,9 @@ pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
 ```
 
 With default aliases, the shell installs to
-`src/components/forge/intranet/intranet-shell.tsx`. Its registry dependencies
+`src/components/layouts/intranet-shell.tsx`. Its registry dependencies
 include the shared sidebar and utilities. It uses the consumer's Tailwind CSS 4
-semantic tokens and does not impose Corner branding.
+semantic tokens. The host supplies its branding and any site-specific styling.
 
 ## Usage
 
@@ -33,7 +33,7 @@ integration:
 "use client";
 
 import type { ReactNode } from "react";
-import { IntranetShell, type IntranetShellProps } from "@/components/forge/intranet/intranet-shell";
+import { IntranetShell, type IntranetShellProps } from "@/components/layouts/intranet-shell";
 
 export function IntranetLayout({
   user,
@@ -141,63 +141,6 @@ With `wrapContent={false}`, route content remains a direct child of
 content removes its padding when printing. Banner slots now own their visual
 styling: move any desired border/padding into the banner itself.
 
-## Optional Corner styling
-
-Install the Corner components only when the website needs this visual identity:
-
-```bash
-pnpm dlx shadcn@4.19.1 add @forge/corner
-```
-
-This installs `CornerFrame`, `CornerLabel`, and `CornerRule`, plus the
-`corner-tokens` dependency with two CSS entry points. **Import the installed stylesheet into the host's
-global Tailwind CSS entry.** shadcn copies the file but does not add this import.
-For TC and other hosts that already define `--brand-*` colors, import only the
-structural stylesheet. It preserves the host's palette and `.light`/`.dark`
-selection:
-
-```css
-@import "tailwindcss";
-@import "./lib/forge/corner/styles.css";
-```
-
-A new website that wants the optional Corner palette can import
-`./lib/forge/corner/tokens.css` instead; it includes `styles.css` and sets global
-colors using `prefers-color-scheme`. Import one entry point. Adapt relative paths
-to the actual stylesheet location, keeping the import after Tailwind's import.
-The generic intranet shell does not depend on either stylesheet.
-
-When migrating TC, replace its duplicate Corner component rules with
-`styles.css`, while retaining its palette, motion observer and motion CSS, and
-print rules.
-Its local `corner.tsx` can re-export the registry components so callers keep
-their existing import path. Invoice-specific `CornerLayout` stays in TC.
-
-Color variables follow TC's `--brand-*` names, including `--brand-primary`,
-`--brand-primary-strong`, `--brand-primary-tint`, `--brand-surface`, and
-`--brand-frame`. Use the matching utilities such as `text-brand-strong`,
-`bg-brand-tint`, `bg-surface`, and `border-frame`. The `corner-*` component
-classes and `--corner-*` geometry variables keep their existing names.
-
-```tsx
-import { CornerFrame, CornerLabel, CornerRule } from "@/components/forge/intranet/corner";
-
-<CornerFrame as="section" accent surface="paper" className="p-6">
-  <CornerLabel>Workspace</CornerLabel>
-  <h1 className="mt-4 text-2xl font-semibold">Projects</h1>
-  <CornerRule className="my-4" />
-  <p>Your page content.</p>
-</CornerFrame>;
-```
-
-`CornerFrame` supports `as`, `accent`, `cut`, `surface`, and standard HTML
-attributes. The CSS provides clipped frames, hover/focus accent animation, and
-reduced-motion handling. The separate Corner preset in `theme-presets` supplies
-palette values; it does not replace the signature stylesheet required by these
-components. `CornerRule animated` adds `corner-rule-animated` and
-`data-public-motion` for a host reveal observer such as TC's `PublicPageMotion`;
-the registry does not install that observer. The rule remains visible without it.
-
 ## Preview and update
 
 Run `pnpm dev --port 3010` and open `/en/intranet`. The showroom uses mock user
@@ -206,7 +149,7 @@ and navigation data, a banner control, and a topbar toggle.
 
 Use the [local registry workflow](../README.md#installing-from-the-registry) to
 test changes in a consumer. Publish generated artifacts before updating from the
-`main` namespace. Keep host adapters outside generated `forge/` directories;
+`main` namespace. Keep host adapters outside registry-managed component paths;
 review changes when rerunning shadcn with `--overwrite`, then validate and deploy
 the consumer. Installing this item does not migrate an existing host layout
 automatically.

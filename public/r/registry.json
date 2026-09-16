@@ -10,9 +10,9 @@
       "description": "Class name utility via cnfast.",
       "files": [
         {
-          "path": "registry/lib/utils.ts",
+          "path": "registry/components/utils/cn.ts",
           "type": "registry:lib",
-          "target": "@lib/forge/utils.ts"
+          "target": "@components/utils/cn.ts"
         }
       ],
       "dependencies": ["cnfast"]
@@ -24,47 +24,9 @@
       "description": "Shared SectionVariant type and color map for theming section backgrounds, text, cards, and icons.",
       "files": [
         {
-          "path": "registry/lib/section-variants.ts",
+          "path": "registry/components/utils/section-variants.ts",
           "type": "registry:lib",
-          "target": "@lib/forge/section-variants.ts"
-        }
-      ]
-    },
-    {
-      "name": "i18n-engine",
-      "type": "registry:lib",
-      "title": "i18n Engine",
-      "description": "Internationalization engine with getDictionary and t() dot-notation resolver. Supports fr/en/de/it.",
-      "files": [
-        {
-          "path": "src/lib/i18n/config.ts",
-          "type": "registry:lib",
-          "target": "@lib/i18n/config.ts"
-        },
-        {
-          "path": "src/lib/i18n/index.ts",
-          "type": "registry:lib",
-          "target": "@lib/i18n/index.ts"
-        },
-        {
-          "path": "src/lib/i18n/fr.json",
-          "type": "registry:lib",
-          "target": "@lib/i18n/fr.json"
-        },
-        {
-          "path": "src/lib/i18n/en.json",
-          "type": "registry:lib",
-          "target": "@lib/i18n/en.json"
-        },
-        {
-          "path": "src/lib/i18n/de.json",
-          "type": "registry:lib",
-          "target": "@lib/i18n/de.json"
-        },
-        {
-          "path": "src/lib/i18n/it.json",
-          "type": "registry:lib",
-          "target": "@lib/i18n/it.json"
+          "target": "@components/utils/section-variants.ts"
         }
       ]
     },
@@ -75,12 +37,11 @@
       "description": "SEO metadata builder with canonical, hreflang, Open Graph, and Twitter card support.",
       "files": [
         {
-          "path": "registry/lib/seo/build-metadata.ts",
+          "path": "registry/components/utils/seo/build-metadata.ts",
           "type": "registry:lib",
-          "target": "@lib/forge/seo/build-metadata.ts"
+          "target": "@components/utils/seo/build-metadata.ts"
         }
-      ],
-      "registryDependencies": ["@forge/i18n-engine"]
+      ]
     },
     {
       "name": "json-ld",
@@ -89,9 +50,9 @@
       "description": "Structured data helpers for Organization, Breadcrumb, FAQ, and Service schemas.",
       "files": [
         {
-          "path": "registry/lib/seo/json-ld.tsx",
+          "path": "registry/components/utils/seo/json-ld.tsx",
           "type": "registry:lib",
-          "target": "@lib/forge/seo/json-ld.tsx"
+          "target": "@components/utils/seo/json-ld.tsx"
         }
       ]
     },
@@ -102,9 +63,9 @@
       "description": "Inline SVG icons for Instagram, Facebook, LinkedIn, and YouTube.",
       "files": [
         {
-          "path": "registry/components/ui/social-icons.tsx",
+          "path": "registry/components/social-icons.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/social-icons.tsx"
+          "target": "@components/social-icons.tsx"
         }
       ]
     },
@@ -115,14 +76,14 @@
       "description": "Base UI accordion with height keyframes animation (measured --accordion-panel-height).",
       "files": [
         {
-          "path": "registry/components/ui/accordion.tsx",
+          "path": "registry/components/accordion.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/accordion.tsx"
+          "target": "@components/accordion.tsx"
         },
         {
-          "path": "registry/components/ui/accordion.css",
+          "path": "registry/components/accordion.css",
           "type": "registry:style",
-          "target": "@components/forge/ui/accordion.css"
+          "target": "@components/accordion.css"
         }
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
@@ -135,9 +96,9 @@
       "description": "Scroll-triggered animation wrappers: FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal.",
       "files": [
         {
-          "path": "registry/components/ui/animations.tsx",
+          "path": "registry/components/animations.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/animations.tsx"
+          "target": "@components/animations.tsx"
         }
       ],
       "dependencies": ["motion"]
@@ -149,9 +110,9 @@
       "description": "Lightweight scroll-reveal wrapper with configurable fade-up animation.",
       "files": [
         {
-          "path": "registry/components/ui/reveal.tsx",
+          "path": "registry/components/reveal.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/reveal.tsx"
+          "target": "@components/reveal.tsx"
         }
       ],
       "dependencies": ["motion"]
@@ -163,9 +124,9 @@
       "description": "Web Share API button with clipboard fallback.",
       "files": [
         {
-          "path": "registry/components/ui/share-button.tsx",
+          "path": "registry/components/share-button.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/share-button.tsx"
+          "target": "@components/share-button.tsx"
         }
       ],
       "dependencies": ["lucide-react"]
@@ -177,9 +138,9 @@
       "description": "Scroll-to-top floating button that appears after scrolling.",
       "files": [
         {
-          "path": "registry/components/ui/back-to-top.tsx",
+          "path": "registry/components/back-to-top.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/back-to-top.tsx"
+          "target": "@components/back-to-top.tsx"
         }
       ],
       "dependencies": ["lucide-react"]
@@ -191,9 +152,9 @@
       "description": "Reusable section heading with eyebrow label, title, subtitle, alignment, and color variant support.",
       "files": [
         {
-          "path": "registry/components/ui/section-heading.tsx",
+          "path": "registry/components/section-heading.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/section-heading.tsx"
+          "target": "@components/section-heading.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/section-variants"]
@@ -205,9 +166,9 @@
       "description": "next/image wrapper with error fallback placeholder, quality control, and accessibility.",
       "files": [
         {
-          "path": "registry/components/ui/image-with-fallback.tsx",
+          "path": "registry/components/image-with-fallback.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/image-with-fallback.tsx"
+          "target": "@components/image-with-fallback.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
@@ -220,9 +181,9 @@
       "description": "Click-to-enlarge image overlay with Escape and click-outside dismiss.",
       "files": [
         {
-          "path": "registry/components/ui/lightbox.tsx",
+          "path": "registry/components/lightbox.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/lightbox.tsx"
+          "target": "@components/lightbox.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
@@ -235,9 +196,9 @@
       "description": "Call-to-action button with CtaLink (internal) and CtaExternal (new tab) variants in 4 styles.",
       "files": [
         {
-          "path": "registry/components/ui/cta-button.tsx",
+          "path": "registry/components/cta-button.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/cta-button.tsx"
+          "target": "@components/cta-button.tsx"
         }
       ],
       "dependencies": ["next"],
@@ -250,9 +211,9 @@
       "description": "Semantic breadcrumb navigation with accessible markup.",
       "files": [
         {
-          "path": "registry/components/ui/breadcrumb.tsx",
+          "path": "registry/components/breadcrumb.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/breadcrumb.tsx"
+          "target": "@components/breadcrumb.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
@@ -265,9 +226,9 @@
       "description": "Base UI dropdown menu with items, groups, separators, and submenus.",
       "files": [
         {
-          "path": "registry/components/ui/dropdown-menu.tsx",
+          "path": "registry/components/dropdown-menu.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/dropdown-menu.tsx"
+          "target": "@components/dropdown-menu.tsx"
         }
       ],
       "dependencies": ["lucide-react", "@base-ui/react"],
@@ -280,9 +241,9 @@
       "description": "Slide-out panel (drawer) built on Base UI Dialog with top/right/bottom/left variants.",
       "files": [
         {
-          "path": "registry/components/ui/sheet.tsx",
+          "path": "registry/components/sheet.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/sheet.tsx"
+          "target": "@components/sheet.tsx"
         }
       ],
       "dependencies": ["lucide-react", "@base-ui/react"],
@@ -295,24 +256,24 @@
       "description": "Framework-agnostic shims isolating next/link, next/image, next/script and next/navigation. Every site must install this item (each site provides its own implementation per framework).",
       "files": [
         {
-          "path": "registry/components/ui/link.tsx",
+          "path": "registry/components/link.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/link.tsx"
+          "target": "@components/link.tsx"
         },
         {
-          "path": "registry/components/ui/image.tsx",
+          "path": "registry/components/image.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/image.tsx"
+          "target": "@components/image.tsx"
         },
         {
-          "path": "registry/components/ui/script.tsx",
+          "path": "registry/components/script.tsx",
           "type": "registry:component",
-          "target": "@components/forge/ui/script.tsx"
+          "target": "@components/script.tsx"
         },
         {
-          "path": "registry/components/ui/use-location.ts",
+          "path": "registry/components/utils/use-location.ts",
           "type": "registry:component",
-          "target": "@components/forge/ui/use-location.ts"
+          "target": "@components/utils/use-location.ts"
         }
       ],
       "registryDependencies": ["@forge/cn"]
@@ -324,14 +285,14 @@
       "description": "Reusable newsletter signup form with accessible states and async submit support.",
       "files": [
         {
-          "path": "registry/components/forms/newsletter.tsx",
+          "path": "registry/components/newsletter.tsx",
           "type": "registry:component",
-          "target": "@components/forge/forms/newsletter.tsx"
+          "target": "@components/newsletter.tsx"
         },
         {
-          "path": "registry/components/forms/newsletter-example.tsx",
+          "path": "registry/components/newsletter-example.tsx",
           "type": "registry:example",
-          "target": "@components/forge/forms/newsletter-example.tsx"
+          "target": "@components/newsletter-example.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn"]
@@ -343,9 +304,9 @@
       "description": "GA4 consent mode cookie banner with localStorage persistence and accept/decline.",
       "files": [
         {
-          "path": "registry/components/layouts/cookie-banner.tsx",
+          "path": "registry/components/cookie-banner.tsx",
           "type": "registry:component",
-          "target": "@components/forge/layouts/cookie-banner.tsx"
+          "target": "@components/cookie-banner.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn"]
@@ -357,9 +318,9 @@
       "description": "Locale dropdown switcher for i18n navigation.",
       "files": [
         {
-          "path": "registry/components/navigation/language-switcher.tsx",
+          "path": "registry/components/language-switcher.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/language-switcher.tsx"
+          "target": "@components/language-switcher.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
@@ -372,9 +333,9 @@
       "description": "Responsive navbar with dropdown submenus, mobile sheet menu, language switcher, and CTA button.",
       "files": [
         {
-          "path": "registry/components/navigation/navbar.tsx",
+          "path": "registry/components/navbar.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/navbar.tsx"
+          "target": "@components/navbar.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
@@ -393,9 +354,9 @@
       "description": "Client-side button that dispatches a manage-cookies event for the cookie banner.",
       "files": [
         {
-          "path": "registry/components/navigation/manage-cookies-button.tsx",
+          "path": "registry/components/manage-cookies-button.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/manage-cookies-button.tsx"
+          "target": "@components/manage-cookies-button.tsx"
         }
       ]
     },
@@ -406,24 +367,24 @@
       "description": "Multi-column footer with brand, navigation columns, contact info, social icons, and legal links.",
       "files": [
         {
-          "path": "registry/components/navigation/footer.tsx",
+          "path": "registry/components/footer.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/footer.tsx"
+          "target": "@components/footer.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
       "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/manage-cookies-button"]
     },
     {
-      "name": "home-hero",
+      "name": "page-home-hero",
       "type": "registry:block",
       "title": "Home Hero",
       "description": "Full-viewport hero section with background image, gradient overlay, and CTA buttons.",
       "files": [
         {
-          "path": "registry/components/sections/home-hero.tsx",
+          "path": "registry/components/pages/page-home-hero.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/home-hero.tsx"
+          "target": "@components/pages/page-home-hero.tsx"
         }
       ],
       "dependencies": ["next"],
@@ -436,38 +397,38 @@
       "description": "Inner page hero with optional background image and integrated breadcrumb.",
       "files": [
         {
-          "path": "registry/components/sections/page-hero.tsx",
+          "path": "registry/components/pages/page-hero.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/page-hero.tsx"
+          "target": "@components/pages/page-hero.tsx"
         }
       ],
       "dependencies": ["next"],
       "registryDependencies": ["@forge/cn", "@forge/breadcrumb"]
     },
     {
-      "name": "cta-band",
+      "name": "page-cta-band",
       "type": "registry:block",
       "title": "CTA Band",
       "description": "Full-width call-to-action banner with title, description, button, and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/cta-band.tsx",
+          "path": "registry/components/pages/page-cta-band.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/cta-band.tsx"
+          "target": "@components/pages/page-cta-band.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/cta-button", "@forge/section-variants"]
     },
     {
-      "name": "trust-section",
+      "name": "page-trust-section",
       "type": "registry:block",
       "title": "Trust Section",
       "description": "Social proof section with icon grid for expertise, responsiveness, and quality badges.",
       "files": [
         {
-          "path": "registry/components/sections/trust-section.tsx",
+          "path": "registry/components/pages/page-trust-section.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/trust-section.tsx"
+          "target": "@components/pages/page-trust-section.tsx"
         }
       ],
       "dependencies": ["lucide-react"],
@@ -485,24 +446,24 @@
       "description": "Service card with image banner, floating icon, hover effect, and link.",
       "files": [
         {
-          "path": "registry/components/sections/service-card.tsx",
+          "path": "registry/components/service-card.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/service-card.tsx"
+          "target": "@components/service-card.tsx"
         }
       ],
       "dependencies": ["lucide-react", "next"],
       "registryDependencies": ["@forge/cn", "@forge/image-with-fallback"]
     },
     {
-      "name": "services-grid",
+      "name": "page-services-grid",
       "type": "registry:block",
       "title": "Services Grid",
       "description": "Responsive grid of service cards with section heading and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/services-grid.tsx",
+          "path": "registry/components/pages/page-services-grid.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/services-grid.tsx"
+          "target": "@components/pages/page-services-grid.tsx"
         }
       ],
       "registryDependencies": [
@@ -513,29 +474,29 @@
       ]
     },
     {
-      "name": "faq-list",
+      "name": "page-faq-list",
       "type": "registry:block",
       "title": "FAQ List",
       "description": "Accordion FAQ section with optional category filter tabs and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/faq-list.tsx",
+          "path": "registry/components/pages/page-faq-list.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/faq-list.tsx"
+          "target": "@components/pages/page-faq-list.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
     },
     {
-      "name": "testimonials",
+      "name": "page-testimonials",
       "type": "registry:block",
       "title": "Testimonials",
       "description": "Social proof section displaying client testimonials with color variant.",
       "files": [
         {
-          "path": "registry/components/sections/testimonials.tsx",
+          "path": "registry/components/pages/page-testimonials.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/testimonials.tsx"
+          "target": "@components/pages/page-testimonials.tsx"
         }
       ],
       "dependencies": ["lucide-react"],
@@ -547,15 +508,15 @@
       ]
     },
     {
-      "name": "method-steps",
+      "name": "page-method-steps",
       "type": "registry:block",
       "title": "Method Steps",
       "description": "Multi-step process visualization with numbered steps, descriptions, and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/method-steps.tsx",
+          "path": "registry/components/pages/page-method-steps.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/method-steps.tsx"
+          "target": "@components/pages/page-method-steps.tsx"
         }
       ],
       "registryDependencies": [
@@ -566,210 +527,61 @@
       ]
     },
     {
-      "name": "pricing-table",
+      "name": "page-pricing-table",
       "type": "registry:block",
       "title": "Pricing Table",
       "description": "Service pricing table with name, duration, price, description, and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/pricing-table.tsx",
+          "path": "registry/components/pages/page-pricing-table.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/pricing-table.tsx"
+          "target": "@components/pages/page-pricing-table.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
     },
     {
-      "name": "contact-info",
+      "name": "page-contact-info",
       "type": "registry:block",
       "title": "Contact Info",
       "description": "Contact information section with address, phone, email, hours, map, and color variant.",
       "files": [
         {
-          "path": "registry/components/sections/contact-info.tsx",
+          "path": "registry/components/pages/page-contact-info.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/contact-info.tsx"
+          "target": "@components/pages/page-contact-info.tsx"
         }
       ],
       "dependencies": ["lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/section-variants"]
     },
     {
-      "name": "legal-page",
+      "name": "page-legal",
       "type": "registry:block",
       "title": "Legal Page",
       "description": "Prose layout for legal pages (CGV, mentions légales, confidentialité).",
       "files": [
         {
-          "path": "registry/components/sections/legal-page.tsx",
+          "path": "registry/components/pages/page-legal.tsx",
           "type": "registry:component",
-          "target": "@components/forge/sections/legal-page.tsx"
+          "target": "@components/pages/page-legal.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn"]
     },
     {
-      "name": "not-found-page",
+      "name": "page-not-found",
       "type": "registry:block",
       "title": "404 Page",
       "description": "Styled 404 page with themed branding: optional logo, icon pastille, badge, dual CTAs and foot line.",
       "files": [
         {
-          "path": "registry/components/layouts/not-found-page.tsx",
+          "path": "registry/components/pages/page-not-found.tsx",
           "type": "registry:component",
-          "target": "@components/forge/layouts/not-found-page.tsx"
+          "target": "@components/pages/page-not-found.tsx"
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/cta-button"]
-    },
-    {
-      "name": "theme-presets",
-      "type": "registry:lib",
-      "title": "Theme Presets",
-      "description": "Industry + mood based theme preset system with 6 starter presets (example-colors, alpine-table, sage-clinic, swiss-corporate, solar-libre, corner).",
-      "files": [
-        {
-          "path": "registry/lib/themes/index.ts",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/index.ts"
-        },
-        {
-          "path": "registry/lib/themes/presets/example-colors.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/example-colors.json"
-        },
-        {
-          "path": "registry/lib/themes/presets/sage-clinic.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/sage-clinic.json"
-        },
-        {
-          "path": "registry/lib/themes/presets/swiss-corporate.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/swiss-corporate.json"
-        },
-        {
-          "path": "registry/lib/themes/presets/alpine-table.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/alpine-table.json"
-        },
-        {
-          "path": "registry/lib/themes/presets/solar-libre.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/solar-libre.json"
-        },
-        {
-          "path": "registry/lib/themes/presets/corner.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/themes/presets/corner.json"
-        }
-      ]
-    },
-    {
-      "name": "theme-provider",
-      "type": "registry:ui",
-      "title": "Theme Provider",
-      "description": "React context provider that applies a theme preset by injecting CSS custom properties on <html>. Supports preview mode (localStorage) and locked mode (fixed theme).",
-      "files": [
-        {
-          "path": "registry/components/ui/theme-provider.tsx",
-          "type": "registry:component",
-          "target": "@components/forge/ui/theme-provider.tsx"
-        }
-      ],
-      "registryDependencies": ["@forge/cn", "@forge/theme-presets"]
-    },
-    {
-      "name": "theme-switcher",
-      "type": "registry:ui",
-      "title": "Theme Switcher",
-      "description": "Dropdown menu switcher for theme presets, grouped by industry. Only renders in preview mode (when theme is not locked).",
-      "files": [
-        {
-          "path": "registry/components/navigation/theme-switcher.tsx",
-          "type": "registry:component",
-          "target": "@components/forge/navigation/theme-switcher.tsx"
-        }
-      ],
-      "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu", "@forge/theme-provider"]
-    },
-    {
-      "name": "font-presets",
-      "type": "registry:lib",
-      "title": "Font Presets",
-      "description": "Font-family based preset system with 7 starters (Montserrat, Inter, Space Grotesk, Playfair, Source Serif 4, EB Garamond, JetBrains Mono). Grouped by family (sans/serif/mono).",
-      "files": [
-        {
-          "path": "registry/lib/fonts/index.ts",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/index.ts"
-        },
-        {
-          "path": "registry/lib/fonts/presets/montserrat.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/montserrat.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/inter.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/inter.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/playfair-display.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/playfair-display.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/source-serif-4.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/source-serif-4.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/space-grotesk.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/space-grotesk.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/eb-garamond.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/eb-garamond.json"
-        },
-        {
-          "path": "registry/lib/fonts/presets/jetbrains-mono.json",
-          "type": "registry:lib",
-          "target": "@lib/forge/fonts/presets/jetbrains-mono.json"
-        }
-      ]
-    },
-    {
-      "name": "font-provider",
-      "type": "registry:ui",
-      "title": "Font Provider",
-      "description": "React context provider that applies font-family rules to body, headings, .font-sans, .font-serif, and .font-eyebrow. Supports preview mode (localStorage) and locked mode (fixed fonts).",
-      "files": [
-        {
-          "path": "registry/components/ui/font-provider.tsx",
-          "type": "registry:component",
-          "target": "@components/forge/ui/font-provider.tsx"
-        }
-      ],
-      "registryDependencies": ["@forge/cn", "@forge/font-presets"]
-    },
-    {
-      "name": "font-switcher",
-      "type": "registry:ui",
-      "title": "Font Switcher",
-      "description": "Dropdown menu switcher for font presets, grouped by family (Sans / Serif / Mono). Each item previews its own font. Only renders in preview mode.",
-      "files": [
-        {
-          "path": "registry/components/navigation/font-switcher.tsx",
-          "type": "registry:component",
-          "target": "@components/forge/navigation/font-switcher.tsx"
-        }
-      ],
-      "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu", "@forge/font-provider"]
     },
     {
       "name": "privacy-content",
@@ -778,9 +590,9 @@
       "description": "Reference legal content for the privacy policy page (Swiss nLPD/FADP), in fr/en/de/it. Source of truth for site dictionaries. Includes data controller, collected data, purposes, cookies/tracking, retention, rights.",
       "files": [
         {
-          "path": "registry/content/privacy-sections.ts",
+          "path": "registry/components/utils/privacy-sections.ts",
           "type": "registry:lib",
-          "target": "@lib/forge/content/privacy-sections.ts"
+          "target": "@components/utils/privacy-sections.ts"
         }
       ]
     },
@@ -791,9 +603,9 @@
       "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
-          "path": "registry/lib/footer-helpers.ts",
+          "path": "registry/components/utils/footer-helpers.ts",
           "type": "registry:lib",
-          "target": "@lib/forge/footer-helpers.ts"
+          "target": "@components/utils/footer-helpers.ts"
         }
       ],
       "registryDependencies": ["@forge/footer"]
@@ -807,48 +619,16 @@
       "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
       "files": [
         {
-          "path": "registry/components/navigation/intranet-sidebar.tsx",
+          "path": "registry/components/intranet-sidebar.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/intranet-sidebar.tsx"
+          "target": "@components/intranet-sidebar.tsx"
         },
         {
-          "path": "registry/components/navigation/intranet-sidebar-active.ts",
+          "path": "registry/components/utils/intranet-sidebar-active.ts",
           "type": "registry:lib",
-          "target": "@components/forge/navigation/intranet-sidebar-active.ts"
+          "target": "@components/utils/intranet-sidebar-active.ts"
         }
       ]
-    },
-    {
-      "name": "corner-tokens",
-      "type": "registry:lib",
-      "title": "Corner Design Tokens",
-      "description": "The Corner signature component stylesheet using host brand tokens, plus an optional deep-teal / pale-blue / warm-cream palette with prefers-color-scheme dark mode.",
-      "files": [
-        {
-          "path": "registry/lib/corner/tokens.css",
-          "type": "registry:style",
-          "target": "@lib/forge/corner/tokens.css"
-        },
-        {
-          "path": "registry/lib/corner/styles.css",
-          "type": "registry:style",
-          "target": "@lib/forge/corner/styles.css"
-        }
-      ]
-    },
-    {
-      "name": "corner",
-      "type": "registry:ui",
-      "title": "Corner Frame / Label / Rule",
-      "description": "The Corner signature components: CornerFrame (clipped frame with conic-gradient glow), CornerLabel, and CornerRule. Props-driven, stateless, framework-agnostic.",
-      "files": [
-        {
-          "path": "registry/components/intranet/corner.tsx",
-          "type": "registry:component",
-          "target": "@components/forge/intranet/corner.tsx"
-        }
-      ],
-      "registryDependencies": ["@forge/cn", "@forge/corner-tokens"]
     },
     {
       "name": "intranet-shell",
@@ -858,9 +638,9 @@
       "registryDependencies": ["@forge/intranet-sidebar", "@forge/cn"],
       "files": [
         {
-          "path": "registry/components/intranet/intranet-shell.tsx",
+          "path": "registry/components/layouts/intranet-shell.tsx",
           "type": "registry:component",
-          "target": "@components/forge/intranet/intranet-shell.tsx"
+          "target": "@components/layouts/intranet-shell.tsx"
         }
       ]
     }

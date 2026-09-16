@@ -8,10 +8,10 @@
   ],
   "files": [
     {
-      "path": "registry/lib/utils.ts",
+      "path": "registry/components/utils/cn.ts",
       "content": "export { cn } from \"cnfast\";\n",
       "type": "registry:lib",
-      "target": "@lib/forge/utils.ts"
+      "target": "@components/utils/cn.ts"
     }
   ],
   "type": "registry:lib"

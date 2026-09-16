@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { itemIsActive } from "../registry/components/navigation/intranet-sidebar-active.ts";
+import { itemIsActive } from "../registry/components/utils/intranet-sidebar-active.ts";
 
 test("linked project sections match their overview and project subpages", () => {
   const projects = {

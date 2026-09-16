@@ -19,9 +19,10 @@
       }
     ],
     "paths": {
-      "@/components/forge/*": ["./registry/components/*"],
-      "@/lib/forge/content/*": ["./registry/content/*"],
-      "@/lib/forge/*": ["./registry/lib/*"],
+      "@/components/layouts/*": ["./registry/components/layouts/*"],
+      "@/components/pages/*": ["./registry/components/pages/*"],
+      "@/components/utils/*": ["./registry/components/utils/*"],
+      "@/components/*": ["./registry/components/*"],
       "@/*": ["./src/*"]
     }
   },

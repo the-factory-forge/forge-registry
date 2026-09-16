@@ -28,8 +28,8 @@ Then install the item:
 pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
 ```
 
-Files install under `src/components/forge/` and `src/lib/forge/` with default
-aliases. The CLI adapts configured aliases. The item includes `cn`, `ui-shims`,
+Files install under `src/components/`, `src/components/layouts/`, or
+`src/components/utils/` according to their role with default aliases. The CLI adapts configured aliases. The item includes `cn`, `ui-shims`,
 Base UI, and Lucide dependencies. It does not require the showroom's custom
 CSS utilities, brand assets, or a configured Better Auth client inside the registry.
 
@@ -52,8 +52,8 @@ pnpm lint
 
 That command uses the pinned CLI with `shadcn add @forge/intranet-sidebar --yes --overwrite`
 for this item and its dependencies.
-Keep custom branding, routing, navigation, and auth code outside the generated
-`forge` directories. Fix shared behavior in this repository, run
+Keep custom branding, routing, navigation, and auth code outside registry-managed
+component paths. Fix shared behavior in this repository, run
 `pnpm format && pnpm lint:fix`, then regenerate with `pnpm registry:sync`, publish
 the change, and update and redeploy consumers.
 shadcn copies source: an existing deployed website does not change automatically
@@ -87,7 +87,7 @@ import {
   IntranetSidebarInset,
   IntranetSidebarProvider,
   type IntranetSidebarProps,
-} from "@/components/forge/navigation/intranet-sidebar";
+} from "@/components/intranet-sidebar";
 
 export function AdminLayout({
   children,
@@ -172,7 +172,7 @@ For TanStack Router, pass a stable adapter declared outside the layout component
 
 ```tsx
 import { Link as RouterLink } from "@tanstack/react-router";
-import type { IntranetLinkProps } from "@/components/forge/navigation/intranet-sidebar";
+import type { IntranetLinkProps } from "@/components/intranet-sidebar";
 
 function SidebarLink({ href, ...props }: IntranetLinkProps) {
   return <RouterLink to={href} {...props} />;
