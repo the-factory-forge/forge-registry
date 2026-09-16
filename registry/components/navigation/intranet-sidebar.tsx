@@ -63,7 +63,7 @@ const defaultLabels = {
 
 const focusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const navClassName = `relative flex w-full items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${focusClassName}`;
-const activeClassName = "border-primary bg-accent/40 font-semibold text-primary";
+const activeClassName = "rounded-l-none border-primary bg-accent/40 font-semibold text-primary";
 
 function subscribeMobile(onChange: () => void) {
   const query = window.matchMedia("(max-width: 767px)");
@@ -228,22 +228,29 @@ function NavigationItem({
   pathname,
   LinkComponent,
   closeMobile,
+  nested = false,
 }: {
   item: IntranetNavItem;
   pathname: string;
   LinkComponent: React.ComponentType<IntranetLinkProps>;
   closeMobile: () => void;
+  nested?: boolean;
 }) {
   const active = itemIsActive(item, pathname);
   const [expansion, setExpansion] = React.useState({ pathname, open: active });
   if (expansion.pathname !== pathname) setExpansion({ pathname, open: expansion.open || active });
   const expanded = expansion.open;
+  const itemClasses = cn(
+    nested && "-ml-[9px] w-[calc(100%+9px)] rounded-l-none pl-[17px]",
+    active && activeClassName,
+  );
   const childList = item.items && (
     <ul className="ml-4 space-y-0.5 border-l border-border px-2 py-1">
       {item.items.map((child) => (
         <NavigationItem
           key={child.id}
           item={child}
+          nested
           pathname={pathname}
           LinkComponent={LinkComponent}
           closeMobile={closeMobile}
@@ -276,7 +283,7 @@ function NavigationItem({
     return (
       <li>
         <Collapsible.Root open={expanded} onOpenChange={(open) => setExpansion({ pathname, open })}>
-          <Collapsible.Trigger className={cn(navClassName, active && activeClassName)}>
+          <Collapsible.Trigger className={cn(navClassName, itemClasses)}>
             {label}
             <ChevronDownIcon
               className={cn(
@@ -296,7 +303,7 @@ function NavigationItem({
       <LinkComponent
         href={item.href}
         aria-current={active ? "page" : undefined}
-        className={cn(navClassName, active && activeClassName)}
+        className={cn(navClassName, itemClasses)}
         onClick={(event) => {
           if (
             !event.defaultPrevented &&
@@ -324,7 +331,7 @@ function UserAvatar({ user }: Pick<IntranetSidebarProps, "user">) {
     .join("")
     .toUpperCase();
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-medium text-foreground">
+    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs leading-none font-medium text-foreground">
       {user.image && user.image !== failedImage ? (
         // oxlint-disable-next-line nextjs/no-img-element -- an unoptimized, consumer-owned profile image
         <img

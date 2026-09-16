@@ -27,6 +27,10 @@ function getLocale(request: NextRequest): string {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (["/", "/newsletter", "/cookie-banner"].includes(pathname)) {
+    return NextResponse.next();
+  }
+
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
