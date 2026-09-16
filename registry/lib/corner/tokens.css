@@ -1,86 +1,77 @@
-/* ---------------------------------------------------------------------------
-   Corner design tokens (The Corner — deep-teal / pale-blue / warm-cream).
+@import "./styles.css";
 
-   Framework-agnostic, props-driven, stateless. Semantic tokens ONLY — components
-   must never hardcode a hex value. The signature `.corner-*` component classes
-   (frame, accent glow, cut, surface, rule) live in @layer components below.
-
-   Tailwind v4 (@theme inline). Dark mode via `prefers-color-scheme` to match the
-   existing registry convention — no .dark class required.
---------------------------------------------------------------------------- */
-
-@property --corner-sweep-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 206deg;
-}
+/* Optional Corner palette: deep teal, pale blue, and warm cream.
+   Includes the shared component styles and follows prefers-color-scheme.
+   Hosts with an existing --brand-* theme can import styles.css alone. */
 
 /* --- Brand palette (The Corner) ---------------------------------------- */
 :root {
-  --corner-white: #ffffff;
-  --corner-black: #000000;
-  --corner-deep-teal: #13343a;
-  --corner-pale-blue: #badede;
-  --corner-warm-cream: #e5e3d4;
+  --brand-white: #ffffff;
+  --brand-black: #000000;
+  --brand-deep-teal: #13343a;
+  --brand-pale-blue: #badede;
+  --brand-warm-cream: #e5e3d4;
 
   /* --- Semantic tokens (light, warm-cream paper) ------------------------ */
-  --background: var(--corner-white);
-  --foreground: var(--corner-black);
-  --primary: var(--corner-deep-teal);
-  --primary-foreground: var(--corner-white);
-  --secondary: var(--corner-warm-cream);
-  --secondary-foreground: var(--corner-deep-teal);
-  --accent: var(--corner-pale-blue);
-  --accent-foreground: var(--corner-deep-teal);
+  --background: var(--brand-white);
+  --foreground: var(--brand-black);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-primary-contrast);
+  --secondary: var(--brand-warm-cream);
+  --secondary-foreground: var(--brand-deep-teal);
+  --accent: var(--brand-pale-blue);
+  --accent-foreground: var(--brand-deep-teal);
   --muted: #eeece0;
   --muted-foreground: rgb(18 43 48 / 62%);
   --border: rgb(18 43 48 / 14%);
-  --ring: var(--corner-deep-teal);
+  --ring: var(--brand-primary);
   --destructive: oklch(0.58 0.22 27);
   --dark-foreground: #f6f4ea;
 
-  /* --- Corner-specific semantic tokens --------------------------------- */
-  --surface: var(--corner-white);
-  --elevated: var(--corner-white);
-  --paper: var(--corner-white);
-  --ink: var(--corner-black);
-  --tint: var(--corner-white);
-  --frame: rgb(0 0 0 / 26%);
-  --frame-strong: rgb(0 0 0 / 72%);
-
-  --corner-cut-sm: 0.5rem;
-  --corner-cut-md: 0.875rem;
-  --corner-cut-lg: 1.125rem;
+  /* --- Brand semantic tokens (shared with tc-website) ------------------ */
+  --brand-primary: var(--brand-deep-teal);
+  --brand-primary-strong: var(--brand-deep-teal);
+  --brand-primary-contrast: var(--brand-white);
+  --brand-surface: var(--brand-white);
+  --brand-elevated: var(--brand-white);
+  --brand-paper: var(--brand-white);
+  --brand-ink: var(--brand-black);
+  --brand-primary-tint: var(--brand-white);
+  --brand-frame: rgb(0 0 0 / 26%);
+  --brand-frame-strong: rgb(0 0 0 / 72%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a1012;
     --foreground: #f6f4ea;
-    --primary: var(--corner-pale-blue);
-    --primary-foreground: var(--corner-deep-teal);
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--brand-primary-contrast);
     --secondary: #0b1214;
     --secondary-foreground: #f6f4ea;
     --accent: #0b1214;
-    --accent-foreground: var(--corner-pale-blue);
+    --accent-foreground: var(--brand-pale-blue);
     --muted: #0b1214;
     --muted-foreground: rgb(246 244 234 / 68%);
     --border: rgb(255 255 255 / 14%);
-    --ring: var(--corner-pale-blue);
+    --ring: var(--brand-primary);
     --destructive: oklch(0.704 0.191 22.216);
-    --dark-foreground: var(--corner-warm-cream);
+    --dark-foreground: var(--brand-warm-cream);
 
-    --surface: #0b1214;
-    --elevated: #0b1214;
-    --paper: #0b1214;
-    --ink: #f6f4ea;
-    --tint: #0b1214;
-    --frame: rgb(255 255 255 / 24%);
-    --frame-strong: rgb(255 255 255 / 72%);
+    --brand-primary: var(--brand-pale-blue);
+    --brand-primary-strong: var(--brand-pale-blue);
+    --brand-primary-contrast: var(--brand-deep-teal);
+    --brand-surface: #0b1214;
+    --brand-elevated: #0b1214;
+    --brand-paper: #0b1214;
+    --brand-ink: #f6f4ea;
+    --brand-primary-tint: #0b1214;
+    --brand-frame: rgb(255 255 255 / 24%);
+    --brand-frame-strong: rgb(255 255 255 / 72%);
   }
 }
 
-/* --- Tailwind v4: expose tokens as utilities (bg-surface, text-primary…) -- */
+/* Tailwind v4 semantic colors for the optional palette. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -96,151 +87,4 @@
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-dark-foreground: var(--dark-foreground);
-
-  --color-surface: var(--surface);
-  --color-elevated: var(--elevated);
-  --color-paper: var(--paper);
-  --color-ink: var(--ink);
-  --color-tint: var(--tint);
-  --color-frame: var(--frame);
-  --color-frame-strong: var(--frame-strong);
-
-  --color-brand: var(--primary);
-  --color-brand-strong: var(--primary);
-  --color-brand-contrast: var(--primary-foreground);
-  --color-brand-tint: var(--tint);
-}
-
-/* --- Signature component classes --------------------------------------- */
-@layer components {
-  .corner-frame {
-    --corner-border: 1px;
-    --corner-cut: var(--corner-cut-md);
-    --corner-frame-color: var(--frame);
-    --corner-surface: var(--surface);
-    position: relative;
-    isolation: isolate;
-    border: 0;
-    background: transparent;
-  }
-
-  .corner-frame::before,
-  .corner-frame::after {
-    position: absolute;
-    z-index: -2;
-    pointer-events: none;
-    content: "";
-    clip-path: polygon(
-      0 0,
-      100% 0,
-      100% 100%,
-      var(--corner-cut) 100%,
-      0 calc(100% - var(--corner-cut))
-    );
-  }
-
-  .corner-frame::before {
-    inset: 0;
-    background: var(--corner-frame-color);
-  }
-
-  .corner-frame::after {
-    inset: var(--corner-border);
-    z-index: -1;
-    background: var(--corner-surface);
-    clip-path: polygon(
-      0 0,
-      100% 0,
-      100% 100%,
-      calc(var(--corner-cut) - var(--corner-border)) 100%,
-      0 calc(100% - var(--corner-cut) + var(--corner-border))
-    );
-  }
-
-  .corner-cut-sm {
-    --corner-cut: var(--corner-cut-sm);
-  }
-
-  .corner-cut-lg {
-    --corner-cut: var(--corner-cut-lg);
-  }
-
-  .corner-surface-paper {
-    --corner-surface: var(--paper);
-  }
-
-  .corner-surface-elevated {
-    --corner-surface: var(--elevated);
-  }
-
-  .corner-surface-tinted {
-    --corner-surface: var(--tint);
-  }
-
-  .corner-surface-quiet {
-    --corner-surface: color-mix(in oklab, var(--surface) 92%, transparent);
-  }
-
-  .corner-accent::before {
-    --corner-sweep-angle: 206deg;
-    background: conic-gradient(
-      from var(--corner-sweep-angle) at 50% 50%,
-      var(--primary) 0deg 128deg,
-      var(--corner-frame-color) 128deg 360deg
-    );
-  }
-
-  .corner-accent:is(:hover, :focus-within)::before {
-    animation: corner-border-sweep 900ms ease-in-out 1;
-  }
-
-  .corner-frame-strong {
-    --corner-frame-color: var(--frame-strong);
-  }
-
-  .corner-document {
-    --corner-border: 4px;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  .corner-control {
-    border-radius: 4px 4px 4px var(--corner-cut-sm);
-    corner-bottom-left-shape: bevel;
-  }
-
-  .corner-rule {
-    position: relative;
-    height: 1px;
-    background: var(--frame);
-  }
-
-  .corner-rule::before {
-    position: absolute;
-    inset: -1px auto auto 0;
-    width: min(4rem, 25%);
-    height: 3px;
-    background: var(--primary);
-    content: "";
-  }
-
-  .corner-rule-animated {
-    transform-origin: left center;
-  }
-}
-
-@keyframes corner-border-sweep {
-  from {
-    --corner-sweep-angle: 206deg;
-  }
-
-  to {
-    --corner-sweep-angle: 566deg;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .corner-accent:is(:hover, :focus-within)::before {
-    animation: none;
-  }
 }

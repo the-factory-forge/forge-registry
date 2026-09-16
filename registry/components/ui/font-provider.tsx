@@ -68,7 +68,7 @@ export function FontProvider({
     style.id = id;
     style.textContent = [
       `body,.font-sans{font-family:${body.cssVar}!important}`,
-      `.font-heading,h1,h2,h3,h4,h5,h6{font-family:${heading.cssVar}!important}`,
+      `.font-serif,h1,h2,h3,h4,h5,h6{font-family:${heading.cssVar}!important}`,
       `.font-eyebrow{font-family:${eyebrow.cssVar}!important}`,
     ].join("");
     document.head.appendChild(style);

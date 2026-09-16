@@ -13,6 +13,7 @@
     "check": "vp check",
     "fix": "vp check --fix",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "registry:check": "node -e \"JSON.parse(require('node:fs').readFileSync('registry/registry.json','utf8')); console.log('registry/registry.json is valid JSON')\"",
     "registry:sync": "shadcn build registry/registry.json --output public/r"
   },

@@ -66,7 +66,7 @@ export function PageHero({
           )}
           <h1
             className={cn(
-              "font-heading text-3xl leading-tight font-bold text-pretty sm:text-4xl md:text-5xl",
+              "font-serif text-3xl leading-tight font-bold text-pretty sm:text-4xl md:text-5xl",
               hasImage ? "text-dark-foreground" : "text-foreground",
             )}
           >

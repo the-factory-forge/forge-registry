@@ -47,17 +47,17 @@ export function CornerLabel({ children, className }: CornerLabelProps) {
   return (
     <span
       className={cn(
-        "corner-frame corner-cut-sm corner-surface-tinted inline-flex w-fit items-center px-3 py-1 text-[0.7rem] font-bold tracking-[0.16em] text-primary uppercase",
+        "corner-frame corner-cut-sm corner-surface-tinted text-brand-strong inline-flex w-fit items-center px-3 py-1 text-[0.7rem] font-bold tracking-[0.16em] uppercase",
         className,
       )}
     >
-      <span>{children}</span>
+      <span className="inline-flex items-center gap-2">{children}</span>
     </span>
   );
 }
 
 export interface CornerRuleProps extends HTMLAttributes<HTMLDivElement> {
-  /** Adds a left-aligned, origin-scaled reveal. */
+  /** Marks the rule for the host's reveal observer and animation CSS via data-public-motion. */
   animated?: boolean;
 }
 
@@ -65,6 +65,7 @@ export function CornerRule({ animated = false, className, ...props }: CornerRule
   return (
     <div
       className={cn("corner-rule", animated && "corner-rule-animated", className)}
+      data-public-motion={animated ? "" : undefined}
       aria-hidden="true"
       {...props}
     />

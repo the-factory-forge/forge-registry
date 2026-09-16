@@ -27,7 +27,7 @@ export function CtaBand({ title, description, cta, variant = "primary", classNam
       <div className="container-premium text-center">
         <h2
           className={cn(
-            "font-heading text-2xl font-bold text-pretty sm:text-3xl md:text-4xl",
+            "font-serif text-2xl font-bold text-pretty sm:text-3xl md:text-4xl",
             colors.heading,
           )}
         >

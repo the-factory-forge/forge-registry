@@ -170,7 +170,7 @@ export function Footer({
                   {brand.initial ?? brand.name.charAt(0)}
                 </span>
               )}
-              <span className={cn("font-heading text-lg font-bold", brandName)}>{brand.name}</span>
+              <span className={cn("font-serif text-lg font-bold", brandName)}>{brand.name}</span>
             </div>
             {brand.tagline && (
               <p
@@ -210,7 +210,7 @@ export function Footer({
               <form action={newsletter.action} method="post" className="pt-2">
                 <h3
                   className={cn(
-                    "mb-3 font-heading text-sm font-semibold tracking-wide uppercase",
+                    "mb-3 font-serif text-sm font-semibold tracking-wide uppercase",
                     heading,
                   )}
                 >
@@ -244,7 +244,7 @@ export function Footer({
             <div key={col.title}>
               <h3
                 className={cn(
-                  "mb-4 font-heading text-sm font-semibold tracking-wide uppercase",
+                  "mb-4 font-serif text-sm font-semibold tracking-wide uppercase",
                   heading,
                 )}
               >
@@ -266,7 +266,7 @@ export function Footer({
           <div>
             <h3
               className={cn(
-                "mb-4 font-heading text-sm font-semibold tracking-wide uppercase",
+                "mb-4 font-serif text-sm font-semibold tracking-wide uppercase",
                 heading,
               )}
             >

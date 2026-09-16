@@ -83,13 +83,17 @@ its sidebar `className`. It adds these layout inputs:
 
 | Input              | Behavior                                                                                                        |
 | ------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `banner`           | Optional content above the topbar, such as an impersonation notice                                              |
-| `topbar`           | Optional topbar content; defaults to the customer name                                                          |
+| `banner`           | Complete banner above the topbar; the host supplies its colors and spacing. Hidden when printing.               |
+| `topbar`           | Content inside the default topbar; defaults to the customer name                                                |
+| `renderTopbar`     | Render a complete custom navbar with the supplied toggle; replaces the default topbar and its controls          |
 | `controls`         | Optional actions at the end of the topbar                                                                       |
 | `showTopbar`       | Defaults to `true`; `false` hides the topbar and its controls and keeps the sidebar's built-in toggle available |
 | `children`         | Main page content                                                                                               |
 | `className`        | Classes for the main inset beside the sidebar                                                                   |
-| `contentClassName` | Classes for the padded content wrapper                                                                          |
+| `contentClassName` | Classes for the padded content wrapper, which has `data-slot="intranet-content"`                                |
+| `sidebarClassName` | Classes forwarded to the sidebar, including host navigation styling                                             |
+| `insetAs`          | `main` by default; use `div` when route content owns the main landmark                                          |
+| `wrapContent`      | `true` by default; use `false` to preserve the host page wrapper and direct-child print selectors               |
 
 The shell manages its provider and toggle placement. On desktop, navigation
 collapses offcanvas; on mobile, it uses the shared modal drawer. The profile
@@ -97,6 +101,45 @@ remains part of the sidebar in either configuration. For more control over the
 provider, toggle placement, or a custom navbar structure, compose the
 [sidebar exports](./intranet-sidebar.md#minimal-layout-without-a-navbar)
 directly.
+
+## TC integration
+
+TC already uses the shared sidebar primitives. Its `AppSidebar` owns the router
+adapter, permission-filtered navigation, customer project queries, branding, and
+Better Auth callbacks. Keep those in TC. To adopt `IntranetShell`, expose that
+existing setup through a host-owned `useAppSidebarProps` hook and pass the result
+to the shell:
+
+```tsx
+const { className: sidebarClassName, ...sidebarProps } = useAppSidebarProps({ profile, user });
+
+return (
+  <IntranetShell
+    {...sidebarProps}
+    sidebarClassName={sidebarClassName}
+    insetAs="div"
+    wrapContent={false}
+    banner={<ImpersonationBanner user={user} />}
+    renderTopbar={(toggle) => (
+      <StickyThemeNav className="print:hidden" leftAction={toggle} rightAction={<LogoutButton />} />
+    )}
+  >
+    {children}
+  </IntranetShell>
+);
+```
+
+This is an integration example; the registry does not install the TC adapters.
+The hook should omit `togglePlacement`, which the shell manages. Existing
+`AppSidebar` callers can continue rendering `IntranetSidebar` with the same hook.
+`renderTopbar` must place the supplied toggle; mark the custom navbar
+`print:hidden` as TC already does. `showTopbar={false}` hides either topbar and
+restores the built-in sidebar toggle.
+
+With `wrapContent={false}`, route content remains a direct child of
+`[data-slot="sidebar-inset"]`, preserving TC's print selectors. Default wrapped
+content removes its padding when printing. Banner slots now own their visual
+styling: move any desired border/padding into the banner itself.
 
 ## Optional Corner styling
 
@@ -107,20 +150,34 @@ pnpm dlx shadcn@4.19.1 add @forge/corner
 ```
 
 This installs `CornerFrame`, `CornerLabel`, and `CornerRule`, plus the
-`corner-tokens` dependency. **Import the installed stylesheet into the host's
+`corner-tokens` dependency with two CSS entry points. **Import the installed stylesheet into the host's
 global Tailwind CSS entry.** shadcn copies the file but does not add this import.
-For example, when the entry is `src/styles.css` and `@lib` resolves to `src/lib`:
+For TC and other hosts that already define `--brand-*` colors, import only the
+structural stylesheet. It preserves the host's palette and `.light`/`.dark`
+selection:
 
 ```css
 @import "tailwindcss";
-@import "./lib/forge/corner/tokens.css";
+@import "./lib/forge/corner/styles.css";
 ```
 
-Adapt the relative path to the actual stylesheet location. Keep the import after
-Tailwind's import and review any later theme declarations that override these
-variables. Corner tokens set a global palette and use `prefers-color-scheme` for
-dark mode; the import affects the whole website. The generic intranet shell does
-not depend on it.
+A new website that wants the optional Corner palette can import
+`./lib/forge/corner/tokens.css` instead; it includes `styles.css` and sets global
+colors using `prefers-color-scheme`. Import one entry point. Adapt relative paths
+to the actual stylesheet location, keeping the import after Tailwind's import.
+The generic intranet shell does not depend on either stylesheet.
+
+When migrating TC, replace its duplicate Corner component rules with
+`styles.css`, while retaining its palette, motion observer and motion CSS, and
+print rules.
+Its local `corner.tsx` can re-export the registry components so callers keep
+their existing import path. Invoice-specific `CornerLayout` stays in TC.
+
+Color variables follow TC's `--brand-*` names, including `--brand-primary`,
+`--brand-primary-strong`, `--brand-primary-tint`, `--brand-surface`, and
+`--brand-frame`. Use the matching utilities such as `text-brand-strong`,
+`bg-brand-tint`, `bg-surface`, and `border-frame`. The `corner-*` component
+classes and `--corner-*` geometry variables keep their existing names.
 
 ```tsx
 import { CornerFrame, CornerLabel, CornerRule } from "@/components/forge/intranet/corner";
@@ -137,7 +194,9 @@ import { CornerFrame, CornerLabel, CornerRule } from "@/components/forge/intrane
 attributes. The CSS provides clipped frames, hover/focus accent animation, and
 reduced-motion handling. The separate Corner preset in `theme-presets` supplies
 palette values; it does not replace the signature stylesheet required by these
-components.
+components. `CornerRule animated` adds `corner-rule-animated` and
+`data-public-motion` for a host reveal observer such as TC's `PublicPageMotion`;
+the registry does not install that observer. The rule remains visible without it.
 
 ## Preview and update
 

@@ -26,7 +26,7 @@ export default function CookieBannerPage() {
       <section className="rounded-xl border border-border p-6">
         <h2 className="text-lg font-semibold">Preview controls</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Reopen the banner after accepting either consent option.
+          Reopen the banner after saving a selection or accepting all cookies.
         </p>
         <ManageCookiesButton
           label="Open cookie banner"

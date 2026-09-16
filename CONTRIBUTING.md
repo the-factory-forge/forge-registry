@@ -10,7 +10,7 @@ Next.js continues to run the showroom's dev server, build, and production server
 
 After implementation, run `pnpm format && pnpm lint:fix` and review automatic
 edits. Regenerate affected registry artifacts with `pnpm registry:sync`, then
-run `pnpm registry:check`, `pnpm typecheck`, and `pnpm check`. The last command
+run `pnpm registry:check`, `pnpm test`, `pnpm typecheck`, and `pnpm check`. The last command
 checks formatting, lint, and types together; `pnpm fix` applies available fixes.
 Generated `public/r/` JSON is excluded from linting and formatting, so rebuild it
 after changing or formatting source files.
@@ -32,6 +32,21 @@ className = "text-zinc-600 dark:text-zinc-400";
 ```
 
 Tokens: `bg-background`, `text-foreground`, `border-border`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`, `focus-visible:ring-ring`, `bg-muted`, `bg-accent`, `text-accent-foreground`, `bg-secondary`, `text-secondary-foreground`.
+
+Use the same CSS vocabulary as `forge-template` and `tc-website`:
+
+- Typography: `font-sans` for body text, `font-serif` for headings, and
+  `font-mono` for code. `font-serif` names the heading role; each website chooses
+  its font family. `font-eyebrow` remains available through `FontProvider`.
+- Sidebar surfaces and navigation: `bg-sidebar`, `text-sidebar-foreground`,
+  `border-sidebar-border`, `bg-sidebar-accent`, `text-sidebar-accent-foreground`,
+  `text-sidebar-primary`, and `ring-sidebar-ring`. Profile menus use
+  `bg-popover` and `text-popover-foreground`.
+- Optional Corner branding: `--brand-*` color variables expose `bg-brand`,
+  `text-brand-strong`, `text-brand-contrast`, `bg-brand-tint`, `bg-surface`,
+  `bg-elevated`, `bg-paper`, `text-ink`, and `border-frame` utilities.
+  Keep `--corner-*` for frame geometry and component internals.
+- Layout helpers: `container-premium` and `section-padding`.
 
 Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700`) as they are semantic, not theme-dependent.
 

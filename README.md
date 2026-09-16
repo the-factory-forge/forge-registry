@@ -81,29 +81,29 @@ The source of truth for this inventory is `registry/registry.json`.
 
 ### UI Primitives (21)
 
-| Name                    | Description                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                                                            |
-| `accordion`             | Base UI accordion with a bundled animation stylesheet                                                               |
-| `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal                                               |
-| `reveal`                | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)                                      |
-| `share-button`          | Web Share API + clipboard fallback                                                                                  |
-| `back-to-top`           | Floating scroll-to-top button                                                                                       |
-| `section-heading`       | Eyebrow + title + subtitle, alignment and inverted variants                                                         |
-| `image-with-fallback`   | Image (shim) with error placeholder                                                                                 |
-| `lightbox`              | Click-to-enlarge image with overlay                                                                                 |
-| `cta-button`            | CtaLink + CtaExternal, 4 variants, 2 sizes                                                                          |
-| `breadcrumb`            | Semantic breadcrumb navigation                                                                                      |
-| `dropdown-menu`         | Base UI dropdown menu                                                                                               |
-| `sheet`                 | Base UI slide-out panel (drawer)                                                                                    |
-| `ui-shims`              | Framework shims: link/image/script/use-location (every site must install this item)                                 |
-| `newsletter`            | Email signup form                                                                                                   |
-| `language-switcher`     | Language selector dropdown                                                                                          |
-| `manage-cookies-button` | Client-side button to reopen cookie banner                                                                          |
-| `theme-provider`        | React context provider that applies a theme preset by injecting CSS custom properties                               |
-| `theme-switcher`        | Dropdown menu switcher for theme presets with color swatches                                                        |
-| `font-provider`         | React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties |
-| `font-switcher`         | Dropdown menu switcher for font presets, grouped by mood                                                            |
+| Name                    | Description                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                              |
+| `accordion`             | Base UI accordion with a bundled animation stylesheet                                 |
+| `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal                 |
+| `reveal`                | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)        |
+| `share-button`          | Web Share API + clipboard fallback                                                    |
+| `back-to-top`           | Floating scroll-to-top button                                                         |
+| `section-heading`       | Eyebrow + title + subtitle, alignment and inverted variants                           |
+| `image-with-fallback`   | Image (shim) with error placeholder                                                   |
+| `lightbox`              | Click-to-enlarge image with overlay                                                   |
+| `cta-button`            | CtaLink + CtaExternal, 4 variants, 2 sizes                                            |
+| `breadcrumb`            | Semantic breadcrumb navigation                                                        |
+| `dropdown-menu`         | Base UI dropdown menu                                                                 |
+| `sheet`                 | Base UI slide-out panel (drawer)                                                      |
+| `ui-shims`              | Framework shims: link/image/script/use-location (every site must install this item)   |
+| `newsletter`            | Email signup form                                                                     |
+| `language-switcher`     | Language selector dropdown                                                            |
+| `manage-cookies-button` | Client-side button to reopen cookie banner                                            |
+| `theme-provider`        | React context provider that applies a theme preset by injecting CSS custom properties |
+| `theme-switcher`        | Dropdown menu switcher for theme presets with color swatches                          |
+| `font-provider`         | React context provider that applies body, heading, and eyebrow font-family rules      |
+| `font-switcher`         | Dropdown menu switcher for font presets, grouped by mood                              |
 
 ### Blocks (17)
 
@@ -132,7 +132,7 @@ The source of truth for this inventory is `registry/registry.json`.
 | Name             | Description                                                                                       |
 | ---------------- | ------------------------------------------------------------------------------------------------- |
 | `intranet-shell` | Full internal layout composed from `intranet-sidebar`, with optional banner, topbar, and controls |
-| `corner-tokens`  | Optional Corner palette and signature CSS classes, including system dark mode                     |
+| `corner-tokens`  | Corner styles using host colors, plus an optional palette with system dark mode                   |
 | `corner`         | Optional CornerFrame, CornerLabel, and CornerRule components; installs `corner-tokens`            |
 
 Use **intranet** for the full internal website layout. The
@@ -152,10 +152,10 @@ The file `src/styles/globals.css` defines:
 - **CSS variables**: `--primary`, `--secondary`, `--accent`, `--muted`, `--border`, `--ring`, `--dark-foreground`
 - **Dark mode**: via `prefers-color-scheme`
 - **Custom utilities**: `container-premium` (responsive padding), `section-padding` (responsive vertical)
-- **Fonts**: `font-sans` and `font-heading` (Montserrat by default)
+- **Fonts**: `font-sans` and `font-serif` (Montserrat by default)
 - **Animation keyframes**: enter/exit with fade, zoom, and slide utilities
 
-Components using `inverted` (e.g. `section-heading`) rely on `text-dark-foreground` and `font-heading`.
+Components using `inverted` (e.g. `section-heading`) rely on `text-dark-foreground` and `font-serif`.
 
 ## Principles
 
@@ -186,7 +186,7 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 2. Add corresponding registry items to `/registry/registry.json`.
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
 4. Run `pnpm format && pnpm lint:fix`, review automatic edits, then `pnpm registry:sync` to rebuild the shadcn catalog and items from the final source.
-5. Run `pnpm registry:check`, `pnpm typecheck`, and `pnpm check`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
+5. Run `pnpm registry:check`, `pnpm test`, `pnpm typecheck`, and `pnpm check`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
 6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
@@ -207,6 +207,7 @@ pnpm format           # vp fmt
 pnpm format:check     # vp fmt --check
 pnpm check            # vp check (format, lint, and type checks)
 pnpm fix              # vp check --fix
+pnpm test             # Navigation regression tests (Node 22.18+)
 pnpm typecheck        # tsc --noEmit
 pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Official shadcn catalog and item build

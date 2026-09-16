@@ -42,7 +42,7 @@ export function ContactInfo({
       <div className="container-premium">
         <div className="grid gap-12 lg:grid-cols-2">
           <div className="space-y-8">
-            {title && <h2 className="font-heading text-3xl font-bold text-foreground">{title}</h2>}
+            {title && <h2 className="font-serif text-3xl font-bold text-foreground">{title}</h2>}
 
             <div className="space-y-5">
               {address && (

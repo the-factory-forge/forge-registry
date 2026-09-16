@@ -33,6 +33,13 @@ aliases. The CLI adapts configured aliases. The item includes `cn`, `ui-shims`,
 Base UI, and Lucide dependencies. It does not require the showroom's custom
 CSS utilities, brand assets, or a configured Better Auth client inside the registry.
 
+The host theme must expose the standard shadcn `sidebar`, `sidebar-foreground`,
+`sidebar-primary`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`,
+and `sidebar-ring` tokens. The profile menu uses `popover` and
+`popover-foreground`; the page inset uses `background`. These names match
+`forge-template` and `tc-website`, so each website controls the colors through
+its existing theme.
+
 `tc-website` consumes the same generated files and defines its integration in
 `src/components/app-sidebar.tsx` and `src/components/authenticated-shell.tsx`.
 Its update command is:
@@ -131,21 +138,30 @@ mobile visibility is independent.
 
 ## Inputs and integration points
 
-| Input                | Contract                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                         |
-| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host  |
-| Navigation item      | Stable `id`, `label`, optional icon node, and either `href` or nested `items`                    |
-| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it          |
-| `collapsible: false` | Display nested items under a static label, useful for policy subgroups                           |
-| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                     |
-| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials |
-| `profileHref`        | Required profile destination; the profile menu is always present                                 |
-| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`              |
-| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                        |
-| `version`            | Optional display text, for example `v1.2.3`                                                      |
-| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error labels               |
-| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider              |
+| Input                | Contract                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                               |
+| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host        |
+| Navigation item      | Stable `id`, `label`, optional icon node, and `href`, nested `items`, or both                          |
+| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                |
+| `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                  |
+| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                           |
+| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials       |
+| `profileHref`        | Required profile destination; the profile menu is always present                                       |
+| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`                    |
+| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                              |
+| `version`            | Optional display text, for example `v1.2.3`                                                            |
+| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error and expand/collapse labels |
+| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider                    |
+
+A linked parent (`href` plus `items`) renders a destination link and a separate
+expand/collapse button. Its section stays active on its own route or any active
+child, while `aria-current="page"` on the parent identifies only its exact
+route. An empty child list still renders the parent link, which supports
+asynchronously loaded project navigation. Empty groups without a link are hidden.
+
+`IntranetSidebarInset` renders a `main` by default. Pass `as="div"` when the
+host's route content already supplies its own `main` landmark.
 
 For a custom navbar, set `togglePlacement="external"` and render
 `<IntranetSidebarToggle />` in that navbar, inside the same provider. Its
@@ -176,6 +192,8 @@ navigation visibility; existing server authorization remains authoritative.
 Run `pnpm dev --port 3010` and open `/en/intranet-sidebar`. The showroom uses mock
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
+The `/en/intranet` demo also includes linked parent navigation and a custom topbar.
+Run `pnpm test` for the navigation matching regression checks (Node 22.18+).
 
 Verify desktop collapse/reopen, keyboard focus after collapse, mobile Escape and
 focus restoration, profile actions, and navigation with long labels. Follow the

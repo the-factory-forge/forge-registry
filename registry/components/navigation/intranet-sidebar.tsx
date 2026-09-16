@@ -16,13 +16,15 @@ import * as React from "react";
 import { Link } from "@/components/forge/ui/link";
 import { cn } from "@/lib/forge/utils";
 
+import { itemIsActive } from "./intranet-sidebar-active";
+
 export type IntranetLinkProps = React.ComponentProps<"a"> & { href: string };
 
 type NavItemBase = { id: string; label: string; icon?: React.ReactNode };
 export type IntranetNavItem = NavItemBase &
   (
     | { href: string; exact?: boolean; items?: never; collapsible?: never }
-    | { items: IntranetNavItem[]; collapsible?: boolean; href?: never; exact?: never }
+    | { items: IntranetNavItem[]; collapsible?: boolean; href?: string; exact?: boolean }
   );
 
 export interface IntranetNavGroup {
@@ -54,6 +56,8 @@ const defaultLabels = {
   navigation: "Side navigation",
   toggle: "Toggle side navigation",
   close: "Close side navigation",
+  expand: "Expand",
+  collapse: "Collapse",
   profile: "Profile settings",
   userMenu: "User menu",
   signOut: "Sign out",
@@ -62,8 +66,10 @@ const defaultLabels = {
 };
 
 const focusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const navClassName = `relative flex w-full items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${focusClassName}`;
-const activeClassName = "rounded-l-none border-primary bg-accent/40 font-semibold text-primary";
+const sidebarFocusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
+const navClassName = `relative flex w-full items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
+const activeClassName =
+  "rounded-l-none border-sidebar-primary bg-sidebar-accent/40 font-semibold text-sidebar-primary";
 
 function subscribeMobile(onChange: () => void) {
   const query = window.matchMedia("(max-width: 767px)");
@@ -205,22 +211,20 @@ export function IntranetSidebarToggle({
   );
 }
 
-export type IntranetSidebarInsetProps = React.ComponentProps<"main">;
-export function IntranetSidebarInset({ className, ...props }: IntranetSidebarInsetProps) {
-  return (
-    <main
-      data-slot="sidebar-inset"
-      className={cn("relative flex min-w-0 flex-1 flex-col bg-background", className)}
-      {...props}
-    />
-  );
-}
-
-function itemIsActive(item: IntranetNavItem, pathname: string): boolean {
-  if (item.items) return item.items.some((child) => itemIsActive(child, pathname));
-  const path = item.href.replace(/\/$/, "") || "/";
-  const current = pathname.replace(/\/$/, "") || "/";
-  return current === path || (!item.exact && path !== "/" && current.startsWith(`${path}/`));
+export type IntranetSidebarInsetProps = React.ComponentProps<"main"> & {
+  /** Use a div when the host page already supplies its main landmark. */
+  as?: "main" | "div";
+};
+export function IntranetSidebarInset({
+  as: Component = "main",
+  className,
+  ...props
+}: IntranetSidebarInsetProps) {
+  return React.createElement(Component, {
+    "data-slot": "sidebar-inset",
+    className: cn("relative flex min-w-0 flex-1 flex-col bg-background", className),
+    ...props,
+  });
 }
 
 function NavigationItem({
@@ -228,12 +232,14 @@ function NavigationItem({
   pathname,
   LinkComponent,
   closeMobile,
+  labels,
   nested = false,
 }: {
   item: IntranetNavItem;
   pathname: string;
   LinkComponent: React.ComponentType<IntranetLinkProps>;
   closeMobile: () => void;
+  labels: Pick<typeof defaultLabels, "expand" | "collapse">;
   nested?: boolean;
 }) {
   const active = itemIsActive(item, pathname);
@@ -244,9 +250,9 @@ function NavigationItem({
     nested && "-ml-[9px] w-[calc(100%+9px)] rounded-l-none pl-[17px]",
     active && activeClassName,
   );
-  const childList = item.items && (
-    <ul className="ml-4 space-y-0.5 border-l border-border px-2 py-1">
-      {item.items.map((child) => (
+  const childList = Boolean(item.items?.length) && (
+    <ul className="ml-4 space-y-0.5 border-l border-sidebar-border px-2 py-1">
+      {item.items?.map((child) => (
         <NavigationItem
           key={child.id}
           item={child}
@@ -254,6 +260,7 @@ function NavigationItem({
           pathname={pathname}
           LinkComponent={LinkComponent}
           closeMobile={closeMobile}
+          labels={labels}
         />
       ))}
     </ul>
@@ -268,56 +275,77 @@ function NavigationItem({
       <span className="min-w-0 flex-1 text-left">{item.label}</span>
     </>
   );
+  const link = item.href && (
+    <LinkComponent
+      href={item.href}
+      aria-current={
+        (item.items ? itemIsActive({ href: item.href, exact: true }, pathname) : active)
+          ? "page"
+          : undefined
+      }
+      className={cn(navClassName, "min-w-0 flex-1", itemClasses)}
+      onClick={(event) => {
+        if (
+          !event.defaultPrevented &&
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+        )
+          closeMobile();
+      }}
+    >
+      {label}
+    </LinkComponent>
+  );
 
-  if (item.items) {
-    if (item.items.length === 0) return null;
-    if (item.collapsible === false)
-      return (
-        <li>
+  if (!childList) return link ? <li>{link}</li> : null;
+  if (item.collapsible === false)
+    return (
+      <li>
+        {link || (
           <p className="px-2 pt-2 text-xs font-medium text-muted-foreground uppercase">
             {item.label}
           </p>
-          {childList}
-        </li>
-      );
-    return (
-      <li>
-        <Collapsible.Root open={expanded} onOpenChange={(open) => setExpansion({ pathname, open })}>
-          <Collapsible.Trigger className={cn(navClassName, itemClasses)}>
-            {label}
-            <ChevronDownIcon
-              className={cn(
-                "size-4 shrink-0 transition-transform motion-reduce:transition-none",
-                expanded && "rotate-180",
-              )}
-              aria-hidden="true"
-            />
-          </Collapsible.Trigger>
-          <Collapsible.Panel>{childList}</Collapsible.Panel>
-        </Collapsible.Root>
+        )}
+        {childList}
       </li>
     );
-  }
+
+  const chevron = (
+    <ChevronDownIcon
+      className={cn(
+        "size-4 shrink-0 transition-transform motion-reduce:transition-none",
+        expanded && "rotate-180",
+      )}
+      aria-hidden="true"
+    />
+  );
   return (
     <li>
-      <LinkComponent
-        href={item.href}
-        aria-current={active ? "page" : undefined}
-        className={cn(navClassName, itemClasses)}
-        onClick={(event) => {
-          if (
-            !event.defaultPrevented &&
-            event.button === 0 &&
-            !event.metaKey &&
-            !event.ctrlKey &&
-            !event.shiftKey &&
-            !event.altKey
-          )
-            closeMobile();
-        }}
-      >
-        {label}
-      </LinkComponent>
+      <Collapsible.Root open={expanded} onOpenChange={(open) => setExpansion({ pathname, open })}>
+        {link ? (
+          <div className="flex items-center">
+            {link}
+            <Collapsible.Trigger
+              aria-label={`${expanded ? labels.collapse : labels.expand} ${item.label}`}
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                sidebarFocusClassName,
+              )}
+            >
+              {chevron}
+            </Collapsible.Trigger>
+          </div>
+        ) : (
+          <Collapsible.Trigger className={cn(navClassName, itemClasses)}>
+            {label}
+            {chevron}
+          </Collapsible.Trigger>
+        )}
+        <Collapsible.Panel>{childList}</Collapsible.Panel>
+      </Collapsible.Root>
     </li>
   );
 }
@@ -392,7 +420,7 @@ export function IntranetSidebar({
       >
         <LinkComponent
           href={brand.href}
-          className={cn("flex min-w-0 items-center gap-2 rounded-sm", focusClassName)}
+          className={cn("flex min-w-0 items-center gap-2 rounded-sm", sidebarFocusClassName)}
           onClick={closeMobile}
         >
           {brand.logo && (
@@ -403,7 +431,7 @@ export function IntranetSidebar({
           </span>
         </LinkComponent>
       </header>
-      <div className="mx-2 border-t border-border" />
+      <div className="mx-2 border-t border-sidebar-border" />
       <nav aria-label={labels.navigation} className="min-h-0 flex-1 overflow-y-auto py-2">
         {groups
           .filter((group) => group.items.length > 0 || group.footer)
@@ -422,6 +450,7 @@ export function IntranetSidebar({
                     pathname={pathname}
                     LinkComponent={LinkComponent}
                     closeMobile={closeMobile}
+                    labels={labels}
                   />
                 ))}
               </ul>
@@ -430,7 +459,7 @@ export function IntranetSidebar({
           ))}
       </nav>
       {version && <p className="px-2 py-1 text-center text-xs text-muted-foreground">{version}</p>}
-      <div className="mx-2 border-t border-border" />
+      <div className="mx-2 border-t border-sidebar-border" />
       <footer className="shrink-0 p-2">
         {signOutFailed && (
           <p role="alert" className="px-2 pb-2 text-sm text-red-600 dark:text-red-400">
@@ -441,8 +470,8 @@ export function IntranetSidebar({
           <Menu.Trigger
             aria-label={labels.userMenu}
             className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-accent",
-              focusClassName,
+              "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              sidebarFocusClassName,
             )}
           >
             <UserAvatar user={user} />
@@ -460,7 +489,7 @@ export function IntranetSidebar({
             <Menu.Positioner side="top" align="start" sideOffset={8} className="z-50">
               <Menu.Popup
                 data-sidebar-profile-menu=""
-                className="min-w-56 rounded-lg border border-border bg-background p-1 text-foreground shadow-lg outline-none"
+                className="min-w-56 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg outline-none"
               >
                 <Menu.Item
                   render={<LinkComponent href={profileHref} />}
@@ -500,7 +529,7 @@ export function IntranetSidebar({
         <IntranetSidebarToggle
           aria-label={labels.toggle}
           className={cn(
-            "fixed top-2 left-2 z-30 border border-border bg-background text-foreground shadow-sm",
+            "fixed top-2 left-2 z-30 border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring",
             !isMobile && open && "left-[13.5rem]",
           )}
         />
@@ -520,7 +549,7 @@ export function IntranetSidebar({
               aria-describedby={undefined}
               data-slot="sidebar"
               className={cn(
-                "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-2rem)] flex-col border-r border-border bg-background text-foreground outline-none print:hidden",
+                "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-2rem)] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground outline-none print:hidden",
                 className,
               )}
             >
@@ -528,8 +557,8 @@ export function IntranetSidebar({
               <Dialog.Close
                 aria-label={labels.close}
                 className={cn(
-                  "absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg hover:bg-accent",
-                  focusClassName,
+                  "absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  sidebarFocusClassName,
                 )}
               >
                 <PanelLeftIcon className="size-4" aria-hidden="true" />
@@ -552,7 +581,7 @@ export function IntranetSidebar({
             data-slot="sidebar"
             data-state={open ? "expanded" : "collapsed"}
             className={cn(
-              "fixed inset-y-0 left-0 z-20 flex h-svh w-64 flex-col border-r border-border bg-background text-foreground transition-transform duration-200 motion-reduce:transition-none",
+              "fixed inset-y-0 left-0 z-20 flex h-svh w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 motion-reduce:transition-none",
               !open && "invisible -translate-x-full",
               className,
             )}

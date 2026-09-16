@@ -746,7 +746,7 @@
       "name": "font-provider",
       "type": "registry:ui",
       "title": "Font Provider",
-      "description": "React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties on <html>. Supports preview mode (localStorage) and locked mode (fixed font).",
+      "description": "React context provider that applies font-family rules to body, headings, .font-sans, .font-serif, and .font-eyebrow. Supports preview mode (localStorage) and locked mode (fixed fonts).",
       "files": [
         {
           "path": "registry/components/ui/font-provider.tsx",
@@ -810,6 +810,11 @@
           "path": "registry/components/navigation/intranet-sidebar.tsx",
           "type": "registry:component",
           "target": "@components/forge/navigation/intranet-sidebar.tsx"
+        },
+        {
+          "path": "registry/components/navigation/intranet-sidebar-active.ts",
+          "type": "registry:lib",
+          "target": "@components/forge/navigation/intranet-sidebar-active.ts"
         }
       ]
     },
@@ -817,12 +822,17 @@
       "name": "corner-tokens",
       "type": "registry:lib",
       "title": "Corner Design Tokens",
-      "description": "The Corner design system semantic tokens (deep-teal / pale-blue / warm-cream) and signature component classes (.corner-frame, .corner-accent glow, .corner-surface-*, .corner-cut-*, .corner-rule) with prefers-color-scheme dark mode.",
+      "description": "The Corner signature component stylesheet using host brand tokens, plus an optional deep-teal / pale-blue / warm-cream palette with prefers-color-scheme dark mode.",
       "files": [
         {
           "path": "registry/lib/corner/tokens.css",
           "type": "registry:style",
           "target": "@lib/forge/corner/tokens.css"
+        },
+        {
+          "path": "registry/lib/corner/styles.css",
+          "type": "registry:style",
+          "target": "@lib/forge/corner/styles.css"
         }
       ]
     },
