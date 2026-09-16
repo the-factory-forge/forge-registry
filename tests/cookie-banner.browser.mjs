@@ -52,18 +52,29 @@ function storedConsent(page) {
 }
 
 const reopen = (page) => page.getByRole("button", { name: "Open cookie banner" }).click();
+const customize = (dialog) => dialog.getByRole("button", { name: "Custom selection" }).click();
 
-test("categories, rejection, and saved preferences work without a customization step", async (t) => {
+test("compact actions, custom selection, and saved preferences work", async (t) => {
   const { page, dialog } = await openPreview(t);
   await dialog.waitFor();
+  assert.equal(await dialog.getByRole("checkbox").count(), 0);
+  assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
+    "Custom selection",
+    "Accept all",
+  ]);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox").count(), 3);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Necessary/ }).isDisabled(), true);
+  assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
+    "Cancel",
+    "Confirm selection",
+  ]);
   await expectApplied(page, false, false);
 
   await dialog.getByRole("checkbox", { name: /^Statistics/ }).check();
   await expectApplied(page, false, false); // Draft changes must not grant consent.
   assert.equal(await storedConsent(page), null);
-  await dialog.getByRole("button", { name: "Save selection" }).click();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, true, false);
   assert.deepEqual(await storedConsent(page), { ...denied, analytics: true });
 
@@ -71,13 +82,17 @@ test("categories, rejection, and saved preferences work without a customization 
   await expectApplied(page, true, false); // The host also receives saved consent on hydration.
   assert.equal(await dialog.isVisible(), false);
   await reopen(page);
+  assert.equal(await dialog.getByRole("checkbox").count(), 0);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Statistics/ }).isChecked(), true);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Marketing/ }).isChecked(), false);
   await dialog.getByRole("checkbox", { name: /^Marketing/ }).check();
-  await reopen(page); // Unsaved edits must not replace the saved preference.
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await customize(dialog); // Unsaved edits must not replace the saved preference.
   assert.equal(await dialog.getByRole("checkbox", { name: /^Marketing/ }).isChecked(), false);
 
-  await dialog.getByRole("button", { name: "Reject all" }).click();
+  await dialog.getByRole("checkbox", { name: /^Statistics/ }).uncheck();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, false, false);
   assert.deepEqual(await storedConsent(page), denied);
   await reopen(page);
@@ -92,14 +107,18 @@ test("unavailable categories are denied on restore and Accept all", async (t) =>
   await page.getByRole("checkbox", { name: "Offer marketing cookies" }).uncheck();
   await expectApplied(page, true, false);
   await reopen(page);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Marketing/ }).count(), 0);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
   await dialog.getByRole("button", { name: "Accept all" }).click();
   assert.deepEqual(await storedConsent(page), { ...denied, analytics: true });
 
   await page.getByRole("checkbox", { name: "Offer analytics cookies" }).uncheck();
   await expectApplied(page, false, false);
   await reopen(page);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox").count(), 1);
+  await dialog.getByRole("button", { name: "Cancel" }).click();
   await dialog.getByRole("button", { name: "Accept all" }).click();
   assert.deepEqual(await storedConsent(page), denied);
 });
@@ -112,10 +131,16 @@ test("saved changes and cleared consent synchronize across tabs", async (t) => {
   await dialog.getByRole("button", { name: "Accept all" }).click();
   await expectApplied(secondPage, true, true);
   await reopen(secondPage);
-  await secondPage.getByRole("button", { name: "Reject all" }).click();
+  const secondDialog = secondPage.getByRole("dialog", { name: "Cookies" });
+  await customize(secondDialog);
+  await secondDialog.getByRole("checkbox", { name: /^Statistics/ }).uncheck();
+  await secondDialog.getByRole("checkbox", { name: /^Marketing/ }).uncheck();
+  await secondDialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, false, false);
   await secondPage.evaluate(() => localStorage.clear());
   await dialog.waitFor();
+  assert.equal(await dialog.getByRole("checkbox").count(), 0);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Statistics/ }).isChecked(), false);
 });
 
@@ -125,7 +150,8 @@ test("invalid stored consent starts denied with visible controls", async (t) => 
   });
   await dialog.waitFor();
   await expectApplied(page, false, false);
-  await dialog.getByRole("button", { name: "Reject all" }).click();
+  await customize(dialog);
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
   assert.deepEqual(await storedConsent(page), denied);
 });
 
@@ -140,11 +166,14 @@ test("blocked storage still applies consent and retains it while mounted", async
     }
   });
   await dialog.waitFor();
+  await customize(dialog);
   await dialog.getByRole("checkbox", { name: /^Statistics/ }).check();
-  await dialog.getByRole("button", { name: "Save selection" }).click();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, true, false);
   await reopen(page);
+  await customize(dialog);
   assert.equal(await dialog.getByRole("checkbox", { name: /^Statistics/ }).isChecked(), true);
-  await dialog.getByRole("button", { name: "Reject all" }).click();
+  await dialog.getByRole("checkbox", { name: /^Statistics/ }).uncheck();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, false, false);
 });

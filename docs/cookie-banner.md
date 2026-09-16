@@ -4,15 +4,17 @@ Install `@forge/cookie-banner` and, for a footer preferences link,
 `@forge/manage-cookies-button`. Both use `manage-cookies` by default; pass the
 same `manageEvent` to each when customizing it.
 
-The banner shows the necessary category and each enabled optional category
-immediately, with **Accept all**, **Save selection**, and **Reject all** actions.
+The banner starts compact with **Custom selection** and **Accept all** actions.
+Custom selection reveals the necessary category and each enabled optional
+category, while the actions become **Cancel** and **Confirm selection**.
 Necessary cookies stay enabled. `showAnalytics` defaults to `true` and
 `showMarketing` defaults to `false`; unavailable categories are always denied,
 including when restoring a saved choice or accepting all cookies.
 
 Consent is stored under `consentKey` (`cookie-consent` by default). Reopening the
-banner restores saved choices. Checkbox changes remain drafts until saved;
-changes in another tab apply automatically. Invalid saved data starts denied.
+banner stays compact; opening custom selection restores saved choices. Checkbox
+changes remain drafts until confirmed, and Cancel discards them. Changes in
+another tab apply automatically. Invalid saved data starts denied.
 If browser storage is blocked, choices last for the mounted page only.
 
 ## Host analytics integration
@@ -41,8 +43,9 @@ export function SiteCookieBanner() {
     <CookieBanner
       text="Choose which optional cookies this website may use."
       acceptAllLabel="Accept all"
-      acceptSelectionLabel="Save selection"
-      rejectLabel="Reject all"
+      acceptSelectionLabel="Custom selection"
+      cancelLabel="Cancel"
+      confirmLabel="Confirm selection"
       policyLabel="Privacy policy"
       privacyHref="/privacy"
       showAnalytics
@@ -63,11 +66,10 @@ callback runs, so a consent-aware loader can consume the queue when it loads.
 ## Updating an existing installation
 
 Replace callbacks that imported website analytics directly into the copied
-banner with the `onConsentChange` prop in a host-owned wrapper. Update translated
-`acceptSelectionLabel` to describe saving the selected categories, and supply a
-translated `rejectLabel` (default: `Reject all`). `cancelLabel` and `confirmLabel`
-remain accepted for source compatibility but are deprecated and unused by the
-restored single-step interface. Explicitly enable `showMarketing` when needed.
+banner with the `onConsentChange` prop in a host-owned wrapper. Remove
+`rejectLabel`, use `acceptSelectionLabel` for the custom-selection action, and
+translate `cancelLabel` and `confirmLabel` when needed. Explicitly enable
+`showMarketing` when needed.
 
 ## Preview and regression checks
 
@@ -82,5 +84,6 @@ pnpm test:browser
 ```
 
 Set `TEST_BASE_URL` to test another local showroom port. The Node browser tests
-cover saved choices, rejection, draft isolation, category availability,
-cross-tab synchronization, invalid data, and unavailable storage.
+cover the compact and custom-selection states, saved choices, draft
+cancellation, category availability, cross-tab synchronization, invalid data,
+and unavailable storage.
