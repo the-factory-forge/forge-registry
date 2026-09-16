@@ -11,17 +11,18 @@ import {
   UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import {
-  BackOfficeSidebar,
-  BackOfficeSidebarInset,
-  BackOfficeSidebarProvider,
-  BackOfficeSidebarToggle,
-  type BackOfficeNavGroup,
-} from "@/components/forge/navigation/back-office-sidebar";
+  IntranetSidebar,
+  IntranetSidebarInset,
+  IntranetSidebarProvider,
+  IntranetSidebarToggle,
+  type IntranetNavGroup,
+} from "@/components/forge/navigation/intranet-sidebar";
 
-const groups: BackOfficeNavGroup[] = [
+const groups: IntranetNavGroup[] = [
   {
     id: "my-space",
     label: "My space",
@@ -102,7 +103,7 @@ function subscribePath(onChange: () => void) {
   return () => window.removeEventListener("hashchange", onChange);
 }
 
-export default function BackOfficeExample() {
+export default function IntranetSidebarExample() {
   const pathname = useSyncExternalStore(
     subscribePath,
     () => window.location.hash || "#profile",
@@ -114,8 +115,8 @@ export default function BackOfficeExample() {
   const [name, setName] = useState("The Corner");
 
   return (
-    <BackOfficeSidebarProvider>
-      <BackOfficeSidebar
+    <IntranetSidebarProvider>
+      <IntranetSidebar
         brand={{
           name,
           href: "#profile",
@@ -137,23 +138,31 @@ export default function BackOfficeExample() {
           setSignedOut(true);
         }}
       />
-      <BackOfficeSidebarInset>
+      <IntranetSidebarInset>
         {externalToggle && (
           <header className="flex h-12 items-center gap-3 border-b border-border px-4">
-            <BackOfficeSidebarToggle />
+            <IntranetSidebarToggle />
             <span className="text-sm font-medium">Example navbar</span>
           </header>
         )}
         <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-16 sm:px-10">
-          <div>
-            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Registry preview
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">Back-office sidebar</h1>
-            <p className="mt-3 text-muted-foreground">
-              Customer branding, nested navigation, and a user profile. The sidebar works with or
-              without a navbar.
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Registry preview
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold">Intranet sidebar</h1>
+              <p className="mt-3 text-muted-foreground">
+                Customer branding, nested navigation, and a user profile. The sidebar works with or
+                without a navbar.
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="shrink-0 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+            >
+              Back to components
+            </Link>
           </div>
           <div className="space-y-4 rounded-xl border border-border p-5">
             <label className="flex flex-col gap-2 text-sm font-medium">
@@ -193,7 +202,7 @@ export default function BackOfficeExample() {
             Use the toggle or Ctrl/Cmd+B. On smaller screens, navigation opens in a modal drawer.
           </p>
         </div>
-      </BackOfficeSidebarInset>
-    </BackOfficeSidebarProvider>
+      </IntranetSidebarInset>
+    </IntranetSidebarProvider>
   );
 }

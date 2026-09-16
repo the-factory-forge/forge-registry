@@ -1,13 +1,7 @@
-import cinzelDecorative from "./presets/cinzel-decorative.json";
-import cinzel from "./presets/cinzel.json";
 import ebGaramond from "./presets/eb-garamond.json";
-import imFellEnglish from "./presets/im-fell-english.json";
 import inter from "./presets/inter.json";
 import jetbrainsMono from "./presets/jetbrains-mono.json";
-import medievalsharp from "./presets/medievalsharp.json";
 import montserrat from "./presets/montserrat.json";
-import morpheus from "./presets/morpheus.json";
-import pirataOne from "./presets/pirata-one.json";
 import playfairDisplay from "./presets/playfair-display.json";
 import sourceSerif4 from "./presets/source-serif-4.json";
 import spaceGrotesk from "./presets/space-grotesk.json";
@@ -42,12 +36,6 @@ export const fonts: FontPreset[] = [
   spaceGrotesk as FontPreset,
   ebGaramond as FontPreset,
   jetbrainsMono as FontPreset,
-  cinzel as FontPreset,
-  cinzelDecorative as FontPreset,
-  medievalsharp as FontPreset,
-  pirataOne as FontPreset,
-  imFellEnglish as FontPreset,
-  morpheus as FontPreset,
 ];
 
 export function getFont(id: string): FontPreset | undefined {

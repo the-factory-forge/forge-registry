@@ -34,7 +34,7 @@
       "name": "i18n-engine",
       "type": "registry:lib",
       "title": "i18n Engine",
-      "description": "Internationalization engine with getDictionary, t() dot-notation resolver, and locale middleware. Supports fr/en/de/it.",
+      "description": "Internationalization engine with getDictionary and t() dot-notation resolver. Supports fr/en/de/it.",
       "files": [
         {
           "path": "src/lib/i18n/config.ts",
@@ -65,14 +65,8 @@
           "path": "src/lib/i18n/it.json",
           "type": "registry:lib",
           "target": "@lib/i18n/it.json"
-        },
-        {
-          "path": "src/middleware.ts",
-          "type": "registry:lib",
-          "target": "~/src/middleware.ts"
         }
-      ],
-      "dependencies": ["server-only", "next"]
+      ]
     },
     {
       "name": "build-metadata",
@@ -86,7 +80,6 @@
           "target": "@lib/forge/seo/build-metadata.ts"
         }
       ],
-      "dependencies": ["next"],
       "registryDependencies": ["@forge/i18n-engine"]
     },
     {
@@ -633,7 +626,7 @@
       "name": "theme-presets",
       "type": "registry:lib",
       "title": "Theme Presets",
-      "description": "Industry + mood based theme preset system with 5 starter presets (example-colors, sage-clinic, swiss-corporate, alpine-table, solar-libre).",
+      "description": "Industry + mood based theme preset system with 6 starter presets (example-colors, alpine-table, sage-clinic, swiss-corporate, solar-libre, corner).",
       "files": [
         {
           "path": "registry/lib/themes/index.ts",
@@ -664,6 +657,11 @@
           "path": "registry/lib/themes/presets/solar-libre.json",
           "type": "registry:lib",
           "target": "@lib/forge/themes/presets/solar-libre.json"
+        },
+        {
+          "path": "registry/lib/themes/presets/corner.json",
+          "type": "registry:lib",
+          "target": "@lib/forge/themes/presets/corner.json"
         }
       ]
     },
@@ -748,7 +746,7 @@
       "name": "font-provider",
       "type": "registry:ui",
       "title": "Font Provider",
-      "description": "React context provider that applies a font preset by injecting --font-sans and --font-heading CSS custom properties on <html>. Supports preview mode (localStorage) and locked mode (fixed font).",
+      "description": "React context provider that applies font-family rules to body, headings, .font-sans, .font-serif, and .font-eyebrow. Supports preview mode (localStorage) and locked mode (fixed fonts).",
       "files": [
         {
           "path": "registry/components/ui/font-provider.tsx",
@@ -801,17 +799,68 @@
       "registryDependencies": ["@forge/footer"]
     },
     {
-      "name": "back-office-sidebar",
+      "name": "intranet-sidebar",
       "type": "registry:block",
-      "title": "Back-office Sidebar",
-      "description": "Responsive sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
+      "title": "Intranet Sidebar",
+      "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
       "files": [
         {
-          "path": "registry/components/navigation/back-office-sidebar.tsx",
+          "path": "registry/components/navigation/intranet-sidebar.tsx",
           "type": "registry:component",
-          "target": "@components/forge/navigation/back-office-sidebar.tsx"
+          "target": "@components/forge/navigation/intranet-sidebar.tsx"
+        },
+        {
+          "path": "registry/components/navigation/intranet-sidebar-active.ts",
+          "type": "registry:lib",
+          "target": "@components/forge/navigation/intranet-sidebar-active.ts"
+        }
+      ]
+    },
+    {
+      "name": "corner-tokens",
+      "type": "registry:lib",
+      "title": "Corner Design Tokens",
+      "description": "The Corner signature component stylesheet using host brand tokens, plus an optional deep-teal / pale-blue / warm-cream palette with prefers-color-scheme dark mode.",
+      "files": [
+        {
+          "path": "registry/lib/corner/tokens.css",
+          "type": "registry:style",
+          "target": "@lib/forge/corner/tokens.css"
+        },
+        {
+          "path": "registry/lib/corner/styles.css",
+          "type": "registry:style",
+          "target": "@lib/forge/corner/styles.css"
+        }
+      ]
+    },
+    {
+      "name": "corner",
+      "type": "registry:ui",
+      "title": "Corner Frame / Label / Rule",
+      "description": "The Corner signature components: CornerFrame (clipped frame with conic-gradient glow), CornerLabel, and CornerRule. Props-driven, stateless, framework-agnostic.",
+      "files": [
+        {
+          "path": "registry/components/intranet/corner.tsx",
+          "type": "registry:component",
+          "target": "@components/forge/intranet/corner.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/corner-tokens"]
+    },
+    {
+      "name": "intranet-shell",
+      "type": "registry:block",
+      "title": "Intranet Shell",
+      "description": "Authenticated intranet layout using the shared intranet sidebar, with customer branding, navigation, user profile, optional banner, topbar and controls. Works with or without a topbar.",
+      "registryDependencies": ["@forge/intranet-sidebar", "@forge/cn"],
+      "files": [
+        {
+          "path": "registry/components/intranet/intranet-shell.tsx",
+          "type": "registry:component",
+          "target": "@components/forge/intranet/intranet-shell.tsx"
         }
       ]
     }

@@ -28,7 +28,7 @@ export function LegalPage({
     <article className={cn("section-padding", className)}>
       <div className="container-premium">
         <div className="mx-auto max-w-3xl">
-          <h1 className="font-heading text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
+          <h1 className="font-serif text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
           {updatedAt && (
             <p className="mt-2 text-sm text-muted-foreground">
               {updatedLabel}

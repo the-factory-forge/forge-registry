@@ -79,7 +79,7 @@ export function NotFoundPage({
         </span>
       )}
       <span className="text-8xl font-bold text-primary/20">{errorCode}</span>
-      <h1 className="mt-4 font-heading text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
+      <h1 className="mt-4 font-serif text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
       <p className="mt-4 max-w-md text-lg text-muted-foreground">{description}</p>
       <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
         <CtaLink href={cta.href} size="lg" className={ctaClassName}>

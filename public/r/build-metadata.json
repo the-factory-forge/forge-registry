@@ -3,9 +3,6 @@
   "name": "build-metadata",
   "title": "Build Metadata",
   "description": "SEO metadata builder with canonical, hreflang, Open Graph, and Twitter card support.",
-  "dependencies": [
-    "next"
-  ],
   "registryDependencies": [
     "@forge/i18n-engine"
   ],

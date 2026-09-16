@@ -58,7 +58,7 @@ export function HomeHero({
                 {eyebrow}
               </span>
             )}
-            <h1 className="font-heading text-4xl leading-tight font-bold tracking-tight text-pretty text-dark-foreground sm:text-5xl md:text-6xl">
+            <h1 className="font-serif text-4xl leading-tight font-bold tracking-tight text-pretty text-dark-foreground sm:text-5xl md:text-6xl">
               {title}
             </h1>
             {subtitle && (

@@ -16,8 +16,10 @@ for future extractions. Its presence is not a request to migrate components now.
 When asked to extract one, implement the reusable version here. Changes to the
 source website belong to tasks that request them. There is no workspace package
 dependency between the two repositories; never import from the sibling project.
-`back-office-sidebar` is now extracted here and consumed by `tc-website` through
+`intranet-sidebar` is extracted here and consumed by `tc-website` through
 generated source files. See its guide before changing the shared contract.
+Use `intranet` for the complete internal website layout. `intranet-shell`
+composes the shared sidebar. Corner branding is an optional addition.
 
 ## Read first and source of truth
 
@@ -26,8 +28,9 @@ generated source files. See its guide before changing the shared contract.
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.
 - `vite.config.ts`: Vite Plus lint and format settings; Next.js remains the app framework.
-- [docs/back-office-sidebar.md](./docs/back-office-sidebar.md): sidebar props,
+- [docs/intranet-sidebar.md](./docs/intranet-sidebar.md): sidebar props,
   toggle placement, Better Auth integration, and consumer updates.
+- [docs/intranet.md](./docs/intranet.md): shell composition and optional Corner CSS.
 - [MECHANICS.md](./MECHANICS.md): historical notes and known gaps; verify claims
   against current code. Those notes are not an instruction to fix every gap.
 
@@ -37,18 +40,20 @@ props unless the requested change calls for a breaking change.
 
 ## Repository map
 
-| Path                                                    | Role                                                                  |
-| ------------------------------------------------------- | --------------------------------------------------------------------- |
-| `registry/components/ui/`                               | Shared primitives, animations, providers, framework shims             |
-| `registry/components/sections/`                         | Composed sections such as heroes, FAQs, and pricing                   |
-| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms                                     |
-| `registry/lib/`, `registry/content/`                    | Shared utilities, presets, SEO helpers, reference content             |
-| `registry/registry.json`                                | Editable source manifest                                              |
-| `vite.config.ts`                                        | Vite Plus lint/format configuration                                   |
-| `public/r/registry.json`, `public/r/{name}.json`        | Generated shadcn catalog and item endpoints; do not hand-edit         |
-| `src/app/`                                              | Next.js App Router showroom; currently home and newsletter demo pages |
-| `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities             |
-| `src/lib/i18n/`, `src/middleware.ts`                    | Exception to the showroom boundary: shipped by `i18n-engine`          |
+| Path                                                    | Role                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `registry/components/ui/`                               | Shared primitives, animations, providers, framework shims                |
+| `registry/components/sections/`                         | Composed sections such as heroes, FAQs, and pricing                      |
+| `registry/components/navigation/`, `layouts/`, `forms/` | Navigation, layout helpers, forms                                        |
+| `registry/components/intranet/`                         | Intranet shell and optional Corner components                            |
+| `registry/lib/`, `registry/content/`                    | Shared utilities, presets, SEO helpers, reference content                |
+| `registry/registry.json`                                | Editable source manifest                                                 |
+| `vite.config.ts`                                        | Vite Plus lint/format configuration                                      |
+| `public/r/registry.json`, `public/r/{name}.json`        | Generated shadcn catalog and item endpoints; do not hand-edit            |
+| `src/app/`                                              | Next.js showroom: home, newsletter, intranet-sidebar, and intranet demos |
+| `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities                |
+| `src/lib/i18n/`                                         | Dictionary helpers and locale config shipped by `i18n-engine`            |
+| `src/proxy.ts`                                          | Showroom-only Next.js locale routing                                     |
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in Next.js 16. Use the pnpm version pinned in `package.json`.
@@ -114,14 +119,15 @@ for separating reusable feature code from website adapters.
 
 `pnpm registry:sync` runs the pinned official CLI:
 `shadcn build registry/registry.json --output public/r`. The source manifest lists
-47 items; only declared files and dependencies ship.
+50 items; only declared files and dependencies ship.
 
 `public/r/registry.json` and `public/r/{name}.json` are official shadcn catalog
 and item output. The manifest declares `@components/forge/`, `@lib/forge/`, and
 `@lib/forge/content/` targets and `@forge/item-name` registry dependencies.
 Source imports already match those locations; shadcn resolves the consumer's
-configured aliases. `i18n-engine` keeps its framework-specific destinations:
-`@lib/i18n/` and `~/src/middleware.ts`.
+configured aliases. `i18n-engine` installs dictionary helpers and locale
+configuration into `@lib/i18n/`. Next.js proxy stays in the showroom; the
+item does not depend on Next.js or `server-only`. Consumers own locale routing.
 
 Consumers configure the `@forge` namespace in `components.json` with
 `https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json`.
@@ -136,7 +142,7 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and
 `forge-template`, must migrate to standard `@forge` shadcn installs; do not assume
 those projects have already migrated. `tc-website` already provides
 `pnpm registry:sidebar`, which runs its pinned shadcn CLI with
-`add @forge/back-office-sidebar --yes --overwrite`. Fix shared behavior here,
+`add @forge/intranet-sidebar --yes --overwrite`. Fix shared behavior here,
 publish the generated artifacts, then update and validate each consumer before
 deploying. Source distribution does not push fixes into running websites
 automatically. Keep host adapters outside generated `components/forge/` and
@@ -158,11 +164,13 @@ distribution behavior, also check a shadcn consumer install. Report checks
 actually run and any blockers. Documentation-only changes need formatting, a
 diff, and factual/link review, without dependency installation or app builds.
 
-Known limitations to verify when touching affected items:
+Known limitations and integration boundaries to verify when touching affected items:
 
-- `i18n-engine` includes Next.js middleware and `server-only`; portability of the
-  UI does not imply that every registry item works in every framework.
+- `i18n-engine` does not provide framework routing or middleware. Keep those in the consumer.
 - Some manifest dependencies still list `next` for shim-based UI, and some omit
   imported registry items such as `ui-shims`. Audit the selected item's imports.
-- Theme/font indexes import more preset JSON files than their manifest entries
-  ship. Local compilation can pass while a consumer receives missing imports.
+- Theme/font indexes reference the shipped presets only (6 themes and 7 fonts).
+  Keep indexes and manifest file lists aligned when adding a preset.
+- `corner` includes `corner-tokens`, but consumers must import the installed CSS
+  into their global Tailwind stylesheet. It applies global brand variables;
+  keep it optional and out of the generic `intranet-shell` dependency set.

@@ -1,9 +1,12 @@
-# Back-office sidebar
+# Intranet sidebar
 
-The `back-office-sidebar` registry item extracts the sidenav used by
+The `intranet-sidebar` registry item extracts the sidenav used by
 `tc-website`: customer identity at the top, grouped and nested navigation in a
 scrollable middle section, and the signed-in user's profile at the bottom.
 The website supplies its branding, allowed destinations, and Better Auth actions.
+
+For a complete internal website layout, use [IntranetShell](./intranet.md).
+It composes this sidebar with optional banner, topbar, and controls.
 
 ## Install and update
 
@@ -22,13 +25,20 @@ to the project's existing `components.json`:
 Then install the item:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/back-office-sidebar
+pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
 ```
 
 Files install under `src/components/forge/` and `src/lib/forge/` with default
 aliases. The CLI adapts configured aliases. The item includes `cn`, `ui-shims`,
 Base UI, and Lucide dependencies. It does not require the showroom's custom
 CSS utilities, brand assets, or a configured Better Auth client inside the registry.
+
+The host theme must expose the standard shadcn `sidebar`, `sidebar-foreground`,
+`sidebar-primary`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`,
+and `sidebar-ring` tokens. The profile menu uses `popover` and
+`popover-foreground`; the page inset uses `background`. These names match
+`forge-template` and `tc-website`, so each website controls the colors through
+its existing theme.
 
 `tc-website` consumes the same generated files and defines its integration in
 `src/components/app-sidebar.tsx` and `src/components/authenticated-shell.tsx`.
@@ -40,7 +50,7 @@ pnpm format && pnpm lint:fix
 pnpm lint
 ```
 
-That command uses the pinned CLI with `shadcn add @forge/back-office-sidebar --yes --overwrite`
+That command uses the pinned CLI with `shadcn add @forge/intranet-sidebar --yes --overwrite`
 for this item and its dependencies.
 Keep custom branding, routing, navigation, and auth code outside the generated
 `forge` directories. Fix shared behavior in this repository, run
@@ -58,7 +68,7 @@ to `http://localhost:3010/r/{name}.json`, then:
 pnpm registry:sync
 pnpm dev --port 3010
 # In the consumer project:
-pnpm exec shadcn add @forge/back-office-sidebar --yes --overwrite
+pnpm exec shadcn add @forge/intranet-sidebar --yes --overwrite
 ```
 
 The official build is identical for local and published installs. Restore the
@@ -73,11 +83,11 @@ Use a client component when integrating into an RSC application:
 
 import type { ReactNode } from "react";
 import {
-  BackOfficeSidebar,
-  BackOfficeSidebarInset,
-  BackOfficeSidebarProvider,
-  type BackOfficeSidebarProps,
-} from "@/components/forge/navigation/back-office-sidebar";
+  IntranetSidebar,
+  IntranetSidebarInset,
+  IntranetSidebarProvider,
+  type IntranetSidebarProps,
+} from "@/components/forge/navigation/intranet-sidebar";
 
 export function AdminLayout({
   children,
@@ -86,13 +96,13 @@ export function AdminLayout({
   onSignOut,
 }: {
   children: ReactNode;
-  user: BackOfficeSidebarProps["user"];
+  user: IntranetSidebarProps["user"];
   pathname: string;
   onSignOut: () => Promise<void>;
 }) {
   return (
-    <BackOfficeSidebarProvider>
-      <BackOfficeSidebar
+    <IntranetSidebarProvider>
+      <IntranetSidebar
         brand={{ name: "Customer name", href: "/" }}
         user={user}
         pathname={pathname}
@@ -113,8 +123,8 @@ export function AdminLayout({
           },
         ]}
       />
-      <BackOfficeSidebarInset>{children}</BackOfficeSidebarInset>
-    </BackOfficeSidebarProvider>
+      <IntranetSidebarInset>{children}</IntranetSidebarInset>
+    </IntranetSidebarProvider>
   );
 }
 ```
@@ -128,24 +138,33 @@ mobile visibility is independent.
 
 ## Inputs and integration points
 
-| Input                | Contract                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------ |
-| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                         |
-| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host  |
-| Navigation item      | Stable `id`, `label`, optional icon node, and either `href` or nested `items`                    |
-| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it          |
-| `collapsible: false` | Display nested items under a static label, useful for policy subgroups                           |
-| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                     |
-| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials |
-| `profileHref`        | Required profile destination; the profile menu is always present                                 |
-| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`              |
-| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                        |
-| `version`            | Optional display text, for example `v1.2.3`                                                      |
-| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error labels               |
-| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider              |
+| Input                | Contract                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                               |
+| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host        |
+| Navigation item      | Stable `id`, `label`, optional icon node, and `href`, nested `items`, or both                          |
+| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                |
+| `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                  |
+| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                           |
+| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials       |
+| `profileHref`        | Required profile destination; the profile menu is always present                                       |
+| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`                    |
+| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                              |
+| `version`            | Optional display text, for example `v1.2.3`                                                            |
+| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error and expand/collapse labels |
+| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider                    |
+
+A linked parent (`href` plus `items`) renders a destination link and a separate
+expand/collapse button. Its section stays active on its own route or any active
+child, while `aria-current="page"` on the parent identifies only its exact
+route. An empty child list still renders the parent link, which supports
+asynchronously loaded project navigation. Empty groups without a link are hidden.
+
+`IntranetSidebarInset` renders a `main` by default. Pass `as="div"` when the
+host's route content already supplies its own `main` landmark.
 
 For a custom navbar, set `togglePlacement="external"` and render
-`<BackOfficeSidebarToggle />` in that navbar, inside the same provider. Its
+`<IntranetSidebarToggle />` in that navbar, inside the same provider. Its
 `aria-label`, classes, and icon children can be customized. `tc-website` uses this
 arrangement; the navbar itself remains site-owned.
 
@@ -153,9 +172,9 @@ For TanStack Router, pass a stable adapter declared outside the layout component
 
 ```tsx
 import { Link as RouterLink } from "@tanstack/react-router";
-import type { BackOfficeLinkProps } from "@/components/forge/navigation/back-office-sidebar";
+import type { IntranetLinkProps } from "@/components/forge/navigation/intranet-sidebar";
 
-function SidebarLink({ href, ...props }: BackOfficeLinkProps) {
+function SidebarLink({ href, ...props }: IntranetLinkProps) {
   return <RouterLink to={href} {...props} />;
 }
 // Pass linkComponent={SidebarLink} and the router's current pathname.
@@ -170,9 +189,11 @@ navigation visibility; existing server authorization remains authoritative.
 
 ## Preview and verification
 
-Run `pnpm dev --port 3010` and open `/en/back-office`. The showroom uses mock
+Run `pnpm dev --port 3010` and open `/en/intranet-sidebar`. The showroom uses mock
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
+The `/en/intranet` demo also includes linked parent navigation and a custom topbar.
+Run `pnpm test` for the navigation matching regression checks (Node 22.18+).
 
 Verify desktop collapse/reopen, keyboard focus after collapse, mobile Escape and
 focus restoration, profile actions, and navigation with long labels. Follow the

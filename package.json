@@ -13,6 +13,7 @@
     "check": "vp check",
     "fix": "vp check --fix",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
     "registry:check": "node -e \"JSON.parse(require('node:fs').readFileSync('registry/registry.json','utf8')); console.log('registry/registry.json is valid JSON')\"",
     "registry:sync": "shadcn build registry/registry.json --output public/r"
   },
@@ -23,8 +24,7 @@
     "motion": "12.42.2",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "server-only": "0.0.1"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.0",

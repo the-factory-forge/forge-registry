@@ -24,8 +24,12 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (["/", "/newsletter", "/cookie-banner"].includes(pathname)) {
+    return NextResponse.next();
+  }
 
   if (
     pathname.startsWith("/_next") ||

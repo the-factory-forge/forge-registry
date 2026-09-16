@@ -1,0 +1,21 @@
+{
+  "id": "corner",
+  "label": "Corner",
+  "industry": "intranet",
+  "mood": "warm",
+  "tokens": {
+    "--background": "#f6f4ea",
+    "--foreground": "#122b30",
+    "--primary": "#13343a",
+    "--primary-foreground": "#ffffff",
+    "--secondary": "#e5e3d4",
+    "--secondary-foreground": "#13343a",
+    "--accent": "#badede",
+    "--accent-foreground": "#13343a",
+    "--muted": "#eeece0",
+    "--muted-foreground": "#5c6b6e",
+    "--border": "#c9d8d6",
+    "--ring": "#13343a",
+    "--dark-foreground": "#f6f4ea"
+  }
+}

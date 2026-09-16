@@ -1,4 +1,3 @@
-import "server-only";
 import { defaultLocale, type Locale } from "./config";
 
 // oxlint-disable-next-line typescript/no-explicit-any
