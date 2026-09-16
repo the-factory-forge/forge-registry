@@ -83,7 +83,7 @@ import { ProjectsList } from "@/components/plugins/projects";
 ```
 
 This composition belongs to the host. The customers plugin never imports
-projects. A future Drive integration similarly supplies `driveContent` from
+projects. The optional [Drive plugin](./drive.md) similarly supplies `driveContent` from
 the host; there is no Drive dependency today.
 
 ## Form and ownership contract

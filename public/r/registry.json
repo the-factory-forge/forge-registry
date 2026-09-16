@@ -723,6 +723,101 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/customers", "@forge/cn", "@forge/ui-shims"]
+    },
+    {
+      "name": "drive",
+      "type": "registry:block",
+      "title": "Drive",
+      "description": "Standalone and embeddable file browser for any host entity.",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "files": [
+        {
+          "path": "registry/components/plugins/drive/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/drive/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/transfer.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/transfer.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/drive/use-uploads.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/use-uploads.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/utils.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/utils.ts"
+        }
+      ]
+    },
+    {
+      "name": "drive-storage",
+      "type": "registry:block",
+      "title": "Drive storage",
+      "description": "Private S3 and PostgreSQL storage for entity-scoped Drive spaces.",
+      "dependencies": [
+        "drizzle-orm",
+        "postgres",
+        "@aws-sdk/client-s3",
+        "@aws-sdk/s3-request-presigner"
+      ],
+      "registryDependencies": ["@forge/drive"],
+      "files": [
+        {
+          "path": "registry/components/plugins/drive/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/migration.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/drive/server/migration.sql"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/storage.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/server/storage.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/server/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/cors.json",
+          "type": "registry:file",
+          "target": "@components/plugins/drive/server/cors.json"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/lifecycle.json",
+          "type": "registry:file",
+          "target": "@components/plugins/drive/server/lifecycle.json"
+        }
+      ]
     }
   ]
 }

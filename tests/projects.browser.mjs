@@ -148,6 +148,7 @@ test("customer composition scopes projects, locks ownership, and keeps shared na
     await page.getByRole("button", { name: "Select an owner *", exact: true }).isDisabled(),
     true,
   );
+  await page.getByLabel("Drive integration", { exact: true }).uncheck();
   await page.getByRole("link", { name: "Drive", exact: true }).click();
   await page.locator('nav a[aria-current="page"]').filter({ hasText: "Drive" }).waitFor();
   assert.equal(await page.locator("form").count(), 0);

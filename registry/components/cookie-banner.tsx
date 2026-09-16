@@ -196,12 +196,12 @@ export function CookieBanner({
   if (hidden || !visible) return null;
 
   return (
-    <div
-      role="dialog"
+    <dialog
+      open
       aria-label={dialogLabel}
       aria-live="polite"
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[60] p-4 sm:p-6",
+        "fixed inset-x-0 top-auto bottom-0 z-[60] m-0 w-full max-w-none border-0 bg-transparent p-4 sm:p-6",
         "animate-in duration-300 fade-in slide-in-from-bottom-4",
       )}
     >
@@ -323,6 +323,6 @@ export function CookieBanner({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

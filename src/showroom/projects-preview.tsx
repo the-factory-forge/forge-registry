@@ -13,6 +13,7 @@ import {
   type Project,
   type ProjectFormValues,
 } from "@/components/plugins/projects";
+import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
 
 function useProjectList(customerId?: string) {
@@ -45,6 +46,7 @@ function useProjectList(customerId?: string) {
     onDelete: state.showActions
       ? async (id: string) => {
           await state.beforeAction();
+          state.driveMock.assertEmpty({ type: "project", id });
           state.setProjects((current) => current.filter((project) => project.id !== id));
           state.setNotice("Project deleted successfully.");
         }
@@ -154,7 +156,13 @@ export function ProjectsPreview() {
           : undefined
       }
       driveContent={
-        state.showIntegration ? (
+        state.showDrive ? (
+          <EmbeddedDrivePreview
+            scope={{ type: "project", id: project.id }}
+            base={`${base}/${project.id}/drive`}
+            customerId={fromCustomer ? customer?.id : undefined}
+          />
+        ) : state.showIntegration ? (
           <p>
             Host Drive content for {project.name}, owned by{" "}
             {customerDisplayName(state.customers.find((entry) => entry.id === project.ownerId)!)}.

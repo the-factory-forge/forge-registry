@@ -159,3 +159,5 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Registry entry added to `registry/registry.json`
 - [ ] Example usage provided (optional but recommended)
 - [ ] Formatting and validation flow above completed; generated artifacts match the final source
+
+Storage companions use a separate `plugins/{name}/server` entrypoint and registry item. Browser entrypoints must never export server modules. Declare server packages only on the companion; ship migration/configuration templates explicitly, without applying them during installation. See [Drive](./docs/drive.md).

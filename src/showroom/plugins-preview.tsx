@@ -2,10 +2,19 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import type { Customer } from "@/components/plugins/customers";
+import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
+import { createDriveMock } from "@/showroom/drive-mock";
 
 const initialCustomers: Customer[] = [
   {
@@ -23,6 +32,9 @@ const initialCustomers: Customer[] = [
 ];
 
 function usePreviewState() {
+  const { locale } = useParams<{ locale: string }>();
+  const [driveMock] = useState(createDriveMock);
+  const [showDrive, setShowDrive] = useState(true);
   const [customers, setCustomers] = useState(initialCustomers);
   const [projects, setProjects] = useState<Project[]>([
     {
@@ -49,11 +61,45 @@ function usePreviewState() {
   const [showIntegration, setShowIntegration] = useState(false);
   const [directoryState, setDirectoryState] = useState("ready");
   const [notice, setNotice] = useState("");
+  const driveClient = useMemo(() => {
+    const writable = {
+      upload: true,
+      createFolder: true,
+      rename: true,
+      delete: true,
+      download: true,
+    };
+    const readOnly = {
+      upload: false,
+      createFolder: false,
+      rename: false,
+      delete: false,
+      download: true,
+    };
+    const spaces: DriveSpace[] = [
+      ...projects.map((project) => ({
+        scope: { type: "project", id: project.id },
+        name: project.name,
+        href: `/${locale}/projects/${project.id}`,
+        capabilities: writable,
+      })),
+      {
+        scope: { type: "workspace", id: "handbook" },
+        name: "Team handbook",
+        capabilities: readOnly,
+      },
+    ];
+    return driveMock.client(spaces, failActions, directoryState);
+  }, [projects, locale, driveMock, failActions, directoryState]);
   async function beforeAction() {
     await new Promise((resolve) => setTimeout(resolve, 400));
     if (failActions) throw new Error("Simulated host failure");
   }
   return {
+    driveMock,
+    driveClient,
+    showDrive,
+    setShowDrive,
     projects,
     setProjects,
     showProjects,
@@ -114,6 +160,37 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
           <Link href={`/${locale}/projects`} className="underline">
             Project directory
           </Link>
+          <Link href={`/${locale}/drive`} className="underline">
+            Drive directory
+          </Link>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={state.showDrive}
+              onChange={(event) => state.setShowDrive(event.target.checked)}
+            />
+            Drive integration
+          </label>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              state.driveMock.failUpload();
+              state.setNotice("The next upload will fail once; retry will succeed.");
+            }}
+          >
+            Fail next upload
+          </button>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              state.driveMock.failDeletion();
+              state.setNotice("The next deletion will pause; retry will finish it.");
+            }}
+          >
+            Interrupt next deletion
+          </button>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"

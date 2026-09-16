@@ -16,14 +16,19 @@
     "test": "node --test tests/*.test.mjs",
     "registry:check": "node -e \"JSON.parse(require('node:fs').readFileSync('registry/registry.json','utf8')); console.log('registry/registry.json is valid JSON')\"",
     "registry:sync": "shadcn build registry/registry.json --output public/r",
-    "test:browser": "node --test tests/*.browser.mjs"
+    "test:browser": "node --test tests/*.browser.mjs",
+    "test:storage": "node --test tests/drive-storage/storage.integration.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1133.0",
+    "@aws-sdk/s3-request-presigner": "3.1133.0",
     "@base-ui/react": "1.7.0",
     "cnfast": "0.1.0",
+    "drizzle-orm": "0.45.2",
     "lucide-react": "1.23.0",
     "motion": "12.42.2",
     "next": "16.2.9",
+    "postgres": "3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

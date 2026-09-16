@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "drive-expire-staging",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "drive/staging/" },
+      "Expiration": { "Days": 1 }
+    }
+  ]
+}

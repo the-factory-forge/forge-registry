@@ -1,0 +1,198 @@
+"use client";
+
+import { Dialog } from "@base-ui/react/dialog";
+import { useId, useRef, useState, type ReactNode } from "react";
+
+import type { DriveLabels } from "@/components/plugins/drive/labels";
+import type {
+  DriveClient,
+  DriveDeletePreview,
+  DriveEntry,
+  DriveScope,
+} from "@/components/plugins/drive/types";
+import { errorCode, validName } from "@/components/plugins/drive/utils";
+import { cn } from "@/components/utils/cn";
+
+export const buttonClass =
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:size-4";
+export const primaryClass = cn(
+  buttonClass,
+  "bg-primary text-primary-foreground hover:bg-primary/90",
+);
+export const inputClass =
+  "h-9 w-full min-w-0 rounded-2xl border border-transparent bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
+export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
+export const messageFor = (error: unknown, labels: DriveLabels) =>
+  labels[errorCode(error) ?? "error"];
+
+export function DriveFeedback({ message, error = false }: { message?: string; error?: boolean }) {
+  return message ? (
+    <p
+      role={error ? "alert" : "status"}
+      className={cn("text-sm", error ? "text-destructive" : "text-muted-foreground")}
+    >
+      {message}
+    </p>
+  ) : null;
+}
+
+export function EntryDialog({
+  client,
+  scope,
+  parentId,
+  entry,
+  deleting = false,
+  labels,
+  refresh,
+  children,
+}: {
+  client: DriveClient;
+  scope: DriveScope;
+  parentId: string | null;
+  entry?: DriveEntry;
+  deleting?: boolean;
+  labels: DriveLabels;
+  refresh: () => void;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(entry?.name ?? "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string>();
+  const [preview, setPreview] = useState<DriveDeletePreview>();
+  const lock = useRef(false);
+  const fieldId = useId();
+  const title = deleting ? labels.deleteTitle : entry ? labels.rename : labels.newFolder;
+  async function loadPreview() {
+    if (!entry || lock.current) return;
+    lock.current = true;
+    setPending(true);
+    setError(undefined);
+    setPreview(undefined);
+    try {
+      setPreview(await client.previewDelete({ scope, entryId: entry.id }));
+    } catch (reason) {
+      setError(messageFor(reason, labels));
+    } finally {
+      lock.current = false;
+      setPending(false);
+    }
+  }
+  async function submit() {
+    if (lock.current || (deleting && !preview)) return;
+    lock.current = true;
+    setPending(true);
+    setError(undefined);
+    try {
+      if (deleting && entry && preview)
+        await client.deleteEntry({ scope, entryId: entry.id, token: preview.token });
+      else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
+      else await client.createFolder({ scope, parentId, name: validName(name) });
+      setOpen(false);
+      refresh();
+    } catch (reason) {
+      setError(messageFor(reason, labels));
+      if (deleting && errorCode(reason) === "CONFLICT") setPreview(undefined);
+    } finally {
+      lock.current = false;
+      setPending(false);
+    }
+  }
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (lock.current) return;
+        setOpen(next);
+        if (next) {
+          setName(entry?.name ?? "");
+          setError(undefined);
+          if (deleting) void loadPreview();
+        }
+      }}
+    >
+      <Dialog.Trigger
+        className={buttonClass}
+        aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
+      >
+        {children}
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+        <Dialog.Popup
+          className={cn(
+            cardClass,
+            "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
+          )}
+        >
+          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          <Dialog.Description className="text-sm text-muted-foreground">
+            {deleting
+              ? preview && entry
+                ? labels.deleteDescription(entry.name, preview.files, preview.folders)
+                : labels.loading
+              : labels.nameHint}
+          </Dialog.Description>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submit();
+            }}
+            className="space-y-4"
+          >
+            {!deleting && (
+              <div className="space-y-2">
+                <label htmlFor={fieldId} className="text-sm font-medium">
+                  {labels.name}
+                </label>
+                <input
+                  id={fieldId}
+                  className={inputClass}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={255}
+                  required
+                  disabled={pending}
+                />
+              </div>
+            )}
+            <DriveFeedback message={error} error />
+            <div className="flex justify-end gap-2">
+              <Dialog.Close className={buttonClass} disabled={pending}>
+                {labels.cancel}
+              </Dialog.Close>
+              {deleting && !preview ? (
+                <button
+                  type="button"
+                  className={primaryClass}
+                  disabled={pending}
+                  onClick={() => void loadPreview()}
+                >
+                  {pending ? labels.pending : labels.retry}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className={cn(
+                    primaryClass,
+                    deleting &&
+                      "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                  )}
+                  disabled={pending}
+                >
+                  {pending
+                    ? labels.pending
+                    : deleting
+                      ? labels.confirmDelete
+                      : entry
+                        ? labels.save
+                        : labels.create}
+                </button>
+              )}
+            </div>
+          </form>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
