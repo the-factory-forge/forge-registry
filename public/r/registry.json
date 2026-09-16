@@ -301,7 +301,7 @@
       "name": "cookie-banner",
       "type": "registry:block",
       "title": "Cookie Banner",
-      "description": "GA4 consent mode cookie banner with localStorage persistence and accept/decline.",
+      "description": "Cookie consent banner with visible category controls, accept/save/reject actions, saved preferences, Google Consent Mode updates, and a host analytics callback.",
       "files": [
         {
           "path": "registry/components/cookie-banner.tsx",

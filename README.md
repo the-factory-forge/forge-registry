@@ -107,7 +107,7 @@ supply their own translations and theme configuration.
 
 | Name                                           | Description                                                                                                 |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `cookie-banner`                                | GA4 Consent Mode v2 with localStorage                                                                       |
+| `cookie-banner`                                | Category controls, accept/save/reject, saved consent, and host analytics callback                           |
 | `navbar`                                       | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
 | [intranet-sidebar](./docs/intranet-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
 | `footer`                                       | Multi-column with brand, contact, socials, legal links                                                      |
@@ -138,6 +138,9 @@ Preview it at `/en/intranet`; `/en/intranet-sidebar` is the focused sidebar demo
 ```bash
 pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
 ```
+
+The [cookie banner guide](./docs/cookie-banner.md) covers consent controls,
+host analytics integration, and updating existing installations.
 
 ## Design system
 
@@ -201,7 +204,8 @@ pnpm format           # vp fmt
 pnpm format:check     # vp fmt --check
 pnpm check            # vp check (format, lint, and type checks)
 pnpm fix              # vp check --fix
-pnpm test             # Navigation regression tests (Node 22.18+)
+pnpm test             # Navigation and registry regression tests (Node 22.18+)
+pnpm test:browser     # Cookie consent browser tests against a running showroom
 pnpm typecheck        # tsc --noEmit
 pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Official shadcn catalog and item build

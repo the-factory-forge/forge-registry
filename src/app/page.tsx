@@ -5,7 +5,8 @@ const examples = [
     href: "/cookie-banner",
     category: "Layout",
     title: "Cookie banner",
-    description: "Compact consent banner with necessary-only and accept-all actions.",
+    description:
+      "Cookie preferences with category controls, accept all, save selection, and reject all.",
   },
   {
     href: "/newsletter",

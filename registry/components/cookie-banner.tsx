@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/components/utils/cn";
 
@@ -31,10 +31,6 @@ function ensureGtag() {
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push(args);
     });
-}
-
-function serialize(state: ConsentState): string {
-  return JSON.stringify(state);
 }
 
 function deserialize(raw: string): ConsentState | null {
@@ -74,7 +70,10 @@ export interface CookieBannerProps {
   text: string;
   acceptAllLabel: string;
   acceptSelectionLabel: string;
+  rejectLabel?: string;
+  /** @deprecated Categories are always visible; there is no cancel step. */
   cancelLabel?: string;
+  /** @deprecated Use acceptSelectionLabel for the save-selection action. */
   confirmLabel?: string;
   policyLabel: string;
   privacyHref: string;
@@ -88,6 +87,20 @@ export interface CookieBannerProps {
   showMarketing?: boolean;
   dialogLabel?: string;
   hidden?: boolean;
+  /** Called after consent updates on hydration, save, and cross-tab changes, never for draft edits.
+   * Keep this callback idempotent; load tracking scripts only for granted categories.
+   */
+  onConsentChange?: (consent: ConsentState) => void;
+}
+
+function readConsent(key: string): ConsentState | null {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? deserialize(stored) : null;
+  } catch {
+    // Storage can be unavailable; consent still works for this mounted page.
+    return null;
+  }
 }
 
 export function CookieBanner({
@@ -96,8 +109,7 @@ export function CookieBanner({
   text,
   acceptAllLabel,
   acceptSelectionLabel,
-  cancelLabel = "Cancel",
-  confirmLabel = "Confirm Selection",
+  rejectLabel = "Reject all",
   policyLabel,
   privacyHref,
   necessaryTitle = "Necessary",
@@ -107,40 +119,51 @@ export function CookieBanner({
   marketingTitle = "Marketing",
   marketingDescription = "Measures conversions and personalizes advertising.",
   showAnalytics = true,
-  showMarketing = true,
+  showMarketing = false,
   dialogLabel = "Cookies",
   hidden = false,
+  onConsentChange,
 }: CookieBannerProps) {
   const [visible, setVisible] = useState(false);
-  const [customizing, setCustomizing] = useState(false);
   const [draft, setDraft] = useState(DEFAULT_CONSENT);
-
-  const evaluate = useCallback(() => {
-    const stored = localStorage.getItem(consentKey);
-    if (stored) {
-      const parsed = deserialize(stored);
-      if (parsed) {
-        applyConsent(parsed);
-        setDraft(parsed);
-        setCustomizing(false);
-        setVisible(false);
-        return;
-      }
-    }
-    applyConsent(DEFAULT_CONSENT);
-    setDraft(DEFAULT_CONSENT);
-    setCustomizing(false);
-    setVisible(true);
-  }, [consentKey]);
+  const savedConsent = useRef(DEFAULT_CONSENT);
+  const consentCallback = useRef(onConsentChange);
 
   useEffect(() => {
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- reads stored consent during hydration
+    consentCallback.current = onConsentChange;
+  }, [onConsentChange]);
+
+  const normalizeConsent = useCallback(
+    (state: ConsentState): ConsentState => ({
+      necessary: true,
+      analytics: showAnalytics && state.analytics,
+      marketing: showMarketing && state.marketing,
+    }),
+    [showAnalytics, showMarketing],
+  );
+
+  const notifyConsent = useCallback((state: ConsentState) => {
+    savedConsent.current = state;
+    applyConsent(state);
+    consentCallback.current?.({ ...state });
+  }, []);
+
+  const evaluate = useCallback(() => {
+    const stored = readConsent(consentKey);
+    const state = normalizeConsent(stored ?? DEFAULT_CONSENT);
+    setDraft(state);
+    setVisible(stored === null);
+    notifyConsent(state);
+  }, [consentKey, normalizeConsent, notifyConsent]);
+
+  useEffect(() => {
+    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- hydrate saved consent and listen for external changes
     evaluate();
     const onStorage = (event: StorageEvent) => {
-      if (event.key === consentKey) evaluate();
+      if (event.key === consentKey || event.key === null) evaluate();
     };
     const onManage = () => {
-      setCustomizing(false);
+      setDraft(normalizeConsent(readConsent(consentKey) ?? savedConsent.current));
       setVisible(true);
     };
     window.addEventListener("storage", onStorage);
@@ -149,36 +172,18 @@ export function CookieBanner({
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(manageEvent, onManage);
     };
-  }, [evaluate, consentKey, manageEvent]);
+  }, [evaluate, consentKey, manageEvent, normalizeConsent]);
 
-  const acceptAll = () => {
-    const state: ConsentState = {
-      necessary: true,
-      analytics: true,
-      marketing: true,
-    };
-    localStorage.setItem(consentKey, serialize(state));
-    applyConsent(state);
-    setCustomizing(false);
+  const saveConsent = (selection: ConsentState) => {
+    const state = normalizeConsent(selection);
+    try {
+      localStorage.setItem(consentKey, JSON.stringify(state));
+    } catch {
+      // Retain the choice in memory when persistence is blocked.
+    }
+    setDraft(state);
     setVisible(false);
-  };
-
-  const openSelection = () => {
-    setDraft(DEFAULT_CONSENT);
-    setCustomizing(true);
-  };
-
-  const cancelSelection = () => {
-    setDraft(DEFAULT_CONSENT);
-    setCustomizing(false);
-  };
-
-  const confirmSelection = () => {
-    const state = { ...draft, necessary: true };
-    localStorage.setItem(consentKey, serialize(state));
-    applyConsent(state);
-    setCustomizing(false);
-    setVisible(false);
+    notifyConsent(state);
   };
 
   if (hidden || !visible) return null;
@@ -194,12 +199,7 @@ export function CookieBanner({
       )}
     >
       <div className="container-premium">
-        <div
-          className={cn(
-            "flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-3 shadow-lg",
-            !customizing && "sm:flex-row sm:items-center",
-          )}
-        >
+        <div className="flex flex-col gap-4 rounded-xl border border-border bg-background p-5 shadow-lg">
           <p className="min-w-0 flex-1 text-sm leading-relaxed text-foreground">
             {text}{" "}
             <a
@@ -210,99 +210,95 @@ export function CookieBanner({
             </a>
           </p>
 
-          {customizing && (
-            <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
-              <label
-                aria-label={necessaryTitle}
-                className="flex cursor-not-allowed items-start gap-3 opacity-70"
-              >
+          <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
+            <label
+              aria-label={necessaryTitle}
+              className="flex cursor-not-allowed items-start gap-3 opacity-70"
+            >
+              <input
+                type="checkbox"
+                checked
+                disabled
+                className="mt-0.5 size-4 shrink-0 rounded accent-primary"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-foreground">
+                  {necessaryTitle}
+                </span>
+                <span className="block text-xs text-muted-foreground">{necessaryDescription}</span>
+              </span>
+            </label>
+
+            {showAnalytics && (
+              <label aria-label={analyticsTitle} className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
-                  checked
-                  disabled
+                  checked={draft.analytics}
+                  onChange={(event) =>
+                    setDraft((state) => ({
+                      ...state,
+                      analytics: event.target.checked,
+                    }))
+                  }
                   className="mt-0.5 size-4 shrink-0 rounded accent-primary"
                 />
                 <span>
                   <span className="block text-sm font-semibold text-foreground">
-                    {necessaryTitle}
+                    {analyticsTitle}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {necessaryDescription}
+                    {analyticsDescription}
                   </span>
                 </span>
               </label>
+            )}
 
-              {showAnalytics && (
-                <label
-                  aria-label={analyticsTitle}
-                  className="flex cursor-pointer items-start gap-3"
-                >
-                  <input
-                    type="checkbox"
-                    checked={draft.analytics}
-                    onChange={(event) =>
-                      setDraft((state) => ({
-                        ...state,
-                        analytics: event.target.checked,
-                      }))
-                    }
-                    className="mt-0.5 size-4 shrink-0 rounded accent-primary"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">
-                      {analyticsTitle}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {analyticsDescription}
-                    </span>
+            {showMarketing && (
+              <label aria-label={marketingTitle} className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={draft.marketing}
+                  onChange={(event) =>
+                    setDraft((state) => ({
+                      ...state,
+                      marketing: event.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 size-4 shrink-0 rounded accent-primary"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-foreground">
+                    {marketingTitle}
                   </span>
-                </label>
-              )}
-
-              {showMarketing && (
-                <label
-                  aria-label={marketingTitle}
-                  className="flex cursor-pointer items-start gap-3"
-                >
-                  <input
-                    type="checkbox"
-                    checked={draft.marketing}
-                    onChange={(event) =>
-                      setDraft((state) => ({
-                        ...state,
-                        marketing: event.target.checked,
-                      }))
-                    }
-                    className="mt-0.5 size-4 shrink-0 rounded accent-primary"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">
-                      {marketingTitle}
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      {marketingDescription}
-                    </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {marketingDescription}
                   </span>
-                </label>
-              )}
-            </div>
-          )}
+                </span>
+              </label>
+            )}
+          </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={customizing ? cancelSelection : openSelection}
-              aria-expanded={customizing}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40"
+              onClick={() => saveConsent({ necessary: true, analytics: true, marketing: true })}
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-primary/40"
             >
-              {customizing ? cancelLabel : acceptSelectionLabel}
+              {acceptAllLabel}
             </button>
             <button
               type="button"
-              onClick={customizing ? confirmSelection : acceptAll}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-primary/40"
+              onClick={() => saveConsent(draft)}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40"
             >
-              {customizing ? confirmLabel : acceptAllLabel}
+              {acceptSelectionLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => saveConsent(DEFAULT_CONSENT)}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40"
+            >
+              {rejectLabel}
             </button>
           </div>
         </div>
