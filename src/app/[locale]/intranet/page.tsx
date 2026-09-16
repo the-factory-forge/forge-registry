@@ -1,6 +1,7 @@
 "use client";
 
 import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import { IntranetShell } from "@/components/forge/intranet/intranet-shell";
@@ -90,15 +91,23 @@ export default function IntranetExample() {
       }}
       contentClassName="mx-auto w-full max-w-4xl space-y-6 py-10 sm:py-12"
     >
-      <div>
-        <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Registry preview
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold">Intranet shell</h1>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
-          A shared workspace layout with customer branding, navigation, a user profile, and room for
-          your own page content.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            Registry preview
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold">Intranet shell</h1>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            A shared workspace layout with customer branding, navigation, a user profile, and room
+            for your own page content.
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="shrink-0 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+        >
+          Back to components
+        </Link>
       </div>
       <section
         aria-labelledby="layout-options"

@@ -97,7 +97,7 @@ export function CookieBanner({
   acceptAllLabel,
   acceptSelectionLabel,
   cancelLabel = "Cancel",
-  confirmLabel = "Confirm",
+  confirmLabel = "Confirm Selection",
   policyLabel,
   privacyHref,
   necessaryTitle = "Necessary",
@@ -152,7 +152,11 @@ export function CookieBanner({
   }, [evaluate, consentKey, manageEvent]);
 
   const acceptAll = () => {
-    const state: ConsentState = { necessary: true, analytics: true, marketing: true };
+    const state: ConsentState = {
+      necessary: true,
+      analytics: true,
+      marketing: true,
+    };
     localStorage.setItem(consentKey, serialize(state));
     applyConsent(state);
     setCustomizing(false);
@@ -237,7 +241,10 @@ export function CookieBanner({
                     type="checkbox"
                     checked={draft.analytics}
                     onChange={(event) =>
-                      setDraft((state) => ({ ...state, analytics: event.target.checked }))
+                      setDraft((state) => ({
+                        ...state,
+                        analytics: event.target.checked,
+                      }))
                     }
                     className="mt-0.5 size-4 shrink-0 rounded accent-primary"
                   />
@@ -261,7 +268,10 @@ export function CookieBanner({
                     type="checkbox"
                     checked={draft.marketing}
                     onChange={(event) =>
-                      setDraft((state) => ({ ...state, marketing: event.target.checked }))
+                      setDraft((state) => ({
+                        ...state,
+                        marketing: event.target.checked,
+                      }))
                     }
                     className="mt-0.5 size-4 shrink-0 rounded accent-primary"
                   />

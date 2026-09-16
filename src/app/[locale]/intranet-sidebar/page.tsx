@@ -11,6 +11,7 @@ import {
   UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import {
@@ -145,15 +146,23 @@ export default function IntranetSidebarExample() {
           </header>
         )}
         <div className="mx-auto w-full max-w-3xl space-y-6 px-6 py-16 sm:px-10">
-          <div>
-            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Registry preview
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">Intranet sidebar</h1>
-            <p className="mt-3 text-muted-foreground">
-              Customer branding, nested navigation, and a user profile. The sidebar works with or
-              without a navbar.
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                Registry preview
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold">Intranet sidebar</h1>
+              <p className="mt-3 text-muted-foreground">
+                Customer branding, nested navigation, and a user profile. The sidebar works with or
+                without a navbar.
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="shrink-0 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+            >
+              Back to components
+            </Link>
           </div>
           <div className="space-y-4 rounded-xl border border-border p-5">
             <label className="flex flex-col gap-2 text-sm font-medium">
