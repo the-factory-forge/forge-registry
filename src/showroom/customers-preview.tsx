@@ -2,136 +2,34 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState } from "react";
 
 import {
   CustomersPage,
   CustomerDetailPage,
   CustomerNewPage,
-  type Customer,
   type CustomerFormValues,
 } from "@/components/plugins/customers";
-
-const initialCustomers: Customer[] = [
-  {
-    id: "acme",
-    name: "Alex Morgan",
-    email: "alex@example.com",
-    emailVerified: false,
-    companyName: "Acme Studio",
-    phoneNumber: "+41 79 123 45 67",
-    street: "Rue du Rhône 10",
-    city: "1204 Geneva",
-    addressComplement: "Second floor",
-  },
-  { id: "sam", name: "Sam Rivera", email: "sam@example.com", emailVerified: true },
-];
-
-function usePreviewState() {
-  const [customers, setCustomers] = useState(initialCustomers);
-  const [failActions, setFailActions] = useState(false);
-  const [showActions, setShowActions] = useState(true);
-  const [showIntegration, setShowIntegration] = useState(false);
-  const [directoryState, setDirectoryState] = useState("ready");
-  const [notice, setNotice] = useState("");
-  async function beforeAction() {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    if (failActions) throw new Error("Simulated host failure");
-  }
-  return {
-    customers,
-    setCustomers,
-    failActions,
-    setFailActions,
-    showActions,
-    setShowActions,
-    showIntegration,
-    setShowIntegration,
-    directoryState,
-    setDirectoryState,
-    notice,
-    setNotice,
-    beforeAction,
-  };
-}
-
-const PreviewContext = createContext<ReturnType<typeof usePreviewState> | null>(null);
-const subscribeReady = () => () => {};
-
-export function CustomersPreviewProvider({ children }: { children: ReactNode }) {
-  const state = usePreviewState();
-  const ready = useSyncExternalStore(
-    subscribeReady,
-    () => true,
-    () => false,
-  );
-  return (
-    <PreviewContext.Provider value={state}>
-      <main data-preview-ready={ready} className="mx-auto w-full max-w-[1536px]">
-        <aside
-          aria-label="Preview controls"
-          className="mx-4 mt-6 flex flex-wrap items-center gap-4 rounded-xl border border-border p-3 text-sm"
-        >
-          <Link href="/" className="underline">
-            All components
-          </Link>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.failActions}
-              onChange={(event) => state.setFailActions(event.target.checked)}
-            />
-            Simulate action failures
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showActions}
-              onChange={(event) => state.setShowActions(event.target.checked)}
-            />
-            Account actions
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showIntegration}
-              onChange={(event) => state.setShowIntegration(event.target.checked)}
-            />
-            Host integration example
-          </label>
-          <label>
-            Directory state{" "}
-            <select
-              value={state.directoryState}
-              onChange={(event) => state.setDirectoryState(event.target.value)}
-              className="rounded border border-border bg-background p-1"
-            >
-              <option value="ready">Ready</option>
-              <option value="loading">Loading</option>
-              <option value="error">Error</option>
-            </select>
-          </label>
-          <span className="text-muted-foreground">Demo data resets on reload.</span>
-        </aside>
-        {state.notice && <output className="mx-4 mt-4 block text-sm">{state.notice}</output>}
-        {children}
-      </main>
-    </PreviewContext.Provider>
-  );
-}
+import { usePluginsPreview } from "@/showroom/plugins-preview";
+import { CustomerProjectsPreview } from "@/showroom/projects-preview";
 
 export function CustomersPreview() {
-  const state = useContext(PreviewContext);
+  const state = usePluginsPreview();
   const params = useParams<{ locale: string; segments?: string[] }>();
   const router = useRouter();
   const [search, setSearch] = useState("");
-  if (!state) throw new Error("Missing customers preview provider");
   const base = `/${params.locale}/customers`;
   const [customerId, tab] = params.segments ?? [];
   const { customers, setCustomers, beforeAction } = state;
   const onDelete = state.showActions
     ? async (id: string) => {
         await beforeAction();
+        if (state.projects.some((project) => project.ownerId === id)) {
+          state.setNotice(
+            "Reassign or delete this customer's projects before deleting the customer.",
+          );
+          throw new Error("Customer owns projects");
+        }
         setCustomers((current) => current.filter((customer) => customer.id !== id));
         state.setNotice("Customer deleted successfully.");
         if (customerId) router.push(base);
@@ -188,7 +86,13 @@ export function CustomersPreview() {
             current.map((entry) => (entry.id === customerId ? { ...entry, ...values } : entry)),
           );
         }}
-        projectsContent={state.showIntegration ? <p>Host projects content</p> : undefined}
+        projectsContent={
+          state.showProjects ? (
+            <CustomerProjectsPreview customerId={customerId} />
+          ) : state.showIntegration ? (
+            <p>Host projects content</p>
+          ) : undefined
+        }
         syncContent={state.showIntegration ? <p>Host sync content</p> : undefined}
       />
     );

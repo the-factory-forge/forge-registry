@@ -683,6 +683,46 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
+    },
+    {
+      "name": "projects",
+      "type": "registry:block",
+      "title": "Projects",
+      "description": "Customer-owned project directory, embeddable lists, creation, and Details/Drive sections with host-owned actions.",
+      "files": [
+        {
+          "path": "registry/components/plugins/projects/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/projects/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/projects/project-form.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/projects/project-form.tsx"
+        },
+        {
+          "path": "registry/components/plugins/projects/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/projects/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/projects/types.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/utils.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/utils.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/customers", "@forge/cn", "@forge/ui-shims"]
     }
   ]
 }

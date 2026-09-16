@@ -61,7 +61,7 @@ This reruns shadcn with `--overwrite` for the sidebar and its registry dependenc
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Existing consumers such as `forge-template` must migrate to standard shadcn installs using `@forge`; this change does not migrate those projects automatically. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (42)
+## Registry items (43)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -129,6 +129,7 @@ supply their own translations and theme configuration.
 
 | Name                             | Description                                                                               |
 | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| [projects](./docs/projects.md)   | Customer-owned projects, embeddable lists, creation, and Details/Drive sections           |
 | [customers](./docs/customers.md) | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions |
 
 Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.

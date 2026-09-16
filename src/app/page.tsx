@@ -2,6 +2,12 @@ import Link from "next/link";
 
 const examples = [
   {
+    href: "/en/projects",
+    category: "Plugin",
+    title: "Projects",
+    description: "Customer-owned projects, shared lists, Details and Drive sections.",
+  },
+  {
     href: "/en/customers",
     category: "Plugin",
     title: "Customers",

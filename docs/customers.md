@@ -60,7 +60,7 @@ export function CustomerScreen({
 ```
 
 Use `section="projects"` or `section="sync"` on those host routes. Both sections
-are empty unless their content props are supplied. There is no project model,
+are empty unless their content props are supplied. To embed a customer-owned project list, see the [projects integration guide](./projects.md#customer-composition). Installing customers alone does not install projects. There is no project model,
 sync service, invitation UI, or Bexio dependency. The host may provide a sync
 column and toolbar independently of the detail content.
 

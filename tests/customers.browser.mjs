@@ -161,7 +161,7 @@ test("a customer can be created without email or credentials", async (t) => {
 });
 
 test("delete confirmation restores focus on Escape and retains failures for retry", async (t) => {
-  const page = await preview(t, "/acme");
+  const page = await preview(t, "/sam");
   const trigger = page.getByRole("button", { name: "Delete Customer", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
@@ -185,7 +185,7 @@ test("delete confirmation restores focus on Escape and retains failures for retr
   await trigger.click();
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
-  assert.equal(await page.getByRole("row").filter({ hasText: "Acme Studio" }).count(), 0);
+  assert.equal(await page.getByRole("row").filter({ hasText: "Sam Rivera" }).count(), 0);
 });
 
 test("Projects and Sync are empty by default and accept host content", async (t) => {
