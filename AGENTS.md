@@ -53,7 +53,7 @@ props unless the requested change calls for a breaking change.
 | `src/app/`                                              | Next.js showroom: home, newsletter, intranet-sidebar, and intranet demos |
 | `src/styles/globals.css`                                | Showroom tokens, typography, animations, layout utilities                |
 | `src/lib/i18n/`                                         | Dictionary helpers and locale config shipped by `i18n-engine`            |
-| `src/middleware.ts`                                     | Showroom-only Next.js locale routing                                     |
+| `src/proxy.ts`                                          | Showroom-only Next.js locale routing                                     |
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in Next.js 16. Use the pnpm version pinned in `package.json`.
@@ -126,7 +126,7 @@ and item output. The manifest declares `@components/forge/`, `@lib/forge/`, and
 `@lib/forge/content/` targets and `@forge/item-name` registry dependencies.
 Source imports already match those locations; shadcn resolves the consumer's
 configured aliases. `i18n-engine` installs dictionary helpers and locale
-configuration into `@lib/i18n/`. Next.js middleware stays in the showroom; the
+configuration into `@lib/i18n/`. Next.js proxy stays in the showroom; the
 item does not depend on Next.js or `server-only`. Consumers own locale routing.
 
 Consumers configure the `@forge` namespace in `components.json` with

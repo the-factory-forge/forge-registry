@@ -16,7 +16,7 @@
 - **Lessons**: grid-rows never paints a `0fr` start frame (hidden + preflight display:none) → height keyframes; motion ignores `initial` after mount → useInView; source updates can replace site customizations → keep host adapters outside generated directories.
 
 - **Intranet**: `intranet-shell` composes `intranet-sidebar` with banner, topbar, and controls. `corner` and `corner-tokens` provide optional branding and require a consumer CSS import; the generic shell does not depend on them.
-- **Portability**: `i18n-engine` ships dictionary helpers and locale configuration only. Next.js middleware stays in the showroom. Theme/font indexes reference only shipped presets (6 themes, including Corner, and 7 fonts).
+- **Portability**: `i18n-engine` ships dictionary helpers and locale configuration only. Next.js proxy stays in the showroom. Theme/font indexes reference only shipped presets (6 themes, including Corner, and 7 fonts).
 
 ## 2. Registry items (50)
 

@@ -237,7 +237,7 @@ src/                  ← Next.js showroom plus the shipped i18n-engine files
   app/              # Demo pages (home, newsletter, intranet-sidebar, intranet)
   lib/i18n/         # Dictionaries (shipped via the `i18n-engine` item, project-specific)
   styles/globals.css     # Design system
-  middleware.ts     # Showroom-only Next.js locale detection + redirect
+  proxy.ts          # Showroom-only Next.js locale detection + redirect
 public/
   r/
     registry.json   # shadcn catalog

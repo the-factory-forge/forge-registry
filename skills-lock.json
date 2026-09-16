@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "update-dependencies": {
+      "source": "the-corner-inc/harness",
+      "sourceType": "github",
+      "skillPath": "skills/update-dependencies/SKILL.md",
+      "computedHash": "f70d31550034746c416ca543ca785c6ec8d0b414e14194398f7c0d0d23506bb9"
+    }
+  }
+}
