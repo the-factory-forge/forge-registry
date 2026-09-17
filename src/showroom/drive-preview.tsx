@@ -20,6 +20,7 @@ export function EmbeddedDrivePreview({
   const { locale } = useParams<{ locale: string }>();
   return (
     <DriveBrowser
+      locale={locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
       scope={scope}
@@ -44,6 +45,7 @@ export function DrivePreview() {
   if (!type)
     return (
       <DrivePage
+        locale={params.locale}
         client={state.driveClient}
         getSpaceHref={(space) =>
           `${base}/${encodeURIComponent(space.scope.type)}/${encodeURIComponent(space.scope.id)}`
@@ -63,6 +65,7 @@ export function DrivePreview() {
   return (
     <DriveBrowser
       className="p-4 md:p-8"
+      locale={params.locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
       scope={{ type, id }}

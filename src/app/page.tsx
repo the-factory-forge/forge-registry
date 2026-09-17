@@ -2,6 +2,12 @@ import Link from "next/link";
 
 const examples = [
   {
+    href: "/en/blogs",
+    category: "Plugin",
+    title: "Blogs",
+    description: "Multilingual Markdown articles, shared images, categories, and draft publishing.",
+  },
+  {
     href: "/en/drive",
     category: "Plugin",
     title: "Drive",

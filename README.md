@@ -61,7 +61,7 @@ This reruns shadcn with `--overwrite` for the sidebar and its registry dependenc
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Existing consumers such as `forge-template` must migrate to standard shadcn installs using `@forge`; this change does not migrate those projects automatically. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (45)
+## Registry items (47)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -125,13 +125,14 @@ supply their own translations and theme configuration.
 | `page-legal`                                   | Prose layout for legal pages                                                                                |
 | `page-not-found`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
-### Plugins (4)
+### Plugins (6)
 
-| Name                                     | Description                                                                               |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [drive / drive-storage](./docs/drive.md) | Entity-scoped file browser and optional private S3/PostgreSQL persistence                 |
-| [projects](./docs/projects.md)           | Customer-owned projects, embeddable lists, creation, and Details/Drive sections           |
-| [customers](./docs/customers.md)         | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions |
+| Name                                     | Description                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [blogs / blogs-storage](./docs/blogs.md) | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence |
+| [drive / drive-storage](./docs/drive.md) | Entity-scoped file browser and optional private S3/PostgreSQL persistence                      |
+| [projects](./docs/projects.md)           | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                |
+| [customers](./docs/customers.md)         | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions      |
 
 Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.

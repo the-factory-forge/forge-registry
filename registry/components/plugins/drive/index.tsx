@@ -22,11 +22,16 @@ import type {
   DrivePageProps,
   DrivePageResult,
   DriveSpace,
+  DriveSort,
 } from "@/components/plugins/drive/types";
 import {
   buttonClass,
   cardClass,
   DriveFeedback,
+  DriveModified,
+  DriveOwner,
+  DriveSize,
+  SortHeading,
   EntryDialog,
   inputClass,
   messageFor,
@@ -48,14 +53,20 @@ export function DrivePage({
   labels: overrides,
   linkComponent: HostLink = Link,
   className,
+  locale,
 }: DrivePageProps) {
   const labels = { ...driveLabels, ...overrides };
   const [search, setSearch] = useState("");
   const [cursor, setCursor] = useState<string>();
+  const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
+  const onSort = (next: DriveSort) => {
+    setSort(next);
+    setCursor(undefined);
+  };
   const [revision, setRevision] = useState(0);
   const request = useMemo(
-    () => ({ client, search, cursor, revision }),
-    [client, search, cursor, revision],
+    () => ({ client, search, cursor, sort, revision }),
+    [client, search, cursor, sort, revision],
   );
   const [result, setResult] = useState<{
     request: typeof request;
@@ -63,12 +74,17 @@ export function DrivePage({
     error?: unknown;
   }>();
   const loading = result?.request !== request;
-  const data = loading ? undefined : result?.data;
+  const data = result?.data;
   const error = loading ? undefined : result?.error;
   useEffect(() => {
     const controller = new AbortController();
     void request.client
-      .listSpaces({ search: request.search, cursor: request.cursor, signal: controller.signal })
+      .listSpaces({
+        search: request.search,
+        cursor: request.cursor,
+        sort: request.sort,
+        signal: controller.signal,
+      })
       .then((data) => {
         if (!controller.signal.aborted) setResult({ request, data });
       })
@@ -104,7 +120,8 @@ export function DrivePage({
         />
       </label>
       <div className={cardClass} aria-busy={loading}>
-        {loading ? (
+        {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
+        {loading && !data?.items.length ? (
           <DriveFeedback message={labels.loading} />
         ) : error ? (
           <>
@@ -116,33 +133,72 @@ export function DrivePage({
         ) : !data?.items.length ? (
           <p className="text-sm text-muted-foreground">{labels.emptySpaces}</p>
         ) : (
-          <ul aria-label={labels.spaces} className="divide-y divide-border">
-            {data.items.map((space) => (
-              <li
-                key={scopeKey(space.scope)}
-                className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
-              >
-                <HostLink
-                  href={getSpaceHref(space)}
-                  className={cn(buttonClass, "min-w-0 justify-start break-words")}
-                >
-                  <FolderIcon aria-hidden="true" />
-                  {space.name}
-                </HostLink>
-                <div className="flex items-center gap-2">
-                  {!Object.entries(space.capabilities).some(
-                    ([key, value]) => key !== "download" && value,
-                  ) && <span className="text-xs text-muted-foreground">{labels.readOnly}</span>}
-                  {space.href && (
-                    <HostLink href={space.href} className={buttonClass}>
-                      {labels.openRecord}
-                      <span className="sr-only">: {space.name}</span>
-                    </HostLink>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table aria-label={labels.spaces} className="w-full min-w-[44rem] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
+                  <SortHeading
+                    field="updatedAt"
+                    label={labels.modified}
+                    sort={sort}
+                    onSort={onSort}
+                  />
+                  <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                  <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
+                  <th scope="col" className="py-3 text-right font-medium">
+                    {labels.actions}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((space) => (
+                  <tr key={scopeKey(space.scope)} className="border-b border-border last:border-0">
+                    <td className="py-3 pr-3">
+                      <HostLink
+                        href={getSpaceHref(space)}
+                        className={cn(buttonClass, "-ml-3 justify-start text-left")}
+                      >
+                        <FolderIcon className="shrink-0" aria-hidden="true" />
+                        {space.name}
+                      </HostLink>
+                      {!Object.entries(space.capabilities).some(
+                        ([key, value]) => key !== "download" && value,
+                      ) && (
+                        <span className="block text-xs text-muted-foreground">
+                          {labels.readOnly}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                      <DriveModified
+                        value={space.updatedAt}
+                        locale={locale}
+                        fallback={labels.unavailable}
+                      />
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                      <DriveSize value={space.size} locale={locale} fallback={labels.unavailable} />
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      <DriveOwner owner={space.owner} fallback={labels.unavailable} />
+                    </td>
+                    <td className="py-3 text-right">
+                      {space.href && (
+                        <HostLink
+                          href={space.href}
+                          className={cn(buttonClass, "whitespace-nowrap")}
+                        >
+                          {labels.openRecord}
+                          <span className="sr-only">: {space.name}</span>
+                        </HostLink>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
       <div className="flex gap-2">
@@ -183,10 +239,15 @@ function Browser({
   const labels = { ...driveLabels, ...overrides };
   const [search, setSearch] = useState("");
   const [cursor, setCursor] = useState<string>();
+  const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
+  const onSort = (next: DriveSort) => {
+    setSort(next);
+    setCursor(undefined);
+  };
   const [revision, setRevision] = useState(0);
   const request = useMemo(
-    () => ({ client, scope, parentId, search, cursor, revision }),
-    [client, scope, parentId, search, cursor, revision],
+    () => ({ client, scope, parentId, search, cursor, sort, revision }),
+    [client, scope, parentId, search, cursor, sort, revision],
   );
   const [result, setResult] = useState<{
     request: typeof request;
@@ -194,7 +255,7 @@ function Browser({
     error?: unknown;
   }>();
   const loading = result?.request !== request;
-  const data = loading ? undefined : result?.data;
+  const data = result?.data;
   const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const [downloading, setDownloading] = useState(false);
@@ -212,6 +273,7 @@ function Browser({
         parentId: request.parentId,
         search: request.search,
         cursor: request.cursor,
+        sort: request.sort,
         signal: controller.signal,
       })
       .then((data) => {
@@ -371,7 +433,8 @@ function Browser({
             {labels.drop} {data && labels.uploadLimit(data.maxFileBytes)}
           </p>
         )}
-        {loading ? (
+        {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
+        {loading && !data?.items.length ? (
           <DriveFeedback message={labels.loading} />
         ) : error ? (
           <>
@@ -386,13 +449,23 @@ function Browser({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table aria-label={data.space.name} className="w-full min-w-[44rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="py-3 pr-4 font-medium">{labels.name}</th>
-                  <th className="hidden px-3 py-3 font-medium sm:table-cell">{labels.size}</th>
-                  <th className="hidden px-3 py-3 font-medium md:table-cell">{labels.modified}</th>
-                  <th className="py-3 text-right font-medium">{labels.actions}</th>
+                  <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
+                  <SortHeading
+                    field="updatedAt"
+                    label={labels.modified}
+                    sort={sort}
+                    onSort={onSort}
+                  />
+                  <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                  <th scope="col" className="px-3 py-3 font-medium">
+                    {labels.owner}
+                  </th>
+                  <th scope="col" className="py-3 text-right font-medium">
+                    {labels.actions}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -428,30 +501,22 @@ function Browser({
                         </output>
                       )}
                     </td>
-                    <td className="hidden px-3 py-3 whitespace-nowrap text-muted-foreground sm:table-cell">
-                      {entry.kind === "folder"
-                        ? labels.folder
-                        : new Intl.NumberFormat(locale, {
-                            style: "unit",
-                            unit:
-                              entry.size >= 1_000_000
-                                ? "megabyte"
-                                : entry.size >= 1000
-                                  ? "kilobyte"
-                                  : "byte",
-                            maximumFractionDigits: 1,
-                          }).format(
-                            entry.size /
-                              (entry.size >= 1_000_000 ? 1_000_000 : entry.size >= 1000 ? 1000 : 1),
-                          )}
+                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                      <DriveModified
+                        value={entry.updatedAt}
+                        locale={locale}
+                        fallback={labels.unavailable}
+                      />
                     </td>
-                    <td className="hidden px-3 py-3 whitespace-nowrap text-muted-foreground md:table-cell">
-                      <time dateTime={entry.updatedAt}>
-                        {new Intl.DateTimeFormat(locale, {
-                          dateStyle: "medium",
-                          timeZone: "UTC",
-                        }).format(new Date(entry.updatedAt))}
-                      </time>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                      <DriveSize
+                        value={entry.kind === "file" ? entry.size : undefined}
+                        locale={locale}
+                        fallback={labels.unavailable}
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end">

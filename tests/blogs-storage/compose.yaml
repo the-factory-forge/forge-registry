@@ -1,0 +1,30 @@
+name: forge-blogs-integration
+services:
+  postgres:
+    image: postgres:18.3-alpine
+    environment:
+      POSTGRES_USER: blogs_test
+      POSTGRES_PASSWORD: local_blogs_test_only
+      POSTGRES_DB: blogs_test
+    ports:
+      - "127.0.0.1:55440:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blogs_test -d blogs_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: blogs_test
+      MINIO_ROOT_PASSWORD: local_blogs_test_only
+    ports:
+      - "127.0.0.1:19040:9000"
+    volumes:
+      - s3-data:/data
+volumes:
+  pg-data:
+  s3-data:

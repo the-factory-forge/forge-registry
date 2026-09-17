@@ -17,7 +17,7 @@ pnpm dlx shadcn@4.19.1 add @forge/drive-storage
 ```
 
 Browser exports: `DrivePage`, `DriveBrowser`, their props, `DriveClient`,
-`DriveScope`, `DriveSpace`, `DriveEntry`, capabilities, pagination, upload and
+`DriveScope`, `DriveSpace`, `DriveEntry`, `DriveSort`, capabilities, pagination, upload and
 label types, `DriveError`, and the default XHR `transferDriveUpload`.
 Server exports live **only** at `@/components/plugins/drive/server`:
 `createDriveStorage`, `driveSpaces`, `driveEntries`, `driveUploads`, and
@@ -67,6 +67,42 @@ All labels, including validation messages and count formatters, can be replaced
 via `labels`. Use `locale` for file sizes and dates; dates use UTC for consistent
 SSR. Use `className` and the host's semantic theme tokens. Navigation defaults
 to the Link shim. No router, query, auth, or notification library is needed.
+
+## Table metadata and ordering
+
+Both views use a table with Name, Modified, Size, Owned, and Actions columns.
+The directory sorts by all four metadata columns. Within a space, files sort by
+name, modification date, or size; Owned is shared by every entry, so it has no
+sort button. Headers support keyboard activation and expose `aria-sort`. Narrow
+screens scroll within the table to keep every column available.
+
+The host can supply these optional `DriveSpace` fields:
+
+- `owner: { name, image? }`: the project's customer, using a company name when
+  available. It is not the uploader, assignee, or signed-in user. Set this in
+  `resolveScope` too so embedded and standalone file browsers show the same owner.
+- `size`: total file bytes in the space, including nested folders, when known.
+- `updatedAt`: an ISO timestamp for the latest change in the space, when known.
+
+Missing metadata displays as a dash. A known empty space can return `size: 0`.
+File rows already provide their own `size` and `updatedAt`; folder sizes display a
+dash because the entry contract does not contain recursive folder totals. The
+showroom computes space totals and latest entry timestamps from its mock files;
+production hosts supply these summaries from their own queries.
+
+`listSpaces` and `listEntries` receive an optional `sort: { field, direction }`.
+Fields are `name`, `updatedAt`, `size`, and `owner`; directions are `asc` and `desc`.
+The default is name ascending. Apply sorting **before pagination**, compare raw
+byte counts and timestamps, put missing values last in both directions, and use
+name plus a unique ID to break ties. Keep folders before files. Search or sorting
+changes reset the UI to the first page; forward `sort` through the host transport.
+
+The storage companion sorts entries in SQL using validated fields. It forwards
+normalized sorting to `listScopes`: the host must join customer names and any
+space aggregates it supplies, sort the complete accessible result, then apply
+its cursor and limit. The companion retains listing metadata while re-resolving
+each space; any fields returned by `resolveScope` take precedence, including
+fresh capabilities. No database migration is needed for these optional fields.
 
 ## Authenticated transport
 
@@ -155,10 +191,21 @@ export const storage = createDriveStorage({
   resolveScope: async (context: Session, scope) => {
     const entity = await findAccessibleEntity(context, scope);
     if (!entity) return null; // Deny absent or inaccessible records alike.
-    return { scope, name: entity.name, href: entity.href, capabilities: entity.drivePermissions };
+    return {
+      scope,
+      name: entity.name,
+      href: entity.href,
+      owner: entity.customer
+        ? {
+            name: entity.customer.companyName || entity.customer.name,
+            image: entity.customer.image,
+          }
+        : undefined,
+      capabilities: entity.drivePermissions,
+    };
   },
-  listScopes: async (context: Session, { search, cursor, limit }) =>
-    listAccessibleEntities(context, { search, cursor, limit }),
+  listScopes: async (context: Session, { search, cursor, limit, sort }) =>
+    listAccessibleEntities(context, { search, cursor, limit, sort }),
 });
 await storage.verifyBucket();
 ```

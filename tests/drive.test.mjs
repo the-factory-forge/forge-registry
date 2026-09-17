@@ -3,6 +3,8 @@ import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  compareDriveItems,
+  validSort,
   validName,
   validId,
   validScope,
@@ -69,4 +71,31 @@ test("Drive UI ships independently; only the companion contains storage dependen
   }
   const customers = manifest.items.find((item) => item.name === "customers");
   assert.ok(!customers.registryDependencies.includes("@forge/drive"));
+});
+
+test("Drive sorting validates fields, compares raw values and keeps unknown metadata last", () => {
+  assert.deepEqual(validSort(), { field: "name", direction: "asc" });
+  for (const sort of [
+    null,
+    {},
+    { field: "name; DROP TABLE drive_entry", direction: "asc" },
+    { field: "name", direction: "sideways" },
+  ])
+    assert.throws(() => validSort(sort), { code: "INVALID" });
+  const items = [
+    { name: "Unknown" },
+    { name: "Large", size: 1200, updatedAt: "2026-09-15T12:00:00+02:00", owner: { name: "Zebra" } },
+    { name: "Small", size: 90, updatedAt: "2026-09-15T09:30:00Z", owner: { name: "Acme" } },
+    { name: "Empty", size: 0, updatedAt: "invalid" },
+  ];
+  const ordered = (field, direction) =>
+    items
+      .toSorted((a, b) => compareDriveItems(a, b, { field, direction }))
+      .map((item) => item.name);
+  assert.deepEqual(ordered("size", "asc"), ["Empty", "Small", "Large", "Unknown"]);
+  assert.deepEqual(ordered("size", "desc"), ["Large", "Small", "Empty", "Unknown"]);
+  assert.deepEqual(ordered("updatedAt", "asc"), ["Small", "Large", "Empty", "Unknown"]);
+  assert.deepEqual(ordered("updatedAt", "desc"), ["Large", "Small", "Empty", "Unknown"]);
+  assert.deepEqual(ordered("owner", "asc"), ["Small", "Large", "Empty", "Unknown"]);
+  assert.deepEqual(ordered("owner", "desc"), ["Large", "Small", "Empty", "Unknown"]);
 });

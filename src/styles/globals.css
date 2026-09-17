@@ -13,6 +13,10 @@
   --muted-foreground: #64748b;
   --border: #e2e8f0;
   --ring: #2563eb;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --card: var(--background);
+  --card-foreground: var(--foreground);
   --dark-foreground: #fafafa;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
@@ -39,6 +43,10 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-dark-foreground: var(--dark-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);

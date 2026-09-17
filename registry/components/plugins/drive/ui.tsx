@@ -1,14 +1,18 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
+import { Image } from "@/components/image";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
   DriveClient,
   DriveDeletePreview,
   DriveEntry,
   DriveScope,
+  DriveSort,
+  DriveSpace,
 } from "@/components/plugins/drive/types";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
@@ -24,6 +28,101 @@ export const inputClass =
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
 export const messageFor = (error: unknown, labels: DriveLabels) =>
   labels[errorCode(error) ?? "error"];
+
+export function SortHeading({
+  field,
+  label,
+  sort,
+  onSort,
+}: {
+  field: DriveSort["field"];
+  label: string;
+  sort: DriveSort;
+  onSort: (sort: DriveSort) => void;
+}) {
+  const active = sort.field === field;
+  const Icon = active ? (sort.direction === "asc" ? ArrowUpIcon : ArrowDownIcon) : ArrowUpDownIcon;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
+      className="px-3 py-2 font-medium first:pl-0"
+    >
+      <button
+        type="button"
+        className={cn(buttonClass, "-ml-3 whitespace-nowrap")}
+        onClick={() =>
+          onSort({ field, direction: active && sort.direction === "asc" ? "desc" : "asc" })
+        }
+      >
+        {label}
+        <Icon aria-hidden="true" />
+      </button>
+    </th>
+  );
+}
+
+export function DriveModified({
+  value,
+  locale,
+  fallback,
+}: {
+  value?: string;
+  locale?: string;
+  fallback: string;
+}) {
+  if (!value || !Number.isFinite(Date.parse(value))) return fallback;
+  return (
+    <time dateTime={value}>
+      {new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(
+        new Date(value),
+      )}
+    </time>
+  );
+}
+
+export function DriveSize({
+  value,
+  locale,
+  fallback,
+}: {
+  value?: number;
+  locale?: string;
+  fallback: string;
+}) {
+  if (value === undefined || !Number.isFinite(value) || value < 0) return fallback;
+  const [divisor, unit]: [number, string] =
+    value >= 1_000_000_000
+      ? [1_000_000_000, "gigabyte"]
+      : value >= 1_000_000
+        ? [1_000_000, "megabyte"]
+        : value >= 1_000
+          ? [1_000, "kilobyte"]
+          : [1, "byte"];
+  return new Intl.NumberFormat(locale, { style: "unit", unit, maximumFractionDigits: 1 }).format(
+    value / divisor,
+  );
+}
+
+export function DriveOwner({ owner, fallback }: { owner?: DriveSpace["owner"]; fallback: string }) {
+  if (!owner) return fallback;
+  return (
+    <span className="flex items-center gap-2">
+      {owner.image && (
+        <Image
+          src={owner.image}
+          alt=""
+          width={28}
+          height={28}
+          className="size-7 shrink-0 rounded-full object-cover"
+        />
+      )}
+      <span className="max-w-48 truncate" title={owner.name}>
+        {owner.name}
+      </span>
+    </span>
+  );
+}
 
 export function DriveFeedback({ message, error = false }: { message?: string; error?: boolean }) {
   return message ? (

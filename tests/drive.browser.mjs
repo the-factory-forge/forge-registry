@@ -228,7 +228,9 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   assert.equal(await page.getByRole("link", { name: "Valid", exact: true }).count(), 1);
   await page
     .locator('input[type="file"]')
-    .setInputFiles(Array.from({ length: 10 }, (_, index) => file(`page-${index}.txt`)));
+    .setInputFiles(
+      Array.from({ length: 10 }, (_, index) => file(`page-${index}.txt`, "x".repeat(index + 1))),
+    );
   await page
     .getByRole("listitem")
     .filter({ hasText: "page-9.txt" })
@@ -237,6 +239,80 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await page.getByRole("button", { name: "First page", exact: true }).waitFor();
   await row(page, "page-9.txt").waitFor();
-  await page.getByRole("button", { name: "First page", exact: true }).click();
-  await page.getByRole("link", { name: "Valid", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Size", exact: true }).click();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  assert.equal(await page.getByRole("button", { name: "First page", exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Size", exact: true }).click();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  const names = await page.locator("tbody tr td:first-child").allTextContents();
+  assert.equal(names[0].trim(), "Valid");
+  assert.equal(names[1].trim(), "page-9.txt");
+  assert.equal(await row(page, "page-0.txt").count(), 0);
+});
+
+test("Drive tables expose customer ownership and sort metadata with keyboard-accessible headers", async (t) => {
+  const page = await preview(t);
+  const table = page.getByRole("table", { name: "Drive spaces", exact: true });
+  await table.waitFor();
+  assert.deepEqual(await table.getByRole("columnheader").allTextContents(), [
+    "Name",
+    "Modified",
+    "Size",
+    "Owned",
+    "Actions",
+  ]);
+  const portal = row(page, "Customer portal");
+  assert.equal(await portal.getByRole("cell").nth(3).innerText(), "Acme Studio");
+  assert.match(await portal.getByRole("cell").nth(2).innerText(), /232.3/);
+  assert.equal(await row(page, "Team handbook").getByRole("cell").nth(3).innerText(), "—");
+  assert.equal(await row(page, "Studio website").getByRole("cell").nth(1).innerText(), "—");
+  const names = () => table.locator("tbody tr td:first-child a").allTextContents();
+  const sortBy = async (label) => {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await page.locator('[aria-busy="false"] table').waitFor();
+  };
+  await sortBy("Name");
+  assert.deepEqual(await names(), ["Team handbook", "Studio website", "Customer portal"]);
+  await sortBy("Modified");
+  assert.deepEqual(await names(), ["Customer portal", "Team handbook", "Studio website"]);
+  await sortBy("Modified");
+  assert.deepEqual(await names(), ["Team handbook", "Customer portal", "Studio website"]);
+  await sortBy("Size");
+  assert.deepEqual(await names(), ["Studio website", "Team handbook", "Customer portal"]);
+  await sortBy("Size");
+  assert.deepEqual(await names(), ["Customer portal", "Team handbook", "Studio website"]);
+  await sortBy("Owned");
+  const owner = page.getByRole("button", { name: "Owned", exact: true });
+  await owner.focus();
+  await page.keyboard.press("Enter");
+  await page.locator('[aria-busy="false"] table').waitFor();
+  assert.equal(await owner.evaluate((element) => element === document.activeElement), true);
+  assert.equal(
+    await table.getByRole("columnheader", { name: "Owned", exact: true }).getAttribute("aria-sort"),
+    "descending",
+  );
+  assert.deepEqual(await names(), ["Customer portal", "Studio website", "Team handbook"]);
+  await page.getByRole("link", { name: "Customer portal", exact: true }).click();
+  await row(page, "Annual report.txt").waitFor();
+  assert.equal(
+    await row(page, "Annual report.txt").getByRole("cell").nth(3).innerText(),
+    "Acme Studio",
+  );
+  const files = async () =>
+    (await page.locator("tbody tr td:first-child").allTextContents()).map((name) => name.trim());
+  await sortBy("Modified");
+  assert.deepEqual(await files(), ["Design brief.txt", "Annual report.txt"]);
+  await sortBy("Modified");
+  assert.deepEqual(await files(), ["Annual report.txt", "Design brief.txt"]);
+  await sortBy("Size");
+  assert.deepEqual(await files(), ["Design brief.txt", "Annual report.txt"]);
+  await sortBy("Size");
+  assert.deepEqual(await files(), ["Annual report.txt", "Design brief.txt"]);
+  await page.getByRole("link", { name: "Open linked record", exact: true }).click();
+  await page.getByRole("link", { name: "Drive", exact: true }).click();
+  await row(page, "Annual report.txt").waitFor();
+  assert.equal(
+    await row(page, "Annual report.txt").getByRole("cell").nth(3).innerText(),
+    "Acme Studio",
+  );
 });

@@ -213,6 +213,86 @@ test("private Drive persistence and storage recovery", async (t) => {
       );
     },
   );
+  await t.test(
+    "listing preserves host metadata, refreshes permissions and forwards validated sorting",
+    async () => {
+      let received;
+      const scoped = createDriveStorage({
+        ...options,
+        listScopes: async (_context, query) => {
+          received = query;
+          return {
+            items: [
+              {
+                scope: a,
+                name: "Stale name",
+                capabilities: writable,
+                owner: { name: "Customer" },
+                size: 1200,
+                updatedAt: "2026-09-15T09:00:00Z",
+              },
+            ],
+          };
+        },
+      }).client("reader");
+      const sort = { field: "owner", direction: "desc" };
+      const { items } = await scoped.listSpaces({ sort, search: "alpha", cursor: "50" });
+      assert.deepEqual(received, { sort, search: "alpha", cursor: "50", limit: 50 });
+      assert.equal(items[0].name, "project alpha");
+      assert.equal(items[0].capabilities.upload, false);
+      assert.equal(items[0].owner.name, "Customer");
+      assert.equal(items[0].size, 1200);
+      assert.equal(items[0].updatedAt, "2026-09-15T09:00:00Z");
+      await rejected(
+        scoped.listSpaces({ sort: { field: "capabilities", direction: "asc" } }),
+        "INVALID",
+      );
+    },
+  );
+
+  await t.test(
+    "entry sorting runs in SQL before pagination with deterministic ties and folders first",
+    async () => {
+      const scope = { type: "workspace", id: "sorting" };
+      await client.createFolder({ scope, parentId: null, name: "Folder" });
+      const [{ id: spaceId }] =
+        await pool`select id from drive_space where entity_type=${scope.type} and entity_id=${scope.id}`;
+      // Listing fixtures need no stored objects; this test never downloads these entries.
+      const fixtures = Array.from({ length: 52 }, (_, index) => ({
+        id: randomUUID(),
+        space_id: spaceId,
+        kind: "file",
+        name: `File-${String(index).padStart(2, "0")}.txt`,
+        size: index,
+        updated_at: new Date(Date.UTC(2026, 8, 1, 0, 0, index)).toISOString(),
+        state: "ready",
+      }));
+      await pool`insert into drive_entry ${pool(fixtures)}`;
+      const ordered = (field, direction, cursor) =>
+        client.listEntries({ scope, parentId: null, sort: { field, direction }, cursor });
+      for (const field of ["name", "size", "updatedAt"]) {
+        const first = await ordered(field, "desc");
+        assert.equal(first.items.length, 50);
+        assert.equal(first.items[0].name, "Folder");
+        assert.equal(first.items[1].name, "File-51.txt");
+        const next = await ordered(field, "desc", first.nextCursor);
+        assert.deepEqual(
+          next.items.map((entry) => entry.name),
+          ["File-02.txt", "File-01.txt", "File-00.txt"],
+        );
+        assert.equal(next.nextCursor, undefined);
+        assert.equal(new Set([...first.items, ...next.items].map((entry) => entry.id)).size, 53);
+        assert.equal((await ordered(field, "asc")).items[1].name, "File-00.txt");
+      }
+      await pool`update drive_entry set size=10 where space_id=${spaceId} and kind='file'`;
+      assert.equal((await ordered("size", "desc")).items[1].name, "File-00.txt");
+      await rejected(ordered("name; drop table drive_entry", "asc"), "INVALID");
+      await rejected(ordered("name", "desc; drop table drive_entry"), "INVALID");
+      await pool`delete from drive_entry where space_id=${spaceId}`;
+      await pool`delete from drive_space where id=${spaceId}`;
+    },
+  );
+
   await t.test("browser XHR transfers use the real signed URL and storage CORS", async () => {
     const transferSource = await readFile(
       new URL("../../registry/components/plugins/drive/transfer.ts", import.meta.url),

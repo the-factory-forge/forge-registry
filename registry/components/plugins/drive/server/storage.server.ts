@@ -32,6 +32,7 @@ import {
   validId,
   validName,
   validScope,
+  validSort,
 } from "@/components/plugins/drive/utils";
 
 type QueryDb = Pick<DriveDatabase, "execute">;
@@ -252,18 +253,29 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           search: (query.search ?? "").slice(0, 255),
           cursor: query.cursor,
           limit: pageSize,
+          sort: validSort(query.sort),
         });
         const items: DriveSpace[] = [];
         for (const item of page.items.slice(0, pageSize)) {
           try {
-            items.push(await access(context, item.scope));
+            items.push({ ...item, ...(await access(context, item.scope)) });
           } catch (error) {
             if (!(error instanceof DriveError) || error.code !== "NOT_FOUND") throw error;
           }
         }
         return { items, nextCursor: page.nextCursor };
       },
-      async listEntries({ scope, parentId, search = "", cursor }) {
+      async listEntries({ scope, parentId, search = "", cursor, sort: inputSort }) {
+        const sort = validSort(inputSort);
+        const column = {
+          name: sql`name`,
+          updatedAt: sql`updated_at`,
+          size: sql`size`,
+          owner: sql`name`,
+        }[sort.field];
+        // Every entry in a space belongs to the same customer.
+        const direction =
+          sort.direction === "desc" && sort.field !== "owner" ? sql`desc` : sql`asc`;
         const space = await access(context, scope);
         const offset = offsetFor(cursor);
         return authorized(context, scope, false, undefined, async (tx, spaceId) => {
@@ -272,7 +284,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             name,
           }));
           const rows = await tx.execute<Entry>(
-            sql`select * from drive_entry where space_id=${spaceId ?? null} and parent_id is not distinct from ${parentId}::uuid and state <> 'uploading' and strpos(lower(name), lower(${search.slice(0, 255)})) > 0 order by kind desc, name, id limit ${pageSize + 1} offset ${offset}`,
+            sql`select * from drive_entry where space_id=${spaceId ?? null} and parent_id is not distinct from ${parentId}::uuid and state <> 'uploading' and strpos(lower(name), lower(${search.slice(0, 255)})) > 0 order by kind desc, ${column} ${direction} nulls last, name, id limit ${pageSize + 1} offset ${offset}`,
           );
           return {
             space,

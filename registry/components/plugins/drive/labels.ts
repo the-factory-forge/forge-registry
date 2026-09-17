@@ -16,6 +16,8 @@ export const driveLabels = {
   name: "Name",
   size: "Size",
   modified: "Modified",
+  owner: "Owned",
+  unavailable: "—",
   actions: "Actions",
   folder: "Folder",
   upload: "Upload files",

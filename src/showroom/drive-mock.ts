@@ -7,10 +7,12 @@ import type {
   DriveUploadInput,
 } from "@/components/plugins/drive/types";
 import {
+  compareDriveItems,
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
   scopeKey,
   validName,
+  validSort,
 } from "@/components/plugins/drive/utils";
 
 type MockEntry = DriveEntry & { scope: DriveScope; blob?: Blob };
@@ -27,6 +29,18 @@ export function createDriveMock() {
       updatedAt: "2026-09-16T09:00:00Z",
       state: "ready",
     },
+    ...[
+      { name: "Design brief.txt", size: 2_300, updatedAt: "2026-09-12T09:00:00Z" },
+      { name: "Annual report.txt", size: 230_000, updatedAt: "2026-09-15T14:30:00Z" },
+    ].map((file, index): MockEntry => ({
+      ...file,
+      id: `20000000-0000-4000-8000-00000000000${index + 1}`,
+      scope: { type: "project", id: "portal" },
+      parentId: null,
+      kind: "file",
+      contentType: "text/plain",
+      state: "ready",
+    })),
   ];
   const uploads = new Map<
     string,
@@ -147,14 +161,36 @@ export function createDriveMock() {
         };
       };
       return {
-        async listSpaces({ search = "", cursor }) {
+        async listSpaces({ search = "", cursor, sort: inputSort }) {
+          const sort = validSort(inputSort);
           await listing();
           return paginate(
-            spaces.filter((space) => space.name.toLowerCase().includes(search.toLowerCase())),
+            spaces
+              .filter((space) => space.name.toLowerCase().includes(search.toLowerCase()))
+              .map((space) => {
+                const rows = owned(space.scope);
+                return {
+                  ...space,
+                  size: rows.reduce(
+                    (total, row) => total + (row.kind === "file" ? row.size : 0),
+                    0,
+                  ),
+                  updatedAt: rows
+                    .map((row) => row.updatedAt)
+                    .sort()
+                    .at(-1),
+                };
+              })
+              .sort(
+                (a, b) =>
+                  compareDriveItems(a, b, sort) ||
+                  scopeKey(a.scope).localeCompare(scopeKey(b.scope)),
+              ),
             cursor,
           );
         },
-        async listEntries({ scope, parentId, search = "", cursor }) {
+        async listEntries({ scope, parentId, search = "", cursor, sort: inputSort }) {
+          const sort = validSort(inputSort);
           const space = authorize(scope);
           await listing();
           checkParent(scope, parentId);
@@ -176,7 +212,16 @@ export function createDriveMock() {
                     entry.parentId === parentId &&
                     entry.name.toLowerCase().includes(search.toLowerCase()),
                 )
-                .sort((a, b) => b.kind.localeCompare(a.kind) || a.name.localeCompare(b.name)),
+                .sort(
+                  (a, b) =>
+                    b.kind.localeCompare(a.kind) ||
+                    compareDriveItems(
+                      a.kind === "folder" ? { ...a, size: undefined } : a,
+                      b.kind === "folder" ? { ...b, size: undefined } : b,
+                      sort,
+                    ) ||
+                    a.id.localeCompare(b.id),
+                ),
               cursor,
             ),
           };

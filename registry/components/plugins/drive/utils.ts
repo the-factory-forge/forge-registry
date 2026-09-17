@@ -1,4 +1,4 @@
-import type { DriveScope } from "@/components/plugins/drive/types";
+import type { DriveScope, DriveSort, DriveSpace } from "@/components/plugins/drive/types";
 export const DEFAULT_MAX_FILE_BYTES = 100_000_000;
 export const scopeKey = (scope: DriveScope) => JSON.stringify([scope.type, scope.id]);
 export type DriveErrorCode =
@@ -79,4 +79,39 @@ export function safeDownloadUrl(input: string) {
   } catch {
     return undefined;
   }
+}
+
+export function validSort(sort: DriveSort = { field: "name", direction: "asc" }): DriveSort {
+  if (
+    !sort ||
+    !["name", "updatedAt", "size", "owner"].includes(sort.field) ||
+    !["asc", "desc"].includes(sort.direction)
+  )
+    throw new DriveError("INVALID");
+  return sort;
+}
+
+/** Compare metadata before pagination; missing values sort last in either direction. */
+export function compareDriveItems(
+  a: Pick<DriveSpace, "name" | "updatedAt" | "size" | "owner">,
+  b: Pick<DriveSpace, "name" | "updatedAt" | "size" | "owner">,
+  sort: DriveSort,
+) {
+  const value = (item: typeof a) => {
+    if (sort.field === "owner") return item.owner?.name;
+    if (sort.field === "updatedAt") {
+      const time = item.updatedAt ? Date.parse(item.updatedAt) : NaN;
+      return Number.isFinite(time) ? time : undefined;
+    }
+    return item[sort.field];
+  };
+  const left = value(a);
+  const right = value(b);
+  if (left === undefined && right !== undefined) return 1;
+  if (right === undefined && left !== undefined) return -1;
+  const order =
+    typeof left === "number" && typeof right === "number"
+      ? left - right
+      : String(left ?? "").localeCompare(String(right ?? ""));
+  return order * (sort.direction === "asc" ? 1 : -1) || a.name.localeCompare(b.name);
 }

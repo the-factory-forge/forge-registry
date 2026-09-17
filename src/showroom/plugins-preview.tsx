@@ -77,12 +77,18 @@ function usePreviewState() {
       download: true,
     };
     const spaces: DriveSpace[] = [
-      ...projects.map((project) => ({
-        scope: { type: "project", id: project.id },
-        name: project.name,
-        href: `/${locale}/projects/${project.id}`,
-        capabilities: writable,
-      })),
+      ...projects.map((project) => {
+        const customer = customers.find((customer) => customer.id === project.ownerId);
+        return {
+          scope: { type: "project", id: project.id },
+          name: project.name,
+          href: `/${locale}/projects/${project.id}`,
+          owner: customer
+            ? { name: customer.companyName || customer.name, image: customer.image }
+            : undefined,
+          capabilities: writable,
+        };
+      }),
       {
         scope: { type: "workspace", id: "handbook" },
         name: "Team handbook",
@@ -90,7 +96,7 @@ function usePreviewState() {
       },
     ];
     return driveMock.client(spaces, failActions, directoryState);
-  }, [projects, locale, driveMock, failActions, directoryState]);
+  }, [projects, customers, locale, driveMock, failActions, directoryState]);
   async function beforeAction() {
     await new Promise((resolve) => setTimeout(resolve, 400));
     if (failActions) throw new Error("Simulated host failure");

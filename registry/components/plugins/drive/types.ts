@@ -19,6 +19,12 @@ export interface DriveSpace {
   scope: DriveScope;
   name: string;
   href?: string;
+  /** Customer associated with the host record, when available. */
+  owner?: { name: string; image?: string | null };
+  /** Aggregate file size in bytes; omit when unavailable. */
+  size?: number;
+  /** ISO timestamp of the latest change in this space, when available. */
+  updatedAt?: string;
   capabilities: DriveCapabilities;
 }
 export interface DriveEntry {
@@ -35,7 +41,13 @@ export interface DrivePageResult<T> {
   items: T[];
   nextCursor?: string;
 }
+export interface DriveSort {
+  field: "name" | "updatedAt" | "size" | "owner";
+  direction: "asc" | "desc";
+}
 export interface DriveQuery {
+  /** Apply ordering before pagination. Defaults to name ascending. */
+  sort?: DriveSort;
   search?: string;
   cursor?: string;
   signal?: AbortSignal;

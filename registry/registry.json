@@ -559,7 +559,7 @@
       "name": "page-legal",
       "type": "registry:block",
       "title": "Legal Page",
-      "description": "Prose layout for legal pages (CGV, mentions l\u00e9gales, confidentialit\u00e9).",
+      "description": "Prose layout for legal pages (CGV, mentions légales, confidentialité).",
       "files": [
         {
           "path": "registry/components/pages/page-legal.tsx",
@@ -600,7 +600,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -816,6 +816,91 @@
           "path": "registry/components/plugins/drive/server/lifecycle.json",
           "type": "registry:file",
           "target": "@components/plugins/drive/server/lifecycle.json"
+        }
+      ]
+    },
+    {
+      "name": "blogs",
+      "type": "registry:block",
+      "title": "Blogs",
+      "description": "Multilingual Markdown articles, public pages, and editorial workflows.",
+      "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "files": [
+        {
+          "path": "registry/components/plugins/blogs/admin.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/admin.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/model.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/model.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/public.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/utils.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/utils.ts"
+        }
+      ]
+    },
+    {
+      "name": "blogs-storage",
+      "type": "registry:block",
+      "title": "Blogs storage",
+      "description": "Private S3 and PostgreSQL persistence for multilingual blogs.",
+      "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
+      "registryDependencies": ["@forge/blogs"],
+      "files": [
+        {
+          "path": "registry/components/plugins/blogs/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/migration.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/blogs/server/migration.sql"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/storage.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/storage.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/types.ts"
         }
       ]
     }

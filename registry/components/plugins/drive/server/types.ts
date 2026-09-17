@@ -5,6 +5,7 @@ import type {
   DriveCapabilities,
   DrivePageResult,
   DriveScope,
+  DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
 // Structural methods accept Drizzle databases with or without a host schema.
@@ -24,7 +25,7 @@ export interface DriveStorageOptions<Context> {
   resolveScope: (context: Context, scope: DriveScope) => Promise<DriveSpace | null>;
   listScopes: (
     context: Context,
-    query: { search: string; cursor?: string; limit: number },
+    query: { search: string; cursor?: string; limit: number; sort: DriveSort },
   ) => Promise<DrivePageResult<DriveSpace>>;
 }
 export type DrivePermission = keyof DriveCapabilities;
