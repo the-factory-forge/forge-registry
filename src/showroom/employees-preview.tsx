@@ -31,18 +31,35 @@ export function EmployeesPreview() {
     },
   ]);
   const [fail, setFail] = useState(false);
+  const [role, setRole] = useState("admin");
   const [offset, setOffset] = useState(0);
   function beforeAction() {
     if (fail) throw new Error("Preview failure");
   }
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-6">
+      <label className="flex items-center gap-2 text-sm">
+        Preview as
+        <select
+          className="rounded border bg-background p-2"
+          value={role}
+          onChange={(event) => setRole(event.target.value)}
+        >
+          <option value="admin">Administrator</option>
+          <option value="user">Employee</option>
+          <option value="">No role</option>
+        </select>
+      </label>
+      {role !== "admin" && (
+        <output>The employees dashboard is available to administrators only.</output>
+      )}
       <label className="flex gap-2 text-sm">
         <input type="checkbox" checked={fail} onChange={(event) => setFail(event.target.checked)} />
         Simulate action failure
       </label>
       {creating ? (
         <EmployeeNewPage
+          currentUserRole={role}
           backHref="#"
 
           onCreate={async ({ password: _password, ...values }) => {
@@ -61,6 +78,7 @@ export function EmployeesPreview() {
           offset={offset}
           onOffsetChange={setOffset}
           currentUserId="admin"
+          currentUserRole={role}
           createHref="#new"
 
           onUpdate={async (values) => {

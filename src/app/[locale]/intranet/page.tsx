@@ -104,7 +104,7 @@ export default function IntranetExample() {
         </div>
         <Link
           href="/"
-          className="shrink-0 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+          className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
         >
           Back to components
         </Link>

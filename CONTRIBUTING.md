@@ -5,6 +5,27 @@ Component conventions and checklist for the shared registry.
 Keep TC-specific components, visual styling, and branding in `tc-website`.
 Registry components must be reusable across customers.
 
+## Shared color contract
+
+Use the same semantic color names across forge-registry, forge-template, and
+tc-website: background/foreground, card, popover, primary, secondary, muted,
+accent, destructive and their foreground pairs; border, input, ring, chart-1
+through chart-5, and sidebar colors. Keep the dark-surface pair `--dark` and
+`--dark-foreground` for image overlays and permanently dark sections.
+
+Define the default palette in the application's stylesheet with `light-dark()`
+pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
+light dark` on `:root` and explicit light/dark classes so system preferences,
+saved modes, native controls, and production CSS agree. Native checkbox/radio
+accents use `--primary`. New components use semantic utilities and must not
+introduce separate palettes, inline color overrides, or dependencies on TC's
+private `--brand-*` aliases. Those aliases remain local to tc-website.
+
+The default palette matches TC: deep teal `#13343a` in light mode and pale blue
+`#badede` in dark mode. Customer sites can change values without renaming tokens.
+Keep typography, spacing, and radii independent of color changes. Verify both
+modes, saved choices, system preferences, and portaled dialogs after theme edits.
+
 ## Formatting and validation
 
 Vite Plus 0.3.0 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
@@ -59,7 +80,7 @@ Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700
 | Feature UI and its colocated types, labels, and helpers  | `registry/components/plugins/{name}/` | `@components/plugins/{name}/*` |
 | Non-visual helpers, data, hooks, providers, and styles   | `registry/components/utils/`          | `@components/utils/*`          |
 
-Internal i18n helpers, locale dictionaries, theme/font presets, and their
+Internal i18n helpers, locale dictionaries, font presets, and their
 providers belong in `src/lib/`. Preview switcher components belong in
 `src/showroom/`. Neither directory may be listed in `registry/registry.json` or
 imported by shared registry components. Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in

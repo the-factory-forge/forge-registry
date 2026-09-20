@@ -34,12 +34,20 @@ OAuth and validates its callback URL. Credentials stay in the form and callback,
 not browser storage. `forgotPasswordHref` links to the host's recovery flow.
 
 `EmployeesPage` receives the current page of employees, total, offset,
-`onOffsetChange`, `currentUserId`, `createHref`, and async action callbacks.
+`onOffsetChange`, `currentUserId`, `currentUserRole`, `createHref`, and async action callbacks.
 The default page size is exported as `EMPLOYEE_PAGE_SIZE`.
 `EmployeeNewPage.onCreate` receives validated values including the temporary
 password. `onUpdate`, `onDelete`, and `onSetBan` resolve after persistence and
 host cache refresh. `onSendVerification` returns a `sent`, `verified`, or
 `unavailable` status. Errors stay visible and allow a retry.
+
+Both employee pages require `currentUserRole` from the authenticated session and render
+nothing unless it contains Better Auth's exact `admin` role (including `user,admin`).
+Missing roles and ordinary employees cannot see the dashboard or creation form.
+This display check supplements server authorization; it does not protect data by itself.
+Protect `/{locale}/intranet/employees` and every child route with an admin guard before
+loading employee data, and hide their navigation links from non-admins. Keep all employee
+queries and mutations behind fresh-session admin middleware and `createEmployeeService`.
 
 ## Server operations
 

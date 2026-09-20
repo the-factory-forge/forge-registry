@@ -933,7 +933,7 @@
       "name": "employees",
       "type": "registry:block",
       "title": "Employees",
-      "description": "Employee directory, create/edit/delete forms, verification and access controls, with shared validation.",
+      "description": "Admin-only employee dashboard and create/edit/delete forms, verification and access controls. Requires the authenticated viewer's role and host server authorization.",
       "files": [
         {
           "path": "registry/components/plugins/employees/index.tsx",

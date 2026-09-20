@@ -35,6 +35,7 @@ export interface IntranetNavGroup {
 }
 
 export interface IntranetSidebarProps {
+  /** Use a compact symbol-only logo; the site name is rendered separately. */
   brand: { name: string; href: string; logo?: React.ReactNode };
   /** Compatible with Better Auth's standard session user fields. */
   user: { name: string; email: string; image?: string | null };
@@ -423,7 +424,12 @@ export function IntranetSidebar({
           onClick={closeMobile}
         >
           {brand.logo && (
-            <span className="shrink-0 [&>img]:size-7 [&>svg]:size-7">{brand.logo}</span>
+            <span
+              aria-hidden="true"
+              className="flex size-7 shrink-0 items-center justify-center [&>img]:size-full [&>img]:object-contain [&>svg]:size-full"
+            >
+              {brand.logo}
+            </span>
           )}
           <span className="truncate text-base font-semibold" title={brand.name}>
             {brand.name}

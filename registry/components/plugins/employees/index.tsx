@@ -33,6 +33,8 @@ export type { EmployeeLabels } from "@/components/plugins/employees/labels";
 export interface EmployeesPageProps extends EmployeeActionCallbacks {
   employees: readonly Employee[];
   currentUserId: string;
+  /** Role from the host's authenticated session. Missing or non-admin roles render nothing. */
+  currentUserRole: string | null | undefined;
   total: number;
   offset: number;
   onOffsetChange: (offset: number) => void;
@@ -46,6 +48,7 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
 export function EmployeesPage({
   employees,
   currentUserId,
+  currentUserRole,
   total,
   offset,
   onOffsetChange,
@@ -60,6 +63,7 @@ export function EmployeesPage({
   className,
   linkComponent: EmployeeLink = Link,
 }: EmployeesPageProps) {
+  if (!isEmployeeAdmin(currentUserRole)) return null;
   const labels = { ...employeeLabels, ...overrides };
   return (
     <section

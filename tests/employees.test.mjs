@@ -67,7 +67,9 @@ function fixture(options = {}) {
 test("employee operations require a fresh eligible administrator supplied by the host", () => {
   for (const actor of [
     null,
+    { id: "no-role" },
     { id: "user", role: "user" },
+    { id: "similar-role", role: "superadmin" },
     { ...admin, banned: true },
     { ...admin, mustChangePassword: true },
   ]) {

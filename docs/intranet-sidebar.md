@@ -160,6 +160,29 @@ child, while `aria-current="page"` on the parent identifies only its exact
 route. An empty child list still renders the parent link, which supports
 asynchronously loaded project navigation. Empty groups without a link are hidden.
 
+### Sidebar logo
+
+Pass a compact symbol-only mark to `brand.logo`, not the full wordmark: the sidebar
+already renders `brand.name` beside it. The shared component reserves a 28 × 28 px
+box and fits images without stretching. The mark is decorative; the visible site
+name labels the link.
+
+Consumer projects expose `SITE_LOGO_MARK` from `src/lib/site/constants.ts` for this
+compact asset and keep `SITE_LOGO` for their full logo. Reuse an existing icon-only
+asset where available; otherwise create a simplified mark in that site's assets.
+Do not replace a customer's identity with another project's logo.
+
+```tsx
+brand={{
+  name: SITE_NAME,
+  href: "/",
+  logo: <img src={SITE_LOGO_MARK} alt="" width={28} height={28} />,
+}}
+```
+
+Update sizing and other shared logo behavior here first, regenerate the registry,
+then propagate it to consumers while preserving their brand assets and adapters.
+
 `IntranetSidebarInset` renders a `main` by default. Pass `as="div"` when the
 host's route content already supplies its own `main` landmark.
 

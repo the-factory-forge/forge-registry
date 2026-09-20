@@ -1,5 +1,26 @@
 # Project context for AI contributors
 
+## Shared color contract
+
+Use the same semantic color names across forge-registry, forge-template, and
+tc-website: background/foreground, card, popover, primary, secondary, muted,
+accent, destructive and their foreground pairs; border, input, ring, chart-1
+through chart-5, and sidebar colors. Keep the dark-surface pair `--dark` and
+`--dark-foreground` for image overlays and permanently dark sections.
+
+Define the default palette in the application's stylesheet with `light-dark()`
+pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
+light dark` on `:root` and explicit light/dark classes so system preferences,
+saved modes, native controls, and production CSS agree. Native checkbox/radio
+accents use `--primary`. New components use semantic utilities and must not
+introduce separate palettes, inline color overrides, or dependencies on TC's
+private `--brand-*` aliases. Those aliases remain local to tc-website.
+
+The default palette matches TC: deep teal `#13343a` in light mode and pale blue
+`#badede` in dark mode. Customer sites can change values without renaming tokens.
+Keep typography, spacing, and radii independent of color changes. Verify both
+modes, saved choices, system preferences, and portaled dialogs after theme edits.
+
 ## Purpose and scope
 
 `forge-registry` is a shared source registry for reusable React components, page
@@ -50,8 +71,8 @@ props unless the requested change calls for a breaking change.
 | `registry/registry.json`                         | Editable source manifest                                                                  |
 | `vite.config.ts`                                 | Vite Plus lint/format configuration                                                       |
 | `public/r/registry.json`, `public/r/{name}.json` | Generated shadcn catalog and item endpoints; do not hand-edit                             |
-| `src/lib/`                                       | Internal i18n, theme/font presets, providers, and showroom helpers; never published       |
-| `src/showroom/`                                  | Internal theme/font switcher components; never published                                  |
+| `src/lib/`                                       | Internal i18n, font presets, providers, and showroom helpers; never published             |
+| `src/showroom/`                                  | Internal preview controls and font switcher components; never published                   |
 | `src/app/`                                       | Next.js showroom demos                                                                    |
 | `src/styles/globals.css`                         | Showroom tokens, typography, animations, and layout utilities                             |
 | `src/proxy.ts`                                   | Showroom-only Next.js locale routing                                                      |
@@ -68,6 +89,11 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
 
 ## Reusable component contract
 
+- Employee management is admin-only: both employee pages require the authenticated
+  `currentUserRole` and render nothing for non-admins. Consumers must also guard all
+  employee routes before loading data, hide employee navigation for non-admins, and
+  keep reads and mutations behind fresh-session admin authorization. UI checks never
+  replace the existing `createEmployeeService` server guard.
 - Pass site content, links, images, labels, and integration callbacks as props.
   Keep branding, dictionaries, API calls, auth, and business data in the consumer.
   Default UI labels to English and allow translation through props.
@@ -141,7 +167,7 @@ component's linked example; never import server modules into browser previews.
 and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and
 `@components/utils/` targets and `@forge/item-name` registry dependencies.
 Source imports match those locations; shadcn resolves the consumer's configured
-aliases. Showroom i18n, theme/font presets, and providers live in `src/lib/`
+aliases. Showroom i18n, font presets, and providers live in `src/lib/`
 and are not registry items. Shared components must not import from `src/lib/`
 or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
 
@@ -184,6 +210,6 @@ Known limitations and integration boundaries to verify when touching affected it
 - Locale routing, dictionaries, and theme configuration belong to each consumer.
 - Some manifest dependencies still list `next` for shim-based UI, and some omit
   imported registry items such as `ui-shims`. Audit the selected item's imports.
-- Keep internal i18n, theme/font presets, and providers under `src/lib/`, with
+- Keep internal i18n, font presets, and providers under `src/lib/`, with
   preview switcher components under `src/showroom/`; do not register them.
   Shared helpers needed by consumers stay under `registry/components/utils/`.

@@ -65,7 +65,7 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pu
 
 The source of truth for this inventory is `registry/registry.json`.
 
-Internal i18n helpers, locale dictionaries, theme/font presets, and their
+Internal i18n helpers, locale dictionaries, font presets, and their
 providers live under `src/lib/`. Preview switcher components live under
 `src/showroom/`. Neither directory is published through the registry; consumers
 supply their own translations and theme configuration.
@@ -162,8 +162,8 @@ host analytics integration, and updating existing installations.
 
 The file `src/styles/globals.css` defines:
 
-- **CSS variables**: `--primary`, `--secondary`, `--accent`, `--muted`, `--border`, `--ring`, `--dark-foreground`
-- **Dark mode**: via `prefers-color-scheme`
+- **CSS variables**: `--primary`, `--secondary`, `--accent`, `--muted`, `--border`, `--input`, `--ring`, chart/sidebar colors, and `--dark`/`--dark-foreground`
+- **Dark mode**: system preference by default; explicit `.light`/`.dark` preview modes take precedence
 - **Custom utilities**: `container-premium` (responsive padding), `section-padding` (responsive vertical)
 - **Fonts**: `font-sans` and `font-serif` (Montserrat by default)
 - **Animation keyframes**: enter/exit with fade, zoom, and slide utilities
@@ -240,8 +240,8 @@ registry/
   registry.json       # Source manifest
 src/
   app/                # Showroom pages
-  lib/                # Internal i18n, theme/font presets, providers, and helpers
-  showroom/           # Internal theme/font switcher components
+  lib/                # Internal i18n, font presets, providers, and helpers
+  showroom/           # Internal preview controls and font switcher components
   styles/globals.css  # Showroom design system
   proxy.ts            # Showroom-only locale detection and redirect
 public/

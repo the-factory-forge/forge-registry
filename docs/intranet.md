@@ -96,8 +96,11 @@ its sidebar `className`. It adds these layout inputs:
 | `wrapContent`      | `true` by default; use `false` to preserve the host page wrapper and direct-child print selectors               |
 
 The shell manages its provider and toggle placement. On desktop, navigation
-collapses offcanvas; on mobile, it uses the shared modal drawer. The profile
-remains part of the sidebar in either configuration. For more control over the
+places the toggle at the top right beside the customer brand. When navigation
+collapses offcanvas, the same button returns to the topbar so it stays visible
+and keeps keyboard focus. On mobile, it remains in the topbar and opens the
+shared modal drawer. Hiding the topbar keeps the standalone toggle available.
+The profile remains part of the sidebar in either configuration. For more control over the
 provider, toggle placement, or a custom navbar structure, compose the
 [sidebar exports](./intranet-sidebar.md#minimal-layout-without-a-navbar)
 directly.

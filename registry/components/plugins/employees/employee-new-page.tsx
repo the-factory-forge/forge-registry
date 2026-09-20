@@ -3,7 +3,11 @@ import { useRef, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
-import { createEmployeeSchema, type CreateEmployee } from "@/components/plugins/employees/schema";
+import {
+  createEmployeeSchema,
+  isEmployeeAdmin,
+  type CreateEmployee,
+} from "@/components/plugins/employees/schema";
 import {
   inputClass,
   primaryButtonClass,
@@ -11,6 +15,8 @@ import {
 } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
 export interface EmployeeNewPageProps {
+  /** Role from the host's authenticated session. Missing or non-admin roles render nothing. */
+  currentUserRole: string | null | undefined;
   onCreate: (values: CreateEmployee) => Promise<void>;
   backHref: string;
   labels?: Partial<EmployeeLabels>;
@@ -18,6 +24,7 @@ export interface EmployeeNewPageProps {
   linkComponent?: ComponentType<LinkProps>;
 }
 export function EmployeeNewPage({
+  currentUserRole,
   onCreate,
   backHref,
   labels: overrides,
@@ -28,6 +35,7 @@ export function EmployeeNewPage({
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const lock = useRef(false);
+  if (!isEmployeeAdmin(currentUserRole)) return null;
   async function submit(data: FormData) {
     if (lock.current) return;
     lock.current = true;

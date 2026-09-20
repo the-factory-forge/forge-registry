@@ -248,7 +248,7 @@ test("project pages and picker fit desktop/mobile in both themes", async (t) => 
       const page = await preview(t, "/en/projects/website", { viewport, colorScheme: theme });
       assert.equal(
         await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-        theme === "dark" ? "rgb(9, 9, 11)" : "rgb(255, 255, 255)",
+        theme === "dark" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)",
       );
       for (const [view, link] of [
         ["detail", null],

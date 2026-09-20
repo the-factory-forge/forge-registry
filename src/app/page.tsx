@@ -75,10 +75,8 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col p-6 sm:p-8">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-          Components Showcase
-        </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <h1 className="text-2xl font-semibold text-foreground">Components Showcase</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Explore reusable components from this registry and open their dedicated pages.
         </p>
       </header>
@@ -91,10 +89,10 @@ export default function Home() {
             type="button"
             aria-pressed={type === option}
             onClick={() => setType(option)}
-            className={`rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+            className={`rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
               type === option
-                ? "border-blue-600 bg-blue-600 text-white"
-                : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
             }`}
           >
             {option}
@@ -109,18 +107,16 @@ export default function Home() {
             <Link
               key={example.href}
               href={example.href}
-              className="group rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-zinc-300 hover:shadow dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+              className="group rounded-lg border border-border bg-card p-5 text-card-foreground shadow-sm transition hover:border-primary hover:shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 {example.category}
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-zinc-950 transition group-hover:text-zinc-700 dark:text-zinc-50 dark:group-hover:text-zinc-200">
+              <h2 className="mt-2 text-lg font-semibold text-card-foreground transition group-hover:text-primary">
                 {example.title}
               </h2>
-              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{example.description}</p>
-              <p className="mt-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                Open component →
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{example.description}</p>
+              <p className="mt-4 text-sm font-medium text-primary">Open component →</p>
             </Link>
           ))}
       </section>

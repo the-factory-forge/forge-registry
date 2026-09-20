@@ -10,7 +10,6 @@ import {
   useState,
   useSyncExternalStore,
   type ReactNode,
-  type CSSProperties,
 } from "react";
 
 import {
@@ -22,8 +21,6 @@ import {
   BlogsPage,
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
-import darkTheme from "@/lib/themes/presets/banners-dark.json";
-import lightTheme from "@/lib/themes/presets/swiss-corporate.json";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 
 function usePreview() {
@@ -33,7 +30,7 @@ function usePreview() {
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
     [state, setState] = useState("ready"),
-    [dark, setDark] = useState(false);
+    [dark, setDark] = useState<boolean | null>(null);
   const revision = useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   useEffect(() => () => mock.dispose(), [mock]);
   const client = useMemo(
@@ -71,25 +68,30 @@ function useBlogsPreview() {
   if (!value) throw new Error("Missing blogs preview provider");
   return value;
 }
+function subscribeSystemTheme(onChange: () => void) {
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const state = usePreview();
-  const tokens = state.dark
-    ? darkTheme.tokens
-    : { ...lightTheme.tokens, "--primary": darkTheme.tokens["--primary"] };
+  const systemDark = useSyncExternalStore(
+    subscribeSystemTheme,
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+    () => false,
+  );
   useEffect(() => {
+    if (state.dark === null) return;
+    // Set the document mode so dialogs portaled to body use the same colors.
     const root = document.documentElement;
-    const theme = state.dark
-      ? darkTheme.tokens
-      : { ...lightTheme.tokens, "--primary": darkTheme.tokens["--primary"] };
-    const previous = Object.fromEntries(
-      Object.keys(theme).map((key) => [key, root.style.getPropertyValue(key)]),
-    );
-    for (const [key, value] of Object.entries(theme)) root.style.setProperty(key, value);
+    const wasLight = root.classList.contains("light");
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("light", !state.dark);
+    root.classList.toggle("dark", state.dark);
     return () => {
-      for (const [key, value] of Object.entries(previous)) {
-        if (value) root.style.setProperty(key, value);
-        else root.style.removeProperty(key);
-      }
+      root.classList.toggle("light", wasLight);
+      root.classList.toggle("dark", wasDark);
     };
   }, [state.dark]);
   const ready = useSyncExternalStore(
@@ -99,15 +101,7 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   );
   return (
     <Context.Provider value={state}>
-      <div
-        data-blogs-ready={ready}
-        style={tokens as CSSProperties}
-        className={
-          state.dark
-            ? "dark min-h-screen bg-background text-foreground"
-            : "min-h-screen bg-background text-foreground"
-        }
-      >
+      <div data-blogs-ready={ready} className="min-h-screen bg-background text-foreground">
         <aside
           aria-label="Blog preview controls"
           className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 border-b border-border px-4 py-4 text-xs"
@@ -162,7 +156,7 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={state.dark}
+              checked={state.dark ?? systemDark}
               onChange={(e) => state.setDark(e.target.checked)}
             />
             Dark theme

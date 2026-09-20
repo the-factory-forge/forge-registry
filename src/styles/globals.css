@@ -1,55 +1,85 @@
 @import "tailwindcss";
 
+/* Explicit preview modes override the system preference, including dark utilities. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light):not(.dark), :root:not(.light):not(.dark) *) {
+      @slot;
+    }
+  }
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --secondary: #f59e0b;
-  --secondary-foreground: #0f172a;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #e2e8f0;
-  --ring: #2563eb;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
+  color-scheme: light dark;
+  --background: light-dark(#ffffff, #000000);
+  --foreground: light-dark(#000000, #ffffff);
   --card: var(--background);
   --card-foreground: var(--foreground);
-  --dark-foreground: #fafafa;
   --popover: var(--background);
   --popover-foreground: var(--foreground);
+  --primary: light-dark(#13343a, #badede);
+  --primary-foreground: light-dark(#ffffff, #13343a);
+  --secondary: var(--background);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--background);
+  --muted-foreground: light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%));
+  --accent: var(--background);
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216));
+  --destructive-foreground: light-dark(#ffffff, #000000);
+  --border: light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%));
+  --input: light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%));
+  --ring: var(--primary);
+  --dark: #000000;
+  --dark-foreground: #ffffff;
+  --chart-1: var(--primary);
+  --chart-2: light-dark(#badede, #13343a);
+  --chart-3: #e5e3d4;
+  --chart-4: var(--foreground);
+  --chart-5: light-dark(
+    color-mix(in srgb, #13343a 55%, #badede),
+    color-mix(in srgb, #badede 58%, #13343a)
+  );
   --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
+  --sidebar-accent: var(--background);
+  --sidebar-accent-foreground: var(--primary);
+  --sidebar-border: light-dark(rgb(0 0 0 / 26%), rgb(255 255 255 / 24%));
   --sidebar-ring: var(--ring);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-dark: var(--dark);
   --color-dark-foreground: var(--dark-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -66,22 +96,12 @@
   --animate-out: exit 150ms ease-in forwards;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --primary: #3b82f6;
-    --primary-foreground: #ffffff;
-    --secondary: #d97706;
-    --secondary-foreground: #0f172a;
-    --accent: #1e293b;
-    --accent-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --border: #334155;
-    --ring: #3b82f6;
-    --dark-foreground: #fafafa;
-  }
+.light {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 @keyframes enter {
@@ -197,4 +217,11 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@layer base {
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
 }
