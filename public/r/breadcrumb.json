@@ -4,11 +4,11 @@
   "title": "Breadcrumb",
   "description": "Semantic breadcrumb navigation with accessible markup.",
   "dependencies": [
-    "lucide-react",
-    "next"
+    "lucide-react"
   ],
   "registryDependencies": [
-    "@forge/cn"
+    "@forge/cn",
+    "@forge/ui-shims"
   ],
   "files": [
     {

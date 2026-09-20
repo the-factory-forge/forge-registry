@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   createContext,
   useContext,
@@ -16,6 +14,7 @@ import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { PreviewControls } from "@/showroom/preview-controls";
+import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
 const initialCustomers: Customer[] = [
   {
@@ -33,7 +32,7 @@ const initialCustomers: Customer[] = [
 ];
 
 function usePreviewState() {
-  const { locale } = useParams<{ locale: string }>();
+  const { locale } = useShowroomParams();
   const [driveMock] = useState(createDriveMock);
   const [showDrive, setShowDrive] = useState(true);
   const [customers, setCustomers] = useState(initialCustomers);
@@ -145,7 +144,7 @@ export const previewAssignees = [
 
 export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
   const state = usePreviewState();
-  const { locale } = useParams<{ locale: string }>();
+  const { locale } = useShowroomParams();
   const ready = useSyncExternalStore(
     subscribeReady,
     () => true,

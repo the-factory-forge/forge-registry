@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import {
@@ -12,11 +11,12 @@ import {
 } from "@/components/plugins/customers";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { CustomerProjectsPreview } from "@/showroom/projects-preview";
+import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
 export function CustomersPreview() {
   const state = usePluginsPreview();
-  const params = useParams<{ locale: string; segments?: string[] }>();
-  const router = useRouter();
+  const params = useShowroomParams();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const base = `/${params.locale}/customers`;
   const [customerId, tab] = params.segments ?? [];
@@ -32,7 +32,7 @@ export function CustomersPreview() {
         }
         setCustomers((current) => current.filter((customer) => customer.id !== id));
         state.setNotice("Customer deleted successfully.");
-        if (customerId) router.push(base);
+        if (customerId) await navigate({ href: base });
       }
     : undefined;
 
@@ -48,7 +48,7 @@ export function CustomersPreview() {
           const id = crypto.randomUUID();
           setCustomers((current) => [...current, { ...fields, id, emailVerified: false }]);
           state.setNotice("Customer created successfully.");
-          router.push(`${base}/${id}`);
+          await navigate({ href: `${base}/${id}` });
         }}
       />
     );

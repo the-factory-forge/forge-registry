@@ -3,12 +3,10 @@
   "name": "page-hero",
   "title": "Page Hero",
   "description": "Inner page hero with optional background image and integrated breadcrumb.",
-  "dependencies": [
-    "next"
-  ],
   "registryDependencies": [
     "@forge/cn",
-    "@forge/breadcrumb"
+    "@forge/breadcrumb",
+    "@forge/ui-shims"
   ],
   "files": [
     {

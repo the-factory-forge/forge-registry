@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearch } from "@tanstack/react-router";
 
 import { DriveBrowser, DrivePage, type DriveScope } from "@/components/plugins/drive";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
+import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
 export function EmbeddedDrivePreview({
   scope,
@@ -16,15 +16,15 @@ export function EmbeddedDrivePreview({
   customerId?: string;
 }) {
   const state = usePluginsPreview();
-  const query = useSearchParams();
-  const { locale } = useParams<{ locale: string }>();
+  const query = useSearch({ strict: false });
+  const { locale } = useShowroomParams();
   return (
     <DriveBrowser
       locale={locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
       scope={scope}
-      parentId={query.get("folder")}
+      parentId={query.folder}
       backHref={`/${locale}/drive`}
       getFolderHref={(folder) => {
         const params = new URLSearchParams();
@@ -39,7 +39,7 @@ export function EmbeddedDrivePreview({
 
 export function DrivePreview() {
   const state = usePluginsPreview();
-  const params = useParams<{ locale: string; segments?: string[] }>();
+  const params = useShowroomParams();
   const base = `/${params.locale}/drive`;
   const [type, id, folder] = params.segments ?? [];
   if (!type)

@@ -3,11 +3,9 @@
   "name": "cta-button",
   "title": "CTA Button",
   "description": "Call-to-action button with CtaLink (internal) and CtaExternal (new tab) variants in 4 styles.",
-  "dependencies": [
-    "next"
-  ],
   "registryDependencies": [
-    "@forge/cn"
+    "@forge/cn",
+    "@forge/ui-shims"
   ],
   "files": [
     {

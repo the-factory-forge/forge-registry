@@ -171,8 +171,8 @@
           "target": "@components/image-with-fallback.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
     },
     {
       "name": "lightbox",
@@ -186,8 +186,8 @@
           "target": "@components/lightbox.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
     },
     {
       "name": "cta-button",
@@ -201,8 +201,7 @@
           "target": "@components/cta-button.tsx"
         }
       ],
-      "dependencies": ["next"],
-      "registryDependencies": ["@forge/cn"]
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
     },
     {
       "name": "breadcrumb",
@@ -216,8 +215,8 @@
           "target": "@components/breadcrumb.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
     },
     {
       "name": "dropdown-menu",
@@ -323,8 +322,8 @@
           "target": "@components/language-switcher.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/dropdown-menu", "@forge/ui-shims"]
     },
     {
       "name": "navbar",
@@ -338,13 +337,14 @@
           "target": "@components/navbar.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
+      "dependencies": ["lucide-react"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/cta-button",
         "@forge/language-switcher",
         "@forge/dropdown-menu",
-        "@forge/sheet"
+        "@forge/sheet",
+        "@forge/ui-shims"
       ]
     },
     {
@@ -372,8 +372,13 @@
           "target": "@components/footer.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/manage-cookies-button"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/social-icons",
+        "@forge/manage-cookies-button",
+        "@forge/ui-shims"
+      ]
     },
     {
       "name": "page-home-hero",
@@ -387,8 +392,12 @@
           "target": "@components/pages/page-home-hero.tsx"
         }
       ],
-      "dependencies": ["next"],
-      "registryDependencies": ["@forge/cn", "@forge/cta-button", "@forge/animations"]
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/cta-button",
+        "@forge/animations",
+        "@forge/ui-shims"
+      ]
     },
     {
       "name": "page-hero",
@@ -402,8 +411,7 @@
           "target": "@components/pages/page-hero.tsx"
         }
       ],
-      "dependencies": ["next"],
-      "registryDependencies": ["@forge/cn", "@forge/breadcrumb"]
+      "registryDependencies": ["@forge/cn", "@forge/breadcrumb", "@forge/ui-shims"]
     },
     {
       "name": "page-cta-band",
@@ -451,8 +459,8 @@
           "target": "@components/service-card.tsx"
         }
       ],
-      "dependencies": ["lucide-react", "next"],
-      "registryDependencies": ["@forge/cn", "@forge/image-with-fallback"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/image-with-fallback", "@forge/ui-shims"]
     },
     {
       "name": "page-services-grid",

@@ -13,7 +13,11 @@
 # testing
 /coverage
 
-# next.js
+# TanStack Start / Nitro
+/.output/
+/.tanstack/
+/dist/
+# Retired Next.js build cache
 /.next/
 /out/
 
@@ -38,4 +42,3 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts

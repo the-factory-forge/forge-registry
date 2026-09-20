@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -23,6 +22,7 @@ import {
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 import { PreviewControls } from "@/showroom/preview-controls";
+import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
 function usePreview() {
   const [mock] = useState(createBlogsMock),
@@ -173,13 +173,10 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   );
 }
 export function BlogsAdminPreview() {
-  const { locale: routeLocale, segments = [] } = useParams<{
-    locale: string;
-    segments?: string[];
-  }>();
+  const { locale: routeLocale, segments } = useShowroomParams();
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
-    router = useRouter();
+    navigate = useNavigate();
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
@@ -204,7 +201,7 @@ export function BlogsAdminPreview() {
         locales={blogLocales}
         defaultLocale={locale}
         backHref={root}
-        onCreated={(article) => router.push(`${root}/${article.id}`)}
+        onCreated={(article) => navigate({ href: `${root}/${article.id}` })}
       />
     );
   if (segments[0] === "categories")
@@ -234,7 +231,7 @@ export function BlogsAdminPreview() {
         locales={blogLocales}
         defaultLocale={locale}
         backHref={root}
-        onDeleted={() => router.push(root)}
+        onDeleted={() => navigate({ href: root })}
       />
     );
   }
@@ -274,14 +271,14 @@ export function BlogsAdminPreview() {
   );
 }
 export function BlogsPublicPreview() {
-  const { locale, segments = [] } = useParams<{ locale: string; segments?: string[] }>(),
-    params = useSearchParams(),
-    router = useRouter(),
+  const { locale, segments } = useShowroomParams(),
+    params = useSearch({ strict: false }),
+    navigate = useNavigate(),
     state = useBlogsPreview();
   const root = `/${locale}/blogs`,
-    search = params.get("search") ?? "",
-    category = params.get("category") ?? undefined,
-    page = Math.max(1, Number(params.get("page")) || 1);
+    search = params.search ?? "",
+    category = params.category ?? undefined,
+    page = Math.max(1, Number(params.page) || 1);
   const common = {
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
@@ -336,7 +333,7 @@ export function BlogsPublicPreview() {
             query = new URLSearchParams();
           for (const [key, value] of values)
             if (typeof value === "string" && value) query.set(key, value);
-          router.push(`${root}?${query}`);
+          void navigate({ href: `${root}?${query}` });
         }
       }}
     >

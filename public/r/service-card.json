@@ -4,12 +4,12 @@
   "title": "Service Card",
   "description": "Service card with image banner, floating icon, hover effect, and link.",
   "dependencies": [
-    "lucide-react",
-    "next"
+    "lucide-react"
   ],
   "registryDependencies": [
     "@forge/cn",
-    "@forge/image-with-fallback"
+    "@forge/image-with-fallback",
+    "@forge/ui-shims"
   ],
   "files": [
     {

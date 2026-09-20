@@ -4,13 +4,13 @@
   "title": "Footer",
   "description": "Multi-column footer with brand, navigation columns, contact info, social icons, and legal links.",
   "dependencies": [
-    "lucide-react",
-    "next"
+    "lucide-react"
   ],
   "registryDependencies": [
     "@forge/cn",
     "@forge/social-icons",
-    "@forge/manage-cookies-button"
+    "@forge/manage-cookies-button",
+    "@forge/ui-shims"
   ],
   "files": [
     {

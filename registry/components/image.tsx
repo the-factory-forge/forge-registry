@@ -43,7 +43,6 @@ export function Image({
   ...props
 }: ImageProps) {
   return (
-    // oxlint-disable-next-line nextjs/no-img-element -- framework-agnostic shim
     <img
       src={src}
       alt={alt}

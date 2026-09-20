@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { customerDisplayName } from "@/components/plugins/customers/utils";
@@ -15,10 +14,11 @@ import {
 } from "@/components/plugins/projects";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
+import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
 function useProjectList(customerId?: string) {
   const state = usePluginsPreview();
-  const { locale } = useParams<{ locale: string }>();
+  const { locale } = useShowroomParams();
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const base = `/${locale}/projects`;
@@ -62,13 +62,13 @@ export function CustomerProjectsPreview({ customerId }: { customerId: string }) 
 
 export function ProjectsPreview() {
   const state = usePluginsPreview();
-  const params = useParams<{ locale: string; segments?: string[] }>();
-  const query = useSearchParams();
-  const router = useRouter();
+  const params = useShowroomParams();
+  const query = useSearch({ strict: false });
+  const navigate = useNavigate();
   const listProps = useProjectList();
   const [projectId, tab] = params.segments ?? [];
   const project = state.projects.find((entry) => entry.id === projectId);
-  const requestedCustomerId = query.get("customerId");
+  const requestedCustomerId = query.customerId;
   const customer = state.customers.find((entry) => entry.id === requestedCustomerId);
   const fromCustomer = Boolean(
     customer && (projectId === "new" || project?.ownerId === customer.id),
@@ -126,7 +126,7 @@ export function ProjectsPreview() {
           const id = crypto.randomUUID();
           state.setProjects((current) => [...current, { ...values, id }]);
           state.setNotice("Project created successfully.");
-          router.push(`${base}/${id}${context}`);
+          await navigate({ href: `${base}/${id}${context}` });
         }}
       />
     );
@@ -151,7 +151,7 @@ export function ProjectsPreview() {
         state.showActions
           ? async (id) => {
               await listProps.onDelete?.(id);
-              router.push(backHref);
+              await navigate({ href: backHref });
             }
           : undefined
       }

@@ -4,11 +4,11 @@
   "title": "Image with Fallback",
   "description": "next/image wrapper with error fallback placeholder, quality control, and accessibility.",
   "dependencies": [
-    "lucide-react",
-    "next"
+    "lucide-react"
   ],
   "registryDependencies": [
-    "@forge/cn"
+    "@forge/cn",
+    "@forge/ui-shims"
   ],
   "files": [
     {

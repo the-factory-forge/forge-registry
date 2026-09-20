@@ -3,13 +3,11 @@
   "name": "page-home-hero",
   "title": "Home Hero",
   "description": "Full-viewport hero section with background image, gradient overlay, and CTA buttons.",
-  "dependencies": [
-    "next"
-  ],
   "registryDependencies": [
     "@forge/cn",
     "@forge/cta-button",
-    "@forge/animations"
+    "@forge/animations",
+    "@forge/ui-shims"
   ],
   "files": [
     {

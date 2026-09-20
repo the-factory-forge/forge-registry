@@ -1,7 +1,13 @@
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import react from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
 import { defineConfig } from "vite-plus";
 
-// Vite Plus provides code quality tools; Next.js still runs the showroom.
 export default defineConfig({
+  server: { port: 3000 },
+  resolve: { tsconfigPaths: true },
+  plugins: [tanstackStart(), nitro(), react(), tailwindcss()],
   fmt: {
     tabWidth: 2,
     semi: true,
@@ -23,11 +29,14 @@ export default defineConfig({
       "out/**",
       "build/**",
       "coverage/**",
-      "next-env.d.ts",
+      ".output/**",
+      ".tanstack/**",
+      "dist/**",
+      "src/routeTree.gen.ts",
     ],
   },
   lint: {
-    plugins: ["typescript", "react", "jsx-a11y", "nextjs"],
+    plugins: ["typescript", "react", "jsx-a11y"],
     env: { builtin: true, node: true, browser: true },
     options: { typeAware: true, typeCheck: true },
     jsPlugins: [{ name: "react-hooks-js", specifier: "eslint-plugin-react-hooks" }],
@@ -43,7 +52,7 @@ export default defineConfig({
       "react/no-unescaped-entities": "error",
       "react/rules-of-hooks": "error",
       "react/exhaustive-deps": "warn",
-      // Keep React compiler checks from the previous Next.js ESLint preset.
+      // Preserve the existing React compiler checks.
       "react-hooks-js/config": "error",
       "react-hooks-js/error-boundaries": "error",
       "react-hooks-js/gating": "error",
@@ -64,28 +73,6 @@ export default defineConfig({
       "jsx-a11y/aria-unsupported-elements": "warn",
       "jsx-a11y/role-has-required-aria-props": "warn",
       "jsx-a11y/role-supports-aria-props": "warn",
-      // Native equivalents of Next.js core-web-vitals rules.
-      "nextjs/google-font-display": "warn",
-      "nextjs/google-font-preconnect": "warn",
-      "nextjs/next-script-for-ga": "warn",
-      "nextjs/no-async-client-component": "warn",
-      "nextjs/no-before-interactive-script-outside-document": "warn",
-      "nextjs/no-css-tags": "warn",
-      "nextjs/no-head-element": "warn",
-      "nextjs/no-html-link-for-pages": "error",
-      "nextjs/no-img-element": "warn",
-      "nextjs/no-page-custom-font": "warn",
-      "nextjs/no-styled-jsx-in-document": "warn",
-      "nextjs/no-sync-scripts": "error",
-      "nextjs/no-title-in-document-head": "warn",
-      "nextjs/no-typos": "warn",
-      "nextjs/no-unwanted-polyfillio": "warn",
-      "nextjs/inline-script-id": "error",
-      "nextjs/no-assign-module-variable": "error",
-      "nextjs/no-document-import-in-page": "error",
-      "nextjs/no-duplicate-head": "error",
-      "nextjs/no-head-import-in-document": "error",
-      "nextjs/no-script-component-in-head": "error",
     },
     ignorePatterns: [
       "public/r/**",
@@ -93,7 +80,10 @@ export default defineConfig({
       "out/**",
       "build/**",
       "coverage/**",
-      "next-env.d.ts",
+      ".output/**",
+      ".tanstack/**",
+      "dist/**",
+      "src/routeTree.gen.ts",
     ],
   },
 });

@@ -28,9 +28,13 @@ sections, and supporting utilities. The goal is to reuse these elements across
 different projects through shadcn's registry model. Consumers receive source
 files they can adapt; this repository is not a published runtime npm library.
 
-The Next.js app in this repository is a showroom for developing and previewing
+The TanStack Start app in this repository is a showroom for developing and previewing
 registry elements. Work on the reusable element first; keep example content and
 site integration in the showroom or consuming project.
+
+The showroom follows upstream Cove directly (see [docs/showroom.md](./docs/showroom.md)).
+Do not import, link, or synchronize its foundation from forge-template: templates
+consume this registry, so depending on them here would create a circular relationship.
 
 The attached sibling `../tc-website` is a reference and a source of components
 for future extractions. Its presence is not a request to migrate components now.
@@ -49,7 +53,7 @@ in `tc-website`; this registry contains reusable components for multiple custome
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.
-- `vite.config.ts`: Vite Plus lint and format settings; Next.js remains the app framework.
+- `vite.config.ts`: Vite Plus lint and format settings; TanStack Start, React, Tailwind, and Nitro plugins run the showroom.
 - [docs/intranet-sidebar.md](./docs/intranet-sidebar.md): sidebar props,
   toggle placement, Better Auth integration, and consumer updates.
 - [docs/intranet.md](./docs/intranet.md): shell composition and host integration.
@@ -73,14 +77,14 @@ props unless the requested change calls for a breaking change.
 | `public/r/registry.json`, `public/r/{name}.json` | Generated shadcn catalog and item endpoints; do not hand-edit                             |
 | `src/lib/`                                       | Internal i18n, font presets, providers, and showroom helpers; never published             |
 | `src/showroom/`                                  | Internal preview controls and font switcher components; never published                   |
-| `src/app/`                                       | Next.js showroom demos                                                                    |
+| `src/routes/`                                    | TanStack Router showroom demos                                                            |
 | `src/styles/globals.css`                         | Showroom tokens, typography, animations, and layout utilities                             |
-| `src/proxy.ts`                                   | Showroom-only Next.js locale routing                                                      |
+| `src/start.ts`                                   | Showroom-only Start request middleware                                                    |
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
-and Motion, hosted in Next.js 16. Use the pnpm version pinned in `package.json`.
-Vite Plus 0.3.0 provides Oxlint and Oxfmt through `vite.config.ts`; `dev`, `build`,
-and `start` continue to use Next.js. Lint settings enable type-aware rules and
+and Motion, hosted in TanStack Start with Nitro. Use the pnpm version pinned in `package.json`.
+Vite Plus 0.3.3 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
+`dev` and `build` use Start/Vite, and `start` runs `.output/server/index.mjs`. Lint settings enable type-aware rules and
 type checking. `pnpm typecheck` remains the separate `tsc --noEmit` check.
 Registry source imports mirror their install targets: `@/components/*`,
 `@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*`. TypeScript maps all four
@@ -162,7 +166,7 @@ for separating reusable feature code from website adapters.
 ## Showroom homepage requirement
 
 Every new registry UI component or module must have a working showroom example
-and an entry in the `examples` array in `src/app/page.tsx`, the showroom root `/`.
+and an entry in the `examples` array in `src/routes/index.tsx`, the showroom root `/`.
 Add both in the same change as the component. A dedicated demo route alone is
 not enough: visitors must be able to find it from the homepage. Give the entry
 an accurate title, category, description, and link to its example.
@@ -223,8 +227,9 @@ diff, and factual/link review, without dependency installation or app builds.
 Known limitations and integration boundaries to verify when touching affected items:
 
 - Locale routing, dictionaries, and theme configuration belong to each consumer.
-- Some manifest dependencies still list `next` for shim-based UI, and some omit
-  imported registry items such as `ui-shims`. Audit the selected item's imports.
+- Framework packages belong to the showroom only. Declare `@forge/ui-shims`
+  for components using the shared Link/Image/Script/location contract; never add
+  Next.js or TanStack runtime dependencies to framework-neutral registry items.
 - Keep internal i18n, font presets, and providers under `src/lib/`, with
   preview switcher components under `src/showroom/`; do not register them.
   Shared helpers needed by consumers stay under `registry/components/utils/`.

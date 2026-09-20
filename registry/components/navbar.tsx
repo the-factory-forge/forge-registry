@@ -1,4 +1,3 @@
-/* oxlint-disable nextjs/no-img-element -- img brut volontaire (registry framework-agnostic) */
 "use client";
 
 import { Menu, X, ChevronDown } from "lucide-react";

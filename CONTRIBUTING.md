@@ -28,9 +28,9 @@ modes, saved choices, system preferences, and portaled dialogs after theme edits
 
 ## Formatting and validation
 
-Vite Plus 0.3.0 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
+Vite Plus 0.3.3 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
 type-aware rules and type checking; `pnpm typecheck` also runs `tsc --noEmit`.
-Next.js continues to run the showroom's dev server, build, and production server.
+TanStack Start uses Vite for development and builds; Nitro serves the production output.
 
 After implementation, run `pnpm format && pnpm lint:fix` and review automatic
 edits. Regenerate affected registry artifacts with `pnpm registry:sync`, then
@@ -187,7 +187,7 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)
 - [ ] Registry entry added to `registry/registry.json`
 - [ ] Working showroom example added with representative interactions
-- [ ] Entry added to `examples` in `src/app/page.tsx` so the component is discoverable from `/`
+- [ ] Entry added to `examples` in `src/routes/index.tsx` so the component is discoverable from `/`
 - [ ] Homepage entry checked under All and its category filter, and its demo link verified
 - [ ] Non-visual helpers and server companions documented with the parent component's linked example
 - [ ] Formatting and validation flow above completed; generated artifacts match the final source

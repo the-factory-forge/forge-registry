@@ -364,7 +364,6 @@ function UserAvatar({ user }: Pick<IntranetSidebarProps, "user">) {
   return (
     <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs leading-none font-medium text-foreground">
       {user.image && user.image !== failedImage ? (
-        // oxlint-disable-next-line nextjs/no-img-element -- an unoptimized, consumer-owned profile image
         <img
           src={user.image}
           alt=""

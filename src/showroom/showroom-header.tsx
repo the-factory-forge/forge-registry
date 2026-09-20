@@ -1,11 +1,12 @@
 "use client";
 
+import { useLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon, LayoutGridIcon } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
+import { ShowroomLink as Link } from "@/showroom/routing";
 
 export function ShowroomHeader() {
-  const isList = usePathname() === "/";
+  const isList = useLocation({ select: (location) => location.pathname }) === "/";
   const Icon = isList ? LayoutGridIcon : ArrowLeftIcon;
 
   return (

@@ -1,6 +1,6 @@
 # forge-registry
 
-Shared registry of reusable React components, page sections, and utilities for use across different projects through shadcn's registry model. Consumers receive editable source files. The Next.js app in this repository is the development showroom.
+Shared registry of reusable React components, page sections, and utilities for use across different projects through shadcn's registry model. Consumers receive editable source files. The TanStack Start app in this repository is the development showroom. Its foundation follows [Cove](https://github.com/mugnavo/cove) directly; it has no dependency on forge-template. See the [showroom architecture and migration guide](./docs/showroom.md).
 
 The UI uses Base UI primitives, props-driven content, and framework shims. The registry also includes an intranet layout for internal websites. The showroom owns its locale configuration and dictionaries.
 
@@ -12,9 +12,9 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 
 ## What is included
 
-- Next.js 16 (App Router) + React 19 showroom shell for previewing shared UI
+- TanStack Start + Router, React 19, and Nitro showroom shell for previewing shared UI
 - TypeScript strict with `@/components/*`, `@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*` aliases for registry source files; `@/*` resolves showroom files
-- Vite Plus 0.3.0 for linting and formatting, configured in `vite.config.ts`
+- Vite Plus 0.3.3 for linting and formatting, configured in `vite.config.ts`
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
@@ -206,22 +206,21 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 ## Scripts
 
 Vite Plus runs Oxlint and Oxfmt using `vite.config.ts`; linting includes type-aware
-rules and type checking. Next.js still handles development, production builds,
-and serving. Generated `public/r/` JSON is excluded from linting and formatting:
+rules and type checking. TanStack Start uses Vite for development and builds, with Nitro serving the production output. Generated `public/r/` JSON is excluded from linting and formatting:
 format source files first, then regenerate it with `pnpm registry:sync`.
 
 ```bash
-pnpm dev              # next dev
-pnpm build            # next build
-pnpm start            # next start
+pnpm dev              # TanStack Start / Vite dev server
+pnpm build            # Start + Nitro output in .output/
+pnpm start            # Nitro server (PORT defaults to 3000)
 pnpm lint             # vp lint (type-aware, with type checking)
 pnpm lint:fix         # vp lint --fix
 pnpm format           # vp fmt
 pnpm format:check     # vp fmt --check
 pnpm check            # vp check (format, lint, and type checks)
 pnpm fix              # vp check --fix
-pnpm test             # Navigation and registry regression tests (Node 22.18+)
-pnpm test:browser     # Cookie consent browser tests against a running showroom
+pnpm test             # Navigation and registry regression tests (Node 24+)
+pnpm test:browser     # Browser regressions against a running showroom
 pnpm typecheck        # tsc --noEmit
 pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Official shadcn catalog and item build
@@ -239,11 +238,13 @@ registry/
     utils/            # Non-visual helpers, data, hooks, providers, and styles
   registry.json       # Source manifest
 src/
-  app/                # Showroom pages
+  routes/             # TanStack file routes and root shell
   lib/                # Internal i18n, font presets, providers, and helpers
   showroom/           # Internal preview controls and font switcher components
   styles/globals.css  # Showroom design system
-  proxy.ts            # Showroom-only locale detection and redirect
+  router.tsx          # Fresh router per SSR request
+  start.ts            # Showroom-only locale detection and redirect
+  routeTree.gen.ts    # Generated route manifest (committed, not hand-edited)
 public/
   r/
     registry.json     # shadcn catalog
