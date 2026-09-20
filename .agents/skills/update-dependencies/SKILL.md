@@ -1,6 +1,6 @@
 ---
 name: update-dependencies
-description: Update package dependencies in an existing repository, including targeted upgrades, routine maintenance, and security fixes. Explain breaking changes and obtain approval, adopt relevant library improvements for code quality and performance, regenerate lockfiles, and validate with the project's existing tooling. Use for dependency updates, not Forge template synchronization.
+description: Update package dependencies in an existing repository, including targeted upgrades, routine maintenance, and security fixes. Explain breaking changes and obtain approval, adopt relevant library improvements for code quality and performance, refresh linked registry items, regenerate lockfiles, and validate with the project's existing tooling. Use for dependency updates, not Forge template synchronization.
 ---
 
 # Update Dependencies
@@ -13,12 +13,12 @@ Deliver a working, reviewable dependency update using the destination repository
 2. Check Git status and preserve existing changes. Record current declared and resolved versions for the affected packages. If a user edit overlaps the update, incorporate it deliberately; do not reset, discard, or automatically stash their work.
 3. Honor the requested packages, versions, workspace, and update mode:
 
-   | Request | Scope |
-   | --- | --- |
-   | Named package or target version | Assess that package and its required migrations; apply breaking upgrades after the approval step below. |
+   | Request                                       | Scope                                                                                                                                               |
+   | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Named package or target version               | Assess that package and its required migrations; apply breaking upgrades after the approval step below.                                             |
    | General maintenance, without a version target | Prefer stable patch/minor updates within current major versions; report excluded major upgrades. Treat `0.x` minor changes as potentially breaking. |
-   | Latest versions or explicit major upgrade | Evaluate current stable releases, including majors; explain breaking changes and obtain approval before applying them and their migrations. |
-   | Security fix | Verify the advisory's affected and fixed versions, trace the dependency path, and choose a compatible fix. Avoid unrelated upgrades. |
+   | Latest versions or explicit major upgrade     | Evaluate current stable releases, including majors; explain breaking changes and obtain approval before applying them and their migrations.         |
+   | Security fix                                  | Verify the advisory's affected and fixed versions, trace the dependency path, and choose a compatible fix. Avoid unrelated upgrades.                |
 
 4. State the chosen scope briefly and proceed with investigation and nonbreaking updates. Follow the approval step below for breaking upgrades. Preserve existing prerelease tracks unless the task calls for changing them; do not introduce a prerelease or downgrade to a stable release just because its label looks preferable. Keep runtime, package-manager, CI-action, and container upgrades outside scope unless requested or required by the selected dependency update.
 5. Run the smallest useful baseline checks before editing when feasible. Record existing failures so they are distinguishable from regressions; avoid requiring a full test suite twice for a routine bump.
@@ -52,9 +52,16 @@ Do not stop at version bumps when a useful code adaptation is available. Equally
 2. Edit the authoritative dependency declarations and regenerate the lockfile with the pinned package manager. For catalogs, update the catalog entry while preserving consumers' `catalog:` references. Retain aliases, workspace links, overrides, patches, and dependency categories unless the migration requires a change. Do not hand-edit or delete a lockfile to bypass a resolver failure, and do not introduce a second package manager's lockfile.
 3. Resolve compatibility problems through supported versions and necessary source/configuration migrations. Recheck package patches against the new release; remove a patch only when its purpose is obsolete. Preserve library peer ranges unless compatibility has actually changed and been validated.
 4. Review install/prepare hooks and existing build-script approvals before execution. Preserve the repository's lifecycle policy. Do not use blanket force options, `audit fix --force`, broad peer-rule relaxations, or globally allowed build scripts to mask incompatibility.
-5. Include focused code-quality and performance improvements identified above, together with required generated files according to repository conventions. Keep changes attributable to the library update; avoid unrelated refactors, component regeneration, or template/registry pulls. For large updates, apply and validate coherent groups so failures can be isolated.
+5. Include focused code-quality and performance improvements identified above, together with required generated files according to repository conventions. Keep changes attributable to the library update; avoid unrelated refactors, new registry item installations, or template synchronization. Refresh linked registry items as described below. For large updates, apply and validate coherent groups so failures can be isolated.
 
 Prepare required schema or configuration migrations as part of the code change. A dependency-update request alone does not authorize executing migrations against production data, publishing a package, or deploying the application. Continue local work under existing authorization.
+
+## Update linked registries
+
+- Treat installed source-registry items as dependencies too. For general maintenance, check and update them alongside packages; for a targeted package update, refresh affected items. Discover linked registries and aliases in `components.json`, registry manifests, and repository refresh scripts. Identify installed items from their source files and documented usage; a configured registry is not a request to install its whole catalog.
+- Use the repository's existing refresh command or pinned registry CLI. Inspect upstream changes before overwriting managed source, follow the breaking-change approval rule, and merge local customizations deliberately. Keep host adapters outside registry-managed paths. Pull required item dependencies together and review the resulting source and package/lockfile changes.
+- When updating a registry source repository, update affected item dependency declarations as well as the root package manifest. Regenerate its published endpoints through the official builder (in Forge, `pnpm registry:sync`); never hand-edit generated registry JSON. Validate affected items in a temporary consumer, since a passing showroom build does not prove installation completeness.
+- Update and validate linked consumer checkouts when they are within the user's authorized scope. Otherwise report the exact consumer refresh command as follow-up. Source distribution does not update consumers automatically; do not claim they are synchronized after only rebuilding registry endpoints. Preserve published namespace URLs when temporarily testing a local registry.
 
 ## Validate the result
 
@@ -76,6 +83,6 @@ Read the generated website's own instructions and actual scripts; template tooli
 
 ## Handoff
 
-Report the packages or coherent groups updated, their previous and resulting versions, breaking changes and approval status, required migrations, and the checks actually run with outcomes. Explain which library improvements were adopted, their code-quality benefits, and any measured performance results or measurement limits. List deferred upgrades or adaptations and their concrete reasons, including pending or declined approval, major-version scope, maturity policy, or compatibility constraints. Link relevant migration guides or advisories for consequential changes. Identify any deployment follow-up without implying it has already happened.
+Report the packages or coherent groups updated, their previous and resulting versions, breaking changes and approval status, required migrations, and the checks actually run with outcomes. Explain which library improvements were adopted, their code-quality benefits, and any measured performance results or measurement limits. List deferred upgrades or adaptations and their concrete reasons, including pending or declined approval, major-version scope, maturity policy, or compatibility constraints. Link relevant migration guides or advisories for consequential changes. Report linked registry items refreshed, generated endpoints, consumer validation, and any remaining synchronization steps. Identify any deployment follow-up without implying it has already happened.
 
 Commit, push, or open a pull request only when the user's task or established workflow includes that action.

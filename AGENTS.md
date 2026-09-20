@@ -118,11 +118,24 @@ for separating reusable feature code from website adapters.
    validate the result as described below. The reusable result must work without
    access to `tc-website`'s files, services, or providers.
 
+## Showroom homepage requirement
+
+Every new registry UI component or module must have a working showroom example
+and an entry in the `examples` array in `src/app/page.tsx`, the showroom root `/`.
+Add both in the same change as the component. A dedicated demo route alone is
+not enough: visitors must be able to find it from the homepage. Give the entry
+an accurate title, category, description, and link to its example.
+
+Verify the entry appears under All and its category filter, and that its link
+opens the demo. Include representative interactions and error states where
+applicable. Document non-visual helpers and server companions with their parent
+component's linked example; never import server modules into browser previews.
+
 ## Distribution and validation
 
 `pnpm registry:sync` runs the pinned official CLI:
 `shadcn build registry/registry.json --output public/r`. The source manifest lists
-41 items; only declared files and dependencies ship.
+50 items; only declared files and dependencies ship.
 
 `public/r/registry.json` and `public/r/{name}.json` are official shadcn catalog
 and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and

@@ -5,6 +5,18 @@ import { useState } from "react";
 
 const examples = [
   {
+    href: "/en/login",
+    category: "Form",
+    title: "Login",
+    description: "Sign-in form with password visibility, remember me, and retry after errors.",
+  },
+  {
+    href: "/en/employees",
+    category: "Plugin",
+    title: "Employees",
+    description: "Create and edit users, manage access, and send email verification reminders.",
+  },
+  {
     href: "/en/blogs",
     category: "Plugin",
     title: "Blogs",

@@ -903,6 +903,85 @@
           "target": "@components/plugins/blogs/server/types.ts"
         }
       ]
+    },
+    {
+      "name": "login",
+      "type": "registry:block",
+      "title": "Login",
+      "description": "Login form and auth layout with password visibility, remember-me, social actions, and host-owned authentication.",
+      "files": [
+        {
+          "path": "registry/components/plugins/login/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/login/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/login/auth-layout.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/login/auth-layout.tsx"
+        },
+        {
+          "path": "registry/components/plugins/login/labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/login/labels.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "dependencies": ["lucide-react"]
+    },
+    {
+      "name": "employees",
+      "type": "registry:block",
+      "title": "Employees",
+      "description": "Employee directory, create/edit/delete forms, verification and access controls, with shared validation.",
+      "files": [
+        {
+          "path": "registry/components/plugins/employees/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-new-page.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-new-page.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-actions.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-actions.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/employees/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/employees/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/employees/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/employees/styles.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/employees/styles.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
+    },
+    {
+      "name": "employees-server",
+      "type": "registry:block",
+      "title": "Employee server operations",
+      "description": "Validated Better Auth employee operations; requires a fresh host-authenticated administrator for each request.",
+      "files": [
+        {
+          "path": "registry/components/plugins/employees/server/employees.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/employees/server/employees.server.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/employees"]
     }
   ]
 }

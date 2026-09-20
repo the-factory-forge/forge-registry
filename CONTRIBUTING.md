@@ -157,7 +157,10 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Props type is exported
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)
 - [ ] Registry entry added to `registry/registry.json`
-- [ ] Example usage provided (optional but recommended)
+- [ ] Working showroom example added with representative interactions
+- [ ] Entry added to `examples` in `src/app/page.tsx` so the component is discoverable from `/`
+- [ ] Homepage entry checked under All and its category filter, and its demo link verified
+- [ ] Non-visual helpers and server companions documented with the parent component's linked example
 - [ ] Formatting and validation flow above completed; generated artifacts match the final source
 
 Storage companions use a separate `plugins/{name}/server` entrypoint and registry item. Browser entrypoints must never export server modules. Declare server packages only on the companion; ship migration/configuration templates explicitly, without applying them during installation. See [Drive](./docs/drive.md).
