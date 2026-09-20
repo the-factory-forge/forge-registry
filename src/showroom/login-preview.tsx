@@ -3,20 +3,28 @@ import { useState } from "react";
 
 import { LoginForm } from "@/components/plugins/login";
 import { AuthLayout } from "@/components/plugins/login/auth-layout";
+import { PreviewControls } from "@/showroom/preview-controls";
 
 export function LoginPreview() {
   const [fail, setFail] = useState(false);
   const [notice, setNotice] = useState("");
   return (
     <AuthLayout
+      className="min-h-[calc(100svh-var(--showroom-header-height))]"
       siteName="Example workspace"
       homeHref="/"
       labels={{ workspaceTitle: "Your team workspace." }}
     >
-      <label className="mb-4 flex gap-2 text-sm">
-        <input type="checkbox" checked={fail} onChange={(event) => setFail(event.target.checked)} />
-        Simulate sign-in failure
-      </label>
+      <PreviewControls className="mb-6">
+        <label className="flex gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={fail}
+            onChange={(event) => setFail(event.target.checked)}
+          />
+          Simulate sign-in failure
+        </label>
+      </PreviewControls>
       <LoginForm
         onSignIn={async () => {
           if (fail) throw new Error("Preview failure");

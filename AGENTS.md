@@ -103,6 +103,21 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   merge classes with `cn` from `@/components/utils/cn`. Reuse `SectionVariant` for themed sections.
 - Use semantic Tailwind/shadcn tokens and existing Base UI primitives. Preserve
   keyboard interaction, focus states, semantic HTML, and responsive behavior.
+- Use a modal or dialog for create/edit forms that remain short and easy to complete
+  without navigation. When the form grows into many inputs, sections, nested data,
+  or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`
+  may be the creation ID). Do not force complex forms into dialogs or create pages
+  for simple forms; tc-website's larger employee flow is an intentional page-based exception.
+- Across all plugins, render edit/modify/rename actions with Lucide's `PencilIcon`
+  and delete/remove actions with `Trash2Icon`, as icon-only controls using the
+  existing button styles. Delete triggers keep their confirmation dialogs.
+  Keep a translated `aria-label`, hide the decorative icon with `aria-hidden="true"`,
+  and preserve visible keyboard focus and a usable hit area. Familiar action icons
+  such as edit and delete do not need tooltips or native `title` hints; do not add
+  tooltips to every icon control by default. Omit the employee enable/disable
+  access action from the list.
+  Use links for navigation and buttons for in-place actions. Form headings and
+  save/confirmation buttons retain their visible text.
 - Keep components compatible with server rendering. Add `"use client"` where
   hooks, events, or browser APIs require it; do not access browser globals during render.
 - Keep framework imports out of shared UI. Use the `ui-shims` item for Link,

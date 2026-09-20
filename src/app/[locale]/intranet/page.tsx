@@ -1,7 +1,6 @@
 "use client";
 
 import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
-import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
@@ -66,7 +65,7 @@ export default function IntranetExample() {
           ? (toggle) => (
               <nav
                 aria-label="Workspace toolbar"
-                className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-border bg-background px-4 print:hidden"
+                className="sticky top-(--showroom-header-height) z-30 flex h-12 items-center gap-3 border-b border-border bg-background px-4 print:hidden"
               >
                 {toggle}
                 <span className="font-semibold">Customer portal</span>
@@ -102,12 +101,6 @@ export default function IntranetExample() {
             for your own page content.
           </p>
         </div>
-        <Link
-          href="/"
-          className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
-        >
-          Back to components
-        </Link>
       </div>
       <section
         aria-labelledby="layout-options"

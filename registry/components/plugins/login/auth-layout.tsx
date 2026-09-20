@@ -47,7 +47,7 @@ export function AuthLayout({
           className="pointer-events-none absolute top-16 -right-64 size-160 rounded-full border border-primary-foreground/15"
           aria-hidden="true"
         />
-        <div className="relative flex h-full min-h-180 flex-col justify-end p-12 xl:p-16">
+        <div className="relative flex h-full flex-col justify-end p-12 xl:p-16">
           <div className="mb-6 flex items-center gap-2 text-sm font-semibold tracking-widest text-primary-foreground/90 uppercase">
             <LockKeyholeIcon className="size-4" aria-hidden="true" />
             {labels.teamSpace}

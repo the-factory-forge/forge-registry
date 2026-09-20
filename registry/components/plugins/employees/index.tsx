@@ -1,28 +1,22 @@
 "use client";
 import { Avatar } from "@base-ui/react/avatar";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  ShieldCheckIcon,
-  ShieldOffIcon,
-} from "lucide-react";
-import type { ComponentType } from "react";
+import { ChevronLeftIcon, ChevronRightIcon, ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
 
-import { Link, type LinkProps } from "@/components/link";
 import {
   EmployeeActions,
   type EmployeeActionCallbacks,
 } from "@/components/plugins/employees/employee-actions";
+import { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   EMPLOYEE_PAGE_SIZE,
   isEmployeeAdmin,
+  type CreateEmployee,
   type Employee,
 } from "@/components/plugins/employees/schema";
-import { outlineButtonClass, primaryButtonClass } from "@/components/plugins/employees/styles";
+import { outlineButtonClass } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
-export { EmployeeNewPage } from "@/components/plugins/employees/employee-new-page";
+export { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 export type {
   Employee,
   CreateEmployee,
@@ -38,12 +32,11 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
   total: number;
   offset: number;
   onOffsetChange: (offset: number) => void;
-  createHref: string;
+  onCreate: (values: CreateEmployee) => Promise<void>;
   loading?: boolean;
   error?: boolean;
   labels?: Partial<EmployeeLabels>;
   className?: string;
-  linkComponent?: ComponentType<LinkProps>;
 }
 export function EmployeesPage({
   employees,
@@ -52,16 +45,14 @@ export function EmployeesPage({
   total,
   offset,
   onOffsetChange,
-  createHref,
+  onCreate,
   loading = false,
   error = false,
   onUpdate,
   onDelete,
-  onSetBan,
   onSendVerification,
   labels: overrides,
   className,
-  linkComponent: EmployeeLink = Link,
 }: EmployeesPageProps) {
   if (!isEmployeeAdmin(currentUserRole)) return null;
   const labels = { ...employeeLabels, ...overrides };
@@ -75,10 +66,11 @@ export function EmployeesPage({
     >
       <header className="flex flex-wrap items-center justify-between gap-4 px-6 pb-6">
         <h1 className="font-sans text-base font-semibold">{labels.title}</h1>
-        <EmployeeLink href={createHref} className={primaryButtonClass}>
-          <PlusIcon aria-hidden="true" />
-          {labels.add}
-        </EmployeeLink>
+        <EmployeeCreateDialog
+          currentUserRole={currentUserRole}
+          onCreate={onCreate}
+          labels={labels}
+        />
       </header>
       <div className="px-6">
         {loading ? (
@@ -189,7 +181,6 @@ export function EmployeesPage({
                           labels={labels}
                           onUpdate={onUpdate}
                           onDelete={onDelete}
-                          onSetBan={onSetBan}
                           onSendVerification={onSendVerification}
                         />
                       </td>

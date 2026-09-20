@@ -18,7 +18,7 @@ export const primaryButtonClass = cn(
   "bg-primary text-primary-foreground hover:bg-primary/90",
 );
 export const inputClass =
-  "h-8 w-full min-w-0 rounded-2xl border border-transparent bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-red-600 md:text-sm";
+  "h-8 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-red-600 md:text-sm";
 
 export function useCustomerAction(errorMessage: string) {
   const lock = useRef(false);
@@ -101,7 +101,6 @@ export function CustomerActionButton({
         type="button"
         className={buttonClass}
         aria-label={label}
-        title={label}
         disabled={action.pending}
         aria-busy={action.pending}
         onClick={() => void action.run(onAction, labels.actionSuccess)}
@@ -117,12 +116,10 @@ export function DeleteCustomer({
   customer,
   onDelete,
   labels,
-  showLabel = false,
 }: {
   customer: Customer;
   onDelete: (id: string) => Promise<void>;
   labels: CustomersLabels;
-  showLabel?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const action = useCustomerAction(labels.actionError);
@@ -135,12 +132,11 @@ export function DeleteCustomer({
         }}
       >
         <Dialog.Trigger
-          className={cn(buttonClass, "text-red-600 dark:text-red-400")}
+          className={cn(buttonClass, "text-destructive")}
           aria-label={labels.deleteCustomer}
           disabled={action.pending}
         >
           <Trash2Icon aria-hidden="true" />
-          {showLabel && labels.deleteCustomer}
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />

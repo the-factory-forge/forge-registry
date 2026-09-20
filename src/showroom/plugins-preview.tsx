@@ -15,6 +15,7 @@ import type { Customer } from "@/components/plugins/customers";
 import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { PreviewControls } from "@/showroom/preview-controls";
 
 const initialCustomers: Customer[] = [
   {
@@ -153,22 +154,22 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
   return (
     <PreviewContext.Provider value={state}>
       <main data-preview-ready={ready} className="mx-auto w-full max-w-[1536px]">
-        <aside
-          aria-label="Preview controls"
-          className="mx-4 mt-6 flex flex-wrap items-center gap-4 rounded-xl border border-border p-3 text-sm"
+        <PreviewControls
+          className="mx-4 mt-6 md:mx-8"
+          navigation={
+            <>
+              <Link href={`/${locale}/customers`} className="underline">
+                Customer directory
+              </Link>
+              <Link href={`/${locale}/projects`} className="underline">
+                Project directory
+              </Link>
+              <Link href={`/${locale}/drive`} className="underline">
+                Drive directory
+              </Link>
+            </>
+          }
         >
-          <Link href="/" className="underline">
-            All components
-          </Link>
-          <Link href={`/${locale}/customers`} className="underline">
-            Customer directory
-          </Link>
-          <Link href={`/${locale}/projects`} className="underline">
-            Project directory
-          </Link>
-          <Link href={`/${locale}/drive`} className="underline">
-            Drive directory
-          </Link>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -257,7 +258,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
             </select>
           </label>
           <span className="text-muted-foreground">Demo data resets on reload.</span>
-        </aside>
+        </PreviewControls>
         {state.notice && <output className="mx-4 mt-4 block text-sm">{state.notice}</output>}
         {children}
       </main>

@@ -20,6 +20,7 @@ async function preview(t, path = "/en/drive", options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(`${baseURL}${path}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await page.locator("summary").filter({ hasText: "Preview controls" }).click();
   return page;
 }
 async function folder(page, name) {
@@ -183,6 +184,13 @@ test("Drive fits mobile and desktop in light and dark themes", async (t) => {
         path: `/tmp/forge-drive-${width}-${colorScheme}.png`,
         fullPage: true,
       });
+      await page.getByRole("link", { name: "Back to Drive", exact: true }).click();
+      await page.getByRole("link", { name: "Studio website", exact: true }).waitFor();
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+        "Space action labels must stay inside the horizontally scrolling table",
+      );
       await page.close();
     }
 });

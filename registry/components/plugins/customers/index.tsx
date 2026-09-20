@@ -174,7 +174,6 @@ export function CustomersPage({
                           href={getCustomerHref(customer, "projects")}
                           className={buttonClass}
                           aria-label={labels.viewProjects}
-                          title={labels.viewProjects}
                         >
                           <FolderKanbanIcon aria-hidden="true" />
                         </CustomerLink>
@@ -182,7 +181,6 @@ export function CustomersPage({
                           href={getCustomerHref(customer, "about")}
                           className={buttonClass}
                           aria-label={labels.edit}
-                          title={labels.edit}
                         >
                           <PencilIcon aria-hidden="true" />
                         </CustomerLink>
@@ -286,7 +284,6 @@ export function CustomerDetailPage({
               customer={customer}
               labels={labels}
               onDelete={onDelete}
-              showLabel
             />
           )}
         </>

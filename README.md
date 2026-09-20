@@ -134,7 +134,7 @@ supply their own translations and theme configuration.
 | [projects](./docs/projects.md)              | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                |
 | [customers](./docs/customers.md)            | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions      |
 | [login](./docs/intranet-auth.md)            | Login form and branded auth layout with host-owned authentication                              |
-| [employees](./docs/intranet-auth.md)        | Employee list, creation, editing, verification and access controls                             |
+| [employees](./docs/intranet-auth.md)        | Employee list, creation, editing, verification and account deletion                            |
 | [employees-server](./docs/intranet-auth.md) | Validated Better Auth employee operations behind host authentication                           |
 
 Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.

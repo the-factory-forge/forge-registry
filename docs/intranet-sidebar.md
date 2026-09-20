@@ -136,6 +136,13 @@ drawer. Ctrl/Cmd+B toggles navigation except while typing in editable controls.
 The provider supports `defaultOpen` or controlled `open`/`onOpenChange` for desktop;
 mobile visibility is independent.
 
+When the host has a persistent header above the layout, set the inherited CSS
+variable `--intranet-top-offset` on a wrapper (for example,
+`className="[--intranet-top-offset:3.5rem]"`). It defaults to `0rem` and adjusts
+the desktop sidebar, fixed toggle, and layout's minimum height together. The
+mobile modal still covers the viewport. A custom sticky topbar should use the
+same offset. Reset it to `0rem` when printing if that header is hidden.
+
 ## Inputs and integration points
 
 | Input                | Contract                                                                                               |

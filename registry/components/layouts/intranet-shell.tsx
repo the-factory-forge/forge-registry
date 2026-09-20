@@ -21,7 +21,7 @@ function ShellSidebarToggle({ label }: { label?: string }) {
       className={cn(
         !isMobile &&
           open &&
-          "fixed top-2 left-[13.5rem] z-30 border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring",
+          "fixed top-[calc(var(--intranet-top-offset,0rem)+0.5rem)] left-[13.5rem] z-30 border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring",
       )}
     />
   );

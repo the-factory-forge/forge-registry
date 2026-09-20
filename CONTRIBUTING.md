@@ -68,7 +68,8 @@ Use the same CSS vocabulary as `forge-template` and `tc-website`:
   `bg-popover` and `text-popover-foreground`.
 - Layout helpers: `container-premium` and `section-padding`.
 
-Error/success feedback can use utility colors (`text-red-600`, `text-emerald-700`) as they are semantic, not theme-dependent.
+Use `text-destructive` for errors. Success feedback uses `text-foreground` with
+a status icon and clear copy. Keep feedback colors tied to the shared theme.
 
 ## File placement
 
@@ -93,6 +94,13 @@ imported by shared registry components. Plugin-specific supporting code stays wi
 - Use `cn()` from `@/components/utils/cn` for all className merging
 - Export both the component and its Props type
 - For section components that support color themes, use `SectionVariant` from `@/components/utils/section-variants`
+
+## Form flow
+
+Create and edit in a modal or dialog when the form is short enough to complete
+comfortably without navigation. Use a dedicated `/{resource}/:id` page when the
+flow has many inputs, sections, nested data, or multiple steps; `new` may be used
+as the creation ID. Keep one form implementation for either presentation.
 
 ## Client/Server
 

@@ -20,7 +20,7 @@ export const blogsLabels = {
   summary: "Summary",
   language: "Language",
   languages: "Languages",
-  editor: "Last editor",
+  editor: "Editor",
   modified: "Updated",
   publishedDate: "Published",
   actions: "Actions",

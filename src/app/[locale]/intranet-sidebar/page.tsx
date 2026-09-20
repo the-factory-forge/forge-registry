@@ -11,7 +11,6 @@ import {
   UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import {
@@ -157,12 +156,6 @@ export default function IntranetSidebarExample() {
                 without a navbar.
               </p>
             </div>
-            <Link
-              href="/"
-              className="shrink-0 text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
-            >
-              Back to components
-            </Link>
           </div>
           <div className="space-y-4 rounded-xl border border-border p-5">
             <label className="flex flex-col gap-2 text-sm font-medium">

@@ -22,6 +22,7 @@ async function preview(t, path = "/en/blogs", options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(baseURL + path);
   await page.locator('[data-blogs-ready="true"]').waitFor();
+  await page.locator("summary").filter({ hasText: "Blog preview controls" }).click();
   return page;
 }
 async function saved(page) {

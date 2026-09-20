@@ -14,7 +14,7 @@ const examples = [
     href: "/en/employees",
     category: "Plugin",
     title: "Employees",
-    description: "Create and edit users, manage access, and send email verification reminders.",
+    description: "Create and edit users, delete accounts, and send email verification reminders.",
   },
   {
     href: "/en/blogs",
@@ -65,15 +65,15 @@ const examples = [
     title: "Intranet shell",
     description: "Complete workspace shell with sidebar, topbar, banner, and content area.",
   },
-];
+].sort((a, b) => a.title.localeCompare(b.title, "en"));
 
-const types = ["All", ...new Set(examples.map(({ category }) => category))];
+const types = ["All", ...[...new Set(examples.map(({ category }) => category))].sort()];
 
 export default function Home() {
   const [type, setType] = useState("All");
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col p-6 sm:p-8">
+    <main className="mx-auto flex w-full max-w-5xl flex-col p-6 sm:p-8">
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">Components Showcase</h1>
         <p className="mt-2 text-sm text-muted-foreground">

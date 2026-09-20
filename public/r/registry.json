@@ -933,7 +933,7 @@
       "name": "employees",
       "type": "registry:block",
       "title": "Employees",
-      "description": "Admin-only employee dashboard and create/edit/delete forms, verification and access controls. Requires the authenticated viewer's role and host server authorization.",
+      "description": "Admin-only employee dashboard with create/edit/delete dialogs, verification and access controls. Requires the authenticated viewer's role and host server authorization.",
       "files": [
         {
           "path": "registry/components/plugins/employees/index.tsx",
@@ -941,9 +941,9 @@
           "target": "@components/plugins/employees/index.tsx"
         },
         {
-          "path": "registry/components/plugins/employees/employee-new-page.tsx",
+          "path": "registry/components/plugins/employees/employee-create-dialog.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/employees/employee-new-page.tsx"
+          "target": "@components/plugins/employees/employee-create-dialog.tsx"
         },
         {
           "path": "registry/components/plugins/employees/employee-actions.tsx",

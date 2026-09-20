@@ -24,7 +24,7 @@ export const primaryClass = cn(
   "bg-primary text-primary-foreground hover:bg-primary/90",
 );
 export const inputClass =
-  "h-9 w-full min-w-0 rounded-2xl border border-transparent bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
+  "h-9 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
 export const messageFor = (error: unknown, labels: DriveLabels) =>
   labels[errorCode(error) ?? "error"];

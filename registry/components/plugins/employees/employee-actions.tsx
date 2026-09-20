@@ -1,12 +1,6 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
-import {
-  PencilIcon,
-  SendHorizontalIcon,
-  Trash2Icon,
-  UserRoundCheckIcon,
-  UserRoundXIcon,
-} from "lucide-react";
+import { PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
@@ -29,7 +23,8 @@ import { cn } from "@/components/utils/cn";
 export interface EmployeeActionCallbacks {
   onUpdate: (values: UpdateEmployee) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onSetBan: (id: string, banned: boolean) => Promise<void>;
+  /** @deprecated The employee list no longer provides an access toggle. */
+  onSetBan?: (id: string, banned: boolean) => Promise<void>;
   onSendVerification: (id: string) => Promise<VerificationResult>;
 }
 export interface EmployeeActionsProps extends EmployeeActionCallbacks {
@@ -43,7 +38,6 @@ export function EmployeeActions({
   currentUserId,
   onUpdate,
   onDelete,
-  onSetBan,
   onSendVerification,
   labels: overrides,
   className,
@@ -56,7 +50,7 @@ export function EmployeeActions({
   const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null);
   const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
-  async function run(kind: "edit" | "remove" | "send" | "ban", action: () => Promise<void>) {
+  async function run(kind: "edit" | "remove" | "send", action: () => Promise<void>) {
     if (lock.current) return;
     lock.current = true;
     setPending(true);
@@ -66,10 +60,10 @@ export function EmployeeActions({
       await action();
     } catch {
       setFailedAction(kind);
-      if (kind === "send" || kind === "ban")
+      if (kind === "send")
         setFeedback({
           error: true,
-          message: kind === "send" ? labels.emailError : labels.updateError,
+          message: labels.emailError,
         });
     } finally {
       lock.current = false;
@@ -86,7 +80,6 @@ export function EmployeeActions({
 
             disabled={pending}
             aria-label={`${labels.sendEmail} ${employee.name}`}
-            title={labels.sendEmail}
             onClick={() =>
               void run("send", async () => {
                 const { status } = await onSendVerification(employee.id);
@@ -119,7 +112,6 @@ export function EmployeeActions({
             className={iconButtonClass}
 
             aria-label={`${labels.edit} ${employee.name}`}
-            title={labels.edit}
           >
             <PencilIcon aria-hidden="true" />
           </Dialog.Trigger>
@@ -208,23 +200,6 @@ export function EmployeeActions({
             </Dialog.Popup>
           </Dialog.Portal>
         </Dialog.Root>
-        {!isSelf && !isEmployeeAdmin(employee.role) && (
-          <button
-            type="button"
-            className={iconButtonClass}
-
-            disabled={pending}
-            aria-label={`${employee.banned ? labels.enable : labels.disable} ${employee.name}`}
-            title={employee.banned ? labels.enable : labels.disable}
-            onClick={() => void run("ban", () => onSetBan(employee.id, !employee.banned))}
-          >
-            {employee.banned ? (
-              <UserRoundCheckIcon aria-hidden="true" />
-            ) : (
-              <UserRoundXIcon aria-hidden="true" />
-            )}
-          </button>
-        )}
         {!isSelf && (
           <Dialog.Root
             open={deleting}
@@ -239,7 +214,6 @@ export function EmployeeActions({
               disabled={pending}
               className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
               aria-label={`${labels.delete} ${employee.name}`}
-              title={labels.deleteTitle}
             >
               <Trash2Icon aria-hidden="true" />
             </Dialog.Trigger>

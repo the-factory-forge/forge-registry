@@ -74,6 +74,7 @@ test("blog mode includes portaled dialogs and is restored when leaving the previ
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${baseURL}/en/admin/blogs/categories`);
   await page.locator('[data-blogs-ready="true"]').waitFor();
+  await page.locator("summary").filter({ hasText: "Blog preview controls" }).click();
   const toggle = page.getByLabel("Dark theme", { exact: true });
   assert.equal(await toggle.isChecked(), true);
   const dark = await palette(page);

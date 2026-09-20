@@ -14,6 +14,7 @@
 
 :root {
   color-scheme: light dark;
+  scrollbar-gutter: stable;
   --background: light-dark(#ffffff, #000000);
   --foreground: light-dark(#000000, #ffffff);
   --card: var(--background);
@@ -102,6 +103,22 @@
 
 .dark {
   color-scheme: dark;
+}
+
+/* One viewport budget for the showroom chrome and full-height examples. */
+:root {
+  --showroom-header-height: 3.5rem;
+}
+
+.showroom-content {
+  --intranet-top-offset: var(--showroom-header-height);
+  min-height: calc(100svh - var(--showroom-header-height));
+}
+
+@media print {
+  :root {
+    --showroom-header-height: 0rem;
+  }
 }
 
 @keyframes enter {

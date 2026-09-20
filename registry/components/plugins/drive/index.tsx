@@ -133,7 +133,7 @@ export function DrivePage({
         ) : !data?.items.length ? (
           <p className="text-sm text-muted-foreground">{labels.emptySpaces}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table aria-label={labels.spaces} className="w-full min-w-[44rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
@@ -448,7 +448,7 @@ function Browser({
             {search ? labels.noMatches : labels.empty}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table aria-label={data.space.name} className="w-full min-w-[44rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">

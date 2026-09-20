@@ -189,7 +189,6 @@ export function CustomerForm({
                       type="button"
                       className={cn(buttonClass, "px-2")}
                       aria-label={labels.generatePassword}
-                      title={labels.generatePassword}
                       onClick={() => {
                         try {
                           const generated = generateCustomerPassword(
@@ -214,7 +213,6 @@ export function CustomerForm({
                       className={cn(buttonClass, "px-2")}
                       disabled={!password}
                       aria-label={labels.copyPassword}
-                      title={labels.copyPassword}
                       onClick={() => void copyPassword(password)}
                     >
                       <CopyIcon aria-hidden="true" />

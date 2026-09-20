@@ -28,8 +28,8 @@ export interface NewsletterProps {
  *
  * 1. Logo + dark footer (BBX, Soleva, Laveria, Osteoptimum)
  *    brand.logo, variant="dark", colors: { headings: "primary", icons: "primary" }
- *    (requires a --dark token in globals.css; keep "accent" default if
- *    --primary is dark and would blend into the footer background)
+ *    (requires the --dark/--dark-foreground pair; omit heading/icon overrides
+ *    when --primary would blend into the footer background)
  *
  * 2. No logo + tagline (Café des Promeneurs)
  *    brand.name + tagline, hideMonogram: true,
@@ -115,9 +115,11 @@ export function Footer({
         ? "text-secondary"
         : color === "foreground"
           ? "text-foreground"
-          : dark
+          : color === "accent" && dark
             ? "text-accent"
-            : "text-primary";
+            : dark
+              ? "text-dark-foreground"
+              : "text-primary";
 
   const headingsColor = colors?.headings ?? accentColor;
   const iconsColor = colors?.icons ?? iconColor;
@@ -134,15 +136,15 @@ export function Footer({
   const heading = accentClass;
   const icon = iconsColor ? colorClass(iconsColor) : accentClass;
   const link = dark
-    ? "text-dark-foreground/70 transition-colors hover:text-secondary"
+    ? "text-dark-foreground/70 transition-colors hover:text-dark-foreground"
     : "text-muted-foreground transition-colors hover:text-primary";
   const socialIcon = dark
-    ? "text-dark-foreground/80 transition-colors hover:text-secondary"
+    ? "text-dark-foreground/80 transition-colors hover:text-dark-foreground"
     : "text-muted-foreground transition-colors hover:text-primary";
   const bottomBorder = dark ? "border-dark-foreground/10" : "border-border";
   const bottomText = dark ? "text-dark-foreground/60" : "text-muted-foreground";
   const bottomLink = dark
-    ? "transition-colors hover:text-secondary"
+    ? "transition-colors hover:text-dark-foreground"
     : "transition-colors hover:text-primary";
 
   const inputClass = dark
@@ -357,7 +359,10 @@ export function Footer({
                 <Link
                   key={linkItem.href}
                   href={linkItem.href}
-                  className={cn(bottomLink, dark && "text-dark-foreground/70 hover:text-secondary")}
+                  className={cn(
+                    bottomLink,
+                    dark && "text-dark-foreground/70 hover:text-dark-foreground",
+                  )}
                 >
                   {linkItem.label}
                 </Link>
@@ -367,7 +372,10 @@ export function Footer({
                   label={manageCookiesLabel}
                   manageEvent={manageCookiesEvent}
                   size="xs"
-                  className={cn(bottomLink, dark && "text-dark-foreground/70 hover:text-secondary")}
+                  className={cn(
+                    bottomLink,
+                    dark && "text-dark-foreground/70 hover:text-dark-foreground",
+                  )}
                 />
               )}
             </nav>

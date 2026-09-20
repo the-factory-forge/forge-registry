@@ -242,11 +242,10 @@ export function DeleteProject({
         <Dialog.Trigger
           ref={trigger}
           disabled={disabled || action.pending}
-          className={cn(buttonClass, "text-red-600 dark:text-red-400")}
+          className={cn(buttonClass, "text-destructive")}
           aria-label={labels.deleteProject}
         >
           <Trash2Icon aria-hidden="true" />
-          <span>{labels.deleteProject}</span>
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />

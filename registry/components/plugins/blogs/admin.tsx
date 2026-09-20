@@ -1,6 +1,16 @@
 "use client";
 
-import { Bold, Code, Heading2, ImagePlus, Italic, Link2, List, Quote } from "lucide-react";
+import {
+  Bold,
+  Code,
+  Heading2,
+  ImagePlus,
+  Italic,
+  Link2,
+  List,
+  PencilIcon,
+  Quote,
+} from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
 import { Image } from "@/components/image";
@@ -136,15 +146,23 @@ export function BlogsPage({
               {data.items.map((post) => (
                 <tr key={post.id} className="border-b border-border last:border-0">
                   <td className="min-w-48 p-4 font-medium">
-                    <BlogLink href={editHref(post.id)} className="hover:underline">
+                    <BlogLink href={editHref(post.id)} className="text-foreground hover:underline">
                       {post.title}
                     </BlogLink>
                   </td>
-                  <td className="min-w-48 p-4">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="min-w-48 p-4 whitespace-nowrap">
+                    <div className="flex flex-nowrap gap-2">
                       {post.translations.map((t) => (
-                        <span key={t.locale} className="rounded-full bg-muted px-2 py-1 text-xs">
-                          {t.locale.toUpperCase()} · {labels[t.status]}
+                        <span
+                          key={t.locale}
+                          title={labels[t.status]}
+                          className={cn(
+                            "rounded-full bg-muted px-2 py-1 text-xs",
+                            t.status === "draft" && "opacity-40",
+                          )}
+                        >
+                          {t.locale.toUpperCase()}
+                          <span className="sr-only"> · {labels[t.status]}</span>
                         </span>
                       ))}
                     </div>
@@ -154,8 +172,12 @@ export function BlogsPage({
                     <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
                   </td>
                   <td className="p-4">
-                    <BlogLink href={editHref(post.id)} className={buttonClass}>
-                      {labels.edit}
+                    <BlogLink
+                      href={editHref(post.id)}
+                      className={cn(buttonClass, "size-9 shrink-0 p-0")}
+                      aria-label={`${labels.edit}: ${post.title}`}
+                    >
+                      <PencilIcon aria-hidden="true" />
                     </BlogLink>
                   </td>
                 </tr>
@@ -601,7 +623,6 @@ function EditorForm({
                   className={buttonClass}
                   disabled={pending || readOnly}
                   aria-label={tool.label}
-                  title={tool.label}
                   onClick={() => insert(tool.prefix, tool.suffix)}
                 >
                   <tool.icon />
@@ -671,15 +692,14 @@ function EditorForm({
             <ConfirmDelete
               labels={labels}
               title={labels.deleteTitle}
+              label={labels.delete}
               description={labels.deleteDescription}
               disabled={pending}
               onDelete={async (requestId) => {
                 await client.delete({ id: base.id, version: base.version, requestId });
                 onDeleted();
               }}
-            >
-              {labels.delete}
-            </ConfirmDelete>
+            />
           )}
           <div className="ml-auto flex flex-wrap justify-end gap-2">
             {capabilities.publish && (
@@ -906,15 +926,14 @@ function CategoryForm({
         <ConfirmDelete
           labels={labels}
           title={labels.deleteCategoryTitle}
+          label={labels.deleteCategory}
           description={labels.deleteCategoryDescription}
           disabled={action.pending}
           onDelete={async (requestId) => {
             await client.deleteCategory({ id: base.id, version: base.version, requestId });
             onDeleted();
           }}
-        >
-          {labels.deleteCategory}
-        </ConfirmDelete>
+        />
       )}
     </form>
   );

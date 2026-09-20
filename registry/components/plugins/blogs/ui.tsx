@@ -1,19 +1,20 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { useRef, useState, type ReactNode } from "react";
+import { Trash2Icon } from "lucide-react";
+import { useRef, useState } from "react";
 
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { cn } from "@/components/utils/cn";
 
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90",
 );
 export const inputClass =
-  "h-10 w-full min-w-0 rounded-2xl border border-transparent bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
+  "h-10 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
 export const pageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";
 export function errorMessage(error: unknown, labels: BlogsLabels) {
@@ -68,14 +69,14 @@ export function ConfirmDelete({
   description,
   onDelete,
   disabled = false,
-  children,
+  label,
 }: {
   labels: BlogsLabels;
   title: string;
   description: string;
   onDelete: (requestId: string) => Promise<void>;
   disabled?: boolean;
-  children: ReactNode;
+  label: string;
 }) {
   const [open, setOpen] = useState(false);
   const action = useBlogAction(labels);
@@ -86,8 +87,12 @@ export function ConfirmDelete({
         if (!action.pending) setOpen(next);
       }}
     >
-      <Dialog.Trigger className={cn(buttonClass, "text-destructive")} disabled={disabled}>
-        {children}
+      <Dialog.Trigger
+        className={cn(buttonClass, "size-9 shrink-0 p-0 text-destructive")}
+        aria-label={label}
+        disabled={disabled}
+      >
+        <Trash2Icon aria-hidden="true" />
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />

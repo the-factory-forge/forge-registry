@@ -22,6 +22,7 @@ import {
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
+import { PreviewControls } from "@/showroom/preview-controls";
 
 function usePreview() {
   const [mock] = useState(createBlogsMock),
@@ -101,67 +102,71 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   );
   return (
     <Context.Provider value={state}>
-      <div data-blogs-ready={ready} className="min-h-screen bg-background text-foreground">
-        <aside
-          aria-label="Blog preview controls"
-          className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 border-b border-border px-4 py-4 text-xs"
-        >
-          <Link href="/">All components</Link>
-          <Link href="/en/blogs">Public blog</Link>
-          <Link href="/en/admin/blogs">Manage posts</Link>
-          <Link href="/fr/blogs">French blog</Link>
-          <label className="flex items-center gap-2">
-            Editor
-            <select
-              aria-label="Editor"
-              value={state.editor}
-              onChange={(e) => state.setEditor(e.target.value)}
-            >
-              <option value="jordan">Jordan Lee</option>
-              <option value="alex">Alex Morgan</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.readOnly}
-              onChange={(e) => state.setReadOnly(e.target.checked)}
-            />
-            Read-only
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.fail}
-              onChange={(e) => state.setFail(e.target.checked)}
-            />
-            Fail mutations
-          </label>
-          <button onClick={() => state.setFailUpload(true)} className="underline">
-            Fail next upload{state.failUpload ? " (armed)" : ""}
-          </button>
-          <label className="flex items-center gap-2">
-            Directory state
-            <select
-              aria-label="Directory state"
-              value={state.state}
-              onChange={(e) => state.setState(e.target.value)}
-            >
-              <option value="ready">Ready</option>
-              <option value="loading">Loading</option>
-              <option value="error">Error</option>
-              <option value="empty">Empty</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.dark ?? systemDark}
-              onChange={(e) => state.setDark(e.target.checked)}
-            />
-            Dark theme
-          </label>
-        </aside>
+      <div data-blogs-ready={ready} className="bg-background text-foreground">
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+          <PreviewControls
+            label="Blog preview controls"
+            navigation={
+              <>
+                <Link href="/en/blogs">Public blog</Link>
+                <Link href="/en/admin/blogs">Manage posts</Link>
+                <Link href="/fr/blogs">French blog</Link>
+              </>
+            }
+          >
+            <label className="flex items-center gap-2">
+              Editor
+              <select
+                aria-label="Editor"
+                value={state.editor}
+                onChange={(e) => state.setEditor(e.target.value)}
+              >
+                <option value="jordan">Jordan Lee</option>
+                <option value="alex">Alex Morgan</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.readOnly}
+                onChange={(e) => state.setReadOnly(e.target.checked)}
+              />
+              Read-only
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.fail}
+                onChange={(e) => state.setFail(e.target.checked)}
+              />
+              Fail mutations
+            </label>
+            <button onClick={() => state.setFailUpload(true)} className="underline">
+              Fail next upload{state.failUpload ? " (armed)" : ""}
+            </button>
+            <label className="flex items-center gap-2">
+              Directory state
+              <select
+                aria-label="Directory state"
+                value={state.state}
+                onChange={(e) => state.setState(e.target.value)}
+              >
+                <option value="ready">Ready</option>
+                <option value="loading">Loading</option>
+                <option value="error">Error</option>
+                <option value="empty">Empty</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.dark ?? systemDark}
+                onChange={(e) => state.setDark(e.target.checked)}
+              />
+              Dark theme
+            </label>
+          </PreviewControls>
+        </div>
         {children}
       </div>
     </Context.Provider>

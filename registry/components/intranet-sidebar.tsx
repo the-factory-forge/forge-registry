@@ -67,7 +67,7 @@ const defaultLabels = {
 
 const focusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const sidebarFocusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
-const navClassName = `relative flex w-full items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
+const navClassName = `relative flex w-full items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
 const activeClassName =
   "rounded-l-none border-sidebar-primary bg-sidebar-accent/40 font-semibold text-sidebar-primary";
 
@@ -160,7 +160,10 @@ export function IntranetSidebarProvider({
     >
       <div
         data-slot="sidebar-wrapper"
-        className={cn("flex min-h-svh w-full", className)}
+        className={cn(
+          "flex min-h-[calc(100svh-var(--intranet-top-offset,0rem))] w-full",
+          className,
+        )}
         onFocusCapture={(event) => {
           sidebarHadFocus.current = Boolean(
             event.target.closest('[data-slot="sidebar"], [data-sidebar-profile-menu]'),
@@ -247,7 +250,7 @@ function NavigationItem({
   if (expansion.pathname !== pathname) setExpansion({ pathname, open: expansion.open || active });
   const expanded = expansion.open;
   const itemClasses = cn(
-    nested && "-ml-[9px] w-[calc(100%+9px)] rounded-l-none pl-[17px]",
+    nested && "-ml-[9px] w-[calc(100%+9px)] rounded-l-none bg-clip-padding pl-[17px]",
     active && activeClassName,
   );
   const childList = Boolean(item.items?.length) && (
@@ -534,7 +537,7 @@ export function IntranetSidebar({
         <IntranetSidebarToggle
           aria-label={labels.toggle}
           className={cn(
-            "fixed top-2 left-2 z-30 border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring",
+            "fixed top-[calc(var(--intranet-top-offset,0rem)+0.5rem)] left-2 z-30 border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring",
             !isMobile && open && "left-[13.5rem]",
           )}
         />
@@ -586,7 +589,7 @@ export function IntranetSidebar({
             data-slot="sidebar"
             data-state={open ? "expanded" : "collapsed"}
             className={cn(
-              "fixed inset-y-0 left-0 z-20 flex h-svh w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 motion-reduce:transition-none",
+              "fixed top-[var(--intranet-top-offset,0rem)] bottom-0 left-0 z-20 flex h-[calc(100svh-var(--intranet-top-offset,0rem))] w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 motion-reduce:transition-none",
               !open && "invisible -translate-x-full",
               className,
             )}

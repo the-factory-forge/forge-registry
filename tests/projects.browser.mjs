@@ -22,6 +22,7 @@ async function preview(t, path = "/en/projects", options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(`${baseURL}${path}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await page.locator("summary").filter({ hasText: "Preview controls" }).click();
   return page;
 }
 async function pick(page, entity, name) {
@@ -234,6 +235,25 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await row.waitFor({ state: "hidden" });
   await page.getByRole("link", { name: "Customer portal", exact: true }).click();
+  await page.getByRole("button", { name: "Delete Project", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("dialog").getByRole("alert").waitFor();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  // The portal has sample Drive files; delete them before removing their project.
+  await page.getByRole("link", { name: "Drive", exact: true }).click();
+  await page.getByRole("table").waitFor();
+  while (await page.getByRole("button", { name: "Delete", exact: true }).count()) {
+    await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+    const driveDialog = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+    await driveDialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+    await driveDialog.waitFor({ state: "hidden" });
+    await page
+      .locator('[aria-busy="false"]')
+      .filter({ has: page.getByRole("table") })
+      .or(page.getByText("This folder is empty.", { exact: true }))
+      .waitFor();
+  }
+  await page.getByRole("link", { name: "Details", exact: true }).click();
   await page.getByRole("button", { name: "Delete Project", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByText("No projects found.", { exact: true }).waitFor();

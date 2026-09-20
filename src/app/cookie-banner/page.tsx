@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { CookieBanner, type ConsentState } from "@/components/cookie-banner";
@@ -12,7 +11,7 @@ export default function CookieBannerPage() {
   const [showMarketing, setShowMarketing] = useState(true);
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl p-6 sm:p-8">
+    <main className="mx-auto w-full max-w-3xl p-6 sm:p-8">
       <div className="mb-8 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -20,12 +19,6 @@ export default function CookieBannerPage() {
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-foreground">Cookie banner</h1>
         </div>
-        <Link
-          href="/"
-          className="text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
-        >
-          Back to components
-        </Link>
       </div>
 
       <section className="rounded-xl border border-border p-6">
