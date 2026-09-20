@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { CookieBanner, type ConsentState } from "@/components/cookie-banner";
 import { ManageCookiesButton } from "@/components/manage-cookies-button";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function CookieBannerPage() {
   const [appliedConsent, setAppliedConsent] = useState<ConsentState | null>(null);
@@ -10,23 +11,10 @@ function CookieBannerPage() {
   const [showMarketing, setShowMarketing] = useState(true);
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-6 sm:p-8">
-      <div className="mb-8 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Layout
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">Cookie banner</h1>
-        </div>
-      </div>
-
-      <section className="rounded-xl border border-border p-6">
-        <h2 className="text-lg font-semibold">Preview controls</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Reopen the banner to review saved preferences. This preview does not load analytics
-          scripts.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+    <ShowroomPreview
+      width="narrow"
+      controls={
+        <>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -43,7 +31,25 @@ function CookieBannerPage() {
             />
             Offer marketing cookies
           </label>
+        </>
+      }
+    >
+      <div className="mb-8 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Layout
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold text-foreground">Cookie banner</h1>
         </div>
+      </div>
+
+      <section className="rounded-xl border border-border p-6">
+        <h2 className="text-lg font-semibold">Cookie preferences</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Reopen the banner to review saved preferences. This preview does not load analytics
+          scripts.
+        </p>
+
         <output
           aria-label="Applied cookie preferences"
           className="mt-4 block text-sm text-muted-foreground"
@@ -71,7 +77,7 @@ function CookieBannerPage() {
         policyLabel="Privacy policy"
         privacyHref="#privacy"
       />
-    </main>
+    </ShowroomPreview>
   );
 }
 

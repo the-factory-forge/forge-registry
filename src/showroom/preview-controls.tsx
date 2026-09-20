@@ -1,39 +1,31 @@
 import type { ReactNode } from "react";
 
-import { cn } from "@/components/utils/cn";
-
 export function PreviewControls({
   children,
   navigation,
-  label = "Preview controls",
-  className,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   navigation?: ReactNode;
-  label?: string;
-  className?: string;
 }) {
   return (
     <aside
-      aria-label={label}
-      className={cn("min-w-0 rounded-xl border border-border bg-background text-sm", className)}
+      aria-label="Preview controls"
+      className="showroom-controls min-w-0 bg-background text-sm print:hidden"
     >
+      <h2 className="mb-5 font-semibold">Preview controls</h2>
       {navigation && (
         <nav
-          aria-label={`${label} navigation`}
-          className="flex flex-wrap gap-x-5 gap-y-3 border-b border-border p-4 [&_a]:underline [&_a]:underline-offset-4"
+          aria-label="Preview navigation"
+          className="mb-5 flex flex-col items-start gap-3 border-b border-border pb-5 [&_a]:underline [&_a]:underline-offset-4"
         >
           {navigation}
         </nav>
       )}
-      <details>
-        <summary className="cursor-pointer rounded-xl px-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-          {label}
-        </summary>
-        <div className="flex flex-wrap items-center gap-4 px-4 pt-1 pb-4 [&_label]:min-w-0 [&_select]:max-w-full [&_select]:rounded-md [&_select]:border [&_select]:border-input [&_select]:bg-background [&_select]:p-1">
+      {children && (
+        <div className="flex flex-col items-start gap-4 [&_button]:text-start [&_label]:max-w-full [&_label]:min-w-0 [&_label:has(select)]:flex [&_label:has(select)]:w-full [&_label:has(select)]:flex-col [&_label:has(select)]:items-start [&_label:has(select)]:gap-2 [&_select]:w-full [&_select]:min-w-0 [&_select]:rounded-md [&_select]:border [&_select]:border-input [&_select]:bg-background [&_select]:p-1">
           {children}
         </div>
-      </details>
+      )}
     </aside>
   );
 }

@@ -75,8 +75,8 @@ props unless the requested change calls for a breaking change.
 | `registry/registry.json`                         | Editable source manifest                                                                  |
 | `vite.config.ts`                                 | Vite Plus lint/format configuration                                                       |
 | `public/r/registry.json`, `public/r/{name}.json` | Generated shadcn catalog and item endpoints; do not hand-edit                             |
-| `src/lib/`                                       | Internal i18n, font presets, providers, and showroom helpers; never published             |
-| `src/showroom/`                                  | Internal preview controls and font switcher components; never published                   |
+| `src/lib/`                                       | Internal i18n and providers and showroom helpers; never published                         |
+| `src/showroom/`                                  | Internal preview controls, theme control, and layout frame; never published               |
 | `src/routes/`                                    | TanStack Router showroom demos                                                            |
 | `src/styles/globals.css`                         | Showroom tokens, typography, animations, and layout utilities                             |
 | `src/start.ts`                                   | Showroom-only Start request middleware                                                    |
@@ -163,6 +163,18 @@ for separating reusable feature code from website adapters.
    validate the result as described below. The reusable result must work without
    access to `tc-website`'s files, services, or providers.
 
+## Shared showroom layout
+
+Wrap examples in `ShowroomPreview` from `src/showroom/showroom-preview.tsx`.
+Supply demo-specific `controls` and optional `navigation`; the shared frame owns
+spacing, the always-expanded right settings sidebar (stacked above the preview
+on mobile), keyboard entry, and header offsets.
+Use its standard, narrow, or full width rather than per-route viewport math.
+Light/Dark selection belongs to the shared header, persists across demos, and
+has no System option. Do not restore the removed font control/provider. Use the
+showroom guide for className overrides on portable pages; keep these concerns
+out of shipped registry components.
+
 ## Showroom homepage requirement
 
 Every new registry UI component or module must have a working showroom example
@@ -186,7 +198,7 @@ component's linked example; never import server modules into browser previews.
 and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and
 `@components/utils/` targets and `@forge/item-name` registry dependencies.
 Source imports match those locations; shadcn resolves the consumer's configured
-aliases. Showroom i18n, font presets, and providers live in `src/lib/`
+aliases. Showroom i18n and providers live in `src/lib/`
 and are not registry items. Shared components must not import from `src/lib/`
 or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
 
@@ -230,6 +242,6 @@ Known limitations and integration boundaries to verify when touching affected it
 - Framework packages belong to the showroom only. Declare `@forge/ui-shims`
   for components using the shared Link/Image/Script/location contract; never add
   Next.js or TanStack runtime dependencies to framework-neutral registry items.
-- Keep internal i18n, font presets, and providers under `src/lib/`, with
-  preview switcher components under `src/showroom/`; do not register them.
+- Keep internal i18n, providers under `src/lib/`, with
+  showroom controls under `src/showroom/`; do not register them.
   Shared helpers needed by consumers stay under `registry/components/utils/`.

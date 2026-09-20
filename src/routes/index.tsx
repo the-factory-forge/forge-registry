@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { ShowroomLink as Link } from "@/showroom/routing";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const examples = [
   {
@@ -73,7 +74,7 @@ function Home() {
   const [type, setType] = useState("All");
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col p-6 sm:p-8">
+    <ShowroomPreview>
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">Components Showcase</h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -120,7 +121,7 @@ function Home() {
             </Link>
           ))}
       </section>
-    </main>
+    </ShowroomPreview>
   );
 }
 

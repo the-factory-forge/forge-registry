@@ -21,7 +21,8 @@ async function preview(t, route = "", options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(`${baseURL}/en/customers${route}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  await page.locator("summary").filter({ hasText: "Preview controls" }).click();
+  if (options.colorScheme === "dark")
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
   return page;
 }
 

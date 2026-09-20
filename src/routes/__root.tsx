@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { isLocale } from "@/lib/i18n/config";
 import { ShowroomLink } from "@/showroom/routing";
 import { ShowroomHeader } from "@/showroom/showroom-header";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { themeScript } from "@/showroom/theme-control";
 
 import appCss from "@/styles/globals.css?url";
 
@@ -42,20 +44,21 @@ export const Route = createRootRoute({
     if ("locale" in params && !isLocale(String(params.locale))) throw notFound();
   },
   notFoundComponent: () => (
-    <main className="mx-auto max-w-3xl space-y-4 p-8">
+    <ShowroomPreview width="narrow">
       <h1 className="text-2xl font-semibold">Page not found</h1>
       <ShowroomLink href="/" className="underline">
         Back to all components
       </ShowroomLink>
-    </main>
+    </ShowroomPreview>
   ),
   shellComponent: RootDocument,
 });
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="light h-full antialiased" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <HeadContent />
       </head>
       <body className="flex min-h-full flex-col">

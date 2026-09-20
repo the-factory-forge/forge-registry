@@ -1,7 +1,0 @@
-{
-  "id": "playfair-display",
-  "label": "Playfair Display",
-  "family": "serif",
-  "cssVar": "var(--font-playfair), \"Playfair Display\", Georgia, \"Times New Roman\", serif",
-  "category": "Classique"
-}

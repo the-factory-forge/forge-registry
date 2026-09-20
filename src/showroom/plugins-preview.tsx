@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 import type { Customer } from "@/components/plugins/customers";
 import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
 import { createDriveMock } from "@/showroom/drive-mock";
-import { PreviewControls } from "@/showroom/preview-controls";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const initialCustomers: Customer[] = [
   {
@@ -129,7 +122,6 @@ function usePreviewState() {
 }
 
 const PreviewContext = createContext<ReturnType<typeof usePreviewState> | null>(null);
-const subscribeReady = () => () => {};
 
 export function usePluginsPreview() {
   const state = useContext(PreviewContext);
@@ -145,122 +137,118 @@ export const previewAssignees = [
 export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
   const state = usePreviewState();
   const { locale } = useShowroomParams();
-  const ready = useSyncExternalStore(
-    subscribeReady,
-    () => true,
-    () => false,
-  );
   return (
     <PreviewContext.Provider value={state}>
-      <main data-preview-ready={ready} className="mx-auto w-full max-w-[1536px]">
-        <PreviewControls
-          className="mx-4 mt-6 md:mx-8"
-          navigation={
-            <>
-              <Link href={`/${locale}/customers`} className="underline">
-                Customer directory
-              </Link>
-              <Link href={`/${locale}/projects`} className="underline">
-                Project directory
-              </Link>
-              <Link href={`/${locale}/drive`} className="underline">
-                Drive directory
-              </Link>
-            </>
-          }
-        >
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showDrive}
-              onChange={(event) => state.setShowDrive(event.target.checked)}
-            />
-            Drive integration
-          </label>
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              state.driveMock.failUpload();
-              state.setNotice("The next upload will fail once; retry will succeed.");
-            }}
-          >
-            Fail next upload
-          </button>
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              state.driveMock.failDeletion();
-              state.setNotice("The next deletion will pause; retry will finish it.");
-            }}
-          >
-            Interrupt next deletion
-          </button>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showProjects}
-              onChange={(event) => state.setShowProjects(event.target.checked)}
-            />
-            Projects integration
-          </label>
-          <label>
-            People directories{" "}
-            <select
-              aria-label="People directories"
-              value={state.peopleState}
-              onChange={(event) => state.setPeopleState(event.target.value)}
-              className="rounded border border-border bg-background p-1"
+      <ShowroomPreview
+        navigation={
+          <>
+            <Link href={`/${locale}/customers`} className="underline">
+              Customer directory
+            </Link>
+            <Link href={`/${locale}/projects`} className="underline">
+              Project directory
+            </Link>
+            <Link href={`/${locale}/drive`} className="underline">
+              Drive directory
+            </Link>
+          </>
+        }
+        controls={
+          <>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.showDrive}
+                onChange={(event) => state.setShowDrive(event.target.checked)}
+              />
+              Drive integration
+            </label>
+            <button
+              type="button"
+              className="underline"
+              onClick={() => {
+                state.driveMock.failUpload();
+                state.setNotice("The next upload will fail once; retry will succeed.");
+              }}
             >
-              <option value="ready">Ready</option>
-              <option value="loading">Loading</option>
-              <option value="error">Error</option>
-              <option value="empty">No customers</option>
-              <option value="unavailable">Current owner unavailable</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.failActions}
-              onChange={(event) => state.setFailActions(event.target.checked)}
-            />
-            Simulate action failures
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showActions}
-              onChange={(event) => state.setShowActions(event.target.checked)}
-            />
-            Account actions
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={state.showIntegration}
-              onChange={(event) => state.setShowIntegration(event.target.checked)}
-            />
-            Host integration example
-          </label>
-          <label>
-            Directory state{" "}
-            <select
-              value={state.directoryState}
-              onChange={(event) => state.setDirectoryState(event.target.value)}
-              className="rounded border border-border bg-background p-1"
+              Fail next upload
+            </button>
+            <button
+              type="button"
+              className="underline"
+              onClick={() => {
+                state.driveMock.failDeletion();
+                state.setNotice("The next deletion will pause; retry will finish it.");
+              }}
             >
-              <option value="ready">Ready</option>
-              <option value="loading">Loading</option>
-              <option value="error">Error</option>
-            </select>
-          </label>
-          <span className="text-muted-foreground">Demo data resets on reload.</span>
-        </PreviewControls>
-        {state.notice && <output className="mx-4 mt-4 block text-sm">{state.notice}</output>}
+              Interrupt next deletion
+            </button>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.showProjects}
+                onChange={(event) => state.setShowProjects(event.target.checked)}
+              />
+              Projects integration
+            </label>
+            <label>
+              People directories{" "}
+              <select
+                aria-label="People directories"
+                value={state.peopleState}
+                onChange={(event) => state.setPeopleState(event.target.value)}
+                className="rounded border border-border bg-background p-1"
+              >
+                <option value="ready">Ready</option>
+                <option value="loading">Loading</option>
+                <option value="error">Error</option>
+                <option value="empty">No customers</option>
+                <option value="unavailable">Current owner unavailable</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.failActions}
+                onChange={(event) => state.setFailActions(event.target.checked)}
+              />
+              Simulate action failures
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.showActions}
+                onChange={(event) => state.setShowActions(event.target.checked)}
+              />
+              Account actions
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.showIntegration}
+                onChange={(event) => state.setShowIntegration(event.target.checked)}
+              />
+              Host integration example
+            </label>
+            <label>
+              Directory state{" "}
+              <select
+                value={state.directoryState}
+                onChange={(event) => state.setDirectoryState(event.target.value)}
+                className="rounded border border-border bg-background p-1"
+              >
+                <option value="ready">Ready</option>
+                <option value="loading">Loading</option>
+                <option value="error">Error</option>
+              </select>
+            </label>
+            <span className="text-muted-foreground">Demo data resets on reload.</span>
+          </>
+        }
+      >
+        {state.notice && <output className="mb-4 block text-sm">{state.notice}</output>}
         {children}
-      </main>
+      </ShowroomPreview>
     </PreviewContext.Provider>
   );
 }

@@ -65,8 +65,8 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pu
 
 The source of truth for this inventory is `registry/registry.json`.
 
-Internal i18n helpers, locale dictionaries, font presets, and their
-providers live under `src/lib/`. Preview switcher components live under
+Internal i18n helpers, locale dictionaries, and their
+providers live under `src/lib/`. Showroom controls live under
 `src/showroom/`. Neither directory is published through the registry; consumers
 supply their own translations and theme configuration.
 
@@ -239,8 +239,8 @@ registry/
   registry.json       # Source manifest
 src/
   routes/             # TanStack file routes and root shell
-  lib/                # Internal i18n, font presets, providers, and helpers
-  showroom/           # Internal preview controls and font switcher components
+  lib/                # Internal i18n and providers and helpers
+  showroom/           # Internal preview controls, theme control, and layout frame
   styles/globals.css  # Showroom design system
   router.tsx          # Fresh router per SSR request
   start.ts            # Showroom-only locale detection and redirect

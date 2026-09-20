@@ -1,7 +1,0 @@
-{
-  "id": "eb-garamond",
-  "label": "EB Garamond",
-  "family": "serif",
-  "cssVar": "var(--font-eb-garamond), \"EB Garamond\", Georgia, \"Times New Roman\", serif",
-  "category": "Classique"
-}

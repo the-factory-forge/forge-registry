@@ -21,8 +21,8 @@ import {
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
-import { PreviewControls } from "@/showroom/preview-controls";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function usePreview() {
   const [mock] = useState(createBlogsMock),
@@ -30,8 +30,7 @@ function usePreview() {
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
-    [state, setState] = useState("ready"),
-    [dark, setDark] = useState<boolean | null>(null);
+    [state, setState] = useState("ready");
   const revision = useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   useEffect(() => () => mock.dispose(), [mock]);
   const client = useMemo(
@@ -59,8 +58,6 @@ function usePreview() {
     setFailUpload,
     state,
     setState,
-    dark,
-    setDark,
   };
 }
 const Context = createContext<ReturnType<typeof usePreview> | null>(null);
@@ -69,51 +66,20 @@ function useBlogsPreview() {
   if (!value) throw new Error("Missing blogs preview provider");
   return value;
 }
-function subscribeSystemTheme(onChange: () => void) {
-  const media = window.matchMedia("(prefers-color-scheme: dark)");
-  media.addEventListener("change", onChange);
-  return () => media.removeEventListener("change", onChange);
-}
-
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const state = usePreview();
-  const systemDark = useSyncExternalStore(
-    subscribeSystemTheme,
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
-    () => false,
-  );
-  useEffect(() => {
-    if (state.dark === null) return;
-    // Set the document mode so dialogs portaled to body use the same colors.
-    const root = document.documentElement;
-    const wasLight = root.classList.contains("light");
-    const wasDark = root.classList.contains("dark");
-    root.classList.toggle("light", !state.dark);
-    root.classList.toggle("dark", state.dark);
-    return () => {
-      root.classList.toggle("light", wasLight);
-      root.classList.toggle("dark", wasDark);
-    };
-  }, [state.dark]);
-  const ready = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
   return (
     <Context.Provider value={state}>
-      <div data-blogs-ready={ready} className="bg-background text-foreground">
-        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-          <PreviewControls
-            label="Blog preview controls"
-            navigation={
-              <>
-                <Link href="/en/blogs">Public blog</Link>
-                <Link href="/en/admin/blogs">Manage posts</Link>
-                <Link href="/fr/blogs">French blog</Link>
-              </>
-            }
-          >
+      <ShowroomPreview
+        navigation={
+          <>
+            <Link href="/en/blogs">Public blog</Link>
+            <Link href="/en/admin/blogs">Manage posts</Link>
+            <Link href="/fr/blogs">French blog</Link>
+          </>
+        }
+        controls={
+          <>
             <label className="flex items-center gap-2">
               Editor
               <select
@@ -157,18 +123,11 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
                 <option value="empty">Empty</option>
               </select>
             </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={state.dark ?? systemDark}
-                onChange={(e) => state.setDark(e.target.checked)}
-              />
-              Dark theme
-            </label>
-          </PreviewControls>
-        </div>
+          </>
+        }
+      >
         {children}
-      </div>
+      </ShowroomPreview>
     </Context.Provider>
   );
 }
@@ -189,6 +148,7 @@ export function BlogsAdminPreview() {
       manageCategories: !state.readOnly,
     };
   const common = {
+    className: "showroom-page",
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     client: state.client,
@@ -280,6 +240,7 @@ export function BlogsPublicPreview() {
     category = params.category ?? undefined,
     page = Math.max(1, Number(params.page) || 1);
   const common = {
+    className: "showroom-page",
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     categories: state.mock.categories(),

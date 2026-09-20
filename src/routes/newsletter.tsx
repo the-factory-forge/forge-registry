@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NewsletterExample } from "@/components/newsletter-example";
+import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function NewsletterPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl p-6 sm:p-8">
+    <ShowroomPreview width="narrow">
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Newsletter Component</h1>
 
       <NewsletterExample />
-    </main>
+    </ShowroomPreview>
   );
 }
 

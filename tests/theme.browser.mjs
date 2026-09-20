@@ -43,8 +43,8 @@ async function palette(page) {
   });
 }
 
-test("showroom colors follow the system without scripts and explicit modes override it", async (t) => {
-  const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: "light" });
+test("the showroom defaults to light without scripts, with no system mode", async (t) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: "dark" });
   t.after(() => context.close());
   const page = await context.newPage();
   await page.goto(baseURL);
@@ -53,46 +53,32 @@ test("showroom colors follow the system without scripts and explicit modes overr
   assert.equal(light.background, "rgb(255, 255, 255)");
   assert.equal(light.input, "rgba(0, 0, 0, 0.28)");
   for (const value of Object.values(light)) assert.notEqual(value, "rgba(0, 0, 0, 0)");
-  await page.emulateMedia({ colorScheme: "dark" });
-  const dark = await palette(page);
-  assert.equal(dark.primary, "rgb(186, 222, 222)");
-  assert.equal(dark.background, "rgb(0, 0, 0)");
-  assert.equal(dark.input, "rgba(255, 255, 255, 0.28)");
-  assert.equal(dark["dark-foreground"], light["dark-foreground"]);
-  await page.evaluate(() => document.documentElement.classList.add("light"));
-  assert.deepEqual(await palette(page), light);
   await page.emulateMedia({ colorScheme: "light" });
-  await page.evaluate(() => document.documentElement.classList.replace("light", "dark"));
-  assert.deepEqual(await palette(page), dark);
+  assert.deepEqual(await palette(page), light);
+  assert.equal(await page.getByRole("button", { name: "System", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Font", exact: true }).count(), 0);
 });
 
-test("blog mode includes portaled dialogs and is restored when leaving the preview", async (t) => {
+test("shared theme persists across previews, reloads, tabs and portaled dialogs", async (t) => {
   const context = await browser.newContext({ colorScheme: "dark" });
   t.after(() => context.close());
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${baseURL}/en/admin/blogs/categories`);
-  await page.locator('[data-blogs-ready="true"]').waitFor();
-  await page.locator("summary").filter({ hasText: "Blog preview controls" }).click();
-  const toggle = page.getByLabel("Dark theme", { exact: true });
-  assert.equal(await toggle.isChecked(), true);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const darkButton = page.getByRole("button", { name: "Dark", exact: true });
+  assert.equal(
+    await page.getByRole("button", { name: "Light", exact: true }).getAttribute("aria-pressed"),
+    "true",
+  );
+  await darkButton.click();
   const dark = await palette(page);
-  await toggle.uncheck();
-  await page.waitForFunction(() => document.documentElement.classList.contains("light"));
-  assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
+  assert.equal(dark.primary, "rgb(186, 222, 222)");
+  assert.equal(dark.background, "rgb(0, 0, 0)");
   await page.getByRole("button", { name: "Inside the studio", exact: true }).click();
   await page.getByRole("button", { name: "Delete category", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.waitFor();
-  assert.equal(
-    await dialog.evaluate((element) => getComputedStyle(element).backgroundColor),
-    "rgb(255, 255, 255)",
-  );
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await toggle.check();
-  await page.waitForFunction(() => document.documentElement.classList.contains("dark"));
-  await page.getByRole("button", { name: "Delete category", exact: true }).click();
   await dialog.waitFor();
   assert.equal(
     await dialog.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -101,17 +87,41 @@ test("blog mode includes portaled dialogs and is restored when leaving the previ
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("link", { name: "All components", exact: true }).click();
   await page.waitForURL(`${baseURL}/`);
-  assert.equal(
-    await page
-      .locator("html")
-      .evaluate(
-        (element) => element.classList.contains("dark") || element.classList.contains("light"),
-      ),
-    false,
-  );
   assert.deepEqual(await palette(page), dark);
+  await page.reload();
+  assert.equal(await darkButton.getAttribute("aria-pressed"), "true");
   await page.emulateMedia({ colorScheme: "light" });
+  assert.deepEqual(await palette(page), dark);
+  const second = await context.newPage();
+  await second.goto(`${baseURL}/en/employees`);
+  await second.locator('[data-preview-ready="true"]').waitFor();
+  assert.deepEqual(await palette(second), dark);
+  await second.getByRole("button", { name: "Light", exact: true }).click();
+  await page.waitForFunction(() => document.documentElement.classList.contains("light"));
   assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
   assert.equal(await page.locator("html").getAttribute("style"), null);
+  assert.deepEqual(errors, []);
+});
+
+test("theme selection works when storage is unavailable", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  await context.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new Error("Storage unavailable");
+      },
+    });
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(baseURL);
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
+  await page.locator('a[href="/en/projects"]').click();
+  assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
   assert.deepEqual(errors, []);
 });

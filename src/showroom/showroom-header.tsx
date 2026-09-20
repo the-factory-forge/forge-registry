@@ -4,6 +4,7 @@ import { useLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon, LayoutGridIcon } from "lucide-react";
 
 import { ShowroomLink as Link } from "@/showroom/routing";
+import { ThemeControl } from "@/showroom/theme-control";
 
 export function ShowroomHeader() {
   const isList = useLocation({ select: (location) => location.pathname }) === "/";
@@ -11,10 +12,19 @@ export function ShowroomHeader() {
 
   return (
     <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
-      <nav
-        aria-label="Showroom navigation"
-        className="mx-auto flex h-full max-w-[1536px] items-center justify-between gap-3 px-4 sm:px-6"
-      >
+      <nav aria-label="Showroom navigation" className="showroom-header-inner">
+        <a
+          href="#showroom-preview"
+          onClick={(event) => {
+            event.preventDefault();
+            const preview = document.getElementById("showroom-preview");
+            preview?.focus();
+            preview?.scrollIntoView({ block: "start" });
+          }}
+          className="sr-only rounded-lg bg-primary p-3 text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:z-50 focus:outline-2 focus:outline-ring"
+        >
+          Skip to preview
+        </a>
         <Link
           href="/"
           aria-current={isList ? "page" : undefined}
@@ -23,7 +33,7 @@ export function ShowroomHeader() {
           <Icon className="size-4" aria-hidden="true" />
           All components
         </Link>
-        <span className="text-xs font-medium text-muted-foreground">Forge showroom</span>
+        <ThemeControl />
       </nav>
     </header>
   );

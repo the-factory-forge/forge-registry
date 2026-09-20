@@ -9,14 +9,14 @@
 
 - **Foundation (historical)**: 46 initial items and UI framework shims.
 - **Distribution**: 41 items including `intranet-sidebar` and the other intranet additions. `registry:sync` uses the pinned official `shadcn build` for `public/r/`, with explicit file targets and `@forge` dependencies in the manifest. `tc-website` uses `shadcn add @forge/intranet-sidebar`. The legacy aggregate and `registry:pull` workflow are retired; existing consumers must migrate.
-- **Components**: accordion (height keyframes on measured `--accordion-panel-height` — replaced janky grid-rows), reveal (useInView + post-hydration animate — was dead), page-not-found (themed: logo/icon/badge/dual CTAs/footnote), cookie-banner (compact by default, custom selection on demand), navbar (`loginHref`), footer (forge attribution default), page-faq-list, sections (page-cta-band, page-trust-section, page-services-grid, page-testimonials, page-method-steps, page-pricing-table, page-contact-info), page-legal. Internal i18n, theme/font presets, and providers live under `src/lib/`; preview switcher components live under `src/showroom/`.
+- **Components**: accordion (height keyframes on measured `--accordion-panel-height` — replaced janky grid-rows), reveal (useInView + post-hydration animate — was dead), page-not-found (themed: logo/icon/badge/dual CTAs/footnote), cookie-banner (compact by default, custom selection on demand), navbar (`loginHref`), footer (forge attribution default), page-faq-list, sections (page-cta-band, page-trust-section, page-services-grid, page-testimonials, page-method-steps, page-pricing-table, page-contact-info), page-legal. Internal i18n and providers live under `src/lib/`; showroom controls live under `src/showroom/`.
 - **SEO/perf items**: lazy image default, content-visibility, srcset props (page-home-hero/service-card), build-metadata (canonical/hreflang/OG), JSON-LD helpers.
 - **Tooling**: Vite Plus 0.3.3 runs Oxlint and Oxfmt from `vite.config.ts`, with type-aware linting and type checking. TanStack Start/Vite runs `dev` and `build`, with Nitro serving `start`; `typecheck` remains `tsc --noEmit`. Format and fix source before `registry:sync`; generated `public/r/` JSON is excluded from linting and formatting.
 - **CI**: GitHub Actions `sync` (auto-manifest on push), `packageManager` pin (fixes pnpm/action-setup@v4), `permissions: contents: write`.
 - **Lessons**: grid-rows never paints a `0fr` start frame (hidden + preflight display:none) → height keyframes; motion ignores `initial` after mount → useInView; source updates can replace site customizations → keep host adapters outside generated directories.
 
 - **Intranet**: `intranet-shell` composes `intranet-sidebar` with banner, topbar, and controls. The host supplies its branding and site-specific styling.
-- **Portability**: Consumers supply their own dictionaries, locale routing, and themes. The showroom keeps its i18n, theme/font presets, and providers in `src/lib/`, its preview switchers in `src/showroom/`, and its Start locale middleware in `src/start.ts`.
+- **Portability**: Consumers supply their own dictionaries, locale routing, and themes. The showroom keeps its i18n, providers in `src/lib/`, its preview switchers in `src/showroom/`, and its Start locale middleware in `src/start.ts`.
 
 ## 2. Registry items (41)
 

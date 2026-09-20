@@ -1,7 +1,0 @@
-{
-  "id": "montserrat",
-  "label": "Montserrat",
-  "family": "sans",
-  "cssVar": "var(--font-montserrat), \"Montserrat\", ui-sans-serif, system-ui, -apple-system, sans-serif",
-  "category": "Moderne"
-}

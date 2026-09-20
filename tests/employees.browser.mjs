@@ -11,8 +11,8 @@ test("employee pages show content only to administrators", async (t) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/en/employees`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("table").waitFor();
-  await page.locator("summary").filter({ hasText: "Preview controls" }).click();
   for (const role of ["user", ""]) {
     await page.getByLabel("Preview as").selectOption(role);
     await page.getByRole("table").waitFor({ state: "hidden" });

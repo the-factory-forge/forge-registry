@@ -45,6 +45,7 @@ export function DrivePreview() {
   if (!type)
     return (
       <DrivePage
+        className="showroom-page"
         locale={params.locale}
         client={state.driveClient}
         getSpaceHref={(space) =>
@@ -55,7 +56,7 @@ export function DrivePreview() {
     );
   if (!id || (params.segments?.length ?? 0) > 3)
     return (
-      <p className="p-8">
+      <p>
         Drive space not found.{" "}
         <Link className="underline" href={base}>
           Back to Drive
@@ -64,7 +65,7 @@ export function DrivePreview() {
     );
   return (
     <DriveBrowser
-      className="p-4 md:p-8"
+      className="showroom-page"
       locale={params.locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}

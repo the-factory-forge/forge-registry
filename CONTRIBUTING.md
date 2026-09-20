@@ -81,8 +81,8 @@ a status icon and clear copy. Keep feedback colors tied to the shared theme.
 | Feature UI and its colocated types, labels, and helpers  | `registry/components/plugins/{name}/` | `@components/plugins/{name}/*` |
 | Non-visual helpers, data, hooks, providers, and styles   | `registry/components/utils/`          | `@components/utils/*`          |
 
-Internal i18n helpers, locale dictionaries, font presets, and their
-providers belong in `src/lib/`. Preview switcher components belong in
+Internal i18n helpers, locale dictionaries, and their
+providers belong in `src/lib/`. Showroom controls belong in
 `src/showroom/`. Neither directory may be listed in `registry/registry.json` or
 imported by shared registry components. Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in
 `registry/components/utils/`.

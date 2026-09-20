@@ -108,16 +108,108 @@
 /* One viewport budget for the showroom chrome and full-height examples. */
 :root {
   --showroom-header-height: 3.5rem;
+  --showroom-max-width: 80rem;
+  --showroom-gutter: clamp(1rem, 3vw, 2rem);
 }
 
 .showroom-content {
-  --intranet-top-offset: var(--showroom-header-height);
   min-height: calc(100svh - var(--showroom-header-height));
+}
+
+.showroom-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  height: 100%;
+  max-width: var(--showroom-max-width);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.showroom-frame {
+  --showroom-top-offset: var(--showroom-header-height);
+  --intranet-top-offset: var(--showroom-top-offset);
+  --showroom-preview-height: max(0px, calc(100svh - var(--showroom-top-offset)));
+  min-width: 0;
+}
+
+.showroom-controls {
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 64rem) {
+  .showroom-frame[data-has-controls="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    align-items: start;
+  }
+  .showroom-controls {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--showroom-header-height);
+    height: var(--showroom-preview-height);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border-bottom: 0;
+    border-left: 1px solid var(--border);
+  }
+  .showroom-stage {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+
+.showroom-stage,
+.showroom-inset {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--showroom-max-width);
+  margin-inline: auto;
+  padding: var(--showroom-gutter);
+}
+
+.showroom-stage {
+  min-height: var(--showroom-preview-height);
+  scroll-margin-top: var(--showroom-top-offset);
+}
+
+.showroom-frame[data-width="narrow"] > .showroom-stage {
+  max-width: 48rem;
+}
+.showroom-frame[data-width="full"] > .showroom-stage {
+  max-width: none;
+  padding: 0;
+}
+
+/* Host overrides keep registry defaults independent of showroom geometry. */
+.showroom-page {
+  max-width: none;
+  margin-inline: 0;
+  padding: 0;
+}
+.showroom-fill {
+  min-height: var(--showroom-preview-height);
+}
+.showroom-sticky {
+  position: sticky;
+  top: var(--showroom-top-offset);
 }
 
 @media print {
   :root {
     --showroom-header-height: 0rem;
+  }
+  .showroom-frame {
+    display: block !important;
+  }
+  .showroom-stage,
+  .showroom-inset {
+    max-width: none;
+    padding: 0;
   }
 }
 

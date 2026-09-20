@@ -67,3 +67,54 @@ SSR, registry delivery, navigation/state retention, and theme behavior.
 Published source changes still require reviewed shadcn updates in consuming sites.
 Changing this showroom's framework does not change those sites' framework or
 automatically update their installed components.
+
+## Shared preview frame
+
+Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React
+content; the frame places them in an always-expanded right sidebar on desktop
+and above the preview below 64rem. Demos without settings keep the full width. Demo state and callbacks
+stay beside their examples. The shared header owns Light/Dark selection and the
+first keyboard stop, **Skip to preview**. Activating it focuses the preview and
+preserves the current URL/hash, including the intranet demo's navigation.
+
+The showroom defaults to Light and saves the selected Light/Dark mode under
+`forge-showroom-theme`. It applies that choice before paint, across routes and tabs,
+and to dialogs portaled to the document body. There is no System or Font control.
+The removed font provider/presets were private showroom code; the default CSS font
+stacks and portable components' typography remain intact.
+
+Use the standard frame for directories and plugin pages, `width="narrow"` for
+small examples, and `width="full"` for complete application layouts that supply
+their own main landmark. The frame owns gutters, maximum width, and viewport
+height. Existing registry page components accept `className="showroom-page"` to
+let the host frame control their outer spacing; their installed defaults remain
+unchanged. Full-height layouts can use `showroom-fill`; intranet content uses
+`showroom-inset` and its custom sticky toolbar uses `showroom-sticky`.
+
+The shared stylesheet defines the header height once. The desktop settings sidebar
+stays below that header, occupies its own grid column, and scrolls independently
+when needed. On smaller screens, settings remain expanded in normal page flow.
+Preview height and intranet offsets depend only on the header; no JavaScript
+measurement is needed. Do not repeat viewport math, header offsets, or per-demo
+theme effects in route files. Keep content free to grow and scroll when it needs
+more room than the available viewport.
+
+## Next refactors identified
+
+1. **Ship required layout utilities.** Navbar, footer, cookie banner, and many
+   `page-*` items reference `container-premium` or `section-padding`, currently
+   defined only in the showroom stylesheet. A small registry stylesheet dependency
+   would make consumer sizing reliable without copying this application's CSS.
+2. **Replace the custom lightbox modal with Base UI Dialog.** Its manual portal
+   and Escape listener do not provide focus trapping or focus restoration, and
+   its body scroll cleanup can interfere with another overlay. Use the installed
+   primitive and semantic `dark` / `dark-foreground` tokens.
+3. **Extract only the repeated plugin UI primitives.** Customers, projects,
+   blogs, and Drive duplicate button/input/card/confirmation presentation; projects
+   also imports customer UI internals. A neutral registry UI item could keep those
+   consistent. Keep each plugin's mutation, retry, and permission logic separate:
+   blogs and Drive have different persistence guarantees.
+4. **Expand preview coverage.** Ten homepage demonstrations cover the feature
+   plugins and a few layouts, while the registry ships fifty items. Add grouped
+   examples for existing page sections and primitive controls so shared CSS changes
+   can be checked in light/dark, narrow layouts, and keyboard flows.

@@ -21,8 +21,7 @@ async function preview(t, path = "/en/blogs", options = {}) {
   page.on("pageerror", (error) => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(baseURL + path);
-  await page.locator('[data-blogs-ready="true"]').waitFor();
-  await page.locator("summary").filter({ hasText: "Blog preview controls" }).click();
+  await page.locator('[data-preview-ready="true"]').waitFor();
   return page;
 }
 async function saved(page) {
@@ -57,10 +56,10 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   assert.match(html, /Begin with a question/);
   assert.doesNotMatch(html, /An idea for tomorrow/);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByLabel("Dark theme", { exact: true }).check();
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: "/tmp/forge-blogs-mobile-dark.png", fullPage: true });
-  await page.getByLabel("Dark theme", { exact: true }).uncheck();
+  await page.getByRole("button", { name: "Light", exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("link", { name: "Public blog", exact: true }).click();
   await page.getByRole("heading", { name: "Our blog", exact: true }).waitFor();

@@ -39,6 +39,7 @@ export function CustomersPreview() {
   if (customerId === "new")
     return (
       <CustomerNewPage
+        className="showroom-page"
         linkComponent={Link}
         backHref={base}
         onCreate={async (values) => {
@@ -61,7 +62,7 @@ export function CustomersPreview() {
       (params.segments?.length ?? 0) > 2
     )
       return (
-        <div className="space-y-4 p-8">
+        <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
           <Link href={base} className="underline">
             Back to Customers
@@ -70,6 +71,7 @@ export function CustomersPreview() {
       );
     return (
       <CustomerDetailPage
+        className="showroom-page"
         customer={customer}
         section={tab === "projects" || tab === "sync" ? tab : "about"}
         backHref={base}
@@ -101,6 +103,7 @@ export function CustomersPreview() {
   const query = search.trim().toLowerCase();
   return (
     <CustomersPage
+      className="showroom-page"
       customers={customers.filter((customer) =>
         [customer.name, customer.companyName, customer.email].some((value) =>
           value?.toLowerCase().includes(query),

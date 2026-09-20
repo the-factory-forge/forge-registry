@@ -103,13 +103,13 @@ export function ProjectsPreview() {
       throw new Error("Owner must be an existing customer");
   }
 
-  if (!projectId) return <ProjectsPage {...listProps} />;
+  if (!projectId) return <ProjectsPage className="showroom-page" {...listProps} />;
   if (
     (params.segments?.length ?? 0) > 2 ||
     (projectId === "new" ? Boolean(tab) : !project || Boolean(tab && tab !== "drive"))
   )
     return (
-      <div className="space-y-4 p-8">
+      <div className="space-y-4">
         <h1 className="text-xl font-semibold">Project page not found</h1>
         <Link href={base} className="underline">
           Back to Projects
@@ -119,6 +119,7 @@ export function ProjectsPreview() {
   if (projectId === "new")
     return (
       <ProjectNewPage
+        className="showroom-page"
         {...directories}
         backHref={backHref}
         onCreate={async (values) => {
@@ -133,6 +134,7 @@ export function ProjectsPreview() {
   if (!project) return null;
   return (
     <ProjectDetailPage
+      className="showroom-page"
       {...directories}
       project={project}
       section={tab === "drive" ? "drive" : "details"}
