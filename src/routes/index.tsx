@@ -7,7 +7,7 @@ import { ShowroomPreview } from "@/showroom/showroom-preview";
 const examples = [
   {
     href: "/en/login",
-    category: "Form",
+    category: "Page",
     title: "Login",
     description: "Sign-in form with password visibility, remember me, and retry after errors.",
   },
@@ -43,14 +43,14 @@ const examples = [
   },
   {
     href: "/cookie-banner",
-    category: "Layout",
+    category: "Component",
     title: "Cookie banner",
     description:
       "Cookie preferences with category controls, accept all, save selection, and reject all.",
   },
   {
     href: "/newsletter",
-    category: "Form",
+    category: "Component",
     title: "Newsletter",
     description: "Accessible signup form with loading, success, and error states.",
   },
