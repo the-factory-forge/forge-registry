@@ -1,13 +1,42 @@
 "use client";
 
 import { ArrowRightIcon, EyeIcon, EyeOffIcon, LoaderCircleIcon } from "lucide-react";
-import { useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
+import { GoogleSignInButton, useAuthAction } from "@/components/plugins/login/auth-controls";
 import { loginLabels, type LoginLabels } from "@/components/plugins/login/labels";
 import { cn } from "@/components/utils/cn";
 
+export {
+  GoogleSignInButton,
+  SignOutButton,
+  useAuthAction,
+  type AuthControlProps,
+} from "@/components/plugins/login/auth-controls";
 export type { LoginLabels } from "@/components/plugins/login/labels";
+export {
+  AuthLayout,
+  type AuthLayoutProps,
+  type AuthLayoutLabels,
+} from "@/components/plugins/login/auth-layout";
+export {
+  ForgotPasswordForm,
+  ResetPasswordForm,
+  ChangePasswordForm,
+  ChangePasswordPage,
+  type ForgotPasswordFormProps,
+  type ResetPasswordFormProps,
+  type ChangePasswordFormProps,
+  type ChangePasswordPageProps,
+  type ChangePasswordValues,
+} from "@/components/plugins/login/password-forms";
+export type { PasswordLabels } from "@/components/plugins/login/password-labels";
+export {
+  AccessDeniedPage,
+  type AccessDeniedPageProps,
+  type AccessDeniedLabels,
+} from "@/components/plugins/login/access-denied-page";
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -17,12 +46,7 @@ export interface LoginFormProps {
   onSignIn: (credentials: LoginCredentials) => Promise<void>;
   enabled?: boolean;
   forgotPasswordHref?: string;
-  socialProviders?: readonly {
-    id: string;
-    label: string;
-    icon?: ReactNode;
-    onSignIn: () => Promise<void>;
-  }[];
+  onGoogleSignIn?: () => Promise<void>;
   labels?: Partial<LoginLabels>;
   className?: string;
   linkComponent?: ComponentType<LinkProps>;
@@ -36,31 +60,17 @@ export function LoginForm({
   onSignIn,
   enabled = true,
   forgotPasswordHref,
-  socialProviders = [],
+  onGoogleSignIn,
   labels: overrides,
   className,
   linkComponent: LoginLink = Link,
 }: LoginFormProps) {
   const labels = { ...loginLabels, ...overrides };
   const [showPassword, setShowPassword] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
-  const lock = useRef(false);
-  async function submit(action: () => Promise<void>) {
-    if (lock.current || redirecting || !enabled) return;
-    lock.current = true;
-    setPending(true);
-    setFailed(false);
-    try {
-      await action();
-    } catch {
-      setFailed(true);
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
-  }
+  const action = useAuthAction();
+  const [method, setMethod] = useState<"password" | "google">("password");
+  const { pending, failed } = action;
+  const googlePending = pending && method === "google";
   return (
     <div className={cn("flex flex-col gap-7", className)}>
       <div>
@@ -83,7 +93,7 @@ export function LoginForm({
 
       {failed && (
         <p id="login-error" role="alert" className="text-sm text-destructive">
-          {labels.loginError}
+          {method === "google" ? labels.googleError : labels.loginError}
         </p>
       )}
       <form
@@ -93,7 +103,9 @@ export function LoginForm({
           const email = data.get("email");
           const password = data.get("password");
           if (typeof email !== "string" || typeof password !== "string") return;
-          void submit(async () => {
+          if (!enabled) return;
+          void action.run(async () => {
+            setMethod("password");
             await onSignIn({
               email: email.trim(),
               password,
@@ -115,7 +127,7 @@ export function LoginForm({
             spellCheck={false}
             placeholder="name@example.com"
             className={inputClass}
-            readOnly={pending}
+            readOnly={action.disabled}
             disabled={!enabled}
             aria-describedby={failed ? "login-error" : undefined}
             required
@@ -130,7 +142,7 @@ export function LoginForm({
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               className={cn(inputClass, "pr-12")}
-              readOnly={pending}
+              readOnly={action.disabled}
               disabled={!enabled}
               aria-describedby={failed ? "login-error" : undefined}
               required
@@ -153,7 +165,7 @@ export function LoginForm({
               type="checkbox"
               name="rememberMe"
               className="size-4 accent-primary"
-              disabled={pending || !enabled}
+              disabled={action.disabled || !enabled}
             />
             {labels.rememberMe}
           </label>
@@ -169,40 +181,34 @@ export function LoginForm({
         <button
           type="submit"
           className={cn(buttonClass, "bg-primary text-primary-foreground hover:bg-primary/90")}
-          disabled={pending || !enabled}
+          disabled={action.disabled || !enabled}
         >
-          {pending ? <LoaderCircleIcon className="animate-spin" /> : null}
-          {pending ? labels.signingIn : labels.signIn}
+          {pending && !googlePending ? <LoaderCircleIcon className="animate-spin" /> : null}
+          {pending && !googlePending ? labels.signingIn : labels.signIn}
           {!pending && <ArrowRightIcon className="size-4" />}
         </button>
       </form>
 
-      {socialProviders.length > 0 && (
+      {onGoogleSignIn && (
         <>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             {labels.orDivider}
             <span className="h-px flex-1 bg-border" />
           </div>
-          <div className="grid gap-3">
-            {socialProviders.map((provider) => (
-              <button
-                key={provider.id}
-                type="button"
-                className={cn(buttonClass, "border border-border bg-background hover:bg-muted")}
-                disabled={pending || redirecting || !enabled}
-                onClick={() =>
-                  void submit(async () => {
-                    await provider.onSignIn();
-                    setRedirecting(true);
-                  })
-                }
-              >
-                {provider.icon}
-                {provider.label}
-              </button>
-            ))}
-          </div>
+          <GoogleSignInButton
+            className="w-full"
+            label={labels.continueGoogle}
+            pendingLabel={labels.connectingGoogle}
+            pending={googlePending}
+            disabled={action.disabled || !enabled}
+            onClick={() =>
+              void action.run(async () => {
+                setMethod("google");
+                await onGoogleSignIn();
+              })
+            }
+          />
         </>
       )}
       <p className="border-t border-border pt-6 text-sm leading-relaxed text-muted-foreground!">

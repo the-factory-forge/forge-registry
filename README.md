@@ -59,9 +59,9 @@ pnpm registry:sidebar
 
 This reruns shadcn with `--overwrite` for the sidebar and its registry dependencies. Shared fixes reach each website when it pulls the new source and deploys; they do not update running sites automatically. Keep site adapters outside registry-managed component paths, and review the update diff before deploying.
 
-The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Consumers still using these must migrate to standard shadcn installs using `@forge`. The template now installs the [FAQ and Contact pages](./docs/faq-contact.md) through this namespace. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
+The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Consumers still using these must migrate to standard shadcn installs using `@forge`. The template installs the [FAQ and Contact pages](./docs/faq-contact.md) and [legal pages](./docs/legal-pages.md) through this namespace. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (52)
+## Registry items (54)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -70,21 +70,23 @@ providers live under `src/lib/`. Showroom controls live under
 `src/showroom/`. Neither directory is published through the registry; consumers
 supply their own translations and theme configuration.
 
-### Libs (6)
+### Libs (7)
 
-| Name               | Description                                                         |
-| ------------------ | ------------------------------------------------------------------- |
-| `cn`               | Class-name utility (re-exports `cnfast`)                            |
-| `section-variants` | Shared SectionVariant type and color map for themeable sections     |
-| `build-metadata`   | Canonical, hreflang, Open Graph, Twitter cards                      |
-| `json-ld`          | Organization, Breadcrumb, FAQ, Service schemas                      |
-| `privacy-content`  | Reference privacy-policy content in fr/en/de/it for site adaptation |
-| `footer-helpers`   | Builds footer props from site data, including attribution defaults  |
+| Name                | Description                                                              |
+| ------------------- | ------------------------------------------------------------------------ |
+| `consent-analytics` | Consent-driven Google Analytics and Ads loading, event gating, and retry |
+| `cn`                | Class-name utility (re-exports `cnfast`)                                 |
+| `section-variants`  | Shared SectionVariant type and color map for themeable sections          |
+| `build-metadata`    | Canonical, hreflang, Open Graph, Twitter cards                           |
+| `json-ld`           | Organization, Breadcrumb, FAQ, Service schemas                           |
+| `privacy-content`   | Reference privacy-policy content in fr/en/de/it for site adaptation      |
+| `footer-helpers`    | Builds footer props from site data, including attribution defaults       |
 
-### UI Primitives (17)
+### UI Primitives (18)
 
 | Name                    | Description                                                                         |
 | ----------------------- | ----------------------------------------------------------------------------------- |
+| `auth-controls`         | Google sign-in, sign-out, and shared authentication action state                    |
 | `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
 | `accordion`             | Base UI accordion with a bundled animation stylesheet                               |
 | `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
@@ -124,7 +126,7 @@ supply their own translations and theme configuration.
 | `page-method-steps`                            | Numbered steps with connecting line                                                                         |
 | `page-pricing-table`                           | Dynamic pricing table                                                                                       |
 | `page-contact-info`                            | Contact details + hours + Google Maps embed                                                                 |
-| `page-legal`                                   | Prose layout for legal pages                                                                                |
+| [page-legal](./docs/legal-pages.md)            | Prose layout for legal pages                                                                                |
 | `page-not-found`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
 ### Plugins (9)
@@ -135,7 +137,7 @@ supply their own translations and theme configuration.
 | [drive / drive-storage](./docs/drive.md)    | Entity-scoped file browser and optional private S3/PostgreSQL persistence                      |
 | [projects](./docs/projects.md)              | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                |
 | [customers](./docs/customers.md)            | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions      |
-| [login](./docs/intranet-auth.md)            | Login form and branded auth layout with host-owned authentication                              |
+| [login](./docs/intranet-auth.md)            | Login, password recovery/change, access-denied page, and auth layout                           |
 | [employees](./docs/intranet-auth.md)        | Employee list, creation, editing, verification and account deletion                            |
 | [employees-server](./docs/intranet-auth.md) | Validated Better Auth employee operations behind host authentication                           |
 

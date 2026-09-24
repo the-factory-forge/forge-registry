@@ -14,6 +14,7 @@ import {
 import * as React from "react";
 
 import { Link } from "@/components/link";
+import { useAuthAction } from "@/components/plugins/login/auth-controls";
 import { cn } from "@/components/utils/cn";
 import { itemIsActive } from "@/components/utils/intranet-sidebar-active";
 
@@ -392,25 +393,9 @@ export function IntranetSidebar({
 }: IntranetSidebarProps) {
   const { id, open, isMobile, mobileOpen, setMobileOpen, triggerRef } = useIntranetSidebar();
   const labels = { ...defaultLabels, ...overrides };
-  const [signingOut, setSigningOut] = React.useState(false);
-  const [signOutFailed, setSignOutFailed] = React.useState(false);
-  const signOutInFlight = React.useRef(false);
+  const signOutAction = useAuthAction();
+  const { pending: signingOut, failed: signOutFailed } = signOutAction;
   const closeMobile = () => setMobileOpen(false);
-
-  async function signOut() {
-    if (signOutInFlight.current) return;
-    signOutInFlight.current = true;
-    setSigningOut(true);
-    setSignOutFailed(false);
-    try {
-      await onSignOut();
-    } catch {
-      setSignOutFailed(true);
-    } finally {
-      signOutInFlight.current = false;
-      setSigningOut(false);
-    }
-  }
 
   const content = (
     <>
@@ -469,7 +454,7 @@ export function IntranetSidebar({
       <div className="mx-2 border-t border-sidebar-border" />
       <footer className="shrink-0 p-2">
         {signOutFailed && (
-          <p role="alert" className="px-2 pb-2 text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="px-2 pb-2 text-sm text-destructive">
             {labels.signOutError}
           </p>
         )}
@@ -511,8 +496,8 @@ export function IntranetSidebar({
                 </Menu.Item>
                 <Menu.Separator className="my-1 border-t border-border" />
                 <Menu.Item
-                  disabled={signingOut}
-                  onClick={() => void signOut()}
+                  disabled={signOutAction.disabled}
+                  onClick={() => void signOutAction.run(onSignOut)}
                   className={cn(
                     "flex items-center gap-2 rounded-md px-2 py-2 text-sm data-disabled:opacity-50 data-highlighted:bg-accent",
                     focusClassName,

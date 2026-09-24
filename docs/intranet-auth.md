@@ -6,12 +6,16 @@ Install the source modules with the configured `@forge` namespace:
 pnpm exec shadcn add @forge/login @forge/employees @forge/employees-server
 ```
 
-`login` ships `LoginForm` and `AuthLayout` under `components/plugins/login`.
+`login` ships `LoginForm`, `AuthLayout`, `ForgotPasswordForm`, `ResetPasswordForm`,
+`ChangePasswordForm`, `ChangePasswordPage`, and `AccessDeniedPage` under
+`components/plugins/login`. Their props, credential types, and label types are
+exported from the plugin entrypoint. Existing imports remain supported.
 `employees` ships `EmployeesPage`, `EmployeeCreateDialog`, action dialogs, labels,
 and validation under `components/plugins/employees`. `employees-server` adds
 `server/employees.server.ts`. The browser exports never import that server module.
 
-The showroom has `/en/login` and `/en/employees` examples. They use in-memory
+The showroom has `/en/login`, `/en/forgot-password`, `/en/reset-password`,
+`/en/change-password`, `/en/access-denied`, and `/en/employees` examples. They use in-memory
 callbacks, never retain passwords, and do not create sessions or send messages.
 
 ## Host integration
@@ -29,9 +33,95 @@ optional `languageControl`. It preserves the exact agency footer credit.
 promise when authentication fails; resolve only after successful authentication
 and the host's cache refresh/navigation. The form handles pending state,
 password visibility, duplicate submission prevention, and generic failure copy.
-Supply social providers as `{ id, label, icon, onSignIn }`; the host performs
-OAuth and validates its callback URL. Credentials stay in the form and callback,
+Supply `onGoogleSignIn(): Promise<void>` to show Google, the only social provider.
+Omit it when Google is not configured. The host performs OAuth and supplies a
+trusted callback URL. Credentials stay in the form and callback,
 not browser storage. `forgotPasswordHref` links to the host's recovery flow.
+
+## Shared authentication controls
+
+`@forge/auth-controls` ships `GoogleSignInButton`, `SignOutButton`,
+`AuthControlProps`, and `useAuthAction`. Login and the intranet sidebar install it
+as a dependency. It does not install the full login plugin or an auth library.
+The login entrypoint also re-exports these controls.
+
+Both buttons are controlled and accept native button props, `pending`, `label`,
+`pendingLabel`, and `className`. Pair them with `useAuthAction` so buttons and
+menus use the same duplicate-action guard and retry behavior. Display `failed`
+in an accessible alert beside the control. Success keeps controls disabled
+until navigation or unmount; resolve the callback only after the host finishes.
+
+```tsx
+const action = useAuthAction();
+return (
+  <>
+    <SignOutButton
+      pending={action.pending}
+      disabled={action.disabled}
+      onClick={() => void action.run(onSignOut)}
+    />
+    {action.failed && <p role="alert">Could not sign out. Please try again.</p>}
+  </>
+);
+```
+
+The login form shares this guard between password and Google sign-in. Reject a
+failed OAuth request so the form restores its controls and retains credentials.
+Google uses `continueGoogle`, `connectingGoogle`, and `googleError` labels.
+
+When updating, replace `socialProviders` with `onGoogleSignIn`. Provider icons
+and labels no longer belong to each host. Update `login`, `intranet-sidebar`, and
+their linked `auth-controls` dependency together, then adapt the template's
+registry imports. Existing sidebar `onSignOut` and label props remain unchanged.
+Keep session invalidation in the host and clear private caches only after the
+authentication server confirms sign-out.
+
+## Password recovery and changes
+
+Place the recovery forms and `ChangePasswordPage` inside `AuthLayout` or the
+host's authentication layout. Embed `ChangePasswordForm` directly in a profile
+security section. `AccessDeniedPage` is a standalone page with `homeHref`.
+It displays a permission message; the host still guards the route and server.
+
+| Component                                   | Host callback and state                                                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `enabled`, `loginHref`                                                  |
+| `ResetPasswordForm`                         | `onResetPassword(newPassword): Promise<void>`, required `validLink`, optional `enabled`, `loginHref`, `requestResetHref` |
+| `ChangePasswordForm` / `ChangePasswordPage` | `onChangePassword({ currentPassword, newPassword }): Promise<void>`                                                      |
+
+Reject callbacks on failure. The components display translated generic errors,
+prevent concurrent submissions, preserve values after failures and ordinary
+rerenders, and clear credentials on success. The reset form disappears after
+success. The change form remains available with empty fields and a status message.
+Password forms default to 8–128 characters; set `minLength`, `maxLength`, and the
+translated `passwordHint` to match the server's policy. All components accept
+`className` and label overrides. Components with links accept `linkComponent`.
+
+The host owns reset-token parsing and validation, expiry and single-use rules,
+email delivery, rate limiting, session revocation, and navigation. `validLink`
+only controls presentation. Always validate the token on the server. Key the
+reset form by the token so a new recovery link resets its draft and success state:
+
+```tsx
+<ResetPasswordForm
+  key={token ?? "invalid"}
+  validLink={Boolean(token) && !error}
+  enabled={recoveryAvailable}
+  loginHref={`/${locale}/login`}
+  requestResetHref={`/${locale}/forgot-password`}
+  labels={dictionary.auth}
+  onResetPassword={async (newPassword) => {
+    await resetPassword({ token, newPassword });
+    clearCachedSession();
+  }}
+/>
+```
+
+Recovery confirmation is deliberately the same for known and unknown accounts.
+Keep that behavior in the endpoint too. The default copy makes no promise about
+link expiry; the host can supply its actual expiry through `checkSpam`.
+
+## Employee UI
 
 `EmployeesPage` receives the current page of employees, total, offset,
 `onOffsetChange`, `currentUserId`, `currentUserRole`, `onCreate`, and async action callbacks.

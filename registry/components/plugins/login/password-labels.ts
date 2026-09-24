@@ -1,0 +1,35 @@
+export const passwordLabels = {
+  email: "Email",
+  forgotTitle: "Forgot your password?",
+  forgotDescription: "Enter your account email to receive a password reset link.",
+  sendResetLink: "Send reset link",
+  sendingLink: "Sending...",
+  checkEmail: "Check your email",
+  resetSent: "If an account exists for this email, you will receive a link to reset your password.",
+  checkSpam: "Check your spam folder too.",
+  resetRequestError: "We could not process your request. Please try again in a moment.",
+  resetUnavailable:
+    "Password recovery is currently unavailable. Contact your administrator to restore access.",
+  backToLogin: "Back to sign in",
+  resetTitle: "Set a new password",
+  resetDescription: "Choose a new password for your team account.",
+  currentPassword: "Current password",
+  newPassword: "New password",
+  confirmPassword: "Confirm password",
+  passwordHint: "Choose a strong password you do not use elsewhere.",
+  passwordsMismatch: "Passwords do not match.",
+  resetSubmit: "Save new password",
+  resetSuccess: "Your password has been reset. Sign in with your new password.",
+  invalidResetLink: "This reset link is invalid or has expired. Request a new link to continue.",
+  resetError:
+    "Could not reset your password. The link may have expired or already been used. Try again or request a new link.",
+  requestNewLink: "Request a new link",
+  changePassword: "Change password",
+  changingPassword: "Changing...",
+  changePasswordTitle: "Change your password",
+  changePasswordSubtitle: "Replace your temporary password to continue.",
+  passwordChanged: "Password changed successfully.",
+  changePasswordError: "Could not change the password. Check your current password.",
+};
+
+export type PasswordLabels = typeof passwordLabels;

@@ -52,7 +52,7 @@ test("every directory entry navigates and returns through a stable shared header
   const destinations = await page
     .locator("main a[href]")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-  assert.equal(destinations.length, 12);
+  assert.equal(destinations.length, 18);
   const header = page.getByRole("navigation", { name: "Showroom navigation" });
   const original = await header.boundingBox();
   for (const href of destinations) {

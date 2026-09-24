@@ -18,10 +18,46 @@ const examples = [
     description: "Page hero, contact details, opening hours, social links, and an optional map.",
   },
   {
+    href: "/en/legal/cgv",
+    category: "Page",
+    title: "Legal pages",
+    description: "Terms, privacy, and legal notice with translated sections and optional dates.",
+  },
+  {
     href: "/en/login",
     category: "Page",
     title: "Login",
     description: "Sign-in form with password visibility, remember me, and retry after errors.",
+  },
+  {
+    href: "/en/login#auth-controls",
+    category: "Component",
+    title: "Authentication controls",
+    description: "Google sign-in and sign-out with shared pending, error, and retry states.",
+  },
+  {
+    href: "/en/forgot-password",
+    category: "Page",
+    title: "Forgot password",
+    description: "Email recovery form with unavailable, error, and confirmation states.",
+  },
+  {
+    href: "/en/reset-password",
+    category: "Page",
+    title: "Reset password",
+    description: "Password reset with confirmation and invalid-link handling.",
+  },
+  {
+    href: "/en/change-password",
+    category: "Page",
+    title: "Change password",
+    description: "Current-password verification form and onboarding page.",
+  },
+  {
+    href: "/en/access-denied",
+    category: "Page",
+    title: "Access denied",
+    description: "Translated access-denied page with a configurable return link.",
   },
   {
     href: "/en/employees",
@@ -58,7 +94,7 @@ const examples = [
     category: "Component",
     title: "Cookie banner",
     description:
-      "Cookie preferences with category controls, accept all, save selection, and reject all.",
+      "Cookie preferences and consent-driven analytics with independent categories and loading retries.",
   },
   {
     href: "/newsletter",

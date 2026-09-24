@@ -12,6 +12,9 @@ export const loginLabels = {
   signingIn: "Signing in...",
   unavailable: "Team sign-in is not available yet. Please contact your administrator for access.",
   loginError: "Unable to sign in. Check your email and password, or contact your administrator.",
+  continueGoogle: "Continue with Google",
+  connectingGoogle: "Connecting to Google...",
+  googleError: "Could not sign in with Google. Please try again.",
   orDivider: "Or",
   contactAdmin: "Contact your administrator to get an account.",
 };

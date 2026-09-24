@@ -34,7 +34,11 @@ async function expectApplied(page, analytics, marketing) {
     .getByRole("status", { name: "Applied cookie preferences" })
     .filter({ hasText: text })
     .waitFor();
-  const update = await page.evaluate(() => window.dataLayer.at(-1));
+  const update = await page.evaluate(() =>
+    window.dataLayer
+      .map((entry) => Array.from(entry))
+      .findLast((entry) => entry[0] === "consent" && entry[1] === "update"),
+  );
   assert.deepEqual(update, [
     "consent",
     "update",
@@ -176,4 +180,36 @@ test("blocked storage still applies consent and retains it while mounted", async
   await dialog.getByRole("checkbox", { name: /^Statistics/ }).uncheck();
   await dialog.getByRole("button", { name: "Confirm selection" }).click();
   await expectApplied(page, false, false);
+});
+
+test("analytics preview retries failures and gates each event category", async (t) => {
+  const { page, dialog } = await openPreview(t);
+  const result = page.getByRole("status", { name: "Tracking result" });
+  await page.getByRole("button", { name: "Try analytics event", exact: true }).click();
+  await result.filter({ hasText: "Analytics event blocked." }).waitFor();
+  await page.getByRole("checkbox", { name: "Simulate analytics loading failure" }).check();
+  await customize(dialog);
+  await dialog.getByRole("checkbox", { name: /^Statistics/ }).check();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
+  await page.getByRole("alert").filter({ hasText: "could not load" }).waitFor();
+  await page.getByRole("checkbox", { name: "Simulate analytics loading failure" }).uncheck();
+  await page.getByRole("button", { name: "Retry analytics loading" }).click();
+  await page.waitForFunction(() =>
+    window.dataLayer.some((entry) => Array.from(entry)[0] === "config"),
+  );
+  await page.getByRole("button", { name: "Try analytics event", exact: true }).click();
+  await result.filter({ hasText: "Analytics event accepted." }).waitFor();
+  await page.getByRole("button", { name: "Try conversion", exact: true }).click();
+  await result.filter({ hasText: "Conversion blocked." }).waitFor();
+  assert.equal(
+    await page.getByRole("status", { name: "Script load attempts" }).textContent(),
+    "Script load attempts: 2",
+  );
+  await reopen(page);
+  await customize(dialog);
+  await dialog.getByRole("checkbox", { name: /^Statistics/ }).uncheck();
+  await dialog.getByRole("button", { name: "Confirm selection" }).click();
+  await page.getByRole("button", { name: "Try analytics event", exact: true }).click();
+  await result.filter({ hasText: "Analytics event blocked." }).waitFor();
+  assert.equal(await page.locator('script[src*="googletagmanager.com"]').count(), 0);
 });

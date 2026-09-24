@@ -30,7 +30,7 @@ pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
 
 Files install under `src/components/`, `src/components/layouts/`, or
 `src/components/utils/` according to their role with default aliases. The CLI adapts configured aliases. The item includes `cn`, `ui-shims`,
-Base UI, and Lucide dependencies. It does not require the showroom's custom
+`auth-controls`, Base UI, and Lucide dependencies. It does not require the showroom's custom
 CSS utilities, brand assets, or a configured Better Auth client inside the registry.
 
 The host theme must expose the standard shadcn `sidebar`, `sidebar-foreground`,

@@ -14,12 +14,17 @@ import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
+import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
+import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
 import { Route as LocaleFaqRouteImport } from './routes/$locale.faq'
+import { Route as LocaleForgotPasswordRouteImport } from './routes/$locale.forgot-password'
 import { Route as LocaleIntranetRouteImport } from './routes/$locale.intranet'
 import { Route as LocaleIntranetSidebarRouteImport } from './routes/$locale.intranet-sidebar'
 import { Route as LocaleLoginRouteImport } from './routes/$locale.login'
+import { Route as LocaleResetPasswordRouteImport } from './routes/$locale.reset-password'
+import { Route as LocaleLegalDocumentRouteImport } from './routes/$locale.legal.$document'
 import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$locale.blogs.$'
 import { Route as PluginsLocaleCustomersSplatRouteImport } from './routes/_plugins.$locale.customers.$'
 import { Route as PluginsLocaleDriveSplatRouteImport } from './routes/_plugins.$locale.drive.$'
@@ -49,6 +54,16 @@ const NewsletterRoute = NewsletterRouteImport.update({
   path: '/newsletter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
+  id: '/$locale/access-denied',
+  path: '/$locale/access-denied',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleChangePasswordRoute = LocaleChangePasswordRouteImport.update({
+  id: '/$locale/change-password',
+  path: '/$locale/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleContactRoute = LocaleContactRouteImport.update({
   id: '/$locale/contact',
   path: '/$locale/contact',
@@ -64,6 +79,11 @@ const LocaleFaqRoute = LocaleFaqRouteImport.update({
   path: '/$locale/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleForgotPasswordRoute = LocaleForgotPasswordRouteImport.update({
+  id: '/$locale/forgot-password',
+  path: '/$locale/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleIntranetRoute = LocaleIntranetRouteImport.update({
   id: '/$locale/intranet',
   path: '/$locale/intranet',
@@ -77,6 +97,16 @@ const LocaleIntranetSidebarRoute = LocaleIntranetSidebarRouteImport.update({
 const LocaleLoginRoute = LocaleLoginRouteImport.update({
   id: '/$locale/login',
   path: '/$locale/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleResetPasswordRoute = LocaleResetPasswordRouteImport.update({
+  id: '/$locale/reset-password',
+  path: '/$locale/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleLegalDocumentRoute = LocaleLegalDocumentRouteImport.update({
+  id: '/$locale/legal/$document',
+  path: '/$locale/legal/$document',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogsLocaleBlogsSplatRoute = BlogsLocaleBlogsSplatRouteImport.update({
@@ -112,12 +142,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
+  '/$locale/forgot-password': typeof LocaleForgotPasswordRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
+  '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
@@ -128,12 +163,17 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
+  '/$locale/forgot-password': typeof LocaleForgotPasswordRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
+  '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
@@ -147,12 +187,17 @@ export interface FileRoutesById {
   '/_plugins': typeof PluginsRouteWithChildren
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
+  '/$locale/forgot-password': typeof LocaleForgotPasswordRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
+  '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/_blogs/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/_plugins/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/_plugins/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
@@ -165,12 +210,17 @@ export interface FileRouteTypes {
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/access-denied'
+    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
+    | '/$locale/forgot-password'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
+    | '/$locale/reset-password'
+    | '/$locale/legal/$document'
     | '/$locale/blogs/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
@@ -181,12 +231,17 @@ export interface FileRouteTypes {
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/access-denied'
+    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
+    | '/$locale/forgot-password'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
+    | '/$locale/reset-password'
+    | '/$locale/legal/$document'
     | '/$locale/blogs/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
@@ -199,12 +254,17 @@ export interface FileRouteTypes {
     | '/_plugins'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/access-denied'
+    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
+    | '/$locale/forgot-password'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
+    | '/$locale/reset-password'
+    | '/$locale/legal/$document'
     | '/_blogs/$locale/blogs/$'
     | '/_plugins/$locale/customers/$'
     | '/_plugins/$locale/drive/$'
@@ -218,12 +278,17 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRouteWithChildren
   CookieBannerRoute: typeof CookieBannerRoute
   NewsletterRoute: typeof NewsletterRoute
+  LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
+  LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
   LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
   LocaleFaqRoute: typeof LocaleFaqRoute
+  LocaleForgotPasswordRoute: typeof LocaleForgotPasswordRoute
   LocaleIntranetRoute: typeof LocaleIntranetRoute
   LocaleIntranetSidebarRoute: typeof LocaleIntranetSidebarRoute
   LocaleLoginRoute: typeof LocaleLoginRoute
+  LocaleResetPasswordRoute: typeof LocaleResetPasswordRoute
+  LocaleLegalDocumentRoute: typeof LocaleLegalDocumentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -263,6 +328,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsletterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$locale/access-denied': {
+      id: '/$locale/access-denied'
+      path: '/$locale/access-denied'
+      fullPath: '/$locale/access-denied'
+      preLoaderRoute: typeof LocaleAccessDeniedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/change-password': {
+      id: '/$locale/change-password'
+      path: '/$locale/change-password'
+      fullPath: '/$locale/change-password'
+      preLoaderRoute: typeof LocaleChangePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/contact': {
       id: '/$locale/contact'
       path: '/$locale/contact'
@@ -284,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleFaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$locale/forgot-password': {
+      id: '/$locale/forgot-password'
+      path: '/$locale/forgot-password'
+      fullPath: '/$locale/forgot-password'
+      preLoaderRoute: typeof LocaleForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/intranet': {
       id: '/$locale/intranet'
       path: '/$locale/intranet'
@@ -303,6 +389,20 @@ declare module '@tanstack/react-router' {
       path: '/$locale/login'
       fullPath: '/$locale/login'
       preLoaderRoute: typeof LocaleLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/reset-password': {
+      id: '/$locale/reset-password'
+      path: '/$locale/reset-password'
+      fullPath: '/$locale/reset-password'
+      preLoaderRoute: typeof LocaleResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/legal/$document': {
+      id: '/$locale/legal/$document'
+      path: '/$locale/legal/$document'
+      fullPath: '/$locale/legal/$document'
+      preLoaderRoute: typeof LocaleLegalDocumentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_blogs/$locale/blogs/$': {
@@ -376,12 +476,17 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRouteWithChildren,
   CookieBannerRoute: CookieBannerRoute,
   NewsletterRoute: NewsletterRoute,
+  LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
+  LocaleChangePasswordRoute: LocaleChangePasswordRoute,
   LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,
   LocaleFaqRoute: LocaleFaqRoute,
+  LocaleForgotPasswordRoute: LocaleForgotPasswordRoute,
   LocaleIntranetRoute: LocaleIntranetRoute,
   LocaleIntranetSidebarRoute: LocaleIntranetSidebarRoute,
   LocaleLoginRoute: LocaleLoginRoute,
+  LocaleResetPasswordRoute: LocaleResetPasswordRoute,
+  LocaleLegalDocumentRoute: LocaleLegalDocumentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

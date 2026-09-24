@@ -25,9 +25,9 @@ export function LegalPage({
   className,
 }: LegalPageProps) {
   return (
-    <article className={cn("section-padding", className)}>
-      <div className="container-premium">
-        <div className="mx-auto max-w-3xl">
+    <article className={cn("py-20 md:py-28 lg:py-36", className)}>
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-3xl wrap-anywhere">
           <h1 className="font-serif text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
           {updatedAt && (
             <p className="mt-2 text-sm text-muted-foreground">
@@ -41,9 +41,9 @@ export function LegalPage({
             {sections.map((section) => (
               <section key={section.title}>
                 <h2 className="mb-4 text-xl font-semibold text-foreground">{section.title}</h2>
-                <div className="prose prose-sm max-w-none text-muted-foreground">
-                  <p className="whitespace-pre-line">{section.content}</p>
-                </div>
+                <p className="text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
+                  {section.content}
+                </p>
               </section>
             ))}
           </div>

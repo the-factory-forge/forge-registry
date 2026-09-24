@@ -300,7 +300,7 @@
       "name": "cookie-banner",
       "type": "registry:block",
       "title": "Cookie Banner",
-      "description": "Cookie consent banner with visible category controls, accept/save/reject actions, saved preferences, Google Consent Mode updates, and a host analytics callback.",
+      "description": "Cookie preferences with custom selection, saved choices, and consent-driven analytics integration.",
       "files": [
         {
           "path": "registry/components/cookie-banner.tsx",
@@ -308,7 +308,7 @@
           "target": "@components/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn"]
+      "registryDependencies": ["@forge/cn", "@forge/consent-analytics"]
     },
     {
       "name": "language-switcher",
@@ -572,7 +572,7 @@
       "name": "page-legal",
       "type": "registry:block",
       "title": "Legal Page",
-      "description": "Prose layout for legal pages (CGV, mentions l\u00e9gales, confidentialit\u00e9).",
+      "description": "Terms, privacy, and legal-notice presentation with host-owned text, dates, and translations.",
       "files": [
         {
           "path": "registry/components/pages/page-legal.tsx",
@@ -629,7 +629,7 @@
       "title": "Intranet Sidebar",
       "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth-controls"],
       "files": [
         {
           "path": "registry/components/intranet-sidebar.tsx",
@@ -921,7 +921,7 @@
       "name": "login",
       "type": "registry:block",
       "title": "Login",
-      "description": "Login form and auth layout with password visibility, remember-me, social actions, and host-owned authentication.",
+      "description": "Login, password recovery and change forms, access-denied page, and auth layout with host-owned authentication.",
       "files": [
         {
           "path": "registry/components/plugins/login/index.tsx",
@@ -937,9 +937,24 @@
           "path": "registry/components/plugins/login/labels.ts",
           "type": "registry:lib",
           "target": "@components/plugins/login/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/login/password-forms.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/login/password-forms.tsx"
+        },
+        {
+          "path": "registry/components/plugins/login/password-labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/login/password-labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/login/access-denied-page.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/login/access-denied-page.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth-controls"],
       "dependencies": ["lucide-react"]
     },
     {
@@ -1023,6 +1038,34 @@
         }
       ],
       "registryDependencies": ["@forge/cn", "@forge/page-hero", "@forge/page-contact-info"]
+    },
+    {
+      "name": "consent-analytics",
+      "type": "registry:lib",
+      "title": "Consent-driven analytics",
+      "description": "Google Analytics and Ads loading gated by saved cookie consent, with separate permissions, retryable loading, and consent-aware events.",
+      "files": [
+        {
+          "path": "registry/components/utils/consent-analytics.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/consent-analytics.ts"
+        }
+      ]
+    },
+    {
+      "name": "auth-controls",
+      "type": "registry:component",
+      "title": "Authentication controls",
+      "description": "Google sign-in and sign-out controls with shared pending, error, and duplicate-action handling.",
+      "files": [
+        {
+          "path": "registry/components/plugins/login/auth-controls.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/login/auth-controls.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn"],
+      "dependencies": ["lucide-react"]
     }
   ]
 }

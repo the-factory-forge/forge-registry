@@ -58,6 +58,7 @@ test("public pages are discoverable, responsive, and retain contact links and op
     await page.getByRole("button", { name: category, exact: true }).click();
     assert.equal(await page.locator('main a[href="/en/faq"]').count(), 1);
     assert.equal(await page.locator('main a[href="/en/contact"]').count(), 1);
+    assert.equal(await page.locator('main a[href="/en/legal/cgv"]').count(), 1);
   }
   await page.locator('main a[href="/en/contact"]').click();
   await page.getByRole("heading", { name: "Contact us", exact: true }).waitFor();
@@ -81,7 +82,13 @@ test("public pages are discoverable, responsive, and retain contact links and op
     await page.getByRole("button", { name: theme, exact: true }).click();
     for (const width of [1440, 375]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const path of ["/en/faq", "/en/contact"]) {
+      for (const path of [
+        "/en/faq",
+        "/en/contact",
+        "/en/legal/cgv",
+        "/en/legal/privacy",
+        "/en/legal/mentions",
+      ]) {
         await page.goto(baseURL + path);
         await page.locator('[data-preview-ready="true"]').waitFor();
         assert.equal(
@@ -92,4 +99,47 @@ test("public pages are discoverable, responsive, and retain contact links and op
       }
     }
   }
+});
+
+test("legal pages render on the server and preserve document navigation and optional copy", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const response = await page.goto(`${baseURL}/en/legal/cgv`);
+  assert.match(
+    await response.text(),
+    /Use this section to present the terms approved for your website/,
+  );
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  assert.equal(await page.locator("main h1").textContent(), "Terms and conditions");
+  await page.getByLabel("Last updated date", { exact: true }).uncheck();
+  assert.equal(
+    await page
+      .getByText("Last updated", { exact: false })
+      .filter({ hasNot: page.locator("input") })
+      .count(),
+    0,
+  );
+  await page.getByLabel("Introduction", { exact: true }).uncheck();
+  assert.equal(
+    await page.locator("article").getByText("Example content", { exact: false }).count(),
+    0,
+  );
+  for (const title of ["Privacy policy", "Legal notice", "Terms and conditions"]) {
+    const link = page.getByRole("link", { name: title, exact: true });
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("heading", { level: 1, name: title, exact: true }).waitFor();
+    assert.equal(await link.getAttribute("aria-current"), "page");
+  }
+  assert.equal(
+    await page
+      .locator("article section p")
+      .first()
+      .evaluate((element) => getComputedStyle(element).whiteSpace),
+    "pre-line",
+  );
+  assert.deepEqual(errors, []);
 });

@@ -192,7 +192,7 @@ component's linked example; never import server modules into browser previews.
 
 `pnpm registry:sync` runs the pinned official CLI:
 `shadcn build registry/registry.json --output public/r`. The source manifest lists
-52 items; only declared files and dependencies ship.
+54 items; only declared files and dependencies ship.
 
 `public/r/registry.json` and `public/r/{name}.json` are official shadcn catalog
 and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and
