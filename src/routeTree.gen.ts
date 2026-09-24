@@ -14,7 +14,9 @@ import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
+import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
+import { Route as LocaleFaqRouteImport } from './routes/$locale.faq'
 import { Route as LocaleIntranetRouteImport } from './routes/$locale.intranet'
 import { Route as LocaleIntranetSidebarRouteImport } from './routes/$locale.intranet-sidebar'
 import { Route as LocaleLoginRouteImport } from './routes/$locale.login'
@@ -47,9 +49,19 @@ const NewsletterRoute = NewsletterRouteImport.update({
   path: '/newsletter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LocaleContactRoute = LocaleContactRouteImport.update({
+  id: '/$locale/contact',
+  path: '/$locale/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleEmployeesRoute = LocaleEmployeesRouteImport.update({
   id: '/$locale/employees',
   path: '/$locale/employees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleFaqRoute = LocaleFaqRouteImport.update({
+  id: '/$locale/faq',
+  path: '/$locale/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleIntranetRoute = LocaleIntranetRouteImport.update({
@@ -100,7 +112,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
+  '/$locale/faq': typeof LocaleFaqRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
@@ -114,7 +128,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
+  '/$locale/faq': typeof LocaleFaqRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
@@ -131,7 +147,9 @@ export interface FileRoutesById {
   '/_plugins': typeof PluginsRouteWithChildren
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
+  '/$locale/faq': typeof LocaleFaqRoute
   '/$locale/intranet': typeof LocaleIntranetRoute
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
@@ -147,7 +165,9 @@ export interface FileRouteTypes {
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/contact'
     | '/$locale/employees'
+    | '/$locale/faq'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
@@ -161,7 +181,9 @@ export interface FileRouteTypes {
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/contact'
     | '/$locale/employees'
+    | '/$locale/faq'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
@@ -177,7 +199,9 @@ export interface FileRouteTypes {
     | '/_plugins'
     | '/cookie-banner'
     | '/newsletter'
+    | '/$locale/contact'
     | '/$locale/employees'
+    | '/$locale/faq'
     | '/$locale/intranet'
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
@@ -194,7 +218,9 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRouteWithChildren
   CookieBannerRoute: typeof CookieBannerRoute
   NewsletterRoute: typeof NewsletterRoute
+  LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
+  LocaleFaqRoute: typeof LocaleFaqRoute
   LocaleIntranetRoute: typeof LocaleIntranetRoute
   LocaleIntranetSidebarRoute: typeof LocaleIntranetSidebarRoute
   LocaleLoginRoute: typeof LocaleLoginRoute
@@ -237,11 +263,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewsletterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$locale/contact': {
+      id: '/$locale/contact'
+      path: '/$locale/contact'
+      fullPath: '/$locale/contact'
+      preLoaderRoute: typeof LocaleContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/employees': {
       id: '/$locale/employees'
       path: '/$locale/employees'
       fullPath: '/$locale/employees'
       preLoaderRoute: typeof LocaleEmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/faq': {
+      id: '/$locale/faq'
+      path: '/$locale/faq'
+      fullPath: '/$locale/faq'
+      preLoaderRoute: typeof LocaleFaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/intranet': {
@@ -336,7 +376,9 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRouteWithChildren,
   CookieBannerRoute: CookieBannerRoute,
   NewsletterRoute: NewsletterRoute,
+  LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,
+  LocaleFaqRoute: LocaleFaqRoute,
   LocaleIntranetRoute: LocaleIntranetRoute,
   LocaleIntranetSidebarRoute: LocaleIntranetSidebarRoute,
   LocaleLoginRoute: LocaleLoginRoute,

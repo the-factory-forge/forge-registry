@@ -192,7 +192,7 @@ component's linked example; never import server modules into browser previews.
 
 `pnpm registry:sync` runs the pinned official CLI:
 `shadcn build registry/registry.json --output public/r`. The source manifest lists
-50 items; only declared files and dependencies ship.
+52 items; only declared files and dependencies ship.
 
 `public/r/registry.json` and `public/r/{name}.json` are official shadcn catalog
 and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and
@@ -211,9 +211,9 @@ local server; no build environment override is required. Restore the published
 namespace URL before committing consumer configuration.
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and
-`registry:pull` workflow are retired. Consumers still using them, including
-`forge-template`, must migrate to standard `@forge` shadcn installs; do not assume
-those projects have already migrated. `tc-website` already provides
+`registry:pull` workflow are retired. Consumers still using them must migrate to standard `@forge` shadcn installs.
+`forge-template` uses the namespace for FAQ and Contact pages; review its
+`registry:public-pages` command and host adapters when updating those items. `tc-website` already provides
 `pnpm registry:sidebar`, which runs its pinned shadcn CLI with
 `add @forge/intranet-sidebar --yes --overwrite`. Fix shared behavior here,
 publish the generated artifacts, then update and validate each consumer before

@@ -1,4 +1,4 @@
-import { Breadcrumb, type Crumb } from "@/components/breadcrumb";
+import { Breadcrumb, type Crumb, type BreadcrumbProps } from "@/components/breadcrumb";
 import { Image } from "@/components/image";
 import { cn } from "@/components/utils/cn";
 
@@ -9,6 +9,9 @@ export interface PageHeroProps {
   backgroundImage?: string;
   overlayClass?: string;
   homeLabel: string;
+  homeHref?: string;
+  breadcrumbLabel?: string;
+  linkComponent?: BreadcrumbProps["linkComponent"];
   breadcrumbs: Crumb[];
   className?: string;
 }
@@ -20,6 +23,9 @@ export function PageHero({
   backgroundImage,
   overlayClass,
   homeLabel,
+  homeHref,
+  breadcrumbLabel,
+  linkComponent,
   breadcrumbs,
   className,
 }: PageHeroProps) {
@@ -38,13 +44,16 @@ export function PageHero({
             className="object-cover"
             aria-hidden="true"
           />
-          <div className={cn("absolute inset-0 bg-black/50", overlayClass)} />
+          <div className={cn("absolute inset-0 bg-dark/50", overlayClass)} />
         </>
       )}
 
       <div className="relative z-10">
         <Breadcrumb
           homeLabel={homeLabel}
+          homeHref={homeHref}
+          label={breadcrumbLabel}
+          linkComponent={linkComponent}
           items={breadcrumbs}
           className={
             hasImage
@@ -53,7 +62,7 @@ export function PageHero({
           }
         />
 
-        <div className="container-premium pt-8 pb-16 md:pt-12 md:pb-20">
+        <div className="mx-auto max-w-7xl px-5 pt-8 pb-16 sm:px-8 md:pt-12 md:pb-20 lg:px-12">
           {eyebrow && (
             <span
               className={cn(

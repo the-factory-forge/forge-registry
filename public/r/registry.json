@@ -493,7 +493,12 @@
           "target": "@components/pages/page-faq-list.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/section-heading",
+        "@forge/section-variants",
+        "@forge/accordion"
+      ]
     },
     {
       "name": "page-testimonials",
@@ -567,7 +572,7 @@
       "name": "page-legal",
       "type": "registry:block",
       "title": "Legal Page",
-      "description": "Prose layout for legal pages (CGV, mentions légales, confidentialité).",
+      "description": "Prose layout for legal pages (CGV, mentions l\u00e9gales, confidentialit\u00e9).",
       "files": [
         {
           "path": "registry/components/pages/page-legal.tsx",
@@ -608,7 +613,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -990,6 +995,34 @@
         }
       ],
       "registryDependencies": ["@forge/employees"]
+    },
+    {
+      "name": "page-faq",
+      "type": "registry:block",
+      "title": "FAQ page",
+      "description": "FAQ page with a breadcrumb hero and configurable content. The host owns routing, translations, and metadata.",
+      "files": [
+        {
+          "path": "registry/components/pages/page-faq.tsx",
+          "type": "registry:component",
+          "target": "@components/pages/page-faq.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/page-hero", "@forge/page-faq-list"]
+    },
+    {
+      "name": "page-contact",
+      "type": "registry:block",
+      "title": "Contact page",
+      "description": "Contact page with a breadcrumb hero and configurable content. The host owns routing, translations, and metadata.",
+      "files": [
+        {
+          "path": "registry/components/pages/page-contact.tsx",
+          "type": "registry:component",
+          "target": "@components/pages/page-contact.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/page-hero", "@forge/page-contact-info"]
     }
   ]
 }

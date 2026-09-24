@@ -59,9 +59,9 @@ pnpm registry:sidebar
 
 This reruns shadcn with `--overwrite` for the sidebar and its registry dependencies. Shared fixes reach each website when it pulls the new source and deploys; they do not update running sites automatically. Keep site adapters outside registry-managed component paths, and review the update diff before deploying.
 
-The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Existing consumers such as `forge-template` must migrate to standard shadcn installs using `@forge`; this change does not migrate those projects automatically. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
+The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Consumers still using these must migrate to standard shadcn installs using `@forge`. The template now installs the [FAQ and Contact pages](./docs/faq-contact.md) through this namespace. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (50)
+## Registry items (52)
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -103,10 +103,12 @@ supply their own translations and theme configuration.
 | `language-switcher`     | Language selector dropdown                                                          |
 | `manage-cookies-button` | Client-side button to reopen cookie banner                                          |
 
-### Blocks (17)
+### Blocks (19)
 
 | Name                                           | Description                                                                                                 |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [page-faq](./docs/faq-contact.md)              | Complete FAQ page with hero, category filters, and accessible answers                                       |
+| [page-contact](./docs/faq-contact.md)          | Complete Contact page with hero, details, hours, social links, and optional map                             |
 | `cookie-banner`                                | Compact custom selection, accept all, saved consent, and host analytics callback                            |
 | `navbar`                                       | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
 | [intranet-sidebar](./docs/intranet-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |

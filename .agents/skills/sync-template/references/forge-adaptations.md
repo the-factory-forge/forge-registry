@@ -22,7 +22,8 @@ Use this map for affected files, then verify their current contents and local hi
 
 ## Public site and registry
 
-- Retain configured locales, dictionaries, public routes, site data, SEO helpers, sitemap/robots/llms/data endpoints, canonical-host behavior, consent-controlled analytics, and conversion configuration. Reconcile shared implementation fixes without resetting content to TanStarter examples.
+- Domain and HTTPS redirects belong to Nginx/Dokploy. Do not restore application-level canonical-host middleware. Keep `VITE_BASE_URL` aligned with the public domain for SEO and links.
+- Retain configured locales, dictionaries, public routes, site data, SEO helpers, sitemap/robots/llms/data endpoints, consent-controlled analytics, and conversion configuration. Reconcile shared implementation fixes without resetting content to TanStarter examples.
 - Preserve the current semantic CSS theme, typography, public stylesheet link, font assets, actual configured logo/favicon, and light/dark behavior. Font and palette pickers were removed; do not restore their providers, presets, or unused font packages. Upstream defaults must not silently replace Forge's public identity. Follow current theme guidance, not the older roadmap's CSS ownership recipe.
 - Keep the exact footer credit `Forged by The Corner Factory SA`.
 - Keep the `@forge` registry configuration and selected source URL in `components.json`. A TanStarter sync does not implicitly request a registry upgrade. Retain registry adapters, host-owned shell navigation, and the consent callback in the site layout. Registry updates, when needed, follow the separate `vpr ui add @forge/<item>` workflow and current intranet target relocation instructions.

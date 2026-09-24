@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "page-contact",
+  "title": "Contact page",
+  "description": "Contact page with a breadcrumb hero and configurable content. The host owns routing, translations, and metadata.",
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/page-hero",
+    "@forge/page-contact-info"
+  ],
+  "files": [
+    {
+      "path": "registry/components/pages/page-contact.tsx",
+      "content": "import { ContactInfo, type ContactInfoProps } from \"@/components/pages/page-contact-info\";\nimport { PageHero, type PageHeroProps } from \"@/components/pages/page-hero\";\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface ContactPageProps {\n  hero: PageHeroProps;\n  contact: ContactInfoProps;\n  className?: string;\n}\n\n/** Site details, map URLs, translations, and metadata stay in the host. */\nexport function ContactPage({ hero, contact, className }: ContactPageProps) {\n  return (\n    <div className={cn(\"w-full\", className)}>\n      <PageHero {...hero} />\n      <ContactInfo {...contact} />\n    </div>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/pages/page-contact.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

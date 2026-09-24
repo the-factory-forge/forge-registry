@@ -6,6 +6,18 @@ import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const examples = [
   {
+    href: "/en/faq",
+    category: "Page",
+    title: "FAQ",
+    description: "Page hero, category filters, and keyboard-accessible questions and answers.",
+  },
+  {
+    href: "/en/contact",
+    category: "Page",
+    title: "Contact",
+    description: "Page hero, contact details, opening hours, social links, and an optional map.",
+  },
+  {
     href: "/en/login",
     category: "Page",
     title: "Login",
@@ -56,7 +68,7 @@ const examples = [
   },
   {
     href: "/en/intranet-sidebar",
-    category: "Navigation",
+    category: "Component",
     title: "Intranet sidebar",
     description: "Customer branding, nested navigation, profile, and responsive drawer.",
   },

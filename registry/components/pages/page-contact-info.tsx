@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPinIcon, PhoneIcon, MailIcon, ClockIcon } from "lucide-react";
 
 import { type SocialPlatform, socialIconMap } from "@/components/social-icons";
 import { cn } from "@/components/utils/cn";
@@ -12,7 +12,7 @@ export interface ContactInfoProps {
   phone?: string;
   email?: string;
   hours?: { label: string; value: string }[];
-  socials?: { platform: SocialPlatform; url: string }[];
+  socials?: { platform: SocialPlatform; url: string; label?: string }[];
   hoursLabel?: string;
   mapPlaceholder?: string;
   mapsTitle?: string;
@@ -38,37 +38,39 @@ export function ContactInfo({
   const colors = sectionVariantClasses[variant];
 
   return (
-    <section className={cn("section-padding", colors.section, className)}>
-      <div className="container-premium">
+    <section className={cn("py-20 md:py-28 lg:py-36", colors.section, className)}>
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-2">
-          <div className="space-y-8">
-            {title && <h2 className="font-serif text-3xl font-bold text-foreground">{title}</h2>}
+          <div className="min-w-0 space-y-8 wrap-anywhere">
+            {title && (
+              <h2 className={cn("font-serif text-3xl font-bold", colors.heading)}>{title}</h2>
+            )}
 
-            <div className="space-y-5">
+            <div className={cn("space-y-5", colors.heading)}>
               {address && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                  <MapPinIcon className="mt-1 h-5 w-5 shrink-0" aria-hidden="true" />
                   {mapsUrl ? (
                     <a
                       href={mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-foreground transition-colors hover:text-primary"
+                      className="underline-offset-4 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                     >
                       {address}
                     </a>
                   ) : (
-                    <span className="text-foreground">{address}</span>
+                    <span className={colors.heading}>{address}</span>
                   )}
                 </div>
               )}
 
               {phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                  <PhoneIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <a
                     href={`tel:${phone.replace(/\s/g, "")}`}
-                    className="text-foreground transition-colors hover:text-primary"
+                    className="underline-offset-4 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                   >
                     {phone}
                   </a>
@@ -77,10 +79,10 @@ export function ContactInfo({
 
               {email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                  <MailIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <a
                     href={`mailto:${email}`}
-                    className="text-foreground transition-colors hover:text-primary"
+                    className="underline-offset-4 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                   >
                     {email}
                   </a>
@@ -90,15 +92,20 @@ export function ContactInfo({
 
             {hours && hours.length > 0 && (
               <div>
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold tracking-wide text-foreground uppercase">
-                  <Clock className="h-4 w-4" aria-hidden="true" />
+                <div
+                  className={cn(
+                    "mb-3 flex items-center gap-2 text-sm font-semibold tracking-wide uppercase",
+                    colors.heading,
+                  )}
+                >
+                  <ClockIcon className="h-4 w-4" aria-hidden="true" />
                   {hoursLabel}
                 </div>
                 <dl className="space-y-1.5 text-sm">
                   {hours.map((h) => (
                     <div key={h.label} className="flex justify-between gap-4">
-                      <dt className="text-muted-foreground">{h.label}</dt>
-                      <dd className="font-medium text-foreground">{h.value}</dd>
+                      <dt className={colors.body}>{h.label}</dt>
+                      <dd className={cn("font-medium", colors.heading)}>{h.value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -115,10 +122,13 @@ export function ContactInfo({
                       href={s.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-muted-foreground transition-colors hover:text-primary"
-                      aria-label={s.platform}
+                      className={cn(
+                        "rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
+                        colors.heading,
+                      )}
+                      aria-label={s.label ?? s.platform}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </a>
                   );
                 })}
@@ -126,7 +136,7 @@ export function ContactInfo({
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl bg-muted">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-muted text-muted-foreground">
             {mapsEmbed ? (
               <iframe
                 src={mapsEmbed}

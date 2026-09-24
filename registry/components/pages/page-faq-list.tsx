@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/accordion";
 import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@/components/utils/cn";
 import { type SectionVariant, sectionVariantClasses } from "@/components/utils/section-variants";
@@ -18,6 +24,8 @@ export interface FaqListProps {
   subtitle?: string;
   items: FaqItem[];
   allLabel?: string;
+  filterLabel?: string;
+  emptyMessage?: string;
   variant?: SectionVariant;
   className?: string;
 }
@@ -28,37 +36,48 @@ export function FaqList({
   subtitle,
   items,
   allLabel = "All",
+  filterLabel = "Filter questions",
+  emptyMessage = "No questions yet.",
   variant = "default",
   className,
 }: FaqListProps) {
   const categories = Array.from(new Set(items.map((f) => f.category).filter(Boolean))) as string[];
   const hasCategories = categories.length > 1;
   const [active, setActive] = useState<string | null>(null);
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openItem, setOpenItem] = useState("");
+  function selectCategory(category: string | null) {
+    setActive(category);
+    setOpenItem("");
+  }
 
   const colors = sectionVariantClasses[variant];
-  const filtered = active ? items.filter((f) => f.category === active) : items;
+  const activeCategory = hasCategories && categories.includes(active ?? "") ? active : null;
+  const filtered = items
+    .map((faq, index) => ({ faq, index }))
+    .filter(({ faq }) => !activeCategory || faq.category === activeCategory);
 
   return (
     <section
       className={cn(
-        "section-padding",
+        "py-20 md:py-28 lg:py-36",
         "[contain-intrinsic-size:auto_800px] [content-visibility:auto]",
         colors.section,
         className,
       )}
     >
-      <div className="container-premium">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />
 
         {hasCategories && (
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
+          <fieldset className="mt-8 flex flex-wrap justify-center gap-2">
+            <legend className="sr-only">{filterLabel}</legend>
             <button
               type="button"
-              onClick={() => setActive(null)}
+              onClick={() => selectCategory(null)}
+              aria-pressed={activeCategory === null}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                active === null
+                "rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                activeCategory === null
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80",
               )}
@@ -69,10 +88,11 @@ export function FaqList({
               <button
                 key={cat}
                 type="button"
-                onClick={() => setActive(cat)}
+                onClick={() => selectCategory(cat)}
+                aria-pressed={activeCategory === cat}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                  active === cat
+                  "rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  activeCategory === cat
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
@@ -80,47 +100,28 @@ export function FaqList({
                 {cat}
               </button>
             ))}
-          </div>
+          </fieldset>
         )}
 
-        <div className="mx-auto mt-10 max-w-3xl divide-y divide-border">
-          {filtered.map((faq, i) => {
-            const isOpen = openIndex === i;
-            return (
-              <div key={faq.question} className="py-4">
-                <button
-                  type="button"
-                  onClick={() => setOpenIndex(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between gap-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-expanded={isOpen}
-                >
-                  <span className="font-medium text-foreground">{faq.question}</span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-xl transition-transform",
-                      isOpen ? "text-secondary" : "text-muted-foreground",
-                    )}
-                    aria-hidden="true"
-                  >
-                    {isOpen ? "−" : "+"}
-                  </span>
-                </button>
-                <div
-                  className={cn(
-                    "grid transition-[grid-template-rows] duration-300 ease-in-out",
-                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-                  )}
-                >
-                  <div className="overflow-hidden">
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                      {faq.answer}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <Accordion
+          className="mx-auto mt-10 max-w-3xl"
+          value={openItem}
+          onValueChange={(value) => setOpenItem(typeof value === "string" ? value : "")}
+        >
+          {filtered.map(({ faq, index }) => (
+            <AccordionItem key={index} value={String(index)} className={colors.cardBorder}>
+              <AccordionTrigger className={cn("text-base", colors.heading)}>
+                {faq.question}
+              </AccordionTrigger>
+              <AccordionContent keepMounted className={colors.body}>
+                <p className="leading-relaxed">{faq.answer}</p>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+          {items.length === 0 && (
+            <p className={cn("text-center text-sm", colors.body)}>{emptyMessage}</p>
+          )}
+        </Accordion>
       </div>
     </section>
   );
