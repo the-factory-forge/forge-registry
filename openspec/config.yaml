@@ -4,6 +4,8 @@ context: |
   This is forge-registry, The Forge's reusable shadcn source registry and showroom.
   Read AGENTS.md and ../forge-spec/AGENTS.md, then the-forge, registry-distribution
   and relevant shared-ui/site-template specs in ../forge-spec/openspec/specs/.
+  For CSS/Tailwind work, read shared-ui and reuse existing semantic tokens,
+  typography, spacing, radii and layout utilities with Tailwind CSS 4.
   If the sibling is absent, use the supplied checkout or canonical repository:
   https://github.com/the-factory-forge/forge-spec. Report unavailable context.
   registry/registry.json owns shipped files/dependencies; public/r is generated

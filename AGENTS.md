@@ -3,7 +3,7 @@
 ## Shared Forge specifications
 
 Before implementation, read `../forge-spec/AGENTS.md` and the shared
-`the-forge`, `registry-distribution` and, for UI work, `shared-ui` specs under
+`the-forge`, `registry-distribution` and, for UI/CSS/Tailwind work, `shared-ui` specs under
 `../forge-spec/openspec/specs/`. Read `site-template` when consumer integration
 is affected. If that checkout is elsewhere, use its supplied location or the
 [canonical forge-spec repository](https://github.com/the-factory-forge/forge-spec).
