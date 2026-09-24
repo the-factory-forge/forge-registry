@@ -89,6 +89,12 @@ test("shared theme persists across previews, reloads, tabs and portaled dialogs"
   await page.waitForURL(`${baseURL}/`);
   assert.deepEqual(await palette(page), dark);
   await page.reload();
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll("button")].some(
+      (button) =>
+        button.textContent?.trim() === "Dark" && button.getAttribute("aria-pressed") === "true",
+    ),
+  );
   assert.equal(await darkButton.getAttribute("aria-pressed"), "true");
   await page.emulateMedia({ colorScheme: "light" });
   assert.deepEqual(await palette(page), dark);

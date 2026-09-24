@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogsRouteImport } from './routes/_blogs'
+import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
@@ -26,10 +27,12 @@ import { Route as LocaleLoginRouteImport } from './routes/$locale.login'
 import { Route as LocaleResetPasswordRouteImport } from './routes/$locale.reset-password'
 import { Route as LocaleLegalDocumentRouteImport } from './routes/$locale.legal.$document'
 import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$locale.blogs.$'
+import { Route as MenusLocaleMenusSplatRouteImport } from './routes/_menus.$locale.menus.$'
 import { Route as PluginsLocaleCustomersSplatRouteImport } from './routes/_plugins.$locale.customers.$'
 import { Route as PluginsLocaleDriveSplatRouteImport } from './routes/_plugins.$locale.drive.$'
 import { Route as PluginsLocaleProjectsSplatRouteImport } from './routes/_plugins.$locale.projects.$'
 import { Route as BlogsLocaleAdminBlogsSplatRouteImport } from './routes/_blogs.$locale.admin.blogs.$'
+import { Route as MenusLocaleAdminMenusSplatRouteImport } from './routes/_menus.$locale.admin.menus.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -38,6 +41,10 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const BlogsRoute = BlogsRouteImport.update({
   id: '/_blogs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MenusRoute = MenusRouteImport.update({
+  id: '/_menus',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PluginsRoute = PluginsRouteImport.update({
@@ -114,6 +121,11 @@ const BlogsLocaleBlogsSplatRoute = BlogsLocaleBlogsSplatRouteImport.update({
   path: '/$locale/blogs/$',
   getParentRoute: () => BlogsRoute,
 } as any)
+const MenusLocaleMenusSplatRoute = MenusLocaleMenusSplatRouteImport.update({
+  id: '/$locale/menus/$',
+  path: '/$locale/menus/$',
+  getParentRoute: () => MenusRoute,
+} as any)
 const PluginsLocaleCustomersSplatRoute =
   PluginsLocaleCustomersSplatRouteImport.update({
     id: '/$locale/customers/$',
@@ -137,6 +149,12 @@ const BlogsLocaleAdminBlogsSplatRoute =
     path: '/$locale/admin/blogs/$',
     getParentRoute: () => BlogsRoute,
   } as any)
+const MenusLocaleAdminMenusSplatRoute =
+  MenusLocaleAdminMenusSplatRouteImport.update({
+    id: '/$locale/admin/menus/$',
+    path: '/$locale/admin/menus/$',
+    getParentRoute: () => MenusRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -154,10 +172,12 @@ export interface FileRoutesByFullPath {
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
+  '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
+  '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -175,15 +195,18 @@ export interface FileRoutesByTo {
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
+  '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
+  '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_blogs': typeof BlogsRouteWithChildren
+  '/_menus': typeof MenusRouteWithChildren
   '/_plugins': typeof PluginsRouteWithChildren
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
@@ -199,10 +222,12 @@ export interface FileRoutesById {
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/_blogs/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
+  '/_menus/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/_plugins/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/_plugins/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/_plugins/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/_blogs/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
+  '/_menus/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -222,10 +247,12 @@ export interface FileRouteTypes {
     | '/$locale/reset-password'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
+    | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
     | '/$locale/admin/blogs/$'
+    | '/$locale/admin/menus/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -243,14 +270,17 @@ export interface FileRouteTypes {
     | '/$locale/reset-password'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
+    | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
     | '/$locale/admin/blogs/$'
+    | '/$locale/admin/menus/$'
   id:
     | '__root__'
     | '/'
     | '/_blogs'
+    | '/_menus'
     | '/_plugins'
     | '/cookie-banner'
     | '/newsletter'
@@ -266,15 +296,18 @@ export interface FileRouteTypes {
     | '/$locale/reset-password'
     | '/$locale/legal/$document'
     | '/_blogs/$locale/blogs/$'
+    | '/_menus/$locale/menus/$'
     | '/_plugins/$locale/customers/$'
     | '/_plugins/$locale/drive/$'
     | '/_plugins/$locale/projects/$'
     | '/_blogs/$locale/admin/blogs/$'
+    | '/_menus/$locale/admin/menus/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogsRoute: typeof BlogsRouteWithChildren
+  MenusRoute: typeof MenusRouteWithChildren
   PluginsRoute: typeof PluginsRouteWithChildren
   CookieBannerRoute: typeof CookieBannerRoute
   NewsletterRoute: typeof NewsletterRoute
@@ -305,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof BlogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_menus': {
+      id: '/_menus'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof MenusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_plugins': {
@@ -412,6 +452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsLocaleBlogsSplatRouteImport
       parentRoute: typeof BlogsRoute
     }
+    '/_menus/$locale/menus/$': {
+      id: '/_menus/$locale/menus/$'
+      path: '/$locale/menus/$'
+      fullPath: '/$locale/menus/$'
+      preLoaderRoute: typeof MenusLocaleMenusSplatRouteImport
+      parentRoute: typeof MenusRoute
+    }
     '/_plugins/$locale/customers/$': {
       id: '/_plugins/$locale/customers/$'
       path: '/$locale/customers/$'
@@ -440,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsLocaleAdminBlogsSplatRouteImport
       parentRoute: typeof BlogsRoute
     }
+    '/_menus/$locale/admin/menus/$': {
+      id: '/_menus/$locale/admin/menus/$'
+      path: '/$locale/admin/menus/$'
+      fullPath: '/$locale/admin/menus/$'
+      preLoaderRoute: typeof MenusLocaleAdminMenusSplatRouteImport
+      parentRoute: typeof MenusRoute
+    }
   }
 }
 
@@ -454,6 +508,18 @@ const BlogsRouteChildren: BlogsRouteChildren = {
 }
 
 const BlogsRouteWithChildren = BlogsRoute._addFileChildren(BlogsRouteChildren)
+
+interface MenusRouteChildren {
+  MenusLocaleMenusSplatRoute: typeof MenusLocaleMenusSplatRoute
+  MenusLocaleAdminMenusSplatRoute: typeof MenusLocaleAdminMenusSplatRoute
+}
+
+const MenusRouteChildren: MenusRouteChildren = {
+  MenusLocaleMenusSplatRoute: MenusLocaleMenusSplatRoute,
+  MenusLocaleAdminMenusSplatRoute: MenusLocaleAdminMenusSplatRoute,
+}
+
+const MenusRouteWithChildren = MenusRoute._addFileChildren(MenusRouteChildren)
 
 interface PluginsRouteChildren {
   PluginsLocaleCustomersSplatRoute: typeof PluginsLocaleCustomersSplatRoute
@@ -473,6 +539,7 @@ const PluginsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRoute: BlogsRouteWithChildren,
+  MenusRoute: MenusRouteWithChildren,
   PluginsRoute: PluginsRouteWithChildren,
   CookieBannerRoute: CookieBannerRoute,
   NewsletterRoute: NewsletterRoute,

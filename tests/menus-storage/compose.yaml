@@ -1,0 +1,30 @@
+name: forge-menus-integration
+services:
+  postgres:
+    image: postgres:18.3-alpine
+    environment:
+      POSTGRES_USER: menus_test
+      POSTGRES_PASSWORD: local_menus_test_only
+      POSTGRES_DB: menus_test
+    ports:
+      - "127.0.0.1:55441:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U menus_test -d menus_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: menus_test
+      MINIO_ROOT_PASSWORD: local_menus_test_only
+    ports:
+      - "127.0.0.1:19041:9000"
+    volumes:
+      - s3-data:/data
+volumes:
+  pg-data:
+  s3-data:

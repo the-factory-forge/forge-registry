@@ -108,4 +108,9 @@ export interface DriveBrowserProps extends DriveAppearanceProps {
   getFolderHref: (folderId: string | null) => string;
   backHref?: string;
   transferUpload?: DriveTransfer;
+  /** Optional selection control for hosts using Drive as a media library. */
+  onSelectFile?: (entry: DriveEntry) => void;
+  isSelectableFile?: (entry: DriveEntry) => boolean;
+  selectFileLabel?: string;
+  uploadAccept?: string;
 }

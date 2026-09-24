@@ -334,6 +334,16 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           const root = rows.find((row) => row.id === entryId)!;
           if (root.state !== "deleting" && preview(rows).token !== token)
             throw new DriveError("CONFLICT");
+          if (
+            options.canDelete &&
+            !(await options.canDelete(
+              context,
+              scope,
+              rows.map((row) => row.id),
+              tx,
+            ))
+          )
+            throw new DriveError("CONFLICT");
           await tx.execute(
             sql`update drive_entry set state='deleting',updated_at=now() where space_id=${spaceId} and id in (${sql.join(
               rows.map((row) => sql`${row.id}::uuid`),
@@ -510,6 +520,30 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
   return {
     client,
     verifyBucket,
+    /** Trusted server callers must authorize the reference before invoking this method. */
+    async readTrustedFile(scope: DriveScope, entryId: string, maxBytes: number) {
+      validScope(scope);
+      validId(entryId);
+      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > maxFileBytes)
+        throw new DriveError("INVALID");
+      const file = await locked(scope, false, async (tx, spaceId) => {
+        const row = await entry(tx, spaceId, entryId);
+        if (row.kind !== "file" || row.state !== "ready" || !row.storage_id)
+          throw new DriveError("NOT_FOUND");
+        if (Number(row.size) > maxBytes) throw new DriveError("INVALID");
+        return { key: key(spaceId!, row.storage_id), contentType: row.content_type };
+      });
+      try {
+        const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: file.key }));
+        if (object.ContentLength && object.ContentLength > maxBytes)
+          throw new DriveError("INVALID");
+        const bytes = await object.Body?.transformToByteArray();
+        if (!bytes || bytes.length > maxBytes) throw new DriveError("INVALID");
+        return { bytes, contentType: file.contentType };
+      } catch (error) {
+        storageError(error);
+      }
+    },
     async assertSpaceEmpty(context: Context, scope: DriveScope) {
       await access(context, scope, "delete");
       await locked(scope, false, async (tx, spaceId) => {

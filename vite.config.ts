@@ -23,6 +23,7 @@ export default defineConfig({
     },
     sortPackageJson: true,
     ignorePatterns: [
+      ".agents/**",
       "public/r/**",
       "pnpm-lock.yaml",
       ".next/**",

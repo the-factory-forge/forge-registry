@@ -918,6 +918,81 @@
       ]
     },
     {
+      "name": "menus",
+      "type": "registry:block",
+      "title": "Menus",
+      "description": "Translated restaurant menu, staff item editor, and category and dietary label management.",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/drive"],
+      "files": [
+        {
+          "path": "registry/components/plugins/menus/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/types.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/model.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/model.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/public.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/admin.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/admin.tsx"
+        }
+      ]
+    },
+    {
+      "name": "menus-storage",
+      "type": "registry:block",
+      "title": "Menus storage",
+      "description": "Better Auth models and Drizzle service for restaurant menus with Drive-backed images.",
+      "dependencies": ["better-auth@1.7.2", "drizzle-orm"],
+      "registryDependencies": ["@forge/menus", "@forge/drive-storage"],
+      "files": [
+        {
+          "path": "registry/components/plugins/menus/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/better-auth.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/server/better-auth.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/migration.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/menus/server/migration.sql"
+        }
+      ]
+    },
+    {
       "name": "login",
       "type": "registry:block",
       "title": "Login",

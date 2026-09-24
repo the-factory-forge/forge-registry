@@ -231,6 +231,10 @@ function Browser({
   getFolderHref,
   backHref,
   transferUpload,
+  onSelectFile,
+  isSelectableFile,
+  selectFileLabel = "Select file",
+  uploadAccept,
   labels: overrides,
   linkComponent: HostLink = Link,
   locale,
@@ -382,6 +386,7 @@ function Browser({
             <input
               ref={fileInput}
               type="file"
+              accept={uploadAccept}
               multiple
               hidden
               onChange={(event) => {
@@ -520,6 +525,18 @@ function Browser({
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end">
+                        {onSelectFile &&
+                          entry.kind === "file" &&
+                          entry.state === "ready" &&
+                          (!isSelectableFile || isSelectableFile(entry)) && (
+                            <button
+                              type="button"
+                              className={buttonClass}
+                              onClick={() => onSelectFile(entry)}
+                            >
+                              {selectFileLabel}
+                            </button>
+                          )}
                         {entry.state === "ready" &&
                           capabilities?.download &&
                           entry.kind === "file" && (

@@ -27,5 +27,12 @@ export interface DriveStorageOptions<Context> {
     context: Context,
     query: { search: string; cursor?: string; limit: number; sort: DriveSort },
   ) => Promise<DrivePageResult<DriveSpace>>;
+  /** Optional host guard, called under the space lock before removing a file or folder. */
+  canDelete?: (
+    context: Context,
+    scope: DriveScope,
+    entryIds: string[],
+    tx: Pick<DriveTransaction, "execute">,
+  ) => Promise<boolean>;
 }
 export type DrivePermission = keyof DriveCapabilities;

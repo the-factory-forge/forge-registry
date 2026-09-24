@@ -72,6 +72,19 @@ const examples = [
     description: "Multilingual Markdown articles, shared images, categories, and draft publishing.",
   },
   {
+    href: "/en/menus",
+    category: "Plugin",
+    title: "Menus",
+    description:
+      "Translated restaurant menu with categories, dietary labels, and staff management.",
+  },
+  {
+    href: "/en/admin/menus",
+    category: "Plugin",
+    title: "Menus management",
+    description: "Create and edit menu items, categories, labels, and photos.",
+  },
+  {
     href: "/en/drive",
     category: "Plugin",
     title: "Drive",

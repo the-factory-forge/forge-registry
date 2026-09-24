@@ -20,6 +20,7 @@
     "test:browser": "node --test tests/*.browser.mjs",
     "test:storage": "node --test tests/drive-storage/storage.integration.mjs",
     "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs",
+    "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@tanstack/markdown": "0.0.15",
     "@tanstack/react-router": "1.170.38",
     "@tanstack/react-start": "1.168.56",
+    "better-auth": "1.7.2",
     "cnfast": "0.1.0",
     "drizzle-orm": "0.45.2",
     "lucide-react": "1.23.0",
