@@ -1,0 +1,25 @@
+schema: spec-driven
+
+context: |
+  This is forge-registry, The Forge's reusable shadcn source registry and showroom.
+  Read AGENTS.md and ../forge-spec/AGENTS.md, then the-forge, registry-distribution
+  and relevant shared-ui/site-template specs in ../forge-spec/openspec/specs/.
+  If the sibling is absent, use the supplied checkout or canonical repository:
+  https://github.com/the-factory-forge/forge-spec. Report unavailable context.
+  registry/registry.json owns shipped files/dependencies; public/r is generated
+  with pnpm registry:sync. Keep showroom src/lib and src/showroom out of items.
+  Shared UI uses props, semantic tokens and ui-shims; hosts own routing, locale,
+  auth, content and configuration. Never import another repository's source.
+  Read CONTRIBUTING.md, item docs, package scripts, imports and consumers.
+  Include generated output and a reviewed consumer install when distribution
+  changes. Source updates do not automatically update installed consumers.
+  Use this root for registry-only changes and forge-spec for shared contract
+  changes; identify consumer tasks explicitly without duplicating proposals.
+
+rules:
+  proposal:
+    - Identify affected registry items, public contracts, consumers and scope.
+  design:
+    - Trace shipped files, npm/registry/CSS dependencies and host adapter compatibility.
+  tasks:
+    - Include relevant showroom discovery, distribution rebuild and consumer verification.

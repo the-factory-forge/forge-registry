@@ -1,5 +1,20 @@
 # Project context for AI contributors
 
+## Shared Forge specifications
+
+Before implementation, read `../forge-spec/AGENTS.md` and the shared
+`the-forge`, `registry-distribution` and, for UI work, `shared-ui` specs under
+`../forge-spec/openspec/specs/`. Read `site-template` when consumer integration
+is affected. If that checkout is elsewhere, use its supplied location or the
+[canonical forge-spec repository](https://github.com/the-factory-forge/forge-spec).
+Report inaccessible context rather than assuming it was loaded.
+
+`openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
+Keep implementation-only changes here and shared contract changes in forge-spec,
+with one owning change root. These specs complement the repository procedures
+below; inspect current source and report material conflicts. A sibling reference
+does not expand the task to unrelated changes in that repository.
+
 ## Shared color contract
 
 Use the same semantic color names across forge-registry, forge-template, and
