@@ -70,12 +70,13 @@ providers live under `src/lib/`. Showroom controls live under
 `src/showroom/`. Neither directory is published through the registry; consumers
 supply their own translations and theme configuration.
 
-### Libs (7)
+### Libs (8)
 
 | Name                | Description                                                              |
 | ------------------- | ------------------------------------------------------------------------ |
 | `consent-analytics` | Consent-driven Google Analytics and Ads loading, event gating, and retry |
 | `cn`                | Class-name utility (re-exports `cnfast`)                                 |
+| `table-styles`      | Shared layout classes for plugin tables                                  |
 | `section-variants`  | Shared SectionVariant type and color map for themeable sections          |
 | `build-metadata`    | Canonical, hreflang, Open Graph, Twitter cards                           |
 | `json-ld`           | Organization, Breadcrumb, FAQ, Service schemas                           |

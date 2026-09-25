@@ -18,14 +18,26 @@ import type {
   MenusClient,
 } from "@/components/plugins/menus/types";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 
 const field =
   "w-full rounded-xl border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 const button =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50";
-const primary = cn(button, "border-primary bg-primary text-primary-foreground");
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+const outlineButton = cn(button, "border border-border");
+const primary = cn(
+  button,
+  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+);
 const page = "mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-foreground";
-const iconButton = cn(button, "size-10 p-0");
+const iconButton = cn(button, "size-8 min-h-8 shrink-0 p-0");
 const editorLocales = (locales: readonly { code: string; name: string }[], baseLocale: string) =>
   locales.some((locale) => locale.code === baseLocale)
     ? locales
@@ -60,7 +72,10 @@ function DeleteControl({
   const lock = useRef(false);
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <Dialog.Trigger className={iconButton} aria-label={label}>
+      <Dialog.Trigger
+        className={cn(iconButton, "text-destructive hover:text-destructive")}
+        aria-label={label}
+      >
         <Trash2Icon aria-hidden="true" className="size-4" />
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -72,14 +87,14 @@ function DeleteControl({
           </Dialog.Description>
           {error ? <ErrorMessage message={errorMessage} /> : null}
           <div className="flex justify-end gap-2">
-            <Dialog.Close className={button} disabled={pending}>
+            <Dialog.Close className={outlineButton} disabled={pending}>
               {cancel}
             </Dialog.Close>
             <button
               type="button"
               className={cn(
                 primary,
-                "border-destructive bg-destructive text-destructive-foreground",
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
               )}
               disabled={pending}
               onClick={() => {
@@ -154,80 +169,86 @@ export function MenuItemsPage({
   );
   return (
     <section className={cn(page, className)}>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{labels.items}</h1>
-        <div className="flex gap-2">
-          <HostLink href={taxonomyHref} className={button}>
-            {labels.categories} / {labels.labels}
-          </HostLink>
-          <HostLink href={newHref} className={primary}>
-            <PlusIcon aria-hidden="true" className="size-4" />
-            {labels.newItem}
-          </HostLink>
-        </div>
-      </header>
-      {error ? (
-        <div>
-          <ErrorMessage message={labels.error} />
-          <button className={button} onClick={() => setRevision((n) => n + 1)}>
-            {labels.retry}
-          </button>
-        </div>
-      ) : null}
-      {!data && !error ? <output>{labels.loading}</output> : null}
-      {data?.items.length === 0 ? <p>{labels.emptyItems}</p> : null}
-      {data?.items.length ? (
-        <div className="overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th scope="col" className="p-3">
-                  {labels.name}
-                </th>
-                <th scope="col" className="p-3">
-                  {labels.category}
-                </th>
-                <th scope="col" className="p-3">
-                  {labels.visible}
-                </th>
-                <th scope="col" className="p-3">
-                  {labels.unavailable}
-                </th>
-                <th scope="col" className="p-3 text-right">
-                  {labels.editItem}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item) => (
-                <tr key={item.id} className="border-t border-border">
-                  <td className="p-3 font-medium">{item.translations[baseLocale]?.name}</td>
-                  <td className="p-3">{categoryNames.get(item.categoryId)}</td>
-                  <td className="p-3">{item.visible ? labels.yes : labels.no}</td>
-                  <td className="p-3">{item.soldOut ? labels.yes : labels.no}</td>
-                  <td className="flex justify-end gap-2 p-3">
-                    <HostLink
-                      href={getEditHref(item)}
-                      className={iconButton}
-                      aria-label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
-                    >
-                      <PencilIcon aria-hidden="true" className="size-4" />
-                    </HostLink>
-                    <DeleteControl
-                      label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
-                      confirm={labels.confirmDelete}
-                      cancel={labels.cancel}
-                      errorMessage={labels.deleteFilesFirst}
-                      onDelete={() => client.remove(item.id)}
-                      onDone={() => setRevision((n) => n + 1)}
-                    />
-                  </td>
+      <div className={tablePanelClass}>
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-base font-semibold">{labels.items}</h1>
+          <div className="flex gap-2">
+            <HostLink href={taxonomyHref} className={outlineButton}>
+              {labels.categories} / {labels.labels}
+            </HostLink>
+            <HostLink href={newHref} className={primary}>
+              <PlusIcon aria-hidden="true" className="size-4" />
+              {labels.newItem}
+            </HostLink>
+          </div>
+        </header>
+        {error ? (
+          <div>
+            <ErrorMessage message={labels.error} />
+            <button className={button} onClick={() => setRevision((n) => n + 1)}>
+              {labels.retry}
+            </button>
+          </div>
+        ) : null}
+        {!data && !error ? <output>{labels.loading}</output> : null}
+        {data?.items.length === 0 ? <p>{labels.emptyItems}</p> : null}
+        {data?.items.length ? (
+          <div className="mt-5 overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr className={tableRowClass}>
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.name}
+                  </th>
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.category}
+                  </th>
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.visible}
+                  </th>
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.unavailable}
+                  </th>
+                  <th scope="col" className={tableActionCellClass}>
+                    {labels.editItem}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
+                {data.items.map((item) => (
+                  <tr key={item.id} className={tableRowClass}>
+                    <td className={cn(tableCellClass, "font-medium")}>
+                      {item.translations[baseLocale]?.name}
+                    </td>
+                    <td className={tableCellClass}>{categoryNames.get(item.categoryId)}</td>
+                    <td className={tableCellClass}>{item.visible ? labels.yes : labels.no}</td>
+                    <td className={tableCellClass}>{item.soldOut ? labels.yes : labels.no}</td>
+                    <td className={tableActionCellClass}>
+                      <div className="flex justify-end gap-2">
+                        <HostLink
+                          href={getEditHref(item)}
+                          className={iconButton}
+                          aria-label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
+                        >
+                          <PencilIcon aria-hidden="true" className="size-4" />
+                        </HostLink>
+                        <DeleteControl
+                          label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
+                          confirm={labels.confirmDelete}
+                          cancel={labels.cancel}
+                          errorMessage={labels.deleteFilesFirst}
+                          onDelete={() => client.remove(item.id)}
+                          onDone={() => setRevision((n) => n + 1)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -661,7 +682,7 @@ function TaxonomyDialog({
             ) : null}
             {error ? <ErrorMessage message={labels.error} /> : null}
             <div className="flex justify-end gap-2">
-              <Dialog.Close className={button} disabled={pending}>
+              <Dialog.Close className={outlineButton} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
               <button className={primary} disabled={pending}>

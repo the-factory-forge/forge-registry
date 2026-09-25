@@ -18,6 +18,19 @@
       "dependencies": ["cnfast"]
     },
     {
+      "name": "table-styles",
+      "type": "registry:lib",
+      "title": "Plugin table styles",
+      "description": "Shared semantic layout classes for plugin data tables.",
+      "files": [
+        {
+          "path": "registry/components/utils/table-styles.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-styles.ts"
+        }
+      ]
+    },
+    {
       "name": "section-variants",
       "type": "registry:lib",
       "title": "Section Variants",
@@ -695,7 +708,7 @@
         }
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"]
     },
     {
       "name": "projects",
@@ -735,7 +748,12 @@
         }
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/customers", "@forge/cn", "@forge/ui-shims"]
+      "registryDependencies": [
+        "@forge/customers",
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles"
+      ]
     },
     {
       "name": "drive",
@@ -743,7 +761,7 @@
       "title": "Drive",
       "description": "Standalone and embeddable file browser for any host entity.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
       "files": [
         {
           "path": "registry/components/plugins/drive/index.tsx",
@@ -838,7 +856,7 @@
       "title": "Blogs",
       "description": "Multilingual Markdown articles, public pages, and editorial workflows.",
       "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
       "files": [
         {
           "path": "registry/components/plugins/blogs/admin.tsx",
@@ -923,7 +941,12 @@
       "title": "Menus",
       "description": "Translated restaurant menu, staff item editor, and category and dietary label management.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/drive"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/drive",
+        "@forge/table-styles"
+      ],
       "files": [
         {
           "path": "registry/components/plugins/menus/index.ts",
@@ -1074,7 +1097,7 @@
           "target": "@components/plugins/employees/styles.ts"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
     {

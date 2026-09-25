@@ -35,7 +35,9 @@ import {
   cardClass,
   ConfirmDelete,
   Feedback,
+  iconButtonClass,
   inputClass,
+  outlineButtonClass,
   pageClass,
   Pagination,
   primaryClass,
@@ -50,6 +52,14 @@ import {
   slugify,
 } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 
 export interface BlogsPageProps extends BlogsAppearanceProps {
   data: BlogPage<BlogListItem>;
@@ -85,108 +95,117 @@ export function BlogsPage({
     id = useId();
   return (
     <section className={cn(pageClass, className)}>
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-serif text-3xl font-semibold">{labels.blogs}</h1>
-        <div className="flex gap-2">
-          {capabilities.manageCategories && (
-            <BlogLink href={categoriesHref} className={buttonClass}>
-              {labels.manageCategories}
-            </BlogLink>
-          )}
-          {capabilities.create && (
-            <BlogLink href={newHref} className={primaryClass}>
-              {labels.newPost}
-            </BlogLink>
-          )}
-        </div>
-      </header>
-      <label htmlFor={id} className="sr-only">
-        {labels.search}
-      </label>
-      <input
-        id={id}
-        className={cn(inputClass, "max-w-md")}
-        placeholder={labels.search}
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
-      {!capabilities.edit && <Feedback message={labels.readOnly} />}
-      {error ? (
-        <>
-          <Feedback message={error} error />
-          {onRetry && (
-            <button className={buttonClass} onClick={onRetry}>
-              {labels.retry}
-            </button>
-          )}
-        </>
-      ) : loading ? (
-        <Feedback message={labels.loading} />
-      ) : !data.items.length ? (
-        <Feedback message={labels.empty} />
-      ) : (
-        <div className={cn(cardClass, "overflow-x-auto p-0")}>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-muted-foreground">
-              <tr>
-                {[
-                  labels.title,
-                  labels.languages,
-                  labels.editor,
-                  labels.modified,
-                  labels.actions,
-                ].map((label) => (
-                  <th key={label} className="p-4 font-medium">
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((post) => (
-                <tr key={post.id} className="border-b border-border last:border-0">
-                  <td className="min-w-48 p-4 font-medium">
-                    <BlogLink href={editHref(post.id)} className="text-foreground hover:underline">
-                      {post.title}
-                    </BlogLink>
-                  </td>
-                  <td className="min-w-48 p-4 whitespace-nowrap">
-                    <div className="flex flex-nowrap gap-2">
-                      {post.translations.map((t) => (
-                        <span
-                          key={t.locale}
-                          title={labels[t.status]}
-                          className={cn(
-                            "rounded-full bg-muted px-2 py-1 text-xs",
-                            t.status === "draft" && "opacity-40",
-                          )}
-                        >
-                          {t.locale.toUpperCase()}
-                          <span className="sr-only"> · {labels[t.status]}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-4">{post.editor.name}</td>
-                  <td className="p-4 whitespace-nowrap">
-                    <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
-                  </td>
-                  <td className="p-4">
-                    <BlogLink
-                      href={editHref(post.id)}
-                      className={cn(buttonClass, "size-9 shrink-0 p-0")}
-                      aria-label={`${labels.edit}: ${post.title}`}
+      <div className={cn(tablePanelClass, "space-y-5")}>
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="font-sans text-base font-semibold">{labels.blogs}</h1>
+          <div className="flex gap-2">
+            {capabilities.manageCategories && (
+              <BlogLink href={categoriesHref} className={outlineButtonClass}>
+                {labels.manageCategories}
+              </BlogLink>
+            )}
+            {capabilities.create && (
+              <BlogLink href={newHref} className={primaryClass}>
+                {labels.newPost}
+              </BlogLink>
+            )}
+          </div>
+        </header>
+        <label htmlFor={id} className="sr-only">
+          {labels.search}
+        </label>
+        <input
+          id={id}
+          className={cn(inputClass, "max-w-md")}
+          placeholder={labels.search}
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+        {!capabilities.edit && <Feedback message={labels.readOnly} />}
+        {error ? (
+          <>
+            <Feedback message={error} error />
+            {onRetry && (
+              <button className={buttonClass} onClick={onRetry}>
+                {labels.retry}
+              </button>
+            )}
+          </>
+        ) : loading ? (
+          <Feedback message={labels.loading} />
+        ) : !data.items.length ? (
+          <Feedback message={labels.empty} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className={tableClass}>
+              <thead>
+                <tr className={tableRowClass}>
+                  {[
+                    labels.title,
+                    labels.languages,
+                    labels.editor,
+                    labels.modified,
+                    labels.actions,
+                  ].map((label, index) => (
+                    <th
+                      key={label}
+                      scope="col"
+                      className={index === 4 ? tableActionCellClass : tableHeaderClass}
                     >
-                      <PencilIcon aria-hidden="true" />
-                    </BlogLink>
-                  </td>
+                      {label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Pagination {...data} onPageChange={onPageChange} labels={labels} />
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
+                {data.items.map((post) => (
+                  <tr key={post.id} className={tableRowClass}>
+                    <td className={cn(tableCellClass, "min-w-48 font-medium")}>
+                      <BlogLink
+                        href={editHref(post.id)}
+                        className="text-foreground hover:underline"
+                      >
+                        {post.title}
+                      </BlogLink>
+                    </td>
+                    <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
+                      <div className="flex flex-nowrap gap-2">
+                        {post.translations.map((t) => (
+                          <span
+                            key={t.locale}
+                            title={labels[t.status]}
+                            className={cn(
+                              "rounded-full bg-muted px-2 py-1 text-xs",
+                              t.status === "draft" && "opacity-40",
+                            )}
+                          >
+                            {t.locale.toUpperCase()}
+                            <span className="sr-only"> · {labels[t.status]}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className={tableCellClass}>{post.editor.name}</td>
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
+                    </td>
+                    <td className={tableActionCellClass}>
+                      <BlogLink
+                        href={editHref(post.id)}
+                        className={iconButtonClass}
+                        aria-label={`${labels.edit}: ${post.title}`}
+                      >
+                        <PencilIcon aria-hidden="true" />
+                      </BlogLink>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <Pagination {...data} onPageChange={onPageChange} labels={labels} />
+      </div>
     </section>
   );
 }

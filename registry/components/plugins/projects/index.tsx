@@ -7,6 +7,7 @@ import { Link } from "@/components/link";
 import {
   buttonClass,
   cardClass,
+  iconButtonClass,
   inputClass,
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
@@ -22,6 +23,14 @@ import type {
 import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
 import { safeProjectUrl } from "@/components/plugins/projects/utils";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 
 export type {
   Project,
@@ -71,7 +80,7 @@ export function ProjectsList({
       tabIndex={-1}
       aria-label={labels.title}
       className={cn(
-        cardClass,
+        tablePanelClass,
         "min-w-0 space-y-5 focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
@@ -113,9 +122,9 @@ export function ProjectsList({
         </output>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className={tableClass}>
             <thead>
-              <tr className="border-b border-border">
+              <tr className={tableRowClass}>
                 {[
                   labels.name,
                   ...(customerId === undefined ? [labels.owner] : []),
@@ -127,21 +136,25 @@ export function ProjectsList({
                   <th
                     key={index}
                     scope="col"
-                    className="px-3 py-3 font-medium text-muted-foreground last:text-right"
+                    className={
+                      index === (customerId === undefined ? 5 : 4)
+                        ? tableActionCellClass
+                        : tableHeaderClass
+                    }
                   >
                     {label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&_tr:last-child]:border-0">
               {visibleProjects.map((project) => {
                 const owner = owners.get(project.ownerId);
                 const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
                 const website = safeProjectUrl(project.url);
                 return (
-                  <tr key={project.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-3">
+                  <tr key={project.id} className={tableRowClass}>
+                    <td className={tableCellClass}>
                       <ProjectLink
                         href={getProjectHref(project)}
                         className="font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring"
@@ -150,7 +163,7 @@ export function ProjectsList({
                       </ProjectLink>
                     </td>
                     {customerId === undefined && (
-                      <td className="px-3 py-3">
+                      <td className={tableCellClass}>
                         {owner ? (
                           getCustomerHref ? (
                             <ProjectLink
@@ -167,18 +180,18 @@ export function ProjectsList({
                         )}
                       </td>
                     )}
-                    <td className="px-3 py-3">
+                    <td className={tableCellClass}>
                       {assignee?.name ??
                         (project.assigneeId ? labels.unavailableAssignee : labels.unassigned)}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={tableCellClass}>
                       {website ? (
                         <ProjectLink
                           href={website}
                           target={website.startsWith("/") ? undefined : "_blank"}
                           rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
                           aria-label={labels.visit(project.name)}
-                          className={buttonClass}
+                          className={iconButtonClass}
                         >
                           <ExternalLinkIcon aria-hidden="true" />
                         </ProjectLink>
@@ -186,15 +199,15 @@ export function ProjectsList({
                         <span className="text-muted-foreground">{labels.noWebsite}</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={tableCellClass}>
                       <ProjectStatusBadge status={project.status} labels={labels} />
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={tableActionCellClass}>
                       <div className="flex items-start justify-end gap-1">
                         <ProjectLink
                           href={getProjectHref(project)}
                           aria-label={labels.edit(project.name)}
-                          className={buttonClass}
+                          className={iconButtonClass}
                         >
                           <PencilIcon aria-hidden="true" />
                         </ProjectLink>
@@ -212,10 +225,10 @@ export function ProjectsList({
                 );
               })}
               {!visibleProjects.length && (
-                <tr>
+                <tr className={tableRowClass}>
                   <td
                     colSpan={customerId === undefined ? 6 : 5}
-                    className="py-10 text-center text-muted-foreground"
+                    className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                   >
                     {labels.empty}
                   </td>

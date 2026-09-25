@@ -16,6 +16,15 @@ import {
 } from "@/components/plugins/employees/schema";
 import { outlineButtonClass } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableFooterClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 export { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 export type {
   Employee,
@@ -58,10 +67,7 @@ export function EmployeesPage({
   const labels = { ...employeeLabels, ...overrides };
   return (
     <section
-      className={cn(
-        "mx-auto w-full max-w-7xl min-w-0 rounded-xl border border-border bg-card py-6 text-card-foreground",
-        className,
-      )}
+      className={cn(tablePanelClass, "mx-auto w-full max-w-7xl px-0", className)}
       aria-label={labels.title}
     >
       <header className="flex flex-wrap items-center justify-between gap-4 px-6 pb-6">
@@ -82,47 +88,35 @@ export function EmployeesPage({
         ) : (
           <>
             <div className="min-w-0 overflow-x-auto">
-              <table className="w-full caption-bottom text-sm">
+              <table className={tableClass}>
                 <thead className="[&_tr]:border-b">
-                  <tr className="border-b border-border transition-colors hover:bg-muted/50">
-                    <th
-                      scope="col"
-                      className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap"
-                    >
+                  <tr className={tableRowClass}>
+                    <th scope="col" className={tableHeaderClass}>
                       {labels.name}
                     </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap"
-                    >
+                    <th scope="col" className={tableHeaderClass}>
                       {labels.email}
                     </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap"
-                    >
+                    <th scope="col" className={tableHeaderClass}>
                       {labels.role}
                     </th>
-                    <th
-                      scope="col"
-                      className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap"
-                    >
+                    <th scope="col" className={tableHeaderClass}>
                       {labels.status}
                     </th>
-                    <th
-                      scope="col"
-                      className="sticky right-0 z-10 bg-card p-2 text-right align-middle whitespace-nowrap"
-                    >
+                    <th scope="col" className={tableActionCellClass}>
                       {labels.actions}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
                   {employees.map((employee) => (
-                    <tr key={employee.id} className="border-b border-border hover:bg-muted/50">
-                      <td aria-label={employee.name} className="p-2 align-middle whitespace-nowrap">
+                    <tr key={employee.id} className={tableRowClass}>
+                      <td
+                        aria-label={employee.name}
+                        className={cn(tableCellClass, "whitespace-nowrap")}
+                      >
                         <div className="flex items-center gap-3">
-                          <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-muted">
+                          <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-primary/20">
                             <Avatar.Image
                               className="size-full object-cover"
                               src={employee.image ?? undefined}
@@ -143,7 +137,7 @@ export function EmployeesPage({
                           </span>
                         </div>
                       </td>
-                      <td className="p-2 align-middle whitespace-nowrap">
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         <div className="flex items-center gap-3">
                           <span
                             role="img"
@@ -168,13 +162,13 @@ export function EmployeesPage({
                           </span>
                         </div>
                       </td>
-                      <td className="p-2 align-middle whitespace-nowrap">
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         {isEmployeeAdmin(employee.role) ? labels.roleAdmin : labels.roleUser}
                       </td>
-                      <td className="p-2 align-middle whitespace-nowrap">
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         {employee.banned ? labels.disabled : labels.active}
                       </td>
-                      <td className="sticky right-0 z-10 bg-card p-2 text-right align-middle whitespace-nowrap">
+                      <td className={tableActionCellClass}>
                         <EmployeeActions
                           employee={employee}
                           currentUserId={currentUserId}
@@ -187,8 +181,8 @@ export function EmployeesPage({
                     </tr>
                   ))}
                   {employees.length === 0 && (
-                    <tr className="border-b border-border transition-colors hover:bg-muted/50">
-                      <td colSpan={5} className="p-2">
+                    <tr className={tableRowClass}>
+                      <td colSpan={5} className={tableCellClass}>
                         {labels.empty}
                       </td>
                     </tr>
@@ -196,7 +190,7 @@ export function EmployeesPage({
                 </tbody>
               </table>
             </div>
-            <footer className="mt-5 flex flex-wrap items-center justify-end gap-3">
+            <footer className={tableFooterClass}>
               <span className="text-sm text-muted-foreground">
                 {total} {labels.total}
               </span>

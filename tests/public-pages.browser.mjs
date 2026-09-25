@@ -54,12 +54,32 @@ test("public pages are discoverable, responsive, and retain contact links and op
   t.after(() => context.close());
   const page = await context.newPage();
   await page.goto(baseURL);
+  await page.locator('[data-preview-ready="true"]').waitFor();
   for (const category of ["All", "Page"]) {
     await page.getByRole("button", { name: category, exact: true }).click();
     assert.equal(await page.locator('main a[href="/en/faq"]').count(), 1);
     assert.equal(await page.locator('main a[href="/en/contact"]').count(), 1);
     assert.equal(await page.locator('main a[href="/en/legal/cgv"]').count(), 1);
   }
+  const search = page.getByRole("searchbox", { name: "Search examples" });
+  await search.fill("analytics");
+  await page.getByRole("status").filter({ hasText: "No examples found." }).waitFor();
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  await page.locator('main a[href="/cookie-banner"]').waitFor();
+  for (const keyword of ["login", "forgotten", "reset", "change password"]) {
+    await search.fill(keyword);
+    await page.locator('main a[href="/en/auth"]').waitFor();
+    await page.locator('main a[href="/cookie-banner"]').waitFor({ state: "hidden" });
+  }
+  await search.fill("privacy policy");
+  await page.locator('main a[href="/en/legal/cgv"]').waitFor();
+  await page.locator('main a[href="/en/auth"]').waitFor({ state: "hidden" });
+  await search.fill("loading retries");
+  await page.getByRole("status").filter({ hasText: "No examples found." }).waitFor();
+  await search.fill("  CONTACT  ");
+  await page.locator('main a[href="/en/contact"]').waitFor();
+  await page.locator('main a[href="/en/faq"]').waitFor({ state: "hidden" });
+  assert.equal(await page.locator('main a[href="/en/faq"]').count(), 0);
   await page.locator('main a[href="/en/contact"]').click();
   await page.getByRole("heading", { name: "Contact us", exact: true }).waitFor();
   assert.equal(

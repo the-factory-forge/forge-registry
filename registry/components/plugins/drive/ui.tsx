@@ -16,13 +16,16 @@ import type {
 } from "@/components/plugins/drive/types";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
+import { tableHeaderClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
 export const primaryClass = cn(
   buttonClass,
-  "bg-primary text-primary-foreground hover:bg-primary/90",
+  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 );
+export const outlineButtonClass = cn(buttonClass, "border border-border");
+export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 shrink-0 p-0");
 export const inputClass =
   "h-9 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
@@ -46,7 +49,7 @@ export function SortHeading({
     <th
       scope="col"
       aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
-      className="px-3 py-2 font-medium first:pl-0"
+      className={tableHeaderClass}
     >
       <button
         type="button"
@@ -211,7 +214,10 @@ export function EntryDialog({
       }}
     >
       <Dialog.Trigger
-        className={buttonClass}
+        className={cn(
+          entry ? iconButtonClass : buttonClass,
+          deleting && "text-destructive hover:text-destructive",
+        )}
         aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
       >
         {children}
@@ -257,7 +263,7 @@ export function EntryDialog({
             )}
             <DriveFeedback message={error} error />
             <div className="flex justify-end gap-2">
-              <Dialog.Close className={buttonClass} disabled={pending}>
+              <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
               {deleting && !preview ? (
@@ -275,7 +281,7 @@ export function EntryDialog({
                   className={cn(
                     primaryClass,
                     deleting &&
-                      "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                      "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
                   )}
                   disabled={pending}
                 >

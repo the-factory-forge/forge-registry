@@ -12,11 +12,13 @@ import { cn } from "@/components/utils/cn";
 
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
 export const buttonClass =
-  "inline-flex min-h-8 shrink-0 items-center justify-center gap-2 rounded-2xl px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
 export const primaryButtonClass = cn(
   buttonClass,
-  "bg-primary text-primary-foreground hover:bg-primary/90",
+  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 );
+export const outlineButtonClass = cn(buttonClass, "border border-border");
+export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 p-0");
 export const inputClass =
   "h-8 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-red-600 md:text-sm";
 
@@ -99,7 +101,7 @@ export function CustomerActionButton({
     <div>
       <button
         type="button"
-        className={buttonClass}
+        className={iconButtonClass}
         aria-label={label}
         disabled={action.pending}
         aria-busy={action.pending}
@@ -132,7 +134,7 @@ export function DeleteCustomer({
         }}
       >
         <Dialog.Trigger
-          className={cn(buttonClass, "text-destructive")}
+          className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
           aria-label={labels.deleteCustomer}
           disabled={action.pending}
         >
@@ -152,13 +154,16 @@ export function DeleteCustomer({
             </Dialog.Description>
             <Feedback feedback={action.feedback} />
             <div className="flex justify-end gap-2">
-              <Dialog.Close className={buttonClass} disabled={action.pending}>
+              <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
                 {labels.cancel}
               </Dialog.Close>
               <button
                 type="button"
                 disabled={action.pending}
-                className={cn(buttonClass, "bg-red-600 text-white hover:bg-red-700")}
+                className={cn(
+                  buttonClass,
+                  "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                )}
                 onClick={async () => {
                   if (await action.run(() => onDelete(customer.id), labels.deleted)) setOpen(false);
                 }}

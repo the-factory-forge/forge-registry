@@ -2,6 +2,8 @@
 
 import {
   ArrowLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   DownloadIcon,
   FileIcon,
   FolderIcon,
@@ -33,6 +35,7 @@ import {
   DriveSize,
   SortHeading,
   EntryDialog,
+  iconButtonClass,
   inputClass,
   messageFor,
   primaryClass,
@@ -40,6 +43,15 @@ import {
 import { useUploads } from "@/components/plugins/drive/use-uploads";
 import { DriveError, safeDownloadUrl, scopeKey } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableFooterClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 
 export type * from "@/components/plugins/drive/types";
 export type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -98,28 +110,28 @@ export function DrivePage({
       className={cn("space-y-6 p-4 text-foreground md:p-8", className)}
       aria-label={labels.title}
     >
-      <header>
-        <h1 className="text-2xl font-semibold">{labels.title}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
-      </header>
-      <label className="relative block max-w-md">
-        <SearchIcon
-          className="absolute top-2 left-3 size-5 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          aria-label={labels.searchSpaces}
-          placeholder={labels.searchSpaces}
-          className={cn(inputClass, "pl-10")}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setCursor(undefined);
-          }}
-        />
-      </label>
-      <div className={cardClass} aria-busy={loading}>
+      <div className={cn(tablePanelClass, "space-y-5")} aria-busy={loading}>
+        <header>
+          <h1 className="text-base font-semibold">{labels.title}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
+        </header>
+        <label className="relative block max-w-md">
+          <SearchIcon
+            className="absolute top-2 left-3 size-5 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            aria-label={labels.searchSpaces}
+            placeholder={labels.searchSpaces}
+            className={cn(inputClass, "pl-10")}
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setCursor(undefined);
+            }}
+          />
+        </label>
         {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
         {loading && !data?.items.length ? (
           <DriveFeedback message={labels.loading} />
@@ -134,9 +146,9 @@ export function DrivePage({
           <p className="text-sm text-muted-foreground">{labels.emptySpaces}</p>
         ) : (
           <div className="relative overflow-x-auto">
-            <table aria-label={labels.spaces} className="w-full min-w-[44rem] text-left text-sm">
+            <table aria-label={labels.spaces} className={cn(tableClass, "min-w-[44rem]")}>
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className={tableRowClass}>
                   <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
                   <SortHeading
                     field="updatedAt"
@@ -146,15 +158,15 @@ export function DrivePage({
                   />
                   <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
                   <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
-                  <th scope="col" className="py-3 text-right font-medium">
+                  <th scope="col" className={tableActionCellClass}>
                     {labels.actions}
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&_tr:last-child]:border-0">
                 {data.items.map((space) => (
-                  <tr key={scopeKey(space.scope)} className="border-b border-border last:border-0">
-                    <td className="py-3 pr-3">
+                  <tr key={scopeKey(space.scope)} className={tableRowClass}>
+                    <td className={tableCellClass}>
                       <HostLink
                         href={getSpaceHref(space)}
                         className={cn(buttonClass, "-ml-3 justify-start text-left")}
@@ -170,20 +182,20 @@ export function DrivePage({
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
                       <DriveModified
                         value={space.updatedAt}
                         locale={locale}
                         fallback={labels.unavailable}
                       />
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
                       <DriveSize value={space.size} locale={locale} fallback={labels.unavailable} />
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className={cn(tableCellClass, "text-muted-foreground")}>
                       <DriveOwner owner={space.owner} fallback={labels.unavailable} />
                     </td>
-                    <td className="py-3 text-right">
+                    <td className={tableActionCellClass}>
                       {space.href && (
                         <HostLink
                           href={space.href}
@@ -200,22 +212,26 @@ export function DrivePage({
             </table>
           </div>
         )}
-      </div>
-      <div className="flex gap-2">
-        {cursor && (
-          <button className={buttonClass} disabled={loading} onClick={() => setCursor(undefined)}>
-            {labels.first}
-          </button>
-        )}
-        {!error && data?.nextCursor && (
+        <div className={tableFooterClass}>
           <button
-            className={buttonClass}
-            disabled={loading}
-            onClick={() => setCursor(data.nextCursor)}
+            type="button"
+            className={cn(buttonClass, "size-9 border border-border p-0")}
+            disabled={!cursor || loading}
+            onClick={() => setCursor(undefined)}
+            aria-label={labels.first}
           >
-            {labels.next}
+            <ChevronLeftIcon aria-hidden="true" />
           </button>
-        )}
+          <button
+            type="button"
+            className={cn(buttonClass, "size-9 border border-border p-0")}
+            disabled={loading || !!error || !data?.nextCursor}
+            onClick={() => setCursor(data?.nextCursor)}
+            aria-label={labels.next}
+          >
+            <ChevronRightIcon aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -411,7 +427,7 @@ function Browser({
       </div>
       <DriveFeedback {...feedback} />
       <div
-        className={cn(cardClass, "overflow-hidden")}
+        className={cn(tablePanelClass, "overflow-hidden")}
         aria-busy={loading}
         onDragOver={(event) => {
           if (capabilities?.upload) {
@@ -454,9 +470,9 @@ function Browser({
           </p>
         ) : (
           <div className="relative overflow-x-auto">
-            <table aria-label={data.space.name} className="w-full min-w-[44rem] text-left text-sm">
+            <table aria-label={data.space.name} className={cn(tableClass, "min-w-[44rem]")}>
               <thead>
-                <tr className="border-b border-border text-muted-foreground">
+                <tr className={tableRowClass}>
                   <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
                   <SortHeading
                     field="updatedAt"
@@ -465,18 +481,18 @@ function Browser({
                     onSort={onSort}
                   />
                   <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
-                  <th scope="col" className="px-3 py-3 font-medium">
+                  <th scope="col" className={tableHeaderClass}>
                     {labels.owner}
                   </th>
-                  <th scope="col" className="py-3 text-right font-medium">
+                  <th scope="col" className={tableActionCellClass}>
                     {labels.actions}
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&_tr:last-child]:border-0">
                 {data.items.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border last:border-0">
-                    <td className="max-w-[14rem] py-3 pr-3 sm:max-w-none">
+                  <tr key={entry.id} className={tableRowClass}>
+                    <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
                       <div className="flex items-center gap-2">
                         {entry.kind === "folder" ? (
                           <FolderIcon
@@ -506,24 +522,24 @@ function Browser({
                         </output>
                       )}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
                       <DriveModified
                         value={entry.updatedAt}
                         locale={locale}
                         fallback={labels.unavailable}
                       />
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
                       <DriveSize
                         value={entry.kind === "file" ? entry.size : undefined}
                         locale={locale}
                         fallback={labels.unavailable}
                       />
                     </td>
-                    <td className="px-3 py-3 text-muted-foreground">
+                    <td className={cn(tableCellClass, "text-muted-foreground")}>
                       <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
                     </td>
-                    <td className="py-3">
+                    <td className={tableActionCellClass}>
                       <div className="flex justify-end">
                         {onSelectFile &&
                           entry.kind === "file" &&
@@ -541,7 +557,7 @@ function Browser({
                           capabilities?.download &&
                           entry.kind === "file" && (
                             <button
-                              className={buttonClass}
+                              className={iconButtonClass}
                               aria-label={labels.download}
                               disabled={downloading}
                               onClick={() => void download(entry)}
@@ -588,22 +604,26 @@ function Browser({
             </table>
           </div>
         )}
-      </div>
-      <div className="flex gap-2">
-        {cursor && (
-          <button className={buttonClass} disabled={loading} onClick={() => setCursor(undefined)}>
-            {labels.first}
-          </button>
-        )}
-        {!error && data?.nextCursor && (
+        <div className={tableFooterClass}>
           <button
-            className={buttonClass}
-            disabled={loading}
-            onClick={() => setCursor(data.nextCursor)}
+            type="button"
+            className={cn(buttonClass, "size-9 border border-border p-0")}
+            disabled={!cursor || loading}
+            onClick={() => setCursor(undefined)}
+            aria-label={labels.first}
           >
-            {labels.next}
+            <ChevronLeftIcon aria-hidden="true" />
           </button>
-        )}
+          <button
+            type="button"
+            className={cn(buttonClass, "size-9 border border-border p-0")}
+            disabled={loading || !!error || !data?.nextCursor}
+            onClick={() => setCursor(data?.nextCursor)}
+            aria-label={labels.next}
+          >
+            <ChevronRightIcon aria-hidden="true" />
+          </button>
+        </div>
       </div>
       {queue.uploads.length > 0 && (
         <div className={cn(cardClass, "space-y-4")}>

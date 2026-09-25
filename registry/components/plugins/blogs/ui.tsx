@@ -1,18 +1,21 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Trash2Icon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { cn } from "@/components/utils/cn";
+import { tableFooterClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
 export const primaryClass = cn(
   buttonClass,
-  "bg-primary text-primary-foreground hover:bg-primary/90",
+  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 );
+export const outlineButtonClass = cn(buttonClass, "border border-border");
+export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 shrink-0 p-0");
 export const inputClass =
   "h-10 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
@@ -88,7 +91,7 @@ export function ConfirmDelete({
       }}
     >
       <Dialog.Trigger
-        className={cn(buttonClass, "size-9 shrink-0 p-0 text-destructive")}
+        className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
         aria-label={label}
         disabled={disabled}
       >
@@ -108,13 +111,13 @@ export function ConfirmDelete({
           </Dialog.Description>
           <Feedback {...action.feedback} />
           <div className="flex justify-end gap-2">
-            <Dialog.Close className={buttonClass} disabled={action.pending}>
+            <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
               {labels.cancel}
             </Dialog.Close>
             <button
               className={cn(
                 primaryClass,
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
               )}
               disabled={action.pending}
               onClick={() =>
@@ -148,20 +151,30 @@ export function Pagination({
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <nav
-      aria-label={labels.pageLabel(page, pages)}
-      className="flex items-center justify-between gap-3"
-    >
-      <button className={buttonClass} disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-        {labels.previous}
-      </button>
-      <span className="text-sm text-muted-foreground">{labels.pageLabel(page, pages)}</span>
+    <nav aria-label={labels.pageLabel(page, pages)} className={tableFooterClass}>
+      <span className="text-sm text-muted-foreground">
+        {total} {labels.totalItems}
+      </span>
       <button
-        className={buttonClass}
+        type="button"
+        className={cn(buttonClass, "size-9 border border-border p-0")}
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+        aria-label={labels.previous}
+      >
+        <ChevronLeftIcon aria-hidden="true" />
+      </button>
+      <span className="min-w-9 text-center text-sm text-muted-foreground tabular-nums">
+        {page}/{pages}
+      </span>
+      <button
+        type="button"
+        className={cn(buttonClass, "size-9 border border-border p-0")}
         disabled={page >= pages}
         onClick={() => onPageChange(page + 1)}
+        aria-label={labels.next}
       >
-        {labels.next}
+        <ChevronRightIcon aria-hidden="true" />
       </button>
     </nav>
   );

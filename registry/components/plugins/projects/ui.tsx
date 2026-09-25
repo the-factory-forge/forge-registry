@@ -7,9 +7,11 @@ import { useRef, useState, type RefObject } from "react";
 
 import {
   buttonClass,
+  iconButtonClass,
   cardClass,
   Feedback,
   inputClass,
+  outlineButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
 import { customerInitials } from "@/components/plugins/customers/utils";
@@ -205,7 +207,7 @@ export function ProjectPersonPicker({
             )}
           </div>
           <div className="flex justify-end">
-            <Dialog.Close className={buttonClass}>{labels.close}</Dialog.Close>
+            <Dialog.Close className={outlineButtonClass}>{labels.close}</Dialog.Close>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
@@ -242,7 +244,7 @@ export function DeleteProject({
         <Dialog.Trigger
           ref={trigger}
           disabled={disabled || action.pending}
-          className={cn(buttonClass, "text-destructive")}
+          className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
           aria-label={labels.deleteProject}
         >
           <Trash2Icon aria-hidden="true" />
@@ -261,14 +263,17 @@ export function DeleteProject({
             </Dialog.Description>
             <Feedback feedback={action.feedback} />
             <div className="flex justify-end gap-2">
-              <Dialog.Close disabled={action.pending} className={buttonClass}>
+              <Dialog.Close disabled={action.pending} className={outlineButtonClass}>
                 {labels.cancel}
               </Dialog.Close>
               <button
                 type="button"
                 disabled={action.pending}
                 aria-busy={action.pending}
-                className={cn(buttonClass, "bg-red-600 text-white hover:bg-red-700")}
+                className={cn(
+                  buttonClass,
+                  "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                )}
                 onClick={async () => {
                   const success = await action.run(async () => {
                     onPendingChange?.(true);

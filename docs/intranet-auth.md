@@ -31,6 +31,10 @@ The link shim can be replaced by the host or passed through `linkComponent`.
 
 `AuthLayout` accepts `siteName`, `logoSrc`, `homeHref`, `privacyHref`, and an
 optional `languageControl`. It preserves the exact agency footer credit.
+On desktop, its left panel is narrower than the form side and keeps its own
+viewport-height minimum. Longer auth content can extend the right side without
+stretching the left panel or pushing its copy to the bottom. The dark backdrop
+continues below the left panel when the form side is taller.
 
 `LoginForm.onSignIn` receives `{ email, password, rememberMe }`. Reject its
 promise when authentication fails; resolve only after successful authentication

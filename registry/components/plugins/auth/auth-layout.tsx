@@ -37,8 +37,13 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   const labels = { ...authLayoutLabels, ...overrides };
   return (
-    <div className={cn("grid min-h-svh bg-background lg:grid-cols-2", className)}>
-      <aside className="relative hidden overflow-hidden bg-primary text-primary-foreground lg:block">
+    <div
+      className={cn(
+        "grid min-h-svh bg-background lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start lg:bg-primary",
+        className,
+      )}
+    >
+      <aside className="relative hidden min-h-svh overflow-hidden bg-primary text-primary-foreground lg:block">
         <div
           className="pointer-events-none absolute -top-32 -right-32 size-160 rounded-full border border-primary-foreground/15"
           aria-hidden="true"
@@ -47,7 +52,7 @@ export function AuthLayout({
           className="pointer-events-none absolute top-16 -right-64 size-160 rounded-full border border-primary-foreground/15"
           aria-hidden="true"
         />
-        <div className="relative flex h-full flex-col justify-end p-12 xl:p-16">
+        <div className="relative flex min-h-svh flex-col justify-center p-12 xl:p-16">
           <div className="mb-6 flex items-center gap-2 text-sm font-semibold tracking-widest text-primary-foreground/90 uppercase">
             <LockKeyholeIcon className="size-4" aria-hidden="true" />
             {labels.teamSpace}
@@ -62,7 +67,7 @@ export function AuthLayout({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col">
+      <div className="flex min-h-svh min-w-0 flex-col bg-background">
         <header className="flex items-center justify-between gap-2 p-4 sm:px-8 sm:py-6">
           <LayoutLink
             href={homeHref}

@@ -27,7 +27,15 @@ async function preview(t, path) {
 
 test("homepage links, public visibility, sold out labels, language fallback, and themes", async (t) => {
   const page = await preview(t, "/");
+  await page.getByRole("searchbox", { name: "Search examples" }).fill("menu item editor");
+  assert.equal(await page.locator("main section a[href]").count(), 1);
+  await page.getByRole("searchbox", { name: "Search examples" }).fill("");
+  await page.getByRole("button", { name: "Plugin", exact: true }).click();
   await page.getByRole("link", { name: /Menus Translated restaurant menu/ }).click();
+  await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
+  await page.getByRole("link", { name: "Manage menu" }).click();
+  await page.getByRole("heading", { name: "Menu items" }).waitFor();
+  await page.getByRole("link", { name: "Public menu" }).click();
   await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
   await page.getByText("Sold out", { exact: true }).waitFor();
   assert.equal(await page.getByText("Homemade lemonade").count(), 0);

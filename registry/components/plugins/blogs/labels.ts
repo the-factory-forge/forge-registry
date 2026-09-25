@@ -70,6 +70,7 @@ export const blogsLabels = {
   readMore: "Read more",
   previous: "Previous",
   next: "Next",
+  totalItems: "posts",
   readOnly: "You have read-only access.",
   newCategory: "New category",
   categoryName: "Category name",

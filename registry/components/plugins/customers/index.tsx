@@ -27,11 +27,20 @@ import {
   CustomerActionButton,
   CustomerAvatar,
   DeleteCustomer,
+  iconButtonClass,
   inputClass,
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { cn } from "@/components/utils/cn";
+import {
+  tableActionCellClass,
+  tableCellClass,
+  tableClass,
+  tableHeaderClass,
+  tablePanelClass,
+  tableRowClass,
+} from "@/components/utils/table-styles";
 
 export type {
   Customer,
@@ -66,7 +75,7 @@ export function CustomersPage({
   const labels = { ...customerLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <section className={cn(cardClass, "space-y-5")} aria-label={labels.title}>
+      <section className={cn(tablePanelClass, "space-y-5")} aria-label={labels.title}>
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1.5">
             <h1 className="text-base font-semibold">{labels.title}</h1>
@@ -103,9 +112,9 @@ export function CustomersPage({
           </output>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className={tableClass}>
               <thead>
-                <tr className="border-b border-border">
+                <tr className={tableRowClass}>
                   {[
                     labels.customer,
                     labels.email,
@@ -115,17 +124,19 @@ export function CustomersPage({
                     <th
                       scope="col"
                       key={index}
-                      className="px-3 py-3 font-medium text-muted-foreground last:text-right"
+                      className={
+                        index === (syncColumn ? 3 : 2) ? tableActionCellClass : tableHeaderClass
+                      }
                     >
                       {label}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&_tr:last-child]:border-0">
                 {customers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-border last:border-0">
-                    <td className="px-3 py-3">
+                  <tr key={customer.id} className={tableRowClass}>
+                    <td className={tableCellClass}>
                       <div className="flex items-center gap-3">
                         <CustomerAvatar customer={customer} />
                         <div className="flex flex-wrap items-baseline gap-x-2">
@@ -136,7 +147,7 @@ export function CustomersPage({
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className={tableCellClass}>
                       <div className="flex items-center gap-1">
                         <span>{customer.email}</span>
                         {onSetVerified ? (
@@ -158,8 +169,10 @@ export function CustomersPage({
                         )}
                       </div>
                     </td>
-                    {syncColumn && <td className="px-3 py-3">{syncColumn.render(customer)}</td>}
-                    <td className="px-3 py-3">
+                    {syncColumn && (
+                      <td className={tableCellClass}>{syncColumn.render(customer)}</td>
+                    )}
+                    <td className={tableActionCellClass}>
                       <div className="flex items-start justify-end gap-1">
                         {onImpersonate && (
                           <CustomerActionButton
@@ -172,14 +185,14 @@ export function CustomersPage({
                         )}
                         <CustomerLink
                           href={getCustomerHref(customer, "projects")}
-                          className={buttonClass}
+                          className={iconButtonClass}
                           aria-label={labels.viewProjects}
                         >
                           <FolderKanbanIcon aria-hidden="true" />
                         </CustomerLink>
                         <CustomerLink
                           href={getCustomerHref(customer, "about")}
-                          className={buttonClass}
+                          className={iconButtonClass}
                           aria-label={labels.edit}
                         >
                           <PencilIcon aria-hidden="true" />
@@ -192,10 +205,10 @@ export function CustomersPage({
                   </tr>
                 ))}
                 {customers.length === 0 && (
-                  <tr>
+                  <tr className={tableRowClass}>
                     <td
                       colSpan={syncColumn ? 4 : 3}
-                      className="py-10 text-center text-muted-foreground"
+                      className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                     >
                       {labels.empty}
                     </td>

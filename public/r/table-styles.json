@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "table-styles",
+  "title": "Plugin table styles",
+  "description": "Shared semantic layout classes for plugin data tables.",
+  "files": [
+    {
+      "path": "registry/components/utils/table-styles.ts",
+      "content": "/** Shared layout for plugin data tables, based on the employee directory. */\nexport const tablePanelClass =\n  \"min-w-0 rounded-xl border border-border bg-card p-6 text-card-foreground\";\nexport const tableClass = \"w-full min-w-[36rem] caption-bottom text-sm\";\nexport const tableHeaderClass = \"h-10 px-2 text-left align-middle font-medium whitespace-nowrap\";\nexport const tableRowClass = \"group border-b border-border hover:bg-muted/50\";\nexport const tableCellClass = \"p-2 align-middle\";\nexport const tableActionCellClass =\n  \"sticky right-0 z-10 bg-card p-2 text-right align-middle whitespace-nowrap group-hover:bg-muted/50\";\nexport const tableFooterClass = \"mt-5 flex flex-wrap items-center justify-end gap-3\";\n",
+      "type": "registry:lib",
+      "target": "@components/utils/table-styles.ts"
+    }
+  ],
+  "type": "registry:lib"
+}
