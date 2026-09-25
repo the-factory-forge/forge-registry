@@ -82,11 +82,10 @@ supply their own translations and theme configuration.
 | `privacy-content`   | Reference privacy-policy content in fr/en/de/it for site adaptation      |
 | `footer-helpers`    | Builds footer props from site data, including attribution defaults       |
 
-### UI Primitives (18)
+### UI Primitives (17)
 
 | Name                    | Description                                                                         |
 | ----------------------- | ----------------------------------------------------------------------------------- |
-| `auth-controls`         | Google sign-in, sign-out, and shared authentication action state                    |
 | `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
 | `accordion`             | Base UI accordion with a bundled animation stylesheet                               |
 | `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
@@ -138,7 +137,7 @@ supply their own translations and theme configuration.
 | [drive / drive-storage](./docs/drive.md)    | Entity-scoped file browser and optional private S3/PostgreSQL persistence                      |
 | [projects](./docs/projects.md)              | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                |
 | [customers](./docs/customers.md)            | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions      |
-| [login](./docs/intranet-auth.md)            | Login, password recovery/change, access-denied page, and auth layout                           |
+| [auth](./docs/intranet-auth.md)             | Sign-in, sign-out, password recovery/change, access-denied page, and auth layout               |
 | [employees](./docs/intranet-auth.md)        | Employee list, creation, editing, verification and account deletion                            |
 | [employees-server](./docs/intranet-auth.md) | Validated Better Auth employee operations behind host authentication                           |
 

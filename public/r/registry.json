@@ -629,7 +629,7 @@
       "title": "Intranet Sidebar",
       "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth-controls"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth"],
       "files": [
         {
           "path": "registry/components/intranet-sidebar.tsx",
@@ -993,43 +993,48 @@
       ]
     },
     {
-      "name": "login",
+      "name": "auth",
       "type": "registry:block",
-      "title": "Login",
-      "description": "Login, password recovery and change forms, access-denied page, and auth layout with host-owned authentication.",
+      "title": "Auth",
+      "description": "Sign-in and sign-out controls, password recovery and change forms, access-denied page, and auth layout with host-owned authentication.",
       "files": [
         {
-          "path": "registry/components/plugins/login/index.tsx",
+          "path": "registry/components/plugins/auth/index.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/login/index.tsx"
+          "target": "@components/plugins/auth/index.tsx"
         },
         {
-          "path": "registry/components/plugins/login/auth-layout.tsx",
+          "path": "registry/components/plugins/auth/auth-layout.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/login/auth-layout.tsx"
+          "target": "@components/plugins/auth/auth-layout.tsx"
         },
         {
-          "path": "registry/components/plugins/login/labels.ts",
+          "path": "registry/components/plugins/auth/labels.ts",
           "type": "registry:lib",
-          "target": "@components/plugins/login/labels.ts"
+          "target": "@components/plugins/auth/labels.ts"
         },
         {
-          "path": "registry/components/plugins/login/password-forms.tsx",
+          "path": "registry/components/plugins/auth/password-forms.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/login/password-forms.tsx"
+          "target": "@components/plugins/auth/password-forms.tsx"
         },
         {
-          "path": "registry/components/plugins/login/password-labels.ts",
+          "path": "registry/components/plugins/auth/password-labels.ts",
           "type": "registry:lib",
-          "target": "@components/plugins/login/password-labels.ts"
+          "target": "@components/plugins/auth/password-labels.ts"
         },
         {
-          "path": "registry/components/plugins/login/access-denied-page.tsx",
+          "path": "registry/components/plugins/auth/access-denied-page.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/login/access-denied-page.tsx"
+          "target": "@components/plugins/auth/access-denied-page.tsx"
+        },
+        {
+          "path": "registry/components/plugins/auth/auth-controls.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/auth/auth-controls.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth-controls"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
       "dependencies": ["lucide-react"]
     },
     {
@@ -1126,21 +1131,6 @@
           "target": "@components/utils/consent-analytics.ts"
         }
       ]
-    },
-    {
-      "name": "auth-controls",
-      "type": "registry:component",
-      "title": "Authentication controls",
-      "description": "Google sign-in and sign-out controls with shared pending, error, and duplicate-action handling.",
-      "files": [
-        {
-          "path": "registry/components/plugins/login/auth-controls.tsx",
-          "type": "registry:component",
-          "target": "@components/plugins/login/auth-controls.tsx"
-        }
-      ],
-      "registryDependencies": ["@forge/cn"],
-      "dependencies": ["lucide-react"]
     }
   ]
 }

@@ -16,6 +16,7 @@ import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
+import { Route as LocaleAuthRouteImport } from './routes/$locale.auth'
 import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
@@ -64,6 +65,11 @@ const NewsletterRoute = NewsletterRouteImport.update({
 const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
   id: '/$locale/access-denied',
   path: '/$locale/access-denied',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleAuthRoute = LocaleAuthRouteImport.update({
+  id: '/$locale/auth',
+  path: '/$locale/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleChangePasswordRoute = LocaleChangePasswordRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/newsletter'
     | '/$locale/access-denied'
+    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/newsletter'
     | '/$locale/access-denied'
+    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/newsletter'
     | '/$locale/access-denied'
+    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   CookieBannerRoute: typeof CookieBannerRoute
   NewsletterRoute: typeof NewsletterRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
+  LocaleAuthRoute: typeof LocaleAuthRoute
   LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
   LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/$locale/access-denied'
       fullPath: '/$locale/access-denied'
       preLoaderRoute: typeof LocaleAccessDeniedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/auth': {
+      id: '/$locale/auth'
+      path: '/$locale/auth'
+      fullPath: '/$locale/auth'
+      preLoaderRoute: typeof LocaleAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/change-password': {
@@ -544,6 +564,7 @@ const rootRouteChildren: RootRouteChildren = {
   CookieBannerRoute: CookieBannerRoute,
   NewsletterRoute: NewsletterRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
+  LocaleAuthRoute: LocaleAuthRoute,
   LocaleChangePasswordRoute: LocaleChangePasswordRoute,
   LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,

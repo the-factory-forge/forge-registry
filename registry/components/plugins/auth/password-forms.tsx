@@ -4,7 +4,7 @@ import { ArrowLeftIcon, CheckCircleIcon, LoaderCircleIcon, MailCheckIcon } from 
 import { useId, useRef, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
-import { passwordLabels, type PasswordLabels } from "@/components/plugins/login/password-labels";
+import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
 
 const inputClass =

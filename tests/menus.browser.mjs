@@ -47,13 +47,19 @@ test("staff creates, edits, and publishes an item; failure retains the draft", a
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Soupe de saison");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Enter a name in the base language." }).waitFor();
-  assert.equal(await page.getByRole("tab", { name: "English" }).getAttribute("aria-selected"), "true");
+  assert.equal(
+    await page.getByRole("tab", { name: "English" }).getAttribute("aria-selected"),
+    "true",
+  );
   await page.getByRole("textbox", { name: "Name *" }).fill("Seasonal soup");
   await page.getByRole("textbox", { name: "Description" }).fill("A changing selection.");
   await frenchTab.focus();
   await page.keyboard.press("Enter");
   assert.equal(await frenchTab.getAttribute("aria-selected"), "true");
-  assert.equal(await page.getByRole("textbox", { name: "Name", exact: true }).inputValue(), "Soupe de saison");
+  assert.equal(
+    await page.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Soupe de saison",
+  );
   await frenchTab.focus();
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("Enter");

@@ -396,7 +396,7 @@ export function Footer({
                     width={16}
                     height={16}
                     unoptimized
-                    className="h-4 w-4"
+                    className={cn("h-4 w-4 shrink-0", dark ? "invert" : "dark:invert")}
                     aria-hidden="true"
                   />
                 )}

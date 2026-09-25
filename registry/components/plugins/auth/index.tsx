@@ -4,8 +4,8 @@ import { ArrowRightIcon, EyeIcon, EyeOffIcon, LoaderCircleIcon } from "lucide-re
 import { useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
-import { GoogleSignInButton, useAuthAction } from "@/components/plugins/login/auth-controls";
-import { loginLabels, type LoginLabels } from "@/components/plugins/login/labels";
+import { GoogleSignInButton, useAuthAction } from "@/components/plugins/auth/auth-controls";
+import { loginLabels, type LoginLabels } from "@/components/plugins/auth/labels";
 import { cn } from "@/components/utils/cn";
 
 export {
@@ -13,13 +13,13 @@ export {
   SignOutButton,
   useAuthAction,
   type AuthControlProps,
-} from "@/components/plugins/login/auth-controls";
-export type { LoginLabels } from "@/components/plugins/login/labels";
+} from "@/components/plugins/auth/auth-controls";
+export type { LoginLabels } from "@/components/plugins/auth/labels";
 export {
   AuthLayout,
   type AuthLayoutProps,
   type AuthLayoutLabels,
-} from "@/components/plugins/login/auth-layout";
+} from "@/components/plugins/auth/auth-layout";
 export {
   ForgotPasswordForm,
   ResetPasswordForm,
@@ -30,13 +30,13 @@ export {
   type ChangePasswordFormProps,
   type ChangePasswordPageProps,
   type ChangePasswordValues,
-} from "@/components/plugins/login/password-forms";
-export type { PasswordLabels } from "@/components/plugins/login/password-labels";
+} from "@/components/plugins/auth/password-forms";
+export type { PasswordLabels } from "@/components/plugins/auth/password-labels";
 export {
   AccessDeniedPage,
   type AccessDeniedPageProps,
   type AccessDeniedLabels,
-} from "@/components/plugins/login/access-denied-page";
+} from "@/components/plugins/auth/access-denied-page";
 export interface LoginCredentials {
   email: string;
   password: string;

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { LoginPreview } from "@/showroom/login-preview";
+import { AuthPreview } from "@/showroom/auth-preview";
 export const Route = createFileRoute("/$locale/reset-password")({
-  component: () => <LoginPreview view="reset-password" />,
+  component: () => <AuthPreview view="reset-password" />,
 });

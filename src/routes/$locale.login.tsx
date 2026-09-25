@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { LoginPreview } from "@/showroom/login-preview";
+import { AuthPreview } from "@/showroom/auth-preview";
 function Page() {
-  return <LoginPreview />;
+  return <AuthPreview />;
 }
 
 export const Route = createFileRoute("/$locale/login")({ component: Page });

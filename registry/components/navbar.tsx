@@ -85,7 +85,7 @@ export function Navbar({
           : "border-transparent bg-background",
       )}
     >
-      <div className="container-premium flex h-16 items-center justify-between gap-4 lg:h-20">
+      <div className="container-premium flex h-16 max-w-[96rem] items-center justify-between gap-4 lg:h-20">
         <Link
           href={logo.href}
           className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -100,13 +100,13 @@ export function Navbar({
           <span className="text-lg font-bold tracking-tight text-foreground">{siteName}</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label={navLabel}>
+        <nav className="hidden items-center gap-1 min-[1400px]:flex" aria-label={navLabel}>
           {items.map((item) =>
             item.children && item.children.length > 0 ? (
               <DropdownMenu key={item.href}>
                 <DropdownMenuTrigger
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "inline-flex items-center gap-1 rounded-full px-4 py-2 text-base font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive(item.href)
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-secondary",
@@ -117,7 +117,7 @@ export function Navbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   {item.children.map((child) => (
-                    <DropdownMenuItem key={child.href} asChild>
+                    <DropdownMenuItem key={child.href} asChild className="text-base">
                       <Link href={child.href}>{child.label}</Link>
                     </DropdownMenuItem>
                   ))}
@@ -128,7 +128,7 @@ export function Navbar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "rounded-full px-4 py-2 text-base font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive(item.href)
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground hover:bg-secondary",
@@ -150,16 +150,17 @@ export function Navbar({
             localeNames={localeNames}
             localeShort={localeShort}
             ariaLabel={languageLabel}
+            className="text-base"
           />
 
-          <CtaExternal href={cta.href} className="hidden md:inline-flex">
+          <CtaExternal href={cta.href} size="lg" className="hidden md:inline-flex">
             {cta.label}
           </CtaExternal>
 
           {loginHref && (
             <Link
               href={loginHref}
-              className="hidden border-l border-border pl-3 text-sm font-medium text-foreground/70 transition-colors hover:text-primary md:inline-flex"
+              className="hidden border-l border-border pl-3 text-base font-medium text-foreground/70 transition-colors hover:text-primary md:inline-flex"
             >
               {loginLabel}
             </Link>
@@ -168,7 +169,7 @@ export function Navbar({
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               aria-label={menuLabel}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring min-[1400px]:hidden"
             >
               <Menu className="h-5 w-5" aria-hidden="true" />
             </SheetTrigger>
@@ -203,7 +204,7 @@ export function Navbar({
                         key={child.href}
                         href={child.href}
                         onClick={() => setMobileOpen(false)}
-                        className="block rounded-2xl py-3 pr-4 pl-8 text-sm font-medium text-foreground/80 transition-colors outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
+                        className="block rounded-2xl py-3 pr-4 pl-8 text-base font-medium text-foreground/80 transition-colors outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {child.label}
                       </Link>
@@ -217,7 +218,7 @@ export function Navbar({
                   <Link
                     href={loginHref}
                     onClick={() => setMobileOpen(false)}
-                    className="mt-4 block border-t border-border pt-4 text-center text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                    className="mt-4 block border-t border-border pt-4 text-center text-base font-medium text-muted-foreground transition-colors hover:text-primary"
                   >
                     {loginLabel}
                   </Link>

@@ -178,11 +178,11 @@ test("access changes and deletion use native auth operations with the authentica
   }
 });
 
-test("login and employees ship complete independent source without host configuration", async () => {
+test("auth and employees ship complete independent source without host configuration", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
-  for (const name of ["login", "employees", "employees-server"]) {
+  for (const name of ["auth", "employees", "employees-server"]) {
     const item = manifest.items.find((item) => item.name === name);
     const published = JSON.parse(
       await readFile(new URL(`../public/r/${name}.json`, import.meta.url), "utf8"),

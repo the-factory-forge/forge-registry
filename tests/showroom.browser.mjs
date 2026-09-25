@@ -49,10 +49,14 @@ test("every directory entry navigates and returns through a stable shared header
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
   await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+  await page.getByRole("button", { name: "Plugin", exact: true }).click();
+  assert.equal(await page.locator('main a[href="/en/auth"]').count(), 1);
+  await page.getByRole("button", { name: "All", exact: true }).click();
   const destinations = await page
     .locator("main a[href]")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-  assert.equal(destinations.length, 20);
+  assert.equal(destinations.length, 15);
+  assert.equal(destinations.filter((href) => href === "/en/auth").length, 1);
   const header = page.getByRole("navigation", { name: "Showroom navigation" });
   const original = await header.boundingBox();
   for (const href of destinations) {

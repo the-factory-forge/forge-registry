@@ -10,19 +10,19 @@ import {
   ResetPasswordForm,
   SignOutButton,
   useAuthAction,
-} from "@/components/plugins/login";
+} from "@/components/plugins/auth";
 import { ShowroomLink, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 type View = "login" | "forgot-password" | "reset-password" | "change-password" | "access-denied";
 const destinations = [
-  ["login", "Sign in"],
+  ["auth", "Sign in"],
   ["forgot-password", "Forgot password"],
   ["reset-password", "Reset password"],
   ["change-password", "Change password"],
   ["access-denied", "Access denied"],
 ];
-export function LoginPreview({ view = "login" }: { view?: View }) {
+export function AuthPreview({ view = "login" }: { view?: View }) {
   return <Preview key={view} view={view} />;
 }
 function Preview({ view }: { view: View }) {
@@ -51,7 +51,7 @@ function Preview({ view }: { view: View }) {
             <ShowroomLink
               key={path}
               href={`/${locale}/${path}`}
-              aria-current={path === view ? "page" : undefined}
+              aria-current={path === (view === "login" ? "auth" : view) ? "page" : undefined}
               className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             >
               {name}
@@ -132,7 +132,7 @@ function Preview({ view }: { view: View }) {
       {view === "access-denied" ? (
         <AccessDeniedPage
           className="showroom-fill"
-          homeHref={`/${locale}/login`}
+          homeHref={`/${locale}/auth`}
           linkComponent={ShowroomLink}
         />
       ) : (
@@ -161,7 +161,7 @@ function Preview({ view }: { view: View }) {
           {view === "forgot-password" && (
             <ForgotPasswordForm
               enabled={enabled}
-              loginHref={`/${locale}/login`}
+              loginHref={`/${locale}/auth`}
               linkComponent={ShowroomLink}
               onRequestReset={perform}
             />
@@ -171,7 +171,7 @@ function Preview({ view }: { view: View }) {
               key={String(validLink)}
               enabled={enabled}
               validLink={validLink}
-              loginHref={`/${locale}/login`}
+              loginHref={`/${locale}/auth`}
               requestResetHref={`/${locale}/forgot-password`}
               linkComponent={ShowroomLink}
               onResetPassword={perform}

@@ -14,7 +14,7 @@ import {
 import * as React from "react";
 
 import { Link } from "@/components/link";
-import { useAuthAction } from "@/components/plugins/login/auth-controls";
+import { useAuthAction } from "@/components/plugins/auth/auth-controls";
 import { cn } from "@/components/utils/cn";
 import { itemIsActive } from "@/components/utils/intranet-sidebar-active";
 

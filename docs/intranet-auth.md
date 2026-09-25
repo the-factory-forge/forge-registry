@@ -1,22 +1,25 @@
-# Login and employees
+# Auth and employees
 
 Install the source modules with the configured `@forge` namespace:
 
 ```sh
-pnpm exec shadcn add @forge/login @forge/employees @forge/employees-server
+pnpm exec shadcn add @forge/auth @forge/employees @forge/employees-server
 ```
 
-`login` ships `LoginForm`, `AuthLayout`, `ForgotPasswordForm`, `ResetPasswordForm`,
+`auth` ships `LoginForm`, `AuthLayout`, `ForgotPasswordForm`, `ResetPasswordForm`,
 `ChangePasswordForm`, `ChangePasswordPage`, and `AccessDeniedPage` under
-`components/plugins/login`. Their props, credential types, and label types are
-exported from the plugin entrypoint. Existing imports remain supported.
+`components/plugins/auth`. Its entrypoint also exports sign-in and sign-out
+controls, credential types, and label types. Existing hosts using `@forge/login`
+must update their imports to `components/plugins/auth` when installing this item.
 `employees` ships `EmployeesPage`, `EmployeeCreateDialog`, action dialogs, labels,
 and validation under `components/plugins/employees`. `employees-server` adds
 `server/employees.server.ts`. The browser exports never import that server module.
 
-The showroom has `/en/login`, `/en/forgot-password`, `/en/reset-password`,
-`/en/change-password`, `/en/access-denied`, and `/en/employees` examples. They use in-memory
-callbacks, never retain passwords, and do not create sessions or send messages.
+The showroom lists one `/en/auth` example with links to sign-in, password recovery,
+password change, and access-denied states. The old `/en/login` URL and the other
+auth example URLs remain available. `/en/employees` previews employee management.
+These examples use in-memory callbacks, never retain passwords, and do not create
+sessions or send messages.
 
 ## Host integration
 
@@ -40,10 +43,9 @@ not browser storage. `forgotPasswordHref` links to the host's recovery flow.
 
 ## Shared authentication controls
 
-`@forge/auth-controls` ships `GoogleSignInButton`, `SignOutButton`,
-`AuthControlProps`, and `useAuthAction`. Login and the intranet sidebar install it
-as a dependency. It does not install the full login plugin or an auth library.
-The login entrypoint also re-exports these controls.
+`@forge/auth` ships `GoogleSignInButton`, `SignOutButton`, `AuthControlProps`,
+and `useAuthAction`. The intranet sidebar installs `auth` as a dependency.
+The module does not install an auth library.
 
 Both buttons are controlled and accept native button props, `pending`, `label`,
 `pendingLabel`, and `className`. Pair them with `useAuthAction` so buttons and
@@ -70,9 +72,9 @@ failed OAuth request so the form restores its controls and retains credentials.
 Google uses `continueGoogle`, `connectingGoogle`, and `googleError` labels.
 
 When updating, replace `socialProviders` with `onGoogleSignIn`. Provider icons
-and labels no longer belong to each host. Update `login`, `intranet-sidebar`, and
-their linked `auth-controls` dependency together, then adapt the template's
-registry imports. Existing sidebar `onSignOut` and label props remain unchanged.
+and labels no longer belong to each host. Install `auth` and `intranet-sidebar`
+together, then adapt the template's registry imports. Existing sidebar
+`onSignOut` and label props remain unchanged.
 Keep session invalidation in the host and clear private caches only after the
 authentication server confirms sign-out.
 
@@ -183,7 +185,7 @@ apply migrations, or send email during installation.
 ## Forge Template
 
 Forge Template installs these modules under
-`src/intranet/components/forge/plugins/{login,employees}` so removing
+`src/intranet/components/forge/plugins/{auth,employees}` so removing
 `src/intranet` still removes the entire feature. Its thin route and server
 adapters stay outside those directories. The host retains its TanStack link
 shim and `cn` adapter when adapting the registry imports.
