@@ -250,7 +250,10 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   await row(page, "page-9.txt").waitFor();
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
-  assert.equal(await page.getByRole("button", { name: "First page", exact: true }).count(), 0);
+  assert.equal(
+    await page.getByRole("button", { name: "First page", exact: true }).isDisabled(),
+    true,
+  );
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   const names = await page.locator("tbody tr td:first-child").allTextContents();

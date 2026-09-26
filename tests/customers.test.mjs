@@ -56,7 +56,11 @@ test("customers distribution is complete and contains no website integrations", 
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
   const item = manifest.items.find((entry) => entry.name === "customers");
-  assert.deepEqual(item.registryDependencies, ["@forge/cn", "@forge/ui-shims"]);
+  assert.deepEqual(item.registryDependencies, [
+    "@forge/cn",
+    "@forge/ui-shims",
+    "@forge/table-styles",
+  ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
     assert.equal(file.target, file.path.replace("registry/components/", "@components/"));

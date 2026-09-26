@@ -92,7 +92,12 @@ test("projects installs customers without creating a reverse dependency or frame
   );
   const item = manifest.items.find((entry) => entry.name === "projects");
   assert.equal(item.type, "registry:block");
-  assert.deepEqual(item.registryDependencies, ["@forge/customers", "@forge/cn", "@forge/ui-shims"]);
+  assert.deepEqual(item.registryDependencies, [
+    "@forge/customers",
+    "@forge/cn",
+    "@forge/ui-shims",
+    "@forge/table-styles",
+  ]);
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");
   assert.ok(!customersItem.registryDependencies.includes("@forge/projects"));
