@@ -208,6 +208,13 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
+## VPS showroom
+
+Deploy with the root `Dockerfile` and `docker-compose.prod.yml`, following the
+[VPS deployment guide](./docs/deployment.md). Dokploy routes the public domain to
+service `app` on container port `3000`. The image needs no database or auth
+credentials; authentication screens use mock callbacks.
+
 ## Scripts
 
 Vite Plus runs Oxlint and Oxfmt using `vite.config.ts`; linting includes type-aware
@@ -226,6 +233,7 @@ pnpm check            # vp check (format, lint, and type checks)
 pnpm fix              # vp check --fix
 pnpm test             # Navigation and registry regression tests (Node 24+)
 pnpm test:browser     # Browser regressions against a running showroom
+pnpm test:deployment  # Production smoke check (TEST_BASE_URL, default port 3100)
 pnpm typecheck        # tsc --noEmit
 pnpm registry:check   # Parse source registry JSON (syntax only)
 pnpm registry:sync    # Official shadcn catalog and item build

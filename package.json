@@ -18,6 +18,7 @@
     "registry:check": "node -e \"JSON.parse(require('node:fs').readFileSync('registry/registry.json','utf8')); console.log('registry/registry.json is valid JSON')\"",
     "registry:sync": "shadcn build registry/registry.json --output public/r",
     "test:browser": "node --test tests/*.browser.mjs",
+    "test:deployment": "node --test tests/deployment.smoke.mjs",
     "test:storage": "node --test tests/drive-storage/storage.integration.mjs",
     "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs",
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",

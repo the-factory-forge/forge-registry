@@ -58,6 +58,10 @@ The hosting environment can set `PORT` and `HOST`. The previous `.next/` artifac
 and `next start` command no longer apply. Nitro's version is pinned to the Cove
 foundation; review deployment behavior when upgrading it.
 
+The [VPS deployment guide](./deployment.md) covers the standalone Docker image
+and Dokploy configuration. It follows the template's deployment conventions
+without adding an application dependency on the template or requiring live auth.
+
 Run `pnpm format && pnpm lint:fix`, inspect their changes, then
 `pnpm registry:sync`, `pnpm registry:check`, `pnpm test`, `pnpm typecheck`,
 `pnpm check`, and `pnpm build`. Run browser regressions against the build when

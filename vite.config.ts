@@ -7,7 +7,7 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
-  plugins: [tanstackStart(), nitro(), react(), tailwindcss()],
+  plugins: [tanstackStart(), nitro({ preset: "node-server" }), react(), tailwindcss()],
   fmt: {
     tabWidth: 2,
     semi: true,
