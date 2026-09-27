@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpDownIcon, RefreshCwIcon, ArrowUpIcon } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { Image } from "@/components/image";
@@ -19,7 +19,7 @@ import { cn } from "@/components/utils/cn";
 import { tableHeaderClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -262,7 +262,7 @@ export function EntryDialog({
               </div>
             )}
             <DriveFeedback message={error} error />
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
@@ -273,6 +273,7 @@ export function EntryDialog({
                   disabled={pending}
                   onClick={() => void loadPreview()}
                 >
+                  <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
                   {pending ? labels.pending : labels.retry}
                 </button>
               ) : (

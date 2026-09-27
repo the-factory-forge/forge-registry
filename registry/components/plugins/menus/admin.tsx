@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, RefreshCwIcon, SettingsIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
@@ -31,7 +31,7 @@ import {
 const field =
   "w-full rounded-xl border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 const button =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 const outlineButton = cn(button, "border border-border");
 const primary = cn(
   button,
@@ -77,7 +77,7 @@ function DeleteControl({
         className={cn(iconButton, "text-destructive hover:text-destructive")}
         aria-label={label}
       >
-        <Trash2Icon aria-hidden="true" className="size-4" />
+        <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -87,7 +87,7 @@ function DeleteControl({
             {confirm}?
           </Dialog.Description>
           {error ? <ErrorMessage message={errorMessage} /> : null}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Dialog.Close className={outlineButton} disabled={pending}>
               {cancel}
             </Dialog.Close>
@@ -186,6 +186,7 @@ export function MenuItemsPage({
           <h1 className="text-base font-semibold">{labels.items}</h1>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <HostLink href={taxonomyHref} className={outlineButton}>
+              <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.categories} / {labels.labels}
             </HostLink>
             <TableSearch
@@ -195,7 +196,7 @@ export function MenuItemsPage({
               clearLabel={labels.clearSearch}
             />
             <HostLink href={newHref} className={primary}>
-              <PlusIcon aria-hidden="true" className="size-4" />
+              <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
               {labels.newItem}
             </HostLink>
           </div>
@@ -204,6 +205,7 @@ export function MenuItemsPage({
           <div>
             <ErrorMessage message={labels.error} />
             <button className={button} onClick={() => setRevision((n) => n + 1)}>
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.retry}
             </button>
           </div>
@@ -239,16 +241,38 @@ export function MenuItemsPage({
                       {item.translations[baseLocale]?.name}
                     </td>
                     <td className={tableCellClass}>{categoryNames.get(item.categoryId)}</td>
-                    <td className={tableCellClass}>{item.visible ? labels.yes : labels.no}</td>
-                    <td className={tableCellClass}>{item.soldOut ? labels.yes : labels.no}</td>
+                    <td className={tableCellClass}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                          item.visible
+                            ? "bg-status-success text-status-success-foreground"
+                            : "bg-status-not-started text-status-not-started-foreground",
+                        )}
+                      >
+                        {item.visible ? labels.yes : labels.no}
+                      </span>
+                    </td>
+                    <td className={tableCellClass}>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                          item.soldOut
+                            ? "bg-status-pending text-status-pending-foreground"
+                            : "bg-status-success text-status-success-foreground",
+                        )}
+                      >
+                        {item.soldOut ? labels.yes : labels.no}
+                      </span>
+                    </td>
                     <td className={tableActionCellClass}>
-                      <div className="flex justify-end gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         <HostLink
                           href={getEditHref(item)}
                           className={iconButton}
                           aria-label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
                         >
-                          <PencilIcon aria-hidden="true" className="size-4" />
+                          <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
                         </HostLink>
                         <DeleteControl
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
@@ -448,7 +472,7 @@ export function MenuItemEditorPage({
                 key={locale.code}
                 type="button"
                 value={locale.code}
-                className="min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring data-[active]:border-primary data-[active]:text-foreground"
+                className="min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed data-[active]:border-primary data-[active]:text-foreground"
               >
                 {locale.name}
               </Tabs.Tab>
@@ -635,10 +659,10 @@ function TaxonomyDialog({
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
       <Dialog.Trigger className={existing ? iconButton : button} aria-label={title}>
         {existing ? (
-          <PencilIcon aria-hidden="true" className="size-4" />
+          <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
         ) : (
           <>
-            <PlusIcon aria-hidden="true" className="size-4" />
+            <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
             {title}
           </>
         )}
@@ -706,7 +730,7 @@ function TaxonomyDialog({
               </label>
             ) : null}
             {error ? <ErrorMessage message={labels.error} /> : null}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close className={outlineButton} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
@@ -763,6 +787,7 @@ export function MenuTaxonomyPage({
         <div>
           <ErrorMessage message={labels.error} />
           <button className={button} onClick={refresh}>
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.retry}
           </button>
         </div>

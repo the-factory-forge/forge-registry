@@ -132,6 +132,8 @@ supply their own translations and theme configuration.
 
 ### Plugins
 
+See the [plugin definition and guide](./docs/plugins.md) for each feature, its server companion and shared presentation rules.
+
 | Name                                                          | Description                                                                                        |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence |

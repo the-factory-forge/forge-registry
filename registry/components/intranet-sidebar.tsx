@@ -197,7 +197,7 @@ export function IntranetSidebarToggle({
       aria-controls={id}
       aria-expanded={isMobile ? mobileOpen : open}
       className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-accent print:hidden",
+        "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-accent disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed print:hidden",
         focusClassName,
         className,
       )}
@@ -335,7 +335,7 @@ function NavigationItem({
             <Collapsible.Trigger
               aria-label={`${expanded ? labels.collapse : labels.expand} ${item.label}`}
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                 sidebarFocusClassName,
               )}
             >
@@ -462,7 +462,7 @@ export function IntranetSidebar({
           <Menu.Trigger
             aria-label={labels.userMenu}
             className={cn(
-              "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
               sidebarFocusClassName,
             )}
           >
@@ -487,7 +487,7 @@ export function IntranetSidebar({
                   render={<LinkComponent href={profileHref} />}
                   onClick={closeMobile}
                   className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-2 text-sm data-highlighted:bg-accent",
+                    "flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm data-disabled:cursor-not-allowed data-highlighted:bg-accent",
                     focusClassName,
                   )}
                 >
@@ -499,7 +499,7 @@ export function IntranetSidebar({
                   disabled={signOutAction.disabled}
                   onClick={() => void signOutAction.run(onSignOut)}
                   className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-2 text-sm data-disabled:opacity-50 data-highlighted:bg-accent",
+                    "flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm data-disabled:cursor-not-allowed data-disabled:opacity-50 data-highlighted:bg-accent",
                     focusClassName,
                   )}
                 >
@@ -549,7 +549,7 @@ export function IntranetSidebar({
               <Dialog.Close
                 aria-label={labels.close}
                 className={cn(
-                  "absolute top-2 right-2 flex size-8 items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  "absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                   sidebarFocusClassName,
                 )}
               >

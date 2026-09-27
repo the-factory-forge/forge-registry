@@ -3,7 +3,7 @@ schema: spec-driven
 context: |
   This is forge-registry, The Forge's reusable shadcn source registry and showroom.
   Read AGENTS.md and ../forge-spec/AGENTS.md, then the-forge, registry-distribution
-  and relevant shared-ui/site-template specs in ../forge-spec/openspec/specs/.
+  and relevant shared-ui/plugins/site-template specs in ../forge-spec/openspec/specs/.
   For CSS/Tailwind work, read shared-ui and reuse existing semantic tokens,
   typography, spacing, radii and layout utilities with Tailwind CSS 4.
   If the sibling is absent, use the supplied checkout or canonical repository:

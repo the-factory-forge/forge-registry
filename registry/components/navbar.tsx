@@ -181,7 +181,7 @@ export function Navbar({
                   type="button"
                   onClick={() => setMobileOpen(false)}
                   aria-label={closeLabel}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-muted"
+                  className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-muted disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
                 >
                   <X className="h-5 w-5" aria-hidden="true" />
                 </button>

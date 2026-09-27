@@ -129,7 +129,7 @@ export function BlogIndexPage({
             />
           </div>
           {categoryId && <input type="hidden" name="category" value={categoryId} />}
-          <button className="h-8 rounded-2xl bg-primary px-4 text-sm text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          <button className="h-8 cursor-pointer rounded-2xl bg-primary px-4 text-sm text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed">
             {labels.searchSubmit}
           </button>
         </form>

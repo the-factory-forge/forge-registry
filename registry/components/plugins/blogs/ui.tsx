@@ -9,7 +9,7 @@ import { cn } from "@/components/utils/cn";
 import { tableFooterClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -95,7 +95,7 @@ export function ConfirmDelete({
         aria-label={label}
         disabled={disabled}
       >
-        <Trash2Icon aria-hidden="true" />
+        <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -110,7 +110,7 @@ export function ConfirmDelete({
             {description}
           </Dialog.Description>
           <Feedback {...action.feedback} />
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
               {labels.cancel}
             </Dialog.Close>

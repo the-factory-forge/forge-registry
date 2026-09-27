@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  RefreshCwIcon,
   ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -132,6 +133,7 @@ export function DrivePage({
           <>
             <DriveFeedback message={messageFor(error, labels)} error />
             <button className={buttonClass} onClick={() => setRevision((value) => value + 1)}>
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.retry}
             </button>
           </>
@@ -384,7 +386,7 @@ function Browser({
               setFeedback({ message: labels.saved });
             }}
           >
-            <FolderPlusIcon aria-hidden="true" />
+            <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.newFolder}
           </EntryDialog>
         )}
@@ -403,7 +405,7 @@ function Browser({
               }}
             />
             <button className={primaryClass} onClick={() => fileInput.current?.click()}>
-              <UploadIcon aria-hidden="true" />
+              <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.upload}
             </button>
           </>
@@ -452,6 +454,7 @@ function Browser({
           <>
             <DriveFeedback message={messageFor(error, labels)} error />
             <button className={buttonClass} onClick={refresh}>
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.retry}
             </button>
           </>
@@ -568,7 +571,7 @@ function Browser({
                               setFeedback({ message: labels.saved });
                             }}
                           >
-                            <PencilIcon aria-hidden="true" />
+                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                           </EntryDialog>
                         )}
                         {capabilities?.delete && (
@@ -584,7 +587,7 @@ function Browser({
                               setFeedback({ message: labels.saved });
                             }}
                           >
-                            <Trash2Icon aria-hidden="true" />
+                            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
                           </EntryDialog>
                         )}
                       </div>
@@ -624,9 +627,10 @@ function Browser({
               <li key={upload.id} className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0 text-sm break-all">{upload.file.name}</span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     {["failed", "cancelFailed"].includes(upload.state) && (
                       <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
+                        <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
                         {labels.retry}
                       </button>
                     )}

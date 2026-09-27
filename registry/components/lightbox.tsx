@@ -55,7 +55,7 @@ export function Lightbox({
         type="button"
         onClick={openModal}
         className={cn(
-          "group/lightbox relative block w-full cursor-zoom-in overflow-hidden border-0 bg-transparent p-0",
+          "group/lightbox relative block w-full cursor-pointer overflow-hidden border-0 bg-transparent p-0 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
           className,
         )}
         aria-label={alt ? `${enlargeLabel} : ${alt}` : enlargeLabel}
@@ -81,7 +81,7 @@ export function Lightbox({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-dark/90 p-4 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             onClick={closeModal}
@@ -89,7 +89,7 @@ export function Lightbox({
             <button
               type="button"
               onClick={closeModal}
-              className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+              className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-dark-foreground/10 text-dark-foreground backdrop-blur-sm transition-colors hover:bg-dark-foreground/20 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
               aria-label={closeLabel}
             >
               <X className="h-5 w-5" />

@@ -143,7 +143,7 @@ export function Newsletter({
           <button
             type="submit"
             disabled={isDisabled}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
           >
             {isLoading ? loadingLabel : buttonLabel}
           </button>
@@ -157,7 +157,7 @@ export function Newsletter({
 
         {inlineError ? (
           <p
-            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            className="mt-2 text-sm text-destructive"
             id={errorId}
             role="alert"
             aria-live="assertive"
@@ -168,7 +168,7 @@ export function Newsletter({
 
         {inlineSuccess ? (
           <p
-            className="mt-2 text-sm text-emerald-700 dark:text-emerald-400"
+            className="mt-2 rounded-lg bg-status-success px-3 py-2 text-sm text-status-success-foreground"
             id={successId}
             role="status"
             aria-live="polite"

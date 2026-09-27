@@ -89,13 +89,13 @@ export function CustomersPage({
               clearLabel={labels.clearSearch}
             />
             <CustomerLink href={createHref} className={primaryButtonClass}>
-              <PlusIcon aria-hidden="true" />
+              <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.create}
             </CustomerLink>
           </div>
         </header>
         {error ? (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         ) : (
@@ -183,7 +183,7 @@ export function CustomersPage({
                           className={iconButtonClass}
                           aria-label={labels.edit}
                         >
-                          <PencilIcon aria-hidden="true" />
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                         </CustomerLink>
                         {onDelete && (
                           <DeleteCustomer customer={customer} onDelete={onDelete} labels={labels} />
@@ -240,17 +240,26 @@ export function CustomerDetailPage({
             <p className="truncate text-sm text-muted-foreground">{customer.email}</p>
           </div>
         </div>
-        <dl className="ml-auto flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <dl className="ml-auto flex flex-wrap justify-end gap-x-6 gap-y-2 self-start text-sm">
           <div>
             <dt className="text-muted-foreground">{labels.email}</dt>
-            <dd className="font-medium">
+            <dd
+              className={cn(
+                "mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                customer.emailVerified
+                  ? "bg-status-success text-status-success-foreground"
+                  : "bg-status-pending text-status-pending-foreground",
+              )}
+            >
               {customer.emailVerified ? labels.verified : labels.unverified}
             </dd>
           </div>
           {customer.banned && (
             <div>
               <dt className="text-muted-foreground">{labels.banned}</dt>
-              <dd className="font-medium text-red-600 dark:text-red-400">{labels.yes}</dd>
+              <dd className="mt-1 inline-flex rounded-full bg-status-canceled px-2.5 py-1 text-xs font-medium text-status-canceled-foreground">
+                {labels.yes}
+              </dd>
             </div>
           )}
         </dl>

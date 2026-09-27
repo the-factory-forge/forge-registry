@@ -10,12 +10,34 @@ function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
+function SheetTrigger({ className, ...props }: SheetPrimitive.Trigger.Props) {
+  return (
+    <SheetPrimitive.Trigger
+      data-slot="sheet-trigger"
+      className={(state) =>
+        cn(
+          "cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+          typeof className === "function" ? className(state) : className,
+        )
+      }
+      {...props}
+    />
+  );
 }
 
-function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
+function SheetClose({ className, ...props }: SheetPrimitive.Close.Props) {
+  return (
+    <SheetPrimitive.Close
+      data-slot="sheet-close"
+      className={(state) =>
+        cn(
+          "cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+          typeof className === "function" ? className(state) : className,
+        )
+      }
+      {...props}
+    />
+  );
 }
 
 function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
@@ -27,7 +49,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0",
+        "fixed inset-0 z-50 bg-foreground/30 data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0",
         className,
       )}
       {...props}
@@ -68,7 +90,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+          <SheetPrimitive.Close className="absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed">
             <XIcon className="size-4" />
             <span className="sr-only">{closeLabel}</span>
           </SheetPrimitive.Close>

@@ -60,7 +60,7 @@ export interface LoginFormProps {
 const inputClass =
   "h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
 const buttonClass =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 
 export function LoginForm({
   onSignIn,
@@ -181,7 +181,7 @@ export function LoginForm({
               aria-label={showPassword ? labels.hidePassword : labels.showPassword}
               aria-controls="password"
               aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-lg text-muted-foreground! hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground! hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
             >
               {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
             </button>

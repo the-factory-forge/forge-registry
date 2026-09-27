@@ -10,7 +10,7 @@ import { cn } from "@/components/utils/cn";
 const inputClass =
   "h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
 const buttonClass =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 const linkClass =
   "inline-flex items-center gap-2 rounded-sm text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring";
 
@@ -92,7 +92,7 @@ export function ForgotPasswordForm({
         </p>
       </div>
       {state.succeeded ? (
-        <output className="flex items-center gap-3 rounded-xl bg-primary/10 p-4 text-sm">
+        <output className="flex items-center gap-3 rounded-xl bg-status-success p-4 text-sm text-status-success-foreground">
           <MailCheckIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
           {labels.checkSpam}
         </output>
@@ -167,7 +167,7 @@ function PasswordForm({
   return (
     <div className={cn("grid gap-5", className)}>
       {state.succeeded && (
-        <output className="flex items-center gap-3 rounded-xl bg-primary/10 p-4 text-sm">
+        <output className="flex items-center gap-3 rounded-xl bg-status-success p-4 text-sm text-status-success-foreground">
           <CheckCircleIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
           {reset ? labels.resetSuccess : labels.passwordChanged}
         </output>

@@ -15,6 +15,10 @@ with one owning change root. These specs complement the repository procedures
 below; inspect current source and report material conflicts. A sibling reference
 does not expand the task to unrelated changes in that repository.
 
+For plugin work, also read the shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
+module requirement when adding or materially changing a feature.
+
 ## Shared color contract
 
 Use the same semantic color names across forge-registry, forge-template, and
@@ -233,6 +237,19 @@ Verify the entry appears under All and its category filter, and that its link
 opens the demo. Include representative interactions and error states where
 applicable. Document non-visual helpers and server companions with their parent
 component's linked example; never import server modules into browser previews.
+
+## TC intranet plugin listing
+
+Every newly created plugin must also be listed on `tc-website`'s public
+`/forge/intranet` page as part of the same work. Update the `intranetModules` list
+in `src/routes/_public/{-$lang}/forge/intranet/index.tsx` in that repository and
+the translations in `src/lib/i18n/content.ts` for all supported locales. Include
+an accurate description, availability status, and the matching icon from
+`registry/components/utils/plugin-icons.ts`. List storage/server companions with
+their parent plugin rather than as separate modules.
+
+Locate the actual `tc-website` checkout instead of assuming a sibling path. If it
+is unavailable, report the pending listing update explicitly in the handoff.
 
 ## Distribution and validation
 

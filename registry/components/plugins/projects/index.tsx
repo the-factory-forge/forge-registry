@@ -102,14 +102,14 @@ export function ProjectsList({
           />
           {createHref && (
             <ProjectLink href={createHref} className={primaryButtonClass}>
-              <PlusIcon aria-hidden="true" />
+              <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.create}
             </ProjectLink>
           )}
         </div>
       </header>
       {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : (
@@ -201,7 +201,7 @@ export function ProjectsList({
                           aria-label={labels.edit(project.name)}
                           className={iconButtonClass}
                         >
-                          <PencilIcon aria-hidden="true" />
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                         </ProjectLink>
                         {onDelete && (
                           <DeleteProject
@@ -283,7 +283,9 @@ export function ProjectDetailPage({
             )}
           </p>
         </div>
-        <ProjectStatusBadge status={project.status} labels={labels} />
+        <div className="ml-auto self-start">
+          <ProjectStatusBadge status={project.status} labels={labels} />
+        </div>
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
         {(["details", "drive"] as const).map((tab) => (

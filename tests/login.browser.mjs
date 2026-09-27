@@ -42,6 +42,7 @@ test("recovery validates email, blocks duplicates, and retains a failed draft", 
   await page.getByText("If an account exists for this email", { exact: false }).waitFor();
   assert.equal(await email.count(), 0);
   await page.reload();
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByLabel("Service available").uncheck();
   await page.getByText("Password recovery is currently unavailable.", { exact: false }).waitFor();
   assert.equal(await email.count(), 0);
@@ -167,6 +168,7 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
   assert.equal(await page.getByRole("button", { name: "Sign in", exact: true }).isDisabled(), true);
   assert.equal(await page.getByTestId("callback-count").textContent(), "2");
   await page.reload();
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByLabel("Service available").uncheck();
   assert.equal(await google.isDisabled(), true);
 });

@@ -58,12 +58,12 @@ export function ProjectStatusBadge({
       className={cn(
         "inline-flex shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-semibold",
         status === "production"
-          ? "bg-primary text-primary-foreground"
+          ? "bg-status-success text-status-success-foreground"
           : status === "under-construction"
-            ? "bg-accent text-accent-foreground"
+            ? "bg-status-pending text-status-pending-foreground"
             : status === "prospect"
-              ? "bg-secondary text-secondary-foreground"
-              : "bg-muted text-muted-foreground",
+              ? "bg-status-info text-status-info-foreground"
+              : "bg-status-not-started text-status-not-started-foreground",
       )}
     >
       {labels[status]}
@@ -131,7 +131,7 @@ export function ProjectPersonPicker({
         aria-label={`${title}${required ? " *" : ""}`}
         className={cn(
           buttonClass,
-          "min-h-14 w-full min-w-0 justify-start border border-border px-3 text-left aria-invalid:ring-2 aria-invalid:ring-red-600",
+          "min-h-14 w-full min-w-0 justify-start border border-border px-3 text-left aria-invalid:ring-2 aria-invalid:ring-destructive",
         )}
       >
         <ProjectAvatar name={selected?.name ?? ""} image={selected?.image} />
@@ -247,7 +247,7 @@ export function DeleteProject({
           className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
           aria-label={labels.deleteProject}
         >
-          <Trash2Icon aria-hidden="true" />
+          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -262,7 +262,7 @@ export function DeleteProject({
               {labels.deleteDescription(project.name)}
             </Dialog.Description>
             <Feedback feedback={action.feedback} />
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close disabled={action.pending} className={outlineButtonClass}>
                 {labels.cancel}
               </Dialog.Close>

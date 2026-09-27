@@ -97,7 +97,7 @@ export function ReservationYearView({
                           aria-current={today === date ? "date" : undefined}
                           aria-label={`${dateFormat.format(new Date(`${date}T12:00:00Z`))} · ${labels.calendar}: ${numberFormat.format(count)}`}
                           className={cn(
-                            "flex min-h-10 w-full cursor-pointer scroll-mr-1 scroll-ml-40 flex-col items-center justify-center gap-0.5 px-1 py-1 hover:bg-accent focus-visible:relative focus-visible:z-20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                            "flex min-h-10 w-full cursor-pointer scroll-mr-1 scroll-ml-40 flex-col items-center justify-center gap-0.5 px-1 py-1 hover:bg-accent focus-visible:relative focus-visible:z-20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                             day.dayOfWeek > 5 && "bg-muted/50 text-muted-foreground",
                             count > 0 && "bg-accent text-accent-foreground",
                             today === date && "ring-2 ring-primary ring-inset",

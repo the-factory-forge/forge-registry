@@ -67,7 +67,7 @@ export function EmployeeCreateDialog({
       }}
     >
       <Dialog.Trigger className={cn(primaryButtonClass, className)}>
-        <PlusIcon aria-hidden="true" />
+        <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.add}
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -142,7 +142,7 @@ export function EmployeeCreateDialog({
                 {labels.createError}
               </p>
             )}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-wrap justify-end gap-3">
               <Dialog.Close type="button" className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>

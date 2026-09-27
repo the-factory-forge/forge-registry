@@ -12,7 +12,7 @@ import { cn } from "@/components/utils/cn";
 
 export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
 export const buttonClass =
-  "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryButtonClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -20,7 +20,7 @@ export const primaryButtonClass = cn(
 export const outlineButtonClass = cn(buttonClass, "border border-border");
 export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 p-0");
 export const inputClass =
-  "h-8 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-red-600 md:text-sm";
+  "h-8 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 
 export function useCustomerAction(errorMessage: string) {
   const lock = useRef(false);
@@ -50,10 +50,7 @@ export function Feedback({ feedback }: { feedback?: { error: boolean; message: s
   return feedback ? (
     <p
       role={feedback.error ? "alert" : "status"}
-      className={cn(
-        "text-sm",
-        feedback.error ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
-      )}
+      className={cn("text-sm", feedback.error ? "text-destructive" : "text-muted-foreground")}
     >
       {feedback.message}
     </p>
@@ -138,7 +135,7 @@ export function DeleteCustomer({
           aria-label={labels.deleteCustomer}
           disabled={action.pending}
         >
-          <Trash2Icon aria-hidden="true" />
+          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -153,7 +150,7 @@ export function DeleteCustomer({
               {labels.deleteDescription(customerDisplayName(customer))}
             </Dialog.Description>
             <Feedback feedback={action.feedback} />
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
                 {labels.cancel}
               </Dialog.Close>

@@ -57,17 +57,23 @@ export function MenuPage({
                   />
                 ) : null}
                 <div className="space-y-3 p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="text-lg font-semibold">{item.name}</h3>
-                    <span className="shrink-0 font-semibold">
-                      {formatter.format(item.priceMinor / divisor)}
-                    </span>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h3 className="min-w-0 flex-1 text-lg font-semibold wrap-anywhere">
+                      {item.name}
+                    </h3>
+                    <div className="ml-auto flex max-w-full flex-col items-end gap-2">
+                      {item.soldOut ? (
+                        <span className="rounded-full bg-status-pending px-2.5 py-1 text-xs font-medium text-status-pending-foreground">
+                          {labels.soldOut}
+                        </span>
+                      ) : null}
+                      <span className="font-semibold">
+                        {formatter.format(item.priceMinor / divisor)}
+                      </span>
+                    </div>
                   </div>
                   {item.description ? (
                     <p className="text-sm text-muted-foreground">{item.description}</p>
-                  ) : null}
-                  {item.soldOut ? (
-                    <p className="text-sm font-medium text-destructive">{labels.soldOut}</p>
                   ) : null}
                   {(["allergen", "dietary"] as const).map((kind) => {
                     const tags = item.labels.filter((label) => label.kind === kind);

@@ -123,6 +123,7 @@ test("theme selection works when storage is unavailable", async (t) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
   await page.locator('a[href="/en/projects"]').click();

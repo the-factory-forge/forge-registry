@@ -135,7 +135,7 @@ export function CustomerForm({
           </p>
         )}
         {error && (
-          <p id={errorId} role="alert" className="text-sm text-red-600 dark:text-red-400">
+          <p id={errorId} role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
@@ -223,11 +223,7 @@ export function CustomerForm({
                   {labels.passwordDescription(passwordMinLength, passwordMaxLength)}
                 </p>
                 {errors.password && (
-                  <p
-                    id={`${id}-password-error`}
-                    role="alert"
-                    className="text-sm text-red-600 dark:text-red-400"
-                  >
+                  <p id={`${id}-password-error`} role="alert" className="text-sm text-destructive">
                     {errors.password}
                   </p>
                 )}

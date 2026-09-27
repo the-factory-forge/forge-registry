@@ -2,6 +2,9 @@
 
 import { Tabs } from "@base-ui/react/tabs";
 import {
+  PlusIcon,
+  RefreshCwIcon,
+  SettingsIcon,
   Bold,
   Code,
   Heading2,
@@ -64,7 +67,7 @@ import {
 } from "@/components/utils/table-styles";
 
 const languageTabClass =
-  "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground";
+  "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 const blogStatusClass = {
   published: "bg-status-success text-status-success-foreground",
   changed: "bg-status-pending text-status-pending-foreground",
@@ -110,6 +113,7 @@ export function BlogsPage({
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             {capabilities.manageCategories && (
               <BlogLink href={categoriesHref} className={outlineButtonClass}>
+                <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
                 {labels.manageCategories}
               </BlogLink>
             )}
@@ -121,6 +125,7 @@ export function BlogsPage({
             />
             {capabilities.create && (
               <BlogLink href={newHref} className={primaryClass}>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
                 {labels.newPost}
               </BlogLink>
             )}
@@ -132,6 +137,7 @@ export function BlogsPage({
             <Feedback message={error} error />
             {onRetry && (
               <button className={buttonClass} onClick={onRetry}>
+                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
                 {labels.retry}
               </button>
             )}
@@ -200,7 +206,7 @@ export function BlogsPage({
                         className={iconButtonClass}
                         aria-label={`${labels.edit}: ${post.title}`}
                       >
-                        <PencilIcon aria-hidden="true" />
+                        <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                       </BlogLink>
                     </td>
                   </tr>
@@ -541,9 +547,11 @@ function EditorForm({
   return (
     <>
       <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-serif text-3xl font-semibold">{content.title || labels.newPost}</h1>
-          <span className={cn("rounded-full px-3 py-1 text-xs", blogStatusClass[status])}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
+            {content.title || labels.newPost}
+          </h1>
+          <span className={cn("ml-auto rounded-full px-3 py-1 text-xs", blogStatusClass[status])}>
             {labels[status]}
           </span>
         </div>
@@ -655,10 +663,7 @@ function EditorForm({
               ))}
               {capabilities.upload && !readOnly && (
                 <label
-                  className={cn(
-                    buttonClass,
-                    "relative cursor-pointer focus-within:ring-2 focus-within:ring-ring",
-                  )}
+                  className={cn(buttonClass, "relative focus-within:ring-2 focus-within:ring-ring")}
                 >
                   <ImagePlus />
                   <span className="sr-only">{labels.insertImage}</span>
@@ -792,6 +797,7 @@ export function BlogCategoriesPage({
         <h1 className="font-serif text-3xl font-semibold">{labels.categories}</h1>
         {capabilities.manageCategories && (
           <button className={primaryClass} onClick={() => setSelected(null)}>
+            <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.newCategory}
           </button>
         )}

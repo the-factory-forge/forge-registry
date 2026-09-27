@@ -113,7 +113,7 @@ export function EmployeeActions({
 
             aria-label={`${labels.edit} ${employee.name}`}
           >
-            <PencilIcon aria-hidden="true" />
+            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -183,7 +183,7 @@ export function EmployeeActions({
                     {labels.editError}
                   </p>
                 )}
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
                     className={outlineButtonClass}
@@ -215,7 +215,7 @@ export function EmployeeActions({
               className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
               aria-label={`${labels.delete} ${employee.name}`}
             >
-              <Trash2Icon aria-hidden="true" />
+              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
             </Dialog.Trigger>
             <Dialog.Portal>
               <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
@@ -233,7 +233,7 @@ export function EmployeeActions({
                     {labels.deleteError}
                   </p>
                 )}
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
                     className={outlineButtonClass}

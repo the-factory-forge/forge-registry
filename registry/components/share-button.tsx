@@ -51,7 +51,7 @@ export function ShareButton({
       type="button"
       onClick={handleShare}
       className={cn(
-        "inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80",
+        "inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
         className,
       )}
     >

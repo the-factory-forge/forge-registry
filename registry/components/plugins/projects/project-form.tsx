@@ -90,7 +90,7 @@ export function ProjectForm({
   }
   function error(name: keyof ProjectFormValues) {
     return errors[name] ? (
-      <p id={`${id}-${name}-error`} role="alert" className="text-sm text-red-600 dark:text-red-400">
+      <p id={`${id}-${name}-error`} role="alert" className="text-sm text-destructive">
         {errors[name]}
       </p>
     ) : null;
@@ -202,7 +202,7 @@ export function ProjectForm({
               error={errors.ownerId}
             />
             {customersError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              <p role="alert" className="text-sm text-destructive">
                 {customersError}
               </p>
             ) : customersLoading ? (
@@ -241,7 +241,7 @@ export function ProjectForm({
               error={errors.assigneeId}
             />
             {assigneesError ? (
-              <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+              <p role="alert" className="text-sm text-destructive">
                 {assigneesError}
               </p>
             ) : assigneesLoading ? (

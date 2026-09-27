@@ -25,6 +25,7 @@ async function openPreview(t, initScript) {
   page.on("pageerror", (error) => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(`${baseURL}/cookie-banner`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
   return { context, page, dialog: page.getByRole("dialog", { name: "Cookies" }) };
 }
 

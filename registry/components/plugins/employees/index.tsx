@@ -174,22 +174,19 @@ export function EmployeesPage({
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         <div className="flex items-center gap-3">
                           <span
-                            role="img"
-                            aria-label={
-                              employee.emailVerified ? labels.verified : labels.unverified
-                            }
-                            title={employee.emailVerified ? labels.verified : labels.unverified}
-                            className={
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium",
                               employee.emailVerified
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-muted-foreground"
-                            }
+                                ? "bg-status-success text-status-success-foreground"
+                                : "bg-status-pending text-status-pending-foreground",
+                            )}
                           >
                             {employee.emailVerified ? (
                               <ShieldCheckIcon className="size-4" aria-hidden="true" />
                             ) : (
                               <ShieldOffIcon className="size-4" aria-hidden="true" />
                             )}
+                            {employee.emailVerified ? labels.verified : labels.unverified}
                           </span>
                           <span className="max-w-72 truncate" title={employee.email}>
                             {employee.email}
@@ -200,7 +197,16 @@ export function EmployeesPage({
                         {isEmployeeAdmin(employee.role) ? labels.roleAdmin : labels.roleUser}
                       </td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                        {employee.banned ? labels.disabled : labels.active}
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                            employee.banned
+                              ? "bg-status-canceled text-status-canceled-foreground"
+                              : "bg-status-success text-status-success-foreground",
+                          )}
+                        >
+                          {employee.banned ? labels.disabled : labels.active}
+                        </span>
                       </td>
                       <td className={tableActionCellClass}>
                         <EmployeeActions

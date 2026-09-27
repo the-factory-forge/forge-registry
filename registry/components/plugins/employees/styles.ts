@@ -3,7 +3,7 @@ import { cn } from "@/components/utils/cn";
 export const inputClass =
   "h-9 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
 export const buttonClass =
-  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4";
+  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryButtonClass = `${buttonClass} bg-primary text-primary-foreground hover:bg-primary/90`;
 export const outlineButtonClass = `${buttonClass} border border-border hover:bg-accent`;
 export const iconButtonClass = cn(

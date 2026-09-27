@@ -287,7 +287,7 @@ export function DatePicker({
                 timeZone: "UTC",
               }).format(new Date(`${value}T12:00:00Z`))}
               className={cn(
-                "min-h-10 cursor-pointer rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-30",
+                "min-h-10 cursor-pointer rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-30 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                 day.month !== start.month && "text-muted-foreground",
                 date === value
                   ? "bg-primary text-primary-foreground"
