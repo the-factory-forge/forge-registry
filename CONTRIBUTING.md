@@ -151,6 +151,11 @@ join controls with touching borders or negative margins.
 
 ### Interaction requirements
 
+Place the primary status badge at the top right of a card or detail summary,
+opposite its title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
+Allow long titles and translated labels to wrap without overlap. Table statuses
+remain in their status column.
+
 Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
 Enabled buttons use `cursor-pointer`; disabled controls use `cursor-not-allowed`.
 Cover icon buttons, date cells and third-party controls, including their native,

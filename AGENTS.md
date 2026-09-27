@@ -29,6 +29,11 @@ each with its `-foreground` pair. Published is successful; Draft is not
 started; Unpublished changes are pending. Keep visible status text and define
 the pairs in the host theme, independently of customer brand colors.
 
+Place a card or detail summary's primary status at the top right, opposite its
+title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
+Keep translated titles and badges readable on narrow screens; status columns
+in tables keep their existing placement.
+
 Define the default palette in the application's stylesheet with `light-dark()`
 pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
 light dark` on `:root` and explicit light/dark classes so system preferences,

@@ -188,8 +188,12 @@ export function ReservationSummary({
 }) {
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold">{r.serviceName}</h2>
-      <Status status={r.status} labels={labels} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 className="min-w-0 flex-1 text-lg font-semibold wrap-anywhere">{r.serviceName}</h2>
+        <div className="ml-auto max-w-full">
+          <Status status={r.status} labels={labels} />
+        </div>
+      </div>
       <p>{r.resourceName}</p>
       <p>
         {r.mode === "stay" && `${labels.arrivalDate}: `}
