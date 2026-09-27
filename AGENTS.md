@@ -23,6 +23,12 @@ accent, destructive and their foreground pairs; border, input, ring, chart-1
 through chart-5, and sidebar colors. Keep the dark-surface pair `--dark` and
 `--dark-foreground` for image overlays and permanently dark sections.
 
+Status labels use `status-success` (green), `status-pending` (orange),
+`status-not-started` (gray), `status-canceled` (red), and `status-info` (blue),
+each with its `-foreground` pair. Published is successful; Draft is not
+started; Unpublished changes are pending. Keep visible status text and define
+the pairs in the host theme, independently of customer brand colors.
+
 Define the default palette in the application's stylesheet with `light-dark()`
 pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
 light dark` on `:root` and explicit light/dark classes so system preferences,
@@ -117,7 +123,10 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   Keep branding, dictionaries, API calls, auth, and business data in the consumer.
   Default UI labels to English and allow translation through props.
 - Use the exact, non-translatable attribution copy `Forged by The Corner Factory SA`
-  whenever a footer credits The Corner Factory.
+  whenever a footer credits The Corner Factory. Place the official Corner `c` logo
+  to its left in every visible agency credit, including authentication screens.
+  Reuse `https://assets.the-corner.io/logos/the_corner-icon.svg`, with decorative
+  alt text and sufficient contrast on both light and dark backgrounds.
 - Export the component and its props type. Support `className` where applicable;
   merge classes with `cn` from `@/components/utils/cn`. Reuse `SectionVariant` for themed sections.
 - Use semantic Tailwind/shadcn tokens and existing Base UI primitives. Preserve

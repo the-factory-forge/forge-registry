@@ -28,6 +28,37 @@ async function saved(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Draft saved." }).waitFor();
 }
+test("showroom illustrations load without cropping in both themes", async (t) => {
+  const page = await preview(t);
+  const paths = await page
+    .locator("article h2 a")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+  const seen = new Set();
+  for (const path of ["/en/blogs", ...paths]) {
+    await page.goto(baseURL + path);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    for (const theme of ["Light", "Dark"]) {
+      await page.getByRole("button", { name: theme, exact: true }).click();
+      for (const image of await page.locator('article img[src^="/blogs/studio-"]').all()) {
+        await image.scrollIntoViewIfNeeded();
+        await image.evaluate((node) => node.decode());
+        const state = await image.evaluate((node) => ({
+          src: node.getAttribute("src"),
+          alt: node.alt,
+          width: node.naturalWidth,
+          fit: getComputedStyle(node).objectFit,
+          filter: getComputedStyle(node).filter,
+        }));
+        assert.ok(state.width > 0);
+        assert.ok(state.alt.length > 0);
+        assert.equal(state.fit, "contain");
+        assert.equal(state.filter, theme === "Dark" ? "invert(1)" : "none");
+        seen.add(state.src);
+      }
+    }
+  }
+  assert.equal(seen.size, 6);
+});
 test("public listing, filtering, translated article, Markdown SSR, and responsive themes", async (t) => {
   const page = await preview(t);
   assert.equal(await page.locator("article").count(), 3);
@@ -169,7 +200,7 @@ test("categories, optional translations, required publication fields, directory 
   await page.getByRole("link", { name: "An idea for tomorrow", exact: true }).click();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Check your fields" }).waitFor();
-  await page.getByLabel("Language", { exact: true }).selectOption("fr");
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("Une idée");
   await page.getByLabel("Slug", { exact: true }).fill("une-idee");
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Un nouveau texte.");
@@ -178,4 +209,110 @@ test("categories, optional translations, required publication fields, directory 
   await page.getByRole("status").filter({ hasText: "This language is now published" }).waitFor();
   await page.getByRole("link", { name: "French blog", exact: true }).click();
   await page.getByRole("link", { name: "Une idée", exact: true }).waitFor();
+});
+
+test("language tabs support keyboard selection and protect unsaved translations", async (t) => {
+  const page = await preview(t, `/en/admin/blogs/${existing}`);
+  const english = page.getByRole("tab", { name: "English", exact: true });
+  const french = page.getByRole("tab", { name: "Français", exact: true });
+  assert.equal(await english.getAttribute("aria-selected"), "true");
+  await english.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  assert.equal(await french.getAttribute("aria-selected"), "true");
+  await page.getByRole("tabpanel", { name: "Français", exact: true }).waitFor();
+  const title = page.getByRole("textbox", { name: "Title", exact: true });
+  assert.equal(await title.inputValue(), "Faire de la place aux idées");
+  await title.fill("Une traduction modifiée");
+  assert.equal(await english.isDisabled(), true);
+  await page.getByLabel("Fail mutations", { exact: true }).check();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal(await english.isDisabled(), true);
+  assert.equal(await title.inputValue(), "Une traduction modifiée");
+  await page.getByLabel("Fail mutations", { exact: true }).uncheck();
+  await saved(page);
+  assert.equal(await english.isDisabled(), false);
+  await english.click();
+  assert.equal(await title.inputValue(), "Make room for better ideas");
+  await french.click();
+  assert.equal(await title.inputValue(), "Une traduction modifiée");
+  await page.screenshot({ path: "/tmp/forge-blog-language-tabs-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: "/tmp/forge-blog-language-tabs-mobile-dark.png", fullPage: true });
+
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  await page.getByRole("link", { name: "New post", exact: true }).click();
+  const newTitle = page.getByRole("textbox", { name: "Title *", exact: true });
+  await french.click();
+  await newTitle.fill("Un nouveau brouillon");
+  await english.click();
+  assert.equal(await newTitle.inputValue(), "Un nouveau brouillon");
+  await french.click();
+  await page.getByRole("button", { name: "Create draft", exact: true }).click();
+  await page.getByRole("textbox", { name: "Markdown", exact: true }).waitFor();
+  await french.click();
+  assert.equal(await title.inputValue(), "Un nouveau brouillon");
+});
+
+test("editor and list badges use success, pending and not-started colors", async (t) => {
+  const page = await preview(t, `/en/admin/blogs/${existing}`);
+  const palettes = {
+    Published: [
+      ["rgb(220, 252, 231)", "rgb(22, 101, 52)"],
+      ["rgb(5, 46, 22)", "rgb(134, 239, 172)"],
+    ],
+    "Unpublished changes": [
+      ["rgb(255, 237, 213)", "rgb(154, 52, 18)"],
+      ["rgb(67, 20, 7)", "rgb(253, 186, 116)"],
+    ],
+    Draft: [
+      ["rgb(243, 244, 246)", "rgb(75, 85, 99)"],
+      ["rgb(31, 41, 55)", "rgb(209, 213, 219)"],
+    ],
+  };
+  for (const [label, colors] of Object.entries(palettes)) {
+    if (label === "Unpublished changes") {
+      await page.getByRole("textbox", { name: "Title", exact: true }).fill("A revised title");
+      await saved(page);
+    } else if (label === "Draft") {
+      await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+      await page.getByText(label, { exact: true }).waitFor();
+    }
+    for (const [index, theme] of ["Light", "Dark"].entries()) {
+      await page.getByRole("button", { name: theme, exact: true }).click();
+      assert.deepEqual(
+        await page.getByText(label, { exact: true }).evaluate((node) => {
+          const style = getComputedStyle(node);
+          return [style.backgroundColor, style.color];
+        }),
+        colors[index],
+      );
+      if (label === "Published") {
+        await page
+          .getByRole("tabpanel")
+          .locator("header")
+          .screenshot({
+            path: `/tmp/forge-blog-published-${theme.toLowerCase()}.png`,
+          });
+      }
+      await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+      const row = page.getByRole("row").filter({
+        has: page.locator(`a[href="/en/admin/blogs/${existing}"]`),
+      });
+      assert.deepEqual(
+        await row
+          .locator(`span[title="${label}"]`)
+          .first()
+          .evaluate((node) => {
+            const style = getComputedStyle(node);
+            return [style.backgroundColor, style.color];
+          }),
+        colors[index],
+      );
+      await row.getByRole("link").first().click();
+    }
+  }
 });

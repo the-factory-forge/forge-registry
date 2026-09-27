@@ -24,6 +24,9 @@ import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
+const previewClassName =
+  "showroom-page [&_img[src^='/blogs/studio-']]:object-contain [&_img[src^='/blogs/studio-']]:mix-blend-multiply dark:[&_img[src^='/blogs/studio-']]:mix-blend-screen dark:[&_img[src^='/blogs/studio-']]:invert";
+
 function usePreview() {
   const [mock] = useState(createBlogsMock),
     [editor, setEditor] = useState("jordan"),
@@ -148,7 +151,7 @@ export function BlogsAdminPreview() {
       manageCategories: !state.readOnly,
     };
   const common = {
-    className: "showroom-page",
+    className: previewClassName,
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     client: state.client,
@@ -240,7 +243,7 @@ export function BlogsPublicPreview() {
     category = params.category ?? undefined,
     page = Math.max(1, Number(params.page) || 1);
   const common = {
-    className: "showroom-page",
+    className: previewClassName,
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     categories: state.mock.categories(),

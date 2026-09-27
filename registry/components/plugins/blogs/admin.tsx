@@ -1,5 +1,6 @@
 "use client";
 
+import { Tabs } from "@base-ui/react/tabs";
 import {
   Bold,
   Code,
@@ -10,6 +11,7 @@ import {
   List,
   PencilIcon,
   Quote,
+  SearchIcon,
 } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
@@ -60,6 +62,14 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+
+const languageTabClass =
+  "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground";
+const blogStatusClass = {
+  published: "bg-status-success text-status-success-foreground",
+  changed: "bg-status-pending text-status-pending-foreground",
+  draft: "bg-status-not-started text-status-not-started-foreground",
+};
 
 export interface BlogsPageProps extends BlogsAppearanceProps {
   data: BlogPage<BlogListItem>;
@@ -114,13 +124,19 @@ export function BlogsPage({
         <label htmlFor={id} className="sr-only">
           {labels.search}
         </label>
-        <input
-          id={id}
-          className={cn(inputClass, "max-w-md")}
-          placeholder={labels.search}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
+        <div className="relative max-w-sm">
+          <SearchIcon
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            id={id}
+            className={cn(inputClass, "h-8 pl-9 placeholder:text-muted-foreground")}
+            placeholder={`${labels.search}...`}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
         {!capabilities.edit && <Feedback message={labels.readOnly} />}
         {error ? (
           <>
@@ -175,8 +191,8 @@ export function BlogsPage({
                             key={t.locale}
                             title={labels[t.status]}
                             className={cn(
-                              "rounded-full bg-muted px-2 py-1 text-xs",
-                              t.status === "draft" && "opacity-40",
+                              "rounded-full px-2 py-1 text-xs",
+                              blogStatusClass[t.status],
                             )}
                           >
                             {t.locale.toUpperCase()}
@@ -248,32 +264,35 @@ export function BlogNewPage({
       <h1 className="font-serif text-3xl font-semibold">{labels.newPost}</h1>
       <form onSubmit={(e) => void submit(e)} className={cn(cardClass, "max-w-2xl space-y-5")}>
         <fieldset disabled={action.pending || !capabilities.create} className="space-y-5">
-          <div className="space-y-2">
-            <label htmlFor={`${id}-title`}>{labels.title} *</label>
-            <input
-              id={`${id}-title`}
-              required
-              maxLength={250}
-              className={inputClass}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor={`${id}-locale`}>{labels.language}</label>
-            <select
-              id={`${id}-locale`}
-              className={inputClass}
-              value={locale}
-              onChange={(e) => setLocale(e.target.value)}
+          <Tabs.Root value={locale} onValueChange={(value) => setLocale(value as string)}>
+            <Tabs.List
+              aria-label={labels.language}
+              className="flex gap-1 overflow-x-auto border-b border-border"
             >
               {locales.map((l) => (
-                <option key={l.code} value={l.code}>
+                <Tabs.Tab
+                  key={l.code}
+                  type="button"
+                  value={l.code}
+                  disabled={action.pending || !capabilities.create}
+                  className={languageTabClass}
+                >
                   {l.name}
-                </option>
+                </Tabs.Tab>
               ))}
-            </select>
-          </div>
+            </Tabs.List>
+            <Tabs.Panel key={locale} value={locale} className="space-y-2 pt-5">
+              <label htmlFor={`${id}-title`}>{labels.title} *</label>
+              <input
+                id={`${id}-title`}
+                required
+                maxLength={250}
+                className={inputClass}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Tabs.Panel>
+          </Tabs.Root>
           <button className={primaryClass} disabled={!title.trim()}>
             {action.pending ? labels.pending : labels.create}
           </button>
@@ -304,31 +323,28 @@ function Editor(props: BlogEditPageProps) {
   const labels = { ...blogsLabels, ...props.labels };
   return (
     <section className={cn(pageClass, props.className)}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <BackLink {...props} />
-        <label className="flex items-center gap-3 text-sm">
-          {labels.language}
-          <select
-            aria-label={labels.language}
-            className={inputClass}
-            value={locale}
-            disabled={dirty}
-            onChange={(e) => setLocale(e.target.value)}
-          >
-            {props.locales.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <EditorForm
-        key={`${props.article.id}:${locale}`}
-        {...props}
-        locale={locale}
-        onDirty={setDirty}
-      />
+      <BackLink {...props} />
+      <Tabs.Root value={locale} onValueChange={(value) => setLocale(value as string)}>
+        <Tabs.List
+          aria-label={labels.language}
+          className="flex gap-1 overflow-x-auto border-b border-border"
+        >
+          {props.locales.map((l) => (
+            <Tabs.Tab
+              key={l.code}
+              type="button"
+              value={l.code}
+              disabled={dirty && l.code !== locale}
+              className={languageTabClass}
+            >
+              {l.name}
+            </Tabs.Tab>
+          ))}
+        </Tabs.List>
+        <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
+          <EditorForm {...props} locale={locale} onDirty={setDirty} />
+        </Tabs.Panel>
+      </Tabs.Root>
     </section>
   );
 }
@@ -374,7 +390,12 @@ function EditorForm({
     [dirty, setDirty] = useState(false);
   const [validation, setValidation] = useState("");
   const readOnly = !capabilities.edit,
-    pending = action.pending;
+    pending = action.pending,
+    status = !base.translations[locale]?.published
+      ? "draft"
+      : hasUnpublishedChanges(base, locale)
+        ? "changed"
+        : "published";
   function changed() {
     setDirty(true);
     onDirty(true);
@@ -533,12 +554,8 @@ function EditorForm({
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-serif text-3xl font-semibold">{content.title || labels.newPost}</h1>
-          <span className="rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground">
-            {!base.translations[locale]?.published
-              ? labels.draft
-              : hasUnpublishedChanges(base, locale)
-                ? labels.changed
-                : labels.published}
+          <span className={cn("rounded-full px-3 py-1 text-xs", blogStatusClass[status])}>
+            {labels[status]}
           </span>
         </div>
         {!base.translations[locale] && (

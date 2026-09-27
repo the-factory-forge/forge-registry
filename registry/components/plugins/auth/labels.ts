@@ -6,6 +6,7 @@ export const loginLabels = {
   password: "Password",
   showPassword: "Show password",
   hidePassword: "Hide password",
+  capsLockOn: "Caps Lock is on",
   rememberMe: "Remember me",
   forgotPassword: "Forgot password?",
   signIn: "Sign in",

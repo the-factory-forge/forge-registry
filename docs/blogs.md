@@ -26,6 +26,12 @@ locales, labels, route destinations, an `assetUrl` resolver, and an authenticate
 Dates are ISO UTC; the default public formatter uses UTC for consistent SSR.
 Public components receive prepared data and can render on the server.
 
+Status badges use the shared `status-success`, `status-pending`, and
+`status-not-started` background/foreground pairs for Published, Unpublished
+changes, and Draft. Existing hosts must add the [status theme tokens](../CONTRIBUTING.md#design-tokens)
+and their `@theme inline` mappings before updating the blog item. The showroom
+stylesheet does not ship with the item; forge-template supplies the defaults.
+
 ```tsx
 <BlogPostPage
   post={post}
@@ -43,6 +49,7 @@ Markdown, image alternative text, draft, and publication. Thumbnail, banner, and
 category assignments are shared. Publishing one language captures the current
 shared settings for that language only; other live translations remain unchanged.
 
+Creation and editing use language tabs, matching the back-office menu editor.
 Save drafts explicitly before switching language or publishing. Failed saves and
 ordinary prop rerenders preserve local values. Switching articles resets the
 form. The host owns navigation; add its router's unsaved-change guard if protection

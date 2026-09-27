@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowRightIcon, EyeIcon, EyeOffIcon, LoaderCircleIcon } from "lucide-react";
+import {
+  ArrowBigUpDashIcon,
+  ArrowRightIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LoaderCircleIcon,
+} from "lucide-react";
 import { useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
@@ -67,6 +73,7 @@ export function LoginForm({
 }: LoginFormProps) {
   const labels = { ...loginLabels, ...overrides };
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const action = useAuthAction();
   const [method, setMethod] = useState<"password" | "google">("password");
   const { pending, failed } = action;
@@ -141,12 +148,33 @@ export function LoginForm({
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              className={cn(inputClass, "pr-12")}
+              className={cn(inputClass, capsLock ? "pr-20" : "pr-12")}
+              onKeyDown={(event) => setCapsLock(event.getModifierState("CapsLock"))}
+              onKeyUp={(event) => setCapsLock(event.getModifierState("CapsLock"))}
+              onClick={(event) => setCapsLock(event.getModifierState("CapsLock"))}
+              onBlur={() => setCapsLock(false)}
               readOnly={action.disabled}
               disabled={!enabled}
-              aria-describedby={failed ? "login-error" : undefined}
+              aria-describedby={
+                [failed && "login-error", capsLock && "password-caps-lock"]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
               required
             />
+            <output
+              id="password-caps-lock"
+              htmlFor="password"
+              title={capsLock ? labels.capsLockOn : undefined}
+              className="absolute inset-y-0 right-12 flex items-center text-primary"
+            >
+              {capsLock && (
+                <>
+                  <ArrowBigUpDashIcon className="mx-2 size-4" aria-hidden="true" />
+                  <span className="sr-only">{labels.capsLockOn}</span>
+                </>
+              )}
+            </output>
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}

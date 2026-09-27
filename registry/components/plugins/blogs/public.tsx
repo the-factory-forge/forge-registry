@@ -1,5 +1,5 @@
 import { Markdown } from "@tanstack/markdown/react";
-import { ArrowUpRight, CalendarDays, UserRound } from "lucide-react";
+import { ArrowUpRight, CalendarDays, SearchIcon, UserRound } from "lucide-react";
 
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
@@ -115,15 +115,21 @@ export function BlogIndexPage({
           <label className="sr-only" htmlFor="blog-search">
             {labels.search}
           </label>
-          <input
-            id="blog-search"
-            name="search"
-            defaultValue={search}
-            placeholder={labels.search}
-            className="min-w-0 flex-1 rounded-2xl border border-border bg-background px-4 py-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-          />
+          <div className="relative min-w-0 flex-1">
+            <SearchIcon
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              id="blog-search"
+              name="search"
+              defaultValue={search}
+              placeholder={`${labels.search}...`}
+              className="h-8 w-full min-w-0 rounded-2xl border border-input bg-muted pr-3 pl-9 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:text-sm"
+            />
+          </div>
           {categoryId && <input type="hidden" name="category" value={categoryId} />}
-          <button className="rounded-2xl bg-primary px-4 py-2 text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring">
+          <button className="h-8 rounded-2xl bg-primary px-4 text-sm text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring">
             {labels.searchSubmit}
           </button>
         </form>

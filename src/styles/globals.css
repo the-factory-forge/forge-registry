@@ -31,6 +31,16 @@
   --accent-foreground: var(--primary);
   --destructive: light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216));
   --destructive-foreground: light-dark(#ffffff, #000000);
+  --status-success: light-dark(#dcfce7, #052e16);
+  --status-success-foreground: light-dark(#166534, #86efac);
+  --status-pending: light-dark(#ffedd5, #431407);
+  --status-pending-foreground: light-dark(#9a3412, #fdba74);
+  --status-not-started: light-dark(#f3f4f6, #1f2937);
+  --status-not-started-foreground: light-dark(#4b5563, #d1d5db);
+  --status-canceled: light-dark(#fee2e2, #450a0a);
+  --status-canceled-foreground: light-dark(#991b1b, #fca5a5);
+  --status-info: light-dark(#dbeafe, #172554);
+  --status-info-foreground: light-dark(#1e40af, #93c5fd);
   --border: light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%));
   --input: light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%));
   --ring: var(--primary);
@@ -71,6 +81,16 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-status-success: var(--status-success);
+  --color-status-success-foreground: var(--status-success-foreground);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-foreground: var(--status-pending-foreground);
+  --color-status-not-started: var(--status-not-started);
+  --color-status-not-started-foreground: var(--status-not-started-foreground);
+  --color-status-canceled: var(--status-canceled);
+  --color-status-canceled-foreground: var(--status-canceled-foreground);
+  --color-status-info: var(--status-info);
+  --color-status-info-foreground: var(--status-info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -108,7 +128,7 @@
 /* One viewport budget for the showroom chrome and full-height examples. */
 :root {
   --showroom-header-height: 3.5rem;
-  --showroom-max-width: 80rem;
+  --showroom-max-width: var(--container-7xl);
   --showroom-gutter: clamp(1rem, 3vw, 2rem);
 }
 
@@ -297,7 +317,7 @@
 @utility container-premium {
   margin-left: auto;
   margin-right: auto;
-  max-width: 80rem;
+  max-width: var(--container-7xl);
   padding-left: 1.25rem;
   padding-right: 1.25rem;
   @media (min-width: 640px) {

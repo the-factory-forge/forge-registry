@@ -104,7 +104,7 @@ export function FaqList({
         )}
 
         <Accordion
-          className="mx-auto mt-10 max-w-3xl"
+          className="mt-10"
           value={openItem}
           onValueChange={(value) => setOpenItem(typeof value === "string" ? value : "")}
         >

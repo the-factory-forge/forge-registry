@@ -30,7 +30,9 @@ All visible labels have English defaults and accept translated overrides.
 The link shim can be replaced by the host or passed through `linkComponent`.
 
 `AuthLayout` accepts `siteName`, `logoSrc`, `homeHref`, `privacyHref`, and an
-optional `languageControl`. It preserves the exact agency footer credit.
+optional `languageControl`. Its footer displays the official Corner `c` logo to
+the left of `Forged by The Corner Factory SA`, matching the public footer. The
+decorative logo uses the same public SVG and is inverted in dark mode.
 On desktop, its left panel is narrower than the form side and keeps its own
 viewport-height minimum. Longer auth content can extend the right side without
 stretching the left panel or pushing its copy to the bottom. The dark backdrop

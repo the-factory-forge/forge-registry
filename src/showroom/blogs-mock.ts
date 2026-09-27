@@ -60,30 +60,42 @@ function seed() {
       },
     },
   ];
-  const assets: BlogAsset[] = [1, 2, 3].map((n) => ({
-    id: key(100 + n),
-    postId: key(n),
-    name: `studio-${n}.png`,
+  const assets: BlogAsset[] = [
+    { name: "studio-1.png", postId: key(1) },
+    { name: "studio-2.png", postId: key(2) },
+    { name: "studio-3.png", postId: key(3) },
+    { name: "studio-pencils.png", postId: key(1) },
+    { name: "studio-lamp.png", postId: key(2) },
+    { name: "studio-tall-plant.png", postId: key(3) },
+  ].map((asset, index) => ({
+    ...asset,
+    id: key(101 + index),
     contentType: "image/png",
     size: 1024,
   }));
   const articles = [
     {
       title: "Make room for better ideas",
+      thumbnailAlt: "Hand-drawn lightbulb with radiating lines",
+      bannerAlt: "Hand-drawn cup holding four pencils",
       summary: "A little space, a slower pace, and the habits that help thoughtful work happen.",
       markdown:
-        "## Begin with a question\n\nGood ideas often start with **paying attention**. Before opening another tool, take a moment to describe the problem in plain language.\n\n> A useful question is often more valuable than a quick answer.\n\n## A small practice\n\n- Write down what you notice.\n- Talk with someone who sees things differently.\n- Make something small and learn from it.\n\n![A study in warm colors](./assets/" +
+        "## Begin with a question\n\nGood ideas often start with **paying attention**. Before opening another tool, take a moment to describe the problem in plain language.\n\n> A useful question is often more valuable than a quick answer.\n\n## A small practice\n\n- Write down what you notice.\n- Talk with someone who sees things differently.\n- Make something small and learn from it.\n\n![Hand-drawn lightbulb with radiating lines](./assets/" +
         key(101) +
         ")\n\n### Keep it simple\n\nLeave room for what comes next.",
     },
     {
       title: "A quieter kind of productivity",
+      thumbnailAlt: "Hand-drawn coffee mug",
+      bannerAlt: "Hand-drawn adjustable desk lamp",
       summary: "Building routines that leave room for focus, curiosity, and the unexpected.",
       markdown:
         "## Protect your attention\n\nStart with one meaningful task. Leave the rest for later.\n\n### What helps\n\n1. Clear priorities\n2. Space between meetings\n3. Time to reflect",
     },
     {
       title: "Notes from our workbench",
+      thumbnailAlt: "Hand-drawn potted plant with rounded leaves",
+      bannerAlt: "Hand-drawn tall potted plant with pointed leaves",
       summary: "An open look at the materials, experiments, and conversations behind our work.",
       markdown:
         "## Work in progress\n\nThe best part of a studio is the work you cannot see in a finished photograph.\n\n| Practice | Purpose |\n| --- | --- |\n| Sketching | Explore possibilities |\n| Prototyping | Learn by making |",
@@ -91,7 +103,8 @@ function seed() {
   ].map((content, index) => {
     const n = index + 1,
       id = key(n),
-      image = key(100 + n);
+      image = key(100 + n),
+      banner = key(103 + n);
     let article = createArticle(id, content.title, "en", initialEditor, date);
     article = saveArticle(
       article,
@@ -104,17 +117,15 @@ function seed() {
           ...emptyContent,
           ...content,
           slug: slugify(content.title),
-          thumbnailAlt: "A geometric color study",
-          bannerAlt: "A geometric color study",
         },
         shared: {
           thumbnailId: image,
-          bannerId: image,
+          bannerId: banner,
           categoryIds: [index === 2 ? key(12) : key(11)],
         },
       },
       categories,
-      new Set([image]),
+      new Set([image, banner]),
       key(300 + n),
       initialEditor,
       date,
@@ -137,12 +148,12 @@ function seed() {
         summary: "Du temps, de l’espace et quelques habitudes pour mieux créer.",
         markdown:
           "## Commencer par une question\n\nLes bonnes idées commencent par **l’attention**. Prenez le temps de décrire le problème simplement.\n\n> Une question utile vaut parfois mieux qu’une réponse rapide.",
-        thumbnailAlt: "Une étude de couleurs",
-        bannerAlt: "Une étude de couleurs",
+        thumbnailAlt: "Une ampoule dessinée à la main avec des rayons",
+        bannerAlt: "Un pot contenant quatre crayons dessinés à la main",
       },
     },
     categories,
-    new Set([key(101)]),
+    new Set([key(101), key(104)]),
     key(401),
     initialEditor,
     date,
@@ -157,7 +168,7 @@ export function createBlogsMock() {
     categories = initial.categories,
     assets = initial.assets,
     revision = 0;
-  const urls = new Map(initial.assets.map((a, index) => [a.id, `/blogs/studio-${index + 1}.png`]));
+  const urls = new Map(initial.assets.map((a) => [a.id, `/blogs/${a.name}`]));
   const listeners = new Set<() => void>();
   const requests = new Map<string, { fingerprint: string; result: unknown }>();
   const emit = () => {

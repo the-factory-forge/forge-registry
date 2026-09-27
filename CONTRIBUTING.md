@@ -68,8 +68,22 @@ Use the same CSS vocabulary as `forge-template` and `tc-website`:
   `bg-popover` and `text-popover-foreground`.
 - Layout helpers: `container-premium` and `section-padding`.
 
-Use `text-destructive` for errors. Success feedback uses `text-foreground` with
-a status icon and clear copy. Keep feedback colors tied to the shared theme.
+Use `text-destructive` for form errors. Status labels use the host's semantic
+background and foreground pairs, with visible text so color is not the only cue:
+
+| Meaning       | Token pair                                             | Color  |
+| ------------- | ------------------------------------------------------ | ------ |
+| Success       | `status-success` / `status-success-foreground`         | Green  |
+| Pending       | `status-pending` / `status-pending-foreground`         | Orange |
+| Not started   | `status-not-started` / `status-not-started-foreground` | Gray   |
+| Canceled      | `status-canceled` / `status-canceled-foreground`       | Red    |
+| Informational | `status-info` / `status-info-foreground`               | Blue   |
+
+For example, `bg-status-success text-status-success-foreground` identifies Published.
+Use gray for Draft and orange for Unpublished changes. Define these pairs with
+`light-dark()` in the host stylesheet and map them through `@theme inline`, as
+in [the showroom stylesheet](./src/styles/globals.css). Keep status colors
+independent of the customer's primary color and readable in both themes.
 
 ## File placement
 

@@ -102,7 +102,17 @@ export function AuthLayout({
         </main>
 
         <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6 py-6 text-center text-xs text-muted-foreground!">
-          <span>Forged by The Corner Factory SA</span>
+          <span className="inline-flex items-center gap-1.5">
+            <img
+              src="https://assets.the-corner.io/logos/the_corner-icon.svg"
+              alt=""
+              width={16}
+              height={16}
+              className="size-4 shrink-0 dark:invert"
+              aria-hidden="true"
+            />
+            Forged by The Corner Factory SA
+          </span>
           {privacyHref && (
             <LayoutLink href={privacyHref} className="text-primary hover:underline">
               {labels.privacy}

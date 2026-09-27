@@ -22,6 +22,10 @@ namespace before committing the consumer configuration.
 
 The pages use Tailwind CSS 4 utilities and semantic theme tokens. Their spacing
 does not require the showroom's `container-premium` or `section-padding` helpers.
+The FAQ accordion fills the same page container as the hero and Contact section.
+Page containers use Tailwind's `--container-7xl` token, which also sets the
+`container-premium` width. Override it once in the host's `@theme` to adjust the
+shared page width; its default is `80rem`.
 The host supplies the surrounding main landmark, navbar, footer, and any theme
 configuration. Keep routing, translations, SEO, and site constants outside the
 installed files. There is no Contact form or submission service in these pages.
