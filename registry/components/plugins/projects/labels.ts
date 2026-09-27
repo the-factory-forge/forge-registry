@@ -1,4 +1,5 @@
 export const projectLabels = {
+  clearSearch: "Clear search",
   title: "Projects",
   description: "A complete list of all projects.",
   customerDescription: "Projects owned by this customer.",

@@ -61,16 +61,16 @@ function seed() {
     },
   ];
   const assets: BlogAsset[] = [
-    { name: "studio-1.png", postId: key(1) },
-    { name: "studio-2.png", postId: key(2) },
-    { name: "studio-3.png", postId: key(3) },
-    { name: "studio-pencils.png", postId: key(1) },
-    { name: "studio-lamp.png", postId: key(2) },
-    { name: "studio-tall-plant.png", postId: key(3) },
+    { name: "the_corner-illustration_lightbulb.webp", postId: key(1) },
+    { name: "the_corner-illustration_coffee-mug.webp", postId: key(2) },
+    { name: "the_corner-illustration_plant-rounded.webp", postId: key(3) },
+    { name: "the_corner-illustration_pencil-cup.webp", postId: key(1) },
+    { name: "the_corner-illustration_desk-lamp.webp", postId: key(2) },
+    { name: "the_corner-illustration_plant-tall.webp", postId: key(3) },
   ].map((asset, index) => ({
     ...asset,
     id: key(101 + index),
-    contentType: "image/png",
+    contentType: "image/webp",
     size: 1024,
   }));
   const articles = [
@@ -168,7 +168,9 @@ export function createBlogsMock() {
     categories = initial.categories,
     assets = initial.assets,
     revision = 0;
-  const urls = new Map(initial.assets.map((a) => [a.id, `/blogs/${a.name}`]));
+  const urls = new Map(
+    initial.assets.map((a) => [a.id, `https://assets.the-corner.io/images/${a.name}`]),
+  );
   const listeners = new Set<() => void>();
   const requests = new Map<string, { fingerprint: string; result: unknown }>();
   const emit = () => {

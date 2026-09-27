@@ -28,7 +28,8 @@ async function preview(t, route = "", options = {}) {
 
 test("directory search, loading/error states, optional actions and sync extension", async (t) => {
   const page = await preview(t);
-  const search = page.getByRole("textbox", { name: "Search customers", exact: true });
+  await page.getByRole("button", { name: "Search customers", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search customers", exact: true });
   await search.fill("ACME");
   await page.getByRole("row").filter({ hasText: "Sam Rivera" }).waitFor({ state: "hidden" });
   assert.equal(await page.getByRole("row").count(), 2);
@@ -36,7 +37,8 @@ test("directory search, loading/error states, optional actions and sync extensio
   await page.getByText("No customers found.", { exact: true }).waitFor();
   await search.fill("");
   await page.getByLabel("Directory state").selectOption("loading");
-  await page.getByText("Loading customers...", { exact: true }).waitFor();
+  await page.locator('table[aria-busy="true"]').waitFor();
+  assert.ok((await page.getByRole("row").count()) > 1);
   await page.getByLabel("Directory state").selectOption("error");
   await page.getByRole("alert").filter({ hasText: "Unable to load customers" }).waitFor();
   await page.getByLabel("Directory state").selectOption("ready");

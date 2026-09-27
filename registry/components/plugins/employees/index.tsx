@@ -1,6 +1,7 @@
 "use client";
 import { Avatar } from "@base-ui/react/avatar";
 import { ChevronLeftIcon, ChevronRightIcon, ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
+import { useState } from "react";
 
 import {
   EmployeeActions,
@@ -15,6 +16,7 @@ import {
   type Employee,
 } from "@/components/plugins/employees/schema";
 import { outlineButtonClass } from "@/components/plugins/employees/styles";
+import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -35,6 +37,9 @@ export type {
 export type { EmployeeLabels } from "@/components/plugins/employees/labels";
 export interface EmployeesPageProps extends EmployeeActionCallbacks {
   employees: readonly Employee[];
+  /** For server pagination, filter the full directory before supplying this page. */
+  search?: string;
+  onSearchChange?: (search: string) => void;
   currentUserId: string;
   /** Role from the host's authenticated session. Missing or non-admin roles render nothing. */
   currentUserRole: string | null | undefined;
@@ -49,6 +54,8 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
 }
 export function EmployeesPage({
   employees,
+  search: controlledSearch,
+  onSearchChange,
   currentUserId,
   currentUserRole,
   total,
@@ -63,8 +70,23 @@ export function EmployeesPage({
   labels: overrides,
   className,
 }: EmployeesPageProps) {
+  const [localSearch, setLocalSearch] = useState("");
+  const search = controlledSearch ?? localSearch;
   if (!isEmployeeAdmin(currentUserRole)) return null;
   const labels = { ...employeeLabels, ...overrides };
+  // ponytail: fallback searches supplied rows; use onSearchChange for server pagination.
+  const filteredEmployees = onSearchChange
+    ? employees
+    : employees.filter((employee) =>
+        matchesTableSearch(
+          search,
+          employee.name,
+          employee.email,
+          isEmployeeAdmin(employee.role) ? labels.roleAdmin : labels.roleUser,
+          employee.banned ? labels.disabled : labels.active,
+          employee.emailVerified ? labels.verified : labels.unverified,
+        ),
+      );
   return (
     <section
       className={cn(tablePanelClass, "mx-auto w-full max-w-7xl px-0", className)}
@@ -72,11 +94,23 @@ export function EmployeesPage({
     >
       <header className="flex flex-wrap items-center justify-between gap-4 px-6 pb-6">
         <h1 className="font-sans text-base font-semibold">{labels.title}</h1>
-        <EmployeeCreateDialog
-          currentUserRole={currentUserRole}
-          onCreate={onCreate}
-          labels={labels}
-        />
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <TableSearch
+            value={search}
+            label={labels.search}
+            clearLabel={labels.clearSearch}
+            onValueChange={(value) => {
+              setLocalSearch(value);
+              onSearchChange?.(value);
+              if (onSearchChange) onOffsetChange(0);
+            }}
+          />
+          <EmployeeCreateDialog
+            currentUserRole={currentUserRole}
+            onCreate={onCreate}
+            labels={labels}
+          />
+        </div>
       </header>
       <div className="px-6">
         {loading ? (
@@ -109,7 +143,7 @@ export function EmployeesPage({
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
-                  {employees.map((employee) => (
+                  {filteredEmployees.map((employee) => (
                     <tr key={employee.id} className={tableRowClass}>
                       <td
                         aria-label={employee.name}
@@ -180,10 +214,10 @@ export function EmployeesPage({
                       </td>
                     </tr>
                   ))}
-                  {employees.length === 0 && (
+                  {filteredEmployees.length === 0 && (
                     <tr className={tableRowClass}>
                       <td colSpan={5} className={tableCellClass}>
-                        {labels.empty}
+                        {search.trim() ? labels.noMatches : labels.empty}
                       </td>
                     </tr>
                   )}

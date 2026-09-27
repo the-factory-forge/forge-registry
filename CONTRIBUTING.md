@@ -126,6 +126,37 @@ Prefer Server Components. Add `"use client"` only when the component uses:
 
 ## Accessibility
 
+### Action icons
+
+Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
+when creating or modifying action toolbars. Refresh/reload uses `RefreshCwIcon`,
+settings/configuration uses `SettingsIcon`, and new/create/add entry points use
+`PlusIcon`, all from Lucide. Put the icon before the translated visible label.
+Use `size-4 shrink-0`, inherit the control's text color, and set `aria-hidden="true"`.
+Keep existing button/link variants, focus styles and responsive wrapping.
+
+Edit/rename and delete/remove retain the existing `PencilIcon` and `Trash2Icon`
+icon-only convention, with translated accessible names and deletion confirmation.
+Do not add tooltips to familiar icons by default. Reuse the same icon for the same
+action across plugins and hosts; do not add icons to every field or label.
+
+### Button spacing
+
+Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
+Always leave at least `gap-1` between adjacent action buttons and button-styled
+links. Prefer `gap-2` in toolbars and form actions. Use container gaps in both
+directions so wrapped rows keep their spacing on mobile. Apply the same rule to
+third-party controls, including calendar navigation and view selectors. Do not
+join controls with touching borders or negative margins.
+
+### Interaction requirements
+
+Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
+Enabled buttons use `cursor-pointer`; disabled controls use `cursor-not-allowed`.
+Cover icon buttons, date cells and third-party controls, including their native,
+ARIA and library-disabled states. Include cursor styles in the shipped component
+or its declared stylesheet; the showroom's global rule is not distributed.
+
 Every component must include:
 
 - Semantic HTML elements (`<form>`, `<nav>`, `<section>`, `<button>`)

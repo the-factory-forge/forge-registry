@@ -17,6 +17,7 @@ import type {
   MenuLabel,
   MenusClient,
 } from "@/components/plugins/menus/types";
+import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -145,6 +146,7 @@ export function MenuItemsPage({
   className,
 }: MenuItemsPageProps) {
   const labels = { ...menusLabels, ...overrides };
+  const [search, setSearch] = useState("");
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
   const [error, setError] = useState(false);
@@ -167,15 +169,31 @@ export function MenuItemsPage({
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
   );
+  const filteredItems =
+    data?.items.filter((item) =>
+      matchesTableSearch(
+        search,
+        item.translations[baseLocale]?.name,
+        categoryNames.get(item.categoryId),
+        item.visible ? labels.yes : labels.no,
+        item.soldOut ? labels.yes : labels.no,
+      ),
+    ) ?? [];
   return (
     <section className={cn(page, className)}>
       <div className={tablePanelClass}>
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-base font-semibold">{labels.items}</h1>
-          <div className="flex gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <HostLink href={taxonomyHref} className={outlineButton}>
               {labels.categories} / {labels.labels}
             </HostLink>
+            <TableSearch
+              value={search}
+              onValueChange={setSearch}
+              label={labels.search}
+              clearLabel={labels.clearSearch}
+            />
             <HostLink href={newHref} className={primary}>
               <PlusIcon aria-hidden="true" className="size-4" />
               {labels.newItem}
@@ -215,7 +233,7 @@ export function MenuItemsPage({
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
-                {data.items.map((item) => (
+                {filteredItems.map((item) => (
                   <tr key={item.id} className={tableRowClass}>
                     <td className={cn(tableCellClass, "font-medium")}>
                       {item.translations[baseLocale]?.name}
@@ -244,6 +262,13 @@ export function MenuItemsPage({
                     </td>
                   </tr>
                 ))}
+                {filteredItems.length === 0 && (
+                  <tr className={tableRowClass}>
+                    <td colSpan={5} className={tableCellClass}>
+                      {labels.noMatches}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

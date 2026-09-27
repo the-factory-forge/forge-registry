@@ -11,7 +11,6 @@ import {
   List,
   PencilIcon,
   Quote,
-  SearchIcon,
 } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
@@ -53,6 +52,7 @@ import {
   safeAssetUrl,
   slugify,
 } from "@/components/plugins/blogs/utils";
+import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -101,19 +101,24 @@ export function BlogsPage({
   formatDate = (iso) => new Date(iso).toISOString().slice(0, 10),
   className,
 }: BlogsPageProps) {
-  const labels = { ...blogsLabels, ...overrides },
-    id = useId();
+  const labels = { ...blogsLabels, ...overrides };
   return (
     <section className={cn(pageClass, className)}>
       <div className={cn(tablePanelClass, "space-y-5")}>
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="font-sans text-base font-semibold">{labels.blogs}</h1>
-          <div className="flex gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             {capabilities.manageCategories && (
               <BlogLink href={categoriesHref} className={outlineButtonClass}>
                 {labels.manageCategories}
               </BlogLink>
             )}
+            <TableSearch
+              value={search}
+              onValueChange={onSearchChange}
+              label={labels.search}
+              clearLabel={labels.clearSearch}
+            />
             {capabilities.create && (
               <BlogLink href={newHref} className={primaryClass}>
                 {labels.newPost}
@@ -121,22 +126,6 @@ export function BlogsPage({
             )}
           </div>
         </header>
-        <label htmlFor={id} className="sr-only">
-          {labels.search}
-        </label>
-        <div className="relative max-w-sm">
-          <SearchIcon
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            id={id}
-            className={cn(inputClass, "h-8 pl-9 placeholder:text-muted-foreground")}
-            placeholder={`${labels.search}...`}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
         {!capabilities.edit && <Feedback message={labels.readOnly} />}
         {error ? (
           <>

@@ -57,7 +57,10 @@ const input = (article, locale = "en") => ({
   ...request(),
 });
 const rejected = (promise, code) => assert.rejects(promise, (error) => error.code === code);
-const image = await readFile(new URL("../../public/blogs/studio-1.png", import.meta.url));
+const image = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6f4sAAAAASUVORK5CYII=",
+  "base64",
+);
 
 test("private blog persistence, publication boundaries, retries, and recovery", async (t) => {
   t.after(async () => {

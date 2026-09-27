@@ -60,6 +60,7 @@ test("customers distribution is complete and contains no website integrations", 
     "@forge/cn",
     "@forge/ui-shims",
     "@forge/table-styles",
+    "@forge/table-search",
   ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");

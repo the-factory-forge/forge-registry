@@ -1,12 +1,10 @@
 "use client";
 
-import { Input } from "@base-ui/react/input";
 import {
   ArrowLeftIcon,
   FolderKanbanIcon,
   PencilIcon,
   PlusIcon,
-  SearchIcon,
   ShieldCheckIcon,
   ShieldOffIcon,
   UserRoundIcon,
@@ -28,10 +26,10 @@ import {
   CustomerAvatar,
   DeleteCustomer,
   iconButtonClass,
-  inputClass,
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
+import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -81,38 +79,28 @@ export function CustomersPage({
             <h1 className="text-base font-semibold">{labels.title}</h1>
             <p className="text-sm text-muted-foreground">{labels.description}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             {toolbar}
+            <TableSearch
+              value={search}
+              onValueChange={onSearchChange}
+              label={labels.search}
+              placeholder={labels.searchPlaceholder}
+              clearLabel={labels.clearSearch}
+            />
             <CustomerLink href={createHref} className={primaryButtonClass}>
               <PlusIcon aria-hidden="true" />
               {labels.create}
             </CustomerLink>
           </div>
         </header>
-        <div className="relative max-w-sm">
-          <SearchIcon
-            aria-hidden="true"
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            aria-label={labels.search}
-            placeholder={labels.searchPlaceholder}
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            className={cn(inputClass, "pl-9")}
-          />
-        </div>
         {error ? (
           <p role="alert" className="text-sm text-red-600 dark:text-red-400">
             {error}
           </p>
-        ) : loading ? (
-          <output className="block py-10 text-center text-sm text-muted-foreground">
-            {labels.loading}
-          </output>
         ) : (
           <div className="overflow-x-auto">
-            <table className={tableClass}>
+            <table className={tableClass} aria-busy={loading}>
               <thead>
                 <tr className={tableRowClass}>
                   {[
@@ -210,7 +198,7 @@ export function CustomersPage({
                       colSpan={syncColumn ? 4 : 3}
                       className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                     >
-                      {labels.empty}
+                      {loading ? labels.loading : labels.empty}
                     </td>
                   </tr>
                 )}

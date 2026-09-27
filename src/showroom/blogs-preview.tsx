@@ -25,7 +25,7 @@ import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const previewClassName =
-  "showroom-page [&_img[src^='/blogs/studio-']]:object-contain [&_img[src^='/blogs/studio-']]:mix-blend-multiply dark:[&_img[src^='/blogs/studio-']]:mix-blend-screen dark:[&_img[src^='/blogs/studio-']]:invert";
+  "showroom-page [&_img[src^='https://assets.the-corner.io/images/']]:object-contain [&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-multiply dark:[&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-screen dark:[&_img[src^='https://assets.the-corner.io/images/']]:invert";
 
 function usePreview() {
   const [mock] = useState(createBlogsMock),

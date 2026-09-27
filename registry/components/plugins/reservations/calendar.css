@@ -1,0 +1,44 @@
+@import "@fullcalendar/react/skeleton.css" layer(components);
+@import "@fullcalendar/react/themes/classic/theme.css" layer(components);
+
+.reservations-calendar {
+  --fc-classic-background: var(--background);
+  --fc-classic-foreground: var(--foreground);
+  --fc-classic-border: var(--border);
+  --fc-classic-primary: var(--primary);
+  --fc-classic-muted: var(--muted);
+  --fc-classic-muted-foreground: var(--muted-foreground);
+  --fc-classic-faint: var(--muted);
+  --fc-classic-faint-foreground: var(--muted-foreground);
+  --fc-classic-strong: var(--accent);
+  --fc-classic-strong-border: var(--border);
+  --fc-classic-button: var(--background);
+  --fc-classic-button-foreground: var(--foreground);
+  --fc-classic-button-border: var(--border);
+  --fc-classic-button-outline: var(--ring);
+  --fc-classic-button-strong: var(--accent);
+  --fc-classic-button-strong-border: var(--border);
+  --fc-classic-ring-color: var(--ring);
+  --fc-classic-today: var(--accent);
+  --fc-classic-highlight: var(--accent);
+  --fc-classic-now: var(--primary);
+  --fc-classic-background-event-opacity: 20%;
+  --fc-classic-background-event-foreground-opacity: 100%;
+  --fc-classic-small-dot-width: 6px;
+  --fc-classic-large-dot-width: 10px;
+  --fc-event-color: var(--primary);
+  --fc-event-contrast-color: var(--primary-foreground);
+}
+.reservations-calendar .reservation-pending {
+  --fc-event-color: var(--status-pending);
+  --fc-event-contrast-color: var(--status-pending-foreground);
+}
+.reservations-calendar .reservation-confirmed {
+  --fc-event-color: var(--status-success);
+  --fc-event-contrast-color: var(--status-success-foreground);
+}
+.reservations-calendar .reservation-cancelled,
+.reservations-calendar .reservation-rejected {
+  --fc-event-color: var(--status-canceled);
+  --fc-event-contrast-color: var(--status-canceled-foreground);
+}

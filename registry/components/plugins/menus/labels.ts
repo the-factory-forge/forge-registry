@@ -1,4 +1,7 @@
 export interface MenusLabels {
+  clearSearch: string;
+  search: string;
+  noMatches: string;
   menu: string;
   emptyMenu: string;
   soldOut: string;
@@ -45,6 +48,9 @@ export interface MenusLabels {
 }
 
 export const menusLabels: MenusLabels = {
+  clearSearch: "Clear search",
+  search: "Search menu items",
+  noMatches: "No menu items match your search.",
   menu: "Menu",
   emptyMenu: "The menu is being prepared.",
   soldOut: "Sold out",

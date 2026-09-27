@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { useRef } from "react";
 
 import { Link } from "@/components/link";
@@ -8,7 +8,6 @@ import {
   buttonClass,
   cardClass,
   iconButtonClass,
-  inputClass,
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
@@ -22,6 +21,7 @@ import type {
 } from "@/components/plugins/projects/types";
 import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
 import { safeProjectUrl } from "@/components/plugins/projects/utils";
+import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -92,37 +92,29 @@ export function ProjectsList({
             {customerId === undefined ? labels.description : labels.customerDescription}
           </p>
         </div>
-        {createHref && (
-          <ProjectLink href={createHref} className={primaryButtonClass}>
-            <PlusIcon aria-hidden="true" />
-            {labels.create}
-          </ProjectLink>
-        )}
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <TableSearch
+            value={search}
+            onValueChange={onSearchChange}
+            label={labels.search}
+            placeholder={labels.searchPlaceholder}
+            clearLabel={labels.clearSearch}
+          />
+          {createHref && (
+            <ProjectLink href={createHref} className={primaryButtonClass}>
+              <PlusIcon aria-hidden="true" />
+              {labels.create}
+            </ProjectLink>
+          )}
+        </div>
       </header>
-      <div className="relative max-w-sm">
-        <SearchIcon
-          aria-hidden="true"
-          className="absolute top-2 left-3 size-4 text-muted-foreground"
-        />
-        <input
-          aria-label={labels.search}
-          placeholder={labels.searchPlaceholder}
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className={cn(inputClass, "pl-9")}
-        />
-      </div>
       {error ? (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
         </p>
-      ) : loading ? (
-        <output className="py-10 text-center text-sm text-muted-foreground">
-          {labels.loading}
-        </output>
       ) : (
         <div className="overflow-x-auto">
-          <table className={tableClass}>
+          <table className={tableClass} aria-busy={loading}>
             <thead>
               <tr className={tableRowClass}>
                 {[
@@ -230,7 +222,7 @@ export function ProjectsList({
                     colSpan={customerId === undefined ? 6 : 5}
                     className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                   >
-                    {labels.empty}
+                    {loading ? labels.loading : labels.empty}
                   </td>
                 </tr>
               )}

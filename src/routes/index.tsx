@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BoxIcon, FileTextIcon, PanelsTopLeftIcon, PlugIcon, SearchIcon } from "lucide-react";
+import { BoxIcon, FileTextIcon, PanelsTopLeftIcon, PlugIcon, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 
+import { TableSearch } from "@/components/table-search";
+import { pluginIcons } from "@/components/utils/plugin-icons";
 import { ShowroomLink as Link } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -16,6 +18,34 @@ type Category = keyof typeof categoryIcons;
 
 const examples = (
   [
+    {
+      href: "/en/reservations",
+      category: "Plugin",
+      title: "Reservations",
+      icon: pluginIcons.reservations,
+      description:
+        "Appointments and overnight stays, year and staff calendars, approval, cleaning buffers, and guest management.",
+      keywords: [
+        "reservations",
+        "booking",
+        "calendar",
+        "appointments",
+        "apartments",
+        "stays",
+        "hairdresser",
+        "clinic",
+        "cancellation",
+        "scheduling",
+      ],
+    },
+    {
+      href: "/table-search",
+      category: "Component",
+      title: "Table search",
+      description:
+        "Expanding search buttons with independent table filters, keyboard focus, and clear actions.",
+      keywords: ["search", "table", "filter", "employees", "projects"],
+    },
     {
       href: "/en/faq",
       category: "Page",
@@ -57,6 +87,7 @@ const examples = (
       href: "/en/auth",
       category: "Plugin",
       title: "Auth",
+      icon: pluginIcons.auth,
       description: "Sign-in, sign-out, password recovery and changes, and access-denied states.",
       keywords: [
         "login form",
@@ -74,6 +105,7 @@ const examples = (
       href: "/en/employees",
       category: "Plugin",
       title: "Employees",
+      icon: pluginIcons.employees,
       description: "Create and edit users, delete accounts, and send email verification reminders.",
       keywords: [
         "employee list",
@@ -88,6 +120,7 @@ const examples = (
       href: "/en/blogs",
       category: "Plugin",
       title: "Blogs",
+      icon: pluginIcons.blogs,
       description:
         "Multilingual Markdown articles, shared images, categories, and draft publishing.",
       keywords: [
@@ -106,6 +139,7 @@ const examples = (
       href: "/en/menus",
       category: "Plugin",
       title: "Menus",
+      icon: pluginIcons.menus,
       description:
         "Translated restaurant menu with categories, dietary labels, and staff management.",
       keywords: [
@@ -126,6 +160,7 @@ const examples = (
       href: "/en/drive",
       category: "Plugin",
       title: "Drive",
+      icon: pluginIcons.drive,
       description: "Private file spaces for customers, projects, or any host record.",
       keywords: ["drive page", "drive browser", "file spaces", "folders", "files", "uploads"],
     },
@@ -133,6 +168,7 @@ const examples = (
       href: "/en/projects",
       category: "Plugin",
       title: "Projects",
+      icon: pluginIcons.projects,
       description: "Customer-owned projects, shared lists, Details and Drive sections.",
       keywords: [
         "project list",
@@ -147,6 +183,7 @@ const examples = (
       href: "/en/customers",
       category: "Plugin",
       title: "Customers",
+      icon: pluginIcons.customers,
       description: "Customer directory, contact details, and creation with host-owned actions.",
       keywords: [
         "customer list",
@@ -189,6 +226,7 @@ const examples = (
     href: string;
     category: Category;
     title: string;
+    icon?: LucideIcon;
     description: string;
     keywords: string[];
   }[]
@@ -242,20 +280,14 @@ function Home() {
             );
           })}
         </fieldset>
-        <label className="relative block w-full sm:w-64">
-          <span className="sr-only">Search examples</span>
-          <SearchIcon
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search titles or keywords..."
-            className="w-full rounded-full border border-input bg-background py-2 pr-4 pl-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          />
-        </label>
+        <TableSearch
+          value={search}
+          onValueChange={setSearch}
+          label="Search examples"
+          placeholder="Search titles or keywords..."
+          alwaysExpanded
+          className="w-full sm:w-64"
+        />
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -266,6 +298,7 @@ function Home() {
         )}
         {visibleExamples.map((example) => {
           const Icon = categoryIcons[example.category];
+          const PluginIcon = example.icon;
 
           return (
             <Link
@@ -277,7 +310,8 @@ function Home() {
                 <Icon className="size-4" aria-hidden="true" />
                 {example.category}
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-card-foreground transition group-hover:text-primary">
+              <h2 className="mt-2 flex items-center gap-2 text-lg font-semibold text-card-foreground transition group-hover:text-primary">
+                {PluginIcon && <PluginIcon className="size-5 shrink-0" aria-hidden="true" />}
                 {example.title}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">{example.description}</p>

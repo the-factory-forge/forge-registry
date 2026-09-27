@@ -41,7 +41,8 @@ async function pick(page, entity, name) {
 
 test("project directory search, states, links and optional actions", async (t) => {
   const page = await preview(t);
-  const search = page.getByRole("textbox", { name: "Search projects", exact: true });
+  await page.getByRole("button", { name: "Search projects", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search projects", exact: true });
   await search.fill("STUDIO WEBSITE");
   await page.getByRole("row").filter({ hasText: "Customer portal" }).waitFor({ state: "hidden" });
   assert.equal(await page.getByRole("row").count(), 2);
@@ -49,7 +50,8 @@ test("project directory search, states, links and optional actions", async (t) =
   await page.getByText("No projects found.", { exact: true }).waitFor();
   await search.fill("");
   await page.getByLabel("Directory state").selectOption("loading");
-  await page.getByRole("status").filter({ hasText: "Loading projects" }).waitFor();
+  await page.locator('table[aria-busy="true"]').waitFor();
+  assert.ok((await page.getByRole("row").count()) > 1);
   await page.getByLabel("Directory state").selectOption("error");
   await page.getByRole("alert").filter({ hasText: "Unable to load projects" }).waitFor();
   await page.getByLabel("Directory state").selectOption("ready");
@@ -278,7 +280,7 @@ test("project pages and picker fit desktop/mobile in both themes", async (t) => 
       ]) {
         if (link) await page.getByRole("link", { name: link, exact: true }).click();
         await page
-          .getByRole(view === "list" ? "textbox" : "button", {
+          .getByRole("button", {
             name: view === "list" ? "Search projects" : "Select an owner *",
             exact: true,
           })

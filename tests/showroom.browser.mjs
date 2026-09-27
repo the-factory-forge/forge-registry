@@ -49,13 +49,27 @@ test("every directory entry navigates and returns through a stable shared header
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
   await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("button", { name: "Plugin", exact: true }).click();
   assert.equal(await page.locator('main a[href="/en/auth"]').count(), 1);
+  const pluginIcons = new Map(
+    await page
+      .locator("main a h2")
+      .evaluateAll((headings) =>
+        headings.map((heading) => [
+          heading.textContent.trim(),
+          heading.querySelector('svg[aria-hidden="true"]')?.innerHTML,
+        ]),
+      ),
+  );
+  assert.ok([...pluginIcons.values()].every(Boolean), "each plugin title has a decorative icon");
+  assert.equal(new Set(pluginIcons.values()).size, pluginIcons.size, "plugin icons are distinct");
   await page.getByRole("button", { name: "All", exact: true }).click();
   const destinations = await page
     .locator("main a[href]")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-  assert.equal(destinations.length, 14);
+  assert.equal(new Set(destinations).size, destinations.length);
+  assert.ok(destinations.includes("/table-search"));
   assert.equal(destinations.filter((href) => href === "/en/menus").length, 1);
   assert.equal(destinations.includes("/en/admin/menus"), false);
   assert.equal(destinations.filter((href) => href === "/en/auth").length, 1);
@@ -64,6 +78,15 @@ test("every directory entry navigates and returns through a stable shared header
   for (const href of destinations) {
     await page.locator(`main a[href="${href}"]`).click();
     await page.waitForURL(baseURL + href);
+    if (href === "/en/intranet-sidebar") {
+      for (const name of ["Customers", "Projects", "Employees"]) {
+        assert.equal(
+          await page.getByRole("link", { name, exact: true }).locator("svg").innerHTML(),
+          pluginIcons.get(name),
+          `${name} uses the same icon in its title and sidenav`,
+        );
+      }
+    }
     assert.deepEqual(await header.boundingBox(), original, href);
     await header.getByRole("link", { name: "All components" }).click();
     await page.getByRole("heading", { name: "Components Showcase" }).waitFor();

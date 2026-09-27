@@ -1,5 +1,8 @@
 export const employeeLabels = {
+  clearSearch: "Clear search",
   title: "Employees",
+  search: "Search employees",
+  noMatches: "No employees match your search.",
   add: "Create User",
   name: "Name",
   email: "Email",

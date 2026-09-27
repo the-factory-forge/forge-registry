@@ -31,6 +31,26 @@
       ]
     },
     {
+      "name": "table-search",
+      "type": "registry:ui",
+      "title": "Table Search",
+      "description": "Icon button that expands on click or focus, with independent controlled search, clear action, and accent-insensitive row matching.",
+      "files": [
+        {
+          "path": "registry/components/table-search.tsx",
+          "type": "registry:component",
+          "target": "@components/table-search.tsx"
+        },
+        {
+          "path": "registry/components/utils/table-search.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-search.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "section-variants",
       "type": "registry:lib",
       "title": "Section Variants",
@@ -564,7 +584,12 @@
           "target": "@components/pages/page-pricing-table.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/section-heading", "@forge/section-variants"]
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/section-heading",
+        "@forge/section-variants",
+        "@forge/table-search"
+      ]
     },
     {
       "name": "page-contact-info",
@@ -653,6 +678,11 @@
           "path": "registry/components/utils/intranet-sidebar-active.ts",
           "type": "registry:lib",
           "target": "@components/utils/intranet-sidebar-active.ts"
+        },
+        {
+          "path": "registry/components/utils/plugin-icons.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/plugin-icons.ts"
         }
       ]
     },
@@ -708,7 +738,12 @@
         }
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"]
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search"
+      ]
     },
     {
       "name": "projects",
@@ -752,7 +787,8 @@
         "@forge/customers",
         "@forge/cn",
         "@forge/ui-shims",
-        "@forge/table-styles"
+        "@forge/table-styles",
+        "@forge/table-search"
       ]
     },
     {
@@ -761,7 +797,12 @@
       "title": "Drive",
       "description": "Standalone and embeddable file browser for any host entity.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search"
+      ],
       "files": [
         {
           "path": "registry/components/plugins/drive/index.tsx",
@@ -856,7 +897,12 @@
       "title": "Blogs",
       "description": "Multilingual Markdown articles, public pages, and editorial workflows.",
       "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search"
+      ],
       "files": [
         {
           "path": "registry/components/plugins/blogs/admin.tsx",
@@ -945,7 +991,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/drive",
-        "@forge/table-styles"
+        "@forge/table-styles",
+        "@forge/table-search"
       ],
       "files": [
         {
@@ -1097,7 +1144,12 @@
           "target": "@components/plugins/employees/styles.ts"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/table-styles"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search"
+      ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
     {
@@ -1152,6 +1204,107 @@
           "path": "registry/components/utils/consent-analytics.ts",
           "type": "registry:lib",
           "target": "@components/utils/consent-analytics.ts"
+        }
+      ]
+    },
+    {
+      "name": "reservations",
+      "type": "registry:block",
+      "title": "Reservations",
+      "description": "Guest appointments and overnight stays, staff calendars, policies, blocked dates, and private management.",
+      "dependencies": [
+        "@base-ui/react@1.7.0",
+        "@fullcalendar/react@7.1.0",
+        "temporal-polyfill@1.0.1",
+        "lucide-react@1.23.0",
+        "zod@4.5.4"
+      ],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "files": [
+        {
+          "path": "registry/components/plugins/reservations/admin.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/admin.tsx"
+        },
+        {
+          "path": "registry/components/plugins/reservations/calendar.css",
+          "type": "registry:file",
+          "target": "@components/plugins/reservations/calendar.css"
+        },
+        {
+          "path": "registry/components/plugins/reservations/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/model.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/model.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/public.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/reservations/settings.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/settings.tsx"
+        },
+        {
+          "path": "registry/components/plugins/reservations/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/reservations/year.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/year.tsx"
+        }
+      ]
+    },
+    {
+      "name": "reservations-storage",
+      "type": "registry:block",
+      "title": "Reservations storage",
+      "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
+      "dependencies": ["drizzle-orm@0.45.2", "postgres@3.4.9"],
+      "registryDependencies": ["@forge/reservations"],
+      "files": [
+        {
+          "path": "registry/components/plugins/reservations/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/server/links.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/server/links.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/server/migration.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/reservations/server/migration.sql"
+        },
+        {
+          "path": "registry/components/plugins/reservations/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/reservations/server/service.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/reservations/server/service.server.ts"
         }
       ]
     }

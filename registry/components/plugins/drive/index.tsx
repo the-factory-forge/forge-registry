@@ -9,7 +9,6 @@ import {
   FolderIcon,
   FolderPlusIcon,
   PencilIcon,
-  SearchIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -36,12 +35,12 @@ import {
   SortHeading,
   EntryDialog,
   iconButtonClass,
-  inputClass,
   messageFor,
   primaryClass,
 } from "@/components/plugins/drive/ui";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
 import { DriveError, safeDownloadUrl, scopeKey } from "@/components/plugins/drive/utils";
+import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -111,27 +110,21 @@ export function DrivePage({
       aria-label={labels.title}
     >
       <div className={cn(tablePanelClass, "space-y-5")} aria-busy={loading}>
-        <header>
-          <h1 className="text-base font-semibold">{labels.title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
-        </header>
-        <label className="relative block max-w-md">
-          <SearchIcon
-            className="absolute top-2 left-3 size-5 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <input
-            type="search"
-            aria-label={labels.searchSpaces}
-            placeholder={labels.searchSpaces}
-            className={cn(inputClass, "pl-10")}
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-base font-semibold">{labels.title}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
+          </div>
+          <TableSearch
             value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
+            label={labels.searchSpaces}
+            clearLabel={labels.clearSearch}
+            onValueChange={(value) => {
+              setSearch(value);
               setCursor(undefined);
             }}
           />
-        </label>
+        </header>
         {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
         {loading && !data?.items.length ? (
           <DriveFeedback message={labels.loading} />
@@ -371,14 +364,12 @@ function Browser({
         </ol>
       </nav>
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="search"
-          className={cn(inputClass, "max-w-md")}
-          aria-label={labels.searchFiles}
-          placeholder={labels.searchFiles}
+        <TableSearch
           value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
+          label={labels.searchFiles}
+          clearLabel={labels.clearSearch}
+          onValueChange={(value) => {
+            setSearch(value);
             setCursor(undefined);
           }}
         />

@@ -61,7 +61,7 @@ This reruns shadcn with `--overwrite` for the sidebar and its registry dependenc
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pull` workflow are retired. Consumers still using these must migrate to standard shadcn installs using `@forge`. The template installs the [FAQ and Contact pages](./docs/faq-contact.md) and [legal pages](./docs/legal-pages.md) through this namespace. Generating endpoints does not resolve missing imports, assets, or framework dependencies in unrelated items; review the limitations in [AGENTS.md](./AGENTS.md).
 
-## Registry items (56)
+## Registry items
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -83,27 +83,28 @@ supply their own translations and theme configuration.
 | `privacy-content`   | Reference privacy-policy content in fr/en/de/it for site adaptation      |
 | `footer-helpers`    | Builds footer props from site data, including attribution defaults       |
 
-### UI Primitives (17)
+### UI Primitives
 
-| Name                    | Description                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| `social-icons`          | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
-| `accordion`             | Base UI accordion with a bundled animation stylesheet                               |
-| `animations`            | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
-| `reveal`                | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
-| `share-button`          | Web Share API + clipboard fallback                                                  |
-| `back-to-top`           | Floating scroll-to-top button                                                       |
-| `section-heading`       | Eyebrow + title + subtitle, alignment and inverted variants                         |
-| `image-with-fallback`   | Image (shim) with error placeholder                                                 |
-| `lightbox`              | Click-to-enlarge image with overlay                                                 |
-| `cta-button`            | CtaLink + CtaExternal, 4 variants, 2 sizes                                          |
-| `breadcrumb`            | Semantic breadcrumb navigation                                                      |
-| `dropdown-menu`         | Base UI dropdown menu                                                               |
-| `sheet`                 | Base UI slide-out panel (drawer)                                                    |
-| `ui-shims`              | Framework shims: link/image/script/use-location (every site must install this item) |
-| `newsletter`            | Email signup form                                                                   |
-| `language-switcher`     | Language selector dropdown                                                          |
-| `manage-cookies-button` | Client-side button to reopen cookie banner                                          |
+| Name                                   | Description                                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| [table-search](./docs/table-search.md) | Expanding search button and accent-insensitive row matching                         |
+| `social-icons`                         | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
+| `accordion`                            | Base UI accordion with a bundled animation stylesheet                               |
+| `animations`                           | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
+| `reveal`                               | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
+| `share-button`                         | Web Share API + clipboard fallback                                                  |
+| `back-to-top`                          | Floating scroll-to-top button                                                       |
+| `section-heading`                      | Eyebrow + title + subtitle, alignment and inverted variants                         |
+| `image-with-fallback`                  | Image (shim) with error placeholder                                                 |
+| `lightbox`                             | Click-to-enlarge image with overlay                                                 |
+| `cta-button`                           | CtaLink + CtaExternal, 4 variants, 2 sizes                                          |
+| `breadcrumb`                           | Semantic breadcrumb navigation                                                      |
+| `dropdown-menu`                        | Base UI dropdown menu                                                               |
+| `sheet`                                | Base UI slide-out panel (drawer)                                                    |
+| `ui-shims`                             | Framework shims: link/image/script/use-location (every site must install this item) |
+| `newsletter`                           | Email signup form                                                                   |
+| `language-switcher`                    | Language selector dropdown                                                          |
+| `manage-cookies-button`                | Client-side button to reopen cookie banner                                          |
 
 ### Blocks (19)
 
@@ -129,18 +130,19 @@ supply their own translations and theme configuration.
 | [page-legal](./docs/legal-pages.md)            | Prose layout for legal pages                                                                                |
 | `page-not-found`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
-### Plugins (11)
+### Plugins
 
-| Name                                        | Description                                                                                    |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [blogs / blogs-storage](./docs/blogs.md)    | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence |
-| [menus / menus-storage](./docs/menus.md)    | Restaurant menu, staff editing, translated labels, and Better Auth/Drizzle persistence         |
-| [drive / drive-storage](./docs/drive.md)    | Entity-scoped file browser and optional private S3/PostgreSQL persistence                      |
-| [projects](./docs/projects.md)              | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                |
-| [customers](./docs/customers.md)            | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions      |
-| [auth](./docs/intranet-auth.md)             | Sign-in, sign-out, password recovery/change, access-denied page, and auth layout               |
-| [employees](./docs/intranet-auth.md)        | Employee list, creation, editing, verification and account deletion                            |
-| [employees-server](./docs/intranet-auth.md) | Validated Better Auth employee operations behind host authentication                           |
+| Name                                                          | Description                                                                                        |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence |
+| [blogs / blogs-storage](./docs/blogs.md)                      | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence     |
+| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, staff editing, translated labels, and Better Auth/Drizzle persistence             |
+| [drive / drive-storage](./docs/drive.md)                      | Entity-scoped file browser and optional private S3/PostgreSQL persistence                          |
+| [projects](./docs/projects.md)                                | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                    |
+| [customers](./docs/customers.md)                              | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions          |
+| [auth](./docs/intranet-auth.md)                               | Sign-in, sign-out, password recovery/change, access-denied page, and auth layout                   |
+| [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                |
+| [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                               |
 
 Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.
 

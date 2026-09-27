@@ -39,7 +39,9 @@ test("showroom illustrations load without cropping in both themes", async (t) =>
     await page.locator('[data-preview-ready="true"]').waitFor();
     for (const theme of ["Light", "Dark"]) {
       await page.getByRole("button", { name: theme, exact: true }).click();
-      for (const image of await page.locator('article img[src^="/blogs/studio-"]').all()) {
+      for (const image of await page
+        .locator('article img[src^="https://assets.the-corner.io/images/"]')
+        .all()) {
         await image.scrollIntoViewIfNeeded();
         await image.evaluate((node) => node.decode());
         const state = await image.evaluate((node) => ({
@@ -122,7 +124,8 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
   await page.getByText("Alex Morgan", { exact: true }).last().waitFor();
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await page.getByRole("heading", { name: "Blog posts", exact: true }).waitFor();
-  await page.getByRole("textbox", { name: "Search posts", exact: true }).fill("browser-created");
+  await page.getByRole("button", { name: "Search posts", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search posts", exact: true }).fill("browser-created");
   await page.getByRole("link", { name: "A browser-created post", exact: true }).waitFor();
   await page
     .getByRole("link", { name: "Make room for better ideas", exact: true })
@@ -141,7 +144,14 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
 test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion focus and read-only", async (t) => {
   const page = await preview(t, `/en/admin/blogs/${existing}`);
   const upload = page.getByLabel("Upload image — Thumbnail", { exact: true }),
-    file = new URL("../public/blogs/studio-2.png", import.meta.url).pathname;
+    file = {
+      name: "upload.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6f4sAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    };
   await page.getByRole("button", { name: "Fail next upload", exact: true }).click();
   await upload.setInputFiles(file);
   await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();

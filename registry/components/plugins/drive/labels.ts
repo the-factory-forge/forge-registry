@@ -1,4 +1,5 @@
 export const driveLabels = {
+  clearSearch: "Clear search",
   title: "Drive",
   description: "Files and folders linked to your workspace records.",
   spaces: "Drive spaces",

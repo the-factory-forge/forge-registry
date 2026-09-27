@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
+
 import { SectionHeading } from "@/components/section-heading";
+import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import { type SectionVariant, sectionVariantClasses } from "@/components/utils/section-variants";
 
@@ -18,7 +23,10 @@ export const DEFAULT_PRICING_COLUMNS = {
   price: "Price",
 };
 
-interface PricingTableProps {
+export interface PricingTableProps {
+  searchLabel?: string;
+  clearSearchLabel?: string;
+  emptyMessage?: string;
   eyebrow?: string;
   title: string;
   subtitle?: string;
@@ -31,6 +39,9 @@ interface PricingTableProps {
 }
 
 export function PricingTable({
+  searchLabel = "Search services",
+  clearSearchLabel = "Clear search",
+  emptyMessage = "No services match your search.",
   eyebrow,
   title,
   subtitle,
@@ -41,6 +52,10 @@ export function PricingTable({
   variant = "default",
   className,
 }: PricingTableProps) {
+  const [search, setSearch] = useState("");
+  const filteredItems = items.filter((item) =>
+    matchesTableSearch(search, item.code, item.name, item.description, item.duration, item.price),
+  );
   const colors = sectionVariantClasses[variant];
   const cols = { ...DEFAULT_PRICING_COLUMNS, ...columns };
 
@@ -59,7 +74,15 @@ export function PricingTable({
     >
       <div className="container-premium">
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />
-        <div className="mx-auto mt-10 max-w-4xl overflow-x-auto">
+        <div className="mx-auto mt-6 flex max-w-4xl justify-end">
+          <TableSearch
+            value={search}
+            onValueChange={setSearch}
+            label={searchLabel}
+            clearLabel={clearSearchLabel}
+          />
+        </div>
+        <div className="mx-auto mt-3 max-w-4xl overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b-2 border-secondary">
@@ -79,7 +102,7 @@ export function PricingTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <tr key={item.name} className="transition-colors hover:bg-muted/50">
                   {hasCode && (
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
@@ -100,6 +123,16 @@ export function PricingTable({
                   </td>
                 </tr>
               ))}
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={2 + Number(hasCode) + Number(hasDescription) + Number(hasDuration)}
+                    className="px-4 py-3 text-center text-muted-foreground"
+                  >
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

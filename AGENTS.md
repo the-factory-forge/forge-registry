@@ -136,6 +136,23 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`
   may be the creation ID). Do not force complex forms into dialogs or create pages
   for simple forms; tc-website's larger employee flow is an intentional page-based exception.
+- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
+  for new or modified toolbars across registry plugins and host projects. Use
+  Lucide's `RefreshCwIcon` for refresh/reload, `SettingsIcon` for settings/configuration,
+  and `PlusIcon` for new/create/add entry points. Place the icon before the visible
+  translated label with `size-4 shrink-0`, inherited color, and `aria-hidden="true"`.
+  Reuse the existing button/link styles. Icons supplement these labels;
+  do not hide labels or add tooltips just because an icon is present.
+- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
+  Always separate adjacent action buttons and button-styled links by at least
+  `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column
+  gaps when controls wrap on mobile. Configure third-party button groups too;
+  do not leave touching borders or use negative margins to join the buttons.
+- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
+  Enabled buttons use `cursor-pointer`, including icon controls, calendar dates
+  and third-party buttons. Disabled controls must not show a pointer; use
+  `cursor-not-allowed`. Ship these styles with reusable controls instead of
+  relying on showroom CSS. Preserve keyboard focus and disabled behavior.
 - Across all plugins, render edit/modify/rename actions with Lucide's `PencilIcon`
   and delete/remove actions with `Trash2Icon`, as icon-only controls using the
   existing button styles. Delete triggers keep their confirmation dialogs.

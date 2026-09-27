@@ -2,6 +2,7 @@
 import { useState } from "react";
 
 import { EmployeesPage, type Employee } from "@/components/plugins/employees";
+import { matchesTableSearch } from "@/components/table-search";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 export function EmployeesPreview() {
@@ -24,6 +25,10 @@ export function EmployeesPreview() {
   const [fail, setFail] = useState(false);
   const [role, setRole] = useState("admin");
   const [offset, setOffset] = useState(0);
+  const [search, setSearch] = useState("");
+  const filteredEmployees = employees.filter((employee) =>
+    matchesTableSearch(search, employee.name, employee.email, employee.role),
+  );
   function beforeAction() {
     if (fail) throw new Error("Preview failure");
   }
@@ -58,8 +63,10 @@ export function EmployeesPreview() {
         <output>The employees dashboard is available to administrators only.</output>
       )}
       <EmployeesPage
-        employees={employees.slice(offset, offset + 25)}
-        total={employees.length}
+        employees={filteredEmployees.slice(offset, offset + 25)}
+        total={filteredEmployees.length}
+        search={search}
+        onSearchChange={setSearch}
         offset={offset}
         onOffsetChange={setOffset}
         currentUserId="admin"

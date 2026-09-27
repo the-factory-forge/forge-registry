@@ -1,4 +1,5 @@
 export const blogsLabels = {
+  clearSearch: "Clear search",
   blogs: "Blog posts",
   publicTitle: "Our blog",
   newPost: "New post",

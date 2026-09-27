@@ -167,6 +167,20 @@ child, while `aria-current="page"` on the parent identifies only its exact
 route. An empty child list still renders the parent link, which supports
 asynchronously loaded project navigation. Empty groups without a link are hidden.
 
+### Plugin icons
+
+The sidebar item includes `pluginIcons` from `@/components/utils/plugin-icons`.
+Use the corresponding icon in each plugin's navigation entry to match the showroom titles:
+
+```tsx
+import { pluginIcons } from "@/components/utils/plugin-icons";
+
+{ id: "customers", label: "Customers", href: "/customers", icon: <pluginIcons.customers /> }
+```
+
+The keys are `auth`, `blogs`, `customers`, `drive`, `employees`, `menus`, `projects`,
+and `reservations`. Navigation labels, routes and permissions remain host-owned.
+
 ### Sidebar logo
 
 Pass a compact symbol-only mark to `brand.logo`, not the full wordmark: the sidebar

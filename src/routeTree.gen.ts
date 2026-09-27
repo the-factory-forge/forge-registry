@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
+import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
+import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
 import { Route as LocaleAuthRouteImport } from './routes/$locale.auth'
 import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
@@ -32,8 +34,10 @@ import { Route as MenusLocaleMenusSplatRouteImport } from './routes/_menus.$loca
 import { Route as PluginsLocaleCustomersSplatRouteImport } from './routes/_plugins.$locale.customers.$'
 import { Route as PluginsLocaleDriveSplatRouteImport } from './routes/_plugins.$locale.drive.$'
 import { Route as PluginsLocaleProjectsSplatRouteImport } from './routes/_plugins.$locale.projects.$'
+import { Route as ReservationsLocaleReservationsSplatRouteImport } from './routes/_reservations.$locale.reservations.$'
 import { Route as BlogsLocaleAdminBlogsSplatRouteImport } from './routes/_blogs.$locale.admin.blogs.$'
 import { Route as MenusLocaleAdminMenusSplatRouteImport } from './routes/_menus.$locale.admin.menus.$'
+import { Route as ReservationsLocaleAdminReservationsSplatRouteImport } from './routes/_reservations.$locale.admin.reservations.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +56,10 @@ const PluginsRoute = PluginsRouteImport.update({
   id: '/_plugins',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReservationsRoute = ReservationsRouteImport.update({
+  id: '/_reservations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CookieBannerRoute = CookieBannerRouteImport.update({
   id: '/cookie-banner',
   path: '/cookie-banner',
@@ -60,6 +68,11 @@ const CookieBannerRoute = CookieBannerRouteImport.update({
 const NewsletterRoute = NewsletterRouteImport.update({
   id: '/newsletter',
   path: '/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TableSearchRoute = TableSearchRouteImport.update({
+  id: '/table-search',
+  path: '/table-search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
@@ -149,6 +162,12 @@ const PluginsLocaleProjectsSplatRoute =
     path: '/$locale/projects/$',
     getParentRoute: () => PluginsRoute,
   } as any)
+const ReservationsLocaleReservationsSplatRoute =
+  ReservationsLocaleReservationsSplatRouteImport.update({
+    id: '/$locale/reservations/$',
+    path: '/$locale/reservations/$',
+    getParentRoute: () => ReservationsRoute,
+  } as any)
 const BlogsLocaleAdminBlogsSplatRoute =
   BlogsLocaleAdminBlogsSplatRouteImport.update({
     id: '/$locale/admin/blogs/$',
@@ -161,11 +180,18 @@ const MenusLocaleAdminMenusSplatRoute =
     path: '/$locale/admin/menus/$',
     getParentRoute: () => MenusRoute,
   } as any)
+const ReservationsLocaleAdminReservationsSplatRoute =
+  ReservationsLocaleAdminReservationsSplatRouteImport.update({
+    id: '/$locale/admin/reservations/$',
+    path: '/$locale/admin/reservations/$',
+    getParentRoute: () => ReservationsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
@@ -183,13 +209,16 @@ export interface FileRoutesByFullPath {
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
@@ -207,8 +236,10 @@ export interface FileRoutesByTo {
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -216,8 +247,10 @@ export interface FileRoutesById {
   '/_blogs': typeof BlogsRouteWithChildren
   '/_menus': typeof MenusRouteWithChildren
   '/_plugins': typeof PluginsRouteWithChildren
+  '/_reservations': typeof ReservationsRouteWithChildren
   '/cookie-banner': typeof CookieBannerRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
@@ -235,8 +268,10 @@ export interface FileRoutesById {
   '/_plugins/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/_plugins/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/_plugins/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/_reservations/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/_blogs/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/_menus/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/_reservations/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -244,6 +279,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
     | '/$locale/change-password'
@@ -261,13 +297,16 @@ export interface FileRouteTypes {
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
+    | '/$locale/reservations/$'
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
+    | '/$locale/admin/reservations/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/cookie-banner'
     | '/newsletter'
+    | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
     | '/$locale/change-password'
@@ -285,16 +324,20 @@ export interface FileRouteTypes {
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
+    | '/$locale/reservations/$'
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
+    | '/$locale/admin/reservations/$'
   id:
     | '__root__'
     | '/'
     | '/_blogs'
     | '/_menus'
     | '/_plugins'
+    | '/_reservations'
     | '/cookie-banner'
     | '/newsletter'
+    | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
     | '/$locale/change-password'
@@ -312,8 +355,10 @@ export interface FileRouteTypes {
     | '/_plugins/$locale/customers/$'
     | '/_plugins/$locale/drive/$'
     | '/_plugins/$locale/projects/$'
+    | '/_reservations/$locale/reservations/$'
     | '/_blogs/$locale/admin/blogs/$'
     | '/_menus/$locale/admin/menus/$'
+    | '/_reservations/$locale/admin/reservations/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -321,8 +366,10 @@ export interface RootRouteChildren {
   BlogsRoute: typeof BlogsRouteWithChildren
   MenusRoute: typeof MenusRouteWithChildren
   PluginsRoute: typeof PluginsRouteWithChildren
+  ReservationsRoute: typeof ReservationsRouteWithChildren
   CookieBannerRoute: typeof CookieBannerRoute
   NewsletterRoute: typeof NewsletterRoute
+  TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
   LocaleAuthRoute: typeof LocaleAuthRoute
   LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
@@ -367,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PluginsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_reservations': {
+      id: '/_reservations'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ReservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cookie-banner': {
       id: '/cookie-banner'
       path: '/cookie-banner'
@@ -379,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/newsletter'
       fullPath: '/newsletter'
       preLoaderRoute: typeof NewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/table-search': {
+      id: '/table-search'
+      path: '/table-search'
+      fullPath: '/table-search'
+      preLoaderRoute: typeof TableSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/access-denied': {
@@ -500,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PluginsLocaleProjectsSplatRouteImport
       parentRoute: typeof PluginsRoute
     }
+    '/_reservations/$locale/reservations/$': {
+      id: '/_reservations/$locale/reservations/$'
+      path: '/$locale/reservations/$'
+      fullPath: '/$locale/reservations/$'
+      preLoaderRoute: typeof ReservationsLocaleReservationsSplatRouteImport
+      parentRoute: typeof ReservationsRoute
+    }
     '/_blogs/$locale/admin/blogs/$': {
       id: '/_blogs/$locale/admin/blogs/$'
       path: '/$locale/admin/blogs/$'
@@ -513,6 +581,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$locale/admin/menus/$'
       preLoaderRoute: typeof MenusLocaleAdminMenusSplatRouteImport
       parentRoute: typeof MenusRoute
+    }
+    '/_reservations/$locale/admin/reservations/$': {
+      id: '/_reservations/$locale/admin/reservations/$'
+      path: '/$locale/admin/reservations/$'
+      fullPath: '/$locale/admin/reservations/$'
+      preLoaderRoute: typeof ReservationsLocaleAdminReservationsSplatRouteImport
+      parentRoute: typeof ReservationsRoute
     }
   }
 }
@@ -556,13 +631,31 @@ const PluginsRouteChildren: PluginsRouteChildren = {
 const PluginsRouteWithChildren =
   PluginsRoute._addFileChildren(PluginsRouteChildren)
 
+interface ReservationsRouteChildren {
+  ReservationsLocaleReservationsSplatRoute: typeof ReservationsLocaleReservationsSplatRoute
+  ReservationsLocaleAdminReservationsSplatRoute: typeof ReservationsLocaleAdminReservationsSplatRoute
+}
+
+const ReservationsRouteChildren: ReservationsRouteChildren = {
+  ReservationsLocaleReservationsSplatRoute:
+    ReservationsLocaleReservationsSplatRoute,
+  ReservationsLocaleAdminReservationsSplatRoute:
+    ReservationsLocaleAdminReservationsSplatRoute,
+}
+
+const ReservationsRouteWithChildren = ReservationsRoute._addFileChildren(
+  ReservationsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRoute: BlogsRouteWithChildren,
   MenusRoute: MenusRouteWithChildren,
   PluginsRoute: PluginsRouteWithChildren,
+  ReservationsRoute: ReservationsRouteWithChildren,
   CookieBannerRoute: CookieBannerRoute,
   NewsletterRoute: NewsletterRoute,
+  TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
   LocaleAuthRoute: LocaleAuthRoute,
   LocaleChangePasswordRoute: LocaleChangePasswordRoute,

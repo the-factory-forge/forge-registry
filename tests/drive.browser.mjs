@@ -44,6 +44,7 @@ test("Drive navigation, scoped folders, search, permissions and listing failures
   await page.getByRole("link", { name: "Team handbook", exact: true }).waitFor();
   for (const customer of ["Acme Studio", "Sam Rivera"])
     assert.equal(await page.getByRole("link", { name: customer, exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Search spaces", exact: true }).click();
   const search = page.getByRole("searchbox", { name: "Search spaces", exact: true });
   await search.fill("team");
   await page
@@ -65,6 +66,7 @@ test("Drive navigation, scoped folders, search, permissions and listing failures
     .getByRole("link", { name: "Assets", exact: true })
     .waitFor();
   await folder(page, "Nested");
+  await page.getByRole("button", { name: "Search this folder", exact: true }).click();
   await page.getByRole("searchbox", { name: "Search this folder" }).fill("missing");
   await page.getByText("No matching files or folders.", { exact: true }).waitFor();
   await page.getByRole("searchbox", { name: "Search this folder" }).fill("");

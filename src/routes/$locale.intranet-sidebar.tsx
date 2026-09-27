@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   FileTextIcon,
-  FolderKanbanIcon,
   GoalIcon,
   NetworkIcon,
   ReceiptIcon,
   SettingsIcon,
   TrendingUpIcon,
   UserRoundIcon,
-  UsersIcon,
 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
@@ -19,6 +17,7 @@ import {
   IntranetSidebarToggle,
   type IntranetNavGroup,
 } from "@/components/intranet-sidebar";
+import { pluginIcons } from "@/components/utils/plugin-icons";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const groups: IntranetNavGroup[] = [
@@ -61,8 +60,8 @@ const groups: IntranetNavGroup[] = [
     id: "platform",
     label: "Platform",
     items: [
-      { id: "customers", label: "Customers", icon: <UserRoundIcon />, href: "#customers" },
-      { id: "projects", label: "Projects", icon: <FolderKanbanIcon />, href: "#projects" },
+      { id: "customers", label: "Customers", icon: <pluginIcons.customers />, href: "#customers" },
+      { id: "projects", label: "Projects", icon: <pluginIcons.projects />, href: "#projects" },
       { id: "invoices", label: "Invoices", icon: <ReceiptIcon />, href: "#invoices" },
     ],
   },
@@ -92,7 +91,7 @@ const groups: IntranetNavGroup[] = [
         icon: <NetworkIcon />,
         href: "#organization",
       },
-      { id: "employees", label: "Employees", icon: <UsersIcon />, href: "#employees" },
+      { id: "employees", label: "Employees", icon: <pluginIcons.employees />, href: "#employees" },
     ],
   },
 ];

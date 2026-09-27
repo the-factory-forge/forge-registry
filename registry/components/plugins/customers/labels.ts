@@ -1,4 +1,5 @@
 export const customerLabels = {
+  clearSearch: "Clear search",
   title: "Customers",
   description: "Manage your customers and their contact details.",
   customer: "Customer",
