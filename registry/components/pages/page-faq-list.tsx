@@ -69,37 +69,39 @@ export function FaqList({
         <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} variant={variant} />
 
         {hasCategories && (
-          <fieldset className="mt-8 flex flex-wrap justify-center gap-2">
+          <fieldset className="mt-8 min-w-0">
             <legend className="sr-only">{filterLabel}</legend>
-            <button
-              type="button"
-              onClick={() => selectCategory(null)}
-              aria-pressed={activeCategory === null}
-              className={cn(
-                "cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
-                activeCategory === null
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
-              )}
-            >
-              {allLabel}
-            </button>
-            {categories.map((cat) => (
+            <div className="flex justify-center-safe gap-2 overflow-x-auto p-1">
               <button
-                key={cat}
                 type="button"
-                onClick={() => selectCategory(cat)}
-                aria-pressed={activeCategory === cat}
+                onClick={() => selectCategory(null)}
+                aria-pressed={activeCategory === null}
                 className={cn(
-                  "cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
-                  activeCategory === cat
+                  "shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                  activeCategory === null
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
               >
-                {cat}
+                {allLabel}
               </button>
-            ))}
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => selectCategory(cat)}
+                  aria-pressed={activeCategory === cat}
+                  className={cn(
+                    "shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                    activeCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </fieldset>
         )}
 
