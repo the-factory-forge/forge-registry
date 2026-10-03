@@ -160,8 +160,9 @@ indexing decisions, and social metadata.
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React
 content; the frame places them in an always-expanded right sidebar on desktop
 and above the preview below 64rem. Demos without settings keep the full width. Demo state and callbacks
-stay beside their examples. The shared header owns Light/Dark selection and the
-first keyboard stop, **Skip to preview**. Activating it focuses the preview and
+stay beside their examples. The shared header has a single sun/moon icon button
+that toggles Light/Dark mode. It also provides the first keyboard stop,
+**Skip to preview**. Activating it focuses the preview and
 preserves the current URL/hash, including the intranet demo's navigation.
 
 The showroom defaults to Light and saves the selected Light/Dark mode under

@@ -131,7 +131,9 @@ test("auth pages support keyboard navigation, SSR, both themes, and narrow scree
   await page.keyboard.press("Enter");
   await page.getByRole("heading", { name: "Forgot your password?", exact: true }).waitFor();
   for (const theme of ["Light", "Dark"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 950 });
       for (const path of [

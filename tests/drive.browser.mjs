@@ -21,7 +21,7 @@ async function preview(t, path = "/en/drive", options = {}) {
   await page.goto(`${baseURL}${path}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   if (options.colorScheme === "dark")
-    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   return page;
 }
 async function folder(page, name) {

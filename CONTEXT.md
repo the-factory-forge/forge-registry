@@ -4,6 +4,26 @@ Reusable source lives under `registry/components/`; the showroom is under `src/`
 `registry/registry.json` owns the install manifest. Rebuild `public/r/` with
 `pnpm registry:sync`; consumer sites receive changes through reviewed shadcn installs.
 
+## Showroom card links
+
+The arrow after each homepage card's "Open" label moves slightly to the right
+when the card is hovered or focused, then returns when the interaction ends.
+Keep the label and layout still, preserve visible keyboard focus, and hide the
+decorative arrow from assistive technology. Respect reduced-motion preferences
+by keeping the arrow still.
+
+## Public blog categories
+
+On narrow screens, place Categories above the posts in a compact disclosure that
+starts closed and supports keyboard opening and closing. On desktop, keep the
+categories expanded in the right sidebar.
+
+Distinguish main categories with semibold foreground text. Indent child categories,
+use muted text, and add a vertical border as a hierarchy guide. Highlight the
+selected category with the primary color at either level, including the child's
+guide. Preserve translated labels, post counts, filtering, and visible keyboard
+focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-images).
+
 ## DOM IDs
 
 Every DOM ID authored by registry or showroom code must start with `factory-`.

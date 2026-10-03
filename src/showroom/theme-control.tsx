@@ -34,32 +34,26 @@ export function ThemeControl() {
     () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
     () => "light",
   );
+  const Icon = theme === "dark" ? SunIcon : MoonIcon;
+
   return (
-    <fieldset className="flex shrink-0 gap-1 rounded-xl border border-border p-1">
-      <legend className="sr-only">Color theme</legend>
-      {(["light", "dark"] as const).map((mode) => {
-        const Icon = mode === "light" ? SunIcon : MoonIcon;
-        return (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={theme === mode}
-            onClick={() => {
-              applyTheme(mode);
-              try {
-                localStorage.setItem(storageKey, mode);
-              } catch {
-                /* The current tab still works without storage. */
-              }
-              window.dispatchEvent(new Event("showroom-theme"));
-            }}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-          >
-            <Icon className="size-4" aria-hidden="true" />
-            <span className="sr-only sm:not-sr-only">{mode === "light" ? "Light" : "Dark"}</span>
-          </button>
-        );
-      })}
-    </fieldset>
+    <button
+      type="button"
+      aria-label="Dark mode"
+      aria-pressed={theme === "dark"}
+      onClick={() => {
+        const nextTheme = theme === "dark" ? "light" : "dark";
+        applyTheme(nextTheme);
+        try {
+          localStorage.setItem(storageKey, nextTheme);
+        } catch {
+          /* The current tab still works without storage. */
+        }
+        window.dispatchEvent(new Event("showroom-theme"));
+      }}
+      className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      <Icon className="size-5" aria-hidden="true" />
+    </button>
   );
 }

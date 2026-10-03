@@ -38,7 +38,9 @@ test("homepage search starts expanded and stays visible through filtering, clear
   assert.equal(await search.inputValue(), "");
   assert.equal(await page.locator("main a h2").count(), allCount);
   for (const theme of ["Dark", "Light"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 900 });
       assert.equal(await search.isVisible(), true);
@@ -96,7 +98,9 @@ test("table searches are independent, keyboard accessible and contained on narro
   await employees.getByRole("button", { name: "Show all" }).focus();
   assert.equal(await employeeSearch.count(), 0);
   for (const theme of ["Dark", "Light"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 900 });
       await employees.getByRole("button", { name: "Search employees", exact: true }).click();

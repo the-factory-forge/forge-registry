@@ -93,7 +93,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
   await page.getByRole("button", { name: "Review booking" }).click();
   await page.getByRole("button", { name: "Book appointment", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
   await page
     .getByText(/Pat Example ·/)
@@ -111,7 +111,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
   await page.screenshot({ path: "/tmp/reservations-mobile.png", fullPage: true });
   await page.getByRole("link", { name: "Français", exact: true }).click();
   await page.getByRole("heading", { name: "Réserver un rendez-vous" }).waitFor();
-  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   assert.equal(await page.getByRole("button", { name: "Vérifier la réservation" }).count(), 1);
 });
 
@@ -266,7 +266,9 @@ test("French year view on mobile keeps scrolling inside the table in both themes
   await table.waitFor();
   assert.equal(await table.getByRole("row").count(), 12);
   for (const theme of ["Dark", "Light"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
@@ -276,7 +278,7 @@ test("French year view on mobile keeps scrolling inside the table in both themes
       true,
     );
   }
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await table.locator("button[data-date]").last().focus();
   assert.equal(
     await table
@@ -373,7 +375,9 @@ test("French stay dates and arrival choices work by keyboard on mobile in both t
   await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
   await page.getByRole("heading", { name: "Réserver un séjour", exact: true }).waitFor();
   for (const theme of ["Light", "Dark"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     await page.getByRole("button", { name: "Date de départ", exact: true }).focus();
     await page.keyboard.press("Enter");
     await page.getByRole("button", { name: /15:00.*UTC/ }).focus();

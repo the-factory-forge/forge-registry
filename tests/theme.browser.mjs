@@ -67,12 +67,14 @@ test("shared theme persists across previews, reloads, tabs and portaled dialogs"
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${baseURL}/en/admin/blogs/categories`);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  const darkButton = page.getByRole("button", { name: "Dark", exact: true });
-  assert.equal(
-    await page.getByRole("button", { name: "Light", exact: true }).getAttribute("aria-pressed"),
-    "true",
-  );
-  await darkButton.click();
+  const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+  assert.equal(await toggle.count(), 1);
+  assert.equal(await toggle.textContent(), "");
+  assert.equal(await toggle.locator('svg[aria-hidden="true"]').count(), 1);
+  assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await toggle.getAttribute("aria-pressed"), "true");
   const dark = await palette(page);
   assert.equal(dark.primary, "rgb(186, 222, 222)");
   assert.equal(dark.background, "rgb(0, 0, 0)");
@@ -89,21 +91,22 @@ test("shared theme persists across previews, reloads, tabs and portaled dialogs"
   await page.waitForURL(`${baseURL}/`);
   assert.deepEqual(await palette(page), dark);
   await page.reload();
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll("button")].some(
-      (button) =>
-        button.textContent?.trim() === "Dark" && button.getAttribute("aria-pressed") === "true",
-    ),
+  await page.waitForFunction(
+    () =>
+      document.querySelector('button[aria-label="Dark mode"]')?.getAttribute("aria-pressed") ===
+      "true",
   );
-  assert.equal(await darkButton.getAttribute("aria-pressed"), "true");
+  assert.equal(await toggle.getAttribute("aria-pressed"), "true");
   await page.emulateMedia({ colorScheme: "light" });
   assert.deepEqual(await palette(page), dark);
   const second = await context.newPage();
   await second.goto(`${baseURL}/en/employees`);
   await second.locator('[data-preview-ready="true"]').waitFor();
   assert.deepEqual(await palette(second), dark);
-  await second.getByRole("button", { name: "Light", exact: true }).click();
+  await second.getByRole("button", { name: "Dark mode", exact: true }).focus();
+  await second.keyboard.press("Space");
   await page.waitForFunction(() => document.documentElement.classList.contains("light"));
+  assert.equal(await toggle.getAttribute("aria-pressed"), "false");
   assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
   assert.equal(await page.locator("html").getAttribute("style"), null);
   assert.deepEqual(errors, []);
@@ -124,11 +127,11 @@ test("theme selection works when storage is unavailable", async (t) => {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
   await page.locator('a[href="/en/projects"]').click();
   assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
-  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
   assert.deepEqual(errors, []);
 });

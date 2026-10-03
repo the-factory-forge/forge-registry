@@ -99,7 +99,9 @@ test("public pages are discoverable, responsive, and retain contact links and op
   await page.getByLabel("Contact details", { exact: true }).uncheck();
   assert.equal(await page.locator('main a[href^="mailto:"]').count(), 0);
   for (const theme of ["Light", "Dark"]) {
-    await page.getByRole("button", { name: theme, exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+      await toggle.click();
     for (const width of [1440, 375]) {
       await page.setViewportSize({ width, height: 900 });
       for (const path of [

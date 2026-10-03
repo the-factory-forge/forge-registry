@@ -22,7 +22,7 @@ async function preview(t, route = "", options = {}) {
   await page.goto(`${baseURL}/en/customers${route}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   if (options.colorScheme === "dark")
-    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   return page;
 }
 
