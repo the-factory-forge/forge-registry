@@ -2,6 +2,8 @@
 
 Shared registry of reusable React components, page sections, and utilities for use across different projects through shadcn's registry model. Consumers receive editable source files. The TanStack Start app in this repository is the development showroom. Its foundation follows [Cove](https://github.com/mugnavo/cove) directly; it has no dependency on forge-template. See the [showroom architecture and migration guide](./docs/showroom.md).
 
+Browse the [live showroom](https://registry.the-corner.io/) to preview the components, layouts, pages, and plugins.
+
 The UI uses Base UI primitives, props-driven content, and framework shims. The registry also includes an intranet layout for internal websites. The showroom owns its locale configuration and dictionaries.
 
 ## Context for contributors and AI
@@ -146,7 +148,7 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                |
 | [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                               |
 
-Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Preview at `/en/customers`.
+Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
@@ -158,7 +160,8 @@ Plugins install under `@components/plugins/{name}`; their supporting files ship 
 
 Use **intranet** for the full internal website layout. The
 [intranet guide](./docs/intranet.md) covers the shell and host integration.
-Preview it at `/en/intranet`; `/en/intranet-sidebar` is the focused sidebar demo.
+Open the [Intranet demo](https://registry.the-corner.io/en/intranet) or the
+focused [Sidebar demo](https://registry.the-corner.io/en/intranet-sidebar).
 
 ```bash
 pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
@@ -213,6 +216,8 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
 ## VPS showroom
+
+The public showroom is hosted at [registry.the-corner.io](https://registry.the-corner.io/).
 
 Deploy with the root `Dockerfile` and `docker-compose.prod.yml`, following the
 [VPS deployment guide](./docs/deployment.md). Dokploy routes the public domain to
