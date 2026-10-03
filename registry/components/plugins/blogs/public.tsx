@@ -1,5 +1,5 @@
 import { Markdown } from "@tanstack/markdown/react";
-import { ArrowUpRight, CalendarDays, SearchIcon, UserRound } from "lucide-react";
+import { ArrowUpRight, CalendarDays, ChevronDownIcon, SearchIcon, UserRound } from "lucide-react";
 
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
@@ -100,6 +100,34 @@ export function BlogIndexPage({
 }: BlogIndexPageProps) {
   const labels = { ...blogsLabels, ...overrides },
     pages = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const categoryNavigation = (
+    <nav aria-label={labels.categories} className="space-y-3">
+      <BlogLink
+        href={categoryHref(null)}
+        aria-current={!categoryId ? "page" : undefined}
+        className="block text-sm hover:underline"
+      >
+        {labels.allCategories}
+      </BlogLink>
+      {categories
+        .filter((c) => c.translations[locale] && (data.categoryCounts[c.id] ?? 0) > 0)
+        .map((c) => (
+          <BlogLink
+            key={c.id}
+            href={categoryHref(c.id)}
+            aria-current={categoryId === c.id ? "page" : undefined}
+            className={cn(
+              "block text-sm hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:font-semibold aria-[current=page]:text-primary",
+              c.parentId
+                ? "ml-2 border-l border-border py-1 pl-4 text-muted-foreground aria-[current=page]:border-primary"
+                : "font-semibold text-foreground",
+            )}
+          >
+            {labels.categoryCount(c.translations[locale].name, data.categoryCounts[c.id] ?? 0)}
+          </BlogLink>
+        ))}
+    </nav>
+  );
   return (
     <section
       className={cn(
@@ -135,6 +163,22 @@ export function BlogIndexPage({
         </form>
       </header>
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <aside className="rounded-3xl border border-border lg:order-last lg:p-5">
+          <details className="group lg:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+              <h2 className="font-serif text-base font-semibold">{labels.popularCategories}</h2>
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="size-4 shrink-0 group-open:rotate-180"
+              />
+            </summary>
+            <div className="px-4 pb-4">{categoryNavigation}</div>
+          </details>
+          <div className="hidden lg:block">
+            <h2 className="mb-5 font-serif text-xl font-semibold">{labels.popularCategories}</h2>
+            {categoryNavigation}
+          </div>
+        </aside>
         <div className="space-y-8">
           {error ? (
             <p role="alert">{error}</p>
@@ -211,36 +255,6 @@ export function BlogIndexPage({
             </nav>
           )}
         </div>
-        <aside className="rounded-3xl border border-border p-5">
-          <h2 className="mb-5 font-serif text-xl font-semibold">{labels.popularCategories}</h2>
-          <nav aria-label={labels.categories} className="space-y-3">
-            <BlogLink
-              href={categoryHref(null)}
-              aria-current={!categoryId ? "page" : undefined}
-              className="block text-sm hover:underline"
-            >
-              {labels.allCategories}
-            </BlogLink>
-            {categories
-              .filter((c) => c.translations[locale] && (data.categoryCounts[c.id] ?? 0) > 0)
-              .map((c) => (
-                <BlogLink
-                  key={c.id}
-                  href={categoryHref(c.id)}
-                  aria-current={categoryId === c.id ? "page" : undefined}
-                  className={cn(
-                    "block text-sm text-muted-foreground hover:text-foreground hover:underline aria-[current=page]:font-semibold aria-[current=page]:text-foreground",
-                    c.parentId && "pl-4",
-                  )}
-                >
-                  {labels.categoryCount(
-                    c.translations[locale].name,
-                    data.categoryCounts[c.id] ?? 0,
-                  )}
-                </BlogLink>
-              ))}
-          </nav>
-        </aside>
       </div>
     </section>
   );

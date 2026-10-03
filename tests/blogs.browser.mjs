@@ -38,7 +38,9 @@ test("showroom illustrations load without cropping in both themes", async (t) =>
     await page.goto(baseURL + path);
     await page.locator('[data-preview-ready="true"]').waitFor();
     for (const theme of ["Light", "Dark"]) {
-      await page.getByRole("button", { name: theme, exact: true }).click();
+      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+        await toggle.click();
       for (const image of await page
         .locator('article img[src^="https://assets.the-corner.io/images/"]')
         .all()) {
@@ -89,10 +91,10 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   assert.match(html, /Begin with a question/);
   assert.doesNotMatch(html, /An idea for tomorrow/);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: "/tmp/forge-blogs-mobile-dark.png", fullPage: true });
-  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("link", { name: "Public blog", exact: true }).click();
   await page.getByRole("heading", { name: "Our blog", exact: true }).waitFor();
@@ -249,7 +251,7 @@ test("language tabs support keyboard selection and protect unsaved translations"
   assert.equal(await title.inputValue(), "Une traduction modifiée");
   await page.screenshot({ path: "/tmp/forge-blog-language-tabs-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: "/tmp/forge-blog-language-tabs-mobile-dark.png", fullPage: true });
 
@@ -292,7 +294,9 @@ test("editor and list badges use success, pending and not-started colors", async
       await page.getByText(label, { exact: true }).waitFor();
     }
     for (const [index, theme] of ["Light", "Dark"].entries()) {
-      await page.getByRole("button", { name: theme, exact: true }).click();
+      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
+        await toggle.click();
       assert.deepEqual(
         await page.getByText(label, { exact: true }).evaluate((node) => {
           const style = getComputedStyle(node);

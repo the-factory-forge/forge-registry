@@ -165,6 +165,12 @@ unnecessary because transfers use the host endpoint.
 
 ## Public pages and images
 
+The public listing places categories above the posts on narrow screens, in a
+compact disclosure that starts closed and supports keyboard toggling. At the
+desktop breakpoint, categories remain expanded in the right sidebar.
+Main categories use stronger text; child categories are indented with a vertical
+guide. The current category uses the primary color at either level.
+
 Call `storage.listPublished({ locale, search, categoryId, page, pageSize })` and
 `storage.getPublished(locale, slug)` in server loaders. `publicCategories()`
 provides taxonomy labels; show only categories with published counts. Return a
