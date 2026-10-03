@@ -1,10 +1,11 @@
 # Showroom architecture
 
 The showroom uses TanStack Start and Router, React, Vite+, Tailwind's Vite plugin,
-and Nitro. Its framework foundation was adapted directly from
-[Cove at b9f2b22](https://github.com/mugnavo/cove/tree/b9f2b22ac380ba11c080fa35ca3387ac11618e51)
-(Unlicense). The application keeps its own dependencies and configuration; Cove
-is a reference, not a package dependency or a directory to synchronize wholesale.
+and Nitro. Its framework foundation was adapted directly from Cove under the
+Unlicense and reconciled through
+[revision ebd3e81](https://github.com/mugnavo/cove/tree/ebd3e81a9fa91ba2f4c040012e3f3925352c16bf).
+The application keeps its own dependencies and configuration. Cove provides the
+upstream reference for selective foundation updates.
 
 There is no import, workspace link, or build dependency on `forge-template` or
 `tc-website`. Both can consume generated registry source without a circular
@@ -40,18 +41,80 @@ mock providers do not need Cove's authentication, application database, query
 cache, environment manager, or logging services. Storage companion integration
 harnesses remain separate from the showroom.
 
+## Updating from Cove
+
+Use the revision in [`.cove.jsonc`](../.cove.jsonc) as the start of the next
+upstream comparison. It records the last revision reviewed and reconciled with
+this repository, including intentionally excluded changes.
+
+1. Compare that revision with a fixed Cove commit and review its dependency,
+   configuration and source changes. Keep the work in one registry-owned
+   OpenSpec change.
+2. Adopt compatible foundation updates here. For Vite+ major upgrades, run the
+   target version's migrator before manually changing toolchain dependencies.
+   Preserve lint rules, aliases, generated-file exclusions and the Node test
+   runner. Update the pnpm pin in both `package.json` and `Dockerfile`.
+3. Keep mock authentication and data providers, showroom routes, themes,
+   translations, framework shims, Portless and Nitro deployment. Exclude Cove's
+   live auth, application database, TanStack Query integration, Varlock, logging,
+   React Compiler, devtools and test-runner conversion. Better Auth and Drizzle
+   remain dependencies for published server companions, independently of Cove.
+4. Update affected registry dependency declarations and regenerate `public/r/`
+   through `pnpm registry:sync`. Validate a clean consumer installation as well
+   as the showroom, production server, Portless and relevant storage suites.
+5. After verification, advance `.cove.jsonc` to the reviewed commit and record
+   the checks and remaining limitations in the owning change.
+
+Vite+ 1.0 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
+dependency does not replace the repository's Node tests. The version-scoped
+`better-auth@1.7.2>vitest` exclusion removes an optional peer used only by Better
+Auth's test utilities, which this repository does not import. Revisit that
+exclusion when upgrading Better Auth or introducing those test utilities.
+
+TypeScript 7 supplies the native `tsc` check. The Drive integration test uses
+Node's `stripTypeScriptTypes` to serve its browser modules because TypeScript 7
+no longer supplies the JavaScript compiler API. Tailwind's updated default font
+does not replace the explicit font families in `src/styles/globals.css`.
+
 ## Development and production
 
-Use Node 24 or newer and the pnpm version pinned in `package.json`.
+Use Node `^24.11.0 || >=26.0.0` and pnpm 12.8.1, as pinned in `package.json`.
+CI and Docker use Node 24; development types target Node 24 as well.
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm dev                        # port 3000, or the next free port
-pnpm dev --port 3010             # select a port explicitly
+pnpm dev                        # https://forge-registry.localhost
+PORTLESS=0 pnpm dev              # direct Vite, port 3000 or the next free port
+PORTLESS=0 pnpm dev --port 3010   # direct Vite on a chosen port
 pnpm build                      # .output/public and .output/server
 PORT=3100 pnpm start             # standalone Nitro Node server
 TEST_BASE_URL=http://127.0.0.1:3100 pnpm test:browser
 ```
+
+[Portless](https://github.com/vercel-labs/portless) is pinned as a development
+dependency. It starts a shared local proxy, assigns Vite a free port, and forwards
+WebSocket connections for hot reload. `portless run` infers `forge-registry` from
+the package name and prefixes it with the branch name in linked Git worktrees.
+Use the URL printed by `pnpm dev` if your proxy uses custom settings.
+
+With default settings, the first interactive run may request administrator access
+to trust a local certificate and bind HTTPS port 443. Start it from a terminal
+for that setup. To run without certificate setup or privileged ports:
+
+```sh
+PORTLESS_HTTPS=0 PORTLESS_PORT=1355 PORTLESS_SYNC_HOSTS=0 pnpm dev
+# http://forge-registry.localhost:1355 in browsers that resolve .localhost
+```
+
+For browser tests, start the showroom with `PORTLESS=0 pnpm dev` and set
+`TEST_BASE_URL` in another terminal:
+
+```sh
+TEST_BASE_URL=http://127.0.0.1:3000 pnpm test:browser
+```
+
+Use `PORTLESS=0 pnpm dev` for direct HTTP access, including local shadcn installs.
+Run `pnpm exec portless proxy stop` when you want to stop the shared proxy.
 
 Deploy the complete `.output/` directory and run `node .output/server/index.mjs`.
 The hosting environment can set `PORT` and `HOST`. The previous `.next/` artifact

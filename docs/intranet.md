@@ -15,7 +15,7 @@ Configure the `@forge` namespace in the consumer's `components.json` as describe
 in [README](../README.md#installing-from-the-registry), then install:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
+pnpm dlx shadcn@4.21.1 add @forge/intranet-shell
 ```
 
 With default aliases, the shell installs to
@@ -146,7 +146,7 @@ styling: move any desired border/padding into the banner itself.
 
 ## Preview and update
 
-Run `pnpm dev --port 3010` and open `/en/intranet`. The showroom uses mock user
+Run `pnpm dev` and open `/en/intranet` at the printed URL. The showroom uses mock user
 and navigation data, a banner control, and a topbar toggle.
 `/en/intranet-sidebar` provides focused sidebar behavior checks.
 

@@ -3,7 +3,7 @@
 Install the complete feature UI into an initialized shadcn project:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/customers
+pnpm dlx shadcn@4.21.1 add @forge/customers
 ```
 
 All plugin files install under your components alias at `plugins/customers/`.

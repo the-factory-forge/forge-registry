@@ -28,7 +28,7 @@ modes, saved choices, system preferences, and portaled dialogs after theme edits
 
 ## Formatting and validation
 
-Vite Plus 0.3.3 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
+Vite Plus 1.0.0 configures Oxlint and Oxfmt in `vite.config.ts`. Linting includes
 type-aware rules and type checking; `pnpm typecheck` also runs `tsc --noEmit`.
 TanStack Start uses Vite for development and builds; Nitro serves the production output.
 

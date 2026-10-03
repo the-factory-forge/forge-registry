@@ -25,7 +25,7 @@ to the project's existing `components.json`:
 Then install the item:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
+pnpm dlx shadcn@4.21.1 add @forge/intranet-sidebar
 ```
 
 Files install under `src/components/`, `src/components/layouts/`, or
@@ -66,7 +66,7 @@ to `http://localhost:3010/r/{name}.json`, then:
 ```bash
 # In forge-registry:
 pnpm registry:sync
-pnpm dev --port 3010
+PORTLESS=0 pnpm dev --port 3010
 # In the consumer project:
 pnpm exec shadcn add @forge/intranet-sidebar --yes --overwrite
 ```
@@ -233,7 +233,7 @@ navigation visibility; existing server authorization remains authoritative.
 
 ## Preview and verification
 
-Run `pnpm dev --port 3010` and open `/en/intranet-sidebar`. The showroom uses mock
+Run `pnpm dev` and open `/en/intranet-sidebar` at the printed URL. The showroom uses mock
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
 The `/en/intranet` demo also includes linked parent navigation and a custom topbar.

@@ -113,7 +113,7 @@ props unless the requested change calls for a breaking change.
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in TanStack Start with Nitro. Use the pnpm version pinned in `package.json`.
-Vite Plus 0.3.3 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
+Vite Plus 1.0.0 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
 `dev` and `build` use Start/Vite, and `start` runs `.output/server/index.mjs`. Lint settings enable type-aware rules and
 type checking. `pnpm typecheck` remains the separate `tsc --noEmit` check.
 Registry source imports mirror their install targets: `@/components/*`,
@@ -268,10 +268,14 @@ or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
 Consumers configure the `@forge` namespace in `components.json` with
 `https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json`.
 Install with `shadcn add @forge/item-name`. To test locally, run
-`pnpm registry:sync` and `pnpm dev`, then temporarily set the consumer's `@forge`
+`pnpm registry:sync` and `PORTLESS=0 pnpm dev`, then temporarily set the consumer's `@forge`
 URL to `http://localhost:3000/r/{name}.json`. This also routes dependencies to the
 local server; no build environment override is required. Restore the published
 namespace URL before committing consumer configuration.
+
+`pnpm dev` normally uses Portless at `https://forge-registry.localhost`, with
+branch subdomains for linked worktrees. See `docs/showroom.md` for proxy setup
+and browser test URLs. `PORTLESS=0` bypasses the proxy for direct-port workflows.
 
 The legacy aggregate endpoint (`public/registry/registry.json`) and
 `registry:pull` workflow are retired. Consumers still using them must migrate to standard `@forge` shadcn installs.

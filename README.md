@@ -16,7 +16,7 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 
 - TanStack Start + Router, React 19, and Nitro showroom shell for previewing shared UI
 - TypeScript strict with `@/components/*`, `@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*` aliases for registry source files; `@/*` resolves showroom files
-- Vite Plus 0.3.3 for linting and formatting, configured in `vite.config.ts`
+- Vite Plus 1.0.0 for linting and formatting, configured in `vite.config.ts`
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
@@ -45,10 +45,10 @@ Add this namespace to the consuming project's existing `components.json`:
 Then install an item from an initialized shadcn project:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/intranet-sidebar
+pnpm dlx shadcn@4.21.1 add @forge/intranet-sidebar
 ```
 
-For local development, run `pnpm registry:sync` and `pnpm dev` here. Temporarily set the consumer's `@forge` URL to `http://localhost:3000/r/{name}.json`, then run the same install command. The namespace routes both the requested item and its dependencies to the local server; no different build is needed. Restore the published URL before committing the consumer's configuration.
+For local consumer installs, run `pnpm registry:sync` and `PORTLESS=0 pnpm dev` here. Temporarily set the consumer's `@forge` URL to `http://localhost:3000/r/{name}.json`, then run the same install command. The namespace routes both the requested item and its dependencies to the local server; no different build is needed. Restore the published URL before committing the consumer's configuration.
 
 The [intranet sidebar guide](./docs/intranet-sidebar.md) covers props, toggles, Better Auth integration, and updating consumers. See the official [registry guide](https://ui.shadcn.com/docs/registry/getting-started) and [namespace configuration](https://ui.shadcn.com/docs/registry/namespace) for the distribution model.
 
@@ -148,7 +148,7 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                |
 | [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                               |
 
-Install with `pnpm dlx shadcn@4.19.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
+Install with `pnpm dlx shadcn@4.21.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
@@ -164,7 +164,7 @@ Open the [Intranet demo](https://registry.the-corner.io/en/intranet) or the
 focused [Sidebar demo](https://registry.the-corner.io/en/intranet-sidebar).
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/intranet-shell
+pnpm dlx shadcn@4.21.1 add @forge/intranet-shell
 ```
 
 The [cookie banner guide](./docs/cookie-banner.md) covers consent controls,
@@ -212,7 +212,7 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
 4. Run `pnpm format && pnpm lint:fix`, review automatic edits, then `pnpm registry:sync` to rebuild the shadcn catalog and items from the final source.
 5. Run `pnpm registry:check`, `pnpm test`, `pnpm typecheck`, and `pnpm check`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
-6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@11.20.0` in `package.json` (required by `pnpm/action-setup@v4`).
+6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@12.8.1` in `package.json` (required by `pnpm/action-setup@v4`).
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
 
 ## VPS showroom
@@ -230,8 +230,16 @@ Vite Plus runs Oxlint and Oxfmt using `vite.config.ts`; linting includes type-aw
 rules and type checking. TanStack Start uses Vite for development and builds, with Nitro serving the production output. Generated `public/r/` JSON is excluded from linting and formatting:
 format source files first, then regenerate it with `pnpm registry:sync`.
 
+`pnpm dev` uses [Portless](https://github.com/vercel-labs/portless) to serve the
+showroom at `https://forge-registry.localhost` with its default proxy settings.
+Linked Git worktrees receive a branch subdomain. The first run may prompt for
+administrator access to trust its local certificate and start the HTTPS proxy.
+See the [showroom guide](./docs/showroom.md#development-and-production) for setup,
+direct Vite access, and browser test URLs.
+
 ```bash
-pnpm dev              # TanStack Start / Vite dev server
+pnpm dev              # Showroom through Portless
+PORTLESS=0 pnpm dev    # Direct Vite server on localhost:3000
 pnpm build            # Start + Nitro output in .output/
 pnpm start            # Nitro server (PORT defaults to 3000)
 pnpm lint             # vp lint (type-aware, with type checking)
@@ -240,7 +248,7 @@ pnpm format           # vp fmt
 pnpm format:check     # vp fmt --check
 pnpm check            # vp check (format, lint, and type checks)
 pnpm fix              # vp check --fix
-pnpm test             # Navigation and registry regression tests (Node 24+)
+pnpm test             # Navigation and registry regression tests
 pnpm test:browser     # Browser regressions against a running showroom
 pnpm test:deployment  # Production smoke check (TEST_BASE_URL, default port 3100)
 pnpm typecheck        # tsc --noEmit

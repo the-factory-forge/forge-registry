@@ -10,7 +10,7 @@ projects. Neither plugin contains backend or authentication code.
 Configure the `@forge` namespace as described in [README](../README.md), then:
 
 ```bash
-pnpm dlx shadcn@4.19.1 add @forge/projects
+pnpm dlx shadcn@4.21.1 add @forge/projects
 ```
 
 The item includes customers, cn, Link shims, Base UI, and Lucide. React and a

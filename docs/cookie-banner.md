@@ -126,7 +126,7 @@ Explicitly enable `showMarketing` when needed.
 retry in the shared preview controls. Its tracking script is simulated locally.
 The showroom homepage links this example under Cookie banner.
 
-With the showroom running via `pnpm dev`, run:
+With the showroom running via `PORTLESS=0 pnpm dev`, run:
 
 ```bash
 pnpm test
@@ -134,6 +134,6 @@ pnpm exec playwright install chromium # Once per development environment.
 pnpm test:browser
 ```
 
-Set `TEST_BASE_URL` for another local showroom port. Tests cover saved and draft
-choices, storage failures, cross-tab updates, category isolation, SSR, concurrent
-loads, retries, and withdrawal during loading.
+Set `TEST_BASE_URL` when testing another showroom server. Tests cover saved and
+draft choices, storage failures, cross-tab updates, category isolation, SSR,
+concurrent loads, retries, and withdrawal during loading.

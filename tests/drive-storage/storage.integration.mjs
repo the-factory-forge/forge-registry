@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import { stripTypeScriptTypes } from "node:module";
 import test from "node:test";
 
 import {
@@ -18,7 +19,6 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { chromium } from "playwright";
 import postgres from "postgres";
-import ts from "typescript";
 const { createDriveStorage } =
   await import("../../registry/components/plugins/drive/server/storage.server.ts");
 
@@ -302,16 +302,17 @@ test("private Drive persistence and storage recovery", async (t) => {
       new URL("../../registry/components/plugins/drive/utils.ts", import.meta.url),
       "utf8",
     );
-    const compile = (source) =>
-      ts.transpile(source, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 });
     const server = createServer((request, response) => {
       response.setHeader("Content-Type", request.url === "/" ? "text/html" : "text/javascript");
       response.end(
         request.url === "/"
           ? "<!doctype html><title>Drive transfer harness</title>"
           : request.url === "/transfer.js"
-            ? compile(transferSource).replace("@/components/plugins/drive/utils", "/utils.js")
-            : compile(utilsSource),
+            ? stripTypeScriptTypes(transferSource).replace(
+                "@/components/plugins/drive/utils",
+                "/utils.js",
+              )
+            : stripTypeScriptTypes(utilsSource),
       );
     });
     await new Promise((resolve) => server.listen(19040, "127.0.0.1", resolve));

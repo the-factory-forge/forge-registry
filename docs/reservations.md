@@ -6,7 +6,7 @@ adds a PostgreSQL service, Drizzle tables, reviewed SQL migrations, signed manag
 links, and a durable email queue. Both distribute editable source.
 
 ```sh
-pnpm dlx shadcn@4.19.1 add @forge/reservations-storage
+pnpm dlx shadcn@4.21.1 add @forge/reservations-storage
 ```
 
 Import browser components and types from `@/components/plugins/reservations`. Import

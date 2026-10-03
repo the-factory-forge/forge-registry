@@ -219,6 +219,11 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Delete Project", exact: true });
   await dialog.waitFor();
+  // The popup can become visible before Base UI finishes moving focus.
+  await dialog
+    .getByRole("button", { name: "Cancel", exact: true })
+    .and(page.locator(":focus"))
+    .waitFor();
   assert.equal(
     await dialog
       .getByRole("button", { name: "Cancel" })

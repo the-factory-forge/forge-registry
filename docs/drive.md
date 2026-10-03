@@ -11,9 +11,9 @@ unversioned S3-compatible bucket. TC migration is separate.
 Configure the `@forge` namespace as described in the root README, then run:
 
 ```sh
-pnpm dlx shadcn@4.19.1 add @forge/drive
+pnpm dlx shadcn@4.21.1 add @forge/drive
 # Optional; also installs the browser contract transitively:
-pnpm dlx shadcn@4.19.1 add @forge/drive-storage
+pnpm dlx shadcn@4.21.1 add @forge/drive-storage
 ```
 
 Browser exports: `DrivePage`, `DriveBrowser`, their props, `DriveClient`,

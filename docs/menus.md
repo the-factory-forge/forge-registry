@@ -9,7 +9,7 @@ sessions, database migration, or bucket configuration are installed automaticall
 ## Install and integrate
 
 ```sh
-pnpm dlx shadcn@4.19.1 add @forge/menus-storage
+pnpm dlx shadcn@4.21.1 add @forge/menus-storage
 ```
 
 Import `MenuPage`, `MenuItemsPage`, `MenuItemEditorPage`, `MenuTaxonomyPage`, and

@@ -10,9 +10,9 @@ depends on customers, projects, or Drive.
 Configure the `@forge` namespace as described in the repository README, then:
 
 ```sh
-pnpm dlx shadcn@4.19.1 add @forge/blogs
+pnpm dlx shadcn@4.21.1 add @forge/blogs
 # Optional persistence companion, including the UI item:
-pnpm dlx shadcn@4.19.1 add @forge/blogs-storage
+pnpm dlx shadcn@4.21.1 add @forge/blogs-storage
 ```
 
 Files install at `@components/plugins/blogs`. Browser exports are `BlogsPage`,
