@@ -25,14 +25,23 @@ export function ShowroomHeader() {
         >
           Skip to preview
         </a>
-        <Link
-          href="/"
-          aria-current={isList ? "page" : undefined}
-          className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          <Icon className="size-4" aria-hidden="true" />
-          All components
-        </Link>
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+          <img
+            src="https://assets.the-corner.io/logos/the_corner-logo.svg"
+            alt="The Corner"
+            width={450}
+            height={135}
+            className="h-auto w-16 shrink-0 sm:w-28 dark:invert"
+          />
+          <Link
+            href="/"
+            aria-current={isList ? "page" : undefined}
+            className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-xl px-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-3"
+          >
+            <Icon className="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
+            All components
+          </Link>
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeControl />
           <a
