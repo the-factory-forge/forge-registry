@@ -38,7 +38,8 @@ viewport-height minimum. Longer auth content can extend the right side without
 stretching the left panel or pushing its copy to the bottom. The dark backdrop
 continues below the left panel when the form side is taller.
 
-`LoginForm.onSignIn` receives `{ email, password, rememberMe }`. Reject its
+`LoginForm.onSignIn` receives `{ email, password, rememberMe }`. Remember me is
+checked by default; users can uncheck it before signing in. Reject its
 promise when authentication fails; resolve only after successful authentication
 and the host's cache refresh/navigation. The form handles pending state,
 password visibility, duplicate submission prevention, and generic failure copy.

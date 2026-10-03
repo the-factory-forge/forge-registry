@@ -193,6 +193,7 @@ export function LoginForm({
             <input
               type="checkbox"
               name="rememberMe"
+              defaultChecked
               className="size-4 accent-primary"
               disabled={action.disabled || !enabled}
             />
