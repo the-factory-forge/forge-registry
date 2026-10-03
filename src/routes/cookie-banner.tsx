@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { CookieBanner, type ConsentState } from "@/components/cookie-banner";
 import { ManageCookiesButton } from "@/components/manage-cookies-button";
 import { createConsentAnalytics } from "@/components/utils/consent-analytics";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function CookieBannerPage() {
@@ -169,4 +170,14 @@ function CookieBannerPage() {
   );
 }
 
-export const Route = createFileRoute("/cookie-banner")({ component: CookieBannerPage });
+export const Route = createFileRoute("/cookie-banner")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "Cookie consent banner demo",
+      description:
+        "Preview a reusable React cookie banner with consent categories, saved preferences, analytics callbacks, and loading retries.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: CookieBannerPage,
+});

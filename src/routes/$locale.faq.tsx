@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { FaqPage } from "@/components/pages/page-faq";
 import { ShowroomLink, useShowroomParams } from "@/showroom/routing";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const items = [
@@ -75,4 +76,14 @@ function FaqPreview() {
   );
 }
 
-export const Route = createFileRoute("/$locale/faq")({ component: FaqPreview });
+export const Route = createFileRoute("/$locale/faq")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "FAQ page demo",
+      description:
+        "Preview a reusable React FAQ page with a page hero, category filters, keyboard-accessible answers, and configurable empty states.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: FaqPreview,
+});

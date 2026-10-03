@@ -9,6 +9,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
@@ -101,4 +102,14 @@ function TableSearchExample() {
   );
 }
 
-export const Route = createFileRoute("/table-search")({ component: TableSearchExample });
+export const Route = createFileRoute("/table-search")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "React table search demo",
+      description:
+        "Try an expanding React table search with independent filters, accent-insensitive matching, keyboard focus, and clear actions.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: TableSearchExample,
+});

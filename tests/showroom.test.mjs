@@ -3,6 +3,42 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { localeRedirect } from "../src/lib/locale-redirect.ts";
+import { showroomHead, notFoundHead } from "../src/showroom/seo.ts";
+
+test("showroom route metadata keeps canonical and social URLs consistent and honors noindex", () => {
+  const meta = (head, key) =>
+    head.meta.find((tag) => tag.name === key || tag.property === key)?.content;
+  const contact = showroomHead({
+    title: "Contact page demo",
+    description: "React contact page with sample contact details.",
+    path: "/en/contact/?preview=map#details",
+  });
+  assert.match(meta(contact, "description"), /React contact page.*sample contact details/);
+  assert.equal(meta(contact, "og:description"), meta(contact, "description"));
+  assert.equal(meta(contact, "twitter:description"), meta(contact, "description"));
+  assert.equal(contact.links[0].href, "https://registry.the-corner.io/en/contact");
+  for (const locale of ["fr", "en", "de", "it"]) {
+    assert.equal(
+      showroomHead({
+        title: "Authentication demo",
+        description: "React authentication components.",
+        path: `/${locale}/login`,
+        canonicalPath: `/${locale}/auth`,
+      }).links[0].href,
+      `https://registry.the-corner.io/${locale}/auth`,
+    );
+  }
+  const head = showroomHead({
+    title: "Sample record demo",
+    description: "React demo with sample data.",
+    path: "/en/projects/website/drive",
+    noIndex: true,
+  });
+  assert.equal(meta(head, "robots"), "noindex, follow");
+  assert.deepEqual(head.links, []);
+  assert.equal(meta(notFoundHead(), "robots"), "noindex, follow");
+  assert.match(notFoundHead().meta[0].title, /Page not found/);
+});
 
 test("locale redirects retain queries, saved choices and language negotiation", () => {
   for (const { headers, locale } of [
@@ -53,6 +89,7 @@ test("registry items never depend on the showroom framework or consuming templat
     }
     for (const file of item.files) {
       const source = await readFile(file.path, "utf8");
+      assert.doesNotMatch(source, /registry\.the-corner\.io|showroomHead/, file.path);
       assert.doesNotMatch(
         source,
         /from ["'](?:next(?:\/|["'])|@tanstack\/react-(?:router|start)|@\/showroom\/|@\/routes\/)/,

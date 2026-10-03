@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TableSearch } from "@/components/table-search";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 import { ShowroomLink as Link } from "@/showroom/routing";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const categoryIcons = {
@@ -252,7 +253,8 @@ function Home() {
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">Components Showcase</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Explore reusable components from this registry and open their dedicated pages.
+          Preview reusable React components, page layouts, and intranet plugins. Install editable
+          source in your project through the Forge shadcn registry.
         </p>
       </header>
 
@@ -326,4 +328,14 @@ function Home() {
   );
 }
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "Reusable React components and plugins",
+      description:
+        "Explore React components, page layouts, and intranet plugins from The Corner Factory. Preview demos and install editable source through shadcn.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: Home,
+});

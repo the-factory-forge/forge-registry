@@ -1,8 +1,15 @@
-import { createRootRoute, HeadContent, notFound, Scripts } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  HeadContent,
+  isNotFound,
+  notFound,
+  Scripts,
+} from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { isLocale } from "@/lib/i18n/config";
 import { ShowroomLink } from "@/showroom/routing";
+import { notFoundHead } from "@/showroom/seo";
 import { ShowroomHeader } from "@/showroom/showroom-header";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 import { themeScript } from "@/showroom/theme-control";
@@ -10,20 +17,6 @@ import { themeScript } from "@/showroom/theme-control";
 import appCss from "@/styles/globals.css?url";
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "forge-registry" },
-      { name: "description", content: "Reusable AI website component registry scaffold" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico" },
-      { rel: "icon", type: "image/png", href: "/icon.png" },
-      { rel: "apple-touch-icon", href: "/apple-icon.png" },
-    ],
-  }),
   validateSearch: (
     search: Record<string, unknown>,
   ): {
@@ -42,6 +35,22 @@ export const Route = createRootRoute({
     ),
   beforeLoad: ({ params }) => {
     if ("locale" in params && !isLocale(String(params.locale))) throw notFound();
+  },
+  head: ({ matches }) => {
+    const missing = matches.length === 1 || matches.some((match) => isNotFound(match.error));
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ...(missing ? notFoundHead().meta : []),
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.ico" },
+        { rel: "icon", type: "image/png", href: "/icon.png" },
+        { rel: "apple-touch-icon", href: "/apple-icon.png" },
+      ],
+    };
   },
   notFoundComponent: () => (
     <ShowroomPreview width="narrow">

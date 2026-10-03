@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { NewsletterExample } from "@/components/newsletter-example";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function NewsletterPage() {
@@ -13,4 +14,14 @@ function NewsletterPage() {
   );
 }
 
-export const Route = createFileRoute("/newsletter")({ component: NewsletterPage });
+export const Route = createFileRoute("/newsletter")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "Newsletter signup form demo",
+      description:
+        "Test a reusable React newsletter signup form with email validation, accessible labels, and loading, success, and error states.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: NewsletterPage,
+});

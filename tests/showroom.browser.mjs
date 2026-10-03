@@ -75,9 +75,27 @@ test("every directory entry navigates and returns through a stable shared header
   assert.equal(destinations.filter((href) => href === "/en/auth").length, 1);
   const header = page.getByRole("navigation", { name: "Showroom navigation" });
   const original = await header.boundingBox();
+  const titles = new Set();
+  const descriptions = new Set();
   for (const href of destinations) {
     await page.locator(`main a[href="${href}"]`).click();
     await page.waitForURL(baseURL + href);
+    await page
+      .locator(`link[rel="canonical"][href="https://registry.the-corner.io${href}"]`)
+      .waitFor({ state: "attached", timeout: 5000 });
+    const title = await page.title();
+    const description = await page.locator('meta[name="description"]').getAttribute("content");
+    assert.match(title, /demo \| Forge Registry$/);
+    assert.ok(description.includes("React"), href);
+    assert.equal(titles.has(title), false, href);
+    assert.equal(descriptions.has(description), false, href);
+    titles.add(title);
+    descriptions.add(description);
+    assert.equal(
+      await page.locator('link[rel="canonical"]').getAttribute("href"),
+      `https://registry.the-corner.io${href}`,
+      href,
+    );
     if (href === "/en/intranet-sidebar") {
       for (const name of ["Customers", "Projects", "Employees"]) {
         assert.equal(
@@ -92,6 +110,78 @@ test("every directory entry navigates and returns through a stable shared header
     await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
   }
   assert.deepEqual(errors, []);
+});
+
+test("SEO metadata is server rendered for demos, aliases, locales, and missing pages", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  const samplePages = [
+    "/en/projects/website/drive",
+    "/en/customers/acme/projects",
+    "/en/blogs/make-room-for-better-ideas",
+    "/en/admin/blogs/categories",
+    "/en/admin/reservations/settings",
+  ];
+  for (const path of [
+    "/",
+    "/table-search",
+    "/cookie-banner",
+    "/newsletter",
+    "/en/legal/privacy",
+    "/en/legal/mentions",
+    "/en/forgot-password",
+    "/en/reset-password",
+    "/en/change-password",
+    "/en/access-denied",
+    ...samplePages,
+    ...["fr", "en", "de", "it"].flatMap((locale) => [
+      `/${locale}/contact`,
+      `/${locale}/login`,
+      `/${locale}/projects/new`,
+      `/${locale}/admin/menus`,
+    ]),
+    "/missing-page",
+    "/en/legal/missing",
+    "/xx/customers",
+  ]) {
+    const response = await fetch(baseURL + path);
+    const html = await response.text();
+    const head = await page.evaluate((html) => {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      return {
+        title: doc.title,
+        description: doc.querySelector('meta[name="description"]')?.getAttribute("content"),
+        ogDescription: doc
+          .querySelector('meta[property="og:description"]')
+          ?.getAttribute("content"),
+        twitterDescription: doc
+          .querySelector('meta[name="twitter:description"]')
+          ?.getAttribute("content"),
+        canonical: doc.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+        robots: doc.querySelector('meta[name="robots"]')?.getAttribute("content"),
+        titles: doc.querySelectorAll("title").length,
+        descriptions: doc.querySelectorAll('meta[name="description"]').length,
+      };
+    }, html);
+    assert.equal(head.titles, 1, path);
+    assert.equal(head.descriptions, 1, path);
+    assert.match(head.title, /\| Forge Registry$/);
+    assert.ok(head.description.includes("React"), path);
+    assert.equal(head.ogDescription, head.description, path);
+    assert.equal(head.twitterDescription, head.description, path);
+    if (response.status === 404 || path.endsWith("/new") || samplePages.includes(path)) {
+      assert.equal(head.robots, "noindex, follow", path);
+      assert.equal(head.canonical, undefined, path);
+    } else {
+      assert.equal(response.status, 200, path);
+      assert.equal(
+        head.canonical,
+        `https://registry.the-corner.io${path.replace(/\/login$/, "/auth")}`,
+        path,
+      );
+    }
+  }
 });
 
 test("keyboard entry skips the showroom controls without changing the preview hash", async (t) => {

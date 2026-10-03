@@ -26,23 +26,28 @@ export function ShowroomHeader() {
           Skip to preview
         </a>
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          <img
-            src="https://assets.the-corner.io/logos/the_corner-logo.svg"
-            alt="The Corner"
-            width={450}
-            height={135}
-            className="h-auto w-16 shrink-0 sm:w-28 dark:invert"
-          />
+          <a
+            href="https://the-corner.io/forge/intranet"
+            className="inline-flex shrink-0 cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <img
+              src="https://assets.the-corner.io/logos/the_corner-icon.svg"
+              alt="The Corner"
+              width={32}
+              height={32}
+              className="size-8 shrink-0 dark:invert"
+            />
+          </a>
           <Link
             href="/"
             aria-current={isList ? "page" : undefined}
-            className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-xl px-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-3"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl px-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-3"
           >
             <Icon className="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
             All components
           </Link>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeControl />
           <a
             href="https://github.com/the-factory-forge/forge-registry"

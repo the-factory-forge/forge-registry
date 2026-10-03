@@ -3,11 +3,14 @@ import { useState } from "react";
 
 import { LegalPage } from "@/components/pages/page-legal";
 import { ShowroomLink } from "@/showroom/routing";
+import { showroomHead, notFoundHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const documents = [
   {
     id: "cgv",
+    description:
+      "Preview the React legal page layout with example terms, configurable sections, an introduction, and an optional updated date.",
     title: "Terms and conditions",
     sections: [
       {
@@ -23,6 +26,8 @@ const documents = [
   },
   {
     id: "privacy",
+    description:
+      "Explore a reusable React privacy policy layout with example content. Each host supplies its own approved policy, sections, and translations.",
     title: "Privacy policy",
     sections: [
       {
@@ -34,6 +39,8 @@ const documents = [
   },
   {
     id: "mentions",
+    description:
+      "Preview a reusable React legal notice layout with sample publisher and hosting sections, configurable content, and an optional updated date.",
     title: "Legal notice",
     sections: [
       { title: "Publisher", content: "Example studio\nExample Street 12\nhello@example.test" },
@@ -48,6 +55,15 @@ export const Route = createFileRoute("/$locale/legal/$document")({
     if (!document) throw notFound();
     return document;
   },
+  head: ({ match, loaderData }) =>
+    loaderData
+      ? showroomHead({
+          title: `${loaderData.title} page demo`,
+          description: loaderData.description,
+          path: match.pathname,
+          noIndex: match.status !== "success",
+        })
+      : notFoundHead(),
   component: LegalPreview,
 });
 

@@ -72,6 +72,26 @@ Published source changes still require reviewed shadcn updates in consuming site
 Changing this showroom's framework does not change those sites' framework or
 automatically update their installed components.
 
+## Showroom SEO
+
+Each page route defines its own title and description through TanStack Router's
+`head` callback. Splat routes select descriptions using their route parameters;
+legal pages use loader data. `src/showroom/seo.ts` formats canonical URLs and
+Open Graph and Twitter metadata for `https://registry.the-corner.io`. The root
+route owns document assets and fallback metadata for missing pages.
+
+Descriptions use English, matching the showroom navigation, and identify the
+content as component demos. Locale prefixes select
+demo translations; sample company details and legal text are not showroom facts.
+
+Canonical URLs omit search parameters and trailing slashes. The `/login` alias
+points to the matching `/auth` overview. Sample record details, editing flows,
+and missing pages use `noindex, follow` and omit canonical links.
+
+This configuration stays under `src/` and is never registered or imported by
+portable components. Consuming projects own their page descriptions, domains,
+indexing decisions, and social metadata.
+
 ## Shared preview frame
 
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React

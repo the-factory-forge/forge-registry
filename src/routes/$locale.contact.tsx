@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { ContactPage } from "@/components/pages/page-contact";
 import { ShowroomLink, useShowroomParams } from "@/showroom/routing";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 function ContactPreview() {
@@ -71,4 +72,14 @@ function ContactPreview() {
   );
 }
 
-export const Route = createFileRoute("/$locale/contact")({ component: ContactPreview });
+export const Route = createFileRoute("/$locale/contact")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "Contact page demo",
+      description:
+        "Explore a reusable React contact page with sample contact details, opening hours, social links, and an optional map. All content is supplied by the host.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: ContactPreview,
+});

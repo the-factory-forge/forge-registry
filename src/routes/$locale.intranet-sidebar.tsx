@@ -18,6 +18,7 @@ import {
   type IntranetNavGroup,
 } from "@/components/intranet-sidebar";
 import { pluginIcons } from "@/components/utils/plugin-icons";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const groups: IntranetNavGroup[] = [
@@ -208,5 +209,14 @@ function IntranetSidebarExample() {
 }
 
 export const Route = createFileRoute("/$locale/intranet-sidebar")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "Responsive intranet sidebar demo",
+      description:
+        "Try a reusable React intranet sidebar with configurable branding, nested navigation, a user profile, keyboard controls, and a mobile drawer.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+
   component: IntranetSidebarExample,
 });

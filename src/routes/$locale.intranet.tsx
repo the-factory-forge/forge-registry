@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
+import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 const groups: IntranetNavGroup[] = [
@@ -151,4 +152,14 @@ function IntranetExample() {
   );
 }
 
-export const Route = createFileRoute("/$locale/intranet")({ component: IntranetExample });
+export const Route = createFileRoute("/$locale/intranet")({
+  head: ({ match }) =>
+    showroomHead({
+      title: "React intranet layout demo",
+      description:
+        "Explore a complete React workspace layout with a responsive sidebar, topbar, announcement banner, and configurable content area.",
+      path: match.pathname,
+      noIndex: match.status !== "success",
+    }),
+  component: IntranetExample,
+});
