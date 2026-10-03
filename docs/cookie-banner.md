@@ -4,6 +4,11 @@ Install `@forge/cookie-banner` and, for a footer preferences link,
 `@forge/manage-cookies-button`. Both use `manage-cookies` by default; pass the
 same `manageEvent` to each when customizing it.
 
+The outer dialog always uses `id="factory-cookie-banner"`, independent of translated
+labels and `consentKey`. Mount one banner per document. Screenshot tools can target
+`#factory-cookie-banner` without changing consent. Existing sites receive the ID when
+they refresh their installed `@forge/cookie-banner` source.
+
 The banner starts compact with **Custom selection** and **Accept all** actions.
 Custom selection reveals the necessary category and each enabled optional
 category, while the actions become **Cancel** and **Confirm selection**.

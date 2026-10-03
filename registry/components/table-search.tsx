@@ -33,7 +33,7 @@ export function TableSearch({
   maxLength,
   className,
 }: TableSearchProps) {
-  const id = useId();
+  const id = `factory-table-search-${useId()}`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
   const expanded = alwaysExpanded || focused || value.length > 0;

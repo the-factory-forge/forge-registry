@@ -79,7 +79,7 @@ export function ForgotPasswordForm({
   linkComponent: FormLink = Link,
 }: ForgotPasswordFormProps) {
   const labels = { ...passwordLabels, ...overrides };
-  const id = useId();
+  const id = `factory-password-form-${useId()}`;
   const state = useSubmission();
   return (
     <div className={cn("grid gap-6", className)}>
@@ -160,7 +160,7 @@ function PasswordForm({
   mode = "change",
 }: ChangePasswordFormProps & { mode?: "change" | "reset" }) {
   const labels = { ...passwordLabels, ...overrides };
-  const id = useId();
+  const id = `factory-password-form-${useId()}`;
   const state = useSubmission();
   const [mismatch, setMismatch] = useState(false);
   const reset = mode === "reset";

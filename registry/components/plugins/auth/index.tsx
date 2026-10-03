@@ -7,7 +7,7 @@ import {
   EyeOffIcon,
   LoaderCircleIcon,
 } from "lucide-react";
-import { useState, type ComponentType } from "react";
+import { useId, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
 import { GoogleSignInButton, useAuthAction } from "@/components/plugins/auth/auth-controls";
@@ -72,6 +72,7 @@ export function LoginForm({
   linkComponent: LoginLink = Link,
 }: LoginFormProps) {
   const labels = { ...loginLabels, ...overrides };
+  const id = `factory-login-${useId()}`;
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const action = useAuthAction();
@@ -99,7 +100,7 @@ export function LoginForm({
       )}
 
       {failed && (
-        <p id="login-error" role="alert" className="text-sm text-destructive">
+        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
           {method === "google" ? labels.googleError : labels.loginError}
         </p>
       )}
@@ -124,9 +125,9 @@ export function LoginForm({
         aria-busy={pending}
       >
         <div className="grid gap-2">
-          <label htmlFor="email">{labels.email}</label>
+          <label htmlFor={`${id}-email`}>{labels.email}</label>
           <input
-            id="email"
+            id={`${id}-email`}
             name="email"
             type="email"
             autoComplete="username"
@@ -136,15 +137,15 @@ export function LoginForm({
             className={inputClass}
             readOnly={action.disabled}
             disabled={!enabled}
-            aria-describedby={failed ? "login-error" : undefined}
+            aria-describedby={failed ? `${id}-error` : undefined}
             required
           />
         </div>
         <div className="grid gap-2">
-          <label htmlFor="password">{labels.password}</label>
+          <label htmlFor={`${id}-password`}>{labels.password}</label>
           <div className="relative">
             <input
-              id="password"
+              id={`${id}-password`}
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
@@ -156,15 +157,15 @@ export function LoginForm({
               readOnly={action.disabled}
               disabled={!enabled}
               aria-describedby={
-                [failed && "login-error", capsLock && "password-caps-lock"]
+                [failed && `${id}-error`, capsLock && `${id}-caps-lock`]
                   .filter(Boolean)
                   .join(" ") || undefined
               }
               required
             />
             <output
-              id="password-caps-lock"
-              htmlFor="password"
+              id={`${id}-caps-lock`}
+              htmlFor={`${id}-password`}
               title={capsLock ? labels.capsLockOn : undefined}
               className="absolute inset-y-0 right-12 flex items-center text-primary"
             >
@@ -179,7 +180,7 @@ export function LoginForm({
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? labels.hidePassword : labels.showPassword}
-              aria-controls="password"
+              aria-controls={`${id}-password`}
               aria-pressed={showPassword}
               className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground! hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
             >

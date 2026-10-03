@@ -62,6 +62,7 @@ const customize = (dialog) => dialog.getByRole("button", { name: "Custom selecti
 test("compact actions, custom selection, and saved preferences work", async (t) => {
   const { page, dialog } = await openPreview(t);
   await dialog.waitFor();
+  assert.equal(await dialog.getAttribute("id"), "factory-cookie-banner");
   assert.equal(await dialog.getByRole("checkbox").count(), 0);
   assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
     "Custom selection",

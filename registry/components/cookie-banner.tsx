@@ -171,6 +171,7 @@ export function CookieBanner({
 
   return (
     <dialog
+      id="factory-cookie-banner"
       open
       aria-label={dialogLabel}
       aria-live="polite"

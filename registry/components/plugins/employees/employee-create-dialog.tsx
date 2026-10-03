@@ -32,7 +32,7 @@ export function EmployeeCreateDialog({
   className,
 }: EmployeeCreateDialogProps) {
   const labels = { ...employeeLabels, ...overrides };
-  const id = useId();
+  const id = `factory-employee-create-${useId()}`;
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);

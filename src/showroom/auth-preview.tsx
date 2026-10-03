@@ -101,7 +101,7 @@ function Preview({ view }: { view: View }) {
               </label>
             )}
             {view === "login" && (
-              <div id="auth-controls" className="grid gap-2">
+              <div id="factory-auth-controls" className="grid gap-2">
                 <SignOutButton
                   pending={signOutAction.pending}
                   disabled={signOutAction.disabled}

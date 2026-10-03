@@ -36,7 +36,7 @@ export function ShowroomPreview({
         <PreviewControls navigation={navigation}>{controls}</PreviewControls>
       )}
       <Content
-        id="showroom-preview"
+        id="factory-showroom-preview"
         tabIndex={-1}
         aria-label="Component preview"
         className="showroom-stage focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"

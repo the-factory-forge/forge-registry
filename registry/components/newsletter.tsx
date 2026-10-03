@@ -45,7 +45,7 @@ export function Newsletter({
   className,
   ...props
 }: NewsletterProps) {
-  const baseId = React.useId();
+  const baseId = `factory-newsletter-${React.useId()}`;
   const inputId = `${baseId}-email`;
   const helperId = `${baseId}-helper`;
   const errorId = `${baseId}-error`;

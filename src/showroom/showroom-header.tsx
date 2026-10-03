@@ -14,10 +14,10 @@ export function ShowroomHeader() {
     <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
       <nav aria-label="Showroom navigation" className="showroom-header-inner">
         <a
-          href="#showroom-preview"
+          href="#factory-showroom-preview"
           onClick={(event) => {
             event.preventDefault();
-            const preview = document.getElementById("showroom-preview");
+            const preview = document.getElementById("factory-showroom-preview");
             preview?.focus();
             preview?.scrollIntoView({ block: "start" });
           }}

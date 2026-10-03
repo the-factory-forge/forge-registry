@@ -48,3 +48,23 @@ test("cookie banner exposes optional choices only during custom selection", asyn
   assert.match(source, /customizing \? confirmLabel : acceptAllLabel/);
   assert.doesNotMatch(source, /rejectLabel/);
 });
+
+test("registry and showroom DOM IDs use the factory namespace", async () => {
+  const registry = JSON.parse(await readFile(manifestUrl, "utf8"));
+  const paths = new Set(
+    registry.items.flatMap((item) => item.files ?? []).map((file) => file.path),
+  );
+  for (const path of await readdir(new URL("../src/", import.meta.url), { recursive: true }))
+    paths.add("src/" + path);
+  for (const path of paths) {
+    if (!path.endsWith(".tsx")) continue;
+    const source = await readFile(new URL("../" + path, import.meta.url), "utf8");
+    for (const [, id] of source.matchAll(/\bid="([^"]+)"/g)) {
+      assert.ok(id.startsWith("factory-"), `${path}: ${id}`);
+    }
+    for (const line of source.split("\n")) {
+      if (/\b(?:React\.)?useId\(\)/.test(line))
+        assert.match(line, /`factory-[a-z-]+-\$\{(?:React\.)?useId\(\)\}`/, path);
+    }
+  }
+});

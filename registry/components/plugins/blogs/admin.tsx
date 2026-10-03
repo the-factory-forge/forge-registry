@@ -241,7 +241,7 @@ export function BlogNewPage({
 }: BlogNewPageProps) {
   const labels = { ...blogsLabels, ...overrides },
     action = useBlogAction(labels),
-    id = useId();
+    id = `factory-blog-form-${useId()}`;
   const [title, setTitle] = useState(""),
     [locale, setLocale] = useState(defaultLocale);
   async function submit(event: FormEvent) {
@@ -373,7 +373,7 @@ function EditorForm({
 }: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
   const labels = { ...blogsLabels, ...overrides },
     action = useBlogAction(labels),
-    id = useId(),
+    id = `factory-blog-form-${useId()}`,
     textarea = useRef<HTMLTextAreaElement>(null);
   const [base, setBase] = useState(article),
     [content, setContent] = useState<BlogContent>(() => ({

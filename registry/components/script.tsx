@@ -5,6 +5,7 @@
 // The registry imports this shim and never imports a framework script API.
 
 export interface ScriptProps extends React.ScriptHTMLAttributes<HTMLScriptElement> {
+  /** Caller-owned DOM ID; use the factory- prefix. Passed through unchanged. */
   id?: string;
   /** Framework hint — Next.js uses strategies; other frameworks ignore it. */
   strategy?: "afterInteractive" | "beforeInteractive" | "lazyOnload";

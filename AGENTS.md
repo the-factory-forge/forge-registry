@@ -80,6 +80,7 @@ in `tc-website`; this registry contains reusable components for multiple custome
 ## Read first and source of truth
 
 - [README.md](./README.md): overview, inventory, distribution, and commands.
+- [CONTEXT.md](./CONTEXT.md): DOM ID naming and screenshot integration.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.

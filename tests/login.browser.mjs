@@ -28,13 +28,25 @@ test("recovery validates email, blocks duplicates, and retains a failed draft", 
   assert.equal(await page.getByTestId("callback-count").textContent(), "0");
   await email.fill("person@example.com");
   await page.getByLabel("Simulate failure").check();
-  await page.locator("#main-content form").evaluate((form) => {
+  await page.locator("#factory-auth-main-content form").evaluate((form) => {
     form.requestSubmit();
     form.requestSubmit();
   });
   await page.getByRole("alert").waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "1");
   assert.equal(await email.inputValue(), "person@example.com");
+  const brokenReferences = await page.evaluate(() =>
+    [...document.querySelectorAll("[aria-describedby], [aria-labelledby], label[for]")].flatMap(
+      (element) =>
+        ["aria-describedby", "aria-labelledby", "for"].flatMap((attribute) =>
+          (element.getAttribute(attribute) ?? "")
+            .split(/\s+/)
+            .filter((id) => id.startsWith("factory-") && !document.getElementById(id)),
+        ),
+    ),
+  );
+  assert.deepEqual(brokenReferences, []);
+
   await page.getByLabel("Simulate failure").uncheck();
   assert.equal(await email.inputValue(), "person@example.com");
   await page.getByRole("button", { name: "Send reset link", exact: true }).click();
@@ -73,7 +85,7 @@ test("password forms validate, retain failed values, and clear successful creden
     assert.equal(await confirm.evaluate((element) => element === document.activeElement), true);
     await confirm.fill("new-password-123");
     await page.getByLabel("Simulate failure").check();
-    await page.locator("#main-content form").evaluate((form) => {
+    await page.locator("#factory-auth-main-content form").evaluate((form) => {
       form.requestSubmit();
       form.requestSubmit();
     });
@@ -154,7 +166,7 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
   const google = page.getByRole("button", { name: "Continue with Google", exact: true });
   await google.focus();
   await page.keyboard.press("Enter");
-  await page.locator("#main-content form").evaluate((form) => form.requestSubmit());
+  await page.locator("#factory-auth-main-content form").evaluate((form) => form.requestSubmit());
   await page.getByRole("alert").filter({ hasText: "Could not sign in with Google" }).waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "1");
   assert.equal(

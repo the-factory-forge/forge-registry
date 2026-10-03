@@ -51,7 +51,7 @@ export function ProjectForm({
   linkComponent: ProjectLink = Link,
   className,
 }: ProjectFormProps) {
-  const id = useId();
+  const id = `factory-project-form-${useId()}`;
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(() => projectFormValues(project, defaultOwnerId));
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormValues, string>>>({});

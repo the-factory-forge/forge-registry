@@ -1,7 +1,7 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
 import { PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -43,6 +43,7 @@ export function EmployeeActions({
   className,
 }: EmployeeActionsProps) {
   const labels = { ...employeeLabels, ...overrides };
+  const id = `factory-employee-edit-${useId()}`;
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pending, setPending] = useState(false);
@@ -142,10 +143,10 @@ export function EmployeeActions({
                 }}
               >
                 <div className="grid gap-2">
-                  <label htmlFor={`name-${employee.id}`}>{labels.name}</label>
+                  <label htmlFor={`${id}-name`}>{labels.name}</label>
                   <input
                     className={inputClass}
-                    id={`name-${employee.id}`}
+                    id={`${id}-name`}
                     name="name"
                     defaultValue={employee.name}
                     maxLength={200}
@@ -154,10 +155,10 @@ export function EmployeeActions({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <label htmlFor={`email-${employee.id}`}>{labels.email}</label>
+                  <label htmlFor={`${id}-email`}>{labels.email}</label>
                   <input
                     className={inputClass}
-                    id={`email-${employee.id}`}
+                    id={`${id}-email`}
                     name="email"
                     type="email"
                     defaultValue={employee.email}
@@ -166,9 +167,9 @@ export function EmployeeActions({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <label htmlFor={`role-${employee.id}`}>{labels.role}</label>
+                  <label htmlFor={`${id}-role`}>{labels.role}</label>
                   <select
-                    id={`role-${employee.id}`}
+                    id={`${id}-role`}
                     name="role"
                     defaultValue={isEmployeeAdmin(employee.role) ? "admin" : "user"}
                     disabled={pending || isSelf}

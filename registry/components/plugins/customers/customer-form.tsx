@@ -38,7 +38,7 @@ export function CustomerForm({
   passwordMinLength = 12,
   passwordMaxLength = 128,
 }: CustomerFormProps) {
-  const id = useId();
+  const id = `factory-customer-form-${useId()}`;
   const creating = !customer;
   const [values, setValues] = useState(() => customerFormValues(customer));
   const [password, setPassword] = useState("");

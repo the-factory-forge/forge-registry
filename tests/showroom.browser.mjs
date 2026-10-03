@@ -197,11 +197,13 @@ test("keyboard entry skips the showroom controls without changing the preview ha
       "Skip to preview",
     );
     await page.keyboard.press("Enter");
-    assert.equal(await page.evaluate(() => document.activeElement.id), "showroom-preview");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "factory-showroom-preview");
     assert.equal(page.url(), baseURL + path);
     await page.keyboard.press("Tab");
     assert.equal(
-      await page.evaluate(() => Boolean(document.activeElement.closest("#showroom-preview"))),
+      await page.evaluate(() =>
+        Boolean(document.activeElement.closest("#factory-showroom-preview")),
+      ),
       true,
     );
   }
@@ -217,7 +219,7 @@ test("expanded settings stay beside desktop previews and stack on mobile", async
     const controls = page.getByRole("complementary", { name: "Preview controls" });
     assert.equal(await controls.locator("details, summary").count(), 0);
     const rail = await controls.boundingBox();
-    const preview = await page.locator("#showroom-preview").boundingBox();
+    const preview = await page.locator("#factory-showroom-preview").boundingBox();
     assert.equal(rail.y, 56, path);
     assert.equal(
       rail.x + rail.width,
@@ -260,7 +262,7 @@ test("expanded settings stay beside desktop previews and stack on mobile", async
       const rail = await page
         .getByRole("complementary", { name: "Preview controls" })
         .boundingBox();
-      const preview = await page.locator("#showroom-preview").boundingBox();
+      const preview = await page.locator("#factory-showroom-preview").boundingBox();
       assert.ok(rail.y + rail.height <= preview.y, path);
       const header = await page
         .getByRole("navigation", { name: "Showroom navigation" })
@@ -272,5 +274,5 @@ test("expanded settings stay beside desktop previews and stack on mobile", async
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(baseURL);
   assert.equal(await page.locator(".showroom-controls").count(), 0);
-  assert.equal((await page.locator("#showroom-preview").boundingBox()).width, 1280);
+  assert.equal((await page.locator("#factory-showroom-preview").boundingBox()).width, 1280);
 });

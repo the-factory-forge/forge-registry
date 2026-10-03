@@ -112,7 +112,7 @@ export function BlogIndexPage({
           {labels.publicTitle}
         </h1>
         <form action={actionHref} method="get" className="flex max-w-lg gap-2">
-          <label className="sr-only" htmlFor="blog-search">
+          <label className="sr-only" htmlFor="factory-blog-search">
             {labels.search}
           </label>
           <div className="relative min-w-0 flex-1">
@@ -121,7 +121,7 @@ export function BlogIndexPage({
               className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
-              id="blog-search"
+              id="factory-blog-search"
               name="search"
               defaultValue={search}
               placeholder={`${labels.search}...`}

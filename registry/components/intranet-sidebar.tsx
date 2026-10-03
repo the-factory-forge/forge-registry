@@ -119,7 +119,7 @@ export function IntranetSidebarProvider({
     () => false,
   );
   const open = controlledOpen ?? localOpen;
-  const id = React.useId();
+  const id = `factory-intranet-sidebar-${React.useId()}`;
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const sidebarHadFocus = React.useRef(false);
   const toggle = React.useCallback(() => {

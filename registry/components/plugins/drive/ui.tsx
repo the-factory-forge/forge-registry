@@ -163,7 +163,7 @@ export function EntryDialog({
   const [error, setError] = useState<string>();
   const [preview, setPreview] = useState<DriveDeletePreview>();
   const lock = useRef(false);
-  const fieldId = useId();
+  const fieldId = `factory-drive-field-${useId()}`;
   const title = deleting ? labels.deleteTitle : entry ? labels.rename : labels.newFolder;
   async function loadPreview() {
     if (!entry || lock.current) return;

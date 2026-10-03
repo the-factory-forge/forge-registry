@@ -63,8 +63,21 @@ test("table searches are independent, keyboard accessible and contained on narro
   const employees = page.getByRole("region", { name: "Employees", exact: true });
   const projects = page.getByRole("region", { name: "Projects", exact: true });
   const employeeSearch = employees.getByRole("searchbox");
+  const ids = await page
+    .locator('input[type="search"]')
+    .evaluateAll((inputs) => inputs.map((input) => input.id));
+  assert.ok(ids.length >= 2 && ids.every((id) => id.startsWith("factory-table-search-")));
+  assert.equal(new Set(ids).size, ids.length);
+
   await employees.getByRole("button", { name: "Search employees", exact: true }).focus();
   assert.equal(await employeeSearch.evaluate((el) => el === document.activeElement), true);
+  assert.equal(
+    await employees
+      .getByRole("button", { name: "Search employees", exact: true })
+      .getAttribute("aria-controls"),
+    await employeeSearch.getAttribute("id"),
+  );
+
   await employeeSearch.fill("zoe developer");
   assert.equal(await employees.getByRole("row").count(), 2);
   assert.equal(await projects.getByRole("row").count(), 4);
