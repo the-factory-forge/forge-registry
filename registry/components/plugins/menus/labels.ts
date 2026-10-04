@@ -7,6 +7,17 @@ export interface MenusLabels {
   soldOut: string;
   allergens: string;
   dietary: string;
+  spiceLevel?: string;
+  notSpicy?: string;
+  mildSpice?: string;
+  mediumSpice?: string;
+  hotSpice?: string;
+  excludeAllergens?: string;
+  allergenFilterHelp?: string;
+  dietaryFilterHelp?: string;
+  clearFilters?: string;
+  matchingItems?: string;
+  noFilterMatches?: string;
   items: string;
   emptyItems: string;
   categories: string;
@@ -27,6 +38,12 @@ export interface MenusLabels {
   description: string;
   category: string;
   price: string;
+  sizes?: string;
+  addSize?: string;
+  sizeName?: string;
+  removeSize?: string;
+  sizeHelp?: string;
+  baseSizeNameRequired?: string;
   position: string;
   visible: string;
   unavailable: string;
@@ -47,7 +64,7 @@ export interface MenusLabels {
   no: string;
 }
 
-export const menusLabels: MenusLabels = {
+export const menusLabels = {
   clearSearch: "Clear search",
   search: "Search menu items",
   noMatches: "No menu items match your search.",
@@ -56,6 +73,17 @@ export const menusLabels: MenusLabels = {
   soldOut: "Sold out",
   allergens: "Allergens",
   dietary: "Dietary",
+  spiceLevel: "Spice level",
+  notSpicy: "Not spicy",
+  mildSpice: "Mildly spicy",
+  mediumSpice: "Spicy",
+  hotSpice: "Extremely spicy",
+  excludeAllergens: "Exclude allergens",
+  allergenFilterHelp: "Hide dishes with any selected allergen.",
+  dietaryFilterHelp: "Show dishes with every selected dietary label.",
+  clearFilters: "Clear filters",
+  matchingItems: "Matching dishes",
+  noFilterMatches: "No dishes match these filters.",
   items: "Menu items",
   emptyItems: "No menu items yet.",
   categories: "Categories",
@@ -76,6 +104,12 @@ export const menusLabels: MenusLabels = {
   description: "Description",
   category: "Category",
   price: "Price",
+  sizes: "Sizes",
+  addSize: "Add size",
+  sizeName: "Size name",
+  removeSize: "Remove size",
+  sizeHelp: "Translate size names in the selected language. The first size is the default price.",
+  baseSizeNameRequired: "Enter every size name in the base language.",
   position: "Display order",
   visible: "Visible on menu",
   unavailable: "Sold out",
@@ -94,4 +128,4 @@ export const menusLabels: MenusLabels = {
   deleteLabel: "Delete label",
   yes: "Yes",
   no: "No",
-};
+} satisfies MenusLabels;

@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  getMenuFilterLabels,
+  getMenuLabelPreset,
+  menuLabelPresets,
+} from "../registry/components/plugins/menus/label-presets.ts";
+import {
   buildMenu,
   MenuError,
   parsePrice,
@@ -60,4 +65,177 @@ test("price parsing is exact and item validation rejects malformed input", () =>
       validateItem({ ...item, translations: { fr: { name: "Burrata", description: "" } } }, "en"),
     MenuError,
   );
+});
+
+test("spice levels default to zero, reach the public menu, and reject invalid values", () => {
+  assert.equal(validateItem(item, "en").spiceLevel, 0);
+  assert.equal(buildMenu([item], [category], [label], "en", "en")[0].items[0].spiceLevel, 0);
+  for (const spiceLevel of [0, 1, 2, 3]) {
+    const input = validateItem({ ...item, spiceLevel }, "en");
+    assert.equal(input.spiceLevel, spiceLevel);
+    assert.equal(
+      buildMenu([{ ...item, ...input }], [category], [label], "en", "en")[0].items[0].spiceLevel,
+      spiceLevel,
+    );
+  }
+  for (const spiceLevel of [-1, 4, 1.5, "2", true, null, NaN])
+    assert.throws(() => validateItem({ ...item, spiceLevel }, "en"), MenuError);
+});
+
+test("size prices normalize the default price and localize each size with fallback", () => {
+  assert.deepEqual(validateItem(item, "en").sizes, []);
+  assert.deepEqual(buildMenu([item], [category], [label], "en", "en")[0].items[0].sizes, []);
+  const sizes = [
+    { id: "small", priceMinor: 2200, translations: { en: " Small ", fr: "Petite" } },
+    { id: "large", priceMinor: 2800, translations: { en: "Large", fr: " " } },
+  ];
+  const value = validateItem({ ...item, sizes }, "en");
+  assert.equal(value.priceMinor, 2200);
+  assert.equal(value.sizes[0].translations.en, "Small");
+  const result = buildMenu([{ ...item, ...value }], [category], [label], "fr", "en");
+  assert.deepEqual(result[0].items[0].sizes, [
+    { id: "small", priceMinor: 2200, name: "Petite" },
+    { id: "large", priceMinor: 2800, name: "Large" },
+  ]);
+  assert.equal(validateItem({ ...item, sizes: [] }, "en").priceMinor, 1450);
+  assert.equal(
+    validateItem({ ...item, sizes: [{ ...sizes[0], priceMinor: 0 }] }, "en").priceMinor,
+    0,
+  );
+});
+
+test("size validation rejects invalid prices, IDs, translations and oversized lists", () => {
+  const size = { id: "small", priceMinor: 2200, translations: { en: "Small" } };
+  for (const sizes of [
+    null,
+    {},
+    "small",
+    [null],
+    [size, size],
+    [{ ...size, id: "" }],
+    [{ ...size, id: " " }],
+    [{ ...size, id: "a".repeat(121) }],
+    [{ ...size, priceMinor: -1 }],
+    [{ ...size, priceMinor: 1.5 }],
+    [{ ...size, priceMinor: "2200" }],
+    [{ ...size, priceMinor: 1e9 + 1 }],
+    [{ ...size, translations: { fr: "Petite" } }],
+    [{ ...size, translations: { en: " " } }],
+    [{ ...size, translations: { en: "a".repeat(121) } }],
+    Array.from({ length: 21 }, (_, index) => ({ ...size, id: String(index) })),
+  ])
+    assert.throws(() => validateItem({ ...item, sizes }, "en"), MenuError);
+});
+
+test("default menu labels cover all allergen groups with translated icons and semantic colors", () => {
+  assert.deepEqual(
+    menuLabelPresets
+      .filter((label) => label.kind === "allergen")
+      .map((label) => label.translations.en)
+      .sort((a, b) => a.localeCompare(b)),
+    [
+      "Celery",
+      "Crustaceans",
+      "Eggs",
+      "Fish",
+      "Gluten",
+      "Lupin",
+      "Milk",
+      "Molluscs",
+      "Mustard",
+      "Peanuts",
+      "Sesame",
+      "Soy",
+      "Sulphites",
+      "Tree nuts",
+    ].sort((a, b) => a.localeCompare(b)),
+  );
+  assert.deepEqual(
+    menuLabelPresets
+      .filter((label) => label.kind === "dietary")
+      .map((label) => label.translations.en),
+    ["Vegetarian", "Vegan", "Pescatarian", "Halal", "Kosher"],
+  );
+  assert.equal(new Set(menuLabelPresets.map((label) => label.id)).size, menuLabelPresets.length);
+  for (const preset of menuLabelPresets) {
+    assert.match(
+      preset.id,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    for (const locale of ["en", "fr", "de", "it"]) assert.ok(preset.translations[locale]);
+    assert.ok(preset.icon);
+  }
+  assert.equal(
+    getMenuLabelPreset({ id: "host-milk", kind: "allergen", name: "Lait" }).tone,
+    "info",
+  );
+  assert.equal(
+    getMenuLabelPreset({ id: "host-gluten", kind: "allergen", name: "Gluten" }).tone,
+    "pending",
+  );
+  assert.equal(
+    getMenuLabelPreset({ id: "host-veggie", kind: "dietary", name: "Végétarien" }).tone,
+    "success",
+  );
+});
+
+test("public filters contain only visible items' labels and preserve host IDs and custom labels", () => {
+  const sections = buildMenu([item], [category], [label], "fr", "en");
+  const custom = { id: "custom", kind: "dietary", name: "Paleo" };
+  sections[0].items[0].labels.push(custom);
+  const filters = getMenuFilterLabels(sections, "fr-CH");
+  const milk = filters.filter((label) => label.name === "Lait");
+  assert.equal(milk.length, 1);
+  assert.equal(milk[0].id, "l");
+  assert.equal(filters.length, 2);
+  assert.equal(
+    filters.some((label) => label.name === "Végétalien"),
+    false,
+  );
+  assert.equal(
+    filters.some((label) => label.name === "Crustacés"),
+    false,
+  );
+  assert.ok(filters.some((label) => label.id === "custom"));
+  assert.equal(sections[0].items[0].labels.length, 2);
+  assert.deepEqual(getMenuFilterLabels(sections, "fr", []), [milk[0], custom]);
+  assert.deepEqual(getMenuFilterLabels([], "en"), []);
+  const unused = { id: "unused", kind: "allergen", name: "Eggs" };
+  assert.deepEqual(getMenuFilterLabels(sections, "fr", [unused]), [milk[0], custom]);
+  sections[0].items.push({
+    ...sections[0].items[0],
+    id: "hidden",
+    visible: false,
+    labels: [unused],
+  });
+  assert.deepEqual(getMenuFilterLabels(sections, "fr"), [milk[0], custom]);
+});
+
+test("filter choices sort alphabetically by localized names without changing item labels", () => {
+  const labels = [
+    { ...label, id: "milk", translations: { en: "Milk", fr: "Lait" } },
+    { ...label, id: "eggs", translations: { en: "Eggs", fr: "Œufs" } },
+    { ...label, id: "gluten", translations: { en: "Gluten", fr: "Gluten" } },
+    { ...label, id: "celery", translations: { en: "Celery", fr: "Céleri" } },
+    { ...label, id: "custom-spelt", translations: { en: "Spelt", fr: "Épeautre" } },
+  ];
+  for (const [locale, expected] of [
+    ["en", ["Celery", "Eggs", "Gluten", "Milk", "Spelt"]],
+    ["fr", ["Céleri", "Épeautre", "Gluten", "Lait", "Œufs"]],
+  ]) {
+    const sections = buildMenu(
+      [{ ...item, labelIds: labels.map((label) => label.id) }],
+      [category],
+      labels,
+      locale,
+      "en",
+    );
+    const original = [...sections[0].items[0].labels];
+    const filters = getMenuFilterLabels(sections, locale, [...original].reverse());
+    assert.deepEqual(
+      filters.map((label) => label.name),
+      expected,
+    );
+    assert.deepEqual(sections[0].items[0].labels, original);
+  }
 });

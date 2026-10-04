@@ -66,6 +66,12 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     const publicMenu = await menus.publicMenu("fr");
     assert.equal(publicMenu.length, 1);
     assert.equal(publicMenu[0].items[0].name, "Still available");
+    assert.equal(publicMenu[0].items[0].spiceLevel, 2);
+    assert.deepEqual(publicMenu[0].items[0].sizes, [
+      { id: "glass", priceMinor: 370, name: "2 dl" },
+      { id: "bottle", priceMinor: 2200, name: "1,5 l" },
+    ]);
+    assert.equal(publicMenu[0].items[0].priceMinor, 370);
     return;
   }
 
@@ -84,6 +90,47 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
       "utf8",
     ),
   );
+  const upgrade = await readFile(
+    new URL("../../registry/components/plugins/menus/server/spice-level.sql", import.meta.url),
+    "utf8",
+  );
+  await pool`insert into menu_category (id,position,translations) values ('legacy-category',0,'{"en":"Legacy"}'::jsonb)`;
+  await pool`insert into menu_item (id,version,category_id,price_minor,position,translations)
+    values ('legacy-item',1,'legacy-category',0,0,'{"en":{"name":"Legacy","description":""}}'::jsonb)`;
+  await pool.unsafe(upgrade);
+  assert.equal(
+    (await pool`select spice_level from menu_item where id='legacy-item'`)[0].spice_level,
+    0,
+  );
+  await pool`update menu_item set spice_level=3 where id='legacy-item'`;
+  await pool.unsafe(upgrade);
+  assert.equal(
+    (await pool`select spice_level from menu_item where id='legacy-item'`)[0].spice_level,
+    3,
+  );
+  await assert.rejects(
+    pool`update menu_item set spice_level=4 where id='legacy-item'`,
+    (error) => error.code === "23514",
+  );
+  const sizesUpgrade = await readFile(
+    new URL("../../registry/components/plugins/menus/server/sizes.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.unsafe(sizesUpgrade);
+  assert.deepEqual((await pool`select sizes from menu_item where id='legacy-item'`)[0].sizes, []);
+  const legacySizes = [{ id: "small", priceMinor: 900, translations: { en: "Small" } }];
+  await pool`update menu_item set sizes=${JSON.stringify(legacySizes)}::jsonb where id='legacy-item'`;
+  await pool.unsafe(sizesUpgrade);
+  assert.deepEqual(
+    (await pool`select sizes from menu_item where id='legacy-item'`)[0].sizes,
+    legacySizes,
+  );
+  await assert.rejects(
+    pool`update menu_item set sizes='{}'::jsonb where id='legacy-item'`,
+    (error) => error.code === "23514",
+  );
+  await pool`delete from menu_item where id='legacy-item'`;
+  await pool`delete from menu_category where id='legacy-category'`;
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   } catch (error) {
@@ -110,12 +157,23 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     position: 0,
     visible: false,
     soldOut: false,
+    spiceLevel: 1,
     imageEntryId: null,
     labelIds: [label.id],
     translations: { en: { name: "Burrata", description: "Fresh cheese" } },
   };
   await rejected(staff.create({ ...input, visible: true }), "INVALID");
-  const item = await staff.create(input);
+  await rejected(staff.create({ ...input, spiceLevel: 4 }), "INVALID");
+  const sizes = [
+    { id: "small", priceMinor: 900, translations: { en: "Small", fr: "Petite" } },
+    { id: "large", priceMinor: 1450, translations: { en: "Large" } },
+  ];
+  await rejected(staff.create({ ...input, sizes: [{ ...sizes[0], priceMinor: -1 }] }), "INVALID");
+  const item = await staff.create({ ...input, sizes });
+  assert.deepEqual((await staff.get(item.id)).sizes, sizes);
+  assert.equal(item.priceMinor, 900);
+  assert.equal(item.spiceLevel, 1);
+  assert.equal((await staff.get(item.id)).spiceLevel, 1);
   await rejected(staff.removeCategory(category.id), "IN_USE");
   await rejected(staff.removeLabel(label.id), "IN_USE");
   assert.deepEqual(await menus.publicMenu("fr"), []);
@@ -140,6 +198,11 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     ...input,
     visible: true,
     soldOut: true,
+    spiceLevel: 3,
+    sizes: [
+      { ...sizes[0], priceMinor: 1000 },
+      { ...sizes[1], priceMinor: 1650 },
+    ],
     imageEntryId: entry.id,
   });
   await rejected(staff.save(item.id, 1, input), "CONFLICT");
@@ -148,6 +211,22 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
   assert.equal(publicMenu[0].items[0].name, "Burrata");
   assert.equal(publicMenu[0].items[0].labels[0].name, "Lait");
   assert.equal(publicMenu[0].items[0].soldOut, true);
+  assert.equal(publicMenu[0].items[0].spiceLevel, 3);
+  assert.deepEqual(publicMenu[0].items[0].sizes, [
+    { id: "small", priceMinor: 1000, name: "Petite" },
+    { id: "large", priceMinor: 1650, name: "Large" },
+  ]);
+  const legacyInput = { ...input };
+  delete legacyInput.spiceLevel;
+  const retained = await staff.save(item.id, published.version, {
+    ...legacyInput,
+    visible: true,
+    soldOut: true,
+    imageEntryId: entry.id,
+  });
+  assert.equal(retained.spiceLevel, 3);
+  assert.deepEqual(retained.sizes, published.sizes);
+  assert.equal(retained.priceMinor, 1000);
   const response = await menus.readPublicImage(item.id);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.equal(response.headers.get("Content-Type"), "image/png");
@@ -159,11 +238,14 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
   );
   await rejected(staff.remove(item.id), "IN_USE");
 
-  const hidden = await staff.save(item.id, published.version, {
+  const hidden = await staff.save(item.id, retained.version, {
     ...input,
     visible: false,
+    sizes: [],
     imageEntryId: entry.id,
   });
+  assert.deepEqual(hidden.sizes, []);
+  assert.equal(hidden.priceMinor, 1450);
   await rejected(menus.readPublicImage(item.id), "NOT_FOUND");
   await staff.save(item.id, hidden.version, input);
   await driveClient.deleteEntry({ scope, entryId: entry.id, token: preview.token });
@@ -178,5 +260,10 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     ...input,
     visible: true,
     translations: { en: { name: "Still available", description: "" } },
+    spiceLevel: 2,
+    sizes: [
+      { id: "glass", priceMinor: 370, translations: { en: "2 dl" } },
+      { id: "bottle", priceMinor: 2200, translations: { en: "1.5 l", fr: "1,5 l" } },
+    ],
   });
 });

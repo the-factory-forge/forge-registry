@@ -985,7 +985,7 @@
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",
-      "description": "Translated restaurant menu, staff item editor, and category and dietary label management.",
+      "description": "Translated restaurant menu with size prices, category navigation, icon badges, spice levels, default allergen and dietary filters, and staff item and taxonomy editors.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/cn",
@@ -1024,6 +1024,21 @@
           "path": "registry/components/plugins/menus/admin.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/admin.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/label-presets.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/label-presets.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/label-badge.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/label-badge.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/spice-badge.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/spice-badge.tsx"
         }
       ]
     },
@@ -1031,7 +1046,7 @@
       "name": "menus-storage",
       "type": "registry:block",
       "title": "Menus storage",
-      "description": "Better Auth models and Drizzle service for restaurant menus with Drive-backed images.",
+      "description": "Better Auth models and Drizzle service for restaurant menus with size prices, spice levels and Drive-backed images.",
       "dependencies": ["better-auth@1.7.2", "drizzle-orm"],
       "registryDependencies": ["@forge/menus", "@forge/drive-storage"],
       "files": [
@@ -1059,6 +1074,16 @@
           "path": "registry/components/plugins/menus/server/migration.sql",
           "type": "registry:file",
           "target": "@components/plugins/menus/server/migration.sql"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/spice-level.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/menus/server/spice-level.sql"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/sizes.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/menus/server/sizes.sql"
         }
       ]
     },

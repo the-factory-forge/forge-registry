@@ -9,6 +9,7 @@ import {
   MenuPage,
   MenuTaxonomyPage,
   buildMenu,
+  menuLabelPresets,
   type MenuCategory,
   type MenuItem,
   type MenuLabel,
@@ -44,26 +45,12 @@ function createMock() {
       translations: { en: "Drinks", fr: "Boissons" },
     },
   ];
-  let labels: MenuLabel[] = [
-    {
-      id: "20000000-0000-4000-8000-000000000001",
-      kind: "dietary",
-      position: 0,
-      translations: { en: "Vegetarian", fr: "Végétarien" },
-    },
-    {
-      id: "20000000-0000-4000-8000-000000000002",
-      kind: "allergen",
-      position: 1,
-      translations: { en: "Milk", fr: "Lait" },
-    },
-    {
-      id: "20000000-0000-4000-8000-000000000003",
-      kind: "allergen",
-      position: 2,
-      translations: { en: "Gluten", fr: "Gluten" },
-    },
-  ];
+  let labels: MenuLabel[] = menuLabelPresets.map(({ id, kind, position, translations }) => ({
+    id,
+    kind,
+    position,
+    translations: { ...translations },
+  }));
   let items: MenuItem[] = [
     {
       id: "30000000-0000-4000-8000-000000000001",
@@ -85,11 +72,24 @@ function createMock() {
       version: 1,
       categoryId: categories[1].id,
       priceMinor: 2850,
+      sizes: [
+        {
+          id: "regular",
+          priceMinor: 2850,
+          translations: { en: "Regular", fr: "Normale", de: "Normal", it: "Normale" },
+        },
+        {
+          id: "large",
+          priceMinor: 3450,
+          translations: { en: "Large", fr: "Grande", de: "Groß", it: "Grande" },
+        },
+      ],
       position: 0,
       visible: true,
       soldOut: true,
+      spiceLevel: 2,
       imageEntryId: null,
-      labelIds: [labels[2].id],
+      labelIds: [labels[0].id, labels[2].id, labels[3].id],
       translations: {
         en: { name: "House pasta", description: "Seasonal vegetables and herb sauce." },
       },
@@ -268,7 +268,34 @@ export function MenuPublicPreview() {
   const mock = useMock();
   const { locale } = useShowroomParams();
   const sections = buildMenu(mock.items, mock.categories, mock.labels, locale, baseLocale);
-  return <MenuPage sections={sections} locale={locale} currency="CHF" className="showroom-page" />;
+  return (
+    <MenuPage
+      sections={sections}
+      locale={locale}
+      currency="CHF"
+      className="showroom-page [--menu-top-offset:var(--showroom-top-offset)]"
+      labels={
+        locale === "fr"
+          ? {
+              categories: "Catégories",
+              sizes: "Tailles",
+              price: "Prix",
+              allergens: "Allergènes",
+              dietary: "Régimes alimentaires",
+              mildSpice: "Peu épicé",
+              mediumSpice: "Épicé",
+              hotSpice: "Extrêmement épicé",
+              excludeAllergens: "Exclure les allergènes",
+              allergenFilterHelp: "Masquer les plats contenant un allergène sélectionné.",
+              dietaryFilterHelp: "Afficher les plats avec tous les régimes sélectionnés.",
+              clearFilters: "Effacer les filtres",
+              matchingItems: "Plats correspondants",
+              noFilterMatches: "Aucun plat ne correspond à ces filtres.",
+            }
+          : undefined
+      }
+    />
+  );
 }
 
 export function MenuAdminPreview() {

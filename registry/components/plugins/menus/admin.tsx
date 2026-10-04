@@ -8,8 +8,10 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Link, type LinkProps } from "@/components/link";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
+import { MenuLabelBadge } from "@/components/plugins/menus/label-badge";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
 import { parsePrice } from "@/components/plugins/menus/model";
+import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
 import type {
   MenuCategory,
   MenuItem,
@@ -348,6 +350,7 @@ export function MenuItemEditorPage({
           position: item.position,
           visible: item.visible,
           soldOut: item.soldOut,
+          spiceLevel: item.spiceLevel ?? 0,
           imageEntryId: item.imageEntryId,
           labelIds: [...item.labelIds],
           translations: { ...item.translations },
@@ -358,6 +361,7 @@ export function MenuItemEditorPage({
           position: 0,
           visible: false,
           soldOut: false,
+          spiceLevel: 0,
           imageEntryId: null,
           labelIds: [],
           translations: { [baseLocale]: { name: "", description: "" } },
@@ -372,6 +376,13 @@ export function MenuItemEditorPage({
   const formatter = new Intl.NumberFormat(baseLocale, { style: "currency", currency });
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
   const [price, setPrice] = useState((draft.priceMinor / 10 ** digits).toFixed(digits));
+  const [sizes, setSizes] = useState(() =>
+    (item?.sizes ?? []).map((size) => ({
+      id: size.id,
+      price: (size.priceMinor / 10 ** digits).toFixed(digits),
+      translations: { ...size.translations },
+    })),
+  );
   const updateTranslation = (locale: string, patch: Partial<MenuItem["translations"][string]>) =>
     setDraft((current) => ({
       ...current,
@@ -391,7 +402,21 @@ export function MenuItemEditorPage({
         setFeedback({ error: true, text: labels.baseNameRequired });
         return;
       }
-      const input = { ...draft, priceMinor: parsePrice(price, digits) };
+      if (sizes.some((size) => !size.translations[baseLocale]?.trim())) {
+        setSelectedLocale(baseLocale);
+        setFeedback({ error: true, text: labels.baseSizeNameRequired });
+        return;
+      }
+      const sizePrices = sizes.map((size) => ({
+        id: size.id,
+        priceMinor: parsePrice(size.price, digits),
+        translations: size.translations,
+      }));
+      const input = {
+        ...draft,
+        priceMinor: sizePrices[0]?.priceMinor ?? parsePrice(price, digits),
+        sizes: sizePrices,
+      };
       const saved = item
         ? await client.save(item.id, savedVersion ?? item.version, input)
         : await client.create(input);
@@ -434,18 +459,20 @@ export function MenuItemEditorPage({
               ))}
             </select>
           </label>
-          <label className="space-y-1">
-            <span>
-              {labels.price} ({currency})
-            </span>
-            <input
-              className={field}
-              inputMode="decimal"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              required
-            />
-          </label>
+          {sizes.length === 0 ? (
+            <label className="space-y-1">
+              <span>
+                {labels.price} ({currency})
+              </span>
+              <input
+                className={field}
+                inputMode="decimal"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                required
+              />
+            </label>
+          ) : null}
           <label className="space-y-1">
             <span>{labels.position}</span>
             <input
@@ -513,6 +540,107 @@ export function MenuItemEditorPage({
             );
           })}
         </Tabs.Root>
+        <fieldset className="min-w-0 space-y-3">
+          <legend className="font-medium">{labels.sizes}</legend>
+          <p className="text-sm text-muted-foreground">{labels.sizeHelp}</p>
+          {sizes.map((size, index) => (
+            <div key={size.id} className="flex items-end gap-2 rounded-xl border border-border p-3">
+              <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                <label className="min-w-0 space-y-1">
+                  <span>
+                    {labels.sizeName} ({selectedLocale}) {index + 1}
+                  </span>
+                  <input
+                    className={field}
+                    value={size.translations[selectedLocale] ?? ""}
+                    maxLength={120}
+                    onChange={(event) =>
+                      setSizes((current) =>
+                        current.map((entry) =>
+                          entry.id === size.id
+                            ? {
+                                ...entry,
+                                translations: {
+                                  ...entry.translations,
+                                  [selectedLocale]: event.target.value,
+                                },
+                              }
+                            : entry,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+                <label className="min-w-0 space-y-1">
+                  <span>
+                    {labels.price} ({currency}) {index + 1}
+                  </span>
+                  <input
+                    className={field}
+                    inputMode="decimal"
+                    value={size.price}
+                    required
+                    onChange={(event) =>
+                      setSizes((current) =>
+                        current.map((entry) =>
+                          entry.id === size.id ? { ...entry, price: event.target.value } : entry,
+                        ),
+                      )
+                    }
+                  />
+                </label>
+              </div>
+              <DeleteControl
+                label={`${labels.removeSize}: ${size.translations[baseLocale] || index + 1}`}
+                confirm={labels.confirmDelete}
+                cancel={labels.cancel}
+                errorMessage={labels.error}
+                onDelete={async () => {}}
+                onDone={() =>
+                  setSizes((current) => current.filter((entry) => entry.id !== size.id))
+                }
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className={outlineButton}
+            disabled={sizes.length >= 20}
+            onClick={() =>
+              setSizes((current) => [
+                ...current,
+                { id: crypto.randomUUID(), price, translations: { [baseLocale]: "" } },
+              ])
+            }
+          >
+            <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
+            {labels.addSize}
+          </button>
+        </fieldset>
+        <fieldset className="space-y-2">
+          <legend className="font-medium">{labels.spiceLevel}</legend>
+          <div className="flex flex-wrap gap-2">
+            {([0, 1, 2, 3] as const).map((level) => (
+              <label
+                key={level}
+                className={cn(
+                  "inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2",
+                  draft.spiceLevel === level && "ring-2 ring-ring",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="spiceLevel"
+                  value={level}
+                  checked={draft.spiceLevel === level}
+                  className="size-4 shrink-0 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  onChange={() => setDraft((current) => ({ ...current, spiceLevel: level }))}
+                />
+                {level === 0 ? labels.notSpicy : <MenuSpiceBadge level={level} labels={labels} />}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <fieldset className="space-y-2">
           <legend className="font-medium">{labels.labels}</legend>
           <div className="flex flex-wrap gap-4">
@@ -530,7 +658,9 @@ export function MenuItemEditorPage({
                     }))
                   }
                 />
-                {label.translations[baseLocale]}
+                <MenuLabelBadge
+                  label={{ id: label.id, kind: label.kind, name: label.translations[baseLocale] }}
+                />
               </label>
             ))}
           </div>

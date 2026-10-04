@@ -5,6 +5,7 @@ import type {
   MenuItemInput,
   MenuLabel,
   MenuLabelInput,
+  MenuSpiceLevel,
   MenuTranslation,
   MenuViewCategory,
 } from "@/components/plugins/menus/types";
@@ -29,6 +30,8 @@ const fail = (condition: unknown) => {
   if (!condition) throw new MenuError("INVALID");
 };
 const position = (value: number) => fail(Number.isSafeInteger(value) && value >= 0);
+const validPrice = (value: number) =>
+  fail(Number.isSafeInteger(value) && value >= 0 && value <= 1e9);
 
 export function validateTranslations(
   input: Record<string, string | MenuTranslation>,
@@ -61,15 +64,36 @@ export function validateTranslations(
 export function validateItem(input: MenuItemInput, baseLocale: string) {
   fail(input && typeof input === "object");
   fail(typeof input.categoryId === "string" && !!input.categoryId);
-  fail(Number.isSafeInteger(input.priceMinor) && input.priceMinor >= 0 && input.priceMinor <= 1e9);
+  validPrice(input.priceMinor);
+  const sizes = input.sizes === undefined ? [] : input.sizes;
+  fail(Array.isArray(sizes) && sizes.length <= 20);
+  const validatedSizes = sizes.map((size) => {
+    fail(size && typeof size === "object" && !Array.isArray(size));
+    fail(typeof size.id === "string" && !!size.id.trim() && size.id.length <= 120);
+    validPrice(size.priceMinor);
+    return {
+      id: size.id,
+      priceMinor: size.priceMinor,
+      translations: validateTranslations(size.translations, baseLocale, false) as Record<
+        string,
+        string
+      >,
+    };
+  });
+  fail(new Set(validatedSizes.map((size) => size.id)).size === validatedSizes.length);
   position(input.position);
   fail(typeof input.visible === "boolean" && typeof input.soldOut === "boolean");
+  const spiceLevel = input.spiceLevel === undefined ? 0 : input.spiceLevel;
+  fail(Number.isInteger(spiceLevel) && spiceLevel >= 0 && spiceLevel <= 3);
   fail(input.imageEntryId === null || typeof input.imageEntryId === "string");
   fail(Array.isArray(input.labelIds) && input.labelIds.length <= 40);
   fail(input.labelIds.every((id) => typeof id === "string" && !!id));
   fail(new Set(input.labelIds).size === input.labelIds.length);
   return {
     ...input,
+    priceMinor: validatedSizes[0]?.priceMinor ?? input.priceMinor,
+    sizes: validatedSizes,
+    spiceLevel: spiceLevel as MenuSpiceLevel,
     translations: validateTranslations(input.translations, baseLocale, true) as Record<
       string,
       MenuTranslation
@@ -144,9 +168,15 @@ export function buildMenu(
             version: item.version,
             categoryId: item.categoryId,
             priceMinor: item.priceMinor,
+            sizes: (item.sizes ?? []).map((size) => ({
+              id: size.id,
+              priceMinor: size.priceMinor,
+              name: localized(size.translations, locale, baseLocale),
+            })),
             position: item.position,
             visible: item.visible,
             soldOut: item.soldOut,
+            spiceLevel: item.spiceLevel ?? 0,
             imageEntryId: item.imageEntryId,
             name: translation.name,
             description: translation.description,

@@ -43,7 +43,98 @@ test("homepage links, public visibility, sold out labels, language fallback, and
   await page.getByRole("heading", { name: "Burrata aux tomates" }).waitFor();
   await page.getByRole("heading", { name: "House pasta" }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+
+test("category tabs scroll, track sections, translate, and follow dish filters", async (t) => {
+  const page = await preview(t, "/en/menus");
+  await page.setViewportSize({ width: 390, height: 480 });
+  const navigation = page.getByRole("navigation", { name: "Categories", exact: true });
+  assert.deepEqual(await navigation.getByRole("link").allTextContents(), [
+    "Starters",
+    "Main courses",
+  ]);
+  const main = navigation.getByRole("link", { name: "Main courses", exact: true });
+  await main.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () =>
+      document.querySelector('nav[aria-label="Categories"] a[aria-current="location"]')
+        ?.textContent === "Main courses",
+  );
+  assert.match(await main.getAttribute("href"), /^#factory-/);
+  assert.equal(await page.locator("article").count(), 2);
+  assert.equal(
+    await navigation.evaluate((element) => Math.round(element.getBoundingClientRect().top)),
+    56,
+  );
+  assert.equal(
+    await page
+      .getByRole("region", { name: "Main courses", exact: true })
+      .evaluate((element) => element.getBoundingClientRect().top >= 112),
+    true,
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForFunction(
+    () =>
+      document.querySelector('nav[aria-label="Categories"] a[aria-current="location"]')
+        ?.textContent === "Starters",
+  );
+  await page.getByRole("checkbox", { name: "Milk", exact: true }).check();
+  assert.deepEqual(await navigation.getByRole("link").allTextContents(), ["Main courses"]);
+  await page.getByRole("checkbox", { name: "Gluten", exact: true }).check();
+  assert.equal(await navigation.count(), 0);
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  assert.equal(await navigation.getByRole("link").count(), 2);
+  await page.getByRole("link", { name: "French menu" }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  const french = page.getByRole("navigation", { name: "Catégories", exact: true });
+  assert.deepEqual(await french.getByRole("link").allTextContents(), [
+    "Entrées",
+    "Plats principaux",
+  ]);
+  await french.getByRole("link", { name: "Plats principaux" }).click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('nav[aria-label="Catégories"] a[aria-current="location"]')
+        ?.textContent === "Plats principaux",
+  );
+  assert.equal(await page.locator("article").count(), 2);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("link", { name: "Manage menu" }).click();
+  await page.getByRole("link", { name: "Categories / Labels" }).click();
+  await page
+    .getByRole("listitem")
+    .filter({ has: page.getByText("Main courses", { exact: true }) })
+    .getByRole("button", { name: "Edit category", exact: true })
+    .click();
+  const editor = page.getByRole("dialog", { name: "Edit category", exact: true });
+  const categoryName = "Tapas, soupes et plats végétariens de saison";
+  await editor.getByRole("textbox", { name: "Name (Français)", exact: true }).fill(categoryName);
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await editor.waitFor({ state: "hidden" });
+  await page.getByRole("link", { name: "Public menu" }).click();
+  assert.equal(await french.getByRole("link", { name: categoryName, exact: true }).count(), 1);
+  await page.waitForFunction(() => window.scrollY === 0);
+  assert.equal(
+    await french.evaluate(async (element) => {
+      if (element.scrollWidth <= element.clientWidth) return false;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      element.scrollLeft = element.scrollWidth;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return element.scrollLeft > 0;
+    }),
+    true,
+    await french.evaluate((element) =>
+      JSON.stringify({
+        width: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        scrollLeft: element.scrollLeft,
+        tabs: element.textContent,
+      }),
+    ),
+  );
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
 
@@ -60,7 +151,10 @@ test("staff creates, edits, and publishes an item; failure retains the draft", a
     "true",
   );
   await page.getByRole("textbox", { name: "Name *" }).fill("Seasonal soup");
-  await page.getByRole("textbox", { name: "Description" }).fill("A changing selection.");
+  await page
+    .getByRole("tabpanel", { name: "English", exact: true })
+    .getByRole("textbox", { name: "Description" })
+    .fill("A changing selection.");
   await frenchTab.focus();
   await page.keyboard.press("Enter");
   assert.equal(await frenchTab.getAttribute("aria-selected"), "true");
@@ -93,20 +187,312 @@ test("staff creates, edits, and publishes an item; failure retains the draft", a
   await page.getByRole("heading", { name: "Soupe de saison" }).waitFor();
 });
 
+test("public allergen and dietary filters combine, clear, and translate on mobile", async (t) => {
+  const page = await preview(t, "/en/menus");
+  const allergens = page.getByRole("group", { name: "Exclude allergens" });
+  const dietary = page.getByRole("group", { name: "Dietary", exact: true });
+  const clear = page.getByRole("button", { name: "Clear filters" });
+  assert.equal(await clear.isDisabled(), true);
+  assert.equal(await allergens.getByRole("checkbox").count(), 2);
+  assert.equal(await dietary.getByRole("checkbox").count(), 2);
+  assert.deepEqual(await allergens.locator("label").allTextContents(), ["Gluten", "Milk"]);
+  assert.deepEqual(await dietary.locator("label").allTextContents(), ["Vegan", "Vegetarian"]);
+  assert.equal(
+    await allergens.getByRole("checkbox", { name: "Crustaceans", exact: true }).count(),
+    0,
+  );
+  assert.equal(await dietary.getByRole("checkbox", { name: "Halal", exact: true }).count(), 0);
+  assert.equal(await dietary.getByRole("checkbox", { name: "Spicy", exact: true }).count(), 0);
+  const burrata = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Burrata with tomatoes" }) });
+  const pasta = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "House pasta" }) });
+  assert.match(
+    await burrata
+      .getByRole("list", { name: "Allergens" })
+      .locator("span")
+      .first()
+      .getAttribute("class"),
+    /bg-status-info/,
+  );
+  assert.match(
+    await burrata
+      .getByRole("list", { name: "Dietary" })
+      .locator("span")
+      .first()
+      .getAttribute("class"),
+    /bg-status-success/,
+  );
+  assert.match(
+    await pasta
+      .getByRole("list", { name: "Allergens" })
+      .locator("span")
+      .first()
+      .getAttribute("class"),
+    /bg-status-pending/,
+  );
+  assert.equal(await burrata.locator('svg[aria-hidden="true"]').count(), 2);
+  assert.equal(
+    await pasta.getByText("Spicy", { exact: true }).locator("..").locator("svg").count(),
+    2,
+  );
+  const milk = allergens.getByRole("checkbox", { name: "Milk", exact: true });
+  await milk.focus();
+  await page.keyboard.press("Space");
+  assert.equal(await page.getByRole("heading", { name: "Burrata with tomatoes" }).count(), 0);
+  assert.equal(await page.getByRole("heading", { name: "Starters", exact: true }).count(), 0);
+  await page.getByRole("heading", { name: "House pasta" }).waitFor();
+  await page.getByText("Sold out", { exact: true }).waitFor();
+  await allergens.getByRole("checkbox", { name: "Gluten", exact: true }).check();
+  await page.getByRole("status").filter({ hasText: "No dishes match these filters." }).waitFor();
+  assert.equal(await page.locator("article").count(), 0);
+  assert.equal(await allergens.getByRole("checkbox").count(), 2);
+  await clear.click();
+  await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
+  await dietary.getByRole("checkbox", { name: "Vegetarian", exact: true }).check();
+  assert.equal(await page.locator("article").count(), 2);
+  await dietary.getByRole("checkbox", { name: "Vegan", exact: true }).check();
+  assert.equal(await page.locator("article").count(), 1);
+  await page.getByRole("heading", { name: "House pasta" }).waitFor();
+  await allergens.getByRole("checkbox", { name: "Gluten", exact: true }).check();
+  await page.getByRole("status").filter({ hasText: "No dishes match these filters." }).waitFor();
+  await clear.click();
+  assert.equal(await page.locator("article").count(), 2);
+  assert.equal(await page.getByRole("checkbox", { checked: true }).count(), 0);
+  await page.getByRole("link", { name: "French menu" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await page
+    .getByRole("group", { name: "Exclure les allergènes" })
+    .getByRole("checkbox", { name: "Lait", exact: true })
+    .check();
+  await page
+    .getByRole("group", { name: "Régimes alimentaires", exact: true })
+    .getByRole("checkbox", { name: "Végétalien", exact: true })
+    .check();
+  await page.getByRole("heading", { name: "House pasta" }).waitFor();
+  assert.equal(await page.locator("article").count(), 1);
+  await page.getByRole("button", { name: "Effacer les filtres" }).click();
+  await page.getByRole("heading", { name: "Burrata aux tomates" }).waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  assert.deepEqual(
+    await page
+      .getByRole("group", { name: "Exclure les allergènes", exact: true })
+      .locator("label")
+      .allTextContents(),
+    ["Gluten", "Lait"],
+  );
+  assert.deepEqual(
+    await page
+      .getByRole("group", { name: "Régimes alimentaires", exact: true })
+      .locator("label")
+      .allTextContents(),
+    ["Végétalien", "Végétarien"],
+  );
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
+  const editorLabels = page.getByRole("group", { name: "Labels", exact: true });
+  assert.equal(await editorLabels.getByRole("checkbox").count(), 19);
+  await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  const pescatarian = page
+    .getByRole("group", { name: "Régimes alimentaires", exact: true })
+    .getByRole("checkbox", { name: "Pescétarien", exact: true });
+  await pescatarian.check();
+  assert.equal(await page.locator("article").count(), 1);
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
+  await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).uncheck();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
+  assert.equal(await pescatarian.count(), 0);
+});
+
+test("staff sets independent spice levels with one, two or three flames and can clear them", async (t) => {
+  const page = await preview(t, "/en/admin/menus");
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const [level, text] of [
+    [1, "Mildly spicy"],
+    [2, "Spicy"],
+    [3, "Extremely spicy"],
+  ]) {
+    await page.getByRole("link", { name: "Edit item: House pasta" }).click();
+    const spices = page.getByRole("group", { name: "Spice level", exact: true });
+    assert.equal(await spices.getByRole("radio").count(), 4);
+    await spices.getByRole("radio", { name: text, exact: true }).check();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+    await page.getByRole("link", { name: "Public menu", exact: true }).click();
+    const pasta = page
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name: "House pasta" }) });
+    await pasta.getByText(text, { exact: true }).waitFor();
+    assert.equal(
+      await pasta.getByText(text, { exact: true }).locator("..").locator("svg").count(),
+      level,
+    );
+    assert.equal(
+      await page
+        .getByRole("group", { name: "Dietary", exact: true })
+        .getByRole("checkbox", { name: "Spicy", exact: true })
+        .count(),
+      0,
+    );
+    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  }
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  await page.getByRole("link", { name: "French menu", exact: true }).click();
+  await page.getByText("Extrêmement épicé", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByText("Extrêmement épicé", { exact: true }).locator("..").locator("svg").count(),
+    3,
+  );
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: House pasta" }).click();
+  assert.equal(
+    await page.getByRole("radio", { name: "Extremely spicy", exact: true }).isChecked(),
+    true,
+  );
+  await page.getByRole("radio", { name: "Not spicy", exact: true }).check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
+  assert.equal(await page.getByText("Extrêmement épicé", { exact: true }).count(), 0);
+});
+
+test("staff saves translated size prices and guests select sizes with keyboard controls", async (t) => {
+  const page = await preview(t, "/en/admin/menus");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("link", { name: "New item", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name *", exact: true }).fill("Margherita pizza");
+  await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("22.00");
+  await page.getByRole("button", { name: "Add size", exact: true }).click();
+  await page.getByRole("button", { name: "Add size", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).count(), 0);
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await page.getByRole("textbox", { name: "Size name (fr) 1", exact: true }).fill("Petite · 30 cm");
+  await page
+    .getByRole("textbox", { name: "Size name (fr) 2", exact: true })
+    .fill("Familiale · 40 cm");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Enter every size name in the base language." })
+    .waitFor();
+  assert.equal(
+    await page.getByRole("tab", { name: "English", exact: true }).getAttribute("aria-selected"),
+    "true",
+  );
+  await page.getByRole("textbox", { name: "Size name (en) 1", exact: true }).fill("Small · 30 cm");
+  await page.getByRole("textbox", { name: "Size name (en) 2", exact: true }).fill("Family · 40 cm");
+  await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("28.005");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "The change could not be saved." }).waitFor();
+  assert.equal(
+    await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
+    "28.005",
+  );
+  await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("28.00");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("heading", { name: "Edit item", exact: true }).waitFor();
+  await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  const pizza = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Margherita pizza", exact: true }) });
+  const sizeGroup = pizza.getByRole("group", { name: "Sizes", exact: true });
+  const small = sizeGroup.getByRole("radio", { name: /Small · 30 cm/ });
+  const large = sizeGroup.getByRole("radio", { name: /Family · 40 cm/ });
+  await small.waitFor();
+  assert.equal(await small.isChecked(), true);
+  assert.match(
+    await pizza.getByRole("status", { name: "Price", exact: true }).textContent(),
+    /22\.00/,
+  );
+  await small.focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await large.isChecked(), true);
+  assert.match(
+    await pizza.getByRole("status", { name: "Price", exact: true }).textContent(),
+    /28\.00/,
+  );
+  const burrata = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: "Burrata with tomatoes", exact: true }) });
+  assert.equal(await burrata.getByRole("radio").count(), 0);
+  await page.getByRole("checkbox", { name: "Milk", exact: true }).check();
+  assert.equal(await large.isChecked(), true);
+  await page.getByRole("link", { name: "French menu", exact: true }).click();
+  await pizza
+    .getByRole("group", { name: "Tailles", exact: true })
+    .getByRole("radio", { name: /Familiale · 40 cm/ })
+    .check();
+  assert.match(
+    await pizza.getByRole("status", { name: "Prix", exact: true }).textContent(),
+    /28,00/,
+  );
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: Margherita pizza", exact: true }).click();
+  assert.equal(
+    await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
+    "28.00",
+  );
+  await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("29.00");
+  await page.getByText("Fail mutations").locator("input").check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("alert").waitFor();
+  assert.equal(
+    await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
+    "29.00",
+  );
+  await page.getByText("Fail mutations").locator("input").uncheck();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  for (const name of ["Small · 30 cm", "Family · 40 cm"]) {
+    await page.getByRole("button", { name: `Remove size: ${name}`, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: `Remove size: ${name}`, exact: true });
+    await dialog.getByRole("button", { name: "Confirm deletion", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+  }
+  await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("24.00");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  await pizza.getByRole("heading", { name: "Margherita pizza", exact: true }).waitFor();
+  assert.equal(await pizza.getByRole("group").count(), 0);
+  assert.match(
+    await pizza.getByRole("status", { name: "Prix", exact: true }).textContent(),
+    /24,00/,
+  );
+});
+
 test("staff taxonomy and nested photo folders work with keyboard navigation on mobile", async (t) => {
   const page = await preview(t, "/en/admin/menus");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await page.getByRole("link", { name: "Categories / Labels" }).click();
   const addLabel = page.getByRole("button", { name: "New label" });
   await addLabel.focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "New label" });
-  await dialog.getByRole("textbox", { name: "Name (English) *" }).fill("Vegan");
+  await dialog.getByRole("textbox", { name: "Name (English) *" }).fill("Paleo");
   await dialog.getByRole("combobox", { name: "Label type" }).selectOption("dietary");
   await dialog.getByRole("button", { name: "Save" }).click();
   await dialog.waitFor({ state: "hidden" });
-  await page.getByText("Vegan (dietary)").waitFor();
+  await page.getByText("Paleo (dietary)").waitFor();
   await page.getByRole("link", { name: "Back to items" }).click();
   await page.getByRole("link", { name: "Edit item: Burrata with tomatoes" }).click();
   await page.getByRole("button", { name: "New folder" }).click();

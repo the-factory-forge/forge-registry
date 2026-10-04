@@ -10,16 +10,16 @@ The shared [Plugins specification](https://github.com/the-factory-forge/forge-sp
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
-| Plugin         | Purpose                                                            | Optional server item   | Guide                                       |
-| -------------- | ------------------------------------------------------------------ | ---------------------- | ------------------------------------------- |
-| `auth`         | Sign-in/out, recovery, password changes and access-denied UI       | Host auth provider     | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing and verification             | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records and composition of Projects/Sync  | Host callbacks         | [Customers](./customers.md)                 |
-| `projects`     | Customer-owned project records, assignment and Details/Drive views | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped file spaces, folders, upload/download and file management   | `drive-storage`        | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles, publishing and categories          | `blogs-storage`        | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, prices, translations, images and labels          | `menus-storage`        | [Menus](./menus.md)                         |
-| `reservations` | Appointments or overnight stays, policies and calendars            | `reservations-storage` | [Reservations](./reservations.md)           |
+| Plugin         | Purpose                                                                      | Optional server item   | Guide                                       |
+| -------------- | ---------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| `auth`         | Sign-in/out, recovery, password changes and access-denied UI                 | Host auth provider     | [Auth](./intranet-auth.md)                  |
+| `employees`    | Admin-only employee accounts, editing and verification                       | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
+| `customers`    | Customer contact/company records and composition of Projects/Sync            | Host callbacks         | [Customers](./customers.md)                 |
+| `projects`     | Customer-owned project records, assignment and Details/Drive views           | Host callbacks         | [Projects](./projects.md)                   |
+| `drive`        | Scoped file spaces, folders, upload/download and file management             | `drive-storage`        | [Drive](./drive.md)                         |
+| `blogs`        | Multilingual Markdown articles, publishing and categories                    | `blogs-storage`        | [Blogs](./blogs.md)                         |
+| `menus`        | Restaurant menus, size prices, translations, images, labels and spice levels | `menus-storage`        | [Menus](./menus.md)                         |
+| `reservations` | Appointments or overnight stays, policies and calendars                      | `reservations-storage` | [Reservations](./reservations.md)           |
 
 ## Shared presentation
 

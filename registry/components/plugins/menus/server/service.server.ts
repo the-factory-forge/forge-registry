@@ -17,6 +17,7 @@ import type {
   MenuItem,
   MenuItemInput,
   MenuLabel,
+  MenuSpiceLevel,
   MenusClient,
 } from "@/components/plugins/menus/types";
 
@@ -48,9 +49,11 @@ type ItemRow = {
   version: number;
   category_id: string;
   price_minor: number;
+  sizes: NonNullable<MenuItem["sizes"]>;
   position: number;
   visible: boolean;
   sold_out: boolean;
+  spice_level: MenuSpiceLevel;
   image_entry_id: string | null;
   label_ids: string[];
   translations: MenuItem["translations"];
@@ -70,9 +73,11 @@ const itemFromRow = (row: ItemRow): MenuItem => ({
   version: row.version,
   categoryId: row.category_id,
   priceMinor: row.price_minor,
+  sizes: row.sizes,
   position: row.position,
   visible: row.visible,
   soldOut: row.sold_out,
+  spiceLevel: row.spice_level,
   imageEntryId: row.image_entry_id,
   labelIds: row.label_ids,
   translations: row.translations,
@@ -209,8 +214,8 @@ export function createMenusService<Context>({
           await db.transaction(async (tx) => {
             await taxonomyLock(tx);
             await checkReferences(tx, value);
-            await tx.execute(sql`insert into menu_item (id,version,category_id,price_minor,position,visible,sold_out,image_entry_id,label_ids,translations)
-            values (${id},1,${value.categoryId},${value.priceMinor},${value.position},false,${value.soldOut},null,${JSON.stringify(value.labelIds)}::jsonb,${JSON.stringify(value.translations)}::jsonb)`);
+            await tx.execute(sql`insert into menu_item (id,version,category_id,price_minor,sizes,position,visible,sold_out,spice_level,image_entry_id,label_ids,translations)
+            values (${id},1,${value.categoryId},${value.priceMinor},${JSON.stringify(value.sizes)}::jsonb,${value.position},false,${value.soldOut},${value.spiceLevel},null,${JSON.stringify(value.labelIds)}::jsonb,${JSON.stringify(value.translations)}::jsonb)`);
           });
           return itemById(db, id);
         }),
@@ -219,6 +224,8 @@ export function createMenusService<Context>({
           await permit(context, "edit");
           validId(id);
           const value = validateItem(input, baseLocale);
+          const preserveSpiceLevel = input.spiceLevel === undefined;
+          const preserveSizes = input.sizes === undefined;
           if (value.imageEntryId) await verifyImage(id, value.imageEntryId);
           return db.transaction(async (tx) => {
             await tx.execute(
@@ -234,8 +241,9 @@ export function createMenusService<Context>({
               where s.entity_type='menu-item' and s.entity_id=${id} and e.id=${value.imageEntryId} and e.kind='file' and e.state='ready'`);
               if (!entry) throw new MenuError("INVALID");
             }
-            await tx.execute(sql`update menu_item set version=version+1,category_id=${value.categoryId},price_minor=${value.priceMinor},
-            position=${value.position},visible=${value.visible},sold_out=${value.soldOut},image_entry_id=${value.imageEntryId},
+            const sizes = preserveSizes ? (current.sizes ?? []) : value.sizes;
+            await tx.execute(sql`update menu_item set version=version+1,category_id=${value.categoryId},price_minor=${sizes[0]?.priceMinor ?? value.priceMinor},sizes=${JSON.stringify(sizes)}::jsonb,
+            position=${value.position},visible=${value.visible},sold_out=${value.soldOut},spice_level=${preserveSpiceLevel ? (current.spiceLevel ?? 0) : value.spiceLevel},image_entry_id=${value.imageEntryId},
             label_ids=${JSON.stringify(value.labelIds)}::jsonb,translations=${JSON.stringify(value.translations)}::jsonb where id=${id}`);
             return itemById(tx, id);
           });

@@ -16,14 +16,24 @@ export interface MenuLabel {
   translations: Record<string, string>;
 }
 
+export type MenuSpiceLevel = 0 | 1 | 2 | 3;
+
+export interface MenuItemSize {
+  id: string;
+  priceMinor: number;
+  translations: Record<string, string>;
+}
+
 export interface MenuItem {
   id: string;
   version: number;
   categoryId: string;
   priceMinor: number;
+  sizes?: MenuItemSize[];
   position: number;
   visible: boolean;
   soldOut: boolean;
+  spiceLevel?: MenuSpiceLevel;
   imageEntryId: string | null;
   labelIds: string[];
   translations: Record<string, MenuTranslation>;
@@ -33,10 +43,17 @@ export type MenuItemInput = Omit<MenuItem, "id" | "version">;
 export type MenuCategoryInput = Omit<MenuCategory, "id">;
 export type MenuLabelInput = Omit<MenuLabel, "id">;
 
-export interface MenuViewItem extends Omit<MenuItem, "translations" | "labelIds"> {
+export interface MenuViewLabel {
+  id: string;
+  kind: MenuLabel["kind"];
+  name: string;
+}
+
+export interface MenuViewItem extends Omit<MenuItem, "translations" | "labelIds" | "sizes"> {
   name: string;
   description: string;
-  labels: { id: string; kind: MenuLabel["kind"]; name: string }[];
+  labels: MenuViewLabel[];
+  sizes?: { id: string; name: string; priceMinor: number }[];
 }
 export interface MenuViewCategory {
   id: string;

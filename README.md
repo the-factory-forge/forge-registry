@@ -140,7 +140,7 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence |
 | [blogs / blogs-storage](./docs/blogs.md)                      | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence     |
-| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, staff editing, translated labels, and Better Auth/Drizzle persistence             |
+| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, size prices, spice levels, staff editing, and Better Auth/Drizzle persistence     |
 | [drive / drive-storage](./docs/drive.md)                      | Entity-scoped file browser and optional private S3/PostgreSQL persistence                          |
 | [projects](./docs/projects.md)                                | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                    |
 | [customers](./docs/customers.md)                              | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions          |

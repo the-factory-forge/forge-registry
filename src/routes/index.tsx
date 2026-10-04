@@ -142,17 +142,21 @@ const examples = (
       title: "Menus",
       icon: pluginIcons.menus,
       description:
-        "Translated restaurant menu with categories, dietary labels, and staff management.",
+        "Translated restaurant menu with size prices, category tabs, icon badges, spice levels, default allergen and dietary filters, and staff management.",
       keywords: [
         "public menu",
         "restaurant menu",
         "manage menu",
         "menu items",
         "menu item editor",
+        "size prices",
+        "pizza sizes",
         "menu taxonomy",
         "categories",
         "menu categories",
         "dietary labels",
+        "allergen filters",
+        "dietary filters",
         "labels",
         "photos",
       ],
@@ -318,7 +322,13 @@ function Home() {
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">{example.description}</p>
               <p className="mt-4 text-sm font-medium text-primary">
-                Open {example.category.toLowerCase()} →
+                Open {example.category.toLowerCase()}{" "}
+                <span
+                  aria-hidden="true"
+                  className="inline-block motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:translate-x-1 motion-safe:group-focus:translate-x-1"
+                >
+                  →
+                </span>
               </p>
             </Link>
           );
