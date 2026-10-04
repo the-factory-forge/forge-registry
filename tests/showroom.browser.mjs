@@ -209,6 +209,51 @@ test("keyboard entry skips the showroom controls without changing the preview ha
   }
 });
 
+test("header language switching retains the page, query, hash and editor draft", async (t) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const destination = "/admin/menus/30000000-0000-4000-8000-000000000001?search=keep#details";
+  await page.goto(`${baseURL}/en${destination}`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const name = page.getByRole("textbox", { name: "Name *", exact: true });
+  await name.fill("Unsaved menu translation");
+  const header = page.getByRole("navigation", { name: "Showroom navigation" });
+  await header.getByRole("button", { name: "Dark mode", exact: true }).click();
+  for (const [locale, language] of [
+    ["fr", "Français"],
+    ["de", "Deutsch"],
+    ["it", "Italiano"],
+    ["en", "English"],
+  ]) {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await header.getByRole("button", { name: "Language", exact: true }).press("Enter");
+    await page.getByRole("menuitem", { name: language, exact: true }).click();
+    await page.waitForURL(`${baseURL}/${locale}${destination}`);
+    assert.equal(await name.inputValue(), "Unsaved menu translation");
+    assert.equal(
+      (await header.getByRole("button", { name: "Language", exact: true }).textContent()).trim(),
+      locale.toUpperCase(),
+    );
+    assert.equal(
+      (await context.cookies()).find((cookie) => cookie.name === "FORGE_LOCALE")?.value,
+      locale,
+    );
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    assert.equal((await header.boundingBox()).height, 56);
+  }
+  for (const path of ["/", "/newsletter", "/table-search"]) {
+    await page.goto(baseURL + path);
+    assert.equal(await header.getByRole("button", { name: "Language", exact: true }).count(), 0);
+  }
+  assert.deepEqual(errors, []);
+});
+
 test("expanded settings stay beside desktop previews and stack on mobile", async (t) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   t.after(() => context.close());

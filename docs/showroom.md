@@ -165,6 +165,13 @@ that toggles Light/Dark mode. It also provides the first keyboard stop,
 **Skip to preview**. Activating it focuses the preview and
 preserves the current URL/hash, including the intranet demo's navigation.
 
+Localized demos also show a language switch beside the theme control, using the
+configured French, English, German and Italian locales. Switching keeps the
+current page, query and hash, preserves in-memory demo state through client
+navigation, and saves the choice in `FORGE_LOCALE`. The directory and unlocalized
+examples omit the switch. The shared `LanguageSwitcher` accepts a `linkComponent`
+adapter; the showroom supplies `ShowroomLink` and explicit locale destinations.
+
 The showroom defaults to Light and saves the selected Light/Dark mode under
 `forge-showroom-theme`. It applies that choice before paint, across routes and tabs,
 and to dialogs portaled to the document body. There is no System or Font control.

@@ -3,11 +3,15 @@
 import { useLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon, LayoutGridIcon } from "lucide-react";
 
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { isLocale, localeNames, locales, localeShort } from "@/lib/i18n/config";
 import { ShowroomLink as Link } from "@/showroom/routing";
 import { ThemeControl } from "@/showroom/theme-control";
 
 export function ShowroomHeader() {
-  const isList = useLocation({ select: (location) => location.pathname }) === "/";
+  const location = useLocation();
+  const isList = location.pathname === "/";
+  const locale = location.pathname.split("/")[1];
   const Icon = isList ? LayoutGridIcon : ArrowLeftIcon;
 
   return (
@@ -48,6 +52,25 @@ export function ShowroomHeader() {
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          {isLocale(locale) && (
+            <LanguageSwitcher
+              locale={locale}
+              locales={locales}
+              localeNames={localeNames}
+              localeShort={localeShort}
+              localeHrefs={Object.fromEntries(
+                locales.map((nextLocale) => [
+                  nextLocale,
+                  location.href.replace(/^\/[^/]+/, `/${nextLocale}`),
+                ]),
+              )}
+              onLocaleChange={(nextLocale) => {
+                document.cookie = `FORGE_LOCALE=${nextLocale}; Max-Age=31536000; Path=/; SameSite=Lax`;
+              }}
+              linkComponent={Link}
+              className="min-h-10 min-w-10 justify-center rounded-xl px-2 hover:bg-accent hover:text-accent-foreground [&_svg]:hidden sm:[&_svg]:block"
+            />
+          )}
           <ThemeControl />
           <a
             href="https://github.com/the-factory-forge/forge-registry"

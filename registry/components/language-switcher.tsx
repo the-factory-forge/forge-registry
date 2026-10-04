@@ -1,6 +1,7 @@
 "use client";
 
 import { GlobeIcon, CheckIcon } from "lucide-react";
+import type { ComponentType } from "react";
 
 import {
   DropdownMenu,
@@ -8,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
-import { Link } from "@/components/link";
+import { Link, type LinkProps } from "@/components/link";
 import { cn } from "@/components/utils/cn";
 import { usePathname } from "@/components/utils/use-location";
 
@@ -23,6 +24,7 @@ export interface LanguageSwitcherProps {
   /** Translated routes, including localized slugs, supplied by the host. */
   localeHrefs?: Record<string, string>;
   onLocaleChange?: (locale: string) => void;
+  linkComponent?: ComponentType<LinkProps>;
 }
 
 export function LanguageSwitcher({
@@ -35,6 +37,7 @@ export function LanguageSwitcher({
   search = "",
   localeHrefs,
   onLocaleChange,
+  linkComponent: HostLink = Link,
 }: LanguageSwitcherProps) {
   const pathname = usePathname();
   const pathnameWithoutLocale = pathname.replace(new RegExp(`^/(${locales.join("|")})`), "") || "";
@@ -54,14 +57,14 @@ export function LanguageSwitcher({
       <DropdownMenuContent align="end" className="w-40">
         {locales.map((l) => (
           <DropdownMenuItem key={l} asChild className="justify-between">
-            <Link
+            <HostLink
               href={localeHrefs?.[l] ?? `/${l}${pathnameWithoutLocale}${search}`}
               onClick={() => onLocaleChange?.(l)}
               aria-current={l === locale ? "true" : undefined}
             >
               {localeNames[l] ?? l}
               {l === locale && <CheckIcon className="h-4 w-4 text-primary" aria-hidden="true" />}
-            </Link>
+            </HostLink>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

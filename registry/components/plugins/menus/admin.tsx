@@ -2,7 +2,14 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
-import { PencilIcon, PlusIcon, RefreshCwIcon, SettingsIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SettingsIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
@@ -438,6 +445,7 @@ export function MenuItemEditorPage({
   return (
     <section className={cn(page, className)}>
       <HostLink href={backHref} className={button}>
+        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
       </HostLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
@@ -913,6 +921,7 @@ export function MenuTaxonomyPage({
   return (
     <section className={cn(page, className)}>
       <HostLink href={backHref} className={button}>
+        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
       </HostLink>
       <h1 className="text-2xl font-semibold">
