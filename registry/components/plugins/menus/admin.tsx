@@ -368,6 +368,11 @@ export function MenuItemEditorPage({
         },
   );
   const [selectedLocale, setSelectedLocale] = useState(baseLocale);
+  const sortedLabels = [...labelsData].sort((a, b) =>
+    a.translations[baseLocale].localeCompare(b.translations[baseLocale], baseLocale, {
+      sensitivity: "base",
+    }),
+  );
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ error: boolean; text: string }>();
   const [photoName, setPhotoName] = useState("");
@@ -644,7 +649,7 @@ export function MenuItemEditorPage({
         <fieldset className="space-y-2">
           <legend className="font-medium">{labels.labels}</legend>
           <div className="flex flex-wrap gap-4">
-            {labelsData.map((label) => (
+            {sortedLabels.map((label) => (
               <label key={label.id} className="inline-flex items-center gap-2">
                 <input
                   type="checkbox"
