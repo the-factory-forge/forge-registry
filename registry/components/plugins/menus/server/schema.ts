@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { boolean, integer, jsonb, pgTable, text, index, check } from "drizzle-orm/pg-core";
 
+import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
 import type {
   MenuItemSize,
   MenuSpiceLevel,
@@ -13,12 +14,25 @@ export const menuCategories = pgTable("menu_category", {
   translations: jsonb("translations").$type<Record<string, string>>().notNull(),
 });
 
-export const menuLabels = pgTable("menu_label", {
-  id: text("id").primaryKey(),
-  kind: text("kind").$type<"allergen" | "dietary">().notNull(),
-  position: integer("position").notNull(),
-  translations: jsonb("translations").$type<Record<string, string>>().notNull(),
-});
+export const menuLabels = pgTable(
+  "menu_label",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").$type<"allergen" | "dietary">().notNull(),
+    icon: text("icon").$type<MenuLabelIcon>(),
+    position: integer("position").notNull(),
+    translations: jsonb("translations").$type<Record<string, string>>().notNull(),
+  },
+  (table) => [
+    check(
+      "menu_label_icon_check",
+      sql`${table.icon} is null or ${table.icon} in (
+    'leaf', 'vegan', 'fish', 'wheat', 'milk', 'egg', 'nut', 'bean',
+    'sprout', 'shrimp', 'shell', 'carrot', 'flower', 'seeds', 'wine', 'check'
+  )`,
+    ),
+  ],
+);
 
 export const menuItems = pgTable(
   "menu_item",

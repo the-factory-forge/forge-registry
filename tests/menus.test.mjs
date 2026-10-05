@@ -6,13 +6,10 @@ import {
   getMenuFilterLabels,
   getMenuLabelPreset,
   menuLabelPresets,
+  menuLabelIcons,
 } from "../registry/components/plugins/menus/label-presets.ts";
-import {
-  buildMenu,
-  MenuError,
-  parsePrice,
-  validateItem,
-} from "../registry/components/plugins/menus/model.ts";
+const { buildMenu, MenuError, parsePrice, reorderMenuItems, validateItem, validateLabel } =
+  await import("../registry/components/plugins/menus/model.ts");
 
 const category = { id: "c", position: 0, translations: { en: "Starters", fr: "Entrées" } };
 const label = { id: "l", kind: "allergen", position: 0, translations: { en: "Milk", fr: "Lait" } };
@@ -31,6 +28,51 @@ const item = {
     fr: { name: "", description: "" },
   },
 };
+
+test("reordering validates the complete versioned list and preserves item content", () => {
+  const items = [
+    item,
+    {
+      ...item,
+      id: "b",
+      position: 0,
+      sizes: [{ id: "small", priceMinor: 900, translations: { en: "Small" } }],
+    },
+  ];
+  const snapshot = structuredClone(items);
+  const order = items.map(({ id, version }) => ({ id, version })).reverse();
+  const result = reorderMenuItems(items, order);
+  assert.deepEqual(
+    result.map(({ id, position }) => [id, position]),
+    [
+      ["b", 0],
+      ["a", 1],
+    ],
+  );
+  assert.equal(result[1].version, item.version + 1);
+  assert.deepEqual(result[0].sizes, items[1].sizes);
+  assert.deepEqual(items, snapshot);
+  assert.deepEqual(
+    buildMenu(result, [category], [label], "en", "en")[0].items.map(({ id }) => id),
+    ["b", "a"],
+  );
+  for (const invalid of [null, [null], [{ id: "a", version: 0 }], [order[0], order[0]]]) {
+    assert.throws(
+      () => reorderMenuItems(items, invalid),
+      (error) => error.code === "INVALID",
+    );
+  }
+  for (const stale of [
+    order.slice(1),
+    [{ id: "missing", version: 1 }, order[1]],
+    [{ ...order[0], version: 99 }, order[1]],
+  ]) {
+    assert.throws(
+      () => reorderMenuItems(items, stale),
+      (error) => error.code === "CONFLICT",
+    );
+  }
+});
 
 test("public menu orders items, omits hidden products, and falls back by entity", () => {
   const sections = buildMenu(
@@ -237,5 +279,23 @@ test("filter choices sort alphabetically by localized names without changing ite
       expected,
     );
     assert.deepEqual(sections[0].items[0].labels, original);
+  }
+});
+
+test("label icons validate and survive localization and public filter mapping", () => {
+  assert.equal(validateLabel(label, "en").icon, null);
+  assert.equal(validateLabel({ ...label, icon: null }, "en").icon, null);
+  for (const icon of menuLabelIcons) {
+    const value = validateLabel({ ...label, icon }, "en");
+    assert.equal(value.icon, icon);
+    const sections = buildMenu([item], [category], [{ ...label, ...value }], "fr", "en");
+    assert.equal(sections[0].items[0].labels[0].icon, icon);
+    const [filter] = getMenuFilterLabels(sections, "fr");
+    assert.equal(filter.icon, icon);
+    assert.equal(filter.name, "Lait");
+    assert.equal(getMenuLabelPreset(filter).tone, "info");
+  }
+  for (const icon of ["", "unknown", "constructor", 1, true, {}, []]) {
+    assert.throws(() => validateLabel({ ...label, icon }, "en"), MenuError);
   }
 });

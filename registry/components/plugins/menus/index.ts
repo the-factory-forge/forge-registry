@@ -9,9 +9,15 @@ export {
 } from "@/components/plugins/menus/admin";
 export { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
 export { MenuSpiceBadge, type MenuSpiceBadgeProps } from "@/components/plugins/menus/spice-badge";
-export { MenuLabelBadge, type MenuLabelBadgeProps } from "@/components/plugins/menus/label-badge";
+export {
+  MenuLabelBadge,
+  type MenuLabelBadgeProps,
+  MenuLabelSymbol,
+  type MenuLabelSymbolProps,
+} from "@/components/plugins/menus/label-badge";
 export {
   menuLabelPresets,
+  menuLabelIcons,
   getMenuLabelPreset,
   getMenuFilterLabels,
   type MenuLabelPreset,

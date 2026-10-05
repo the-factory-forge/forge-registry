@@ -15,6 +15,7 @@ import {
   type MenuLabel,
   type MenusClient,
 } from "@/components/plugins/menus";
+import { reorderMenuItems, validateLabel } from "@/components/plugins/menus/model";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
@@ -119,7 +120,9 @@ function createMock() {
   };
   const client: MenusClient = {
     async list() {
-      return structuredClone(items);
+      return structuredClone(items).sort(
+        (a, b) => a.position - b.position || a.id.localeCompare(b.id),
+      );
     },
     async get(id) {
       const item = items.find((entry) => entry.id === id);
@@ -130,7 +133,9 @@ function createMock() {
       return structuredClone(categories);
     },
     async labels() {
-      return structuredClone(labels);
+      return structuredClone(
+        [...labels].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)),
+      );
     },
     async create(input) {
       mutate();
@@ -153,6 +158,12 @@ function createMock() {
       items = items.map((entry) => (entry.id === id ? item : entry));
       emit();
       return structuredClone(item);
+    },
+    async reorder(order) {
+      mutate();
+      items = reorderMenuItems(items, order);
+      emit();
+      return structuredClone(items);
     },
     async remove(id) {
       mutate();
@@ -181,9 +192,11 @@ function createMock() {
       mutate();
       const label = {
         id: input.id ?? crypto.randomUUID(),
-        kind: input.kind,
-        position: input.position,
-        translations: input.translations,
+        ...validateLabel(input, baseLocale),
+        icon:
+          input.icon === undefined
+            ? (labels.find((label) => label.id === input.id)?.icon ?? null)
+            : input.icon,
       };
       labels = [...labels.filter((entry) => entry.id !== label.id), label];
       emit();

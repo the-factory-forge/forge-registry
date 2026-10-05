@@ -1,3 +1,4 @@
+import { menuLabelIcons } from "@/components/plugins/menus/label-presets";
 import type {
   MenuCategory,
   MenuCategoryInput,
@@ -112,11 +113,37 @@ export function validateCategory(input: MenuCategoryInput, baseLocale: string) {
   };
 }
 
+export function reorderMenuItems(
+  items: readonly MenuItem[],
+  order: readonly Pick<MenuItem, "id" | "version">[],
+): MenuItem[] {
+  fail(Array.isArray(order));
+  fail(
+    order.every(
+      (entry) =>
+        entry &&
+        typeof entry.id === "string" &&
+        Number.isSafeInteger(entry.version) &&
+        entry.version > 0,
+    ),
+  );
+  fail(new Set(order.map((entry) => entry.id)).size === order.length);
+  if (order.length !== items.length) throw new MenuError("CONFLICT");
+  const byId = new Map(items.map((item) => [item.id, item]));
+  return order.map(({ id, version }, position) => {
+    const item = byId.get(id);
+    if (!item || item.version !== version) throw new MenuError("CONFLICT");
+    return item.position === position ? item : { ...item, position, version: version + 1 };
+  });
+}
+
 export function validateLabel(input: MenuLabelInput, baseLocale: string) {
   fail(input.kind === "allergen" || input.kind === "dietary");
+  fail(input.icon === undefined || input.icon === null || menuLabelIcons.includes(input.icon));
   position(input.position);
   return {
     kind: input.kind,
+    icon: input.icon ?? null,
     position: input.position,
     translations: validateTranslations(input.translations, baseLocale, false) as Record<
       string,
@@ -187,6 +214,7 @@ export function buildMenu(
                     {
                       id,
                       kind: label.kind,
+                      ...(label.icon ? { icon: label.icon } : {}),
                       name: localized(label.translations, locale, baseLocale),
                     },
                   ]

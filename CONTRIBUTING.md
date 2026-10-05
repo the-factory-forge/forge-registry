@@ -39,6 +39,12 @@ checks formatting, lint, and types together; `pnpm fix` applies available fixes.
 Generated `public/r/` JSON is excluded from linting and formatting, so rebuild it
 after changing or formatting source files.
 
+`pnpm install` enables the Git pre-commit hook; run `pnpm prepare` once in existing
+checkouts. Stage or stash all `registry/` changes before committing. The hook runs
+`pnpm registry:sync` and blocks the commit if generated files differ from the index,
+new output files are untracked, or the build fails. It prints the next steps in the
+commit output. Review and stage regenerated files with `git add public/r`, then retry.
+
 ## Design tokens
 
 Always use shadcn semantic tokens. Never hardcode colors.

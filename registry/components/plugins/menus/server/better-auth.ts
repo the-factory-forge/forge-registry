@@ -16,6 +16,7 @@ export const menusPlugin = () =>
         modelName: "menu_label",
         fields: {
           kind: { type: "string", required: true },
+          icon: { type: "string", required: false },
           position: { type: "number", required: true },
           translations: { type: "json", required: true },
         },

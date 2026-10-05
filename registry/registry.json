@@ -985,7 +985,7 @@
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",
-      "description": "Translated restaurant menu with size prices, category navigation, icon badges, spice levels, default allergen and dietary filters, and staff item and taxonomy editors.",
+      "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, default allergen and dietary filters, and staff item and taxonomy editors.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/cn",
@@ -1084,6 +1084,11 @@
           "path": "registry/components/plugins/menus/server/sizes.sql",
           "type": "registry:file",
           "target": "@components/plugins/menus/server/sizes.sql"
+        },
+        {
+          "path": "registry/components/plugins/menus/server/label-icon.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/menus/server/label-icon.sql"
         }
       ]
     },

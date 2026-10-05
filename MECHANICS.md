@@ -12,7 +12,7 @@
 - **Components**: accordion (height keyframes on measured `--accordion-panel-height` — replaced janky grid-rows), reveal (useInView + post-hydration animate — was dead), page-not-found (themed: logo/icon/badge/dual CTAs/footnote), cookie-banner (compact by default, custom selection on demand), navbar (`loginHref`), footer (forge attribution default), page-faq-list, sections (page-cta-band, page-trust-section, page-services-grid, page-testimonials, page-method-steps, page-pricing-table, page-contact-info), page-legal. Internal i18n and providers live under `src/lib/`; showroom controls live under `src/showroom/`.
 - **SEO/perf items**: lazy image default, content-visibility, srcset props (page-home-hero/service-card), build-metadata (canonical/hreflang/OG), JSON-LD helpers.
 - **Tooling**: Vite Plus 1.0.0 runs Oxlint and Oxfmt from `vite.config.ts`, with type-aware linting and type checking. TanStack Start/Vite runs `dev` and `build`, with Nitro serving `start`; `typecheck` remains `tsc --noEmit`. Format and fix source before `registry:sync`; generated `public/r/` JSON is excluded from linting and formatting.
-- **CI**: GitHub Actions `sync` (auto-manifest on push), `packageManager` pin (fixes pnpm/action-setup@v4), `permissions: contents: write`.
+- **Git hook**: `pnpm install` enables `.githooks/pre-commit` through `prepare`. The hook rebuilds the registry and blocks commits when generated files differ from the index. Review and stage the output before retrying. CI no longer generates bot commits.
 - **Lessons**: grid-rows never paints a `0fr` start frame (hidden + preflight display:none) → height keyframes; motion ignores `initial` after mount → useInView; source updates can replace site customizations → keep host adapters outside generated directories.
 
 - **Intranet**: `intranet-shell` composes `intranet-sidebar` with banner, topbar, and controls. The host supplies its branding and site-specific styling.
@@ -59,7 +59,7 @@
 | Intranet   | `intranet-shell`                                                 | Shared sidebar composition with optional banner, topbar, and controls          | ✅     |
 | Tooling    | registry:sync / registry:check                                   | Official shadcn build / source JSON syntax check                               | ✅     |
 | Tooling    | lint / format / check                                            | Vite Plus linting, formatting, and combined checks; fix variants available     | ✅     |
-| Tooling    | CI auto-sync                                                     | GitHub Actions + packageManager + contents:write                               | ✅     |
+| Tooling    | Registry pre-commit hook                                         | Rebuilds registry; blocks stale or untracked generated output                  | ✅     |
 | Docs       | README / CONTRIBUTING                                            | 41-item inventory, conventions, srcset rules, entry checklist                  | ✅     |
 
 ## 3. Gaps / notes

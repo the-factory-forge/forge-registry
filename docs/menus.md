@@ -17,12 +17,14 @@ their types from `@/components/plugins/menus`. Import `createMenusService`,
 `menusPlugin`, the Drizzle tables, and `menuImageDeleteGuard` only from
 `@/components/plugins/menus/server`. Register `menusPlugin()` in the host's
 Better Auth configuration and include the exported Drizzle tables in its schema.
-Review `server/migration.sql`, `server/spice-level.sql` and `server/sizes.sql`
-and apply them in that order through the host migration workflow. Existing
+Review `server/migration.sql`, `server/spice-level.sql`, `server/sizes.sql` and
+`server/label-icon.sql` and apply them in that order through the host migration
+workflow. Existing
 installations only need the upgrades they have not yet applied after updating
 their source. The upgrades add a constrained spice level defaulting to zero and
-a sizes array defaulting to empty, preserving existing dishes. Reapplying them
-retains saved heat and sizes. The initial migration creates three menu tables;
+a sizes array defaulting to empty, plus a nullable label icon, preserving existing
+dishes and labels. Reapplying them retains saved heat, sizes and icons. The initial
+migration creates three menu tables;
 Drive storage has its own migration.
 Do not run both a manual SQL migration and generated Drizzle migration for the
 same tables.
@@ -91,9 +93,21 @@ catalog never assigns or infers labels for a dish. Hosts keep responsibility for
 Known labels use their preset ID or a recognized name in the supported languages
 to choose their icon and badge color. Existing host-assigned IDs are preserved
 for filtering and replace their matching default option to avoid duplicates.
-Custom labels remain available with a generic allergen or diet icon. Unknown
-allergens use blue informational badges; unknown dietary labels use green badges.
-`MenuLabelBadge` and its props type are exported for host views. Public allergen
+Custom labels default to a generic allergen or diet icon. Staff can choose an icon
+in the New/Edit label dialog, which previews the choice before saving. The taxonomy
+list shows each icon before its name; the item editor, public dishes and filters
+use the same saved choice. Choose Automatic to restore the preset or generic icon.
+
+`MenuLabel.icon` and `MenuViewLabel.icon` accept a `MenuLabelIcon` value from
+`menuLabelIcons`. An omitted icon on update preserves the saved choice; explicit
+`null` clears it. The storage service validates and persists icons. Apply the
+incremental `server/label-icon.sql` migration before using the updated storage
+companion. Override `icon`, `automaticIcon` and `iconNames` through `labels` to
+translate the selector. Partial `iconNames` overrides retain English fallbacks.
+
+Icon changes keep the existing badge colors. Unknown allergens use blue
+informational badges; unknown dietary labels use green badges. `MenuLabelBadge`,
+`MenuLabelSymbol` and their props types are exported for host views. Public allergen
 and dietary choices sort alphabetically by their displayed names in the current
 locale. Comparison ignores case and accent differences, and custom labels follow
 the same ordering. The optional localized `filterLabels` prop remains supported;
@@ -105,7 +119,7 @@ does not insert database rows. To populate a new host's taxonomy, use the catalo
 `kind`, `position` and `translations` with the existing authorized `saveLabel`
 operation, omitting `id` for creation. Keep the returned database IDs for items;
 the badges recognize the translated names. Review existing labels before seeding
-to avoid creating duplicates. Seeding labels does not need schema changes or migrations.
+to avoid creating duplicates. Seeding labels does not alter the table structure.
 
 ## Sizes and prices
 
@@ -191,6 +205,24 @@ image file in its own Drive space. The response has `Cache-Control: no-store`
 and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
+
+## Reordering items
+
+The item editor omits the display-order field. Staff reorder items with the grip
+handles in `MenuItemsPage`, using mouse/touch dragging or the Up/Down arrow keys
+on a focused handle. Search must be cleared before moving rows. Saving disables
+further moves; a failed save keeps the previous order and reloads current data.
+The table uses saved item positions. Public menus keep their category order and
+apply item ordering within each category; dragging never changes an item's category.
+
+Wire the optional `MenusClient.reorder(order)` method through the host's staff
+transport to enable handles. It receives the complete ordered list of item IDs
+and versions and returns the saved items in that order. The storage companion
+checks fresh edit authorization and saves positions in one transaction. Duplicate
+IDs, stale versions, and missing or added items reject the entire change. Item
+content stays unchanged, and changed positions increment versions so stale item
+editors cannot overwrite the new order. No schema migration is needed. Existing
+clients without this method still render the table without handles.
 
 ## Showroom and checks
 

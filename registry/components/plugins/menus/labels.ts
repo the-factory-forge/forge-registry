@@ -1,3 +1,5 @@
+import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
+
 export interface MenusLabels {
   clearSearch: string;
   search: string;
@@ -45,6 +47,9 @@ export interface MenusLabels {
   sizeHelp?: string;
   baseSizeNameRequired?: string;
   position: string;
+  reorder?: string;
+  reorderHelp?: string;
+  reorderSearchHelp?: string;
   visible: string;
   unavailable: string;
   photo: string;
@@ -58,6 +63,9 @@ export interface MenusLabels {
   newLabel: string;
   editLabel: string;
   labelKind: string;
+  icon?: string;
+  automaticIcon?: string;
+  iconNames?: Partial<Record<MenuLabelIcon, string>>;
   deleteCategory: string;
   deleteLabel: string;
   yes: string;
@@ -111,6 +119,9 @@ export const menusLabels = {
   sizeHelp: "Translate size names in the selected language. The first size is the default price.",
   baseSizeNameRequired: "Enter every size name in the base language.",
   position: "Display order",
+  reorder: "Reorder item",
+  reorderHelp: "Drag a handle to reorder items, or focus it and use the Up and Down arrow keys.",
+  reorderSearchHelp: "Clear the search to reorder items.",
   visible: "Visible on menu",
   unavailable: "Sold out",
   photo: "Photo",
@@ -124,6 +135,26 @@ export const menusLabels = {
   newLabel: "New label",
   editLabel: "Edit label",
   labelKind: "Label type",
+  icon: "Icon",
+  automaticIcon: "Automatic",
+  iconNames: {
+    leaf: "Leaf",
+    vegan: "Vegan",
+    fish: "Fish",
+    wheat: "Wheat",
+    milk: "Milk",
+    egg: "Egg",
+    nut: "Nut",
+    bean: "Bean",
+    sprout: "Sprout",
+    shrimp: "Shrimp",
+    shell: "Shell",
+    carrot: "Carrot",
+    flower: "Flower",
+    seeds: "Seeds",
+    wine: "Wine glass",
+    check: "Check badge",
+  },
   deleteCategory: "Delete category",
   deleteLabel: "Delete label",
   yes: "Yes",

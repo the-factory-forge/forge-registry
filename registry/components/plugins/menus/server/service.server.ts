@@ -8,6 +8,7 @@ import { scopeKey, validId } from "@/components/plugins/drive/utils";
 import {
   buildMenu,
   MenuError,
+  reorderMenuItems,
   validateCategory,
   validateItem,
   validateLabel,
@@ -62,6 +63,7 @@ type CategoryRow = { id: string; position: number; translations: MenuCategory["t
 type LabelRow = {
   id: string;
   kind: MenuLabel["kind"];
+  icon: MenuLabel["icon"];
   position: number;
   translations: MenuLabel["translations"];
 };
@@ -248,6 +250,27 @@ export function createMenusService<Context>({
             return itemById(tx, id);
           });
         }),
+      reorder: (order) =>
+        safe(async () => {
+          await permit(context, "edit");
+          return db.transaction(async (tx) => {
+            await taxonomyLock(tx);
+            const rows = await tx.execute<ItemRow>(
+              sql`select * from menu_item order by id for update`,
+            );
+            const items = rows.map(itemFromRow);
+            const ordered = reorderMenuItems(items, order);
+            const versions = new Map(items.map((item) => [item.id, item.version]));
+            for (const item of ordered) {
+              if (item.version !== versions.get(item.id)) {
+                await tx.execute(
+                  sql`update menu_item set position=${item.position},version=${item.version} where id=${item.id}`,
+                );
+              }
+            }
+            return ordered;
+          });
+        }),
       remove: (id) =>
         safe(async () => {
           await permit(context, "delete");
@@ -297,12 +320,12 @@ export function createMenusService<Context>({
           validId(id);
           if (input.id) {
             const rows = await db.execute(
-              sql`update menu_label set kind=${value.kind},position=${value.position},translations=${JSON.stringify(value.translations)}::jsonb where id=${id} returning id`,
+              sql`update menu_label set kind=${value.kind},icon=${input.icon === undefined ? sql`icon` : value.icon},position=${value.position},translations=${JSON.stringify(value.translations)}::jsonb where id=${id} returning id`,
             );
             if (!rows.length) throw new MenuError("NOT_FOUND");
           } else
             await db.execute(
-              sql`insert into menu_label (id,kind,position,translations) values (${id},${value.kind},${value.position},${JSON.stringify(value.translations)}::jsonb)`,
+              sql`insert into menu_label (id,kind,icon,position,translations) values (${id},${value.kind},${value.icon},${value.position},${JSON.stringify(value.translations)}::jsonb)`,
             );
           const [row] = await db.execute<LabelRow>(sql`select * from menu_label where id=${id}`);
           return row;

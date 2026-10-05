@@ -142,7 +142,7 @@ const examples = (
       title: "Menus",
       icon: pluginIcons.menus,
       description:
-        "Translated restaurant menu with size prices, category tabs, icon badges, spice levels, default allergen and dietary filters, and staff management.",
+        "Translated restaurant menu with draggable item ordering, size prices, category tabs, icon badges, spice levels, allergen and dietary filters, and staff management.",
       keywords: [
         "public menu",
         "restaurant menu",

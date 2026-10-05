@@ -212,8 +212,14 @@ The shipped defaults are minimal (`<a>`, `<img>`, `<script>`, and a pathname sna
 3. Ensure each registry entry includes a unique `name`, a valid `type` (`registry:ui`, `registry:block`, etc.), explicit file targets, and `@forge/...` registry dependencies.
 4. Run `pnpm format && pnpm lint:fix`, review automatic edits, then `pnpm registry:sync` to rebuild the shadcn catalog and items from the final source.
 5. Run `pnpm registry:check`, `pnpm test`, `pnpm typecheck`, and `pnpm check`. The JSON check does not validate schema compliance or consumer installation; verify each changed item's files, imports, and dependencies too.
-6. Push to `main` — the GitHub Actions `sync` workflow rebuilds and commits the generated catalog and items in `public/r/`. Requirements: repo workflow permissions = **Read and write**, and `packageManager: pnpm@12.8.1` in `package.json` (required by `pnpm/action-setup@v4`).
+6. Stage the source and generated files together, then commit and push. The pre-commit hook runs `pnpm registry:sync` and blocks the commit if `public/r/` differs from the staged files or contains untracked files. Review the regenerated files, run `git add public/r`, and retry. Stage or stash all changes under `registry/` first so the build uses the source being committed.
 7. Pull the changed item into each consumer and validate its integration. For the sidebar in `tc-website`, use `pnpm registry:sidebar`.
+
+`pnpm install` enables the tracked hook through the `prepare` script. In an existing
+checkout, run `pnpm prepare` once. This sets the repository's `core.hooksPath` to
+`.githooks`. The hook reports failures in the commit output and never stages files
+automatically. There is no CI auto-sync or bot commit. Installs with
+`--ignore-scripts` skip hook setup.
 
 ## VPS showroom
 

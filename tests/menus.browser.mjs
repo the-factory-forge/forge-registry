@@ -314,6 +314,88 @@ test("public allergen and dietary filters combine, clear, and translate on mobil
   assert.equal(await pescatarian.count(), 0);
 });
 
+test("staff reorders rows by dragging and keyboard, with persistence and failed-save recovery", async (t) => {
+  const page = await preview(t, "/en/admin/menus");
+  await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
+  assert.equal(
+    await page.getByRole("spinbutton", { name: "Display order", exact: true }).count(),
+    0,
+  );
+  await page
+    .getByRole("combobox", { name: "Category", exact: true })
+    .selectOption({ label: "Starters" });
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Back to items", exact: true }).click();
+  const names = () => page.locator("tbody tr td:first-child").allTextContents();
+  const burrata = page.getByRole("button", {
+    name: "Reorder item: Burrata with tomatoes",
+    exact: true,
+  });
+  await burrata.waitFor();
+  const start = await burrata.boundingBox();
+  const end = await page
+    .getByRole("button", { name: "Reorder item: Homemade lemonade", exact: true })
+    .boundingBox();
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 10 });
+  await page.mouse.up();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
+  assert.deepEqual(await page.locator("article h3").allTextContents(), [
+    "House pasta",
+    "Burrata with tomatoes",
+  ]);
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await burrata.waitFor();
+  assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await burrata.press("ArrowUp");
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
+  await page.getByRole("checkbox", { name: "Fail mutations", exact: true }).check();
+  await burrata.press("ArrowUp");
+  await page.getByRole("alert").filter({ hasText: "The change could not be saved." }).waitFor();
+  assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
+  await page.getByRole("checkbox", { name: "Fail mutations", exact: true }).uncheck();
+  await page.getByRole("button", { name: "Search menu items", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search menu items", exact: true }).fill("Burrata");
+  assert.equal(await burrata.getAttribute("aria-disabled"), "true");
+  await burrata.press("ArrowUp");
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
+  await burrata.press("ArrowUp");
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  assert.deepEqual(await names(), ["Burrata with tomatoes", "House pasta", "Homemade lemonade"]);
+  const touch = await page.context().newCDPSession(page);
+  await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await burrata.scrollIntoViewIfNeeded();
+  const touchStart = await burrata.boundingBox();
+  const touchEnd = await page
+    .getByRole("button", { name: "Reorder item: House pasta", exact: true })
+    .boundingBox();
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: touchStart.x + 16, y: touchStart.y + 16 }],
+  });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: touchEnd.x + 16, y: touchEnd.y + 16 }],
+  });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
+  await touch.detach();
+  await page.getByRole("link", { name: "New item", exact: true }).click();
+  assert.equal(
+    await page.getByRole("spinbutton", { name: "Display order", exact: true }).count(),
+    0,
+  );
+});
+
 test("staff sets independent spice levels with one, two or three flames and can clear them", async (t) => {
   const page = await preview(t, "/en/admin/menus");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -490,9 +572,15 @@ test("staff taxonomy and nested photo folders work with keyboard navigation on m
   const dialog = page.getByRole("dialog", { name: "New label" });
   await dialog.getByRole("textbox", { name: "Name (English) *" }).fill("Paleo");
   await dialog.getByRole("combobox", { name: "Label type" }).selectOption("dietary");
+  await dialog.getByRole("combobox", { name: "Icon", exact: true }).selectOption("carrot");
   await dialog.getByRole("button", { name: "Save" }).click();
   await dialog.waitFor({ state: "hidden" });
   await page.getByText("Paleo (dietary)").waitFor();
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: "Paleo (dietary)" })
+    .locator("svg.lucide-carrot")
+    .waitFor();
   await page.getByRole("link", { name: "Back to items" }).click();
   await page.getByRole("link", { name: "Edit item: Burrata with tomatoes" }).click();
   await page.getByRole("button", { name: "New folder" }).click();
@@ -507,4 +595,69 @@ test("staff taxonomy and nested photo folders work with keyboard navigation on m
     .waitFor();
   assert.match(page.url(), /\?folder=/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+
+test("label icons preview, retain failed edits, reach item and public views, and reset", async (t) => {
+  const page = await preview(t, "/en/admin/menus");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
+  const vegetarian = page.getByRole("listitem").filter({ hasText: "Vegetarian (dietary)" });
+  await vegetarian.locator("svg.lucide-leaf").waitFor();
+  await page.getByText("Fail mutations").locator("input").check();
+  await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit label", exact: true });
+  const selector = dialog.getByRole("combobox", { name: "Icon", exact: true });
+  await selector.selectOption("sprout");
+  await dialog.locator("svg.lucide-sprout").waitFor();
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await selector.inputValue(), "sprout");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await vegetarian.locator("svg.lucide-leaf").waitFor();
+  await page.getByText("Fail mutations").locator("input").uncheck();
+  await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
+  assert.equal(await selector.inputValue(), "sprout");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await vegetarian.locator("svg.lucide-sprout").waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("link", { name: "Back to items", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
+  await page
+    .locator("label")
+    .filter({ has: page.getByRole("checkbox", { name: "Vegetarian", exact: true }) })
+    .locator("svg.lucide-sprout")
+    .waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  const filter = page
+    .locator("label")
+    .filter({ has: page.getByRole("checkbox", { name: "Vegetarian", exact: true }) });
+  await filter.locator("svg.lucide-sprout").waitFor();
+  assert.equal(await filter.locator(".bg-status-success").count(), 1);
+  await page
+    .locator("article")
+    .filter({ hasText: "Burrata with tomatoes" })
+    .locator("svg.lucide-sprout")
+    .waitFor();
+  await page.getByRole("link", { name: "French menu", exact: true }).click();
+  await page
+    .locator("label")
+    .filter({ has: page.getByRole("checkbox", { name: "Végétarien", exact: true }) })
+    .locator("svg.lucide-sprout")
+    .waitFor();
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
+  await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
+  assert.equal(await selector.inputValue(), "sprout");
+  await selector.selectOption("");
+  assert.equal(await selector.inputValue(), "");
+  await dialog.locator("svg.lucide-leaf").waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: "/tmp/forge-menu-label-icon-editor.png" });
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await vegetarian.locator("svg.lucide-leaf").waitFor();
+  await page.screenshot({ path: "/tmp/forge-menu-label-icons.png" });
 });

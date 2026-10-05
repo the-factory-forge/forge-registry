@@ -59,13 +59,18 @@ export interface MenuLabelBadgeProps {
   className?: string;
 }
 
+export interface MenuLabelSymbolProps {
+  label: MenuViewLabel;
+  className?: string;
+}
+
+export function MenuLabelSymbol({ label, className }: MenuLabelSymbolProps) {
+  const icon = label.icon ?? getMenuLabelPreset(label)?.icon;
+  const Icon = icon ? icons[icon] : label.kind === "dietary" ? LeafIcon : TriangleAlertIcon;
+  return <Icon aria-hidden="true" className={cn("size-4 shrink-0", className)} />;
+}
+
 export function MenuLabelBadge({ label, className }: MenuLabelBadgeProps) {
-  const preset = getMenuLabelPreset(label);
-  const Icon = preset
-    ? icons[preset.icon]
-    : label.kind === "dietary"
-      ? LeafIcon
-      : TriangleAlertIcon;
   return (
     <span
       className={cn(
@@ -74,7 +79,7 @@ export function MenuLabelBadge({ label, className }: MenuLabelBadgeProps) {
         className,
       )}
     >
-      <Icon aria-hidden="true" className="size-4 shrink-0" />
+      <MenuLabelSymbol label={label} />
       <span className="min-w-0 wrap-anywhere">{label.name}</span>
     </span>
   );

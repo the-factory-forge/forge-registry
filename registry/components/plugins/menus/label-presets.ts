@@ -1,23 +1,25 @@
 import type { MenuLabel, MenuViewCategory, MenuViewLabel } from "@/components/plugins/menus/types";
 
 export type MenuLabelTone = "success" | "pending" | "info";
-export type MenuLabelIcon =
-  | "leaf"
-  | "vegan"
-  | "fish"
-  | "wheat"
-  | "milk"
-  | "egg"
-  | "nut"
-  | "bean"
-  | "sprout"
-  | "shrimp"
-  | "shell"
-  | "carrot"
-  | "flower"
-  | "seeds"
-  | "wine"
-  | "check";
+export const menuLabelIcons = [
+  "leaf",
+  "vegan",
+  "fish",
+  "wheat",
+  "milk",
+  "egg",
+  "nut",
+  "bean",
+  "sprout",
+  "shrimp",
+  "shell",
+  "carrot",
+  "flower",
+  "seeds",
+  "wine",
+  "check",
+] as const;
+export type MenuLabelIcon = (typeof menuLabelIcons)[number];
 
 export interface MenuLabelPreset extends MenuLabel {
   icon: MenuLabelIcon;

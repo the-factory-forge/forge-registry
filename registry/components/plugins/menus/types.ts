@@ -1,3 +1,5 @@
+import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
+
 export interface MenuTranslation {
   name: string;
   description: string;
@@ -12,6 +14,8 @@ export interface MenuCategory {
 export interface MenuLabel {
   id: string;
   kind: "allergen" | "dietary";
+  /** Omit on updates to preserve the saved icon; null restores the automatic icon. */
+  icon?: MenuLabelIcon | null;
   position: number;
   translations: Record<string, string>;
 }
@@ -46,6 +50,7 @@ export type MenuLabelInput = Omit<MenuLabel, "id">;
 export interface MenuViewLabel {
   id: string;
   kind: MenuLabel["kind"];
+  icon?: MenuLabelIcon | null;
   name: string;
 }
 
@@ -67,6 +72,8 @@ export interface MenusClient {
   get(id: string): Promise<MenuItem>;
   create(input: MenuItemInput): Promise<MenuItem>;
   save(id: string, version: number, input: MenuItemInput): Promise<MenuItem>;
+  /** Save the complete item order atomically, checking every supplied version. */
+  reorder?(order: Pick<MenuItem, "id" | "version">[]): Promise<MenuItem[]>;
   remove(id: string): Promise<void>;
   categories(): Promise<MenuCategory[]>;
   saveCategory(input: MenuCategoryInput & { id?: string }): Promise<MenuCategory>;

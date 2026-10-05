@@ -245,7 +245,7 @@ test("header language switching retains the page, query, hash and editor draft",
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    assert.equal((await header.boundingBox()).height, 56);
+    assert.equal((await header.locator("..").boundingBox()).height, 56);
   }
   for (const path of ["/", "/newsletter", "/table-search"]) {
     await page.goto(baseURL + path);

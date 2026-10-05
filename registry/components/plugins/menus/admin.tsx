@@ -4,18 +4,20 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import {
   ArrowLeftIcon,
+  GripVerticalIcon,
   PencilIcon,
   PlusIcon,
   RefreshCwIcon,
   SettingsIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useId, useRef, useState, type ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
-import { MenuLabelBadge } from "@/components/plugins/menus/label-badge";
+import { MenuLabelBadge, MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
+import { menuLabelIcons, type MenuLabelIcon } from "@/components/plugins/menus/label-presets";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
 import { parsePrice } from "@/components/plugins/menus/model";
 import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
@@ -159,12 +161,22 @@ export function MenuItemsPage({
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
   const [error, setError] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [orderFeedback, setOrderFeedback] = useState<"saved" | "error">();
+  const [dragTarget, setDragTarget] = useState<string>();
+  const drag = useRef<{ id: string; targetId: string } | undefined>(undefined);
+  const reorderLock = useRef(false);
+  const reorderHelpId = `factory-menu-reorder-${useId()}`;
+  const reorderDisabled = reordering || !!search.trim();
   useEffect(() => {
     let active = true;
     Promise.all([client.list(), client.categories()])
       .then(([items, categories]) => {
         if (active) {
-          setData({ items, categories });
+          setData({
+            items: [...items].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)),
+            categories,
+          });
           setError(false);
         }
       })
@@ -175,6 +187,28 @@ export function MenuItemsPage({
       active = false;
     };
   }, [client, revision]);
+  async function moveItem(id: string, targetId: string) {
+    if (!data || !client.reorder || reorderLock.current || search.trim() || id === targetId) return;
+    const from = data.items.findIndex((item) => item.id === id);
+    const to = data.items.findIndex((item) => item.id === targetId);
+    if (from < 0 || to < 0) return;
+    const ordered = [...data.items];
+    ordered.splice(to, 0, ...ordered.splice(from, 1));
+    reorderLock.current = true;
+    setReordering(true);
+    setOrderFeedback(undefined);
+    try {
+      const items = await client.reorder(ordered.map(({ id, version }) => ({ id, version })));
+      setData((current) => (current ? { ...current, items } : current));
+      setOrderFeedback("saved");
+    } catch {
+      setOrderFeedback("error");
+      setRevision((value) => value + 1);
+    } finally {
+      reorderLock.current = false;
+      setReordering(false);
+    }
+  }
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
   );
@@ -210,6 +244,16 @@ export function MenuItemsPage({
             </HostLink>
           </div>
         </header>
+        {client.reorder && (
+          <p id={reorderHelpId} className="mt-3 text-sm text-muted-foreground">
+            {search.trim() ? labels.reorderSearchHelp : labels.reorderHelp}
+          </p>
+        )}
+        {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
+        {orderFeedback === "saved" ? (
+          <output className="block text-sm">{labels.saved}</output>
+        ) : null}
+        {orderFeedback === "error" ? <ErrorMessage message={labels.error} /> : null}
         {error ? (
           <div>
             <ErrorMessage message={labels.error} />
@@ -245,9 +289,91 @@ export function MenuItemsPage({
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
                 {filteredItems.map((item) => (
-                  <tr key={item.id} className={tableRowClass}>
+                  <tr
+                    key={item.id}
+                    data-menu-item={item.id}
+                    className={cn(
+                      tableRowClass,
+                      dragTarget === item.id &&
+                        "bg-accent text-accent-foreground ring-2 ring-ring ring-inset",
+                    )}
+                  >
                     <td className={cn(tableCellClass, "font-medium")}>
-                      {item.translations[baseLocale]?.name}
+                      <div className="flex items-center gap-2">
+                        {client.reorder && (
+                          <button
+                            type="button"
+                            className={cn(iconButton, "touch-none")}
+                            aria-label={`${labels.reorder}: ${item.translations[baseLocale]?.name}`}
+                            aria-describedby={reorderHelpId}
+                            aria-disabled={reorderDisabled}
+                            onPointerDown={(event) => {
+                              if (
+                                reorderDisabled ||
+                                reorderLock.current ||
+                                event.button !== 0 ||
+                                !event.isPrimary
+                              )
+                                return;
+                              event.currentTarget.setPointerCapture(event.pointerId);
+                              drag.current = { id: item.id, targetId: item.id };
+                              setDragTarget(item.id);
+                            }}
+                            onPointerMove={(event) => {
+                              if (!drag.current) return;
+                              const row = document
+                                .elementFromPoint(event.clientX, event.clientY)
+                                ?.closest<HTMLTableRowElement>("tr[data-menu-item]");
+                              if (row && event.currentTarget.closest("table")?.contains(row)) {
+                                drag.current.targetId = row.dataset.menuItem!;
+                                setDragTarget(drag.current.targetId);
+                              }
+                            }}
+                            onPointerUp={(event) => {
+                              const current = drag.current;
+                              drag.current = undefined;
+                              setDragTarget(undefined);
+                              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                                event.currentTarget.releasePointerCapture(event.pointerId);
+                              }
+                              const target = document.elementFromPoint(
+                                event.clientX,
+                                event.clientY,
+                              );
+                              if (
+                                current &&
+                                target &&
+                                event.currentTarget.closest("table")?.contains(target)
+                              ) {
+                                void moveItem(current.id, current.targetId);
+                              }
+                            }}
+                            onPointerCancel={() => {
+                              drag.current = undefined;
+                              setDragTarget(undefined);
+                            }}
+                            onLostPointerCapture={() => {
+                              drag.current = undefined;
+                              setDragTarget(undefined);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") {
+                                drag.current = undefined;
+                                setDragTarget(undefined);
+                              }
+                              if (reorderDisabled || !["ArrowUp", "ArrowDown"].includes(event.key))
+                                return;
+                              event.preventDefault();
+                              const index = data.items.findIndex((entry) => entry.id === item.id);
+                              const target = data.items[index + (event.key === "ArrowUp" ? -1 : 1)];
+                              if (target) void moveItem(item.id, target.id);
+                            }}
+                          >
+                            <GripVerticalIcon className="size-4 shrink-0" aria-hidden="true" />
+                          </button>
+                        )}
+                        {item.translations[baseLocale]?.name}
+                      </div>
                     </td>
                     <td className={tableCellClass}>{categoryNames.get(item.categoryId)}</td>
                     <td className={tableCellClass}>
@@ -486,18 +612,6 @@ export function MenuItemEditorPage({
               />
             </label>
           ) : null}
-          <label className="space-y-1">
-            <span>{labels.position}</span>
-            <input
-              className={field}
-              type="number"
-              min="0"
-              step="1"
-              value={draft.position}
-              onChange={(event) => setDraft({ ...draft, position: Number(event.target.value) })}
-              required
-            />
-          </label>
         </div>
         <Tabs.Root
           value={selectedLocale}
@@ -671,9 +785,7 @@ export function MenuItemEditorPage({
                     }))
                   }
                 />
-                <MenuLabelBadge
-                  label={{ id: label.id, kind: label.kind, name: label.translations[baseLocale] }}
-                />
+                <MenuLabelBadge label={{ ...label, name: label.translations[baseLocale] }} />
               </label>
             ))}
           </div>
@@ -778,6 +890,7 @@ function TaxonomyDialog({
     position: number;
     translations: Record<string, string>;
     kind?: MenuLabel["kind"];
+    icon?: MenuLabelIcon | null;
   }) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -790,6 +903,10 @@ function TaxonomyDialog({
   const [labelKind, setLabelKind] = useState<MenuLabel["kind"]>(
     existing && "kind" in existing ? existing.kind : "allergen",
   );
+  const [icon, setIcon] = useState<MenuLabelIcon | null>(
+    existing && "kind" in existing ? (existing.icon ?? null) : null,
+  );
+  const iconNames = { ...menusLabels.iconNames, ...labels.iconNames };
   const title =
     kind === "category"
       ? existing
@@ -800,7 +917,7 @@ function TaxonomyDialog({
         : labels.newLabel;
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <Dialog.Trigger className={existing ? iconButton : button} aria-label={title}>
+      <Dialog.Trigger className={existing ? iconButton : primary} aria-label={title}>
         {existing ? (
           <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
         ) : (
@@ -824,7 +941,7 @@ function TaxonomyDialog({
                 id: existing?.id,
                 position,
                 translations,
-                ...(kind === "label" ? { kind: labelKind } : {}),
+                ...(kind === "label" ? { kind: labelKind, icon } : {}),
               })
                 .then(() => setOpen(false))
                 .catch(() => setError(true))
@@ -860,17 +977,48 @@ function TaxonomyDialog({
               />
             </label>
             {kind === "label" ? (
-              <label className="block space-y-1">
-                <span>{labels.labelKind}</span>
-                <select
-                  className={field}
-                  value={labelKind}
-                  onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
-                >
-                  <option value="allergen">{labels.allergens}</option>
-                  <option value="dietary">{labels.dietary}</option>
-                </select>
-              </label>
+              <>
+                <label className="block space-y-1">
+                  <span>{labels.labelKind}</span>
+                  <select
+                    className={field}
+                    value={labelKind}
+                    onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
+                  >
+                    <option value="allergen">{labels.allergens}</option>
+                    <option value="dietary">{labels.dietary}</option>
+                  </select>
+                </label>
+                <label className="block space-y-1">
+                  <span>{labels.icon}</span>
+                  <span className="flex items-center gap-3">
+                    <MenuLabelSymbol
+                      label={{
+                        id: existing?.id ?? "",
+                        name: translations[baseLocale] ?? "",
+                        kind: labelKind,
+                        icon,
+                      }}
+                    />
+                    <select
+                      className={field}
+                      value={icon ?? ""}
+                      onChange={(event) =>
+                        setIcon((event.target.value || null) as MenuLabelIcon | null)
+                      }
+                    >
+                      <option value="">{labels.automaticIcon}</option>
+                      {[...menuLabelIcons]
+                        .sort((a, b) => iconNames[a].localeCompare(iconNames[b], baseLocale))
+                        .map((value) => (
+                          <option key={value} value={value}>
+                            {iconNames[value]}
+                          </option>
+                        ))}
+                    </select>
+                  </span>
+                </label>
+              </>
             ) : null}
             {error ? <ErrorMessage message={labels.error} /> : null}
             <div className="flex flex-wrap justify-end gap-2">
@@ -1003,6 +1151,7 @@ export function MenuTaxonomyPage({
                 onSave={async (input) => {
                   await client.saveLabel({
                     kind: input.kind ?? "allergen",
+                    icon: input.icon,
                     position: input.position,
                     translations: input.translations,
                   });
@@ -1012,12 +1161,15 @@ export function MenuTaxonomyPage({
             </div>
             <ul className="divide-y divide-border rounded-2xl border border-border">
               {data.labelsData.map((label) => (
-                <li key={label.id} className="flex items-center justify-between p-3">
-                  <span>
-                    {label.translations[baseLocale]}{" "}
-                    <span className="text-xs text-muted-foreground">({label.kind})</span>
+                <li key={label.id} className="flex items-center justify-between gap-3 p-3">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <MenuLabelSymbol label={{ ...label, name: label.translations[baseLocale] }} />
+                    <span className="min-w-0 wrap-anywhere">
+                      {label.translations[baseLocale]}{" "}
+                      <span className="text-xs text-muted-foreground">({label.kind})</span>
+                    </span>
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2">
                     <TaxonomyDialog
                       key={label.id}
                       kind="label"
@@ -1029,6 +1181,7 @@ export function MenuTaxonomyPage({
                         await client.saveLabel({
                           id: label.id,
                           kind: input.kind ?? label.kind,
+                          icon: input.icon,
                           position: input.position,
                           translations: input.translations,
                         });

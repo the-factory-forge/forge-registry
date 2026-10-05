@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "test ! -e .git || git config core.hooksPath .githooks",
     "dev": "portless run vp dev",
     "build": "vp build",
     "start": "node .output/server/index.mjs",

@@ -67,11 +67,16 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     assert.equal(publicMenu.length, 1);
     assert.equal(publicMenu[0].items[0].name, "Still available");
     assert.equal(publicMenu[0].items[0].spiceLevel, 2);
+    assert.equal(publicMenu[0].items[0].labels[0].icon, "bean");
     assert.deepEqual(publicMenu[0].items[0].sizes, [
       { id: "glass", priceMinor: 370, name: "2 dl" },
       { id: "bottle", priceMinor: 2200, name: "1,5 l" },
     ]);
     assert.equal(publicMenu[0].items[0].priceMinor, 370);
+    assert.deepEqual(
+      (await staff.list()).map((item) => item.translations.en.name),
+      ["Order anchor", "Still available"],
+    );
     return;
   }
 
@@ -129,6 +134,22 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     pool`update menu_item set sizes='{}'::jsonb where id='legacy-item'`,
     (error) => error.code === "23514",
   );
+  await pool`insert into menu_label (id,kind,position,translations)
+    values ('legacy-label','allergen',0,'{"en":"Milk"}'::jsonb)`;
+  const iconUpgrade = await readFile(
+    new URL("../../registry/components/plugins/menus/server/label-icon.sql", import.meta.url),
+    "utf8",
+  );
+  await pool.unsafe(iconUpgrade);
+  assert.equal((await pool`select icon from menu_label where id='legacy-label'`)[0].icon, null);
+  await pool`update menu_label set icon='bean' where id='legacy-label'`;
+  await pool.unsafe(iconUpgrade);
+  assert.equal((await pool`select icon from menu_label where id='legacy-label'`)[0].icon, "bean");
+  await assert.rejects(
+    pool`update menu_label set icon='unknown' where id='legacy-label'`,
+    (error) => error.code === "23514",
+  );
+  await pool`delete from menu_label where id='legacy-label'`;
   await pool`delete from menu_item where id='legacy-item'`;
   await pool`delete from menu_category where id='legacy-category'`;
   try {
@@ -151,6 +172,15 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     position: 0,
     translations: { en: "Milk", fr: "Lait" },
   });
+  assert.equal(label.icon, null);
+  await rejected(menus.client("visitor").saveLabel({ ...label, icon: "bean" }), "FORBIDDEN");
+  await rejected(staff.saveLabel({ ...label, icon: "unknown" }), "INVALID");
+  assert.equal((await staff.saveLabel({ ...label, icon: "bean" })).icon, "bean");
+  const { icon: _icon, ...legacyLabel } = label;
+  assert.equal((await staff.saveLabel(legacyLabel)).icon, "bean");
+  assert.equal((await staff.saveLabel({ ...label, icon: null })).icon, null);
+  await staff.saveLabel({ ...label, icon: "bean" });
+  assert.equal((await staff.labels()).find((entry) => entry.id === label.id).icon, "bean");
   const input = {
     categoryId: category.id,
     priceMinor: 1450,
@@ -252,6 +282,36 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
   await staff.remove(item.id);
   await rejected(staff.get(item.id), "NOT_FOUND");
 
+  const first = await staff.create({ ...input, sizes });
+  const second = await staff.create({ ...input, position: 1 });
+  const order = [second, first].map(({ id, version }) => ({ id, version }));
+  await rejected(menus.client("visitor").reorder(order), "FORBIDDEN");
+  const ordered = await staff.reorder(order);
+  assert.deepEqual(
+    (await staff.list()).map(({ id, position }) => [id, position]),
+    [
+      [second.id, 0],
+      [first.id, 1],
+    ],
+  );
+  assert.deepEqual((await staff.get(first.id)).sizes, sizes);
+  await rejected(staff.reorder(order), "CONFLICT");
+  await rejected(staff.reorder([ordered[0], ordered[0]]), "INVALID");
+  await rejected(staff.reorder(ordered.slice(1)), "CONFLICT");
+  assert.deepEqual(await staff.list(), ordered);
+  const competing = await Promise.allSettled([
+    staff.reorder([...ordered].reverse()),
+    staff.reorder([...ordered].reverse()),
+  ]);
+  assert.equal(competing.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(competing.find((result) => result.status === "rejected").reason.code, "CONFLICT");
+  assert.deepEqual(
+    (await staff.list()).map(({ id }) => id),
+    [first.id, second.id],
+  );
+  await staff.remove(first.id);
+  await staff.remove(second.id);
+
   const durable = await staff.create({
     ...input,
     translations: { en: { name: "Still available", description: "" } },
@@ -266,4 +326,9 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
       { id: "bottle", priceMinor: 2200, translations: { en: "1.5 l", fr: "1,5 l" } },
     ],
   });
+  const anchor = await staff.create({
+    ...input,
+    translations: { en: { name: "Order anchor", description: "" } },
+  });
+  await staff.reorder([anchor, await staff.get(durable.id)]);
 });
