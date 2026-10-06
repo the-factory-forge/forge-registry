@@ -17,17 +17,20 @@ test("employee pages show content only to administrators", async (t) => {
     await page.getByLabel("Preview as").selectOption(role);
     await page.getByRole("table").waitFor({ state: "hidden" });
     assert.equal(await page.getByText("alex@example.test", { exact: true }).count(), 0);
-    assert.equal(await page.getByRole("button", { name: "Create User", exact: true }).count(), 0);
+    assert.equal(
+      await page.getByRole("button", { name: "Create employee", exact: true }).count(),
+      0,
+    );
   }
   await page.getByLabel("Preview as").selectOption("admin");
-  await page.getByRole("button", { name: "Create User", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Create User", exact: true });
+  await page.getByRole("button", { name: "Create employee", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Create employee", exact: true });
   await dialog.getByLabel("Email", { exact: true }).waitFor();
   assert.equal(new URL(page.url()).hash, "");
   await dialog.getByLabel("Name", { exact: true }).fill("Taylor Jordan");
   await dialog.getByLabel("Email", { exact: true }).fill("taylor@example.test");
   await dialog.getByLabel("Temporary password", { exact: true }).fill("temporary-password");
-  await dialog.getByRole("button", { name: "Create User", exact: true }).click();
+  await dialog.getByRole("button", { name: "Create employee", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await page.getByText("taylor@example.test", { exact: true }).waitFor();
   assert.deepEqual(errors, []);

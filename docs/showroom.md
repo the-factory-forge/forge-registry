@@ -165,6 +165,18 @@ that toggles Light/Dark mode. It also provides the first keyboard stop,
 **Skip to preview**. Activating it focuses the preview and
 preserves the current URL/hash, including the intranet demo's navigation.
 
+Use `ShowroomIntro` for a demo's own title and short instructions. Pages that
+already provide a heading retain it without an extra showroom heading. Supply
+`notice` for demo limitations below the controls; in-memory examples share
+`previewDataNotice`. Auth and newsletter explain their simulated submissions.
+Use **Simulate action failures** for repeatable mutation failures and retain
+specific labels for one-time upload, loading, or sign-out failures.
+
+Showroom introductions and controls use English sentence case. Related preview
+links retain the selected locale. Examples share Acme workspace branding and
+consistent people/project names where they represent the same records; specialized
+booking, restaurant, and public-page content retains its own meaning.
+
 Localized demos also show a language switch beside the theme control, using the
 configured French, English, German and Italian locales. Switching keeps the
 current page, query and hash, preserves in-memory demo state through client

@@ -77,7 +77,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
     timezoneId: "America/New_York",
   });
   await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("clinic");
-  await page.getByLabel("Fail mutations").check();
+  await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: /09:00.*GMT/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Pat Example");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("pat@example.test");
@@ -88,7 +88,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
     await page.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
     "Pat Example",
   );
-  await page.getByLabel("Fail mutations").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: /09:00.*GMT/ }).click();
   await page.getByRole("button", { name: "Review booking" }).click();
   await page.getByRole("button", { name: "Book appointment", exact: true }).click();
@@ -122,14 +122,14 @@ test("settings editors, server-style failures, new resources, closures and share
   await page.getByRole("checkbox", { name: "Active", exact: true }).check();
   const monday = page.getByRole("group", { name: "Monday", exact: true });
   await monday.getByRole("button", { name: "Add interval" }).click();
-  await page.getByLabel("Fail mutations").check();
+  await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("alert").waitFor();
   assert.equal(
     await page.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
     "Jordan",
   );
-  await page.getByLabel("Fail mutations").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("button", { name: "Archive", exact: true }).waitFor();
   await page.getByRole("link", { name: "Back", exact: true }).click();
@@ -305,7 +305,7 @@ test("apartment stay booking, retained dates, multi-day calendar, rescheduling a
   await page.getByRole("button", { name: /(?:15:00|03:00.*PM).*GMT/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Stay Guest");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("stay@example.test");
-  await page.getByLabel("Fail mutations").check();
+  await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Review booking", exact: true }).click();
   await page.getByText(/Nights: 3/).waitFor();
   await page.getByRole("button", { name: "Book stay", exact: true }).click();
@@ -316,7 +316,7 @@ test("apartment stay booking, retained dates, multi-day calendar, rescheduling a
     await page.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
     "Stay Guest",
   );
-  await page.getByLabel("Fail mutations").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Review booking", exact: true }).click();
   await page.getByRole("button", { name: "Book stay", exact: true }).click();
   await page.getByText("Your reservation has been saved.", { exact: false }).waitFor();

@@ -7,7 +7,7 @@ import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const initialCustomers: Customer[] = [
   {
@@ -140,6 +140,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
   return (
     <PreviewContext.Provider value={state}>
       <ShowroomPreview
+        notice={previewDataNotice}
         navigation={
           <>
             <Link href={`/${locale}/customers`} className="underline">
@@ -242,7 +243,6 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
                 <option value="error">Error</option>
               </select>
             </label>
-            <span className="text-muted-foreground">Demo data resets on reload.</span>
           </>
         }
       >

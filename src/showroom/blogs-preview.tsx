@@ -22,7 +22,7 @@ import {
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const previewClassName =
   "showroom-page [&_img[src^='https://assets.the-corner.io/images/']]:object-contain [&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-multiply dark:[&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-screen dark:[&_img[src^='https://assets.the-corner.io/images/']]:invert";
@@ -70,14 +70,16 @@ function useBlogsPreview() {
   return value;
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
+  const { locale } = useShowroomParams();
   const state = usePreview();
   return (
     <Context.Provider value={state}>
       <ShowroomPreview
+        notice={previewDataNotice}
         navigation={
           <>
-            <Link href="/en/blogs">Public blog</Link>
-            <Link href="/en/admin/blogs">Manage posts</Link>
+            <Link href={`/${locale}/blogs`}>Public blog</Link>
+            <Link href={`/${locale}/admin/blogs`}>Manage posts</Link>
             <Link href="/fr/blogs">French blog</Link>
           </>
         }
@@ -108,7 +110,7 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
                 checked={state.fail}
                 onChange={(e) => state.setFail(e.target.checked)}
               />
-              Fail mutations
+              Simulate action failures
             </label>
             <button onClick={() => state.setFailUpload(true)} className="underline">
               Fail next upload{state.failUpload ? " (armed)" : ""}

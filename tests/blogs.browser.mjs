@@ -97,6 +97,7 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("link", { name: "Public blog", exact: true }).click();
+  await page.waitForURL(`${baseURL}/fr/blogs`);
   await page.getByRole("heading", { name: "Our blog", exact: true }).waitFor();
   await page.screenshot({ path: "/tmp/forge-blogs-desktop-light.png", fullPage: true });
 });
@@ -109,14 +110,14 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
     .getByRole("textbox", { name: "Markdown", exact: true })
     .fill("## A useful heading\n\n**Careful writing** matters.");
   await page.getByRole("heading", { name: "A useful heading", exact: true }).waitFor();
-  await page.getByLabel("Fail mutations", { exact: true }).check();
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
   assert.match(
     await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
     /Careful writing/,
   );
-  await page.getByLabel("Fail mutations", { exact: true }).uncheck();
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await saved(page);
   await page.getByLabel("Editor", { exact: true }).selectOption("alex");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
@@ -171,7 +172,7 @@ test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion
   await page.getByRole("status").filter({ hasText: "Image uploaded." }).waitFor();
   assert.match(await text.inputValue(), /\.\/assets\/[\da-f-]+/);
   await saved(page);
-  const trigger = page.getByRole("button", { name: "Delete article", exact: true });
+  const trigger = page.getByRole("button", { name: "Delete post", exact: true });
   await trigger.click();
   await page.getByRole("dialog").waitFor();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -182,7 +183,7 @@ test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion
   assert.equal(await text.isDisabled(), true);
   await page.getByLabel("Read-only", { exact: true }).uncheck();
   await trigger.click();
-  await page.getByRole("button", { name: "Confirm deletion", exact: true }).click();
+  await page.getByRole("button", { name: "Delete permanently", exact: true }).click();
   await page.getByRole("heading", { name: "Blog posts", exact: true }).waitFor();
   assert.equal(
     await page.getByRole("link", { name: "Make room for better ideas", exact: true }).count(),
@@ -201,7 +202,7 @@ test("categories, optional translations, required publication fields, directory 
     .getByRole("button", { name: "New category", exact: true })
     .waitFor();
   await page.getByRole("button", { name: "Delete category", exact: true }).click();
-  await page.getByRole("button", { name: "Confirm deletion", exact: true }).click();
+  await page.getByRole("button", { name: "Delete permanently", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await page.getByLabel("Directory state", { exact: true }).selectOption("loading");
@@ -237,12 +238,12 @@ test("language tabs support keyboard selection and protect unsaved translations"
   assert.equal(await title.inputValue(), "Faire de la place aux idées");
   await title.fill("Une traduction modifiée");
   assert.equal(await english.isDisabled(), true);
-  await page.getByLabel("Fail mutations", { exact: true }).check();
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
   assert.equal(await english.isDisabled(), true);
   assert.equal(await title.inputValue(), "Une traduction modifiée");
-  await page.getByLabel("Fail mutations", { exact: true }).uncheck();
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await saved(page);
   assert.equal(await english.isDisabled(), false);
   await english.click();

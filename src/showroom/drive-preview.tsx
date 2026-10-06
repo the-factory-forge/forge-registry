@@ -59,7 +59,7 @@ export function DrivePreview() {
       <p>
         Drive space not found.{" "}
         <Link className="underline" href={base}>
-          Back to Drive
+          Back to drive
         </Link>
       </p>
     );

@@ -5,7 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
 import { showroomHead } from "@/showroom/seo";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const groups: IntranetNavGroup[] = [
   {
@@ -122,18 +122,10 @@ function IntranetExample() {
         }}
         contentClassName="showroom-inset space-y-6"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              Registry preview
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold">Intranet shell</h1>
-            <p className="mt-3 max-w-2xl text-muted-foreground">
-              A shared workspace layout with customer branding, navigation, a user profile, and room
-              for your own page content.
-            </p>
-          </div>
-        </div>
+        <ShowroomIntro title="Intranet shell">
+          A shared workspace layout with customer branding, navigation, a user profile, and room for
+          your own page content.
+        </ShowroomIntro>
         <section
           aria-label="Preview status"
           className="space-y-4 rounded-xl border border-border p-5"

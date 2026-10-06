@@ -12,6 +12,30 @@ after(async () => {
   await browser?.close();
 });
 
+test("newsletter demo retains input after failure and supports retry and disabled states", async (t) => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.goto(`${baseURL}/newsletter`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const email = page.getByRole("textbox", { name: "Email address", exact: true });
+  await page.getByRole("button", { name: "Subscribe", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "valid email" }).waitFor();
+  await email.fill("reader@example.test");
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
+  await page.getByRole("button", { name: "Subscribe", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "Could not subscribe." }).waitFor();
+  assert.equal(await email.inputValue(), "reader@example.test");
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
+  await page.getByRole("button", { name: "Subscribe", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Subscription received." }).waitFor();
+  await page.getByLabel("Disable form", { exact: true }).check();
+  assert.equal(await email.isDisabled(), true);
+  assert.equal(
+    await page.getByRole("button", { name: "Subscribe", exact: true }).isDisabled(),
+    true,
+  );
+});
+
 test("FAQ categories close answers and preserve keyboard navigation", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());

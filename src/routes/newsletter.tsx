@@ -1,15 +1,58 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
-import { NewsletterExample } from "@/components/newsletter-example";
+import { Newsletter } from "@/components/newsletter";
 import { showroomHead } from "@/showroom/seo";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 function NewsletterPage() {
+  const [fail, setFail] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>();
   return (
-    <ShowroomPreview width="narrow">
-      <h1 className="mb-6 text-2xl font-semibold text-foreground">Newsletter Component</h1>
-
-      <NewsletterExample />
+    <ShowroomPreview
+      width="narrow"
+      notice="Submissions are simulated. No email address is stored and no email is sent."
+      controls={
+        <>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={fail}
+              onChange={(event) => setFail(event.target.checked)}
+            />
+            Simulate action failures
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={disabled}
+              onChange={(event) => setDisabled(event.target.checked)}
+            />
+            Disable form
+          </label>
+        </>
+      }
+    >
+      <ShowroomIntro title="Newsletter">
+        Try email validation, submission, and recovery from an error. Use the preview controls to
+        change the form state.
+      </ShowroomIntro>
+      <Newsletter
+        title="Studio updates"
+        description="News and project notes from Acme Studio."
+        buttonLabel="Subscribe"
+        privacyText="Demo only. No email is sent."
+        disabled={disabled}
+        successMessage={successMessage}
+        submitErrorMessage="Could not subscribe. Please try again."
+        onSubmit={async () => {
+          setSuccessMessage(undefined);
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          if (fail) throw new Error("Simulated subscription failure");
+          setSuccessMessage("Subscription received. This demo did not store your email.");
+        }}
+      />
     </ShowroomPreview>
   );
 }

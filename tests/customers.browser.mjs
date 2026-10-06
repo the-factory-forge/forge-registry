@@ -43,7 +43,7 @@ test("directory search, loading/error states, optional actions and sync extensio
   await page.getByRole("alert").filter({ hasText: "Unable to load customers" }).waitFor();
   await page.getByLabel("Directory state").selectOption("ready");
   await page.getByRole("checkbox", { name: "Account actions", exact: true }).uncheck();
-  for (const name of ["Verify customer", "Impersonate customer", "Delete Customer"])
+  for (const name of ["Verify customer", "Impersonate customer", "Delete customer"])
     assert.equal(await page.getByRole("button", { name, exact: true }).count(), 0);
   await page.getByRole("checkbox", { name: "Host integration example" }).check();
   await page.getByRole("columnheader", { name: "Host sync" }).waitFor();
@@ -72,14 +72,14 @@ test("editing retains drafts across rerenders and failures, then refreshes saved
   await company.fill("Updated Studio");
   await page.getByLabel("Simulate action failures").check();
   assert.equal(await company.inputValue(), "Updated Studio");
-  await page.getByRole("button", { name: "Save Changes" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
   assert.equal(await company.inputValue(), "Updated Studio");
   await page.getByLabel("Simulate action failures").uncheck();
-  await page.getByRole("button", { name: "Save Changes" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await page.getByRole("heading", { name: "Updated Studio", exact: true }).waitFor();
-  await page.getByRole("status").filter({ hasText: "Customer updated successfully" }).waitFor();
-  await page.getByRole("link", { name: "Back to Customers" }).click();
+  await page.getByRole("status").filter({ hasText: "Customer updated" }).waitFor();
+  await page.getByRole("link", { name: "Back to customers" }).click();
   await page.getByRole("row").filter({ hasText: "Updated Studio" }).waitFor();
   await page
     .getByRole("row")
@@ -88,13 +88,13 @@ test("editing retains drafts across rerenders and failures, then refreshes saved
     .click();
   assert.equal(await page.getByLabel("Full name *", { exact: true }).inputValue(), "Sam Rivera");
   await page.getByLabel("Email *", { exact: true }).fill("");
-  await page.getByRole("button", { name: "Save Changes" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
 });
 
 test("creation validates fields, handles clipboard failures and never displays invitations", async (t) => {
   const page = await preview(t, "/new");
-  const submit = page.getByRole("button", { name: "Create Customer", exact: true });
+  const submit = page.getByRole("button", { name: "Create customer", exact: true });
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "Enter a full name" }).waitFor();
   await page.getByLabel("Full name *", { exact: true }).fill("   ");
@@ -143,33 +143,33 @@ test("creation validates fields, handles clipboard failures and never displays i
     form.requestSubmit();
   });
   assert.equal(
-    await page.getByRole("button", { name: "Please wait...", exact: true }).isDisabled(),
+    await page.getByRole("button", { name: "Please wait…", exact: true }).isDisabled(),
     true,
   );
   await page.getByRole("heading", { name: "Taylor Casey", exact: true }).waitFor();
   assert.equal(await page.locator('input[type="password"]').count(), 0);
   assert.equal(await page.getByText(/invitation/i).count(), 0);
   assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
-  await page.getByRole("link", { name: "Back to Customers" }).click();
+  await page.getByRole("link", { name: "Back to customers" }).click();
   await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
   assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);
-  await page.getByRole("link", { name: "Create Customer" }).click();
+  await page.getByRole("link", { name: "Create customer" }).click();
   assert.equal(await page.getByLabel("Temporary password", { exact: true }).inputValue(), "");
 });
 
 test("a customer can be created without email or credentials", async (t) => {
   const page = await preview(t, "/new");
   await page.getByLabel("Full name *", { exact: true }).fill("Offline Contact");
-  await page.getByRole("button", { name: "Create Customer", exact: true }).click();
+  await page.getByRole("button", { name: "Create customer", exact: true }).click();
   await page.getByRole("heading", { name: "Offline Contact", exact: true }).waitFor();
 });
 
 test("delete confirmation restores focus on Escape and retains failures for retry", async (t) => {
   const page = await preview(t, "/sam");
-  const trigger = page.getByRole("button", { name: "Delete Customer", exact: true });
+  const trigger = page.getByRole("button", { name: "Delete customer", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Delete Customer" });
+  const dialog = page.getByRole("dialog", { name: "Delete customer" });
   await dialog.waitFor();
   assert.equal(
     await dialog
@@ -226,7 +226,7 @@ test("desktop and mobile pages fit in both themes", async (t) => {
         path: `/tmp/forge-customers-${name}-${colorScheme}.png`,
         fullPage: true,
       });
-      await page.getByRole("link", { name: "Back to Customers" }).click();
+      await page.getByRole("link", { name: "Back to customers" }).click();
       await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -236,8 +236,8 @@ test("desktop and mobile pages fit in both themes", async (t) => {
         path: `/tmp/forge-customers-list-${name}-${colorScheme}.png`,
         fullPage: true,
       });
-      await page.getByRole("link", { name: "Create Customer", exact: true }).click();
-      await page.getByRole("heading", { name: "New Customer", exact: true }).waitFor();
+      await page.getByRole("link", { name: "Create customer", exact: true }).click();
+      await page.getByRole("heading", { name: "New customer", exact: true }).waitFor();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,

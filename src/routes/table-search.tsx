@@ -10,7 +10,7 @@ import {
   tableRowClass,
 } from "@/components/utils/table-styles";
 import { showroomHead } from "@/showroom/seo";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
   const [search, setSearch] = useState("");
@@ -74,13 +74,10 @@ function TableSearchExample() {
   return (
     <ShowroomPreview>
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-semibold">Table search</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Click or focus a search icon. Each table keeps its own filter. Escape clears the focused
-            search.
-          </p>
-        </header>
+        <ShowroomIntro title="Table search">
+          Open or focus a search control to filter its table. Each table keeps its own search. Press
+          Escape to clear the focused search.
+        </ShowroomIntro>
         <SearchableTable
           title="Employees"
           rows={[
@@ -92,8 +89,8 @@ function TableSearchExample() {
         <SearchableTable
           title="Projects"
           rows={[
-            ["Studio website", "Production"],
-            ["Customer portal", "Under construction"],
+            ["Studio website", "Requested"],
+            ["Customer portal", "Production"],
             ["Café menu", "Requested"],
           ]}
         />

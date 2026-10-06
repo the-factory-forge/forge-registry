@@ -15,7 +15,7 @@ after(async () => {
 test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {
   for (const [path, heading] of [
     ["/", "Components Showcase"],
-    ["/en/projects/new?customerId=acme", "New Project"],
+    ["/en/projects/new?customerId=acme", "New project"],
     ["/en/projects/website/drive", "Studio website"],
     ["/en/customers/acme/projects", "Acme Studio"],
     ["/en/admin/blogs", "Blog posts"],

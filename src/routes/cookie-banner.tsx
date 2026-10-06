@@ -5,7 +5,7 @@ import { CookieBanner, type ConsentState } from "@/components/cookie-banner";
 import { ManageCookiesButton } from "@/components/manage-cookies-button";
 import { createConsentAnalytics } from "@/components/utils/consent-analytics";
 import { showroomHead } from "@/showroom/seo";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 function CookieBannerPage() {
   const [appliedConsent, setAppliedConsent] = useState<ConsentState | null>(null);
@@ -70,14 +70,10 @@ function CookieBannerPage() {
         </>
       }
     >
-      <div className="mb-8 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Layout
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">Cookie banner</h1>
-        </div>
-      </div>
+      <ShowroomIntro title="Cookie banner">
+        Change cookie preferences and inspect how consent controls analytics. Use the preview
+        controls to test optional categories and loading failures.
+      </ShowroomIntro>
 
       <section className="rounded-xl border border-border p-6">
         <h2 className="text-lg font-semibold">Cookie preferences</h2>

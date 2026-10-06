@@ -8,7 +8,7 @@ test("the deployed showroom serves public demos, assets and registry JSON withou
     ["/", "Components Showcase"],
     ["/en/auth", "Example workspace"],
     ["/en/employees", "Employees"],
-    ["/en/projects/new?customerId=acme", "New Project"],
+    ["/en/projects/new?customerId=acme", "New project"],
     ["/en/customers/acme/projects", "Acme Studio"],
     ["/en/blogs/make-room-for-better-ideas", "Make room for better ideas"],
   ]) {

@@ -10,9 +10,9 @@ import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
 import { cn } from "@/components/utils/cn";
 
-export const cardClass = "rounded-3xl border border-border bg-background p-5 text-foreground";
+export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
 export const buttonClass =
-  "inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryButtonClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -20,7 +20,7 @@ export const primaryButtonClass = cn(
 export const outlineButtonClass = cn(buttonClass, "border border-border");
 export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 p-0");
 export const inputClass =
-  "h-8 w-full min-w-0 rounded-2xl border border-input bg-muted px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
+  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 
 export function useCustomerAction(errorMessage: string) {
   const lock = useRef(false);

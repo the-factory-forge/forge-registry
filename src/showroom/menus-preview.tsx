@@ -18,7 +18,7 @@ import {
 import { reorderMenuItems, validateLabel } from "@/components/plugins/menus/model";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const editable = { upload: true, createFolder: true, rename: true, delete: true, download: true };
 const baseLocale = "en";
@@ -253,6 +253,7 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
   return (
     <Context.Provider value={mock}>
       <ShowroomPreview
+        notice={previewDataNotice}
         navigation={
           <>
             <Link href={`/${locale}/menus`}>Public menu</Link>
@@ -267,7 +268,7 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
               checked={mock.fail}
               onChange={(event) => mock.setFail(event.target.checked)}
             />
-            Fail mutations
+            Simulate action failures
           </label>
         }
       >

@@ -48,7 +48,7 @@ function useProjectList(customerId?: string) {
           await state.beforeAction();
           state.driveMock.assertEmpty({ type: "project", id });
           state.setProjects((current) => current.filter((project) => project.id !== id));
-          state.setNotice("Project deleted successfully.");
+          state.setNotice("Project deleted.");
         }
       : undefined,
     linkComponent: Link,
@@ -95,7 +95,7 @@ export function ProjectsPreview() {
     defaultOwnerId: fromCustomer ? customer?.id : undefined,
     lockOwner: fromCustomer,
     linkComponent: Link,
-    labels: { back: fromCustomer ? "Back to Customer Projects" : "Back to Projects" },
+    labels: { back: fromCustomer ? "Back to customer projects" : "Back to projects" },
   };
   async function validateOwner(values: ProjectFormValues) {
     await state.beforeAction();
@@ -112,7 +112,7 @@ export function ProjectsPreview() {
       <div className="space-y-4">
         <h1 className="text-xl font-semibold">Project page not found</h1>
         <Link href={base} className="underline">
-          Back to Projects
+          Back to projects
         </Link>
       </div>
     );
@@ -126,7 +126,7 @@ export function ProjectsPreview() {
           await validateOwner(values);
           const id = crypto.randomUUID();
           state.setProjects((current) => [...current, { ...values, id }]);
-          state.setNotice("Project created successfully.");
+          state.setNotice("Project created.");
           await navigate({ href: `${base}/${id}${context}` });
         }}
       />

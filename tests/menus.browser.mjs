@@ -174,11 +174,11 @@ test("staff creates, edits, and publishes an item; failure retains the draft", a
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("heading", { name: "Edit item" }).waitFor();
   await page.getByLabel("Visible on menu").check();
-  await page.getByText("Fail mutations").locator("input").check();
+  await page.getByText("Simulate action failures").locator("input").check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("alert").waitFor();
   assert.equal(await page.getByRole("textbox", { name: "Name *" }).inputValue(), "Seasonal soup");
-  await page.getByText("Fail mutations").locator("input").uncheck();
+  await page.getByText("Simulate action failures").locator("input").uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
   await page.getByRole("link", { name: "Public menu" }).click();
@@ -356,11 +356,14 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   await burrata.press("ArrowUp");
   await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
-  await page.getByRole("checkbox", { name: "Fail mutations", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).check();
   await burrata.press("ArrowUp");
-  await page.getByRole("alert").filter({ hasText: "The change could not be saved." }).waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Could not save changes. Please try again." })
+    .waitFor();
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
-  await page.getByRole("checkbox", { name: "Fail mutations", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).uncheck();
   await page.getByRole("button", { name: "Search menu items", exact: true }).click();
   await page.getByRole("searchbox", { name: "Search menu items", exact: true }).fill("Burrata");
   assert.equal(await burrata.getAttribute("aria-disabled"), "true");
@@ -477,7 +480,10 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   await page.getByRole("textbox", { name: "Size name (en) 2", exact: true }).fill("Family · 40 cm");
   await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("28.005");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "The change could not be saved." }).waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Could not save changes. Please try again." })
+    .waitFor();
   assert.equal(
     await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
     "28.005",
@@ -533,20 +539,20 @@ test("staff saves translated size prices and guests select sizes with keyboard c
     "28.00",
   );
   await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("29.00");
-  await page.getByText("Fail mutations").locator("input").check();
+  await page.getByText("Simulate action failures").locator("input").check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("alert").waitFor();
   assert.equal(
     await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
     "29.00",
   );
-  await page.getByText("Fail mutations").locator("input").uncheck();
+  await page.getByText("Simulate action failures").locator("input").uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
   for (const name of ["Small · 30 cm", "Family · 40 cm"]) {
     await page.getByRole("button", { name: `Remove size: ${name}`, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: `Remove size: ${name}`, exact: true });
-    await dialog.getByRole("button", { name: "Confirm deletion", exact: true }).click();
+    await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
   }
   await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("24.00");
@@ -603,7 +609,7 @@ test("label icons preview, retain failed edits, reach item and public views, and
   await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
   const vegetarian = page.getByRole("listitem").filter({ hasText: "Vegetarian (dietary)" });
   await vegetarian.locator("svg.lucide-leaf").waitFor();
-  await page.getByText("Fail mutations").locator("input").check();
+  await page.getByText("Simulate action failures").locator("input").check();
   await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Edit label", exact: true });
   const selector = dialog.getByRole("combobox", { name: "Icon", exact: true });
@@ -615,7 +621,7 @@ test("label icons preview, retain failed edits, reach item and public views, and
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await vegetarian.locator("svg.lucide-leaf").waitFor();
-  await page.getByText("Fail mutations").locator("input").uncheck();
+  await page.getByText("Simulate action failures").locator("input").uncheck();
   await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
   assert.equal(await selector.inputValue(), "sprout");
   await dialog.getByRole("button", { name: "Save", exact: true }).click();

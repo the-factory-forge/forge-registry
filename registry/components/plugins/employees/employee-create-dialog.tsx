@@ -131,7 +131,7 @@ export function EmployeeCreateDialog({
                 name="role"
                 defaultValue="user"
                 disabled={pending}
-                className="h-9 rounded-lg border bg-background px-3 text-sm"
+                className={inputClass}
               >
                 <option value="user">{labels.roleUser}</option>
                 <option value="admin">{labels.roleAdmin}</option>

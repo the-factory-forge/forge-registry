@@ -20,7 +20,7 @@ export const primaryClass = cn(
   "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
 );
 export const fieldClass =
-  "min-h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-ring";
+  "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 export const panelClass = "rounded-2xl border border-border bg-card p-5 text-card-foreground";
 export const pageClass = "mx-auto w-full max-w-6xl space-y-6 px-4 py-8 text-foreground";
 

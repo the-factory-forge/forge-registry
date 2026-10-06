@@ -76,7 +76,7 @@ components:
     size: 32px
   employee-input:
     rounded: "{rounded.lg}"
-    height: 36px
+    height: 40px
     padding: 0 12px
   category-chip:
     backgroundColor: "{colors.primary}"
@@ -159,9 +159,8 @@ backdrop. Exact shadow values live in the sidecar.
 
 ## Shapes
 
-Directory cards use the 2xl radius; employee and preview controls use lg. Search,
-category filters, and shared header controls use xl. Some customer-plugin inputs use 2xl, and its cards and dialogs
-use 3xl. These are observed differences, not a request to standardize them.
+Directory cards use the 2xl radius; administrative form and preview controls use lg. Search,
+category filters, and shared header controls use xl. Customer, project, blog and Drive cards and dialogs use xl. Reservation panels retain 2xl.
 Status badges use fully rounded ends. Borders are normally
 one pixel wide and use the host's semantic roles.
 
@@ -169,7 +168,7 @@ one pixel wide and use the host's semantic roles.
 
 ### Buttons
 
-Plugin action buttons are at least 36px high with 12px horizontal padding, medium
+Administrative plugin action buttons are at least 40px high with 12px horizontal padding, medium
 14px labels, and 8px icon gaps. Primary, outlined, destructive, and icon variants
 reuse each plugin's existing styles. CTA links have their own 44px and 48px sizes.
 Focus uses the ring role. Enabled actions have pointer cursors; disabled actions
@@ -177,8 +176,9 @@ retain their disabled semantics. Delete actions keep their confirmation dialogs.
 
 ### Inputs
 
-Employee inputs are 36px high with lg corners and a small shadow. Customer inputs
-are 32px high with 2xl corners. Both use semantic borders and focus treatment.
+Administrative plugin inputs use a 40px minimum height, lg corners, semantic borders,
+and background surfaces. Fields retain disabled and invalid states. Newsletter
+fields have visible labels and 44px controls; authentication keeps its larger controls.
 Input text stays 16px below the medium breakpoint and 14px above it. Reuse the
 specific plugin's field styles rather than adding another competing pattern.
 
@@ -205,6 +205,9 @@ The shared header contains the official Corner icon, All components navigation,
 Light/Dark control, repository link, and a language switch on localized demos.
 Skip to preview is the first keyboard stop. Each demo supplies its own settings
 to the shared preview frame, which owns positioning and responsive behavior.
+ShowroomIntro supplies consistent demo headings and instructions where the component
+has none. Notices below controls explain sample-data resets or simulated actions.
+Action and field labels use sentence case throughout the administrative plugins.
 
 ## Do's and Don'ts
 

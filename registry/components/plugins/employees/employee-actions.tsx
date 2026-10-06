@@ -173,7 +173,7 @@ export function EmployeeActions({
                     name="role"
                     defaultValue={isEmployeeAdmin(employee.role) ? "admin" : "user"}
                     disabled={pending || isSelf}
-                    className="h-9 rounded-lg border bg-background px-3 text-sm"
+                    className={inputClass}
                   >
                     <option value="user">{labels.roleUser}</option>
                     <option value="admin">{labels.roleAdmin}</option>

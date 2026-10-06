@@ -45,6 +45,7 @@ function Preview({ view }: { view: View }) {
   return (
     <ShowroomPreview
       width="full"
+      notice="Actions are simulated. No credentials are stored, no session is changed, and no email is sent."
       navigation={
         <nav aria-label="Authentication examples" className="grid gap-3 text-sm">
           {destinations.map(([path, name]) => (
@@ -68,7 +69,7 @@ function Preview({ view }: { view: View }) {
                 checked={fail}
                 onChange={(event) => setFail(event.target.checked)}
               />
-              {view === "login" ? "Simulate sign-in failure" : "Simulate failure"}
+              Simulate action failures
             </label>
             {(view === "login" || view === "forgot-password" || view === "reset-password") && (
               <label className="flex gap-2 text-sm">
@@ -120,10 +121,7 @@ function Preview({ view }: { view: View }) {
               </div>
             )}
             <p className="text-sm text-muted-foreground">
-              Callback calls: <span data-testid="callback-count">{calls}</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Mock callbacks wait briefly. No credentials are stored and no email is sent.
+              Actions requested: <span data-testid="callback-count">{calls}</span>
             </p>
           </div>
         )

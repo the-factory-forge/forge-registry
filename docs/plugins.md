@@ -29,6 +29,17 @@ stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
 settings, create, edit and delete use the shared Lucide conventions.
 
+Default action and field labels use sentence case, such as **Create customer**
+and **Save changes**. Employee account actions use **employee** consistently.
+Success messages name the completed action without an added “successfully”.
+Hosts can still override labels through the existing props.
+
+Administrative form fields and text buttons use a 40px minimum height with lg
+corners. Existing icon actions retain their compact hit areas. Customer, project,
+blog and Drive panels follow the table panels' xl corners and 24px padding.
+Authentication and public signup forms retain larger controls for their context.
+These styles ship in each item's existing files and require no new dependency.
+
 Hosts must supply all semantic status background/foreground pairs and Tailwind
 mappings described in [Design tokens](../CONTRIBUTING.md#design-tokens), including
 `status-success`, `status-pending`, `status-not-started`, `status-canceled` and

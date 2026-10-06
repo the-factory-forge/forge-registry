@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { EmployeesPage, type Employee } from "@/components/plugins/employees";
 import { matchesTableSearch } from "@/components/table-search";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 export function EmployeesPreview() {
   const [employees, setEmployees] = useState<Employee[]>([
@@ -34,6 +34,7 @@ export function EmployeesPreview() {
   }
   return (
     <ShowroomPreview
+      notice={previewDataNotice}
       controls={
         <>
           <label className="flex items-center gap-2 text-sm">
@@ -54,7 +55,7 @@ export function EmployeesPreview() {
               checked={fail}
               onChange={(event) => setFail(event.target.checked)}
             />
-            Simulate action failure
+            Simulate action failures
           </label>
         </>
       }

@@ -31,7 +31,7 @@ export function CustomersPreview() {
           throw new Error("Customer owns projects");
         }
         setCustomers((current) => current.filter((customer) => customer.id !== id));
-        state.setNotice("Customer deleted successfully.");
+        state.setNotice("Customer deleted.");
         if (customerId) await navigate({ href: base });
       }
     : undefined;
@@ -48,7 +48,7 @@ export function CustomersPreview() {
           const { password: _password, ...fields } = values;
           const id = crypto.randomUUID();
           setCustomers((current) => [...current, { ...fields, id, emailVerified: false }]);
-          state.setNotice("Customer created successfully.");
+          state.setNotice("Customer created.");
           await navigate({ href: `${base}/${id}` });
         }}
       />
@@ -65,7 +65,7 @@ export function CustomersPreview() {
         <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
           <Link href={base} className="underline">
-            Back to Customers
+            Back to customers
           </Link>
         </div>
       );

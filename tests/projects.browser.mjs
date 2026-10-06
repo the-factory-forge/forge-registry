@@ -56,8 +56,8 @@ test("project directory search, states, links and optional actions", async (t) =
   await page.getByRole("alert").filter({ hasText: "Unable to load projects" }).waitFor();
   await page.getByLabel("Directory state").selectOption("ready");
   await page.getByLabel("Account actions", { exact: true }).uncheck();
-  assert.equal(await page.getByRole("button", { name: "Delete Project", exact: true }).count(), 0);
-  assert.equal(await page.getByRole("link", { name: "Create Project", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Delete project", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("link", { name: "Create project", exact: true }).count(), 0);
   const row = page.getByRole("row").filter({ hasText: "Studio website" });
   assert.equal(
     await row.getByRole("link", { name: "Visit Studio website website" }).getAttribute("href"),
@@ -69,7 +69,7 @@ test("project directory search, states, links and optional actions", async (t) =
 
 test("create validates inputs, picker keyboard focus, failures and duplicate submission", async (t) => {
   const page = await preview(t, "/en/projects/new");
-  const submit = page.getByRole("button", { name: "Create Project", exact: true });
+  const submit = page.getByRole("button", { name: "Create project", exact: true });
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "Enter a project name" }).waitFor();
   await page.getByLabel("Name *", { exact: true }).fill("   ");
@@ -106,7 +106,7 @@ test("create validates inputs, picker keyboard focus, failures and duplicate sub
     form.requestSubmit();
   });
   await page.getByRole("heading", { name: "Fresh project", exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to Projects", exact: true }).click();
+  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
   await page.getByRole("row").filter({ hasText: "Fresh project" }).waitFor();
   assert.equal(await page.getByRole("row").filter({ hasText: "Fresh project" }).count(), 1);
 });
@@ -119,14 +119,14 @@ test("editing retains drafts, supports reassignment, clearing assignee and proje
   await page.getByRole("button", { name: "Select an assignee", exact: true }).click();
   await page.getByRole("button", { name: "Leave unassigned", exact: true }).click();
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
   assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Updated website");
   await page.getByLabel("Simulate action failures").uncheck();
-  await page.getByRole("button", { name: "Save Changes", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Project updated successfully" }).waitFor();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Project updated" }).waitFor();
   await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to Projects", exact: true }).click();
+  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "Updated website" });
   await row.getByText("Sam Rivera", { exact: true }).waitFor();
   await row.getByText("Unassigned", { exact: true }).waitFor();
@@ -139,14 +139,14 @@ test("customer composition scopes projects, locks ownership, and keeps shared na
   await page.getByLabel("Projects integration", { exact: true }).check();
   await page.getByText("No projects found.", { exact: true }).waitFor();
   assert.equal(await page.getByRole("columnheader", { name: "Owner", exact: true }).count(), 0);
-  await page.getByRole("link", { name: "Create Project", exact: true }).click();
+  await page.getByRole("link", { name: "Create project", exact: true }).click();
   assert.equal(
     await page.getByRole("button", { name: "Select an owner *", exact: true }).isDisabled(),
     true,
   );
   await page.getByText("Sam Rivera", { exact: true }).waitFor();
   await page.getByLabel("Name *", { exact: true }).fill("Sam's project");
-  await page.getByRole("button", { name: "Create Project", exact: true }).click();
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
   await page.getByRole("heading", { name: "Sam's project", exact: true }).waitFor();
   assert.equal(
     await page.getByRole("button", { name: "Select an owner *", exact: true }).isDisabled(),
@@ -159,7 +159,7 @@ test("customer composition scopes projects, locks ownership, and keeps shared na
   assert.equal(await page.getByText(/Host Drive content/).count(), 0);
   await page.getByLabel("Host integration example").check();
   await page.getByText(/Host Drive content for Sam's project/).waitFor();
-  await page.getByRole("link", { name: "Back to Customer Projects", exact: true }).click();
+  await page.getByRole("link", { name: "Back to customer projects", exact: true }).click();
   await page.getByRole("row").filter({ hasText: "Sam's project" }).waitFor();
   await page.getByRole("link", { name: "Project directory", exact: true }).click();
   await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
@@ -171,14 +171,14 @@ test("customer composition scopes projects, locks ownership, and keeps shared na
     await page.getByRole("button", { name: "Select an owner *", exact: true }).isEnabled(),
     true,
   );
-  await page.getByRole("link", { name: "Back to Projects", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Back to projects", exact: true }).waitFor();
 });
 
 test("missing owners and directory states block mutation without discarding the draft", async (t) => {
   const page = await preview(t, "/en/projects/website");
   await page.getByLabel("Name *", { exact: true }).fill("Retained draft");
   const state = page.getByLabel("People directories", { exact: true });
-  const submit = page.getByRole("button", { name: "Save Changes", exact: true });
+  const submit = page.getByRole("button", { name: "Save changes", exact: true });
   await state.selectOption("loading");
   await page.getByRole("status").filter({ hasText: "Loading customers" }).waitFor();
   assert.equal(await submit.isDisabled(), true);
@@ -190,7 +190,7 @@ test("missing owners and directory states block mutation without discarding the 
   await page.getByRole("alert").filter({ hasText: "Unable to load customers" }).waitFor();
   assert.equal(await submit.isDisabled(), true);
   await state.selectOption("empty");
-  await page.getByRole("link", { name: "Create Customer", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Create customer", exact: true }).waitFor();
   assert.equal(await submit.isDisabled(), true);
   await state.selectOption("unavailable");
   await submit.click();
@@ -203,7 +203,7 @@ test("missing owners and directory states block mutation without discarding the 
 
 test("delete confirmation handles cancellation, failure, success and customer orphan prevention", async (t) => {
   const page = await preview(t, "/en/customers/acme");
-  await page.getByRole("button", { name: "Delete Customer", exact: true }).click();
+  await page.getByRole("button", { name: "Delete customer", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog").getByRole("alert").waitFor();
   await page
@@ -214,10 +214,10 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("link", { name: "Project directory", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "Studio website" });
-  const trigger = row.getByRole("button", { name: "Delete Project", exact: true });
+  const trigger = row.getByRole("button", { name: "Delete project", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Delete Project", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Delete project", exact: true });
   await dialog.waitFor();
   // The popup can become visible before Base UI finishes moving focus.
   await dialog
@@ -243,7 +243,7 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await row.waitFor({ state: "hidden" });
   await page.getByRole("link", { name: "Customer portal", exact: true }).click();
-  await page.getByRole("button", { name: "Delete Project", exact: true }).click();
+  await page.getByRole("button", { name: "Delete project", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("dialog").getByRole("alert").waitFor();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -262,7 +262,7 @@ test("delete confirmation handles cancellation, failure, success and customer or
       .waitFor();
   }
   await page.getByRole("link", { name: "Details", exact: true }).click();
-  await page.getByRole("button", { name: "Delete Project", exact: true }).click();
+  await page.getByRole("button", { name: "Delete project", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByText("No projects found.", { exact: true }).waitFor();
 });
@@ -280,8 +280,8 @@ test("project pages and picker fit desktop/mobile in both themes", async (t) => 
       );
       for (const [view, link] of [
         ["detail", null],
-        ["list", "Back to Projects"],
-        ["new", "Create Project"],
+        ["list", "Back to projects"],
+        ["new", "Create project"],
       ]) {
         if (link) await page.getByRole("link", { name: link, exact: true }).click();
         await page

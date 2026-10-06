@@ -19,7 +19,7 @@ import {
 } from "@/components/intranet-sidebar";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 import { showroomHead } from "@/showroom/seo";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const groups: IntranetNavGroup[] = [
   {
@@ -111,7 +111,7 @@ function IntranetSidebarExample() {
   const [externalToggle, setExternalToggle] = useState(false);
   const [failSignOut, setFailSignOut] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
-  const [name, setName] = useState("The Corner");
+  const [name, setName] = useState("Acme workspace");
 
   return (
     <ShowroomPreview
@@ -140,7 +140,7 @@ function IntranetSidebarExample() {
               checked={failSignOut}
               onChange={(event) => setFailSignOut(event.target.checked)}
             />
-            Simulate a sign-out error
+            Simulate sign-out failure
           </label>
         </>
       }
@@ -176,27 +176,15 @@ function IntranetSidebarExample() {
             </header>
           )}
           <div className="showroom-inset space-y-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                  Registry preview
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold">Intranet sidebar</h1>
-                <p className="mt-3 text-muted-foreground">
-                  Customer branding, nested navigation, and a user profile. The sidebar works with
-                  or without a navbar.
-                </p>
-              </div>
-            </div>
+            <ShowroomIntro title="Intranet sidebar">
+              Customer branding, nested navigation, and a user profile. The sidebar works with or
+              without a navbar.
+            </ShowroomIntro>
             <div className="space-y-4 rounded-xl border border-border p-5">
               <p className="text-sm text-muted-foreground">
                 Current destination: <code>{pathname}</code>
               </p>
-              {signedOut && (
-                <p role="status" className="text-sm">
-                  Demo session ended.
-                </p>
-              )}
+              {signedOut && <output className="block text-sm">The demo session has ended.</output>}
             </div>
             <p className="text-sm text-muted-foreground">
               Use the toggle or Ctrl/Cmd+B. On smaller screens, navigation opens in a modal drawer.

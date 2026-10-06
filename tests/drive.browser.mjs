@@ -53,11 +53,11 @@ test("Drive navigation, scoped folders, search, permissions and listing failures
   await page.getByRole("link", { name: "Team handbook", exact: true }).click();
   await row(page, "Welcome.txt").waitFor();
   assert.equal(await page.getByRole("button", { name: "Upload files", exact: true }).count(), 0);
-  await page.getByText("Read only", { exact: true }).waitFor();
+  await page.getByText("Read-only", { exact: true }).waitFor();
   const download = page.waitForEvent("download");
   await row(page, "Welcome.txt").getByRole("button", { name: "Download", exact: true }).click();
   await download;
-  await page.getByRole("link", { name: "Back to Drive", exact: true }).click();
+  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
   await page.getByRole("link", { name: "Studio website", exact: true }).click();
   await folder(page, "Assets");
   await page.getByRole("link", { name: "Assets", exact: true }).click();
@@ -122,7 +122,7 @@ test("uploads progress independently, retry, cancel, retain failures and share e
   await cancelled.getByText("Cancelled", { exact: true }).waitFor();
   assert.equal(await row(page, "cancel.txt").count(), 0);
   await cancelled.getByRole("button", { name: "Dismiss", exact: true }).click();
-  await page.getByRole("link", { name: "Back to Drive", exact: true }).click();
+  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
   await page.getByRole("link", { name: "Studio website", exact: true }).click();
   await row(page, "one.txt").waitFor();
   await page.getByLabel("Simulate action failures").check();
@@ -187,7 +187,7 @@ test("Drive fits mobile and desktop in light and dark themes", async (t) => {
         path: `/tmp/forge-drive-${width}-${colorScheme}.png`,
         fullPage: true,
       });
-      await page.getByRole("link", { name: "Back to Drive", exact: true }).click();
+      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
       await page.getByRole("link", { name: "Studio website", exact: true }).waitFor();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -272,7 +272,7 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
     "Name",
     "Modified",
     "Size",
-    "Owned",
+    "Owner",
     "Actions",
   ]);
   const portal = row(page, "Customer portal");
@@ -295,14 +295,14 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
   assert.deepEqual(await names(), ["Studio website", "Team handbook", "Customer portal"]);
   await sortBy("Size");
   assert.deepEqual(await names(), ["Customer portal", "Team handbook", "Studio website"]);
-  await sortBy("Owned");
-  const owner = page.getByRole("button", { name: "Owned", exact: true });
+  await sortBy("Owner");
+  const owner = page.getByRole("button", { name: "Owner", exact: true });
   await owner.focus();
   await page.keyboard.press("Enter");
   await page.locator('[aria-busy="false"] table').waitFor();
   assert.equal(await owner.evaluate((element) => element === document.activeElement), true);
   assert.equal(
-    await table.getByRole("columnheader", { name: "Owned", exact: true }).getAttribute("aria-sort"),
+    await table.getByRole("columnheader", { name: "Owner", exact: true }).getAttribute("aria-sort"),
     "descending",
   );
   assert.deepEqual(await names(), ["Customer portal", "Studio website", "Team handbook"]);

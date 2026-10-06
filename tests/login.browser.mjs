@@ -27,7 +27,7 @@ test("recovery validates email, blocks duplicates, and retains a failed draft", 
   await page.getByRole("button", { name: "Send reset link", exact: true }).click();
   assert.equal(await page.getByTestId("callback-count").textContent(), "0");
   await email.fill("person@example.com");
-  await page.getByLabel("Simulate failure").check();
+  await page.getByLabel("Simulate action failures").check();
   await page.locator("#factory-auth-main-content form").evaluate((form) => {
     form.requestSubmit();
     form.requestSubmit();
@@ -47,7 +47,7 @@ test("recovery validates email, blocks duplicates, and retains a failed draft", 
   );
   assert.deepEqual(brokenReferences, []);
 
-  await page.getByLabel("Simulate failure").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   assert.equal(await email.inputValue(), "person@example.com");
   await page.getByRole("button", { name: "Send reset link", exact: true }).click();
   await page.getByRole("heading", { name: "Check your email", exact: true }).waitFor();
@@ -84,7 +84,7 @@ test("password forms validate, retain failed values, and clear successful creden
     assert.equal(await confirm.getAttribute("aria-invalid"), "true");
     assert.equal(await confirm.evaluate((element) => element === document.activeElement), true);
     await confirm.fill("new-password-123");
-    await page.getByLabel("Simulate failure").check();
+    await page.getByLabel("Simulate action failures").check();
     await page.locator("#factory-auth-main-content form").evaluate((form) => {
       form.requestSubmit();
       form.requestSubmit();
@@ -92,7 +92,7 @@ test("password forms validate, retain failed values, and clear successful creden
     await page.getByRole("alert").filter({ hasText: "Could not" }).waitFor();
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.equal(await password.inputValue(), "new-password-123");
-    await page.getByLabel("Simulate failure").uncheck();
+    await page.getByLabel("Simulate action failures").uncheck();
     await page.getByLabel("12–16 character password policy").check();
     assert.equal(await password.inputValue(), "new-password-123");
     assert.equal(await password.getAttribute("minlength"), "12");
@@ -164,7 +164,7 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
   assert.equal(await page.getByRole("button", { name: /GitHub|example provider/ }).count(), 0);
   await page.getByLabel("Email", { exact: true }).fill("person@example.test");
   await page.getByLabel("Password", { exact: true }).fill("retained-password");
-  await page.getByLabel("Simulate sign-in failure").check();
+  await page.getByLabel("Simulate action failures").check();
   const google = page.getByRole("button", { name: "Continue with Google", exact: true });
   await google.focus();
   await page.keyboard.press("Enter");
@@ -175,7 +175,7 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
     await page.getByLabel("Password", { exact: true }).inputValue(),
     "retained-password",
   );
-  await page.getByLabel("Simulate sign-in failure").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   await google.click();
   await page.getByRole("status").filter({ hasText: "Google sign-in callback received." }).waitFor();
   assert.equal(await google.isDisabled(), true);
@@ -189,7 +189,7 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
 
 test("shared sign-out reports failure, prevents duplicate clicks, and retries", async (t) => {
   const page = await preview(t, "/en/login");
-  await page.getByLabel("Simulate sign-in failure").check();
+  await page.getByLabel("Simulate action failures").check();
   const signOut = page.getByRole("button", { name: "Sign out", exact: true });
   await signOut.evaluate((button) => {
     button.click();
@@ -197,7 +197,7 @@ test("shared sign-out reports failure, prevents duplicate clicks, and retries", 
   });
   await page.getByRole("alert").filter({ hasText: "Could not sign out" }).waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "1");
-  await page.getByLabel("Simulate sign-in failure").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
   await signOut.click();
   await page.getByRole("status").filter({ hasText: "Sign-out callback received." }).waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "2");

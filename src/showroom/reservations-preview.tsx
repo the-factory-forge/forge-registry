@@ -12,7 +12,7 @@ import {
 } from "@/components/plugins/reservations";
 import { createReservationsMock } from "@/showroom/reservations-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
-import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const french: ReservationLabels = {
   accommodation: "Hébergement",
@@ -171,6 +171,7 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
   return (
     <Context.Provider value={mock}>
       <ShowroomPreview
+        notice={previewDataNotice}
         navigation={
           <>
             <Link href={`/${locale}/reservations`}>Public booking</Link>
@@ -203,7 +204,7 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
                 checked={mock.fail}
                 onChange={(e) => mock.setFail(e.target.checked)}
               />
-              Fail mutations
+              Simulate action failures
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -230,7 +231,7 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
             <div className="space-y-2 border-t border-border pt-4">
               <h2 className="font-medium">Demo inbox</h2>
               <p className="text-xs text-muted-foreground">
-                Local demo data only. No emails are sent. Reloading resets the example.
+                Reservation emails appear here only. No email is sent.
               </p>
               {last && (
                 <Link href={`/${locale}/reservations/manage/${last.id}`}>
