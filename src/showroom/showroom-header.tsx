@@ -45,7 +45,7 @@ export function ShowroomHeader() {
           <Link
             href="/"
             aria-current={isList ? "page" : undefined}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl px-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:px-3"
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:text-primary sm:px-3"
           >
             <Icon className="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
             All components

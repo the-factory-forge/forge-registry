@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T15:09:31.760Z",
+  "title": "Design System: Forge Registry",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "displayName": "background",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#ffffff, #000000) 15% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 26% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 38% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 49% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 61% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 72% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 84% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 95% c h)"
+        ]
+      },
+      "foreground": {
+        "displayName": "foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#000000, #ffffff) 15% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 26% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 38% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 49% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 61% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 72% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 84% c h)",
+          "oklch(from light-dark(#000000, #ffffff) 95% c h)"
+        ]
+      },
+      "primary": {
+        "displayName": "Deep teal / pale blue",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(from light-dark(#13343a, #badede) 15% c h)",
+          "oklch(from light-dark(#13343a, #badede) 26% c h)",
+          "oklch(from light-dark(#13343a, #badede) 38% c h)",
+          "oklch(from light-dark(#13343a, #badede) 49% c h)",
+          "oklch(from light-dark(#13343a, #badede) 61% c h)",
+          "oklch(from light-dark(#13343a, #badede) 72% c h)",
+          "oklch(from light-dark(#13343a, #badede) 84% c h)",
+          "oklch(from light-dark(#13343a, #badede) 95% c h)"
+        ]
+      },
+      "primary-foreground": {
+        "displayName": "primary foreground",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(from light-dark(#ffffff, #13343a) 15% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 26% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 38% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 49% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 61% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 72% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 84% c h)",
+          "oklch(from light-dark(#ffffff, #13343a) 95% c h)"
+        ]
+      },
+      "muted-foreground": {
+        "displayName": "muted foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 15% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 26% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 38% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 49% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 61% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 72% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 84% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 62%), rgb(255 255 255 / 68%)) 95% c h)"
+        ]
+      },
+      "border": {
+        "displayName": "border",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 15% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 26% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 38% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 49% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 61% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 72% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 84% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 18%), rgb(255 255 255 / 18%)) 95% c h)"
+        ]
+      },
+      "input": {
+        "displayName": "input",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 15% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 26% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 38% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 49% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 61% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 72% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 84% c h)",
+          "oklch(from light-dark(rgb(0 0 0 / 28%), rgb(255 255 255 / 28%)) 95% c h)"
+        ]
+      },
+      "destructive": {
+        "displayName": "destructive",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 15% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 26% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 38% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 49% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 61% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 72% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 84% c h)",
+          "oklch(from light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216)) 95% c h)"
+        ]
+      },
+      "destructive-foreground": {
+        "displayName": "destructive foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#ffffff, #000000) 15% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 26% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 38% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 49% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 61% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 72% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 84% c h)",
+          "oklch(from light-dark(#ffffff, #000000) 95% c h)"
+        ]
+      },
+      "status-success": {
+        "displayName": "status success",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#dcfce7, #052e16) 15% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 26% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 38% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 49% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 61% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 72% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 84% c h)",
+          "oklch(from light-dark(#dcfce7, #052e16) 95% c h)"
+        ]
+      },
+      "status-success-foreground": {
+        "displayName": "status success foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#166534, #86efac) 15% c h)",
+          "oklch(from light-dark(#166534, #86efac) 26% c h)",
+          "oklch(from light-dark(#166534, #86efac) 38% c h)",
+          "oklch(from light-dark(#166534, #86efac) 49% c h)",
+          "oklch(from light-dark(#166534, #86efac) 61% c h)",
+          "oklch(from light-dark(#166534, #86efac) 72% c h)",
+          "oklch(from light-dark(#166534, #86efac) 84% c h)",
+          "oklch(from light-dark(#166534, #86efac) 95% c h)"
+        ]
+      },
+      "status-pending": {
+        "displayName": "status pending",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#ffedd5, #431407) 15% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 26% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 38% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 49% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 61% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 72% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 84% c h)",
+          "oklch(from light-dark(#ffedd5, #431407) 95% c h)"
+        ]
+      },
+      "status-pending-foreground": {
+        "displayName": "status pending foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#9a3412, #fdba74) 15% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 26% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 38% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 49% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 61% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 72% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 84% c h)",
+          "oklch(from light-dark(#9a3412, #fdba74) 95% c h)"
+        ]
+      },
+      "status-not-started": {
+        "displayName": "status not started",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#f3f4f6, #1f2937) 15% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 26% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 38% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 49% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 61% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 72% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 84% c h)",
+          "oklch(from light-dark(#f3f4f6, #1f2937) 95% c h)"
+        ]
+      },
+      "status-not-started-foreground": {
+        "displayName": "status not started foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#4b5563, #d1d5db) 15% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 26% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 38% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 49% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 61% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 72% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 84% c h)",
+          "oklch(from light-dark(#4b5563, #d1d5db) 95% c h)"
+        ]
+      },
+      "status-canceled": {
+        "displayName": "status canceled",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#fee2e2, #450a0a) 15% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 26% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 38% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 49% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 61% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 72% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 84% c h)",
+          "oklch(from light-dark(#fee2e2, #450a0a) 95% c h)"
+        ]
+      },
+      "status-canceled-foreground": {
+        "displayName": "status canceled foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#991b1b, #fca5a5) 15% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 26% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 38% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 49% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 61% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 72% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 84% c h)",
+          "oklch(from light-dark(#991b1b, #fca5a5) 95% c h)"
+        ]
+      },
+      "status-info": {
+        "displayName": "status info",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#dbeafe, #172554) 15% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 26% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 38% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 49% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 61% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 72% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 84% c h)",
+          "oklch(from light-dark(#dbeafe, #172554) 95% c h)"
+        ]
+      },
+      "status-info-foreground": {
+        "displayName": "status info foreground",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(from light-dark(#1e40af, #93c5fd) 15% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 26% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 38% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 49% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 61% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 72% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 84% c h)",
+          "oklch(from light-dark(#1e40af, #93c5fd) 95% c h)"
+        ]
+      }
+    },
+    "shadows": [
+      {
+        "name": "xs",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Reusable table search, employee inputs, and preview select fields."
+      },
+      {
+        "name": "lg",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Employee dialogs."
+      }
+    ],
+    "motion": [
+      {
+        "name": "search-expansion",
+        "value": "200ms",
+        "purpose": "Search width, border, and shadow transitions; disabled with reduced motion."
+      },
+      {
+        "name": "directory-arrow",
+        "value": "200ms",
+        "purpose": "Small arrow translation on card hover or focus; disabled with reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "40rem"
+      },
+      {
+        "name": "md",
+        "value": "48rem"
+      },
+      {
+        "name": "lg",
+        "value": "64rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary plugin action.",
+      "html": "<button class=\"ds-button ds-primary\">Save changes</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-primary{background:var(--primary);color:var(--primary-foreground)}.ds-primary:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}"
+    },
+    {
+      "name": "Outlined button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary plugin action.",
+      "html": "<button class=\"ds-button ds-outline\">Cancel</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-outline{border:1px solid var(--border);background:transparent;color:var(--foreground)}.ds-outline:hover{background:var(--accent);color:var(--accent-foreground)}"
+    },
+    {
+      "name": "Destructive button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Confirmation action inside an existing delete dialog.",
+      "html": "<button class=\"ds-button ds-destructive\">Delete</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-destructive{background:var(--destructive);color:var(--destructive-foreground)}.ds-destructive:hover{background:color-mix(in srgb,var(--destructive) 90%,transparent)}"
+    },
+    {
+      "name": "Icon action",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Accessible edit action using the existing pencil icon.",
+      "html": "<button class=\"ds-button ds-icon\" aria-label=\"Edit\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m16 3 5 5M4 20l4-1L21 6a2.8 2.8 0 0 0-4-4L4 15z\"/></svg></button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-icon{width:32px;height:32px;min-height:32px;padding:0;background:transparent;color:var(--foreground)}.ds-icon:hover{background:var(--accent);color:var(--accent-foreground)}"
+    },
+    {
+      "name": "Employee input",
+      "kind": "input",
+      "refersTo": "employee-input",
+      "description": "Field styling from the employee plugin.",
+      "html": "<input class=\"ds-input\" aria-label=\"Name\" placeholder=\"Name\">",
+      "css": ".ds-input{height:36px;width:100%;border:1px solid var(--input);background:transparent;color:var(--foreground);border-radius:8px;padding:0 12px;font:400 16px/24px var(--font-sans);box-shadow:0 1px 2px rgb(0 0 0 / .05)}.ds-input::placeholder{color:var(--muted-foreground)}.ds-input:focus-visible{outline:2px solid var(--ring)}.ds-input:disabled{opacity:.5}@media(min-width:48rem){.ds-input{font-size:14px;line-height:20px}}"
+    },
+    {
+      "name": "Category filter",
+      "kind": "chip",
+      "refersTo": "category-chip",
+      "description": "Directory category with its selected state.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">All <span aria-hidden=\"true\">16</span></button>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;border:1px solid var(--primary);border-radius:12px;background:var(--primary);color:var(--primary-foreground);padding:8px 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-chip span{font-size:12px;font-variant-numeric:tabular-nums;opacity:.8}.ds-chip:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    },
+    {
+      "name": "Showroom card",
+      "kind": "card",
+      "refersTo": "showroom-card",
+      "description": "Linked item preview from the directory.",
+      "html": "<a class=\"ds-card\" href=\"#\"><div class=\"ds-card-heading\"><h2>Auth</h2><span class=\"ds-category\">Plugin</span></div><p>Sign-in, sign-out, password recovery and changes, and access-denied states.</p><span class=\"ds-open\">Open plugin <span aria-hidden=\"true\">→</span></span></a>",
+      "css": ".ds-card{display:flex;flex-direction:column;border:1px solid color-mix(in srgb,var(--border) 70%,transparent);border-radius:16px;padding:20px;background:var(--card);color:var(--card-foreground);text-decoration:none;font-family:var(--font-sans);transition:background-color .15s,border-color .15s}.ds-card-heading{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px}.ds-card h2{margin:0;font-size:18px;line-height:28px;font-weight:600}.ds-category{border-radius:6px;padding:4px 8px;background:color-mix(in srgb,var(--foreground) 5%,transparent);color:var(--muted-foreground);font:500 12px/16px var(--font-sans)}.ds-card p{flex:1;margin:16px 0 0;color:var(--muted-foreground);font-size:14px;line-height:1.625}.ds-open{display:inline-flex;align-items:center;gap:8px;margin-top:24px;font-size:14px;line-height:20px;font-weight:500;color:var(--primary)}.ds-card:hover{border-color:color-mix(in srgb,var(--primary) 50%,transparent);background:color-mix(in srgb,var(--primary) 5%,transparent)}.ds-card:hover h2{color:var(--primary)}.ds-card:focus-visible{outline:2px solid var(--ring);outline-offset:2px}@media(min-width:40rem){.ds-card{padding:24px}}@media(prefers-reduced-motion:reduce){.ds-card{transition:none}}"
+    },
+    {
+      "name": "Header navigation",
+      "kind": "nav",
+      "description": "Return to the showroom directory.",
+      "html": "<nav aria-label=\"Showroom\"><a class=\"ds-nav\" href=\"#\">All components</a></nav>",
+      "css": ".ds-nav{display:inline-flex;align-items:center;min-height:40px;gap:8px;border-radius:12px;padding:0 12px;color:var(--foreground);font:500 14px/20px var(--font-sans);text-decoration:none}.ds-nav:hover{background:color-mix(in srgb,var(--primary) 5%,transparent);color:var(--primary)}.ds-nav:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "overview": "The component workbench is practical, restrained, and easy to scan. It uses neutral backgrounds, teal action accents, a sans-serif type stack, bordered cards, and compact controls. Its shared header and preview frame keep navigation and settings consistent across demos. Customer applications supply their own theme values through the same semantic roles.\n\nCompact and restrained controls keep attention on component behavior. Borders and small shadows create a lightly layered interface. This record preserves the current implementation, including the differences between existing plugins.",
+    "keyCharacteristics": [
+      "Neutral surfaces with semantic action and status colors.",
+      "Shared preview geometry with separate reusable component defaults.",
+      "Compact controls, visible borders, and restrained use of shadows."
+    ],
+    "rules": [],
+    "dos": [
+      "Do use semantic color roles and their matching foregrounds.",
+      "Do reuse the shared preview frame and the relevant plugin styles.",
+      "Do retain translated labels, keyboard focus, reduced motion, and responsive wrapping.",
+      "Do preserve visible action text and the shared Lucide action icons."
+    ],
+    "donts": [
+      "Don't introduce customer-specific colors into reusable components.",
+      "Don't use showroom-only CSS as an undeclared consumer dependency.",
+      "Don't rename semantic roles when changing a customer theme.",
+      "Don't normalize unrelated component styles as a side effect of a scoped edit."
+    ],
+    "northStar": "Component workbench"
+  }
+}

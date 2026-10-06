@@ -144,7 +144,16 @@
   height: 100%;
   max-width: var(--showroom-max-width);
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: var(--showroom-gutter);
+}
+
+.showroom-content ::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.showroom-content :is(input, textarea) {
+  caret-color: var(--primary);
 }
 
 .showroom-frame {

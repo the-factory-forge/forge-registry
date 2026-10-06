@@ -34,6 +34,26 @@ test("homepage search starts expanded and stays visible through filtering, clear
   assert.equal(await search.isVisible(), true);
   assert.equal(await page.locator("main a h2").count(), allCount);
   await search.fill("no matching example");
+  await page.getByRole("button", { name: "Page", exact: true }).click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: `0 of ${allCount} examples` })
+    .waitFor();
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  assert.equal(await search.inputValue(), "");
+  assert.equal(
+    await page.getByRole("button", { name: "All", exact: true }).getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "All", exact: true })
+      .evaluate((el) => el === document.activeElement),
+    true,
+  );
+  assert.equal(await page.locator("main a h2").count(), allCount);
+  assert.equal(await page.getByRole("button", { name: "Reset filters", exact: true }).count(), 0);
+  await search.fill("no matching example");
   await search.press("Escape");
   assert.equal(await search.inputValue(), "");
   assert.equal(await page.locator("main a h2").count(), allCount);

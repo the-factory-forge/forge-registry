@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BoxIcon, FileTextIcon, PanelsTopLeftIcon, PlugIcon, type LucideIcon } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowRightIcon,
+  BoxIcon,
+  FileTextIcon,
+  PanelsTopLeftIcon,
+  PlugIcon,
+  SearchIcon,
+  type LucideIcon,
+} from "lucide-react";
+import { useRef, useState } from "react";
 
 import { TableSearch } from "@/components/table-search";
 import { pluginIcons } from "@/components/utils/plugin-icons";
@@ -245,6 +253,7 @@ const types: (Category | "All")[] = [
 function Home() {
   const [type, setType] = useState("All");
   const [search, setSearch] = useState("");
+  const allFilterRef = useRef<HTMLButtonElement>(null);
   const query = search.trim().toLowerCase();
   const visibleExamples = examples.filter(
     (example) =>
@@ -254,16 +263,18 @@ function Home() {
 
   return (
     <ShowroomPreview>
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">Components Showcase</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <header className="max-w-3xl pt-4 pb-8 sm:pt-8 sm:pb-10">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl">
+          Components Showcase
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
           Preview reusable React components, page layouts, and intranet plugins. Install editable
           source in your project through the Forge shadcn registry.
         </p>
       </header>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <fieldset className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border/70 py-4">
+        <fieldset className="flex min-w-0 flex-wrap gap-2">
           <legend className="sr-only">Filter by type</legend>
           {types.map((option) => {
             const Icon = option === "All" ? null : categoryIcons[option];
@@ -271,17 +282,23 @@ function Home() {
             return (
               <button
                 key={option}
+                ref={option === "All" ? allFilterRef : undefined}
                 type="button"
                 aria-pressed={type === option}
                 onClick={() => setType(option)}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none ${
                   type === option
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
+                    : "border-transparent bg-background text-muted-foreground hover:border-border hover:bg-primary/5 hover:text-foreground"
                 }`}
               >
                 {Icon && <Icon className="size-4" aria-hidden="true" />}
                 {option}
+                <span aria-hidden="true" className="text-xs tabular-nums opacity-80">
+                  {option === "All"
+                    ? examples.length
+                    : examples.filter((example) => example.category === option).length}
+                </span>
               </button>
             );
           })}
@@ -292,43 +309,70 @@ function Home() {
           label="Search examples"
           placeholder="Search titles or keywords..."
           alwaysExpanded
-          className="w-full sm:w-64"
+          className="h-11 w-full shadow-none sm:w-72 [&_button]:size-9 [&_input]:pr-10 [&_input]:pl-11"
         />
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="flex min-h-16 flex-wrap items-center justify-between gap-2 py-4">
+        <output aria-atomic="true" className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground tabular-nums">{visibleExamples.length}</span>
+          {" of "}
+          {examples.length} examples
+        </output>
+        {(type !== "All" || search) && (
+          <button
+            type="button"
+            onClick={() => {
+              setType("All");
+              setSearch("");
+              allFilterRef.current?.focus();
+            }}
+            className="min-h-9 cursor-pointer rounded-lg px-3 text-sm font-medium text-primary underline-offset-4 hover:bg-primary/5 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            Reset filters
+          </button>
+        )}
+      </div>
+
+      <section aria-label="Examples" className="grid gap-4 pb-8 sm:grid-cols-2 lg:grid-cols-3">
         {visibleExamples.length === 0 && (
-          <output className="col-span-full text-sm text-muted-foreground">
-            No examples found.
-          </output>
+          <div className="col-span-full rounded-2xl border border-dashed border-border px-6 py-14 text-center">
+            <SearchIcon className="mx-auto mb-4 size-6 text-muted-foreground" aria-hidden="true" />
+            <output className="block text-lg font-semibold text-foreground">
+              No examples found.
+            </output>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try another keyword or reset the filters to see all examples.
+            </p>
+          </div>
         )}
         {visibleExamples.map((example) => {
-          const Icon = categoryIcons[example.category];
-          const PluginIcon = example.icon;
+          const Icon = example.icon ?? categoryIcons[example.category];
 
           return (
             <Link
               key={example.href}
               href={example.href}
-              className="group rounded-lg border border-border bg-card p-5 text-card-foreground shadow-sm transition hover:border-primary hover:shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="group flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-5 text-card-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none sm:p-6"
             >
-              <p className="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                <Icon className="size-4" aria-hidden="true" />
-                {example.category}
-              </p>
-              <h2 className="mt-2 flex items-center gap-2 text-lg font-semibold text-card-foreground transition group-hover:text-primary">
-                {PluginIcon && <PluginIcon className="size-5 shrink-0" aria-hidden="true" />}
-                {example.title}
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">{example.description}</p>
-              <p className="mt-4 text-sm font-medium text-primary">
-                Open {example.category.toLowerCase()}{" "}
-                <span
-                  aria-hidden="true"
-                  className="inline-block motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:translate-x-1 motion-safe:group-focus:translate-x-1"
-                >
-                  →
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="flex min-w-0 items-center gap-3 text-lg font-semibold text-card-foreground group-hover:text-primary">
+                  <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
+                  {example.title}
+                </h2>
+                <span className="rounded-md bg-foreground/5 px-2 py-1 text-xs font-medium text-muted-foreground">
+                  {example.category}
                 </span>
+              </div>
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
+                {example.description}
+              </p>
+              <p className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                Open {example.category.toLowerCase()}{" "}
+                <ArrowRightIcon
+                  aria-hidden="true"
+                  className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:translate-x-1 motion-safe:group-focus:translate-x-1"
+                />
               </p>
             </Link>
           );
