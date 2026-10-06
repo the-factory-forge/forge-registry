@@ -143,21 +143,25 @@ export function BlogIndexPage({
           <label className="sr-only" htmlFor="factory-blog-search">
             {labels.search}
           </label>
-          <div className="relative min-w-0 flex-1">
+          <div className="relative h-11 min-w-0 flex-1 rounded-xl border border-border/70 bg-background transition-[border-color,box-shadow] duration-200 focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/15 hover:border-input motion-reduce:transition-none">
             <SearchIcon
               aria-hidden="true"
               className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
               id="factory-blog-search"
+              type="search"
               name="search"
               defaultValue={search}
               placeholder={`${labels.search}...`}
-              className="h-8 w-full min-w-0 rounded-2xl border border-input bg-muted pr-3 pl-9 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:text-sm"
+              className="h-full w-full min-w-0 appearance-none rounded-xl border-0 bg-transparent py-1 pr-3 pl-11 text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
           {categoryId && <input type="hidden" name="category" value={categoryId} />}
-          <button className="h-8 cursor-pointer rounded-2xl bg-primary px-4 text-sm text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed">
+          <button
+            type="submit"
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed motion-reduce:transition-none"
+          >
             {labels.searchSubmit}
           </button>
         </form>

@@ -165,6 +165,9 @@ unnecessary because transfers use the host endpoint.
 
 ## Public pages and images
 
+Public search uses the shared 44px field height, rounded corners and focus treatment.
+It remains a native GET form: Enter or Search submits the query and current category.
+
 The public listing places categories above the posts on narrow screens, in a
 compact disclosure that starts closed and supports keyboard toggling. At the
 desktop breakpoint, categories remain expanded in the right sidebar.

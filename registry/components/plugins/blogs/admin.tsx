@@ -110,7 +110,7 @@ export function BlogsPage({
       <div className={cn(tablePanelClass, "space-y-5")}>
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="font-sans text-base font-semibold">{labels.blogs}</h1>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
             {capabilities.manageCategories && (
               <BlogLink href={categoriesHref} className={outlineButtonClass}>
                 <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />

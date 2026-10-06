@@ -152,7 +152,7 @@ buttons retain at least 4px spacing; toolbars and form actions normally use 8px.
 ## Elevation & Depth
 
 The interface is lightly layered, combining borders and small soft shadows.
-Directory cards and directory search use borders without shadows. Card hover uses
+Directory cards and shared search controls use borders without shadows. Card hover uses
 a faint primary tint and stronger border. Preview controls use the same faint
 tint with small shadows on select fields; dialogs use larger shadows above a
 backdrop. Exact shadow values live in the sidecar.
@@ -181,6 +181,8 @@ and background surfaces. Fields retain disabled and invalid states. Newsletter
 fields have visible labels and 44px controls; authentication keeps its larger controls.
 Input text stays 16px below the medium breakpoint and 14px above it. Reuse the
 specific plugin's field styles rather than adding another competing pattern.
+Homepage and table searches share a 44px height, 36px icon controls and input padding.
+Table search animates from 44px to 288px wide, capped by the available space.
 
 ### Chips and status labels
 

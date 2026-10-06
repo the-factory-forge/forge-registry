@@ -94,7 +94,7 @@ export function EmployeesPage({
     >
       <header className="flex flex-wrap items-center justify-between gap-4 px-6 pb-6">
         <h1 className="font-sans text-base font-semibold">{labels.title}</h1>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
           <TableSearch
             value={search}
             label={labels.search}

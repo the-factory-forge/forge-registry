@@ -7,11 +7,16 @@
       {
         "rule": "border-accent-on-rounded",
         "value": "*",
-        "files": [
-          "registry/components/plugins/menus/admin.tsx"
-        ],
+        "files": ["registry/components/plugins/menus/admin.tsx"],
         "createdAt": "2026-10-06T06:20:37.151Z",
         "reason": "Agent: the flagged Tabs.Tab uses a 2px bottom border as its active-language underline; only its top corners round on keyboard focus. This is an intentional tab indicator, not an accent border on a rounded card."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": ["registry/components/plugins/blogs/public.tsx"],
+        "createdAt": "2026-10-06T06:41:16.977Z",
+        "reason": "Agent: the flagged selectors apply a 2px quote marker only to semantic Markdown blockquotes. This is the existing quotation treatment, not a card or side tab, and the search changes do not touch it."
       }
     ]
   }

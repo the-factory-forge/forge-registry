@@ -16,6 +16,7 @@ const visibleRows = rows.filter((row) => matchesTableSearch(search, row.name, ro
 Keep state in each table instance. Place its button beside that table's primary action,
 outside the horizontal scroll container. Rendering a table primitive alone does not
 add or connect search: the table owner supplies searchable fields and filters its rows.
+Nested toolbar groups use `max-w-full flex-wrap` so the expanded field fits narrow cards.
 
 `TableSearchProps` exports `value`, `onValueChange`, `label`, `placeholder`, `clearLabel`,
 `alwaysExpanded`, `maxLength` and `className`. Override all three labels for translated interfaces.
@@ -28,6 +29,8 @@ first render, including after clearing or blur, without moving focus. It default
 to `false`. The showroom homepage uses this option instead of a separate search
 input. Clear and Escape reset the query, preserving input focus in both modes.
 The animated container clips its contents, retains visible focus and respects reduced motion.
+Both modes use a 44px height, 36px icon controls and the same input padding, without a shadow.
+The collapsed control is 44px wide; it expands to 288px, capped by the available width.
 Only standard host semantic colors and Tailwind utilities are required.
 
 Customers, projects, blog administration, menu administration, both Drive tables,

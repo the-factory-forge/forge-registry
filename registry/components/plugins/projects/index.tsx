@@ -92,7 +92,7 @@ export function ProjectsList({
             {customerId === undefined ? labels.description : labels.customerDescription}
           </p>
         </div>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
           <TableSearch
             value={search}
             onValueChange={onSearchChange}

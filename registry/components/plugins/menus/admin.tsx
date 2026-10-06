@@ -227,7 +227,7 @@ export function MenuItemsPage({
       <div className={tablePanelClass}>
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-base font-semibold">{labels.items}</h1>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
             <HostLink href={taxonomyHref} className={outlineButton}>
               <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.categories} / {labels.labels}

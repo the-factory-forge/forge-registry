@@ -73,7 +73,7 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   assert.equal(await page.locator("article").count(), 1);
   await page.getByRole("link", { name: "All categories", exact: true }).click();
   await page.getByRole("heading", { name: "Make room for better ideas", exact: true }).waitFor();
-  await page.getByRole("textbox", { name: "Search posts", exact: true }).fill("quieter");
+  await page.getByRole("searchbox", { name: "Search posts", exact: true }).fill("quieter");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await page
     .getByRole("heading", { name: "A quieter kind of productivity", exact: true })

@@ -79,7 +79,7 @@ export function CustomersPage({
             <h1 className="text-base font-semibold">{labels.title}</h1>
             <p className="text-sm text-muted-foreground">{labels.description}</p>
           </div>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
             {toolbar}
             <TableSearch
               value={search}

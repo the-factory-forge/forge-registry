@@ -309,7 +309,7 @@ function Home() {
           label="Search examples"
           placeholder="Search titles or keywords..."
           alwaysExpanded
-          className="h-11 w-full shadow-none sm:w-72 [&_button]:size-9 [&_input]:pr-10 [&_input]:pl-11"
+          className="w-full sm:w-72"
         />
       </div>
 

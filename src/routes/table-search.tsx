@@ -19,7 +19,7 @@ function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
     <section className={tablePanelClass} aria-label={title}>
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold">{title}</h2>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
           <TableSearch
             value={search}
             onValueChange={setSearch}
