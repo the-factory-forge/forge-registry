@@ -17,6 +17,13 @@
         "files": ["registry/components/plugins/blogs/public.tsx"],
         "createdAt": "2026-10-06T06:41:16.977Z",
         "reason": "Agent: the flagged selectors apply a 2px quote marker only to semantic Markdown blockquotes. This is the existing quotation treatment, not a card or side tab, and the search changes do not touch it."
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": ["registry/components/plugins/blogs/admin.tsx"],
+        "createdAt": "2026-10-07T14:48:45.355Z",
+        "reason": "Agent: the existing language tabs use a 2px bottom border as their active indicator, with only the top corners rounded on keyboard focus. This is a tab underline, not an accent border on a rounded card, and it is unchanged from HEAD."
       }
     ]
   }

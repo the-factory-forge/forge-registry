@@ -44,6 +44,15 @@ stylesheet does not ship with the item; forge-template supplies the defaults.
 
 ## Editing and publishing
 
+`BlogsPage` accepts an optional `onDelete(id, requestId)` callback. With this
+callback and `capabilities.delete`, each row shows a trash icon beside Edit.
+The confirmation names the post and warns that deletion removes all translations
+and publications. The host performs the authorized, version-checked delete with
+the supplied request ID, then refreshes the list and adjusts pagination. Rejected
+callbacks keep the dialog open with an error and allow retry. Without the callback,
+existing list integrations retain their edit action; deletion remains available
+in the editor when permitted.
+
 An article groups linked translations. Each has its own title, slug, summary,
 Markdown, image alternative text, draft, and publication. Thumbnail, banner, and
 category assignments are shared. Publishing one language captures the current

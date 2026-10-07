@@ -226,6 +226,11 @@ export function BlogsAdminPreview() {
         setPage(1);
       }}
       onPageChange={setPage}
+      onDelete={async (id, requestId) => {
+        const article = state.mock.get(id);
+        await state.client.delete({ id, version: article.version, requestId });
+        setPage(1);
+      }}
       editHref={(id) => `${root}/${id}`}
       newHref={`${root}/new`}
       categoriesHref={`${root}/categories`}

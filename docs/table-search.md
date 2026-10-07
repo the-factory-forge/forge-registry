@@ -13,13 +13,15 @@ const visibleRows = rows.filter((row) => matchesTableSearch(search, row.name, ro
 <TableSearch value={search} onValueChange={setSearch} label="Search customers" />;
 ```
 
-Keep state in each table instance. Place its button beside that table's primary action,
+Keep state in each table instance. Place search first in the table's action group,
+before custom toolbar controls, settings and create actions. Keep it in DOM order so
+keyboard navigation and wrapped layouts follow the same sequence. Place the group
 outside the horizontal scroll container. Rendering a table primitive alone does not
 add or connect search: the table owner supplies searchable fields and filters its rows.
 Nested toolbar groups use `max-w-full flex-wrap` so the expanded field fits narrow cards.
 
 `TableSearchProps` exports `value`, `onValueChange`, `label`, `placeholder`, `clearLabel`,
-`alwaysExpanded`, `maxLength` and `className`. Override all three labels for translated interfaces.
+`alwaysExpanded`, `size`, `maxLength` and `className`. Override all three labels for translated interfaces.
 The helper ignores case, accents and surrounding whitespace; every word must match.
 It accepts text, numbers and missing values. It does not inspect hidden fields or DOM content.
 
@@ -29,8 +31,11 @@ first render, including after clearing or blur, without moving focus. It default
 to `false`. The showroom homepage uses this option instead of a separate search
 input. Clear and Escape reset the query, preserving input focus in both modes.
 The animated container clips its contents, retains visible focus and respects reduced motion.
-Both modes use a 44px height, 36px icon controls and the same input padding, without a shadow.
-The collapsed control is 44px wide; it expands to 288px, capped by the available width.
+The default `size="compact"` matches plugin action buttons with a 32px height and
+collapsed width on desktop, increasing to 40px below the medium breakpoint. Its
+icon controls and input padding adapt with it. Use `size="default"` for the original
+44px height and collapsed width with 36px icon controls, as on the showroom homepage.
+Both sizes expand to 288px, capped by the available width, without a shadow.
 Only standard host semantic colors and Tailwind utilities are required.
 
 Customers, projects, blog administration, menu administration, both Drive tables,

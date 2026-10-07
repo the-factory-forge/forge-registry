@@ -80,7 +80,6 @@ export function CustomersPage({
             <p className="text-sm text-muted-foreground">{labels.description}</p>
           </div>
           <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
-            {toolbar}
             <TableSearch
               value={search}
               onValueChange={onSearchChange}
@@ -88,6 +87,7 @@ export function CustomersPage({
               placeholder={labels.searchPlaceholder}
               clearLabel={labels.clearSearch}
             />
+            {toolbar}
             <CustomerLink href={createHref} className={primaryButtonClass}>
               <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.create}
@@ -245,7 +245,7 @@ export function CustomerDetailPage({
             <dt className="text-muted-foreground">{labels.email}</dt>
             <dd
               className={cn(
-                "mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                "mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                 customer.emailVerified
                   ? "bg-status-success text-status-success-foreground"
                   : "bg-status-pending text-status-pending-foreground",
@@ -257,7 +257,7 @@ export function CustomerDetailPage({
           {customer.banned && (
             <div>
               <dt className="text-muted-foreground">{labels.banned}</dt>
-              <dd className="mt-1 inline-flex rounded-full bg-status-canceled px-2.5 py-1 text-xs font-medium text-status-canceled-foreground">
+              <dd className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-status-canceled px-2 py-0.5 text-xs font-medium text-status-canceled-foreground before:size-1.5 before:shrink-0 before:rounded-full before:bg-current">
                 {labels.yes}
               </dd>
             </div>

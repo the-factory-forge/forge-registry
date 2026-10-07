@@ -28,6 +28,51 @@ async function saved(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Draft saved." }).waitFor();
 }
+test("list deletion confirms the selected post, retains failures, and respects permissions", async (t) => {
+  const page = await preview(t, "/en/admin/blogs");
+  const title = "Make room for better ideas";
+  const trigger = page.getByRole("button", { name: `Delete post: ${title}`, exact: true });
+  const post = page.getByText(title, { exact: true });
+  await trigger.press("Enter");
+  const dialog = page.getByRole("dialog", { name: `Delete post: ${title}`, exact: true });
+  await dialog.waitFor();
+  await dialog
+    .getByText("This removes every translation and publication.", { exact: false })
+    .waitFor();
+  assert.equal(await post.count(), 1);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
+  assert.equal(await post.count(), 1);
+  await page.getByLabel("Read-only", { exact: true }).check();
+  assert.equal(await page.getByRole("button", { name: /^Delete post:/ }).count(), 0);
+  await page.getByLabel("Read-only", { exact: true }).uncheck();
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
+  await trigger.click();
+  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await dialog.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal(await post.count(), 1);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
+  await page.screenshot({ path: "/tmp/forge-blogs-delete-desktop-light.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await trigger.click();
+  await dialog.waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: "/tmp/forge-blogs-delete-mobile-dark.png", fullPage: true });
+  const confirm = dialog.getByRole("button", { name: "Delete permanently", exact: true });
+  await confirm.click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await post.count(), 0);
+  await page.getByRole("link", { name: "Public blog", exact: true }).click();
+  assert.equal(await page.getByRole("link", { name: title, exact: true }).count(), 0);
+  await page.getByRole("link", { name: "French blog", exact: true }).click();
+  assert.equal(
+    await page.getByRole("link", { name: "Faire de la place aux idées", exact: true }).count(),
+    0,
+  );
+});
 test("showroom illustrations load without cropping in both themes", async (t) => {
   const page = await preview(t);
   const paths = await page
@@ -196,11 +241,20 @@ test("categories, optional translations, required publication fields, directory 
     french = page.getByRole("group", { name: "Français", exact: true });
   await english.getByLabel("Category name", { exact: true }).fill("New category");
   await french.getByLabel("Category name", { exact: true }).fill("Nouvelle catégorie");
-  await page.getByRole("button", { name: "Save category", exact: true }).click();
   await page
-    .getByRole("navigation", { name: "Categories", exact: true })
-    .getByRole("button", { name: "New category", exact: true })
-    .waitFor();
+    .getByRole("combobox", { name: "Parent category", exact: true })
+    .selectOption({ label: "Ideas & practice" });
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  const navigation = page.getByRole("navigation", { name: "Categories", exact: true });
+  await navigation.getByRole("button", { name: "New category", exact: true }).waitFor();
+  const parentGroup = navigation.locator(":scope > ul > li").filter({
+    has: page.getByRole("button", { name: "Ideas & practice", exact: true }),
+  });
+  assert.deepEqual(await parentGroup.getByRole("button").allTextContents(), [
+    "Ideas & practice",
+    "Design",
+    "New category",
+  ]);
   await page.getByRole("button", { name: "Delete category", exact: true }).click();
   await page.getByRole("button", { name: "Delete permanently", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });

@@ -13,6 +13,23 @@ test("employee pages show content only to administrators", async (t) => {
   await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/en/employees`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("table").waitFor();
+  for (const label of ["Email verified", "Email not verified"]) {
+    const indicator = page.getByRole("img", { name: label, exact: true });
+    assert.equal(await indicator.textContent(), "");
+    await indicator.hover();
+    const tooltip = page.getByRole("tooltip", { name: label, exact: true });
+    await tooltip.waitFor();
+    await page.keyboard.press("Escape");
+    await tooltip.waitFor({ state: "hidden" });
+    await page.mouse.move(0, 0);
+    await indicator.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await indicator.evaluate((node) => node === document.activeElement), true);
+    await tooltip.waitFor();
+    await page.keyboard.press("Escape");
+    await tooltip.waitFor({ state: "hidden" });
+  }
   for (const role of ["user", ""]) {
     await page.getByLabel("Preview as").selectOption(role);
     await page.getByRole("table").waitFor({ state: "hidden" });

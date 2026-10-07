@@ -14,7 +14,7 @@ import {
 import { cn } from "@/components/utils/cn";
 
 export const buttonClass =
-  "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
@@ -154,7 +154,10 @@ export function Status({
   };
   return (
     <span
-      className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-medium", colors[status])}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+        colors[status],
+      )}
     >
       {labels[status]}
     </span>

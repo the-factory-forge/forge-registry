@@ -43,6 +43,7 @@ typography:
     fontWeight: 500
     lineHeight: 20px
 rounded:
+  md: 6px
   lg: 8px
   xl: 12px
   2xl: 16px
@@ -59,20 +60,20 @@ components:
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.md}"
     padding: 0 12px
   button-outline:
     textColor: "{colors.foreground}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.md}"
     padding: 0 12px
   button-destructive:
-    backgroundColor: "{colors.destructive}"
-    textColor: "{colors.destructive-foreground}"
-    rounded: "{rounded.lg}"
+    backgroundColor: "light-dark(color-mix(in srgb, var(--destructive) 10%, transparent), color-mix(in srgb, var(--destructive) 20%, transparent))"
+    textColor: "{colors.destructive}"
+    rounded: "{rounded.md}"
     padding: 0 12px
   button-icon:
     textColor: "{colors.foreground}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.md}"
     size: 32px
   employee-input:
     rounded: "{rounded.lg}"
@@ -168,11 +169,13 @@ one pixel wide and use the host's semantic roles.
 
 ### Buttons
 
-Administrative plugin action buttons are at least 40px high with 12px horizontal padding, medium
-14px labels, and 8px icon gaps. Primary, outlined, destructive, and icon variants
+Administrative plugin action buttons use md corners, 32px desktop minimums, 40px
+mobile targets, 12px horizontal padding, medium 14px labels, and 8px icon gaps. Primary, outlined, destructive, and icon variants
 reuse each plugin's existing styles. CTA links have their own 44px and 48px sizes.
 Focus uses the ring role. Enabled actions have pointer cursors; disabled actions
-retain their disabled semantics. Delete actions keep their confirmation dialogs.
+retain their disabled semantics. Destructive controls use red text on a subtle
+tinted surface, including confirmation dialogs. The implemented registry components
+are the visual reference for controls, status indicators, layout, and navigation.
 
 ### Inputs
 
@@ -181,15 +184,18 @@ and background surfaces. Fields retain disabled and invalid states. Newsletter
 fields have visible labels and 44px controls; authentication keeps its larger controls.
 Input text stays 16px below the medium breakpoint and 14px above it. Reuse the
 specific plugin's field styles rather than adding another competing pattern.
-Homepage and table searches share a 44px height, 36px icon controls and input padding.
-Table search animates from 44px to 288px wide, capped by the available space.
+Homepage search retains a 44px height and 36px icon controls. Table searches match
+action buttons at 32px on desktop and 40px on mobile, with matching compact corners
+and responsive icon controls and input padding. Their collapsed width matches
+their height; they expand to 288px, capped by the available space.
 
 ### Chips and status labels
 
 Directory category controls are 44px high with visible labels, counts, and optional
 leading icons. The selected category uses the primary pair. Results show a live
 count and a reset action that clears both filters and returns focus to All. Status labels use
-the appropriate status pair and visible text; they are not buttons by default.
+the appropriate status pair and visible text with a small decorative dot; they are
+not buttons by default. Verification labels that already carry an icon retain it.
 Place a summary's primary status opposite its title at the top right. Table status
 cells keep their existing columns.
 

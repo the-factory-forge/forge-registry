@@ -27,7 +27,7 @@ function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
           />
           <button
             type="button"
-            className="h-8 rounded-2xl bg-primary px-3 text-sm text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="min-h-10 cursor-pointer rounded-md bg-primary px-3 text-sm text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring md:min-h-8"
             onClick={() => setSearch("")}
           >
             Show all

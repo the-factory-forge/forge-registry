@@ -42,14 +42,17 @@ import {
 const field =
   "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 const button =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 const outlineButton = cn(button, "border border-border");
 const primary = cn(
   button,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 );
 const page = "mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-foreground";
-const iconButton = cn(button, "size-8 min-h-8 shrink-0 p-0");
+const iconButton = cn(
+  button,
+  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 md:size-8 md:min-h-8",
+);
 const editorLocales = (locales: readonly { code: string; name: string }[], baseLocale: string) =>
   locales.some((locale) => locale.code === baseLocale)
     ? locales
@@ -85,7 +88,10 @@ function DeleteControl({
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
       <Dialog.Trigger
-        className={cn(iconButton, "text-destructive hover:text-destructive")}
+        className={cn(
+          iconButton,
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+        )}
         aria-label={label}
       >
         <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
@@ -106,7 +112,7 @@ function DeleteControl({
               type="button"
               className={cn(
                 primary,
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
               )}
               disabled={pending}
               onClick={() => {
@@ -228,16 +234,16 @@ export function MenuItemsPage({
         <header className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-base font-semibold">{labels.items}</h1>
           <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
-            <HostLink href={taxonomyHref} className={outlineButton}>
-              <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.categories} / {labels.labels}
-            </HostLink>
             <TableSearch
               value={search}
               onValueChange={setSearch}
               label={labels.search}
               clearLabel={labels.clearSearch}
             />
+            <HostLink href={taxonomyHref} className={outlineButton}>
+              <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
+              {labels.categories} / {labels.labels}
+            </HostLink>
             <HostLink href={newHref} className={primary}>
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
               {labels.newItem}
@@ -379,7 +385,7 @@ export function MenuItemsPage({
                     <td className={tableCellClass}>
                       <span
                         className={cn(
-                          "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                           item.visible
                             ? "bg-status-success text-status-success-foreground"
                             : "bg-status-not-started text-status-not-started-foreground",
@@ -391,7 +397,7 @@ export function MenuItemsPage({
                     <td className={tableCellClass}>
                       <span
                         className={cn(
-                          "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                           item.soldOut
                             ? "bg-status-pending text-status-pending-foreground"
                             : "bg-status-success text-status-success-foreground",

@@ -9,13 +9,16 @@ import { cn } from "@/components/utils/cn";
 import { tableFooterClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
 );
 export const outlineButtonClass = cn(buttonClass, "border border-border");
-export const iconButtonClass = cn(buttonClass, "size-8 min-h-8 shrink-0 p-0");
+export const iconButtonClass = cn(
+  buttonClass,
+  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 md:size-8 md:min-h-8",
+);
 export const inputClass =
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
@@ -91,7 +94,10 @@ export function ConfirmDelete({
       }}
     >
       <Dialog.Trigger
-        className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
+        className={cn(
+          iconButtonClass,
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+        )}
         aria-label={label}
         disabled={disabled}
       >
@@ -117,7 +123,7 @@ export function ConfirmDelete({
             <button
               className={cn(
                 primaryClass,
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
               )}
               disabled={action.pending}
               onClick={() =>

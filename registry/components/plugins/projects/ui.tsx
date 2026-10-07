@@ -56,7 +56,7 @@ export function ProjectStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 rounded-full border border-border px-2 py-0.5 text-xs font-semibold",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
         status === "production"
           ? "bg-status-success text-status-success-foreground"
           : status === "under-construction"
@@ -244,7 +244,10 @@ export function DeleteProject({
         <Dialog.Trigger
           ref={trigger}
           disabled={disabled || action.pending}
-          className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
+          className={cn(
+            iconButtonClass,
+            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          )}
           aria-label={labels.deleteProject}
         >
           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -272,7 +275,7 @@ export function DeleteProject({
                 aria-busy={action.pending}
                 className={cn(
                   buttonClass,
-                  "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
                 )}
                 onClick={async () => {
                   const success = await action.run(async () => {

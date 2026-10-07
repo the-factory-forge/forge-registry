@@ -17,7 +17,7 @@ is authoritative for files and dependencies.
 | `customers`    | Customer contact/company records and composition of Projects/Sync                                     | Host callbacks         | [Customers](./customers.md)                 |
 | `projects`     | Customer-owned project records, assignment and Details/Drive views                                    | Host callbacks         | [Projects](./projects.md)                   |
 | `drive`        | Scoped file spaces, folders, upload/download and file management                                      | `drive-storage`        | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles, publishing and categories                                             | `blogs-storage`        | [Blogs](./blogs.md)                         |
+| `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                    | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order, sizes, translations, images, editable label icons and spice levels | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                               | `reservations-storage` | [Reservations](./reservations.md)           |
 

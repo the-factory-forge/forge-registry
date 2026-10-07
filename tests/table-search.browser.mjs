@@ -15,6 +15,7 @@ test("homepage search starts expanded and stays visible through filtering, clear
   await page.locator('[data-preview-ready="true"]').waitFor();
   const search = page.getByRole("searchbox", { name: "Search examples" });
   assert.equal(await search.isVisible(), true);
+  assert.equal(await search.evaluate((el) => el.parentElement.getBoundingClientRect().height), 44);
   assert.equal(await search.evaluate((el) => el === document.activeElement), false);
   const allCount = await page.locator("main a h2").count();
   await page.getByRole("button", { name: "Plugin", exact: true }).focus();
@@ -84,6 +85,7 @@ test("table searches are independent, keyboard accessible and contained on narro
   await page.locator('[data-preview-ready="true"]').waitFor();
   const employees = page.getByRole("region", { name: "Employees", exact: true });
   const projects = page.getByRole("region", { name: "Projects", exact: true });
+  await employees.waitFor();
   const employeeSearch = employees.getByRole("searchbox");
   const ids = await page
     .locator('input[type="search"]')
@@ -123,8 +125,30 @@ test("table searches are independent, keyboard accessible and contained on narro
       await toggle.click();
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 900 });
+      const searchButton = employees.getByRole("button", { name: "Search employees", exact: true });
+      const expectedHeight = width < 768 ? 40 : 32;
+      await page.waitForFunction(
+        ({ id, expected }) =>
+          document.getElementById(id)?.parentElement.getBoundingClientRect().width === expected,
+        { id: await searchButton.getAttribute("aria-controls"), expected: expectedHeight },
+      );
+      const collapsed = await searchButton.evaluate((el) => {
+        const { width, height } = el.parentElement.getBoundingClientRect();
+        return { width, height };
+      });
+      assert.deepEqual(collapsed, { width: expectedHeight, height: expectedHeight });
       await employees.getByRole("button", { name: "Search employees", exact: true }).click();
       await employeeSearch.fill("admin");
+      assert.equal(
+        await employeeSearch.evaluate((el) => el.parentElement.getBoundingClientRect().height),
+        expectedHeight,
+      );
+      assert.equal(
+        await employees
+          .getByRole("button", { name: "Show all" })
+          .evaluate((el) => el.getBoundingClientRect().height),
+        expectedHeight,
+      );
       assert.equal(
         await employeeSearch.evaluate((el) => getComputedStyle(el.parentElement).overflow),
         "hidden",

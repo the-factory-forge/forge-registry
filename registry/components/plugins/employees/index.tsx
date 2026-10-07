@@ -1,5 +1,6 @@
 "use client";
 import { Avatar } from "@base-ui/react/avatar";
+import { Tooltip } from "@base-ui/react/tooltip";
 import { ChevronLeftIcon, ChevronRightIcon, ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -173,21 +174,34 @@ export function EmployeesPage({
                       </td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         <div className="flex items-center gap-3">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium",
-                              employee.emailVerified
-                                ? "bg-status-success text-status-success-foreground"
-                                : "bg-status-pending text-status-pending-foreground",
-                            )}
-                          >
-                            {employee.emailVerified ? (
-                              <ShieldCheckIcon className="size-4" aria-hidden="true" />
-                            ) : (
-                              <ShieldOffIcon className="size-4" aria-hidden="true" />
-                            )}
-                            {employee.emailVerified ? labels.verified : labels.unverified}
-                          </span>
+                          <Tooltip.Root>
+                            <Tooltip.Trigger
+                              render={<span tabIndex={0} />}
+                              role="img"
+                              aria-label={
+                                employee.emailVerified ? labels.verified : labels.unverified
+                              }
+                              className={cn(
+                                "inline-flex size-6 shrink-0 cursor-help items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                employee.emailVerified
+                                  ? "bg-status-success text-status-success-foreground"
+                                  : "bg-status-pending text-status-pending-foreground",
+                              )}
+                            >
+                              {employee.emailVerified ? (
+                                <ShieldCheckIcon className="size-4 shrink-0" aria-hidden="true" />
+                              ) : (
+                                <ShieldOffIcon className="size-4 shrink-0" aria-hidden="true" />
+                              )}
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                              <Tooltip.Positioner sideOffset={8} className="z-50">
+                                <Tooltip.Popup className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
+                                  {employee.emailVerified ? labels.verified : labels.unverified}
+                                </Tooltip.Popup>
+                              </Tooltip.Positioner>
+                            </Tooltip.Portal>
+                          </Tooltip.Root>
                           <span className="max-w-72 truncate" title={employee.email}>
                             {employee.email}
                           </span>
@@ -199,7 +213,7 @@ export function EmployeesPage({
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>
                         <span
                           className={cn(
-                            "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                             employee.banned
                               ? "bg-status-canceled text-status-canceled-foreground"
                               : "bg-status-success text-status-success-foreground",

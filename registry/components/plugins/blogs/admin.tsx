@@ -6,6 +6,7 @@ import {
   RefreshCwIcon,
   SettingsIcon,
   Bold,
+  ChevronDownIcon,
   Code,
   Heading2,
   ImagePlus,
@@ -83,6 +84,7 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   newHref: string;
   categoriesHref: string;
   capabilities: BlogCapabilities;
+  onDelete?: (id: string, requestId: string) => Promise<void>;
   loading?: boolean;
   error?: string;
   onRetry?: () => void;
@@ -96,6 +98,7 @@ export function BlogsPage({
   newHref,
   categoriesHref,
   capabilities,
+  onDelete,
   loading,
   error,
   onRetry,
@@ -111,18 +114,18 @@ export function BlogsPage({
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="font-sans text-base font-semibold">{labels.blogs}</h1>
           <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
-            {capabilities.manageCategories && (
-              <BlogLink href={categoriesHref} className={outlineButtonClass}>
-                <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.manageCategories}
-              </BlogLink>
-            )}
             <TableSearch
               value={search}
               onValueChange={onSearchChange}
               label={labels.search}
               clearLabel={labels.clearSearch}
             />
+            {capabilities.manageCategories && (
+              <BlogLink href={categoriesHref} className={outlineButtonClass}>
+                <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.manageCategories}
+              </BlogLink>
+            )}
             {capabilities.create && (
               <BlogLink href={newHref} className={primaryClass}>
                 <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -186,7 +189,7 @@ export function BlogsPage({
                             key={t.locale}
                             title={labels[t.status]}
                             className={cn(
-                              "rounded-full px-2 py-1 text-xs",
+                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                               blogStatusClass[t.status],
                             )}
                           >
@@ -201,13 +204,24 @@ export function BlogsPage({
                       <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
                     </td>
                     <td className={tableActionCellClass}>
-                      <BlogLink
-                        href={editHref(post.id)}
-                        className={iconButtonClass}
-                        aria-label={`${labels.edit}: ${post.title}`}
-                      >
-                        <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                      </BlogLink>
+                      <div className="flex justify-end gap-2">
+                        <BlogLink
+                          href={editHref(post.id)}
+                          className={iconButtonClass}
+                          aria-label={`${labels.edit}: ${post.title}`}
+                        >
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                        </BlogLink>
+                        {capabilities.delete && onDelete && (
+                          <ConfirmDelete
+                            labels={labels}
+                            title={`${labels.deleteTitle}: ${post.title}`}
+                            label={`${labels.delete}: ${post.title}`}
+                            description={labels.deleteDescription}
+                            onDelete={(requestId) => onDelete(post.id, requestId)}
+                          />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -494,19 +508,25 @@ function EditorForm({
         <label htmlFor={`${id}-${target}`} className="text-sm font-medium">
           {label}
         </label>
-        <select
-          id={`${id}-${target}`}
-          className={inputClass}
-          value={shared[target] ?? ""}
-          onChange={(e) => sharedField(target, e.target.value || null)}
-        >
-          <option value="">{labels.noImage}</option>
-          {assets.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
+        <span className="relative block">
+          <select
+            id={`${id}-${target}`}
+            className={cn(inputClass, "appearance-none pr-10")}
+            value={shared[target] ?? ""}
+            onChange={(e) => sharedField(target, e.target.value || null)}
+          >
+            <option value="">{labels.noImage}</option>
+            {assets.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDownIcon
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </span>
         {shared[target] && (
           <BlogImage
             src={safeAssetUrl(assetUrl(shared[target]!))}
@@ -551,7 +571,12 @@ function EditorForm({
           <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
             {content.title || labels.newPost}
           </h1>
-          <span className={cn("ml-auto rounded-full px-3 py-1 text-xs", blogStatusClass[status])}>
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+              blogStatusClass[status],
+            )}
+          >
             {labels[status]}
           </span>
         </div>
@@ -788,6 +813,27 @@ export function BlogCategoriesPage({
 }: BlogCategoriesPageProps) {
   const labels = { ...blogsLabels, ...overrides };
   const [selected, setSelected] = useState<string | null>(null);
+  const childrenByParent = new Map<string, BlogCategory[]>();
+  for (const category of categories) {
+    if (!category.parentId) continue;
+    const children = childrenByParent.get(category.parentId) ?? [];
+    children.push(category);
+    childrenByParent.set(category.parentId, children);
+  }
+  const categoryButton = (category: BlogCategory) => (
+    <button
+      type="button"
+      aria-current={selected === category.id ? "page" : undefined}
+      className={cn(
+        buttonClass,
+        "w-full min-w-0 justify-start text-left wrap-anywhere whitespace-normal aria-[current=page]:bg-primary/10 aria-[current=page]:font-semibold aria-[current=page]:text-primary",
+        category.parentId ? "font-normal text-muted-foreground" : "font-semibold",
+      )}
+      onClick={() => setSelected(category.id)}
+    >
+      {Object.values(category.translations)[0]?.name}
+    </button>
+  );
   return (
     <section className={cn(pageClass, className)}>
       <BlogLink href={backHref} className={buttonClass}>
@@ -803,21 +849,31 @@ export function BlogCategoriesPage({
         )}
       </header>
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <nav aria-label={labels.categories} className={cn(cardClass, "space-y-2")}>
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              aria-current={selected === c.id ? "page" : undefined}
-              className={cn(
-                buttonClass,
-                "w-full justify-start aria-[current=page]:bg-muted",
-                c.parentId && "pl-6",
-              )}
-              onClick={() => setSelected(c.id)}
-            >
-              {Object.values(c.translations)[0]?.name}
-            </button>
-          ))}
+        <nav aria-label={labels.categories} className={cn(cardClass, "self-start")}>
+          <ul className="space-y-2">
+            {categories
+              .filter((category) => !category.parentId)
+              .map((parent) => {
+                const children = childrenByParent.get(parent.id) ?? [];
+                return (
+                  <li key={parent.id}>
+                    {categoryButton(parent)}
+                    {children.length > 0 && (
+                      <ul
+                        className={cn(
+                          "mt-1 ml-3 space-y-1 border-l border-border pl-2",
+                          children.some((child) => child.id === selected) && "border-primary",
+                        )}
+                      >
+                        {children.map((child) => (
+                          <li key={child.id}>{categoryButton(child)}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+          </ul>
         </nav>
         <CategoryForm
           key={selected ?? "new"}
@@ -886,24 +942,45 @@ function CategoryForm({
   }
   return (
     <form onSubmit={(e) => void submit(e)} className={cn(cardClass, "space-y-5")}>
-      <h2 className="text-lg font-semibold">{base ? labels.edit : labels.newCategory}</h2>
+      <header className="flex items-start justify-between gap-3">
+        <h2 className="min-w-0 text-lg font-semibold">{base ? labels.edit : labels.newCategory}</h2>
+        {base && !disabled && (
+          <ConfirmDelete
+            labels={labels}
+            title={labels.deleteCategoryTitle}
+            label={labels.deleteCategory}
+            description={labels.deleteCategoryDescription}
+            disabled={action.pending}
+            onDelete={async (requestId) => {
+              await client.deleteCategory({ id: base.id, version: base.version, requestId });
+              onDeleted();
+            }}
+          />
+        )}
+      </header>
       <fieldset disabled={disabled || action.pending} className="space-y-5">
         <label className="block space-y-2 text-sm">
           <span>{labels.parent}</span>
-          <select
-            className={inputClass}
-            value={parentId}
-            onChange={(e) => setParent(e.target.value)}
-          >
-            <option value="">{labels.noParent}</option>
-            {categories
-              .filter((c) => !c.parentId && c.id !== base?.id)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {Object.values(c.translations)[0]?.name}
-                </option>
-              ))}
-          </select>
+          <span className="relative block">
+            <select
+              className={cn(inputClass, "appearance-none pr-10")}
+              value={parentId}
+              onChange={(e) => setParent(e.target.value)}
+            >
+              <option value="">{labels.noParent}</option>
+              {categories
+                .filter((c) => !c.parentId && c.id !== base?.id)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {Object.values(c.translations)[0]?.name}
+                  </option>
+                ))}
+            </select>
+            <ChevronDownIcon
+              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </span>
         </label>
         {locales.map((locale) => (
           <fieldset
@@ -953,19 +1030,6 @@ function CategoryForm({
         </button>
       </fieldset>
       <Feedback {...action.feedback} />
-      {base && !disabled && (
-        <ConfirmDelete
-          labels={labels}
-          title={labels.deleteCategoryTitle}
-          label={labels.deleteCategory}
-          description={labels.deleteCategoryDescription}
-          disabled={action.pending}
-          onDelete={async (requestId) => {
-            await client.deleteCategory({ id: base.id, version: base.version, requestId });
-            onDeleted();
-          }}
-        />
-      )}
     </form>
   );
 }

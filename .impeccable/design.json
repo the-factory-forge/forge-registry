@@ -317,7 +317,7 @@
       "refersTo": "button-primary",
       "description": "Primary plugin action.",
       "html": "<button class=\"ds-button ds-primary\">Save changes</button>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-primary{background:var(--primary);color:var(--primary-foreground)}.ds-primary:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}"
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:6px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-primary{background:var(--primary);color:var(--primary-foreground)}.ds-primary:hover{background:color-mix(in srgb,var(--primary) 90%,transparent)}@media(min-width:48rem){.ds-button{min-height:32px}}"
     },
     {
       "name": "Outlined button",
@@ -325,7 +325,7 @@
       "refersTo": "button-outline",
       "description": "Secondary plugin action.",
       "html": "<button class=\"ds-button ds-outline\">Cancel</button>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-outline{border:1px solid var(--border);background:transparent;color:var(--foreground)}.ds-outline:hover{background:var(--accent);color:var(--accent-foreground)}"
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:6px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-outline{border:1px solid var(--border);background:transparent;color:var(--foreground)}.ds-outline:hover{background:var(--accent);color:var(--accent-foreground)}@media(min-width:48rem){.ds-button{min-height:32px}}"
     },
     {
       "name": "Destructive button",
@@ -333,7 +333,7 @@
       "refersTo": "button-destructive",
       "description": "Confirmation action inside an existing delete dialog.",
       "html": "<button class=\"ds-button ds-destructive\">Delete</button>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-destructive{background:var(--destructive);color:var(--destructive-foreground)}.ds-destructive:hover{background:color-mix(in srgb,var(--destructive) 90%,transparent)}"
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:6px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-destructive{background:light-dark(color-mix(in srgb,var(--destructive) 10%,transparent),color-mix(in srgb,var(--destructive) 20%,transparent));color:var(--destructive)}.ds-destructive:hover{background:light-dark(color-mix(in srgb,var(--destructive) 20%,transparent),color-mix(in srgb,var(--destructive) 30%,transparent))}@media(min-width:48rem){.ds-button{min-height:32px}}"
     },
     {
       "name": "Icon action",
@@ -341,7 +341,7 @@
       "refersTo": "button-icon",
       "description": "Accessible edit action using the existing pencil icon.",
       "html": "<button class=\"ds-button ds-icon\" aria-label=\"Edit\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m16 3 5 5M4 20l4-1L21 6a2.8 2.8 0 0 0-4-4L4 15z\"/></svg></button>",
-      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:8px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-icon{width:32px;height:32px;min-height:32px;padding:0;background:transparent;color:var(--foreground)}.ds-icon:hover{background:var(--accent);color:var(--accent-foreground)}"
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;gap:8px;border:0;border-radius:6px;padding:0 12px;font:500 14px/20px var(--font-sans);cursor:pointer}.ds-button:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-button:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}.ds-icon{width:40px;height:40px;min-height:40px;padding:0;border:1px solid var(--border);background:var(--background);color:var(--foreground)}.ds-icon:hover{background:var(--accent);color:var(--accent-foreground)}@media(min-width:48rem){.ds-button{min-height:32px}}@media(min-width:48rem){.ds-icon{width:32px;height:32px;min-height:32px}}"
     },
     {
       "name": "Employee input",

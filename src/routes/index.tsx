@@ -309,6 +309,7 @@ function Home() {
           label="Search examples"
           placeholder="Search titles or keywords..."
           alwaysExpanded
+          size="default"
           className="w-full sm:w-72"
         />
       </div>

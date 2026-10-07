@@ -45,3 +45,11 @@ The website screenshot CLI hides `#factory-cookie-banner` only during capture,
 without accepting cookies or changing saved consent. Render one cookie banner per
 page. Existing consumer sites must refresh the component and redeploy to receive
 renamed IDs; their custom selectors must be updated alongside that refresh.
+
+## Admin controls
+
+The implemented registry components are the design reference. Plugin action buttons
+use compact rounded corners, 32px desktop minimums and 40px mobile targets; delete
+actions use a tinted destructive surface. Status labels retain their semantic color
+pairs and readable text, with a small decorative dot. The existing sidebar, shell,
+showroom layout, and page/card spacing are unchanged.

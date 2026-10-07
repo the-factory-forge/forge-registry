@@ -3,12 +3,12 @@ import { cn } from "@/components/utils/cn";
 export const inputClass =
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 export const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryButtonClass = `${buttonClass} bg-primary text-primary-foreground hover:bg-primary/90`;
 export const outlineButtonClass = `${buttonClass} border border-border hover:bg-accent`;
 export const iconButtonClass = cn(
   buttonClass,
-  "size-8 min-h-8 shrink-0 p-0 hover:bg-accent hover:text-accent-foreground",
+  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 hover:bg-accent hover:text-accent-foreground md:size-8 md:min-h-8",
 );
 export const dialogClass =
   "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border border-border bg-background p-6 text-foreground shadow-lg";

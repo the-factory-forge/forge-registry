@@ -213,7 +213,10 @@ export function EmployeeActions({
           >
             <Dialog.Trigger
               disabled={pending}
-              className={cn(iconButtonClass, "text-destructive hover:text-destructive")}
+              className={cn(
+                iconButtonClass,
+                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+              )}
               aria-label={`${labels.delete} ${employee.name}`}
             >
               <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -247,7 +250,7 @@ export function EmployeeActions({
                     type="button"
                     className={cn(
                       buttonClass,
-                      "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                      "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
                     )}
                     disabled={pending}
                     onClick={() =>
