@@ -176,13 +176,12 @@ export function EmployeesPage({
                         <div className="flex items-center gap-3">
                           <Tooltip.Root>
                             <Tooltip.Trigger
-                              render={<span tabIndex={0} />}
-                              role="img"
+                              type="button"
                               aria-label={
                                 employee.emailVerified ? labels.verified : labels.unverified
                               }
                               className={cn(
-                                "inline-flex size-6 shrink-0 cursor-help items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-8",
                                 employee.emailVerified
                                   ? "bg-status-success text-status-success-foreground"
                                   : "bg-status-pending text-status-pending-foreground",
@@ -196,7 +195,10 @@ export function EmployeesPage({
                             </Tooltip.Trigger>
                             <Tooltip.Portal>
                               <Tooltip.Positioner sideOffset={8} className="z-50">
-                                <Tooltip.Popup className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
+                                <Tooltip.Popup
+                                  role="tooltip"
+                                  className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
+                                >
                                   {employee.emailVerified ? labels.verified : labels.unverified}
                                 </Tooltip.Popup>
                               </Tooltip.Positioner>

@@ -212,6 +212,10 @@ The item editor omits the display-order field. Staff reorder items with the grip
 handles in `MenuItemsPage`, using mouse/touch dragging or the Up/Down arrow keys
 on a focused handle. Search must be cleared before moving rows. Saving disables
 further moves; a failed save keeps the previous order and reloads current data.
+While dragging, a floating name/category preview follows the pointer and the
+source row fades. A line above or below the hovered row marks the exact insertion
+position. Escape, pointer cancellation, or dropping on the source or outside the
+table clears the preview without saving a move.
 The table uses saved item positions. Public menus keep their category order and
 apply item ordering within each category; dragging never changes an item's category.
 

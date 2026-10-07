@@ -14,7 +14,7 @@ test("employee pages show content only to administrators", async (t) => {
   await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("table").waitFor();
   for (const label of ["Email verified", "Email not verified"]) {
-    const indicator = page.getByRole("img", { name: label, exact: true });
+    const indicator = page.getByRole("button", { name: label, exact: true });
     assert.equal(await indicator.textContent(), "");
     await indicator.hover();
     const tooltip = page.getByRole("tooltip", { name: label, exact: true });

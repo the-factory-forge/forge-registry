@@ -31,7 +31,7 @@ test("homepage links, public visibility, sold out labels, language fallback, and
   assert.equal(await page.locator("main section a[href]").count(), 1);
   await page.getByRole("searchbox", { name: "Search examples" }).fill("");
   await page.getByRole("button", { name: "Plugin", exact: true }).click();
-  await page.getByRole("link", { name: /Menus Translated restaurant menu/ }).click();
+  await page.locator('main a[href="/en/menus"]').click();
   await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
   await page.getByRole("link", { name: "Manage menu" }).click();
   await page.getByRole("heading", { name: "Menu items" }).waitFor();
@@ -339,8 +339,18 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
     .boundingBox();
   await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
   await page.mouse.down();
-  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 10 });
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2 + 4, { steps: 10 });
+  const ghost = page.locator("[data-menu-drag-preview]");
+  await ghost.waitFor();
+  assert.match(await ghost.textContent(), /Burrata with tomatoes.*Starters/);
+  assert.equal(await ghost.getAttribute("aria-hidden"), "true");
+  assert.equal(await ghost.evaluate((element) => getComputedStyle(element).pointerEvents), "none");
+  assert.equal(await page.locator('[data-menu-dragging="true"]').count(), 1);
+  assert.equal(await page.locator('[data-menu-drop-edge="after"]').count(), 1);
+  assert.deepEqual(await names(), ["Burrata with tomatoes", "House pasta", "Homemade lemonade"]);
   await page.mouse.up();
+  assert.equal(await ghost.count(), 0);
+  assert.equal(await page.locator("[data-menu-drop-edge]").count(), 0);
   await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
   assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
@@ -386,9 +396,14 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   });
   await touch.send("Input.dispatchTouchEvent", {
     type: "touchMove",
-    touchPoints: [{ x: touchEnd.x + 16, y: touchEnd.y + 16 }],
+    touchPoints: [{ x: touchEnd.x + 16, y: touchEnd.y + touchEnd.height / 2 + 4 }],
   });
+  await ghost.waitFor();
+  assert.equal(await page.locator('[data-menu-drop-edge="after"]').count(), 1);
+  const ghostBounds = await ghost.boundingBox();
+  assert.ok(ghostBounds.x >= 0 && ghostBounds.x + ghostBounds.width <= 390);
   await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  assert.equal(await ghost.count(), 0);
   await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
   await touch.detach();
@@ -397,6 +412,81 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
     await page.getByRole("spinbutton", { name: "Display order", exact: true }).count(),
     0,
   );
+});
+
+test("drag preview marks exact insertion edges and clears on canceled or invalid drops", async (t) => {
+  const page = await preview(t, "/en/admin/menus");
+  const names = () => page.locator("tbody tr td:first-child").allTextContents();
+  const original = ["Burrata with tomatoes", "House pasta", "Homemade lemonade"];
+  const rows = page.locator("tbody tr[data-menu-item]");
+  const ghost = page.locator("[data-menu-drag-preview]");
+  async function start(name) {
+    const handle = page.getByRole("button", { name: `Reorder item: ${name}`, exact: true });
+    await handle.scrollIntoViewIfNeeded();
+    const bounds = await handle.boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.down();
+    return bounds;
+  }
+  async function hover(index, edge) {
+    const bounds = await rows.nth(index).boundingBox();
+    await page.mouse.move(bounds.x + 20, bounds.y + (edge === "before" ? 4 : bounds.height - 4), {
+      steps: 5,
+    });
+  }
+  await start(original[0]);
+  assert.equal(await ghost.count(), 0);
+  await hover(2, "before");
+  await ghost.waitFor();
+  assert.equal(await rows.nth(2).getAttribute("data-menu-drop-edge"), "before");
+  await hover(2, "after");
+  assert.equal(await rows.nth(2).getAttribute("data-menu-drop-edge"), "after");
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  assert.equal(await ghost.count(), 0);
+  assert.equal(await page.locator("[data-menu-drop-edge]").count(), 0);
+  assert.deepEqual(await names(), original);
+
+  await start(original[0]);
+  await hover(2, "after");
+  await page.mouse.move(5, 5);
+  assert.equal(await page.locator("[data-menu-drop-edge]").count(), 0);
+  await page.mouse.up();
+  assert.equal(await ghost.count(), 0);
+  assert.deepEqual(await names(), original);
+
+  const source = await start(original[0]);
+  await hover(2, "after");
+  await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+  assert.equal(await page.locator("[data-menu-drop-edge]").count(), 0);
+  await page.mouse.up();
+  assert.deepEqual(await names(), original);
+
+  await start(original[0]);
+  await hover(2, "before");
+  await page.mouse.up();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  assert.deepEqual(await names(), [original[1], original[0], original[2]]);
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await start(original[2]);
+  await hover(0, "after");
+  assert.equal(await rows.nth(0).getAttribute("data-menu-drop-edge"), "after");
+  await page.mouse.up();
+  assert.deepEqual(await names(), [original[1], original[2], original[0]]);
+  await start(original[0]);
+  await hover(0, "before");
+  assert.equal(await rows.nth(0).getAttribute("data-menu-drop-edge"), "before");
+  await page.mouse.up();
+  assert.deepEqual(await names(), [original[0], original[1], original[2]]);
+
+  await start(original[0]);
+  await hover(2, "after");
+  await page
+    .getByRole("button", { name: `Reorder item: ${original[0]}`, exact: true })
+    .dispatchEvent("pointercancel");
+  await page.mouse.up();
+  assert.equal(await ghost.count(), 0);
+  assert.deepEqual(await names(), original);
 });
 
 test("staff sets independent spice levels with one, two or three flames and can clear them", async (t) => {

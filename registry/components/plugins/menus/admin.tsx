@@ -11,7 +11,8 @@ import {
   SettingsIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ComponentType } from "react";
+import { useEffect, useId, useRef, useState, type ComponentType, type PointerEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { Link, type LinkProps } from "@/components/link";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
@@ -169,8 +170,25 @@ export function MenuItemsPage({
   const [error, setError] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<"saved" | "error">();
-  const [dragTarget, setDragTarget] = useState<string>();
-  const drag = useRef<{ id: string; targetId: string } | undefined>(undefined);
+  const [dragPreview, setDragPreview] = useState<{
+    id: string;
+    x: number;
+    y: number;
+    targetId?: string;
+    edge?: "before" | "after";
+    container: HTMLElement;
+  }>();
+  const drag = useRef<
+    | {
+        id: string;
+        pointerId: number;
+        startX: number;
+        startY: number;
+        active: boolean;
+        to?: number;
+      }
+    | undefined
+  >(undefined);
   const reorderLock = useRef(false);
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
   const reorderDisabled = reordering || !!search.trim();
@@ -193,11 +211,50 @@ export function MenuItemsPage({
       active = false;
     };
   }, [client, revision]);
-  async function moveItem(id: string, targetId: string) {
-    if (!data || !client.reorder || reorderLock.current || search.trim() || id === targetId) return;
+  function clearDrag() {
+    drag.current = undefined;
+    setDragPreview(undefined);
+  }
+  function updateDrag(event: PointerEvent<HTMLButtonElement>) {
+    const current = drag.current;
+    if (!current || !data) return;
+    if (
+      !current.active &&
+      Math.hypot(event.clientX - current.startX, event.clientY - current.startY) < 6
+    )
+      return;
+    current.active = true;
+    const row = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLTableRowElement>("tr[data-menu-item]");
+    const from = data.items.findIndex((item) => item.id === current.id);
+    let targetId: string | undefined;
+    let edge: "before" | "after" | undefined;
+    current.to = undefined;
+    if (row && event.currentTarget.closest("table")?.contains(row)) {
+      const target = data.items.findIndex((item) => item.id === row.dataset.menuItem);
+      const bounds = row.getBoundingClientRect();
+      const after = event.clientY >= bounds.top + bounds.height / 2;
+      const to = target - (target > from ? 1 : 0) + (after ? 1 : 0);
+      if (target >= 0 && target !== from && to !== from) {
+        current.to = to;
+        targetId = row.dataset.menuItem;
+        edge = after ? "after" : "before";
+      }
+    }
+    setDragPreview({
+      id: current.id,
+      x: Math.max(16, Math.min(event.clientX + 16, window.innerWidth - 304)),
+      y: Math.max(16, Math.min(event.clientY - 80, window.innerHeight - 96)),
+      targetId,
+      edge,
+      container: document.body,
+    });
+  }
+  async function moveItem(id: string, to: number) {
+    if (!data || !client.reorder || reorderLock.current || search.trim()) return;
     const from = data.items.findIndex((item) => item.id === id);
-    const to = data.items.findIndex((item) => item.id === targetId);
-    if (from < 0 || to < 0) return;
+    if (from < 0 || to < 0 || to >= data.items.length || from === to) return;
     const ordered = [...data.items];
     ordered.splice(to, 0, ...ordered.splice(from, 1));
     reorderLock.current = true;
@@ -218,6 +275,7 @@ export function MenuItemsPage({
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
   );
+  const draggedItem = data?.items.find((item) => item.id === dragPreview?.id);
   const filteredItems =
     data?.items.filter((item) =>
       matchesTableSearch(
@@ -298,10 +356,17 @@ export function MenuItemsPage({
                   <tr
                     key={item.id}
                     data-menu-item={item.id}
+                    data-menu-dragging={dragPreview?.id === item.id || undefined}
+                    data-menu-drop-edge={
+                      dragPreview?.targetId === item.id ? dragPreview.edge : undefined
+                    }
                     className={cn(
                       tableRowClass,
-                      dragTarget === item.id &&
-                        "bg-accent text-accent-foreground ring-2 ring-ring ring-inset",
+                      dragPreview?.id === item.id && "opacity-40",
+                      dragPreview?.targetId === item.id &&
+                        (dragPreview.edge === "before"
+                          ? "[&>td]:shadow-[inset_0_2px_0_var(--primary)]"
+                          : "[&>td]:shadow-[inset_0_-2px_0_var(--primary)]"),
                     )}
                   >
                     <td className={cn(tableCellClass, "font-medium")}>
@@ -322,57 +387,49 @@ export function MenuItemsPage({
                               )
                                 return;
                               event.currentTarget.setPointerCapture(event.pointerId);
-                              drag.current = { id: item.id, targetId: item.id };
-                              setDragTarget(item.id);
+                              event.currentTarget.focus({ preventScroll: true });
+                              drag.current = {
+                                id: item.id,
+                                pointerId: event.pointerId,
+                                startX: event.clientX,
+                                startY: event.clientY,
+                                active: false,
+                              };
                             }}
-                            onPointerMove={(event) => {
-                              if (!drag.current) return;
-                              const row = document
-                                .elementFromPoint(event.clientX, event.clientY)
-                                ?.closest<HTMLTableRowElement>("tr[data-menu-item]");
-                              if (row && event.currentTarget.closest("table")?.contains(row)) {
-                                drag.current.targetId = row.dataset.menuItem!;
-                                setDragTarget(drag.current.targetId);
-                              }
-                            }}
+                            onPointerMove={updateDrag}
                             onPointerUp={(event) => {
+                              updateDrag(event);
                               const current = drag.current;
-                              drag.current = undefined;
-                              setDragTarget(undefined);
+                              clearDrag();
                               if (event.currentTarget.hasPointerCapture(event.pointerId)) {
                                 event.currentTarget.releasePointerCapture(event.pointerId);
                               }
-                              const target = document.elementFromPoint(
-                                event.clientX,
-                                event.clientY,
-                              );
-                              if (
-                                current &&
-                                target &&
-                                event.currentTarget.closest("table")?.contains(target)
-                              ) {
-                                void moveItem(current.id, current.targetId);
+                              if (current?.to !== undefined) {
+                                void moveItem(current.id, current.to);
                               }
                             }}
-                            onPointerCancel={() => {
-                              drag.current = undefined;
-                              setDragTarget(undefined);
-                            }}
-                            onLostPointerCapture={() => {
-                              drag.current = undefined;
-                              setDragTarget(undefined);
-                            }}
+                            onPointerCancel={clearDrag}
+                            onLostPointerCapture={clearDrag}
                             onKeyDown={(event) => {
                               if (event.key === "Escape") {
-                                drag.current = undefined;
-                                setDragTarget(undefined);
+                                const current = drag.current;
+                                clearDrag();
+                                if (
+                                  current &&
+                                  event.currentTarget.hasPointerCapture(current.pointerId)
+                                ) {
+                                  event.currentTarget.releasePointerCapture(current.pointerId);
+                                }
                               }
-                              if (reorderDisabled || !["ArrowUp", "ArrowDown"].includes(event.key))
+                              if (
+                                drag.current ||
+                                reorderDisabled ||
+                                !["ArrowUp", "ArrowDown"].includes(event.key)
+                              )
                                 return;
                               event.preventDefault();
                               const index = data.items.findIndex((entry) => entry.id === item.id);
-                              const target = data.items[index + (event.key === "ArrowUp" ? -1 : 1)];
-                              if (target) void moveItem(item.id, target.id);
+                              void moveItem(item.id, index + (event.key === "ArrowUp" ? -1 : 1));
                             }}
                           >
                             <GripVerticalIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -439,6 +496,30 @@ export function MenuItemsPage({
           </div>
         ) : null}
       </div>
+      {dragPreview &&
+        draggedItem &&
+        createPortal(
+          <div
+            data-menu-drag-preview
+            aria-hidden="true"
+            className="pointer-events-none fixed z-50 flex w-72 max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl bg-card px-4 py-3 text-card-foreground shadow-lg select-none dark:shadow-none dark:ring-1 dark:ring-border"
+            style={{
+              left: dragPreview.x,
+              top: dragPreview.y,
+            }}
+          >
+            <GripVerticalIcon className="size-4 shrink-0 text-primary" />
+            <div className="min-w-0 text-sm">
+              <p className="line-clamp-2 font-medium break-words">
+                {draggedItem.translations[baseLocale]?.name}
+              </p>
+              <p className="truncate text-muted-foreground">
+                {categoryNames.get(draggedItem.categoryId)}
+              </p>
+            </div>
+          </div>,
+          dragPreview.container,
+        )}
     </section>
   );
 }
