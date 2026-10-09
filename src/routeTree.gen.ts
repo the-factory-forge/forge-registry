@@ -18,6 +18,7 @@ import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
+import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
 import { Route as LocaleAuthRouteImport } from './routes/$locale.auth'
@@ -80,6 +81,11 @@ const NativeSelectRoute = NativeSelectRouteImport.update({
 const NewsletterRoute = NewsletterRouteImport.update({
   id: '/newsletter',
   path: '/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TablePaginationRoute = TablePaginationRouteImport.update({
+  id: '/table-pagination',
+  path: '/table-pagination',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TableSearchRoute = TableSearchRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/auth': typeof LocaleAuthRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
+    | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
+    | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
+    | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/auth'
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   CookieBannerRoute: typeof CookieBannerRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
+  TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
   LocaleAuthRoute: typeof LocaleAuthRoute
@@ -473,6 +486,13 @@ declare module '@tanstack/react-router' {
       path: '/newsletter'
       fullPath: '/newsletter'
       preLoaderRoute: typeof NewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/table-pagination': {
+      id: '/table-pagination'
+      path: '/table-pagination'
+      fullPath: '/table-pagination'
+      preLoaderRoute: typeof TablePaginationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/table-search': {
@@ -697,6 +717,7 @@ const rootRouteChildren: RootRouteChildren = {
   CookieBannerRoute: CookieBannerRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
+  TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
   LocaleAuthRoute: LocaleAuthRoute,

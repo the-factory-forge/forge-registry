@@ -531,11 +531,13 @@ test("drag preview marks exact insertion edges and clears on canceled or invalid
   await hover(0, "after");
   assert.equal(await rows.nth(0).getAttribute("data-menu-drop-edge"), "after");
   await page.mouse.up();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), [original[1], original[2], original[0]]);
   await start(original[0]);
   await hover(0, "before");
   assert.equal(await rows.nth(0).getAttribute("data-menu-drop-edge"), "before");
   await page.mouse.up();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), [original[0], original[1], original[2]]);
 
   await start(original[0]);
@@ -746,7 +748,7 @@ test("staff taxonomy and nested photo folders work with keyboard navigation on m
   await page.getByRole("link", { name: "Photos", exact: true }).click();
   await page
     .getByRole("navigation", { name: "Folder navigation" })
-    .getByRole("link", { name: "Photos", exact: true })
+    .getByRole("heading", { name: "Photos", exact: true })
     .waitFor();
   assert.match(page.url(), /\?folder=/);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

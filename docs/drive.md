@@ -6,6 +6,13 @@ storage, or authentication dependency. `@forge/drive-storage` is an optional
 Node server companion using PostgreSQL 15+ through Drizzle and a private,
 unversioned S3-compatible bucket.
 
+Table pagination uses [`@forge/table-pagination`](./table-pagination.md), included
+as a dependency. Spaces, files, trash and the restore destination picker show
+the current page and navigate backward one visited page at a time. Search, sort
+and folder changes reset paging. No total is displayed because `DriveClient`
+returns cursors. Host paging callbacks stay compatible; translate the new
+`previous` label, which replaces the `first` label in these controls.
+
 ## Install and entrypoints
 
 Configure the `@forge` namespace as described in the root README, then run:
@@ -67,6 +74,19 @@ All labels, including validation messages and count formatters, can be replaced
 via `labels`. Use `locale` for file sizes and dates; dates use UTC for consistent
 SSR. Use `className` and the host's semantic theme tokens. Navigation defaults
 to the Link shim. No router, query, auth, or notification library is needed.
+
+The browser uses one breadcrumb for the directory, space and nested folders.
+`backHref` supplies the optional Drive directory link. Ancestors navigate through
+`getFolderHref`; the current item has a chevron menu with Rename when permitted.
+Folder renames use `client.rename` and the space's rename capability.
+
+To rename the space's host record, supply `onRenameSpace(name): Promise<void>`
+only when the current user can rename it. The callback must validate the name,
+recheck server authorization, persist the record and invalidate host queries so
+`listEntries` and `listSpaces` return its new name. Without this callback the
+space has no rename menu, independently of file permissions. Failed renames keep
+the dialog and entered name for retry. Existing adapters need no changes unless
+they want to enable space renaming; the storage companion does not rename host records.
 
 Folder creation, rename, deletion, and download confirmations appear as
 bottom-right toasts using the item's existing Base UI dependency. They dismiss
@@ -444,3 +464,9 @@ folder uploads, and multipart/resumable transfers are outside this version.
 Keep host transport, auth, schema migrations, scheduling, and entity adapters
 outside registry-managed paths. Registry updates copy source; inspect the diff,
 review migrations, and validate host integrations before deploying an update.
+
+## Optimistic updates
+
+See the [optimistic action contract](./optimistic-actions.md) for immediate UI
+changes, rollback, server-confirmed operations and host callback requirements.
+The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.

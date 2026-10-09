@@ -1,8 +1,6 @@
-import type { Customer } from "@/components/plugins/customers";
 import type { ProjectsLabels } from "@/components/plugins/projects/labels";
 import type {
   Project,
-  ProjectAssignee,
   ProjectFormValues,
   ProjectStatus,
 } from "@/components/plugins/projects/types";
@@ -14,14 +12,11 @@ export const projectStatuses: readonly ProjectStatus[] = [
   "production",
 ];
 
-export function projectFormValues(project?: Project, defaultOwnerId = ""): ProjectFormValues {
+export function projectFormValues(project?: Project): ProjectFormValues {
   return {
     name: project?.name ?? "",
     status: project?.status ?? "requested",
     description: project?.description ?? "",
-    url: project?.url ?? "",
-    ownerId: project?.ownerId ?? defaultOwnerId,
-    assigneeId: project?.assigneeId ?? "",
   };
 }
 
@@ -39,20 +34,10 @@ export function safeProjectUrl(input: string | null | undefined): string | undef
   }
 }
 
-export function validateProject(
-  values: ProjectFormValues,
-  customers: readonly Customer[],
-  assignees: readonly ProjectAssignee[],
-  labels: ProjectsLabels,
-) {
+export function validateProject(values: ProjectFormValues, labels: ProjectsLabels) {
   const errors: Partial<Record<keyof ProjectFormValues, string>> = {};
   if (!values.name.trim()) errors.name = labels.nameRequired;
   if (!projectStatuses.includes(values.status)) errors.status = labels.statusInvalid;
   if (values.description.trim().length > 5000) errors.description = labels.descriptionInvalid;
-  if (values.url.trim() && !safeProjectUrl(values.url)) errors.url = labels.urlInvalid;
-  if (!values.ownerId.trim() || !customers.some((customer) => customer.id === values.ownerId))
-    errors.ownerId = labels.ownerRequired;
-  if (values.assigneeId && !assignees.some((assignee) => assignee.id === values.assigneeId))
-    errors.assigneeId = labels.assigneeInvalid;
   return errors;
 }

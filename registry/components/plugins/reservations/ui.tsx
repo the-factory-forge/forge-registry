@@ -13,6 +13,7 @@ import {
 } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -65,28 +66,30 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
     };
   }, [load, revision]);
   const current = result?.load === load && result.revision === revision ? result : undefined;
-  return { value: current?.value, error: current?.error, reload: () => setRevision((v) => v + 1) };
+  return {
+    value: result?.load === load ? result.value : undefined,
+    error: current?.error,
+    reload: () => setRevision((v) => v + 1),
+    setValue: (update: (value: T) => T) =>
+      setResult((previous) =>
+        previous?.load === load && previous.value !== undefined
+          ? { ...previous, value: update(previous.value) }
+          : previous,
+      ),
+  };
 }
 
 export function useReservationAction() {
-  const lock = useRef(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>();
-  async function run(action: () => Promise<void>) {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    setError(undefined);
+  const action = useOptimisticAction(undefined);
+  async function run(callback: () => Promise<void>) {
+    if (action.pending) return;
     try {
-      await action();
-    } catch (e) {
-      setError(e);
-    } finally {
-      lock.current = false;
-      setBusy(false);
+      await action.run(() => undefined, callback);
+    } catch {
+      // The mutation retains its error for the existing inline feedback.
     }
   }
-  return { busy, error, run };
+  return { busy: action.pending, error: action.error, run };
 }
 
 export function ErrorNotice({ error, labels }: { error: unknown; labels: ReservationLabels }) {

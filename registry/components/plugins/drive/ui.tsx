@@ -4,6 +4,8 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import {
   ArrowDownIcon,
+  ChevronDownIcon,
+  PencilIcon,
   ArrowUpDownIcon,
   RefreshCwIcon,
   ArrowUpIcon,
@@ -15,9 +17,16 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
 import { Image } from "@/components/image";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
+  DriveBrowserProps,
   DriveClient,
   DriveDeletePreview,
   DriveEntry,
@@ -187,7 +196,7 @@ export function DriveToasts({
     <Toast.Portal>
       <Toast.Viewport
         aria-label={labels.title}
-        className="fixed right-4 bottom-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm flex-col gap-2 overflow-y-auto outline-none sm:right-6 sm:bottom-6"
+        className="fixed right-0 bottom-0 z-50 flex max-h-dvh w-full max-w-[26rem] flex-col gap-2 overflow-y-auto p-4 outline-none empty:p-0 sm:right-2 sm:bottom-2 sm:max-h-[calc(100dvh-1rem)]"
       >
         {toasts.map((toast) => (
           <Toast.Root
@@ -290,6 +299,9 @@ export function EntryDialog({
   scope,
   parentId,
   entry,
+  space,
+  onRenameSpace,
+  menu = false,
   deleting = false,
   trashing = false,
   disabled = false,
@@ -300,16 +312,20 @@ export function EntryDialog({
   client: DriveClient;
   scope: DriveScope;
   parentId: string | null;
-  entry?: DriveEntry;
+  entry?: Pick<DriveEntry, "id" | "name">;
+  space?: DriveSpace;
+  onRenameSpace?: DriveBrowserProps["onRenameSpace"];
+  menu?: boolean;
   deleting?: boolean;
   trashing?: boolean;
   disabled?: boolean;
   labels: DriveLabels;
   refresh: () => void;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(entry?.name ?? "");
+  const [name, setName] = useState(entry?.name ?? space?.name ?? "");
+  const menuTrigger = useRef<HTMLButtonElement>(null);
   const [pending, setPending] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string>();
@@ -321,7 +337,7 @@ export function EntryDialog({
     ? trashing
       ? labels.trashTitle
       : labels.deleteTitle
-    : entry
+    : entry || space
       ? labels.rename
       : labels.newFolder;
   function loadPreview() {
@@ -361,6 +377,7 @@ export function EntryDialog({
           await client.trashEntry!({ scope, entryId: entry.id, token: confirmation.token });
         else await client.deleteEntry({ scope, entryId: entry.id, token: confirmation.token });
       } else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
+      else if (space && onRenameSpace) await onRenameSpace(validName(name));
       else await client.createFolder({ scope, parentId, name: validName(name) });
       setOpen(false);
       refresh();
@@ -375,36 +392,54 @@ export function EntryDialog({
       setPending(false);
     }
   }
+  function changeOpen(next: boolean) {
+    if (lock.current) return;
+    setOpen(next);
+    if (next) {
+      setName(entry?.name ?? space?.name ?? "");
+      setError(undefined);
+      if (deleting) void loadPreview();
+    } else {
+      previewRequest.current = undefined;
+      setPreviewLoading(false);
+    }
+  }
   return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (lock.current) return;
-        setOpen(next);
-        if (next) {
-          setName(entry?.name ?? "");
-          setError(undefined);
-          if (deleting) void loadPreview();
-        } else {
-          previewRequest.current = undefined;
-          setPreviewLoading(false);
-        }
-      }}
-    >
-      <Dialog.Trigger
-        disabled={disabled}
-        className={cn(
-          entry ? iconButtonClass : buttonClass,
-          deleting &&
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-        )}
-        aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
-      >
-        {children}
-      </Dialog.Trigger>
+    <Dialog.Root open={open} onOpenChange={changeOpen}>
+      {menu ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            ref={menuTrigger}
+            disabled={disabled}
+            className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+            aria-label={`${labels.actions}: ${entry?.name ?? space?.name}`}
+          >
+            <ChevronDownIcon className="size-4 shrink-0" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="min-w-40 rounded-xl motion-reduce:animate-none">
+            <DropdownMenuItem onClick={() => changeOpen(true)} className="min-h-10 rounded-md">
+              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+              {labels.rename}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Dialog.Trigger
+          disabled={disabled}
+          className={cn(
+            entry ? iconButtonClass : buttonClass,
+            deleting &&
+              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          )}
+          aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
+        >
+          {children}
+        </Dialog.Trigger>
+      )}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          finalFocus={menu ? menuTrigger : undefined}
           onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
           className={cn(
             cardClass,
@@ -482,7 +517,7 @@ export function EntryDialog({
                     ? trashing
                       ? labels.moveToTrash
                       : labels.confirmDelete
-                    : entry
+                    : entry || space
                       ? labels.save
                       : labels.create}
               </button>

@@ -43,6 +43,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 const field =
   "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
@@ -78,6 +79,7 @@ function DeleteControl({
   errorMessage,
   onDelete,
   onDone,
+  disabled = false,
 }: {
   label: string;
   confirm: string;
@@ -85,6 +87,7 @@ function DeleteControl({
   errorMessage: string;
   onDelete: () => Promise<void>;
   onDone: () => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -97,6 +100,7 @@ function DeleteControl({
           iconButton,
           "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
         )}
+        disabled={disabled || pending}
         aria-label={label}
       >
         <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
@@ -119,9 +123,9 @@ function DeleteControl({
                 primary,
                 "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
               )}
-              disabled={pending}
+              disabled={disabled || pending}
               onClick={() => {
-                if (lock.current) return;
+                if (disabled || lock.current) return;
                 lock.current = true;
                 setPending(true);
                 setError(false);
@@ -172,8 +176,13 @@ function MenuItemsPageContent({
   const labels = { ...menusLabels, ...overrides };
   const [search, setSearch] = useState("");
   const [revision, setRevision] = useState(0);
-  const [data, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
-  const [error, setError] = useState(false);
+  const [savedData, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
+  const optimistic = useOptimisticAction(savedData, client);
+  const data = optimistic.value;
+  const [failed, setError] = useState(false);
+  const [settled, setSettled] = useState<{ client: MenusClient; revision: number }>();
+  const loading = settled?.client !== client || settled?.revision !== revision;
+  const error = !loading && failed;
   const [reordering, setReordering] = useState(false);
   const notify = useActionToast();
   const [orderFeedback, setOrderFeedback] = useState<"error">();
@@ -198,7 +207,7 @@ function MenuItemsPageContent({
   >(undefined);
   const reorderLock = useRef(false);
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
-  const reorderDisabled = reordering || !!search.trim();
+  const reorderDisabled = loading || error || reordering || optimistic.pending || !!search.trim();
   useEffect(() => {
     let active = true;
     Promise.all([client.list(), client.categories()])
@@ -213,6 +222,9 @@ function MenuItemsPageContent({
       })
       .catch(() => {
         if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setSettled({ client, revision });
       });
     return () => {
       active = false;
@@ -259,7 +271,7 @@ function MenuItemsPageContent({
     });
   }
   async function moveItem(id: string, to: number) {
-    if (!data || !client.reorder || reorderLock.current || search.trim()) return;
+    if (!data || !client.reorder || reorderLock.current || reorderDisabled) return;
     const from = data.items.findIndex((item) => item.id === id);
     if (from < 0 || to < 0 || to >= data.items.length || from === to) return;
     const ordered = [...data.items];
@@ -268,7 +280,10 @@ function MenuItemsPageContent({
     setReordering(true);
     setOrderFeedback(undefined);
     try {
-      const items = await client.reorder(ordered.map(({ id, version }) => ({ id, version })));
+      const items = await optimistic.run(
+        (current) => current && { ...current, items: ordered },
+        () => client.reorder!(ordered.map(({ id, version }) => ({ id, version }))),
+      );
       setData((current) => (current ? { ...current, items } : current));
       notify(labels.saved);
     } catch {
@@ -327,44 +342,41 @@ function MenuItemsPageContent({
           </p>
         )}
         {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
-        {orderFeedback === "error" ? <ErrorMessage message={labels.error} /> : null}
-        {error ? (
-          <div>
-            <ErrorMessage message={labels.error} />
-            <button className={button} onClick={() => setRevision((n) => n + 1)}>
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.retry}
-            </button>
-          </div>
+        {orderFeedback === "error" || optimistic.error ? (
+          <ErrorMessage message={labels.error} />
         ) : null}
-        {!data && !error ? <output>{labels.loading}</output> : null}
-        {data?.items.length === 0 ? <p>{labels.emptyItems}</p> : null}
-        {data?.items.length ? (
-          <div className="mt-5 overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr className={tableRowClass}>
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.name}
-                  </th>
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.category}
-                  </th>
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.visible}
-                  </th>
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.unavailable}
-                  </th>
-                  <th scope="col" className={tableActionCellClass}>
-                    {labels.editItem}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {filteredItems.map((item) => (
+        <div className="mt-5 overflow-x-auto">
+          <table className={tableClass} aria-busy={loading || reordering}>
+            {loading && filteredItems.length > 0 && (
+              <caption className="sr-only">
+                <output>{labels.loading}</output>
+              </caption>
+            )}
+            <thead>
+              <tr className={tableRowClass}>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.name}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.category}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.visible}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.unavailable}
+                </th>
+                <th scope="col" className={tableActionCellClass}>
+                  {labels.editItem}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {retainRemovedItems(filteredItems, savedData?.items ?? [], optimistic.pending).map(
+                (item) => (
                   <tr
                     key={item.id}
+                    hidden={!filteredItems.some((row) => row.id === item.id)}
                     data-menu-item={item.id}
                     data-menu-dragging={dragPreview?.id === item.id || undefined}
                     data-menu-drop-edge={
@@ -438,7 +450,9 @@ function MenuItemsPageContent({
                               )
                                 return;
                               event.preventDefault();
-                              const index = data.items.findIndex((entry) => entry.id === item.id);
+                              const index = filteredItems.findIndex(
+                                (entry) => entry.id === item.id,
+                              );
                               void moveItem(item.id, index + (event.key === "ArrowUp" ? -1 : 1));
                             }}
                           >
@@ -483,28 +497,69 @@ function MenuItemsPageContent({
                           <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
                         </HostLink>
                         <DeleteControl
+                          disabled={loading || error || reordering || optimistic.pending}
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
                           confirm={labels.confirmDelete}
                           cancel={labels.cancel}
                           errorMessage={labels.deleteFilesFirst}
-                          onDelete={() => client.remove(item.id)}
+                          onDelete={() =>
+                            optimistic.run(
+                              (current) =>
+                                current && {
+                                  ...current,
+                                  items: current.items.filter((row) => row.id !== item.id),
+                                },
+                              async () => {
+                                await client.remove(item.id);
+                                setData(
+                                  (current) =>
+                                    current && {
+                                      ...current,
+                                      items: current.items.filter((row) => row.id !== item.id),
+                                    },
+                                );
+                              },
+                            )
+                          }
                           onDone={() => setRevision((n) => n + 1)}
                         />
                       </div>
                     </td>
                   </tr>
-                ))}
-                {filteredItems.length === 0 && (
-                  <tr className={tableRowClass}>
-                    <td colSpan={5} className={tableCellClass}>
-                      {labels.noMatches}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
+                ),
+              )}
+              {(error || filteredItems.length === 0) && (
+                <tr className={tableRowClass}>
+                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {error ? (
+                        <>
+                          <ErrorMessage message={labels.error} />
+                          <button
+                            type="button"
+                            className={button}
+                            onClick={() => setRevision((n) => n + 1)}
+                          >
+                            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                            {labels.retry}
+                          </button>
+                        </>
+                      ) : (
+                        <output className="text-muted-foreground">
+                          {loading
+                            ? labels.loading
+                            : search.trim()
+                              ? labels.noMatches
+                              : labels.emptyItems}
+                        </output>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
       {dragPreview &&
         draggedItem &&
@@ -971,6 +1026,7 @@ export interface MenuTaxonomyPageProps {
 }
 
 function TaxonomyDialog({
+  disabled = false,
   kind,
   existing,
   locales,
@@ -978,6 +1034,7 @@ function TaxonomyDialog({
   labels,
   onSave,
 }: {
+  disabled?: boolean;
   kind: "category" | "label";
   existing?: MenuCategory | MenuLabel;
   locales: readonly { code: string; name: string }[];
@@ -1015,7 +1072,11 @@ function TaxonomyDialog({
         : labels.newLabel;
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <Dialog.Trigger className={existing ? iconButton : primary} aria-label={title}>
+      <Dialog.Trigger
+        disabled={disabled}
+        className={existing ? iconButton : primary}
+        aria-label={title}
+      >
         {existing ? (
           <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
         ) : (
@@ -1036,6 +1097,7 @@ function TaxonomyDialog({
             className="mt-5 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
+              if (pending || disabled) return;
               setPending(true);
               setError(false);
               void onSave({
@@ -1138,7 +1200,7 @@ function TaxonomyDialog({
 }
 
 export function MenuTaxonomyPage({
-  client,
+  client: suppliedClient,
   locales,
   baseLocale,
   backHref,
@@ -1148,11 +1210,98 @@ export function MenuTaxonomyPage({
 }: MenuTaxonomyPageProps) {
   const labels = { ...menusLabels, ...overrides };
   const [revision, setRevision] = useState(0);
-  const [data, setData] = useState<{ categories: MenuCategory[]; labelsData: MenuLabel[] }>();
+  const [savedData, setData] = useState<{ categories: MenuCategory[]; labelsData: MenuLabel[] }>();
+  const optimistic = useOptimisticAction(savedData, suppliedClient);
+  const data = optimistic.value;
+  const client: MenusClient = {
+    ...suppliedClient,
+    saveCategory: (input) => {
+      const id = input.id ?? `pending-${crypto.randomUUID()}`;
+      return optimistic.run(
+        (current) =>
+          current && {
+            ...current,
+            categories: input.id
+              ? current.categories.map((row) => (row.id === id ? { ...row, ...input, id } : row))
+              : [...current.categories, { ...input, id }],
+          },
+        async () => {
+          const result = await suppliedClient.saveCategory(input);
+          setData(
+            (current) =>
+              current && {
+                ...current,
+                categories: [
+                  ...current.categories.filter((row) => row.id !== result.id),
+                  result,
+                ].sort((a, b) => a.position - b.position),
+              },
+          );
+          return result;
+        },
+      );
+    },
+    saveLabel: (input) => {
+      const id = input.id ?? `pending-${crypto.randomUUID()}`;
+      return optimistic.run(
+        (current) =>
+          current && {
+            ...current,
+            labelsData: input.id
+              ? current.labelsData.map((row) => (row.id === id ? { ...row, ...input, id } : row))
+              : [...current.labelsData, { ...input, id }],
+          },
+        async () => {
+          const result = await suppliedClient.saveLabel(input);
+          setData(
+            (current) =>
+              current && {
+                ...current,
+                labelsData: [
+                  ...current.labelsData.filter((row) => row.id !== result.id),
+                  result,
+                ].sort((a, b) => a.position - b.position),
+              },
+          );
+          return result;
+        },
+      );
+    },
+    removeCategory: (id) =>
+      optimistic.run(
+        (current) =>
+          current && { ...current, categories: current.categories.filter((row) => row.id !== id) },
+        async () => {
+          await suppliedClient.removeCategory(id);
+          setData(
+            (current) =>
+              current && {
+                ...current,
+                categories: current.categories.filter((row) => row.id !== id),
+              },
+          );
+        },
+      ),
+    removeLabel: (id) =>
+      optimistic.run(
+        (current) =>
+          current && { ...current, labelsData: current.labelsData.filter((row) => row.id !== id) },
+        async () => {
+          await suppliedClient.removeLabel(id);
+          setData(
+            (current) =>
+              current && {
+                ...current,
+                labelsData: current.labelsData.filter((row) => row.id !== id),
+              },
+          );
+        },
+      ),
+  };
   const [error, setError] = useState(false);
   useEffect(() => {
     let active = true;
-    Promise.all([client.categories(), client.labels()])
+    Promise.all([suppliedClient.categories(), suppliedClient.labels()])
       .then(([categories, labelsData]) => {
         if (active) {
           setData({ categories, labelsData });
@@ -1165,7 +1314,7 @@ export function MenuTaxonomyPage({
     return () => {
       active = false;
     };
-  }, [client, revision]);
+  }, [suppliedClient, revision]);
   const refresh = () => setRevision((n) => n + 1);
   return (
     <section className={cn(page, className)}>
@@ -1176,6 +1325,7 @@ export function MenuTaxonomyPage({
       <h1 className="text-2xl font-semibold">
         {labels.categories} / {labels.labels}
       </h1>
+      <ErrorMessage message={optimistic.error ? labels.error : undefined} />
       {error ? (
         <div>
           <ErrorMessage message={labels.error} />
@@ -1192,6 +1342,7 @@ export function MenuTaxonomyPage({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.categories}</h2>
               <TaxonomyDialog
+                disabled={optimistic.pending}
                 key="new-category"
                 kind="category"
                 locales={locales}
@@ -1207,11 +1358,20 @@ export function MenuTaxonomyPage({
               />
             </div>
             <ul className="divide-y divide-border rounded-2xl border border-border">
-              {data.categories.map((category) => (
-                <li key={category.id} className="flex items-center justify-between p-3">
+              {retainRemovedItems(
+                data.categories,
+                savedData?.categories ?? [],
+                optimistic.pending,
+              ).map((category) => (
+                <li
+                  key={category.id}
+                  hidden={!data.categories.some((row) => row.id === category.id)}
+                  className="flex items-center justify-between p-3"
+                >
                   <span>{category.translations[baseLocale]}</span>
                   <div className="flex gap-2">
                     <TaxonomyDialog
+                      disabled={optimistic.pending}
                       key={category.id}
                       kind="category"
                       existing={category}
@@ -1228,6 +1388,7 @@ export function MenuTaxonomyPage({
                       }}
                     />
                     <DeleteControl
+                      disabled={optimistic.pending}
                       label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
@@ -1244,6 +1405,7 @@ export function MenuTaxonomyPage({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.labels}</h2>
               <TaxonomyDialog
+                disabled={optimistic.pending}
                 key="new-label"
                 kind="label"
                 locales={locales}
@@ -1261,8 +1423,16 @@ export function MenuTaxonomyPage({
               />
             </div>
             <ul className="divide-y divide-border rounded-2xl border border-border">
-              {data.labelsData.map((label) => (
-                <li key={label.id} className="flex items-center justify-between gap-3 p-3">
+              {retainRemovedItems(
+                data.labelsData,
+                savedData?.labelsData ?? [],
+                optimistic.pending,
+              ).map((label) => (
+                <li
+                  key={label.id}
+                  hidden={!data.labelsData.some((row) => row.id === label.id)}
+                  className="flex items-center justify-between gap-3 p-3"
+                >
                   <span className="flex min-w-0 items-center gap-2">
                     <MenuLabelSymbol label={{ ...label, name: label.translations[baseLocale] }} />
                     <span className="min-w-0 wrap-anywhere">
@@ -1272,6 +1442,7 @@ export function MenuTaxonomyPage({
                   </span>
                   <div className="flex shrink-0 gap-2">
                     <TaxonomyDialog
+                      disabled={optimistic.pending}
                       key={label.id}
                       kind="label"
                       existing={label}
@@ -1290,6 +1461,7 @@ export function MenuTaxonomyPage({
                       }}
                     />
                     <DeleteControl
+                      disabled={optimistic.pending}
                       label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}

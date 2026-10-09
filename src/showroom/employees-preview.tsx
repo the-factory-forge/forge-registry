@@ -24,6 +24,7 @@ export function EmployeesPreview() {
       emailVerified: false,
     },
   ]);
+  const [state, setState] = useState("ready");
   const [fail, setFail] = useState(false);
   const [role, setRole] = useState("admin");
   const [offset, setOffset] = useState(0);
@@ -31,7 +32,8 @@ export function EmployeesPreview() {
   const filteredEmployees = employees.filter((employee) =>
     matchesTableSearch(search, employee.name, employee.email, employee.role),
   );
-  function beforeAction() {
+  async function beforeAction() {
+    await new Promise((resolve) => setTimeout(resolve, 400));
     if (fail) throw new Error("Preview failure");
   }
   return (
@@ -52,6 +54,19 @@ export function EmployeesPreview() {
               <option value="">No role</option>
             </NativeSelect>
           </label>
+          <div className="grid gap-2 text-sm">
+            <label htmlFor={`${selectId}-state`}>Directory state</label>
+            <NativeSelect
+              id={`${selectId}-state`}
+              value={state}
+              onChange={(event) => setState(event.target.value)}
+            >
+              <option value="ready">Ready</option>
+              <option value="loading">Loading</option>
+              <option value="empty">Empty</option>
+              <option value="error">Error</option>
+            </NativeSelect>
+          </div>
           <label className="flex gap-2 text-sm">
             <input
               type="checkbox"
@@ -67,8 +82,10 @@ export function EmployeesPreview() {
         <output>The employees dashboard is available to administrators only.</output>
       )}
       <EmployeesPage
-        employees={filteredEmployees.slice(offset, offset + 25)}
-        total={filteredEmployees.length}
+        employees={state === "empty" ? [] : filteredEmployees.slice(offset, offset + 25)}
+        loading={state === "loading"}
+        error={state === "error"}
+        total={state === "empty" ? 0 : filteredEmployees.length}
         search={search}
         onSearchChange={setSearch}
         offset={offset}
@@ -76,14 +93,14 @@ export function EmployeesPreview() {
         currentUserId="admin"
         currentUserRole={role}
         onCreate={async ({ password: _password, ...values }) => {
-          beforeAction();
+          await beforeAction();
           setEmployees((current) => [
             ...current,
             { ...values, id: crypto.randomUUID(), emailVerified: false },
           ]);
         }}
         onUpdate={async (values) => {
-          beforeAction();
+          await beforeAction();
           setEmployees((current) =>
             current.map((employee) =>
               employee.id === values.id
@@ -97,11 +114,11 @@ export function EmployeesPreview() {
           );
         }}
         onDelete={async (id) => {
-          beforeAction();
+          await beforeAction();
           setEmployees((current) => current.filter((employee) => employee.id !== id));
         }}
         onSendVerification={async () => {
-          beforeAction();
+          await beforeAction();
           return { status: "sent" };
         }}
       />

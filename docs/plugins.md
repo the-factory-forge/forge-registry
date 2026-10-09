@@ -2,8 +2,13 @@
 
 A Forge plugin is an optional application feature installed as editable source
 through `@forge`. It groups related pages/components, types, labels and host
-integration contracts. A server companion implements persistence or server
-operations for the same feature. Hosts own routing, authorization, data, branding,
+integration contracts. Shared UI is a starting skeleton for website generation.
+Site-specific fields and workflows belong in the consuming website. Project
+forms, for example, edit only name, status and description; host adapters own
+ownership and assignment.
+
+A server companion implements persistence or server operations for the same
+feature. Hosts own routing, authorization, data, branding,
 translations and transport; installation does not enable routes or apply migrations.
 
 The shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
@@ -15,8 +20,8 @@ is authoritative for files and dependencies.
 | `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                        | Host auth provider     | [Auth](./intranet-auth.md)                  |
 | `employees`    | Admin-only employee accounts, editing and verification                                                                              | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
 | `customers`    | Customer contact/company records and composition of Projects/Sync                                                                   | Host callbacks         | [Customers](./customers.md)                 |
-| `projects`     | Customer-owned project records, assignment and Details/Drive views                                                                  | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped files, folders, uploads/downloads, opt-in trash/restoration and loading, success and error toasts                            | `drive-storage`        | [Drive](./drive.md)                         |
+| `projects`     | Basic project forms, host-owned customer relationships and Details/Drive views                                                      | Host callbacks         | [Projects](./projects.md)                   |
+| `drive`        | Scoped file browser, breadcrumb navigation, host-owned space renaming, uploads/downloads and opt-in trash/restoration               | `drive-storage`        | [Drive](./drive.md)                         |
 | `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
@@ -28,6 +33,18 @@ Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
 settings, create, edit and delete use the shared Lucide conventions.
+
+Paginated plugin tables share [`@forge/table-pagination`](./table-pagination.md).
+Blogs and Employees supply totals and page numbers. Drive shows the current page
+and uses Previous/Next with cursor history, without inventing totals. Customers,
+Projects and Menus render their supplied lists without pagination. Reservations
+uses calendar navigation. Labels and data callbacks stay host-owned.
+
+Table headers and their surrounding panels stay visible during loading, empty
+results and errors. Feedback belongs in a spanning table row; background loading
+retains supplied rows, announces progress and disables mutations and pagination.
+Hosts using controlled lists must keep their last loaded rows while fetching.
+Employee tables still render nothing without an authenticated admin role.
 
 Single-choice dropdowns share `@forge/native-select`, which keeps a 12px chevron inset
 and reserves space between the selected text and arrow. Its native control preserves
@@ -74,6 +91,13 @@ mappings described in [Design tokens](../CONTRIBUTING.md#design-tokens), includi
 
 Errors retain destructive tokens. Status badges keep readable translated text,
 so meaning does not depend on color. Theme values remain host-owned.
+
+## Optimistic actions
+
+Plugins use TanStack Query mutations through [`@forge/optimistic-action`](./optimistic-actions.md).
+Predictable changes appear before the request completes and revert on rejection.
+Forms retain drafts, confirmations retain recovery controls, and success toasts wait
+for server confirmation. Hosts keep their existing data and transport callbacks.
 
 ## Updates
 

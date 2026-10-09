@@ -33,7 +33,7 @@ function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
   const { toasts } = Toast.useToastManager();
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed top-4 right-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm flex-col gap-2 overflow-y-auto outline-none sm:top-6 sm:right-6">
+      <Toast.Viewport className="fixed top-0 right-0 z-50 flex max-h-dvh w-full max-w-[26rem] flex-col gap-2 overflow-y-auto p-4 outline-none empty:p-0 sm:top-2 sm:right-2 sm:max-h-[calc(100dvh-1rem)]">
         {toasts.map((toast) => (
           <Toast.Root
             key={toast.id}

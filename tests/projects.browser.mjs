@@ -28,17 +28,13 @@ async function preview(t, path = "/en/projects", options = {}) {
     await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   return page;
 }
-async function pick(page, entity, name) {
-  await page
-    .getByRole("button", {
-      name: entity === "owner" ? "Select an owner *" : "Select an assignee",
-      exact: true,
-    })
-    .click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByRole("textbox").fill(name.split(" ")[0]);
-  await dialog.getByRole("button", { name: new RegExp(name) }).click();
-  await dialog.waitFor({ state: "hidden" });
+async function assertBasicFields(page) {
+  assert.deepEqual(
+    await page.locator("form [name]").evaluateAll((fields) => fields.map((field) => field.name)),
+    ["name", "status", "description"],
+  );
+  assert.equal(await page.getByLabel("Website URL", { exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: /Select an (owner|assignee)/ }).count(), 0);
 }
 
 test("project directory search, states, links and optional actions", async (t) => {
@@ -69,30 +65,18 @@ test("project directory search, states, links and optional actions", async (t) =
   await page.getByRole("heading", { name: "Acme Studio", exact: true }).waitFor();
 });
 
-test("create validates inputs, picker keyboard focus, failures and duplicate submission", async (t) => {
+test("create validates basic inputs, host ownership, failures and duplicate submission", async (t) => {
   const page = await preview(t, "/en/projects/new");
   const submit = page.getByRole("button", { name: "Create project", exact: true });
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "Enter a project name" }).waitFor();
   await page.getByLabel("Name *", { exact: true }).fill("   ");
   await submit.click();
-  await page.getByRole("alert").filter({ hasText: "Choose an existing customer" }).waitFor();
+  await assertBasicFields(page);
   await page.getByLabel("Name *", { exact: true }).fill("Fresh project");
-  const owner = page.getByRole("button", { name: "Select an owner *", exact: true });
-  await owner.focus();
-  await page.keyboard.press("Enter");
-  await page.getByRole("dialog").waitFor();
-  await page.getByRole("dialog").getByRole("textbox").fill("no-match");
-  await page.getByText("No matches found.", { exact: true }).waitFor();
-  await page.keyboard.press("Escape");
-  await page.getByRole("dialog").waitFor({ state: "hidden" });
-  assert.equal(await owner.evaluate((node) => node === document.activeElement), true);
-  await pick(page, "owner", "Sam Rivera");
-  await pick(page, "assignee", "Taylor Casey");
-  await page.getByLabel("Website URL", { exact: true }).fill("javascript:alert(1)");
   await submit.click();
-  await page.getByRole("alert").filter({ hasText: "Enter an HTTP(S) URL" }).waitFor();
-  await page.getByLabel("Website URL", { exact: true }).fill("/portfolio/fresh");
+  await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+  await page.getByLabel("Customer for this host example").selectOption("sam");
   await page.getByLabel("Description", { exact: true }).fill("a".repeat(5001));
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "5,000" }).waitFor();
@@ -113,13 +97,11 @@ test("create validates inputs, picker keyboard focus, failures and duplicate sub
   assert.equal(await page.getByRole("row").filter({ hasText: "Fresh project" }).count(), 1);
 });
 
-test("editing retains drafts, supports reassignment, clearing assignee and project resets", async (t) => {
+test("editing retains drafts and host metadata without people selectors", async (t) => {
   const page = await preview(t, "/en/projects/website");
   await page.getByLabel("Name *", { exact: true }).fill("Updated website");
   await page.getByLabel("Status", { exact: true }).selectOption("under-construction");
-  await pick(page, "owner", "Sam Rivera");
-  await page.getByRole("button", { name: "Select an assignee", exact: true }).click();
-  await page.getByRole("button", { name: "Leave unassigned", exact: true }).click();
+  await assertBasicFields(page);
   await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
@@ -130,30 +112,28 @@ test("editing retains drafts, supports reassignment, clearing assignee and proje
   await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
   await page.getByRole("link", { name: "Back to projects", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "Updated website" });
-  await row.getByText("Sam Rivera", { exact: true }).waitFor();
-  await row.getByText("Unassigned", { exact: true }).waitFor();
+  await row.getByText("Acme Studio", { exact: true }).waitFor();
+  await row.getByText("Jordan Lee", { exact: true }).waitFor();
+  assert.equal(
+    await row.getByRole("link", { name: "Visit Updated website website" }).getAttribute("href"),
+    "https://example.com",
+  );
   await page.getByRole("link", { name: "Customer portal", exact: true }).click();
   assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Customer portal");
 });
 
-test("customer composition scopes projects, locks ownership, and keeps shared navigation state", async (t) => {
+test("customer composition supplies ownership outside the form and keeps navigation state", async (t) => {
   const page = await preview(t, "/en/customers/sam/projects");
   await page.getByLabel("Projects integration", { exact: true }).check();
   await page.getByText("No projects found.", { exact: true }).waitFor();
   assert.equal(await page.getByRole("columnheader", { name: "Owner", exact: true }).count(), 0);
   await page.getByRole("link", { name: "Create project", exact: true }).click();
-  assert.equal(
-    await page.getByRole("button", { name: "Select an owner *", exact: true }).isDisabled(),
-    true,
-  );
-  await page.getByText("Sam Rivera", { exact: true }).waitFor();
+  await assertBasicFields(page);
+  assert.equal(await page.getByLabel("Customer for this host example").count(), 0);
   await page.getByLabel("Name *", { exact: true }).fill("Sam's project");
   await page.getByRole("button", { name: "Create project", exact: true }).click();
   await page.getByRole("heading", { name: "Sam's project", exact: true }).waitFor();
-  assert.equal(
-    await page.getByRole("button", { name: "Select an owner *", exact: true }).isDisabled(),
-    true,
-  );
+  await assertBasicFields(page);
   await page.getByLabel("Drive integration", { exact: true }).uncheck();
   await page.getByRole("link", { name: "Drive", exact: true }).click();
   await page.locator('nav a[aria-current="page"]').filter({ hasText: "Drive" }).waitFor();
@@ -169,38 +149,15 @@ test("customer composition scopes projects, locks ownership, and keeps shared na
   // A mismatched customer context must never silently reassign or lock another owner.
   await page.goto(`${baseURL}/en/projects/website?customerId=sam`);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  assert.equal(
-    await page.getByRole("button", { name: "Select an owner *", exact: true }).isEnabled(),
-    true,
-  );
-  await page.getByRole("link", { name: "Back to projects", exact: true }).waitFor();
-});
-
-test("missing owners and directory states block mutation without discarding the draft", async (t) => {
-  const page = await preview(t, "/en/projects/website");
-  await page.getByLabel("Name *", { exact: true }).fill("Retained draft");
-  const state = page.getByLabel("People directories", { exact: true });
-  const submit = page.getByRole("button", { name: "Save changes", exact: true });
-  await state.selectOption("loading");
-  await page.getByRole("status").filter({ hasText: "Loading customers" }).waitFor();
-  assert.equal(await submit.isDisabled(), true);
-  assert.equal(
-    await page.getByText("Create a customer before creating a project.", { exact: true }).count(),
-    0,
-  );
-  await state.selectOption("error");
-  await page.getByRole("alert").filter({ hasText: "Unable to load customers" }).waitFor();
-  assert.equal(await submit.isDisabled(), true);
-  await state.selectOption("empty");
-  await page.getByRole("link", { name: "Create customer", exact: true }).waitFor();
-  assert.equal(await submit.isDisabled(), true);
-  await state.selectOption("unavailable");
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "Choose an existing customer" }).waitFor();
-  assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Retained draft");
-  await state.selectOption("ready");
-  await submit.click();
-  await page.getByRole("heading", { name: "Retained draft", exact: true }).waitFor();
+  await assertBasicFields(page);
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await actionToast(page, "Project updated");
+  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Studio website" })
+    .getByText("Acme Studio", { exact: true })
+    .waitFor();
 });
 
 test("delete confirmation handles cancellation, failure, success and customer orphan prevention", async (t) => {
@@ -292,7 +249,7 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await page.getByText("No projects found.", { exact: true }).waitFor();
 });
 
-test("project pages and picker fit desktop/mobile in both themes", async (t) => {
+test("basic project pages fit desktop/mobile in both themes", async (t) => {
   for (const theme of ["light", "dark"])
     for (const { name, viewport } of [
       { name: "desktop", viewport: { width: 1440, height: 1000 } },
@@ -309,12 +266,12 @@ test("project pages and picker fit desktop/mobile in both themes", async (t) => 
         ["new", "Create project"],
       ]) {
         if (link) await page.getByRole("link", { name: link, exact: true }).click();
-        await page
-          .getByRole("button", {
-            name: view === "list" ? "Search projects" : "Select an owner *",
-            exact: true,
-          })
-          .waitFor();
+        if (view === "list")
+          await page.getByRole("button", { name: "Search projects", exact: true }).waitFor();
+        else {
+          await page.getByLabel("Name *", { exact: true }).waitFor();
+          await assertBasicFields(page);
+        }
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,
@@ -324,14 +281,6 @@ test("project pages and picker fit desktop/mobile in both themes", async (t) => 
           fullPage: true,
         });
       }
-      await page.getByRole("button", { name: "Select an owner *", exact: true }).click();
-      await page.getByRole("dialog").waitFor();
-      const box = await page.getByRole("dialog").boundingBox();
-      assert.ok(box.x >= 0 && box.x + box.width <= viewport.width);
-      await page.screenshot({
-        path: `/tmp/forge-projects-picker-${name}-${theme}.png`,
-        fullPage: true,
-      });
       await page.close();
     }
 });

@@ -5,11 +5,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import {
   MenuItemEditorPage,
   MenuItemsPage,
@@ -132,11 +134,13 @@ function createMock() {
   const listeners = new Set<() => void>();
   let revision = 0;
   let fail = false;
+  let listState = "ready";
   const emit = () => {
     revision++;
     listeners.forEach((listener) => listener());
   };
-  const mutate = () => {
+  const mutate = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
     if (fail) throw new Error("Simulated storage failure");
   };
   const client: MenusClient = {
@@ -159,7 +163,7 @@ function createMock() {
       );
     },
     async create(input) {
-      mutate();
+      await mutate();
       const item = {
         ...structuredClone(input),
         id: crypto.randomUUID(),
@@ -172,7 +176,7 @@ function createMock() {
       return structuredClone(item);
     },
     async save(id, version, input) {
-      mutate();
+      await mutate();
       const current = items.find((item) => item.id === id);
       if (!current || current.version !== version) throw new Error("Conflict");
       const item = { ...structuredClone(input), id, version: version + 1 };
@@ -181,19 +185,19 @@ function createMock() {
       return structuredClone(item);
     },
     async reorder(order) {
-      mutate();
+      await mutate();
       items = reorderMenuItems(items, order);
       emit();
       return structuredClone(items);
     },
     async remove(id) {
-      mutate();
+      await mutate();
       drive.assertEmpty({ type: "menu-item", id });
       items = items.filter((item) => item.id !== id);
       emit();
     },
     async saveCategory(input) {
-      mutate();
+      await mutate();
       const category = {
         id: input.id ?? crypto.randomUUID(),
         position: input.position,
@@ -204,13 +208,13 @@ function createMock() {
       return structuredClone(category);
     },
     async removeCategory(id) {
-      mutate();
+      await mutate();
       if (items.some((item) => item.categoryId === id)) throw new Error("In use");
       categories = categories.filter((category) => category.id !== id);
       emit();
     },
     async saveLabel(input) {
-      mutate();
+      await mutate();
       const label = {
         id: input.id ?? crypto.randomUUID(),
         ...validateLabel(input, baseLocale),
@@ -224,7 +228,7 @@ function createMock() {
       return structuredClone(label);
     },
     async removeLabel(id) {
-      mutate();
+      await mutate();
       if (items.some((item) => item.labelIds.includes(id))) throw new Error("In use");
       labels = labels.filter((label) => label.id !== id);
       emit();
@@ -248,6 +252,13 @@ function createMock() {
     },
     get labels() {
       return labels;
+    },
+    get listState() {
+      return listState;
+    },
+    setListState(value: string) {
+      listState = value;
+      emit();
     },
     setFail(value: boolean) {
       fail = value;
@@ -285,14 +296,29 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
           </>
         }
         controls={
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={mock.fail}
-              onChange={(event) => mock.setFail(event.target.checked)}
-            />
-            Simulate action failures
-          </label>
+          <>
+            <div className="grid gap-2">
+              <label htmlFor="factory-menu-directory-state">Directory state</label>
+              <NativeSelect
+                id="factory-menu-directory-state"
+                value={mock.listState}
+                onChange={(event) => mock.setListState(event.target.value)}
+              >
+                <option value="ready">Ready</option>
+                <option value="loading">Loading</option>
+                <option value="empty">Empty</option>
+                <option value="error">Error</option>
+              </NativeSelect>
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={mock.fail}
+                onChange={(event) => mock.setFail(event.target.checked)}
+              />
+              Simulate action failures
+            </label>
+          </>
         }
       >
         {children}
@@ -343,6 +369,18 @@ export function MenuPublicPreview() {
 
 export function MenuAdminPreview() {
   const mock = useMock();
+  const listState = mock.listState;
+  const listClient = useMemo<MenusClient>(
+    () => ({
+      ...mock.client,
+      list: async () => {
+        if (listState === "loading") return new Promise<MenuItem[]>(() => {});
+        if (listState === "error") throw new Error("Simulated listing failure");
+        return listState === "empty" ? [] : mock.client.list();
+      },
+    }),
+    [mock, listState],
+  );
   const { locale, segments } = useShowroomParams();
   const navigate = useNavigate();
   const query = useSearch({ strict: false });
@@ -434,7 +472,7 @@ export function MenuAdminPreview() {
   if (id) return <p role="alert">Menu item not found.</p>;
   return (
     <MenuItemsPage
-      client={mock.client}
+      client={listClient}
       baseLocale={baseLocale}
       newHref={`${base}/new`}
       taxonomyHref={`${base}/taxonomy`}

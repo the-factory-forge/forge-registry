@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "optimistic-action",
+  "title": "Optimistic action",
+  "description": "TanStack Query mutations with temporary UI updates and automatic rollback for callback-driven plugins.",
+  "dependencies": [
+    "@tanstack/react-query@5.104.1"
+  ],
+  "files": [
+    {
+      "path": "registry/components/utils/use-optimistic-action.ts",
+      "content": "\"use client\";\n\nimport { QueryClient, QueryClientContext, useMutation } from \"@tanstack/react-query\";\nimport { useContext, useRef, useState } from \"react\";\n\n/** Overlay pending changes on host data without replacing its cache or fetch contract. */\nexport function useOptimisticAction<T>(value: T, scope?: unknown) {\n  const inheritedClient = useContext(QueryClientContext);\n  const [localClient] = useState(() => new QueryClient());\n  const lock = useRef(false);\n  const mutation = useMutation(\n    {\n      mutationFn: (input: {\n        update: (current: T) => T;\n        source: T;\n        scope: unknown;\n        action: () => Promise<unknown>;\n      }) => input.action(),\n      retry: false,\n      gcTime: 0,\n      networkMode: \"always\",\n    },\n    inheritedClient ?? localClient,\n  );\n  const current = mutation.variables?.scope === scope;\n  const optimistic =\n    current && (mutation.isPending || (mutation.isSuccess && mutation.variables?.source === value));\n\n  async function run<R>(update: (current: T) => T, action: () => Promise<R>): Promise<R> {\n    if (lock.current) throw new Error(\"An action is already pending.\");\n    lock.current = true;\n    try {\n      return (await mutation.mutateAsync({ update, source: value, scope, action })) as R;\n    } finally {\n      lock.current = false;\n    }\n  }\n\n  return {\n    value: optimistic && mutation.variables ? mutation.variables.update(value) : value,\n    pending: mutation.isPending,\n    error: current ? mutation.error : null,\n    run,\n  };\n}\n\n/** Keep row-owned dialogs mounted while an optimistic deletion hides their row. */\nexport function retainRemovedItems<T extends { id: string }>(\n  items: readonly T[],\n  source: readonly T[],\n  pending: boolean,\n): readonly T[] {\n  if (!pending) return items;\n  const ids = new Set(items.map((item) => item.id));\n  return [...items, ...source.filter((item) => !ids.has(item.id))];\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/use-optimistic-action.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

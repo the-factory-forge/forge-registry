@@ -3,6 +3,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import {
   ProjectDetailPage,
@@ -10,7 +11,6 @@ import {
   ProjectsList,
   ProjectsPage,
   type Project,
-  type ProjectFormValues,
 } from "@/components/plugins/projects";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
@@ -66,6 +66,7 @@ export function ProjectsPreview() {
   const navigate = useNavigate();
   const listProps = useProjectList();
   const [projectId, tab] = params.segments ?? [];
+  const [newCustomerId, setNewCustomerId] = useState("");
   const project = state.projects.find((entry) => entry.id === projectId);
   const requestedCustomerId = query.customerId;
   const customer = state.customers.find((entry) => entry.id === requestedCustomerId);
@@ -76,29 +77,13 @@ export function ProjectsPreview() {
   const customerBase = `/${params.locale}/customers`;
   const context = fromCustomer && customer ? `?customerId=${encodeURIComponent(customer.id)}` : "";
   const backHref = fromCustomer && customer ? `${customerBase}/${customer.id}/projects` : base;
-  const directories = {
-    customers:
-      state.peopleState === "empty"
-        ? []
-        : state.peopleState === "unavailable"
-          ? state.customers.filter((entry) => entry.id !== (project?.ownerId ?? customer?.id))
-          : state.customers,
-    customersLoading: state.peopleState === "loading",
-    customersError:
-      state.peopleState === "error" ? "Unable to load customers. Try again." : undefined,
-    assignees: previewAssignees,
-    assigneesLoading: state.peopleState === "loading",
-    assigneesError:
-      state.peopleState === "error" ? "Unable to load assignees. Try again." : undefined,
-    createCustomerHref: `${customerBase}/new`,
-    defaultOwnerId: fromCustomer ? customer?.id : undefined,
-    lockOwner: fromCustomer,
+  const appearance = {
     linkComponent: Link,
     labels: { back: fromCustomer ? "Back to customer projects" : "Back to projects" },
   };
-  async function validateOwner(values: ProjectFormValues) {
+  async function validateOwner(ownerId: string) {
     await state.beforeAction();
-    if (!state.customers.some((entry) => entry.id === values.ownerId))
+    if (!state.customers.some((entry) => entry.id === ownerId))
       throw new Error("Owner must be an existing customer");
   }
 
@@ -120,24 +105,43 @@ export function ProjectsPreview() {
     );
   if (projectId === "new")
     return (
-      <ProjectNewPage
-        className="showroom-page"
-        {...directories}
-        backHref={backHref}
-        onCreate={async (values) => {
-          await validateOwner(values);
-          const id = crypto.randomUUID();
-          state.setProjects((current) => [...current, { ...values, id }]);
+      <>
+        {!fromCustomer && (
+          <label className="block space-y-2 text-sm">
+            <span>Customer for this host example</span>
+            <NativeSelect
+              value={newCustomerId}
+              onChange={(event) => setNewCustomerId(event.target.value)}
+            >
+              <option value="">Choose a customer</option>
+              {state.customers.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {customerDisplayName(entry)}
+                </option>
+              ))}
+            </NativeSelect>
+          </label>
+        )}
+        <ProjectNewPage
+          className="showroom-page"
+          {...appearance}
+          backHref={backHref}
+          onCreate={async (values) => {
+            const ownerId = fromCustomer && customer ? customer.id : newCustomerId;
+            await validateOwner(ownerId);
+            const id = crypto.randomUUID();
+            state.setProjects((current) => [...current, { ...values, id, ownerId }]);
 
-          await navigate({ href: `${base}/${id}${context}` });
-        }}
-      />
+            await navigate({ href: `${base}/${id}${context}` });
+          }}
+        />
+      </>
     );
   if (!project) return null;
   return (
     <ProjectDetailPage
       className="showroom-page"
-      {...directories}
+      {...appearance}
       project={project}
       section={tab === "drive" ? "drive" : "details"}
       backHref={backHref}
@@ -146,7 +150,7 @@ export function ProjectsPreview() {
         drive: `${base}/${project.id}/drive${context}`,
       }}
       onSave={async (values) => {
-        await validateOwner(values);
+        await validateOwner(project.ownerId);
         state.setProjects((current) =>
           current.map((entry) => (entry.id === project.id ? { ...entry, ...values } : entry)),
         );

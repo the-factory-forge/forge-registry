@@ -1,7 +1,7 @@
 "use client";
 import { Avatar } from "@base-ui/react/avatar";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { ChevronLeftIcon, ChevronRightIcon, ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
+import { ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
@@ -17,18 +17,18 @@ import {
   type CreateEmployee,
   type Employee,
 } from "@/components/plugins/employees/schema";
-import { outlineButtonClass } from "@/components/plugins/employees/styles";
+import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
   tableCellClass,
   tableClass,
-  tableFooterClass,
   tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 export type {
   Employee,
@@ -55,7 +55,7 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
   className?: string;
 }
 function EmployeesPageContent({
-  employees,
+  employees: suppliedEmployees,
   search: controlledSearch,
   onSearchChange,
   currentUserId,
@@ -74,6 +74,9 @@ function EmployeesPageContent({
 }: EmployeesPageProps) {
   const [localSearch, setLocalSearch] = useState("");
   const search = controlledSearch ?? localSearch;
+  const optimistic = useOptimisticAction(suppliedEmployees, `${currentUserId}:${offset}:${search}`);
+  const employees = optimistic.value;
+  const visibleTotal = Math.max(0, total + employees.length - suppliedEmployees.length);
   if (!isEmployeeAdmin(currentUserRole)) return null;
   const labels = { ...employeeLabels, ...overrides };
   // ponytail: fallback searches supplied rows; use onSearchChange for server pagination.
@@ -109,173 +112,207 @@ function EmployeesPageContent({
           />
           <EmployeeCreateDialog
             currentUserRole={currentUserRole}
-            onCreate={onCreate}
+            disabled={loading || error || optimistic.pending}
+            onCreate={(values) => {
+              const employee: Employee = {
+                id: `pending-${crypto.randomUUID()}`,
+                name: values.name,
+                email: values.email,
+                role: values.role,
+                emailVerified: false,
+              };
+              return optimistic.run(
+                (rows) => [employee, ...rows],
+                () => onCreate(values),
+              );
+            }}
             labels={labels}
           />
         </div>
       </header>
       <div className="px-6">
-        {loading ? (
-          <output>{labels.loading}</output>
-        ) : error ? (
-          <p role="alert" className="text-destructive">
-            {labels.error}
-          </p>
-        ) : (
-          <>
-            <div className="min-w-0 overflow-x-auto">
-              <table className={tableClass}>
-                <thead className="[&_tr]:border-b">
-                  <tr className={tableRowClass}>
-                    <th scope="col" className={tableHeaderClass}>
-                      {labels.name}
-                    </th>
-                    <th scope="col" className={tableHeaderClass}>
-                      {labels.email}
-                    </th>
-                    <th scope="col" className={tableHeaderClass}>
-                      {labels.role}
-                    </th>
-                    <th scope="col" className={tableHeaderClass}>
-                      {labels.status}
-                    </th>
-                    <th scope="col" className={tableActionCellClass}>
-                      {labels.actions}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="[&_tr:last-child]:border-0">
-                  {filteredEmployees.map((employee) => (
-                    <tr key={employee.id} className={tableRowClass}>
-                      <td
-                        aria-label={employee.name}
-                        className={cn(tableCellClass, "whitespace-nowrap")}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-primary/20">
-                            <Avatar.Image
-                              className="size-full object-cover"
-                              src={employee.image ?? undefined}
-                              alt=""
-                            />
-                            <Avatar.Fallback className="flex size-full items-center justify-center text-xs">
-                              {employee.name
-                                .trim()
-                                .split(/\s+/)
-                                .slice(0, 2)
-                                .map((part) => part.charAt(0))
-                                .join("")
-                                .toUpperCase()}
-                            </Avatar.Fallback>
-                          </Avatar.Root>
-                          <span className="max-w-48 truncate font-medium" title={employee.name}>
-                            {employee.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                        <div className="flex items-center gap-3">
-                          <Tooltip.Root>
-                            <Tooltip.Trigger
-                              type="button"
-                              aria-label={
-                                employee.emailVerified ? labels.verified : labels.unverified
-                              }
-                              className={cn(
-                                "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-8",
-                                employee.emailVerified
-                                  ? "bg-status-success text-status-success-foreground"
-                                  : "bg-status-pending text-status-pending-foreground",
-                              )}
-                            >
-                              {employee.emailVerified ? (
-                                <ShieldCheckIcon className="size-4 shrink-0" aria-hidden="true" />
-                              ) : (
-                                <ShieldOffIcon className="size-4 shrink-0" aria-hidden="true" />
-                              )}
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Positioner sideOffset={8} className="z-50">
-                                <Tooltip.Popup
-                                  role="tooltip"
-                                  className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
-                                >
-                                  {employee.emailVerified ? labels.verified : labels.unverified}
-                                </Tooltip.Popup>
-                              </Tooltip.Positioner>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-                          <span className="max-w-72 truncate" title={employee.email}>
-                            {employee.email}
-                          </span>
-                        </div>
-                      </td>
-                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                        {isEmployeeAdmin(employee.role) ? labels.roleAdmin : labels.roleUser}
-                      </td>
-                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                            employee.banned
-                              ? "bg-status-canceled text-status-canceled-foreground"
-                              : "bg-status-success text-status-success-foreground",
-                          )}
-                        >
-                          {employee.banned ? labels.disabled : labels.active}
+        <div className="min-w-0 overflow-x-auto">
+          <table className={tableClass} aria-busy={loading}>
+            {loading && filteredEmployees.length > 0 && (
+              <caption className="sr-only">
+                <output>{labels.loading}</output>
+              </caption>
+            )}
+            <thead className="[&_tr]:border-b">
+              <tr className={tableRowClass}>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.name}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.email}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.role}
+                </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.status}
+                </th>
+                <th scope="col" className={tableActionCellClass}>
+                  {labels.actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {retainRemovedItems(filteredEmployees, suppliedEmployees, optimistic.pending).map(
+                (employee) => (
+                  <tr
+                    key={employee.id}
+                    hidden={!filteredEmployees.some((row) => row.id === employee.id)}
+                    className={tableRowClass}
+                  >
+                    <td
+                      aria-label={employee.name}
+                      className={cn(tableCellClass, "whitespace-nowrap")}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-primary/20">
+                          <Avatar.Image
+                            className="size-full object-cover"
+                            src={employee.image ?? undefined}
+                            alt=""
+                          />
+                          <Avatar.Fallback className="flex size-full items-center justify-center text-xs">
+                            {employee.name
+                              .trim()
+                              .split(/\s+/)
+                              .slice(0, 2)
+                              .map((part) => part.charAt(0))
+                              .join("")
+                              .toUpperCase()}
+                          </Avatar.Fallback>
+                        </Avatar.Root>
+                        <span className="max-w-48 truncate font-medium" title={employee.name}>
+                          {employee.name}
                         </span>
-                      </td>
-                      <td className={tableActionCellClass}>
-                        <EmployeeActions
-                          employee={employee}
-                          currentUserId={currentUserId}
-                          labels={labels}
-                          onUpdate={onUpdate}
-                          onDelete={onDelete}
-                          onSendVerification={onSendVerification}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredEmployees.length === 0 && (
-                    <tr className={tableRowClass}>
-                      <td colSpan={5} className={tableCellClass}>
-                        {search.trim() ? labels.noMatches : labels.empty}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <footer className={tableFooterClass}>
-              <span className="text-sm text-muted-foreground">
-                {total} {labels.total}
-              </span>
-              <button
-                type="button"
-                className={outlineButtonClass}
-                disabled={offset === 0}
-                onClick={() => onOffsetChange(offset - EMPLOYEE_PAGE_SIZE)}
-                aria-label={labels.previous}
-              >
-                <ChevronLeftIcon aria-hidden="true" />
-              </button>
-              <span className="min-w-9 text-center text-sm text-muted-foreground tabular-nums">
-                {offset / EMPLOYEE_PAGE_SIZE + 1}/
-                {Math.max(1, Math.ceil(total / EMPLOYEE_PAGE_SIZE))}
-              </span>
-              <button
-                type="button"
-                className={outlineButtonClass}
-                disabled={offset + EMPLOYEE_PAGE_SIZE >= total}
-                onClick={() => onOffsetChange(offset + EMPLOYEE_PAGE_SIZE)}
-                aria-label={labels.next}
-              >
-                <ChevronRightIcon aria-hidden="true" />
-              </button>
-            </footer>
-          </>
-        )}
+                      </div>
+                    </td>
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      <div className="flex items-center gap-3">
+                        <Tooltip.Root>
+                          <Tooltip.Trigger
+                            type="button"
+                            aria-label={
+                              employee.emailVerified ? labels.verified : labels.unverified
+                            }
+                            className={cn(
+                              "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-8",
+                              employee.emailVerified
+                                ? "bg-status-success text-status-success-foreground"
+                                : "bg-status-pending text-status-pending-foreground",
+                            )}
+                          >
+                            {employee.emailVerified ? (
+                              <ShieldCheckIcon className="size-4 shrink-0" aria-hidden="true" />
+                            ) : (
+                              <ShieldOffIcon className="size-4 shrink-0" aria-hidden="true" />
+                            )}
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Positioner sideOffset={8} className="z-50">
+                              <Tooltip.Popup
+                                role="tooltip"
+                                className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
+                              >
+                                {employee.emailVerified ? labels.verified : labels.unverified}
+                              </Tooltip.Popup>
+                            </Tooltip.Positioner>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                        <span className="max-w-72 truncate" title={employee.email}>
+                          {employee.email}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      {isEmployeeAdmin(employee.role) ? labels.roleAdmin : labels.roleUser}
+                    </td>
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                          employee.banned
+                            ? "bg-status-canceled text-status-canceled-foreground"
+                            : "bg-status-success text-status-success-foreground",
+                        )}
+                      >
+                        {employee.banned ? labels.disabled : labels.active}
+                      </span>
+                    </td>
+                    <td className={tableActionCellClass}>
+                      <EmployeeActions
+                        employee={employee}
+                        disabled={
+                          loading ||
+                          error ||
+                          optimistic.pending ||
+                          employee.id.startsWith("pending-")
+                        }
+                        currentUserId={currentUserId}
+                        labels={labels}
+                        onUpdate={(values) =>
+                          optimistic.run(
+                            (rows) =>
+                              rows.map((row) =>
+                                row.id === values.id
+                                  ? {
+                                      ...row,
+                                      ...values,
+                                      emailVerified:
+                                        row.email === values.email && row.emailVerified,
+                                    }
+                                  : row,
+                              ),
+                            () => onUpdate(values),
+                          )
+                        }
+                        onDelete={(id) =>
+                          optimistic.run(
+                            (rows) => rows.filter((row) => row.id !== id),
+                            () => onDelete(id),
+                          )
+                        }
+                        onSendVerification={onSendVerification}
+                      />
+                    </td>
+                  </tr>
+                ),
+              )}
+              {((error && !loading) || optimistic.error || filteredEmployees.length === 0) && (
+                <tr>
+                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                    {(error && !loading) || optimistic.error ? (
+                      <p role="alert" className="text-destructive">
+                        {error ? labels.error : labels.updateError}
+                      </p>
+                    ) : (
+                      <output className="text-muted-foreground">
+                        {loading ? labels.loading : search.trim() ? labels.noMatches : labels.empty}
+                      </output>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <TablePagination
+          disabled={loading || error || optimistic.pending}
+          summary={`${visibleTotal} ${labels.total}`}
+          page={Math.floor(offset / EMPLOYEE_PAGE_SIZE) + 1}
+          pageCount={Math.max(1, Math.ceil(total / EMPLOYEE_PAGE_SIZE))}
+          label={labels.title}
+          previousLabel={labels.previous}
+          nextLabel={labels.next}
+          previousDisabled={offset <= 0}
+          nextDisabled={offset + EMPLOYEE_PAGE_SIZE >= total}
+          onPrevious={() => onOffsetChange(Math.max(0, offset - EMPLOYEE_PAGE_SIZE))}
+          onNext={() => onOffsetChange(offset + EMPLOYEE_PAGE_SIZE)}
+        />
       </div>
     </section>
   );

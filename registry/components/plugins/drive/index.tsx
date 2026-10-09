@@ -4,7 +4,6 @@ import { Toast } from "@base-ui/react/toast";
 import {
   RefreshCwIcon,
   ArrowLeftIcon,
-  ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   ExternalLinkIcon,
@@ -22,6 +21,7 @@ import { driveLabels } from "@/components/plugins/drive/labels";
 import { TrashBrowser } from "@/components/plugins/drive/trash";
 import type {
   DriveBrowserProps,
+  DriveClient,
   DriveEntry,
   DriveFolderResult,
   DrivePageProps,
@@ -50,17 +50,18 @@ import {
   safeDownloadUrl,
   scopeKey,
 } from "@/components/plugins/drive/utils";
+import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
   tableCellClass,
   tableClass,
-  tableFooterClass,
   tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type * from "@/components/plugins/drive/types";
 export type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -78,11 +79,12 @@ export function DrivePage({
 }: DrivePageProps) {
   const labels = { ...driveLabels, ...overrides };
   const [search, setSearch] = useState("");
-  const [cursor, setCursor] = useState<string>();
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors.at(-1);
   const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
   const onSort = (next: DriveSort) => {
     setSort(next);
-    setCursor(undefined);
+    setCursors([]);
   };
   const [revision, setRevision] = useState(0);
   const request = useMemo(
@@ -132,7 +134,7 @@ export function DrivePage({
             clearLabel={labels.clearSearch}
             onValueChange={(value) => {
               setSearch(value);
-              setCursor(undefined);
+              setCursors([]);
             }}
           />
         </header>
@@ -230,26 +232,19 @@ export function DrivePage({
             </tbody>
           </table>
         </div>
-        <div className={tableFooterClass}>
-          <button
-            type="button"
-            className={cn(buttonClass, "size-9 border border-border p-0")}
-            disabled={!cursor || loading}
-            onClick={() => setCursor(undefined)}
-            aria-label={labels.first}
-          >
-            <ChevronLeftIcon aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={cn(buttonClass, "size-9 border border-border p-0")}
-            disabled={loading || !!error || !data?.nextCursor}
-            onClick={() => setCursor(data?.nextCursor)}
-            aria-label={labels.next}
-          >
-            <ChevronRightIcon aria-hidden="true" />
-          </button>
-        </div>
+        <TablePagination
+          label={labels.title}
+          page={cursors.length + 1}
+          previousLabel={labels.previous}
+          nextLabel={labels.next}
+          previousDisabled={cursors.length === 0}
+          nextDisabled={!!error || !data?.nextCursor}
+          disabled={loading}
+          onPrevious={() => setCursors(cursors.slice(0, -1))}
+          onNext={() => {
+            if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
+          }}
+        />
       </div>
     </section>
   );
@@ -268,6 +263,7 @@ function Browser({
   parentId = null,
   getFolderHref,
   backHref,
+  onRenameSpace,
   transferUpload,
   onSelectFile,
   isSelectableFile,
@@ -280,11 +276,12 @@ function Browser({
 }: DriveBrowserProps) {
   const labels = useMemo(() => ({ ...driveLabels, ...overrides }), [overrides]);
   const [search, setSearch] = useState("");
-  const [cursor, setCursor] = useState<string>();
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors.at(-1);
   const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
   const onSort = (next: DriveSort) => {
     setSort(next);
-    setCursor(undefined);
+    setCursors([]);
   };
   const [revision, setRevision] = useState(0);
   const [trashView, setTrashView] = useState(false);
@@ -299,7 +296,12 @@ function Browser({
     error?: unknown;
   }>();
   const loading = result?.request !== request;
-  const data = result?.data;
+  const mutationScope = useMemo(
+    () => ({ client, scope, parentId, search, cursor, sort }),
+    [client, scope, parentId, search, cursor, sort],
+  );
+  const optimistic = useOptimisticAction(result?.data, mutationScope);
+  const data = optimistic.value;
   const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
@@ -334,7 +336,64 @@ function Browser({
     return () => controller.abort();
   }, [request]);
   const capabilities = data?.space.capabilities;
-  const actionsDisabled = loading || !!error;
+  const actionsDisabled = loading || !!error || optimistic.pending;
+  const actionClient: DriveClient = {
+    ...client,
+    rename: (input) =>
+      optimistic.run(
+        (current) =>
+          current && {
+            ...current,
+            items: current.items.map((row) =>
+              row.id === input.entryId ? { ...row, name: input.name } : row,
+            ),
+            breadcrumbs: current.breadcrumbs.map((row) =>
+              row.id === input.entryId ? { ...row, name: input.name } : row,
+            ),
+          },
+        () => client.rename(input),
+      ),
+    createFolder: (input) => {
+      const entry: DriveEntry = {
+        id: `pending-${crypto.randomUUID()}`,
+        parentId,
+        kind: "folder",
+        name: input.name,
+        size: 0,
+        contentType: "",
+        updatedAt: new Date().toISOString(),
+        state: "ready",
+      };
+      return optimistic.run(
+        (current) => current && { ...current, items: [...current.items, entry] },
+        () => client.createFolder(input),
+      );
+    },
+    deleteEntry: (input) =>
+      optimistic.run(
+        (current) =>
+          current && { ...current, items: current.items.filter((row) => row.id !== input.entryId) },
+        () => client.deleteEntry(input),
+      ),
+    trashEntry:
+      client.trashEntry &&
+      ((input) =>
+        optimistic.run(
+          (current) =>
+            current && {
+              ...current,
+              items: current.items.filter((row) => row.id !== input.entryId),
+            },
+          () => client.trashEntry!(input),
+        )),
+  };
+  const renameSpace =
+    onRenameSpace &&
+    ((name: string) =>
+      optimistic.run(
+        (current) => current && { ...current, space: { ...current.space, name } },
+        () => onRenameSpace(name),
+      ));
   function deleted(entry: DriveEntry) {
     refresh();
     setFeedback(undefined);
@@ -357,7 +416,16 @@ function Browser({
         actionProps: { ...actionProps, disabled: true, "aria-busy": true },
       });
       try {
-        await currentClient.current.restoreEntry!({ scope, entryId: entry.id });
+        await optimistic.run(
+          (current) =>
+            current && {
+              ...current,
+              items: current.items.some((row) => row.id === entry.id)
+                ? current.items
+                : [...current.items, entry],
+            },
+          () => currentClient.current.restoreEntry!({ scope, entryId: entry.id }),
+        );
         refresh();
         toastManager.update(id, {
           title: labels.restored,
@@ -422,6 +490,10 @@ function Browser({
   if (trashView && trashEnabled)
     return (
       <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
+        <DriveFeedback
+          message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
+          error
+        />
         <button
           className={buttonClass}
           onClick={() => {
@@ -441,23 +513,84 @@ function Browser({
           labels={labels}
           locale={locale}
           refreshKey={revision}
+          onChanged={refresh}
         />
         <DriveToasts labels={labels} queue={queue} />
       </section>
     );
   return (
     <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
-      {backHref && (
-        <HostLink
-          href={backHref}
-          className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-        >
-          <ArrowLeftIcon aria-hidden="true" />
-          {labels.back}
-        </HostLink>
-      )}
-      <div className="flex min-h-10 flex-wrap items-center justify-between gap-3 md:min-h-8">
-        <h2 className="text-xl font-semibold">{data?.space.name ?? labels.title}</h2>
+      <DriveFeedback
+        message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
+        error
+      />
+      <div className="flex min-h-10 items-start justify-between gap-3 md:min-h-8">
+        <nav aria-label={labels.breadcrumbs} className="min-w-0">
+          <ol className="flex flex-wrap items-center gap-2 text-base">
+            {backHref && (
+              <li className="flex min-w-0 items-center gap-2">
+                <HostLink
+                  href={backHref}
+                  className={cn(buttonClass, "text-base text-muted-foreground")}
+                >
+                  {labels.title}
+                </HostLink>
+                <ChevronRightIcon
+                  className="size-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </li>
+            )}
+            {[
+              { id: null, name: data?.space.name ?? labels.title },
+              ...(data?.breadcrumbs ?? []),
+            ].map((crumb) => (
+              <li key={crumb.id ?? "root"} className="flex max-w-full min-w-0 items-center gap-2">
+                {crumb.id === parentId ? (
+                  <>
+                    <h2 className="min-w-0 py-1.5 font-medium wrap-anywhere" aria-current="page">
+                      {crumb.name}
+                    </h2>
+                    {data && (parentId ? capabilities?.rename : onRenameSpace) && (
+                      <EntryDialog
+                        client={actionClient}
+                        scope={scope}
+                        parentId={parentId}
+                        entry={crumb.id ? { id: crumb.id, name: crumb.name } : undefined}
+                        space={crumb.id ? undefined : data.space}
+                        onRenameSpace={renameSpace}
+                        menu
+                        disabled={actionsDisabled}
+                        labels={labels}
+                        refresh={() => {
+                          refresh();
+                          setFeedback(undefined);
+                          toastManager.add({ title: labels.saved, type: "success" });
+                        }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <HostLink
+                      href={getFolderHref(crumb.id)}
+                      className={cn(
+                        buttonClass,
+                        "min-w-0 text-left text-base wrap-anywhere text-muted-foreground",
+                      )}
+                    >
+                      {crumb.name}
+                    </HostLink>
+                    <ChevronRightIcon
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
         {data?.space.href && (
           <HostLink
             href={data.space.href}
@@ -468,31 +601,6 @@ function Browser({
           </HostLink>
         )}
       </div>
-      <nav aria-label={labels.breadcrumbs}>
-        <ol className="flex flex-wrap items-center gap-1 text-sm">
-          <li>
-            <HostLink
-              href={getFolderHref(null)}
-              className={buttonClass}
-              aria-current={!parentId ? "page" : undefined}
-            >
-              {labels.root}
-            </HostLink>
-          </li>
-          {data?.breadcrumbs.map((folder) => (
-            <li key={folder.id} className="flex min-w-0 items-center gap-1">
-              <span aria-hidden="true">/</span>
-              <HostLink
-                href={getFolderHref(folder.id)}
-                className={cn(buttonClass, "break-all")}
-                aria-current={folder.id === parentId ? "page" : undefined}
-              >
-                {folder.name}
-              </HostLink>
-            </li>
-          ))}
-        </ol>
-      </nav>
       <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
         {trashEnabled && (
           <button className={buttonClass} onClick={() => setTrashView(true)}>
@@ -506,12 +614,12 @@ function Browser({
           clearLabel={labels.clearSearch}
           onValueChange={(value) => {
             setSearch(value);
-            setCursor(undefined);
+            setCursors([]);
           }}
         />
         {capabilities?.createFolder && (
           <EntryDialog
-            client={client}
+            client={actionClient}
             scope={scope}
             parentId={parentId}
             disabled={actionsDisabled}
@@ -642,141 +750,145 @@ function Browser({
                   </td>
                 </tr>
               )}
-              {data?.items.map((entry) => (
-                <tr key={entry.id} className={tableRowClass}>
-                  <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
-                    <div className="flex items-center gap-2">
-                      {entry.kind === "folder" ? (
-                        <FolderIcon
-                          className="size-5 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <FileIcon
-                          className="size-5 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      )}
-                      {entry.kind === "folder" && entry.state === "ready" ? (
-                        <HostLink
-                          href={getFolderHref(entry.id)}
-                          className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        >
-                          {entry.name}
-                        </HostLink>
-                      ) : (
-                        <span className="break-all">{entry.name}</span>
-                      )}
-                    </div>
-                    {entry.state === "deleting" && (
-                      <output className="mt-1 block text-xs text-muted-foreground">
-                        {labels.deleting}
-                      </output>
-                    )}
-                  </td>
-                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                    <DriveModified
-                      value={entry.updatedAt}
-                      locale={locale}
-                      fallback={labels.unavailable}
-                    />
-                  </td>
-                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                    <DriveSize
-                      value={entry.kind === "file" ? entry.size : undefined}
-                      locale={locale}
-                      fallback={labels.unavailable}
-                    />
-                  </td>
-                  <td className={cn(tableCellClass, "text-muted-foreground")}>
-                    <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
-                  </td>
-                  <td className={tableActionCellClass}>
-                    <div className="flex justify-end gap-2">
-                      {onSelectFile &&
-                        entry.kind === "file" &&
-                        entry.state === "ready" &&
-                        (!isSelectableFile || isSelectableFile(entry)) && (
-                          <button
-                            type="button"
-                            className={buttonClass}
-                            disabled={actionsDisabled}
-                            onClick={() => onSelectFile(entry)}
-                          >
-                            {selectFileLabel}
-                          </button>
+              {data &&
+                retainRemovedItems(data.items, result?.data?.items ?? [], optimistic.pending).map(
+                  (entry) => (
+                    <tr
+                      key={entry.id}
+                      hidden={!data.items.some((row) => row.id === entry.id)}
+                      className={tableRowClass}
+                    >
+                      <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
+                        <div className="flex items-center gap-2">
+                          {entry.kind === "folder" ? (
+                            <FolderIcon
+                              className="size-5 shrink-0 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <FileIcon
+                              className="size-5 shrink-0 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          )}
+                          {entry.kind === "folder" && entry.state === "ready" ? (
+                            <HostLink
+                              href={getFolderHref(entry.id)}
+                              aria-disabled={entry.id.startsWith("pending-")}
+                              onClick={(event) => {
+                                if (entry.id.startsWith("pending-")) event.preventDefault();
+                              }}
+                              className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            >
+                              {entry.name}
+                            </HostLink>
+                          ) : (
+                            <span className="break-all">{entry.name}</span>
+                          )}
+                        </div>
+                        {entry.state === "deleting" && (
+                          <output className="mt-1 block text-xs text-muted-foreground">
+                            {labels.deleting}
+                          </output>
                         )}
-                      {entry.state === "ready" &&
-                        capabilities?.download &&
-                        entry.kind === "file" && (
-                          <button
-                            className={iconButtonClass}
-                            aria-label={labels.download}
-                            disabled={actionsDisabled || downloading}
-                            onClick={() => void download(entry)}
-                          >
-                            <DownloadIcon aria-hidden="true" />
-                          </button>
-                        )}
-                      {entry.state === "ready" && capabilities?.rename && (
-                        <EntryDialog
-                          client={client}
-                          scope={scope}
-                          parentId={parentId}
-                          entry={entry}
-                          disabled={actionsDisabled}
-                          labels={labels}
-                          refresh={() => {
-                            refresh();
-                            setFeedback(undefined);
-                            toastManager.add({ title: labels.saved, type: "success" });
-                          }}
-                        >
-                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                        </EntryDialog>
-                      )}
-                      {capabilities?.delete && (
-                        <EntryDialog
-                          client={client}
-                          scope={scope}
-                          parentId={parentId}
-                          entry={entry}
-                          deleting
-                          trashing={trashEnabled && entry.state === "ready"}
-                          disabled={actionsDisabled}
-                          labels={labels}
-                          refresh={() => deleted(entry)}
-                        >
-                          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                        </EntryDialog>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                        <DriveModified
+                          value={entry.updatedAt}
+                          locale={locale}
+                          fallback={labels.unavailable}
+                        />
+                      </td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                        <DriveSize
+                          value={entry.kind === "file" ? entry.size : undefined}
+                          locale={locale}
+                          fallback={labels.unavailable}
+                        />
+                      </td>
+                      <td className={cn(tableCellClass, "text-muted-foreground")}>
+                        <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
+                      </td>
+                      <td className={tableActionCellClass}>
+                        <div className="flex justify-end gap-2">
+                          {onSelectFile &&
+                            entry.kind === "file" &&
+                            entry.state === "ready" &&
+                            (!isSelectableFile || isSelectableFile(entry)) && (
+                              <button
+                                type="button"
+                                className={buttonClass}
+                                disabled={actionsDisabled}
+                                onClick={() => onSelectFile(entry)}
+                              >
+                                {selectFileLabel}
+                              </button>
+                            )}
+                          {entry.state === "ready" &&
+                            capabilities?.download &&
+                            entry.kind === "file" && (
+                              <button
+                                className={iconButtonClass}
+                                aria-label={labels.download}
+                                disabled={actionsDisabled || downloading}
+                                onClick={() => void download(entry)}
+                              >
+                                <DownloadIcon aria-hidden="true" />
+                              </button>
+                            )}
+                          {entry.state === "ready" && capabilities?.rename && (
+                            <EntryDialog
+                              client={actionClient}
+                              scope={scope}
+                              parentId={parentId}
+                              entry={entry}
+                              disabled={actionsDisabled}
+                              labels={labels}
+                              refresh={() => {
+                                refresh();
+                                setFeedback(undefined);
+                                toastManager.add({ title: labels.saved, type: "success" });
+                              }}
+                            >
+                              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                            </EntryDialog>
+                          )}
+                          {capabilities?.delete && (
+                            <EntryDialog
+                              client={actionClient}
+                              scope={scope}
+                              parentId={parentId}
+                              entry={entry}
+                              deleting
+                              trashing={trashEnabled && entry.state === "ready"}
+                              disabled={actionsDisabled}
+                              labels={labels}
+                              refresh={() => deleted(entry)}
+                            >
+                              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                            </EntryDialog>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
             </tbody>
           </table>
         </div>
-        <div className={tableFooterClass}>
-          <button
-            type="button"
-            className={cn(buttonClass, "size-9 border border-border p-0")}
-            disabled={!cursor || loading}
-            onClick={() => setCursor(undefined)}
-            aria-label={labels.first}
-          >
-            <ChevronLeftIcon aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className={cn(buttonClass, "size-9 border border-border p-0")}
-            disabled={loading || !!error || !data?.nextCursor}
-            onClick={() => setCursor(data?.nextCursor)}
-            aria-label={labels.next}
-          >
-            <ChevronRightIcon aria-hidden="true" />
-          </button>
-        </div>
+        <TablePagination
+          label={labels.title}
+          page={cursors.length + 1}
+          previousLabel={labels.previous}
+          nextLabel={labels.next}
+          previousDisabled={cursors.length === 0}
+          nextDisabled={!!error || !data?.nextCursor}
+          disabled={loading}
+          onPrevious={() => setCursors(cursors.slice(0, -1))}
+          onNext={() => {
+            if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
+          }}
+        />
       </div>
       <DriveToasts labels={labels} queue={queue} />
     </section>

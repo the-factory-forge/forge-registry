@@ -37,6 +37,7 @@ import {
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { cn } from "@/components/utils/cn";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export interface ReservationSettingsPageProps {
   client: ReservationsAdminClient;
@@ -235,7 +236,7 @@ function ServiceEditor({
   labels: ReservationLabels;
   onSaved: (id: string) => void;
 }) {
-  const [draft, setDraft] = useState<ReservationService>(
+  const [savedDraft, setDraft] = useState<ReservationService>(
     () =>
       value ?? {
         ...reservationPolicyDefaults,
@@ -252,6 +253,8 @@ function ServiceEditor({
       },
   );
   const notify = useActionToast();
+  const optimistic = useOptimisticAction(savedDraft);
+  const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
   const action = useReservationAction();
   const save = async (archive = false) => {
@@ -260,9 +263,11 @@ function ServiceEditor({
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    setDraft(input);
-
-    const next = await client.saveService(input);
+    setDraft((current) => ({ ...current, id: input.id }));
+    const next = await optimistic.run(
+      () => input,
+      () => client.saveService(input),
+    );
     setDraft(next);
     notify(labels.saved);
     setArchiving(false);
@@ -495,7 +500,7 @@ function ResourceEditor({
   labels: ReservationLabels;
   onSaved: (id: string) => void;
 }) {
-  const [draft, setDraft] = useState<ReservationResource>(
+  const [savedDraft, setDraft] = useState<ReservationResource>(
     () =>
       value ?? {
         id: "",
@@ -510,6 +515,8 @@ function ResourceEditor({
   );
   const [date, setDate] = useState("");
   const notify = useActionToast();
+  const optimistic = useOptimisticAction(savedDraft);
+  const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
   const action = useReservationAction();
   const change = (value: ReservationResource) => {
@@ -521,8 +528,11 @@ function ResourceEditor({
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    change(input);
-    const next = await client.saveResource(input);
+    setDraft((current) => ({ ...current, id: input.id }));
+    const next = await optimistic.run(
+      () => input,
+      () => client.saveResource(input),
+    );
     setDraft(next);
     notify(labels.saved);
     setArchiving(false);

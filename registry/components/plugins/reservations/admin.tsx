@@ -19,11 +19,13 @@ import {
   catalog,
   loadReservationCalendar,
   localDate,
+  previewReservationMove,
 } from "@/components/plugins/reservations/model";
 import { BookingForm, RescheduleDialog } from "@/components/plugins/reservations/public";
 import type {
   ReservationAdminRecord,
   ReservationRange,
+  ReservationSlot,
   ReservationStatus,
   ReservationsAdminClient,
   ReservationsPublicClient,
@@ -42,6 +44,7 @@ import {
 } from "@/components/plugins/reservations/ui";
 import { ReservationYearView } from "@/components/plugins/reservations/year";
 import { cn } from "@/components/utils/cn";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 import "./calendar.css";
 
@@ -85,7 +88,7 @@ export function ReservationsCalendar({
     const from = initialDate ? new Date(`${initialDate}T00:00:00Z`) : new Date();
     return { from: from.toISOString(), to: new Date(from.getTime() + 7 * 86400000).toISOString() };
   });
-  const [selected, setSelected] = useState<ReservationAdminRecord>();
+  const [selectedRecord, setSelected] = useState<ReservationAdminRecord>();
   const [dialog, setDialog] = useState<"new" | "move" | "cancelled" | "rejected" | "link">();
   const load = useCallback(() => client.configuration(), [client]);
   const config = useReservationLoad(load);
@@ -93,6 +96,18 @@ export function ReservationsCalendar({
   const timeZone = config.value?.settings.timeZone ?? "UTC";
   const loadBookings = useCallback(() => loadReservationCalendar(client, range), [client, range]);
   const data = useReservationLoad(loadBookings);
+  const optimistic = useOptimisticAction(data.value, loadBookings);
+  const bookings = optimistic.value;
+  const selected = bookings?.find((row) => row.id === selectedRecord?.id) ?? selectedRecord;
+  async function setStatus(id: string, version: number, status: ReservationStatus) {
+    await optimistic.run(
+      (rows) => rows?.map((row) => (row.id === id ? { ...row, status } : row)),
+      async () => {
+        const saved = await client.setStatus(id, version, status);
+        data.setValue((rows) => rows.map((row) => (row.id === id ? { ...row, ...saved } : row)));
+      },
+    );
+  }
   const action = useReservationAction();
   const refresh = () => {
     data.reload();
@@ -124,11 +139,35 @@ export function ReservationsCalendar({
       }),
     [client, selected?.id, selected?.serviceId],
   );
-  const moveSave = useCallback(
-    (input: Parameters<ReservationsAdminClient["reschedule"]>[1]) =>
-      client.reschedule(selected?.id ?? "", input),
-    [client, selected?.id],
-  );
+  const moveSave = (
+    input: Parameters<ReservationsAdminClient["reschedule"]>[1],
+    slot: ReservationSlot,
+  ) => {
+    const id = selected?.id ?? "";
+    return optimistic.run(
+      (rows) =>
+        rows?.map((row) =>
+          row.id === id
+            ? {
+                ...row,
+                ...previewReservationMove(
+                  row,
+                  input,
+                  slot,
+                  timeZone,
+                  config.value?.resources.find((resource) => resource.id === input.resourceId)
+                    ?.name ?? labels.anyResource,
+                ),
+              }
+            : row,
+        ),
+      async () => {
+        const saved = await client.reschedule(id, input);
+        data.setValue((rows) => rows.map((row) => (row.id === id ? { ...row, ...saved } : row)));
+        return saved;
+      },
+    );
+  };
   return (
     <section className={cn(pageClass, className)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -240,7 +279,7 @@ export function ReservationsCalendar({
                     <ReservationYearView
                       key={info.view.currentStart.toISOString()}
                       start={localDate(info.view.currentStart.toISOString(), timeZone)}
-                      reservations={data.value}
+                      reservations={bookings ?? []}
                       timeZone={timeZone}
                       locale={locale}
                       labels={labels}
@@ -296,14 +335,14 @@ export function ReservationsCalendar({
             }
             listItemEventTitleClass="whitespace-normal break-words p-2"
             listDayHeaderInnerClass="flex flex-wrap items-center justify-between gap-1 p-2 text-sm"
-            events={(data.value ?? []).map((r) => ({
+            events={(bookings ?? []).map((r) => ({
               id: r.id,
               start: r.startsAt,
               end: r.endsAt,
               title: `${r.customer.name} · ${r.serviceName} · ${r.resourceName} · ${labels[r.status]}${r.outsideHours ? ` · ${labels.outsideHours}` : ""}`,
               extendedProps: { status: r.status },
             }))}
-            eventClick={(info) => setSelected(data.value?.find((r) => r.id === info.event.id))}
+            eventClick={(info) => setSelected(bookings?.find((r) => r.id === info.event.id))}
           />
         </div>
       )}
@@ -349,27 +388,39 @@ export function ReservationsCalendar({
                   <>
                     <button
                       className={primaryClass}
-                      disabled={action.busy}
+                      disabled={action.busy || optimistic.pending}
                       onClick={() => {
                         void action.run(async () => {
-                          await client.setStatus(selected.id, selected.version, "confirmed");
+                          await setStatus(selected.id, selected.version, "confirmed");
                           refresh();
                         });
                       }}
                     >
                       {labels.approve}
                     </button>
-                    <button className={buttonClass} onClick={() => setDialog("rejected")}>
+                    <button
+                      className={buttonClass}
+                      disabled={action.busy || optimistic.pending}
+                      onClick={() => setDialog("rejected")}
+                    >
                       {labels.reject}
                     </button>
                   </>
                 )}
                 {(selected.status === "pending" || selected.status === "confirmed") && (
                   <>
-                    <button className={buttonClass} onClick={() => setDialog("move")}>
+                    <button
+                      className={buttonClass}
+                      disabled={action.busy || optimistic.pending}
+                      onClick={() => setDialog("move")}
+                    >
                       {labels.reschedule}
                     </button>
-                    <button className={buttonClass} onClick={() => setDialog("cancelled")}>
+                    <button
+                      className={buttonClass}
+                      disabled={action.busy || optimistic.pending}
+                      onClick={() => setDialog("cancelled")}
+                    >
                       {labels.cancel}
                     </button>
                   </>
@@ -377,7 +428,7 @@ export function ReservationsCalendar({
                 {selected.emailFailed && (
                   <button
                     className={buttonClass}
-                    disabled={action.busy}
+                    disabled={action.busy || optimistic.pending}
                     onClick={() => {
                       void action.run(async () => {
                         await client.retryEmail(selected.id);
@@ -388,12 +439,20 @@ export function ReservationsCalendar({
                     {labels.retryEmail}
                   </button>
                 )}
-                <button className={buttonClass} onClick={() => setDialog("link")}>
+                <button
+                  className={buttonClass}
+                  disabled={action.busy || optimistic.pending}
+                  onClick={() => setDialog("link")}
+                >
                   {labels.revokeLink}
                 </button>
               </>
             )}
-            <button className={buttonClass} onClick={() => setSelected(undefined)}>
+            <button
+              className={buttonClass}
+              disabled={action.busy || optimistic.pending}
+              onClick={() => setSelected(undefined)}
+            >
               {labels.close}
             </button>
           </div>
@@ -422,18 +481,22 @@ export function ReservationsCalendar({
           <div className="flex gap-2">
             <button
               className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-              disabled={action.busy}
+              disabled={action.busy || optimistic.pending}
               onClick={() => setDialog(undefined)}
             >
               {labels.back}
             </button>
             <button
               className={primaryClass}
-              disabled={action.busy}
+              disabled={action.busy || optimistic.pending}
               onClick={() => {
                 void action.run(async () => {
                   if (dialog === "link") await client.revokeLink(selected.id, selected.version);
-                  else await client.setStatus(selected.id, selected.version, dialog);
+                  else {
+                    const status = dialog;
+                    setDialog(undefined);
+                    await setStatus(selected.id, selected.version, status);
+                  }
                   refresh();
                 });
               }}

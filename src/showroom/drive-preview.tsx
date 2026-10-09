@@ -24,6 +24,9 @@ export function EmbeddedDrivePreview({
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
       scope={scope}
+      onRenameSpace={
+        scope.type === "project" ? (name) => state.renameDriveSpace(scope, name) : undefined
+      }
       parentId={query.folder}
       backHref={`/${locale}/drive`}
       getFolderHref={(folder) => {
@@ -73,6 +76,9 @@ export function DrivePreview() {
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
       scope={{ type, id }}
+      onRenameSpace={
+        type === "project" ? (name) => state.renameDriveSpace({ type, id }, name) : undefined
+      }
       parentId={folder}
       backHref={base}
       getFolderHref={(folderId) =>

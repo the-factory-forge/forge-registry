@@ -82,6 +82,15 @@ sections, and supporting utilities. The goal is to reuse these elements across
 different projects through shadcn's registry model. Consumers receive source
 files they can adapt; this repository is not a published runtime npm library.
 
+This registry is a reusable skeleton for generating customer websites. Keep
+shared plugins focused on their basic purpose. Site-specific fields, assignment
+rules, integrations and workflows belong in the consuming website.
+Before adding or extending behavior, check whether it serves the reusable
+skeleton or a particular site's implementation. If that boundary is unclear,
+ask the user once before implementing the disputed behavior. Reuse an explicit
+scope decision already made in the task instead of asking again. Props and
+feature flags alone do not make a site-specific feature appropriate here.
+
 The TanStack Start app in this repository is a showroom for developing and previewing
 registry elements. Work on the reusable element first; keep example content and
 site integration in the showroom or consuming project.

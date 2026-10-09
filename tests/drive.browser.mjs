@@ -183,7 +183,10 @@ test("Drive keeps permitted actions visible while search results load", async (t
 
   await page.getByLabel("Directory state").selectOption("ready");
   await row(page, "Annual report.txt").waitFor();
-  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Folder navigation" })
+    .getByRole("link", { name: "Drive", exact: true })
+    .click();
   await page.getByRole("link", { name: "Team handbook", exact: true }).click();
   await row(page, "Welcome.txt").waitFor();
   await page.getByLabel("Directory state").selectOption("loading");
@@ -214,13 +217,16 @@ test("Drive navigation, scoped folders, search, permissions and listing failures
   const download = page.waitForEvent("download");
   await row(page, "Welcome.txt").getByRole("button", { name: "Download", exact: true }).click();
   await download;
-  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Folder navigation" })
+    .getByRole("link", { name: "Drive", exact: true })
+    .click();
   await page.getByRole("link", { name: "Studio website", exact: true }).click();
   await folder(page, "Assets");
   await page.getByRole("link", { name: "Assets", exact: true }).click();
   await page
     .getByRole("navigation", { name: "Folder navigation" })
-    .getByRole("link", { name: "Assets", exact: true })
+    .getByRole("heading", { name: "Assets", exact: true })
     .waitFor();
   await folder(page, "Nested");
   await page.getByRole("button", { name: "Search this folder", exact: true }).click();
@@ -279,7 +285,10 @@ test("uploads progress independently, retry, cancel, retain failures and share e
   await cancelled.getByText("Cancelled", { exact: true }).waitFor();
   assert.equal(await row(page, "cancel.txt").count(), 0);
   await cancelled.getByRole("button", { name: "Dismiss", exact: true }).click();
-  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Folder navigation" })
+    .getByRole("link", { name: "Drive", exact: true })
+    .click();
   await page.getByRole("link", { name: "Studio website", exact: true }).click();
   await row(page, "one.txt").waitFor();
   await page.getByLabel("Simulate action failures").check();
@@ -393,7 +402,11 @@ test("trash confirmation preserves folders and permanent purge retries failures"
   await page.getByRole("link", { name: "Documents", exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles(file("nested.txt"));
   await row(page, "nested.txt").waitFor();
-  await page.getByRole("link", { name: "All files", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Folder navigation" })
+    .getByRole("link")
+    .nth(1)
+    .click();
   const trigger = row(page, "Documents").getByRole("button", { name: "Delete", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
@@ -411,7 +424,11 @@ test("trash confirmation preserves folders and permanent purge retries failures"
   await page.getByRole("button", { name: "All files", exact: true }).click();
   await page.getByRole("link", { name: "Documents", exact: true }).click();
   await row(page, "nested.txt").waitFor();
-  await page.getByRole("link", { name: "All files", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Folder navigation" })
+    .getByRole("link")
+    .nth(1)
+    .click();
   await row(page, "Documents").getByRole("button", { name: "Delete", exact: true }).click();
   await dialog.getByRole("button", { name: "Move to trash", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
@@ -555,13 +572,19 @@ test("Drive confirmations use dismissible toasts without moving the file table",
       await deleted.getByRole("button", { name: "Close", exact: true }).click();
       await deleted.waitFor({ state: "hidden" });
 
-      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Folder navigation" })
+        .getByRole("link", { name: "Drive", exact: true })
+        .click();
       await page.getByRole("link", { name: "Team handbook", exact: true }).click();
       const download = page.waitForEvent("download");
       await row(page, "Welcome.txt").getByRole("button", { name: "Download", exact: true }).click();
       await download;
       await page.getByRole("dialog", { name: "Download started.", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Folder navigation" })
+        .getByRole("link", { name: "Drive", exact: true })
+        .click();
       assert.equal(
         await page.getByRole("dialog", { name: "Download started.", exact: true }).count(),
         0,
@@ -765,7 +788,10 @@ test("Drive loading preserves table headers, guidance and disabled actions", asy
         assert.equal(await position(), top);
       }
       await page.getByLabel("Directory state").selectOption("loading");
-      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Folder navigation" })
+        .getByRole("link", { name: "Drive", exact: true })
+        .click();
       await page.getByRole("table").getByRole("cell").filter({ hasText: "Loading" }).waitFor();
       assert.equal(await page.getByRole("table").getByRole("columnheader").count(), 5);
       await page.getByLabel("Directory state").selectOption("ready");
@@ -884,7 +910,10 @@ test("Drive fits mobile and desktop in light and dark themes", async (t) => {
         path: `/tmp/forge-drive-${width}-${colorScheme}.png`,
         fullPage: true,
       });
-      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Folder navigation" })
+        .getByRole("link", { name: "Drive", exact: true })
+        .click();
       await page.getByRole("link", { name: "Studio website", exact: true }).waitFor();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -951,34 +980,51 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   assert.equal(await page.getByRole("alert").count(), 0);
   assert.equal(await page.getByRole("link", { name: "Valid", exact: true }).count(), 1);
   await page
+    .getByRole("button", { name: "Upload files", exact: true })
+    .and(page.locator(":enabled"))
+    .waitFor();
+  await page
     .locator('input[type="file"]')
     .setInputFiles(
-      Array.from({ length: 10 }, (_, index) => file(`page-${index}.txt`, "x".repeat(index + 1))),
+      Array.from({ length: 20 }, (_, index) => file(`page-${index}.txt`, "x".repeat(index + 1))),
     );
   await page
     .getByRole("listitem")
-    .filter({ hasText: "page-9.txt" })
+    .filter({ hasText: "page-19.txt" })
     .getByText("Uploaded", { exact: true })
     .waitFor({ timeout: 20000 });
-  await page.getByRole("button", { name: "Next page", exact: true }).click();
-  await page.getByRole("button", { name: "First page", exact: true }).waitFor();
+  const pagination = page.getByRole("navigation", { name: "Drive", exact: true });
+  assert.equal(await pagination.locator("[aria-live]").innerText(), "1");
+  await pagination.getByRole("button", { name: "Next page", exact: true }).click();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  assert.equal(await pagination.locator("[aria-live]").innerText(), "2");
+  const secondPage = await page.locator("tbody tr td:first-child").allTextContents();
+  await pagination.getByRole("button", { name: "Next page", exact: true }).click();
   await row(page, "page-9.txt").waitFor();
+  assert.equal(await pagination.locator("[aria-live]").innerText(), "3");
+  assert.equal(await pagination.getByRole("button", { name: "Next page" }).isDisabled(), true);
+  await pagination.getByRole("button", { name: "Previous page" }).click();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  assert.equal(await pagination.locator("[aria-live]").innerText(), "2");
+  assert.deepEqual(await page.locator("tbody tr td:first-child").allTextContents(), secondPage);
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   assert.equal(
-    await page.getByRole("button", { name: "First page", exact: true }).isDisabled(),
+    await page.getByRole("button", { name: "Previous page", exact: true }).isDisabled(),
     true,
   );
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   const names = await page.locator("tbody tr td:first-child").allTextContents();
   assert.equal(names[0].trim(), "Valid");
-  assert.equal(names[1].trim(), "page-9.txt");
+  assert.equal(names[1].trim(), "page-19.txt");
   assert.equal(await row(page, "page-0.txt").count(), 0);
 });
 
 test("Drive tables expose customer ownership and sort metadata with keyboard-accessible headers", async (t) => {
   const page = await preview(t);
+  const pagination = page.getByRole("navigation", { name: "Drive", exact: true });
+  assert.equal(await pagination.locator("[aria-live]").innerText(), "1");
   const table = page.getByRole("table", { name: "Drive spaces", exact: true });
   await table.waitFor();
   assert.deepEqual(await table.getByRole("columnheader").allTextContents(), [
@@ -1066,7 +1112,11 @@ test("trash conflicts offer name and nested destination recovery in both themes 
       await folder(page, "Destination");
       await page.getByRole("link", { name: "Destination", exact: true }).click();
       await folder(page, "Nested");
-      await page.getByRole("link", { name: "All files", exact: true }).click();
+      await page
+        .getByRole("navigation", { name: "Folder navigation" })
+        .getByRole("link")
+        .nth(1)
+        .click();
       await page
         .locator('input[type="file"]')
         .setInputFiles(file("Annual report.txt", "new bytes"));
@@ -1081,6 +1131,13 @@ test("trash conflicts offer name and nested destination recovery in both themes 
       );
       await row(page, "Annual report.txt").waitFor();
       await page.locator('[aria-busy="false"] table').waitFor();
+      assert.equal(
+        await page
+          .getByRole("navigation", { name: "Drive", exact: true })
+          .locator("[aria-live]")
+          .innerText(),
+        "1",
+      );
       await page.screenshot({
         path: `/tmp/forge-trash-${width}-${colorScheme}.png`,
         fullPage: true,
@@ -1093,6 +1150,11 @@ test("trash conflicts offer name and nested destination recovery in both themes 
       await restore
         .getByRole("textbox", { name: "Name", exact: true })
         .fill("Recovered report.txt");
+      const pagination = restore.getByRole("navigation", {
+        name: "Destination folder",
+        exact: true,
+      });
+      assert.equal(await pagination.locator("[aria-live]").innerText(), "1");
       const picker = restore.getByRole("combobox", { name: "Destination folder", exact: true });
       const restoreButton = restore.getByRole("button", { name: "Restore", exact: true });
       await restore.locator("select:enabled").waitFor({ state: "attached" });
@@ -1118,6 +1180,108 @@ test("trash conflicts offer name and nested destination recovery in both themes 
       await page.getByRole("link", { name: "Destination", exact: true }).click();
       await page.getByRole("link", { name: "Nested", exact: true }).click();
       await row(page, "Recovered report.txt").waitFor();
+      await page.close();
+    }
+});
+
+test("breadcrumb rename preserves drafts, updates host records and navigates nested folders", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal", { reducedMotion: "reduce" });
+  const nav = page.getByRole("navigation", { name: "Folder navigation" });
+  await nav.getByRole("heading", { name: "Customer portal", exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Back to drive", exact: true }).count(), 0);
+  assert.equal(await nav.getByRole("heading").count(), 1);
+  const actions = nav.getByRole("button", { name: "Actions: Customer portal", exact: true });
+  await actions.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).waitFor();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+  const input = dialog.getByRole("textbox", { name: "Name", exact: true });
+  assert.equal(await input.inputValue(), "Customer portal");
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await actions.evaluate((node) => document.activeElement === node), true);
+  await page.getByLabel("Simulate action failures").check();
+  await actions.click();
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  await input.fill("Client portal");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await input.inputValue(), "Client portal");
+  assert.equal(
+    await page.locator('nav[aria-label="Folder navigation"] h2').textContent(),
+    "Customer portal",
+  );
+  // Change the host's failure setting without dismissing the modal or its draft.
+  await page.getByLabel("Simulate action failures").evaluate((node) => node.click());
+  await input.fill("Client portal");
+  await input.press("ControlOrMeta+Enter");
+  await dialog.waitFor({ state: "hidden" });
+  await nav.getByRole("heading", { name: "Client portal", exact: true }).waitFor();
+  await folder(page, "Assets");
+  await page.getByRole("link", { name: "Assets", exact: true }).click();
+  await folder(page, "Images");
+  await page.getByRole("link", { name: "Images", exact: true }).click();
+  await nav.getByRole("button", { name: "Actions: Images", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  await input.fill("Photos");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await nav.getByRole("heading", { name: "Photos", exact: true }).waitFor();
+  await nav.getByRole("link", { name: "Assets", exact: true }).click();
+  await page.getByRole("link", { name: "Photos", exact: true }).waitFor();
+  await nav.getByRole("link", { name: "Client portal", exact: true }).click();
+  await row(page, "Annual report.txt").waitFor();
+  await nav.getByRole("link", { name: "Drive", exact: true }).click();
+  await page.getByRole("link", { name: "Client portal", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Open linked record: Client portal", exact: true }).click();
+  await page.getByRole("heading", { name: "Client portal", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Drive directory", exact: true }).click();
+  await page.getByRole("link", { name: "Team handbook", exact: true }).click();
+  await row(page, "Welcome.txt").waitFor();
+  assert.equal(await nav.getByRole("button").count(), 0);
+});
+
+test("breadcrumb menus and long names fit both themes and viewport sizes", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      const nav = page.getByRole("navigation", { name: "Folder navigation" });
+      const actions = nav.getByRole("button", { name: "Actions: Customer portal", exact: true });
+      await actions.click();
+      await page.getByRole("menuitem", { name: "Rename", exact: true }).waitFor();
+      await page.getByRole("menu").evaluate(async (node) => {
+        await Promise.all(
+          node.getAnimations({ subtree: true }).map((animation) => animation.finished),
+        );
+      });
+      await page.screenshot({
+        path: `/tmp/drive-breadcrumb-${width}-${colorScheme}.png`,
+        fullPage: true,
+      });
+      await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+      await dialog
+        .getByRole("textbox")
+        .fill("Kundenportal für internationale Zusammenarbeit und Dokumentenverwaltung");
+      await dialog.getByRole("button", { name: "Save", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await nav.getByRole("heading", { name: /^Kundenportal/ }).waitFor();
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      const box = await nav.getByRole("button").boundingBox();
+      assert.ok(box.width >= (width < 768 ? 40 : 32));
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await page.screenshot({
+        path: `/tmp/drive-breadcrumb-long-${width}-${colorScheme}.png`,
+        fullPage: true,
+      });
       await page.close();
     }
 });

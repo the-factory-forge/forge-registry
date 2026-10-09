@@ -67,6 +67,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 const languageTabClass =
   "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -91,7 +92,7 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   onRetry?: () => void;
 }
 function BlogsPageContent({
-  data,
+  data: suppliedData,
   search,
   onSearchChange,
   onPageChange,
@@ -101,7 +102,7 @@ function BlogsPageContent({
   capabilities,
   onDelete,
   loading,
-  error,
+  error: loadError,
   onRetry,
   labels: overrides,
   linkComponent: BlogLink = Link,
@@ -109,6 +110,9 @@ function BlogsPageContent({
   className,
 }: BlogsPageProps) {
   const labels = { ...blogsLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedData, `${search}:${suppliedData.page}`);
+  const data = optimistic.value;
+  const error = loadError || (optimistic.error ? labels.error : undefined);
   return (
     <section className={cn(pageClass, className)}>
       <div className={cn(tablePanelClass, "space-y-5")}>
@@ -136,46 +140,59 @@ function BlogsPageContent({
           </div>
         </header>
         {!capabilities.edit && <Feedback message={labels.readOnly} />}
-        {error ? (
-          <>
-            <Feedback message={error} error />
-            {onRetry && (
-              <button className={buttonClass} onClick={onRetry}>
-                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.retry}
-              </button>
+        <div className="relative overflow-x-auto">
+          <table className={tableClass} aria-busy={loading}>
+            {loading && data.items.length > 0 && (
+              <caption className="sr-only">
+                <output>{labels.loading}</output>
+              </caption>
             )}
-          </>
-        ) : loading ? (
-          <Feedback message={labels.loading} />
-        ) : !data.items.length ? (
-          <Feedback message={labels.empty} />
-        ) : (
-          <div className="relative overflow-x-auto">
-            <table className={tableClass}>
-              <thead>
-                <tr className={tableRowClass}>
-                  {[
-                    labels.title,
-                    labels.categories,
-                    labels.languages,
-                    labels.editor,
-                    labels.modified,
-                    labels.actions,
-                  ].map((label, index) => (
-                    <th
-                      key={label}
-                      scope="col"
-                      className={index === 5 ? tableActionCellClass : tableHeaderClass}
-                    >
-                      {label}
-                    </th>
-                  ))}
+            <thead>
+              <tr className={tableRowClass}>
+                {[
+                  labels.title,
+                  labels.categories,
+                  labels.languages,
+                  labels.editor,
+                  labels.modified,
+                  labels.actions,
+                ].map((label, index) => (
+                  <th
+                    key={label}
+                    scope="col"
+                    className={index === 5 ? tableActionCellClass : tableHeaderClass}
+                  >
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {((error && !loading) || data.items.length === 0) && (
+                <tr>
+                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Feedback
+                        message={loading ? labels.loading : error || labels.empty}
+                        error={!loading && !!error}
+                      />
+                      {error && !loading && onRetry && (
+                        <button type="button" className={buttonClass} onClick={onRetry}>
+                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                          {labels.retry}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {data.items.map((post) => (
-                  <tr key={post.id} className={tableRowClass}>
+              )}
+              {retainRemovedItems(data.items, suppliedData.items, optimistic.pending).map(
+                (post) => (
+                  <tr
+                    key={post.id}
+                    hidden={!data.items.some((row) => row.id === post.id)}
+                    className={tableRowClass}
+                  >
                     <td className={cn(tableCellClass, "min-w-48 font-medium")}>
                       <BlogLink
                         href={editHref(post.id)}
@@ -223,21 +240,36 @@ function BlogsPageContent({
                         {capabilities.delete && onDelete && (
                           <ConfirmDelete
                             labels={labels}
+                            disabled={loading || optimistic.pending || !!loadError}
                             title={`${labels.deleteTitle}: ${post.title}`}
                             label={`${labels.delete}: ${post.title}`}
                             description={labels.deleteDescription}
-                            onDelete={(requestId) => onDelete(post.id, requestId)}
+                            onDelete={(requestId) =>
+                              optimistic.run(
+                                (page) => ({
+                                  ...page,
+                                  items: page.items.filter((row) => row.id !== post.id),
+                                  total: Math.max(0, suppliedData.total - 1),
+                                }),
+                                () => onDelete(post.id, requestId),
+                              )
+                            }
                           />
                         )}
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <Pagination {...data} onPageChange={onPageChange} labels={labels} />
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+        <Pagination
+          {...data}
+          onPageChange={onPageChange}
+          labels={labels}
+          disabled={loading || optimistic.pending || !!loadError}
+        />
       </div>
     </section>
   );
@@ -408,14 +440,18 @@ function EditorForm({
     [shared, setShared] = useState<BlogShared>(() => structuredClone(article.shared)),
     [assets, setAssets] = useState(initialAssets),
     [dirty, setDirty] = useState(false);
-  const [validation, setValidation] = useState("");
-  const readOnly = !capabilities.edit,
-    pending = action.pending,
-    status = !base.translations[locale]?.published
+  const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
+    !base.translations[locale]?.published
       ? "draft"
       : hasUnpublishedChanges(base, locale)
         ? "changed"
-        : "published";
+        : "published",
+    `${base.id}:${locale}`,
+  );
+  const [validation, setValidation] = useState("");
+  const readOnly = !capabilities.edit,
+    pending = action.pending,
+    status = optimistic.value;
   function changed() {
     setDirty(true);
     onDirty(true);
@@ -444,7 +480,11 @@ function EditorForm({
     const result = await action.run(
       JSON.stringify(["save", base.version, locale, content, shared]),
       (requestId) =>
-        client.save({ id: base.id, version: base.version, locale, content, shared, requestId }),
+        optimistic.run(
+          () => (base.translations[locale]?.published ? "changed" : "draft"),
+          () =>
+            client.save({ id: base.id, version: base.version, locale, content, shared, requestId }),
+        ),
       labels.saved,
     );
     if (result) accept(result);
@@ -460,12 +500,16 @@ function EditorForm({
     const result = await action.run(
       JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
       (requestId) =>
-        client[remove ? "unpublish" : "publish"]({
-          id: base.id,
-          version: base.version,
-          locale,
-          requestId,
-        }),
+        optimistic.run(
+          () => (remove ? "draft" : "published"),
+          () =>
+            client[remove ? "unpublish" : "publish"]({
+              id: base.id,
+              version: base.version,
+              locale,
+              requestId,
+            }),
+        ),
       remove ? labels.unpublishedSuccess : labels.publishedSuccess,
     );
     if (result) accept(result);
@@ -785,14 +829,16 @@ function EditorForm({
           <div className="ml-auto flex flex-wrap justify-end gap-2">
             {capabilities.publish && (
               <>
-                <button
-                  type="button"
-                  className={buttonClass}
-                  disabled={pending || dirty || !base.translations[locale]}
-                  onClick={() => void publish()}
-                >
-                  {labels.publish}
-                </button>
+                {status !== "published" && (
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    disabled={pending || dirty || !base.translations[locale]}
+                    onClick={() => void publish()}
+                  >
+                    {labels.publish}
+                  </button>
+                )}
                 {base.translations[locale]?.published && (
                   <button
                     type="button"
@@ -827,8 +873,8 @@ export interface BlogCategoriesPageProps extends BlogsAppearanceProps {
   onChanged: () => void;
 }
 function BlogCategoriesPageContent({
-  client,
-  categories,
+  client: suppliedClient,
+  categories: suppliedCategories,
   locales,
   capabilities,
   backHref,
@@ -838,6 +884,28 @@ function BlogCategoriesPageContent({
   className,
 }: BlogCategoriesPageProps) {
   const labels = { ...blogsLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedCategories, suppliedClient);
+  const categories = optimistic.value;
+  const client: BlogsClient = {
+    ...suppliedClient,
+    saveCategory: (input) => {
+      const id = input.id ?? `pending-${crypto.randomUUID()}`;
+      let category: BlogCategory = { ...input, id, version: input.version ?? 0 };
+      return optimistic.run(
+        (rows) =>
+          input.id ? rows.map((row) => (row.id === id ? category : row)) : [...rows, category],
+        async () => {
+          category = await suppliedClient.saveCategory(input);
+          return category;
+        },
+      );
+    },
+    deleteCategory: (input) =>
+      optimistic.run(
+        (rows) => rows.filter((row) => row.id !== input.id),
+        () => suppliedClient.deleteCategory(input),
+      ),
+  };
   const [selected, setSelected] = useState<string | null>(null);
   const childrenByParent = new Map<string, BlogCategory[]>();
   for (const category of categories) {
@@ -855,6 +923,7 @@ function BlogCategoriesPageContent({
         "w-full min-w-0 justify-start text-left wrap-anywhere whitespace-normal aria-[current=page]:bg-primary/10 aria-[current=page]:font-semibold aria-[current=page]:text-primary",
         category.parentId ? "font-normal text-muted-foreground" : "font-semibold",
       )}
+      disabled={optimistic.pending || category.id.startsWith("pending-")}
       onClick={() => setSelected(category.id)}
     >
       {Object.values(category.translations)[0]?.name}
@@ -871,12 +940,17 @@ function BlogCategoriesPageContent({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl font-semibold">{labels.categories}</h1>
         {capabilities.manageCategories && (
-          <button className={primaryClass} onClick={() => setSelected(null)}>
+          <button
+            className={primaryClass}
+            disabled={optimistic.pending}
+            onClick={() => setSelected(null)}
+          >
             <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.newCategory}
           </button>
         )}
       </header>
+      <Feedback message={optimistic.error ? labels.error : undefined} error />
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <nav aria-label={labels.categories} className={cn(cardClass, "self-start")}>
           <ul className="space-y-2">
@@ -906,7 +980,10 @@ function BlogCategoriesPageContent({
         </nav>
         <CategoryForm
           key={selected ?? "new"}
-          category={categories.find((c) => c.id === selected)}
+          category={
+            categories.find((c) => c.id === selected) ??
+            suppliedCategories.find((c) => c.id === selected)
+          }
           categories={categories}
           locales={locales}
           client={client}

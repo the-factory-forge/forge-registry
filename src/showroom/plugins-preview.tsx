@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 import { NativeSelect } from "@/components/native-select";
 import type { Customer } from "@/components/plugins/customers";
-import type { DriveSpace } from "@/components/plugins/drive";
+import { DriveError, type DriveScope, type DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
@@ -50,7 +50,6 @@ function usePreviewState() {
     },
   ]);
   const [showProjects, setShowProjects] = useState(false);
-  const [peopleState, setPeopleState] = useState("ready");
   const [failActions, setFailActions] = useState(false);
   const [showActions, setShowActions] = useState(true);
   const [showIntegration, setShowIntegration] = useState(false);
@@ -106,8 +105,6 @@ function usePreviewState() {
     setProjects,
     showProjects,
     setShowProjects,
-    peopleState,
-    setPeopleState,
     customers,
     setCustomers,
     failActions,
@@ -121,6 +118,14 @@ function usePreviewState() {
     notice,
     setNotice,
     beforeAction,
+    async renameDriveSpace(scope: DriveScope, name: string) {
+      await beforeAction();
+      if (scope.type !== "project" || !projects.some((project) => project.id === scope.id))
+        throw new DriveError("FORBIDDEN");
+      setProjects((current) =>
+        current.map((project) => (project.id === scope.id ? { ...project, name } : project)),
+      );
+    },
   };
 }
 
@@ -194,21 +199,6 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
                 onChange={(event) => state.setShowProjects(event.target.checked)}
               />
               Projects integration
-            </label>
-            <label>
-              People directories{" "}
-              <NativeSelect
-                aria-label="People directories"
-                value={state.peopleState}
-                onChange={(event) => state.setPeopleState(event.target.value)}
-                className="rounded border border-border bg-background p-1"
-              >
-                <option value="ready">Ready</option>
-                <option value="loading">Loading</option>
-                <option value="error">Error</option>
-                <option value="empty">No customers</option>
-                <option value="unavailable">Current owner unavailable</option>
-              </NativeSelect>
             </label>
             <label className="flex items-center gap-2">
               <input

@@ -132,6 +132,9 @@ link expiry; the host can supply its actual expiry through `checkSpam`.
 
 ## Employee UI
 
+The employee table uses [`@forge/table-pagination`](./table-pagination.md), installed
+with the plugin. Hosts retain the existing total, offset and translated labels.
+
 `EmployeesPage` receives the current page of employees, total, offset,
 `onOffsetChange`, `currentUserId`, `currentUserRole`, `onCreate`, and async action callbacks.
 The default page size is exported as `EMPLOYEE_PAGE_SIZE`.
@@ -207,3 +210,9 @@ Successful updates use the shared [action toast](./action-toast.md). Errors stay
 with the form. The dependency installs automatically; wrap the persistent host
 layout in `ActionToastProvider` to retain confirmations across navigation and
 translate its Close label. Existing callback and label props are unchanged.
+
+## Optimistic employee updates
+
+Employee directory creation, edits and deletion use the shared
+[optimistic action contract](./optimistic-actions.md). Authentication, impersonation,
+password changes and verification emails still wait for their server result.

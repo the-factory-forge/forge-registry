@@ -9,7 +9,12 @@ import {
   getReservationLabels,
   type ReservationLabels,
 } from "@/components/plugins/reservations/labels";
-import { addMinutes, localDate, stayNights } from "@/components/plugins/reservations/model";
+import {
+  addMinutes,
+  localDate,
+  stayNights,
+  previewReservationMove,
+} from "@/components/plugins/reservations/model";
 import type {
   Reservation,
   ReservationCatalog,
@@ -35,6 +40,7 @@ import {
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { cn } from "@/components/utils/cn";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export interface ReservationBookingPageProps {
   client: ReservationsPublicClient;
@@ -383,16 +389,36 @@ export function ReservationManagePage({
   const labels = getReservationLabels(overrides, data.value?.reservation.mode);
   const [dialog, setDialog] = useState<"cancel" | "move">();
   const action = useReservationAction();
-  const r = data.value?.reservation;
+  const optimistic = useOptimisticAction(data.value, client);
+  const r = optimistic.value?.reservation;
   const availability = useCallback(
     (query: { date: string; resourceId?: string; departureDate?: string }) =>
       client.availability(query),
     [client],
   );
-  const reschedule = useCallback(
-    (input: Parameters<ReservationManagementClient["reschedule"]>[0]) => client.reschedule(input),
-    [client],
-  );
+  const reschedule = (
+    input: Parameters<ReservationManagementClient["reschedule"]>[0],
+    slot: ReservationSlot,
+  ) =>
+    optimistic.run(
+      (current) =>
+        current && {
+          ...current,
+          reservation: previewReservationMove(
+            current.reservation,
+            input,
+            slot,
+            current.timeZone,
+            current.resources.find((resource) => resource.id === input.resourceId)?.name ??
+              labels.anyResource,
+          ),
+        },
+      async () => {
+        const saved = await client.reschedule(input);
+        data.setValue((current) => ({ ...current, reservation: saved }));
+        return saved;
+      },
+    );
   return (
     <section className={cn(pageClass, "max-w-3xl", className)}>
       <h1 className="font-serif text-3xl font-semibold">{labels.manage}</h1>
@@ -407,12 +433,20 @@ export function ReservationManagePage({
       ) : (
         <div className={cn(panelClass, "space-y-5")}>
           <ReservationSummary reservation={r} locale={locale} labels={labels} />
-          {data.value?.canChange ? (
+          {optimistic.value?.canChange ? (
             <div className="flex flex-wrap gap-3">
-              <button className={buttonClass} onClick={() => setDialog("move")}>
+              <button
+                className={buttonClass}
+                disabled={optimistic.pending || action.busy}
+                onClick={() => setDialog("move")}
+              >
                 {labels.reschedule}
               </button>
-              <button className={buttonClass} onClick={() => setDialog("cancel")}>
+              <button
+                className={buttonClass}
+                disabled={optimistic.pending || action.busy}
+                onClick={() => setDialog("cancel")}
+              >
                 {labels.cancel}
               </button>
             </div>
@@ -442,7 +476,22 @@ export function ReservationManagePage({
                   disabled={action.busy}
                   onClick={() => {
                     void action.run(async () => {
-                      await client.cancel(r.version);
+                      await optimistic.run(
+                        (current) =>
+                          current && {
+                            ...current,
+                            canChange: false,
+                            reservation: { ...current.reservation, status: "cancelled" },
+                          },
+                        async () => {
+                          const saved = await client.cancel(r.version);
+                          data.setValue((current) => ({
+                            ...current,
+                            reservation: saved,
+                            canChange: false,
+                          }));
+                        },
+                      );
                       setDialog(undefined);
                       data.reload();
                     });
@@ -496,7 +545,10 @@ export function RescheduleDialog({
     resourceId?: string;
     departureDate?: string;
   }) => Promise<ReservationSlot[]>;
-  onSave: ReservationManagementClient["reschedule"];
+  onSave: (
+    input: Parameters<ReservationManagementClient["reschedule"]>[0],
+    slot: ReservationSlot,
+  ) => Promise<Reservation>;
   onSaved: () => void;
   onClose: () => void;
 }) {
@@ -533,12 +585,17 @@ export function RescheduleDialog({
           e.preventDefault();
           void action.run(async () => {
             try {
-              await onSave({
-                version: reservation.version,
-                startsAt,
-                ...(stay ? { departureDate } : {}),
-                resourceId: resourceId || undefined,
-              });
+              const slot = slots.value?.find((value) => value.startsAt === startsAt);
+              if (!slot) return;
+              await onSave(
+                {
+                  version: reservation.version,
+                  startsAt,
+                  ...(stay ? { departureDate } : {}),
+                  resourceId: resourceId || undefined,
+                },
+                slot,
+              );
               onSaved();
             } catch (error) {
               slots.reload();

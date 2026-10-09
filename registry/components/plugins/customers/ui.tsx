@@ -92,11 +92,13 @@ export function CustomerActionButton({
   onAction,
   labels,
   children,
+  disabled = false,
 }: {
   label: string;
   onAction: () => Promise<void>;
   labels: CustomersLabels;
   children: ReactNode;
+  disabled?: boolean;
 }) {
   const action = useCustomerAction(labels.actionError);
   return (
@@ -105,7 +107,7 @@ export function CustomerActionButton({
         type="button"
         className={iconButtonClass}
         aria-label={label}
-        disabled={action.pending}
+        disabled={disabled || action.pending}
         aria-busy={action.pending}
         onClick={() => void action.run(onAction, labels.actionSuccess)}
       >
@@ -120,10 +122,12 @@ export function DeleteCustomer({
   customer,
   onDelete,
   labels,
+  disabled = false,
 }: {
   customer: Customer;
   onDelete: (id: string) => Promise<void>;
   labels: CustomersLabels;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const action = useCustomerAction(labels.actionError);
@@ -141,7 +145,7 @@ export function DeleteCustomer({
             "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
           )}
           aria-label={labels.deleteCustomer}
-          disabled={action.pending}
+          disabled={disabled || action.pending}
         >
           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
         </Dialog.Trigger>
@@ -164,7 +168,7 @@ export function DeleteCustomer({
               </Dialog.Close>
               <button
                 type="button"
-                disabled={action.pending}
+                disabled={disabled || action.pending}
                 className={cn(
                   buttonClass,
                   "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",

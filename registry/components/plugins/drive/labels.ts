@@ -32,6 +32,7 @@ export const driveLabels = {
   create: "Create",
   next: "Next page",
   first: "First page",
+  previous: "Previous page",
   readOnly: "Read-only",
   drop: "Drop files here or choose Upload files.",
   pending: "Please wait…",

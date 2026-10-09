@@ -72,42 +72,44 @@ providers live under `src/lib/`. Showroom controls live under
 `src/showroom/`. Neither directory is published through the registry; consumers
 supply their own translations and theme configuration.
 
-### Libs (8)
+### Libs
 
-| Name                | Description                                                              |
-| ------------------- | ------------------------------------------------------------------------ |
-| `consent-analytics` | Consent-driven Google Analytics and Ads loading, event gating, and retry |
-| `cn`                | Class-name utility (re-exports `cnfast`)                                 |
-| `table-styles`      | Shared layout classes for plugin tables                                  |
-| `section-variants`  | Shared SectionVariant type and color map for themeable sections          |
-| `build-metadata`    | Canonical, hreflang, Open Graph, Twitter cards                           |
-| `json-ld`           | Organization, Breadcrumb, FAQ, Service schemas                           |
-| `privacy-content`   | Reference privacy-policy content in fr/en/de/it for site adaptation      |
-| `footer-helpers`    | Builds footer props from site data, including attribution defaults       |
+| Name                                              | Description                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `consent-analytics`                               | Consent-driven Google Analytics and Ads loading, event gating, and retry |
+| `cn`                                              | Class-name utility (re-exports `cnfast`)                                 |
+| [optimistic-action](./docs/optimistic-actions.md) | TanStack Query mutations with temporary UI updates and rollback          |
+| `table-styles`                                    | Shared layout classes for plugin tables                                  |
+| `section-variants`                                | Shared SectionVariant type and color map for themeable sections          |
+| `build-metadata`                                  | Canonical, hreflang, Open Graph, Twitter cards                           |
+| `json-ld`                                         | Organization, Breadcrumb, FAQ, Service schemas                           |
+| `privacy-content`                                 | Reference privacy-policy content in fr/en/de/it for site adaptation      |
+| `footer-helpers`                                  | Builds footer props from site data, including attribution defaults       |
 
 ### UI Primitives
 
-| Name                                     | Description                                                                         |
-| ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| [native-select](./docs/native-select.md) | Native dropdown with consistent chevron spacing and standard form behavior          |
-| [table-search](./docs/table-search.md)   | Expanding search button and accent-insensitive row matching                         |
-| `social-icons`                           | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
-| `accordion`                              | Base UI accordion with a bundled animation stylesheet                               |
-| `animations`                             | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
-| `reveal`                                 | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
-| `share-button`                           | Web Share API + clipboard fallback                                                  |
-| `back-to-top`                            | Floating scroll-to-top button                                                       |
-| `section-heading`                        | Eyebrow + title + subtitle, alignment and inverted variants                         |
-| `image-with-fallback`                    | Image (shim) with error placeholder                                                 |
-| `lightbox`                               | Click-to-enlarge image with overlay                                                 |
-| `cta-button`                             | CtaLink + CtaExternal, 4 variants, 2 sizes                                          |
-| `breadcrumb`                             | Semantic breadcrumb navigation                                                      |
-| `dropdown-menu`                          | Base UI dropdown menu                                                               |
-| `sheet`                                  | Base UI slide-out panel (drawer)                                                    |
-| `ui-shims`                               | Framework shims: link/image/script/use-location (every site must install this item) |
-| `newsletter`                             | Email signup form                                                                   |
-| `language-switcher`                      | Language selector dropdown                                                          |
-| `manage-cookies-button`                  | Client-side button to reopen cookie banner                                          |
+| Name                                           | Description                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [native-select](./docs/native-select.md)       | Native dropdown with consistent chevron spacing and standard form behavior          |
+| [table-pagination](./docs/table-pagination.md) | Shared table footer for numbered and cursor pagination                              |
+| [table-search](./docs/table-search.md)         | Expanding search button and accent-insensitive row matching                         |
+| `social-icons`                                 | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
+| `accordion`                                    | Base UI accordion with a bundled animation stylesheet                               |
+| `animations`                                   | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
+| `reveal`                                       | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
+| `share-button`                                 | Web Share API + clipboard fallback                                                  |
+| `back-to-top`                                  | Floating scroll-to-top button                                                       |
+| `section-heading`                              | Eyebrow + title + subtitle, alignment and inverted variants                         |
+| `image-with-fallback`                          | Image (shim) with error placeholder                                                 |
+| `lightbox`                                     | Click-to-enlarge image with overlay                                                 |
+| `cta-button`                                   | CtaLink + CtaExternal, 4 variants, 2 sizes                                          |
+| `breadcrumb`                                   | Semantic breadcrumb navigation                                                      |
+| `dropdown-menu`                                | Base UI dropdown menu                                                               |
+| `sheet`                                        | Base UI slide-out panel (drawer)                                                    |
+| `ui-shims`                                     | Framework shims: link/image/script/use-location (every site must install this item) |
+| `newsletter`                                   | Email signup form                                                                   |
+| `language-switcher`                            | Language selector dropdown                                                          |
+| `manage-cookies-button`                        | Client-side button to reopen cookie banner                                          |
 
 ### Blocks (19)
 

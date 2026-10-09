@@ -93,36 +93,40 @@ are `description`, `url`, `posterImage`, and `assigneeId`. Status values are
 `requested`, `prospect`, `under-construction`, and `production`, with creation
 defaulting to `requested`. All status labels are overridable.
 
-Both forms receive `customers`, optional `assignees`, each directory's
-`Loading`/`Error` props (`customersLoading`, `customersError`, etc.), and optional
-`createCustomerHref`. Supply the current owner and assignee in these directories,
-including when loading an existing project. Owner is required; Assignee can be
-cleared. Searchable selectors use supplied records with no built-in role rules.
-A missing owner blocks submission; directory loading/errors cannot masquerade
-as an empty successful result. With no customers, creation is disabled and the
-form can link to customer creation.
+Both shared forms edit only Name, Status, and Description. Website URL, Owner,
+and Assignee controls are site-specific and belong in host-owned UI when needed.
+The forms need no customer or assignee directories. The existing directory and
+summary may still display metadata supplied by the host.
 
-Use `defaultOwnerId` plus `lockOwner` when creating from a customer. In editing,
-`lockOwner` always locks the project's existing owner, ignoring `defaultOwnerId`.
-Validate customer URL context against the project's current owner before
-locking it or selecting the return URL. Global editing permits reassignment.
+When creating from a customer, take its ID from authorized host context and add
+it in `onCreate`. A standalone creation route must collect or resolve that context
+outside the shared form. For updates, merge the three submitted fields into the
+existing record so ownership, URL and assignment are preserved. Never infer a
+reassignment from a customer query parameter.
 
 The host must enforce customer ownership again on every server write. An
 `ownerId` is not proof of authorization or an existing customer. Use database
 referential integrity and a deletion policy that never leaves orphaned
-projects; the showroom rejects customer deletion until projects are reassigned
-or deleted. No migrations or database entries are created by this plugin.
+projects. The showroom rejects customer deletion while projects remain. No
+migrations or database entries are created by this plugin.
 
-`ProjectFormValues` contains the six editable fields. Name is trimmed and
-required; description is trimmed and limited to 5,000 characters. Website is
-trimmed and limited to 2,048 characters: HTTP(S) URLs or local paths starting
-with a single `/`. Unsafe schemes, protocol-relative URLs, backslashes,
-whitespace, and credential-bearing URLs are rejected. Encode spaces in URLs.
-Unsafe persisted URLs are not rendered as links either. Optional fields submit
-as empty strings; translate those to database nulls in the host if needed.
+`ProjectFormValues` contains `name`, `status`, and `description`. Name is trimmed
+and required; description is trimmed and limited to 5,000 characters. Empty
+descriptions submit as empty strings; translate to database null in the host if
+needed. Persisted website URLs retain the existing safe-link checks for display.
 
-Drafts survive same-project rerenders and failed saves. Switching project ID or
-creation's default owner resets the form. Leaving Details discards its draft.
+### Updating existing hosts
+
+This narrows the form callback contract. Stop reading `url`, `ownerId` and
+`assigneeId` from `onCreate` or `onSave` values. Remove `ProjectDirectoryProps` and
+the former directory props, including `defaultOwnerId` and `lockOwner`, from form
+page adapters. Supply ownership in the host create callback and preserve existing
+metadata on update. Remove obsolete picker/field label overrides. No database
+migration or stored-data deletion is part of this change.
+
+Drafts survive same-project rerenders and failed saves. Switching project ID
+resets the form. For creation, the host can change the page key when its customer
+context changes. Leaving Details discards its draft.
 To reload a form deliberately from refreshed server values, remount the page
 with a host-controlled React key. Pending mutations disable form controls;
 deletion requires confirmation and supports Escape/cancellation focus return.
@@ -135,9 +139,10 @@ preview to embed a real list. It is disabled initially to demonstrate the
 independent customers plugin. Shared mock state survives client navigation
 between both directories and resets on reload; passwords are never stored.
 
-Controls simulate directory loading/failures, absent owners, mutation failures,
-action visibility, and host Drive content. The preview enforces customer
-ownership in callbacks as well as forms. It has no real storage or services.
+Controls simulate list loading/failures, mutation failures, action visibility,
+and host Drive content. Standalone creation demonstrates a host-owned customer
+selector; creation from Customers already has that context. The preview enforces
+customer ownership in its callbacks. It has no real storage or services.
 
 Run `pnpm test` and `pnpm test:browser` against a running showroom (override
 `TEST_BASE_URL` when needed), plus the standard contributor checks. Verify a
@@ -150,3 +155,9 @@ Successful updates use the shared [action toast](./action-toast.md). Errors stay
 with the form. The dependency installs automatically; wrap the persistent host
 layout in `ActionToastProvider` to retain confirmations across navigation and
 translate its Close label. Existing callback and label props are unchanged.
+
+## Optimistic updates
+
+See the [optimistic action contract](./optimistic-actions.md) for immediate UI
+changes, rollback, server-confirmed operations and host callback requirements.
+The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.

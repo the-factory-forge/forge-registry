@@ -35,6 +35,7 @@ export interface EmployeeActionsProps extends EmployeeActionCallbacks {
   currentUserId: string;
   labels?: Partial<EmployeeLabels>;
   className?: string;
+  disabled?: boolean;
 }
 function EmployeeActionsContent({
   employee,
@@ -44,6 +45,7 @@ function EmployeeActionsContent({
   onSendVerification,
   labels: overrides,
   className,
+  disabled = false,
 }: EmployeeActionsProps) {
   const labels = { ...employeeLabels, ...overrides };
   const id = `factory-employee-edit-${useId()}`;
@@ -56,7 +58,7 @@ function EmployeeActionsContent({
   const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
   async function run(kind: "edit" | "remove" | "send", action: () => Promise<void>) {
-    if (lock.current) return;
+    if (disabled || lock.current) return;
     lock.current = true;
     setPending(true);
     setFailedAction(null);
@@ -83,7 +85,7 @@ function EmployeeActionsContent({
             type="button"
             className={iconButtonClass}
 
-            disabled={pending}
+            disabled={disabled || pending}
             aria-label={`${labels.sendEmail} ${employee.name}`}
             onClick={() =>
               void run("send", async () => {
@@ -109,7 +111,7 @@ function EmployeeActionsContent({
           }}
         >
           <Dialog.Trigger
-            disabled={pending}
+            disabled={disabled || pending}
             className={iconButtonClass}
 
             aria-label={`${labels.edit} ${employee.name}`}
@@ -194,7 +196,11 @@ function EmployeeActionsContent({
                   >
                     {labels.cancel}
                   </button>
-                  <button type="submit" className={primaryButtonClass} disabled={pending}>
+                  <button
+                    type="submit"
+                    className={primaryButtonClass}
+                    disabled={disabled || pending}
+                  >
                     {pending ? labels.saving : labels.saveChanges}
                   </button>
                 </div>
@@ -213,7 +219,7 @@ function EmployeeActionsContent({
             }}
           >
             <Dialog.Trigger
-              disabled={pending}
+              disabled={disabled || pending}
               className={cn(
                 iconButtonClass,
                 "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
@@ -253,7 +259,7 @@ function EmployeeActionsContent({
                       buttonClass,
                       "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
                     )}
-                    disabled={pending}
+                    disabled={disabled || pending}
                     onClick={() =>
                       void run("remove", async () => {
                         await onDelete(employee.id);

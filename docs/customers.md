@@ -29,7 +29,7 @@ error object instead of rejecting, check it and throw in the host callback.
 
 The host loads and filters customers, refreshes data after mutations, and owns
 navigation after creation, deletion, or impersonation. The plugin makes no API
-calls and does not assume an auth provider, database, or query library.
+calls and does not assume an auth provider or database. TanStack Query manages temporary UI mutations.
 Omitted action callbacks hide their controls. This is UI configuration, not an
 authorization boundary: enforce access on every server operation.
 
@@ -124,3 +124,9 @@ Successful updates use the shared [action toast](./action-toast.md). Errors stay
 with the form. The dependency installs automatically; wrap the persistent host
 layout in `ActionToastProvider` to retain confirmations across navigation and
 translate its Close label. Existing callback and label props are unchanged.
+
+## Optimistic updates
+
+See the [optimistic action contract](./optimistic-actions.md) for immediate UI
+changes, rollback, server-confirmed operations and host callback requirements.
+The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.

@@ -40,6 +40,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type {
   Customer,
@@ -55,11 +56,11 @@ export type { CustomersLabels } from "@/components/plugins/customers/labels";
 const pageClass = "mx-auto w-full min-w-0 space-y-6 px-4 py-8 text-foreground";
 
 function CustomersPageContent({
-  customers,
+  customers: suppliedCustomers,
   search,
   onSearchChange,
   loading = false,
-  error,
+  error: loadError,
   createHref,
   getCustomerHref,
   onDelete,
@@ -72,6 +73,9 @@ function CustomersPageContent({
   linkComponent: CustomerLink = Link,
 }: CustomersPageProps) {
   const labels = { ...customerLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedCustomers);
+  const customers = optimistic.value;
+  const error = loadError || (optimistic.error ? labels.actionError : undefined);
   return (
     <div className={cn(pageClass, className)}>
       <section className={cn(tablePanelClass, "space-y-5")} aria-label={labels.title}>
@@ -95,36 +99,41 @@ function CustomersPageContent({
             </CustomerLink>
           </div>
         </header>
-        {error ? (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className={tableClass} aria-busy={loading}>
-              <thead>
-                <tr className={tableRowClass}>
-                  {[
-                    labels.customer,
-                    labels.email,
-                    ...(syncColumn ? [syncColumn.label] : []),
-                    labels.actions,
-                  ].map((label, index) => (
-                    <th
-                      scope="col"
-                      key={index}
-                      className={
-                        index === (syncColumn ? 3 : 2) ? tableActionCellClass : tableHeaderClass
-                      }
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {customers.map((customer) => (
-                  <tr key={customer.id} className={tableRowClass}>
+        <div className="overflow-x-auto">
+          <table className={tableClass} aria-busy={loading}>
+            {loading && customers.length > 0 && (
+              <caption className="sr-only">
+                <output>{labels.loading}</output>
+              </caption>
+            )}
+            <thead>
+              <tr className={tableRowClass}>
+                {[
+                  labels.customer,
+                  labels.email,
+                  ...(syncColumn ? [syncColumn.label] : []),
+                  labels.actions,
+                ].map((label, index) => (
+                  <th
+                    scope="col"
+                    key={index}
+                    className={
+                      index === (syncColumn ? 3 : 2) ? tableActionCellClass : tableHeaderClass
+                    }
+                  >
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {retainRemovedItems(customers, suppliedCustomers, optimistic.pending).map(
+                (customer) => (
+                  <tr
+                    key={customer.id}
+                    hidden={!customers.some((row) => row.id === customer.id)}
+                    className={tableRowClass}
+                  >
                     <td className={tableCellClass}>
                       <div className="flex items-center gap-3">
                         <CustomerAvatar customer={customer} />
@@ -141,9 +150,20 @@ function CustomersPageContent({
                         <span>{customer.email}</span>
                         {onSetVerified ? (
                           <CustomerActionButton
+                            disabled={loading || optimistic.pending || !!loadError}
                             label={customer.emailVerified ? labels.unverify : labels.verify}
                             labels={labels}
-                            onAction={() => onSetVerified(customer.id, !customer.emailVerified)}
+                            onAction={() =>
+                              optimistic.run(
+                                (rows) =>
+                                  rows.map((row) =>
+                                    row.id === customer.id
+                                      ? { ...row, emailVerified: !customer.emailVerified }
+                                      : row,
+                                  ),
+                                () => onSetVerified(customer.id, !customer.emailVerified),
+                              )
+                            }
                           >
                             {customer.emailVerified ? (
                               <ShieldOffIcon aria-hidden="true" />
@@ -165,6 +185,7 @@ function CustomersPageContent({
                       <div className="flex items-start justify-end gap-1">
                         {onImpersonate && (
                           <CustomerActionButton
+                            disabled={loading || optimistic.pending || !!loadError}
                             label={labels.impersonate}
                             labels={labels}
                             onAction={() => onImpersonate(customer.id)}
@@ -187,33 +208,49 @@ function CustomersPageContent({
                           <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                         </CustomerLink>
                         {onDelete && (
-                          <DeleteCustomer customer={customer} onDelete={onDelete} labels={labels} />
+                          <DeleteCustomer
+                            customer={customer}
+                            onDelete={(id) =>
+                              optimistic.run(
+                                (rows) => rows.filter((row) => row.id !== id),
+                                () => onDelete(id),
+                              )
+                            }
+                            labels={labels}
+                            disabled={loading || optimistic.pending || !!loadError}
+                          />
                         )}
                       </div>
                     </td>
                   </tr>
-                ))}
-                {customers.length === 0 && (
-                  <tr className={tableRowClass}>
-                    <td
-                      colSpan={syncColumn ? 4 : 3}
-                      className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
-                    >
-                      {loading ? labels.loading : labels.empty}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ),
+              )}
+              {((error && !loading) || customers.length === 0) && (
+                <tr className={tableRowClass}>
+                  <td
+                    colSpan={syncColumn ? 4 : 3}
+                    className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
+                  >
+                    {error && !loading ? (
+                      <p role="alert" className="text-destructive">
+                        {error}
+                      </p>
+                    ) : (
+                      <output>{loading ? labels.loading : labels.empty}</output>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
 }
 
 function CustomerDetailPageContent({
-  customer,
+  customer: suppliedCustomer,
   section = "about",
   backHref,
   sectionHrefs,
@@ -227,6 +264,8 @@ function CustomerDetailPageContent({
   linkComponent: CustomerLink = Link,
 }: CustomerDetailPageProps) {
   const labels = { ...customerLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedCustomer, suppliedCustomer.id);
+  const customer = optimistic.value;
   return (
     <div className={cn(pageClass, className)}>
       <CustomerLink
@@ -289,7 +328,16 @@ function CustomerDetailPageContent({
             key={customer.id}
             customer={customer}
             labels={labels}
-            onSubmit={onSave}
+            onSubmit={(values) =>
+              optimistic.run(
+                (row) => ({
+                  ...row,
+                  ...values,
+                  emailVerified: row.email === values.email && row.emailVerified,
+                }),
+                () => onSave(values),
+              )
+            }
             emailChangeDescription={emailChangeDescription}
           />
           {onDelete && (

@@ -3,7 +3,6 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
-import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
   cardClass,
@@ -12,15 +11,9 @@ import {
   primaryButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
-import { customerDisplayName } from "@/components/plugins/customers/utils";
 import type { ProjectsLabels } from "@/components/plugins/projects/labels";
-import type {
-  Project,
-  ProjectDirectoryProps,
-  ProjectFormValues,
-  ProjectsAppearanceProps,
-} from "@/components/plugins/projects/types";
-import { DeleteProject, ProjectPersonPicker } from "@/components/plugins/projects/ui";
+import type { Project, ProjectFormValues } from "@/components/plugins/projects/types";
+import { DeleteProject } from "@/components/plugins/projects/ui";
 import {
   projectFormValues,
   projectStatuses,
@@ -28,43 +21,22 @@ import {
 } from "@/components/plugins/projects/utils";
 import { cn } from "@/components/utils/cn";
 
-export interface ProjectFormProps
-  extends ProjectDirectoryProps, Omit<ProjectsAppearanceProps, "labels"> {
+export interface ProjectFormProps {
+  className?: string;
   project?: Project;
   labels: ProjectsLabels;
   onSubmit: (values: ProjectFormValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
 
-function ProjectFormContent({
-  project,
-  labels,
-  onSubmit,
-  onDelete,
-  customers,
-  customersLoading,
-  customersError,
-  createCustomerHref,
-  assignees = [],
-  assigneesLoading,
-  assigneesError,
-  defaultOwnerId,
-  lockOwner,
-  linkComponent: ProjectLink = Link,
-  className,
-}: ProjectFormProps) {
+function ProjectFormContent({ project, labels, onSubmit, onDelete, className }: ProjectFormProps) {
   const id = `factory-project-form-${useId()}`;
   const formRef = useRef<HTMLFormElement>(null);
-  const [values, setValues] = useState(() => projectFormValues(project, defaultOwnerId));
+  const [values, setValues] = useState(() => projectFormValues(project));
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormValues, string>>>({});
   const [deleting, setDeleting] = useState(false);
   const action = useCustomerAction(labels.actionError);
   const pending = action.pending || deleting;
-  const ownerId = lockOwner ? (project?.ownerId ?? defaultOwnerId ?? "") : values.ownerId;
-  const directoriesUnavailable = Boolean(
-    customersLoading || customersError || assigneesLoading || assigneesError,
-  );
-  const noCustomers = !customersLoading && !customersError && !customers.length;
 
   function change<K extends keyof ProjectFormValues>(name: K, value: ProjectFormValues[K]) {
     setValues((current) => ({ ...current, [name]: value }));
@@ -72,15 +44,13 @@ function ProjectFormContent({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || directoriesUnavailable) return;
+    if (pending) return;
     const normalized = {
       ...values,
       name: values.name.trim(),
       description: values.description.trim(),
-      url: values.url.trim(),
-      ownerId,
     };
-    const nextErrors = validateProject(normalized, customers, assignees, labels);
+    const nextErrors = validateProject(normalized, labels);
     setErrors(nextErrors);
     const firstInvalid = Object.keys(nextErrors)[0];
     if (firstInvalid) {
@@ -168,95 +138,8 @@ function ProjectFormContent({
             />
             {error("description")}
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <label htmlFor={`${id}-url`} className="block text-sm font-semibold">
-              {labels.url}
-            </label>
-            <input
-              {...fieldProps("url")}
-              placeholder={labels.urlPlaceholder}
-              value={values.url}
-              onChange={(event) => change("url", event.target.value)}
-            />
-            {error("url")}
-          </div>
-          <div className="min-w-0 space-y-2">
-            <label htmlFor={`${id}-ownerId`} className="block text-sm font-semibold">
-              {labels.owner} *
-            </label>
-            <ProjectPersonPicker
-              id={`${id}-ownerId`}
-              name="ownerId"
-              candidates={customers.map((customer) => ({
-                ...customer,
-                name: customerDisplayName(customer),
-              }))}
-              value={ownerId}
-              onChange={(value) => change("ownerId", value)}
-              title={labels.selectOwner}
-              searchLabel={labels.searchOwners}
-              unavailableLabel={labels.unavailableOwner}
-              labels={labels}
-              disabled={
-                pending || lockOwner || customersLoading || Boolean(customersError) || noCustomers
-              }
-              required
-              error={errors.ownerId}
-            />
-            {customersError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {customersError}
-              </p>
-            ) : customersLoading ? (
-              <output className="text-sm text-muted-foreground">{labels.customersLoading}</output>
-            ) : noCustomers ? (
-              <div className="space-y-2 text-sm">
-                <output>{labels.noCustomers}</output>
-                {createCustomerHref && (
-                  <ProjectLink
-                    href={createCustomerHref}
-                    className="underline focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {labels.createCustomer}
-                  </ProjectLink>
-                )}
-              </div>
-            ) : null}
-            {error("ownerId")}
-          </div>
-          <div className="min-w-0 space-y-2">
-            <label htmlFor={`${id}-assigneeId`} className="block text-sm font-semibold">
-              {labels.assignee}
-            </label>
-            <ProjectPersonPicker
-              id={`${id}-assigneeId`}
-              name="assigneeId"
-              candidates={assignees}
-              value={values.assigneeId}
-              onChange={(value) => change("assigneeId", value)}
-              title={labels.selectAssignee}
-              searchLabel={labels.searchAssignees}
-              unavailableLabel={labels.unavailableAssignee}
-              labels={labels}
-              disabled={pending || assigneesLoading || Boolean(assigneesError)}
-              clearable
-              error={errors.assigneeId}
-            />
-            {assigneesError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {assigneesError}
-              </p>
-            ) : assigneesLoading ? (
-              <output className="text-sm text-muted-foreground">{labels.assigneesLoading}</output>
-            ) : null}
-            {error("assigneeId")}
-          </div>
           <div className="flex justify-end md:col-span-2">
-            <button
-              type="submit"
-              disabled={directoriesUnavailable || noCustomers}
-              className={primaryButtonClass}
-            >
+            <button type="submit" className={primaryButtonClass}>
               {pending ? labels.pending : project ? labels.save : labels.create}
             </button>
           </div>

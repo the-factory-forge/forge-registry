@@ -29,7 +29,7 @@ test("homepage search starts expanded and stays visible through filtering, clear
   await page.getByRole("button", { name: "Clear search examples", exact: true }).click();
   assert.equal(await search.inputValue(), "");
   assert.equal(await search.evaluate((el) => el === document.activeElement), true);
-  assert.equal(await page.locator('main a[href="/table-search"]').count(), 1);
+  assert.equal(await page.locator('main a[href="/table-pagination"]').count(), 1);
   assert.equal(await page.locator('main a[href="/en/reservations"]').count(), 0);
   await page.getByRole("button", { name: "All", exact: true }).click();
   assert.equal(await search.isVisible(), true);
@@ -81,7 +81,8 @@ test("table searches are independent, keyboard accessible and contained on narro
   const page = await browser.newPage();
   await page.goto(baseURL);
   await page.getByRole("button", { name: "Component", exact: true }).click();
-  await page.locator('main a[href="/table-search"]').click();
+  await page.locator('main a[href="/table-pagination"]').click();
+  await page.getByRole("link", { name: "Independent table searches", exact: true }).click();
   await page.locator('[data-preview-ready="true"]').waitFor();
   const employees = page.getByRole("region", { name: "Employees", exact: true });
   const projects = page.getByRole("region", { name: "Projects", exact: true });

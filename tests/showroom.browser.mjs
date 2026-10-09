@@ -69,7 +69,8 @@ test("every directory entry navigates and returns through a stable shared header
     .locator("main a[href]")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   assert.equal(new Set(destinations).size, destinations.length);
-  assert.ok(destinations.includes("/table-search"));
+  assert.ok(destinations.includes("/table-pagination"));
+  assert.equal(destinations.includes("/table-search"), false);
   assert.equal(destinations.filter((href) => href === "/en/menus").length, 1);
   assert.equal(destinations.includes("/en/admin/menus"), false);
   assert.equal(destinations.filter((href) => href === "/en/auth").length, 1);

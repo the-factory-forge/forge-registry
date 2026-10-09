@@ -59,6 +59,21 @@
       "registryDependencies": ["@forge/cn"]
     },
     {
+      "name": "table-pagination",
+      "type": "registry:ui",
+      "title": "Table pagination",
+      "description": "Shared table footer with optional totals and page numbers, translated navigation and disabled states for numbered or cursor paging.",
+      "files": [
+        {
+          "path": "registry/components/table-pagination.tsx",
+          "type": "registry:component",
+          "target": "@components/table-pagination.tsx"
+        }
+      ],
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/table-styles"]
+    },
+    {
       "name": "table-search",
       "type": "registry:ui",
       "title": "Table Search",
@@ -771,7 +786,8 @@
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ]
     },
     {
@@ -819,7 +835,8 @@
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/native-select",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ]
     },
     {
@@ -829,12 +846,15 @@
       "description": "Standalone and embeddable file browser for any host entity.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/dialog-submit",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/dropdown-menu",
+        "@forge/optimistic-action"
       ],
       "files": [
         {
@@ -936,12 +956,14 @@
       "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
       "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/native-select",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ],
       "files": [
         {
@@ -1035,7 +1057,8 @@
         "@forge/table-search",
         "@forge/dialog-submit",
         "@forge/native-select",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ],
       "files": [
         {
@@ -1223,13 +1246,15 @@
         }
       ],
       "registryDependencies": [
+        "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/dialog-submit",
         "@forge/native-select",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1305,7 +1330,8 @@
         "@forge/ui-shims",
         "@forge/dialog-submit",
         "@forge/native-select",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/optimistic-action"
       ],
       "files": [
         {
@@ -1406,6 +1432,20 @@
           "path": "registry/components/action-toast.tsx",
           "type": "registry:component",
           "target": "@components/action-toast.tsx"
+        }
+      ]
+    },
+    {
+      "name": "optimistic-action",
+      "type": "registry:lib",
+      "title": "Optimistic action",
+      "description": "TanStack Query mutations with temporary UI updates and automatic rollback for callback-driven plugins.",
+      "dependencies": ["@tanstack/react-query@5.104.1"],
+      "files": [
+        {
+          "path": "registry/components/utils/use-optimistic-action.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/use-optimistic-action.ts"
         }
       ]
     }

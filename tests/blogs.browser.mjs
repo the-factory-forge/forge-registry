@@ -30,6 +30,31 @@ async function saved(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await actionToast(page, "Draft saved.");
 }
+test("publish is hidden until the selected translation has unpublished changes", async (t) => {
+  const page = await preview(t, `/en/admin/blogs/${existing}`);
+  const publish = page.getByRole("button", { name: "Publish", exact: true });
+  const unpublish = page.getByRole("button", { name: "Unpublish", exact: true });
+  assert.equal(await publish.count(), 0);
+  assert.equal(await unpublish.isEnabled(), true);
+
+  await page.getByLabel("Title", { exact: true }).fill("A revised title");
+  assert.equal(await publish.count(), 0);
+  await saved(page);
+  assert.equal(await publish.isEnabled(), true);
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  assert.equal(await publish.count(), 0);
+  await page.getByRole("tab", { name: "English", exact: true }).click();
+  assert.equal(await publish.isEnabled(), true);
+  await publish.click();
+  await actionToast(page, "This language is now published");
+  assert.equal(await publish.count(), 0);
+  assert.equal(await unpublish.isEnabled(), true);
+
+  await unpublish.click();
+  await actionToast(page, "This language is no longer public");
+  assert.equal(await publish.isEnabled(), true);
+  assert.equal(await unpublish.count(), 0);
+});
 test("admin categories stay readable and long table text truncates in both themes", async (t) => {
   const page = await preview(t, "/en/admin/blogs", { viewport: { width: 1440, height: 1000 } });
   const row = page.getByRole("row").filter({

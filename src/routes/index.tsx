@@ -65,12 +65,22 @@ const examples = (
       ],
     },
     {
-      href: "/table-search",
+      href: "/table-pagination",
       category: "Component",
-      title: "Table search",
+      title: "Table",
       description:
-        "Expanding search buttons with independent table filters, keyboard focus, and clear actions.",
-      keywords: ["search", "table", "filter", "employees", "projects"],
+        "Searchable tables with result counts, page navigation, keyboard controls, and loading states.",
+      tags: ["Search", "Pagination"],
+      keywords: [
+        "search",
+        "table",
+        "filter",
+        "pagination",
+        "page",
+        "footer",
+        "employees",
+        "projects",
+      ],
     },
     {
       href: "/en/faq",

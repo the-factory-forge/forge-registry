@@ -9,50 +9,27 @@ import {
   validateProject,
 } from "../registry/components/plugins/projects/utils.ts";
 
-const customers = [{ id: "customer", name: "Alex", email: "", emailVerified: false }];
-const assignees = [{ id: "employee", name: "Jordan" }];
-
-test("project forms require an existing customer and preserve optional fields", () => {
-  const values = { ...projectFormValues(undefined, "customer"), name: " Project " };
-  assert.deepEqual(validateProject(values, customers, assignees, projectLabels), {});
-  assert.equal(projectFormValues().status, "requested");
-  assert.equal(
-    projectFormValues(
-      { ...values, ownerId: "existing", description: null, url: null, assigneeId: null },
-      "different",
-    ).ownerId,
-    "existing",
-  );
-  for (const ownerId of ["", "   ", "missing"])
-    assert.ok(validateProject({ ...values, ownerId }, customers, assignees, projectLabels).ownerId);
-  assert.ok(validateProject(values, [], assignees, projectLabels).ownerId);
-  assert.ok(validateProject({ ...values, name: "  " }, customers, assignees, projectLabels).name);
+test("project forms submit only the basic fields and validate their limits", () => {
+  const project = {
+    id: "project",
+    name: " Project ",
+    status: "production",
+    description: null,
+    ownerId: "existing",
+    url: "https://example.com",
+    assigneeId: "employee",
+  };
+  const values = projectFormValues(project);
+  assert.deepEqual(values, { name: " Project ", status: "production", description: "" });
+  assert.deepEqual(validateProject(values, projectLabels), {});
+  assert.deepEqual(projectFormValues(), { name: "", status: "requested", description: "" });
+  assert.ok(validateProject({ ...values, name: "  " }, projectLabels).name);
+  assert.ok(validateProject({ ...values, status: "unknown" }, projectLabels).status);
   assert.ok(
-    validateProject({ ...values, assigneeId: "missing" }, customers, assignees, projectLabels)
-      .assigneeId,
-  );
-  assert.deepEqual(
-    validateProject({ ...values, assigneeId: "employee" }, customers, assignees, projectLabels),
-    {},
-  );
-  assert.ok(
-    validateProject({ ...values, status: "unknown" }, customers, assignees, projectLabels).status,
-  );
-  assert.ok(
-    validateProject(
-      { ...values, description: "a".repeat(5001) },
-      customers,
-      assignees,
-      projectLabels,
-    ).description,
+    validateProject({ ...values, description: "a".repeat(5001) }, projectLabels).description,
   );
   assert.equal(
-    validateProject(
-      { ...values, description: "a".repeat(5000) },
-      customers,
-      assignees,
-      projectLabels,
-    ).description,
+    validateProject({ ...values, description: "a".repeat(5000) }, projectLabels).description,
     undefined,
   );
 });
@@ -100,6 +77,7 @@ test("projects installs customers without creating a reverse dependency or frame
     "@forge/table-search",
     "@forge/native-select",
     "@forge/action-toast",
+    "@forge/optimistic-action",
   ]);
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");

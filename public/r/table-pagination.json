@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "table-pagination",
+  "title": "Table pagination",
+  "description": "Shared table footer with optional totals and page numbers, translated navigation and disabled states for numbered or cursor paging.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/table-styles"
+  ],
+  "files": [
+    {
+      "path": "registry/components/table-pagination.tsx",
+      "content": "\"use client\";\n\nimport { ChevronLeftIcon, ChevronRightIcon } from \"lucide-react\";\nimport type { ReactNode } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\nimport { tableFooterClass } from \"@/components/utils/table-styles\";\n\nexport interface TablePaginationProps {\n  summary?: ReactNode;\n  /** Current page, including cursor paging when the total is unknown. */\n  page?: number;\n  /** Omit when the total is unknown. */\n  pageCount?: number;\n  onPrevious: () => void;\n  onNext: () => void;\n  previousDisabled?: boolean;\n  nextDisabled?: boolean;\n  disabled?: boolean;\n  label?: string;\n  previousLabel?: string;\n  nextLabel?: string;\n  className?: string;\n}\n\nconst buttonClass =\n  \"inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8\";\n\nexport function TablePagination({\n  summary,\n  page,\n  pageCount,\n  onPrevious,\n  onNext,\n  previousDisabled = false,\n  nextDisabled = false,\n  disabled = false,\n  label = \"Pagination\",\n  previousLabel = \"Previous page\",\n  nextLabel = \"Next page\",\n  className,\n}: TablePaginationProps) {\n  return (\n    <nav aria-label={label} className={cn(tableFooterClass, className)}>\n      {summary != null && (\n        <span className=\"min-w-0 text-sm text-muted-foreground tabular-nums\">{summary}</span>\n      )}\n      <div className=\"flex shrink-0 items-center gap-2\">\n        <button\n          type=\"button\"\n          className={buttonClass}\n          disabled={disabled || previousDisabled}\n          onClick={onPrevious}\n          aria-label={previousLabel}\n        >\n          <ChevronLeftIcon className=\"size-4 shrink-0\" aria-hidden=\"true\" />\n        </button>\n        {page != null && (\n          <span\n            className=\"min-w-9 text-center text-sm whitespace-nowrap text-muted-foreground tabular-nums\"\n            aria-live=\"polite\"\n            aria-atomic=\"true\"\n          >\n            {pageCount == null ? page : `${page}/${pageCount}`}\n          </span>\n        )}\n        <button\n          type=\"button\"\n          className={buttonClass}\n          disabled={disabled || nextDisabled}\n          onClick={onNext}\n          aria-label={nextLabel}\n        >\n          <ChevronRightIcon className=\"size-4 shrink-0\" aria-hidden=\"true\" />\n        </button>\n      </div>\n    </nav>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/table-pagination.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

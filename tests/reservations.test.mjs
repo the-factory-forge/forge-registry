@@ -14,6 +14,7 @@ const {
   serviceSchema,
   reservationPolicyDefaults,
   changeStatus,
+  previewReservationMove,
 } = await import("../registry/components/plugins/reservations/model.ts");
 const { signManagementLink, verifyManagementLink } =
   await import("../registry/components/plugins/reservations/server/links.ts");
@@ -468,4 +469,40 @@ test("stay nights and checkout follow local dates through DST, leap days and yea
     availableSlots(c, [], { serviceId, date: "2026-09-29", departureDate: "2026-10-10" }, now),
     [],
   );
+});
+
+void test("optimistic moves use the supplied slot and preserve authority and the original booking", () => {
+  const original = booking();
+  const snapshot = structuredClone(original);
+  const slot = { startsAt: "2026-09-28T11:00:00.000Z", endsAt: "2026-09-28T11:45:00.000Z" };
+  const preview = previewReservationMove(
+    original,
+    { version: original.version, startsAt: slot.startsAt },
+    slot,
+    "Europe/Zurich",
+    "Without preference",
+  );
+  assert.equal(preview.startsAt, slot.startsAt);
+  assert.equal(preview.endsAt, slot.endsAt);
+  assert.equal(preview.occupiedEnd, "2026-09-28T12:00:00.000Z");
+  assert.equal(preview.resourceId, "");
+  assert.equal(preview.resourceName, "Without preference");
+  assert.equal(preview.version, original.version);
+  assert.deepEqual(original, snapshot);
+  const stay = {
+    ...original,
+    mode: "stay",
+    policy: { ...original.policy, mode: "stay", approval: "manual" },
+  };
+  const movedStay = previewReservationMove(
+    stay,
+    { startsAt: "2026-10-24T13:00:00.000Z", departureDate: "2026-10-26", resourceId: "room" },
+    { startsAt: "2026-10-24T13:00:00.000Z", endsAt: "2026-10-26T10:00:00.000Z" },
+    "Europe/Zurich",
+    "Room",
+  );
+  assert.equal(movedStay.status, "pending");
+  assert.equal(movedStay.nights, 2);
+  assert.equal(movedStay.resourceId, "room");
+  assert.equal(movedStay.departureDate, "2026-10-26");
 });

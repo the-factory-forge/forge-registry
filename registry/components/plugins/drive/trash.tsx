@@ -2,13 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  RefreshCwIcon,
-  RotateCcwIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { RefreshCwIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { NativeSelect } from "@/components/native-select";
@@ -32,6 +26,7 @@ import {
   primaryClass,
 } from "@/components/plugins/drive/ui";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
+import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
@@ -39,11 +34,11 @@ import {
   tableActionCellClass,
   tableCellClass,
   tableClass,
-  tableFooterClass,
   tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export function TrashBrowser({
   client,
@@ -51,15 +46,18 @@ export function TrashBrowser({
   labels,
   locale,
   refreshKey = 0,
+  onChanged,
 }: {
   client: DriveClient;
   scope: DriveScope;
   labels: DriveLabels;
   locale?: string;
   refreshKey?: number;
+  onChanged?: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const [cursor, setCursor] = useState<string>();
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors.at(-1);
   const [revision, setRevision] = useState(0);
   const request = useMemo(
     () => ({ client, scope, search, cursor, revision, refreshKey }),
@@ -76,13 +74,19 @@ export function TrashBrowser({
   const lock = useRef(false);
   const manager = Toast.useToastManager();
   const loading = result?.request !== request;
-  const data = result?.data;
+  const mutationScope = useMemo(
+    () => ({ client, scope, search, cursor }),
+    [client, scope, search, cursor],
+  );
+  const optimistic = useOptimisticAction(result?.data, mutationScope);
+  const data = optimistic.value;
   const error = loading ? undefined : result?.error;
-  const disabled = loading || !!error || !!restoring;
+  const disabled = loading || !!error || !!restoring || optimistic.pending;
   const refresh = () => setRevision((value) => value + 1);
   const restored = () => {
     setRestoreEntry(undefined);
     refresh();
+    onChanged?.();
     manager.add({ title: labels.restored, type: "success" });
   };
   useEffect(() => {
@@ -106,7 +110,11 @@ export function TrashBrowser({
     lock.current = true;
     setRestoring(entry.id);
     try {
-      await client.restoreEntry!({ scope, entryId: entry.id });
+      await optimistic.run(
+        (current) =>
+          current && { ...current, items: current.items.filter((row) => row.id !== entry.id) },
+        () => client.restoreEntry!({ scope, entryId: entry.id }),
+      );
       restored();
     } catch (reason) {
       if (errorCode(reason) === "RESTORE_CONFLICT") setRestoreEntry(entry);
@@ -118,6 +126,10 @@ export function TrashBrowser({
   }
   return (
     <>
+      <DriveFeedback
+        message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
+        error
+      />
       <div className="flex flex-wrap justify-end gap-2">
         <TableSearch
           value={search}
@@ -125,7 +137,7 @@ export function TrashBrowser({
           clearLabel={labels.clearSearch}
           onValueChange={(value) => {
             setSearch(value);
-            setCursor(undefined);
+            setCursors([]);
           }}
         />
         <button className={buttonClass} disabled={loading} onClick={refresh}>
@@ -175,90 +187,106 @@ export function TrashBrowser({
                   </td>
                 </tr>
               )}
-              {data?.items.map((entry) => (
-                <tr key={entry.id} className={tableRowClass}>
-                  <td className={cn(tableCellClass, "max-w-64 break-all")}>
-                    {entry.name}
-                    {entry.state === "deleting" && (
-                      <output className="mt-1 block text-xs text-muted-foreground">
-                        {labels.deleting}
-                      </output>
-                    )}
-                  </td>
-                  <td className={cn(tableCellClass, "max-w-64 break-all text-muted-foreground")}>
-                    {entry.originalPath || labels.root}
-                  </td>
-                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                    <DriveModified
-                      value={entry.deletedAt}
-                      locale={locale}
-                      fallback={labels.unavailable}
-                    />
-                  </td>
-                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                    <DriveModified
-                      value={entry.expiresAt}
-                      locale={locale}
-                      fallback={labels.unavailable}
-                    />
-                  </td>
-                  <td className={tableActionCellClass}>
-                    <div className="flex justify-end gap-2">
-                      {data.space.capabilities.restore && entry.state === "trashed" && (
-                        <button
-                          className={buttonClass}
-                          disabled={disabled || Date.parse(entry.expiresAt) <= (result?.now ?? 0)}
-                          onClick={() => void restore(entry)}
-                        >
-                          <RotateCcwIcon aria-hidden="true" />
-                          {restoring === entry.id ? labels.pending : labels.restore}
-                        </button>
-                      )}
-                      {data.space.capabilities.delete && (
-                        <EntryDialog
-                          client={client}
-                          scope={scope}
-                          parentId={null}
-                          entry={{
-                            ...entry,
-                            state: entry.state === "deleting" ? "deleting" : "ready",
-                          }}
-                          deleting
-                          disabled={disabled}
-                          labels={labels}
-                          refresh={() => {
-                            refresh();
-                            manager.add({ title: labels.deleted, type: "success" });
-                          }}
-                        >
-                          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                        </EntryDialog>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {data &&
+                retainRemovedItems(data.items, result?.data?.items ?? [], optimistic.pending).map(
+                  (entry) => (
+                    <tr
+                      key={entry.id}
+                      hidden={!data.items.some((row) => row.id === entry.id)}
+                      className={tableRowClass}
+                    >
+                      <td className={cn(tableCellClass, "max-w-64 break-all")}>
+                        {entry.name}
+                        {entry.state === "deleting" && (
+                          <output className="mt-1 block text-xs text-muted-foreground">
+                            {labels.deleting}
+                          </output>
+                        )}
+                      </td>
+                      <td
+                        className={cn(tableCellClass, "max-w-64 break-all text-muted-foreground")}
+                      >
+                        {entry.originalPath || labels.root}
+                      </td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                        <DriveModified
+                          value={entry.deletedAt}
+                          locale={locale}
+                          fallback={labels.unavailable}
+                        />
+                      </td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                        <DriveModified
+                          value={entry.expiresAt}
+                          locale={locale}
+                          fallback={labels.unavailable}
+                        />
+                      </td>
+                      <td className={tableActionCellClass}>
+                        <div className="flex justify-end gap-2">
+                          {data.space.capabilities.restore && entry.state === "trashed" && (
+                            <button
+                              className={buttonClass}
+                              disabled={
+                                disabled || Date.parse(entry.expiresAt) <= (result?.now ?? 0)
+                              }
+                              onClick={() => void restore(entry)}
+                            >
+                              <RotateCcwIcon aria-hidden="true" />
+                              {restoring === entry.id ? labels.pending : labels.restore}
+                            </button>
+                          )}
+                          {data.space.capabilities.delete && (
+                            <EntryDialog
+                              client={{
+                                ...client,
+                                deleteEntry: (input) =>
+                                  optimistic.run(
+                                    (current) =>
+                                      current && {
+                                        ...current,
+                                        items: current.items.filter(
+                                          (row) => row.id !== input.entryId,
+                                        ),
+                                      },
+                                    () => client.deleteEntry(input),
+                                  ),
+                              }}
+                              scope={scope}
+                              parentId={null}
+                              entry={entry}
+                              deleting
+                              disabled={disabled}
+                              labels={labels}
+                              refresh={() => {
+                                refresh();
+                                manager.add({ title: labels.deleted, type: "success" });
+                              }}
+                            >
+                              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                            </EntryDialog>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
             </tbody>
           </table>
         </div>
-        <div className={tableFooterClass}>
-          <button
-            className={buttonClass}
-            aria-label={labels.first}
-            disabled={!cursor || loading}
-            onClick={() => setCursor(undefined)}
-          >
-            <ChevronLeftIcon aria-hidden="true" />
-          </button>
-          <button
-            className={buttonClass}
-            aria-label={labels.next}
-            disabled={loading || !!error || !data?.nextCursor}
-            onClick={() => setCursor(data?.nextCursor)}
-          >
-            <ChevronRightIcon aria-hidden="true" />
-          </button>
-        </div>
+        <TablePagination
+          label={labels.title}
+          page={cursors.length + 1}
+          previousLabel={labels.previous}
+          nextLabel={labels.next}
+          previousDisabled={cursors.length === 0}
+          nextDisabled={!!error || !data?.nextCursor}
+          disabled={loading}
+          onPrevious={() => setCursors(cursors.slice(0, -1))}
+          onNext={() => {
+            if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
+          }}
+        />
       </div>
       {restoreEntry && (
         <RestoreDialog
@@ -270,6 +298,16 @@ export function TrashBrowser({
           disabled={disabled}
           close={() => setRestoreEntry(undefined)}
           restored={restored}
+          onRestore={(input) =>
+            optimistic.run(
+              (current) =>
+                current && {
+                  ...current,
+                  items: current.items.filter((row) => row.id !== input.entryId),
+                },
+              () => client.restoreEntry!(input),
+            )
+          }
         />
       )}
     </>
@@ -285,6 +323,7 @@ function RestoreDialog({
   disabled,
   close,
   restored,
+  onRestore,
 }: {
   client: DriveClient;
   scope: DriveScope;
@@ -294,10 +333,12 @@ function RestoreDialog({
   disabled: boolean;
   close: () => void;
   restored: () => void;
+  onRestore: NonNullable<DriveClient["restoreEntry"]>;
 }) {
   const [name, setName] = useState(entry.name);
   const [destination, setDestination] = useState<string | null>();
-  const [cursor, setCursor] = useState<string>();
+  const [cursors, setCursors] = useState<string[]>([]);
+  const cursor = cursors.at(-1);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>(labels.RESTORE_CONFLICT);
   const [revision, setRevision] = useState(0);
@@ -337,7 +378,7 @@ function RestoreDialog({
     setPending(true);
     setError("");
     try {
-      await client.restoreEntry!({
+      await onRestore({
         scope,
         entryId: entry.id,
         parentId: destination,
@@ -409,7 +450,7 @@ function RestoreDialog({
                         ? null
                         : event.target.value,
                   );
-                  setCursor(undefined);
+                  setCursors([]);
                 }}
               >
                 <option value="original">
@@ -436,24 +477,20 @@ function RestoreDialog({
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={buttonClass}
-                  aria-label={labels.first}
-                  disabled={!cursor || loading || pending}
-                  onClick={() => setCursor(undefined)}
-                >
-                  <ChevronLeftIcon aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className={buttonClass}
-                  aria-label={labels.next}
-                  disabled={!folder?.nextCursor || loading || pending || !!folderError}
-                  onClick={() => setCursor(folder?.nextCursor)}
-                >
-                  <ChevronRightIcon aria-hidden="true" />
-                </button>
+                <TablePagination
+                  className="mt-0"
+                  label={labels.destination}
+                  page={cursors.length + 1}
+                  previousLabel={labels.previous}
+                  nextLabel={labels.next}
+                  previousDisabled={cursors.length === 0}
+                  nextDisabled={!folder?.nextCursor || !!folderError}
+                  disabled={loading || pending}
+                  onPrevious={() => setCursors(cursors.slice(0, -1))}
+                  onNext={() => {
+                    if (folder?.nextCursor) setCursors([...cursors, folder.nextCursor]);
+                  }}
+                />
                 {folderError && (
                   <button
                     type="button"

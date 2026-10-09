@@ -11,6 +11,7 @@ import {
   type ReservationPolicy,
   type ReservationCommonPolicy,
   type ReservationMode,
+  type ReservationMoveInput,
   type ReservationRange,
   type ReservationAdminRecord,
   type ReservationResource,
@@ -518,4 +519,31 @@ export function assertResourceExceptions(
     )
       throw new ReservationError("CONFLICT");
   }
+}
+
+/** Preview a selected server-provided slot; the mutation response remains authoritative. */
+export function previewReservationMove(
+  reservation: Reservation,
+  input: ReservationMoveInput,
+  slot: ReservationSlot,
+  timeZone: string,
+  resourceName: string,
+): Reservation {
+  return {
+    ...reservation,
+    ...slot,
+    timeZone,
+    resourceId: input.resourceId ?? "",
+    resourceName,
+    status: reservation.policy.approval === "manual" ? "pending" : "confirmed",
+    occupiedStart: addMinutes(slot.startsAt, -reservation.policy.bufferBeforeMinutes),
+    occupiedEnd: addMinutes(slot.endsAt, reservation.policy.bufferAfterMinutes),
+    cancellationDeadline: addMinutes(slot.startsAt, -reservation.policy.cancellationMinutes),
+    ...(reservation.mode === "stay"
+      ? {
+          departureDate: input.departureDate,
+          nights: stayNights(localDate(slot.startsAt, timeZone), localDate(slot.endsAt, timeZone)),
+        }
+      : {}),
+  };
 }

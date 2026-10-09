@@ -40,12 +40,15 @@ test("Drive UI ships independently; only the companion contains storage dependen
   const ui = manifest.items.find((item) => item.name === "drive");
   const server = manifest.items.find((item) => item.name === "drive-storage");
   assert.deepEqual(ui.registryDependencies, [
+    "@forge/table-pagination",
     "@forge/cn",
     "@forge/ui-shims",
     "@forge/table-styles",
     "@forge/table-search",
     "@forge/dialog-submit",
     "@forge/native-select",
+    "@forge/dropdown-menu",
+    "@forge/optimistic-action",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react"]);
   assert.deepEqual(server.registryDependencies, ["@forge/drive"]);

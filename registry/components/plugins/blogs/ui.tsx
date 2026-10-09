@@ -1,13 +1,13 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
+import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
-import { tableFooterClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -127,7 +127,7 @@ export function ConfirmDelete({
                 primaryClass,
                 "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
               )}
-              disabled={action.pending}
+              disabled={disabled || action.pending}
               onClick={() =>
                 void action.run("delete", async (requestId) => {
                   await onDelete(requestId);
@@ -150,40 +150,29 @@ export function Pagination({
   pageSize,
   onPageChange,
   labels,
+  disabled = false,
 }: {
   page: number;
   total: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   labels: BlogsLabels;
+  disabled?: boolean;
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
-    <nav aria-label={labels.pageLabel(page, pages)} className={tableFooterClass}>
-      <span className="text-sm text-muted-foreground">
-        {total} {labels.totalItems}
-      </span>
-      <button
-        type="button"
-        className={cn(buttonClass, "size-9 border border-border p-0")}
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        aria-label={labels.previous}
-      >
-        <ChevronLeftIcon aria-hidden="true" />
-      </button>
-      <span className="min-w-9 text-center text-sm text-muted-foreground tabular-nums">
-        {page}/{pages}
-      </span>
-      <button
-        type="button"
-        className={cn(buttonClass, "size-9 border border-border p-0")}
-        disabled={page >= pages}
-        onClick={() => onPageChange(page + 1)}
-        aria-label={labels.next}
-      >
-        <ChevronRightIcon aria-hidden="true" />
-      </button>
-    </nav>
+    <TablePagination
+      summary={`${total} ${labels.totalItems}`}
+      page={page}
+      pageCount={pages}
+      label={labels.pageLabel(page, pages)}
+      previousLabel={labels.previous}
+      nextLabel={labels.next}
+      previousDisabled={page <= 1}
+      nextDisabled={page >= pages}
+      disabled={disabled}
+      onPrevious={() => onPageChange(page - 1)}
+      onNext={() => onPageChange(page + 1)}
+    />
   );
 }

@@ -25,6 +25,7 @@ export interface EmployeeCreateDialogProps {
   onCreate: (values: CreateEmployee) => Promise<void>;
   labels?: Partial<EmployeeLabels>;
   className?: string;
+  disabled?: boolean;
 }
 
 export function EmployeeCreateDialog({
@@ -32,6 +33,7 @@ export function EmployeeCreateDialog({
   onCreate,
   labels: overrides,
   className,
+  disabled = false,
 }: EmployeeCreateDialogProps) {
   const labels = { ...employeeLabels, ...overrides };
   const id = `factory-employee-create-${useId()}`;
@@ -68,7 +70,7 @@ export function EmployeeCreateDialog({
         setOpen(next);
       }}
     >
-      <Dialog.Trigger className={cn(primaryButtonClass, className)}>
+      <Dialog.Trigger className={cn(primaryButtonClass, className)} disabled={disabled}>
         <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.add}
       </Dialog.Trigger>

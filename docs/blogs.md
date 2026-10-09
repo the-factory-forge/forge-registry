@@ -5,6 +5,9 @@ Markdown preview, category management, and public listing/article components.
 `@forge/blogs-storage` adds private S3 and PostgreSQL persistence. Neither item
 depends on customers, projects, or Drive.
 
+Table pagination uses [`@forge/table-pagination`](./table-pagination.md), included
+as a dependency. Existing host labels and paging callbacks remain compatible.
+
 ## Install and compose
 
 Configure the `@forge` namespace as described in the repository README, then:
@@ -269,3 +272,9 @@ Successful updates use the shared [action toast](./action-toast.md). Errors stay
 with the form. The dependency installs automatically; wrap the persistent host
 layout in `ActionToastProvider` to retain confirmations across navigation and
 translate its Close label. Existing callback and label props are unchanged.
+
+## Optimistic updates
+
+See the [optimistic action contract](./optimistic-actions.md) for immediate UI
+changes, rollback, server-confirmed operations and host callback requirements.
+The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.

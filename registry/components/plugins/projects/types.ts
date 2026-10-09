@@ -22,9 +22,6 @@ export interface ProjectFormValues {
   name: string;
   status: ProjectStatus;
   description: string;
-  url: string;
-  ownerId: Customer["id"];
-  assigneeId: string;
 }
 
 export interface ProjectAssignee {
@@ -57,19 +54,7 @@ export interface ProjectsListProps extends ProjectsAppearanceProps {
 
 export type ProjectsPageProps = ProjectsListProps;
 
-export interface ProjectDirectoryProps {
-  customers: readonly Customer[];
-  customersLoading?: boolean;
-  customersError?: string;
-  createCustomerHref?: string;
-  assignees?: readonly ProjectAssignee[];
-  assigneesLoading?: boolean;
-  assigneesError?: string;
-  defaultOwnerId?: Customer["id"];
-  lockOwner?: boolean;
-}
-
-export interface ProjectDetailPageProps extends ProjectsAppearanceProps, ProjectDirectoryProps {
+export interface ProjectDetailPageProps extends ProjectsAppearanceProps {
   project: Project;
   section?: ProjectSection;
   backHref: string;
@@ -79,7 +64,7 @@ export interface ProjectDetailPageProps extends ProjectsAppearanceProps, Project
   driveContent?: ReactNode;
 }
 
-export interface ProjectNewPageProps extends ProjectsAppearanceProps, ProjectDirectoryProps {
+export interface ProjectNewPageProps extends ProjectsAppearanceProps {
   backHref: string;
   onCreate: (values: ProjectFormValues) => Promise<void>;
 }

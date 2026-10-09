@@ -128,6 +128,8 @@ export interface DriveBrowserProps extends DriveAppearanceProps {
   parentId?: string | null;
   getFolderHref: (folderId: string | null) => string;
   backHref?: string;
+  /** Rename the host-owned record; omit when the current user cannot rename it. */
+  onRenameSpace?: (name: string) => Promise<void>;
   transferUpload?: DriveTransfer;
   /** Optional selection control for hosts using Drive as a media library. */
   onSelectFile?: (entry: DriveEntry) => void;

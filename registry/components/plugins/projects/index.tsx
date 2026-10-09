@@ -32,6 +32,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type {
   Project,
@@ -40,7 +41,6 @@ export type {
   ProjectFormValues,
   ProjectAssignee,
   ProjectsAppearanceProps,
-  ProjectDirectoryProps,
   ProjectsListProps,
   ProjectsPageProps,
   ProjectDetailPageProps,
@@ -51,14 +51,14 @@ export type { ProjectsLabels } from "@/components/plugins/projects/labels";
 const pageClass = "mx-auto w-full min-w-0 space-y-6 px-4 py-8 text-foreground";
 
 function ProjectsListContent({
-  projects,
+  projects: suppliedProjects,
   customers,
   assignees = [],
   customerId,
   search,
   onSearchChange,
   loading,
-  error,
+  error: loadError,
   createHref,
   getProjectHref,
   getCustomerHref,
@@ -68,6 +68,9 @@ function ProjectsListContent({
   className,
 }: ProjectsListProps) {
   const labels = { ...projectLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedProjects);
+  const projects = optimistic.value;
+  const error = loadError || (optimistic.error ? labels.actionError : undefined);
   const root = useRef<HTMLElement>(null);
   const visibleProjects =
     customerId === undefined
@@ -109,128 +112,149 @@ function ProjectsListContent({
           )}
         </div>
       </header>
-      {error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className={tableClass} aria-busy={loading}>
-            <thead>
-              <tr className={tableRowClass}>
-                {[
-                  labels.name,
-                  ...(customerId === undefined ? [labels.owner] : []),
-                  labels.assignee,
-                  labels.website,
-                  labels.status,
-                  labels.actions,
-                ].map((label, index) => (
-                  <th
-                    key={index}
-                    scope="col"
-                    className={
-                      index === (customerId === undefined ? 5 : 4)
-                        ? tableActionCellClass
-                        : tableHeaderClass
-                    }
-                  >
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {visibleProjects.map((project) => {
-                const owner = owners.get(project.ownerId);
-                const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
-                const website = safeProjectUrl(project.url);
-                return (
-                  <tr key={project.id} className={tableRowClass}>
+      <div className="overflow-x-auto">
+        <table className={tableClass} aria-busy={loading}>
+          {loading && visibleProjects.length > 0 && (
+            <caption className="sr-only">
+              <output>{labels.loading}</output>
+            </caption>
+          )}
+          <thead>
+            <tr className={tableRowClass}>
+              {[
+                labels.name,
+                ...(customerId === undefined ? [labels.owner] : []),
+                labels.assignee,
+                labels.website,
+                labels.status,
+                labels.actions,
+              ].map((label, index) => (
+                <th
+                  key={index}
+                  scope="col"
+                  className={
+                    index === (customerId === undefined ? 5 : 4)
+                      ? tableActionCellClass
+                      : tableHeaderClass
+                  }
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {retainRemovedItems(
+              visibleProjects,
+              suppliedProjects.filter(
+                (row) => customerId === undefined || row.ownerId === customerId,
+              ),
+              optimistic.pending,
+            ).map((project) => {
+              const owner = owners.get(project.ownerId);
+              const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
+              const website = safeProjectUrl(project.url);
+              return (
+                <tr
+                  key={project.id}
+                  hidden={!visibleProjects.some((row) => row.id === project.id)}
+                  className={tableRowClass}
+                >
+                  <td className={tableCellClass}>
+                    <ProjectLink
+                      href={getProjectHref(project)}
+                      className="font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {project.name}
+                    </ProjectLink>
+                  </td>
+                  {customerId === undefined && (
                     <td className={tableCellClass}>
-                      <ProjectLink
-                        href={getProjectHref(project)}
-                        className="font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {project.name}
-                      </ProjectLink>
-                    </td>
-                    {customerId === undefined && (
-                      <td className={tableCellClass}>
-                        {owner ? (
-                          getCustomerHref ? (
-                            <ProjectLink
-                              href={getCustomerHref(owner)}
-                              className="hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              {customerDisplayName(owner)}
-                            </ProjectLink>
-                          ) : (
-                            customerDisplayName(owner)
-                          )
+                      {owner ? (
+                        getCustomerHref ? (
+                          <ProjectLink
+                            href={getCustomerHref(owner)}
+                            className="hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {customerDisplayName(owner)}
+                          </ProjectLink>
                         ) : (
-                          labels.unavailableOwner
-                        )}
-                      </td>
-                    )}
-                    <td className={tableCellClass}>
-                      {assignee?.name ??
-                        (project.assigneeId ? labels.unavailableAssignee : labels.unassigned)}
-                    </td>
-                    <td className={tableCellClass}>
-                      {website ? (
-                        <ProjectLink
-                          href={website}
-                          target={website.startsWith("/") ? undefined : "_blank"}
-                          rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
-                          aria-label={labels.visit(project.name)}
-                          className={iconButtonClass}
-                        >
-                          <ExternalLinkIcon aria-hidden="true" />
-                        </ProjectLink>
+                          customerDisplayName(owner)
+                        )
                       ) : (
-                        <span className="text-muted-foreground">{labels.noWebsite}</span>
+                        labels.unavailableOwner
                       )}
                     </td>
-                    <td className={tableCellClass}>
-                      <ProjectStatusBadge status={project.status} labels={labels} />
-                    </td>
-                    <td className={tableActionCellClass}>
-                      <div className="flex items-start justify-end gap-1">
-                        <ProjectLink
-                          href={getProjectHref(project)}
-                          aria-label={labels.edit(project.name)}
-                          className={iconButtonClass}
-                        >
-                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                        </ProjectLink>
-                        {onDelete && (
-                          <DeleteProject
-                            project={project}
-                            onDelete={onDelete}
-                            labels={labels}
-                            returnFocus={root}
-                          />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!visibleProjects.length && (
-                <tr className={tableRowClass}>
-                  <td
-                    colSpan={customerId === undefined ? 6 : 5}
-                    className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
-                  >
-                    {loading ? labels.loading : labels.empty}
+                  )}
+                  <td className={tableCellClass}>
+                    {assignee?.name ??
+                      (project.assigneeId ? labels.unavailableAssignee : labels.unassigned)}
+                  </td>
+                  <td className={tableCellClass}>
+                    {website ? (
+                      <ProjectLink
+                        href={website}
+                        target={website.startsWith("/") ? undefined : "_blank"}
+                        rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
+                        aria-label={labels.visit(project.name)}
+                        className={iconButtonClass}
+                      >
+                        <ExternalLinkIcon aria-hidden="true" />
+                      </ProjectLink>
+                    ) : (
+                      <span className="text-muted-foreground">{labels.noWebsite}</span>
+                    )}
+                  </td>
+                  <td className={tableCellClass}>
+                    <ProjectStatusBadge status={project.status} labels={labels} />
+                  </td>
+                  <td className={tableActionCellClass}>
+                    <div className="flex items-start justify-end gap-1">
+                      <ProjectLink
+                        href={getProjectHref(project)}
+                        aria-label={labels.edit(project.name)}
+                        className={iconButtonClass}
+                      >
+                        <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                      </ProjectLink>
+                      {onDelete && (
+                        <DeleteProject
+                          project={project}
+                          disabled={loading || optimistic.pending || !!loadError}
+                          onDelete={(id) =>
+                            optimistic.run(
+                              (rows) => rows.filter((row) => row.id !== id),
+                              () => onDelete(id),
+                            )
+                          }
+                          labels={labels}
+                          returnFocus={root}
+                        />
+                      )}
+                    </div>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              );
+            })}
+            {((error && !loading) || visibleProjects.length === 0) && (
+              <tr className={tableRowClass}>
+                <td
+                  colSpan={customerId === undefined ? 6 : 5}
+                  className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
+                >
+                  {error && !loading ? (
+                    <p role="alert" className="text-destructive">
+                      {error}
+                    </p>
+                  ) : (
+                    <output>{loading ? labels.loading : labels.empty}</output>
+                  )}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -245,7 +269,7 @@ export function ProjectsPage({ className, ...props }: ProjectsPageProps) {
 }
 
 function ProjectDetailPageContent({
-  project,
+  project: suppliedProject,
   section = "details",
   backHref,
   sectionHrefs,
@@ -255,9 +279,10 @@ function ProjectDetailPageContent({
   className,
   labels: overrides,
   linkComponent: ProjectLink = Link,
-  ...directory
 }: ProjectDetailPageProps) {
   const labels = { ...projectLabels, ...overrides };
+  const optimistic = useOptimisticAction(suppliedProject, suppliedProject.id);
+  const project = optimistic.value;
   const website = safeProjectUrl(project.url);
   return (
     <div className={cn(pageClass, className)}>
@@ -309,12 +334,15 @@ function ProjectDetailPageContent({
       {section === "details" ? (
         <ProjectForm
           key={project.id}
-          {...directory}
           project={project}
           labels={labels}
-          onSubmit={onSave}
+          onSubmit={(values) =>
+            optimistic.run(
+              (row) => ({ ...row, ...values }),
+              () => onSave(values),
+            )
+          }
           onDelete={onDelete}
-          linkComponent={ProjectLink}
         />
       ) : (
         driveContent
@@ -329,7 +357,6 @@ export function ProjectNewPage({
   className,
   labels: overrides,
   linkComponent: ProjectLink = Link,
-  ...directory
 }: ProjectNewPageProps) {
   const labels = { ...projectLabels, ...overrides };
   return (
@@ -345,13 +372,7 @@ export function ProjectNewPage({
         <h1 className="font-semibold">{labels.newTitle}</h1>
         <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
       </header>
-      <ProjectForm
-        key={directory.defaultOwnerId ?? "new"}
-        {...directory}
-        labels={labels}
-        onSubmit={onCreate}
-        linkComponent={ProjectLink}
-      />
+      <ProjectForm labels={labels} onSubmit={onCreate} />
     </div>
   );
 }
