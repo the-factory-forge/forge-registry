@@ -6,7 +6,6 @@ import {
   RefreshCwIcon,
   SettingsIcon,
   Bold,
-  ChevronDownIcon,
   Code,
   Heading2,
   ImagePlus,
@@ -20,6 +19,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
 import { BlogMarkdown } from "@/components/plugins/blogs/public";
 import type {
@@ -518,25 +518,19 @@ function EditorForm({
         <label htmlFor={`${id}-${target}`} className="text-sm font-medium">
           {label}
         </label>
-        <span className="relative block">
-          <select
-            id={`${id}-${target}`}
-            className={cn(inputClass, "appearance-none pr-10")}
-            value={shared[target] ?? ""}
-            onChange={(e) => sharedField(target, e.target.value || null)}
-          >
-            <option value="">{labels.noImage}</option>
-            {assets.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDownIcon
-            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-        </span>
+        <NativeSelect
+          id={`${id}-${target}`}
+          className={inputClass}
+          value={shared[target] ?? ""}
+          onChange={(e) => sharedField(target, e.target.value || null)}
+        >
+          <option value="">{labels.noImage}</option>
+          {assets.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </NativeSelect>
         {shared[target] && (
           <BlogImage
             src={safeAssetUrl(assetUrl(shared[target]!))}
@@ -995,26 +989,20 @@ function CategoryForm({
       <fieldset disabled={disabled || action.pending} className="space-y-5">
         <label className="block space-y-2 text-sm">
           <span>{labels.parent}</span>
-          <span className="relative block">
-            <select
-              className={cn(inputClass, "appearance-none pr-10")}
-              value={parentId}
-              onChange={(e) => setParent(e.target.value)}
-            >
-              <option value="">{labels.noParent}</option>
-              {categories
-                .filter((c) => !c.parentId && c.id !== base?.id)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {Object.values(c.translations)[0]?.name}
-                  </option>
-                ))}
-            </select>
-            <ChevronDownIcon
-              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-          </span>
+          <NativeSelect
+            className={inputClass}
+            value={parentId}
+            onChange={(e) => setParent(e.target.value)}
+          >
+            <option value="">{labels.noParent}</option>
+            {categories
+              .filter((c) => !c.parentId && c.id !== base?.id)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {Object.values(c.translations)[0]?.name}
+                </option>
+              ))}
+          </NativeSelect>
         </label>
         {locales.map((locale) => (
           <fieldset

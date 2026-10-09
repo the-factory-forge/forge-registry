@@ -15,6 +15,7 @@ import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
+import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
@@ -63,6 +64,11 @@ const ReservationsRoute = ReservationsRouteImport.update({
 const CookieBannerRoute = CookieBannerRouteImport.update({
   id: '/cookie-banner',
   path: '/cookie-banner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NativeSelectRoute = NativeSelectRouteImport.update({
+  id: '/native-select',
+  path: '/native-select',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsletterRoute = NewsletterRouteImport.update({
@@ -190,6 +196,7 @@ const ReservationsLocaleAdminReservationsSplatRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
+  '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cookie-banner': typeof CookieBannerRoute
+  '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/_plugins': typeof PluginsRouteWithChildren
   '/_reservations': typeof ReservationsRouteWithChildren
   '/cookie-banner': typeof CookieBannerRoute
+  '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/cookie-banner'
+    | '/native-select'
     | '/newsletter'
     | '/table-search'
     | '/$locale/access-denied'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cookie-banner'
+    | '/native-select'
     | '/newsletter'
     | '/table-search'
     | '/$locale/access-denied'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/_plugins'
     | '/_reservations'
     | '/cookie-banner'
+    | '/native-select'
     | '/newsletter'
     | '/table-search'
     | '/$locale/access-denied'
@@ -368,6 +380,7 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRouteWithChildren
   ReservationsRoute: typeof ReservationsRouteWithChildren
   CookieBannerRoute: typeof CookieBannerRoute
+  NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
@@ -426,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/cookie-banner'
       fullPath: '/cookie-banner'
       preLoaderRoute: typeof CookieBannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/native-select': {
+      id: '/native-select'
+      path: '/native-select'
+      fullPath: '/native-select'
+      preLoaderRoute: typeof NativeSelectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/newsletter': {
@@ -654,6 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRouteWithChildren,
   ReservationsRoute: ReservationsRouteWithChildren,
   CookieBannerRoute: CookieBannerRoute,
+  NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,

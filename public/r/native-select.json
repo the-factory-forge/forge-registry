@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "native-select",
+  "title": "Native select",
+  "description": "Native select with a consistently inset chevron, reserved text spacing, and standard keyboard and form behavior.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/native-select.tsx",
+      "content": "import { ChevronDownIcon } from \"lucide-react\";\nimport type { ComponentProps } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\n\nexport type NativeSelectProps = ComponentProps<\"select\">;\n\nexport function NativeSelect({ className, multiple, size, ...props }: NativeSelectProps) {\n  const showArrow = !multiple && (!size || size <= 1);\n  return (\n    <span className=\"relative block w-full min-w-0\">\n      <select\n        {...props}\n        multiple={multiple}\n        size={size}\n        className={cn(\n          className,\n          \"peer w-full min-w-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed\",\n          showArrow && \"appearance-none pe-10 forced-colors:appearance-auto forced-colors:pe-3\",\n        )}\n      />\n      {showArrow && (\n        <ChevronDownIcon\n          aria-hidden=\"true\"\n          className=\"pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground peer-disabled:opacity-50 forced-colors:hidden\"\n        />\n      )}\n    </span>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/native-select.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

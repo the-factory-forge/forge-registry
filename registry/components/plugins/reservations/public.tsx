@@ -4,6 +4,7 @@ import { RefreshCwIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Temporal } from "temporal-polyfill";
 
+import { NativeSelect } from "@/components/native-select";
 import {
   getReservationLabels,
   type ReservationLabels,
@@ -187,7 +188,7 @@ export function BookingForm({
         <>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={labels.service}>
-              <select
+              <NativeSelect
                 className={fieldClass}
                 value={serviceId}
                 disabled={action.busy}
@@ -202,10 +203,10 @@ export function BookingForm({
                     {s.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={labels.resource}>
-              <select
+              <NativeSelect
                 className={fieldClass}
                 value={resourceId}
                 disabled={action.busy}
@@ -222,7 +223,7 @@ export function BookingForm({
                       {r.name}
                     </option>
                   ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
           {service.description && (
@@ -548,7 +549,7 @@ export function RescheduleDialog({
       >
         <ErrorNotice error={action.error ?? slots.error} labels={labels} />
         <Field label={labels.resource}>
-          <select
+          <NativeSelect
             value={resourceId}
             className={fieldClass}
             onChange={(e) => {
@@ -562,7 +563,7 @@ export function RescheduleDialog({
                 {r.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
         {reservation.policy.mode === "stay" ? (
           <StayDatePicker

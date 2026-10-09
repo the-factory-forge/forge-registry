@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Link } from "@/components/link";
 import { driveLabels } from "@/components/plugins/drive/labels";
+import { TrashBrowser } from "@/components/plugins/drive/trash";
 import type {
   DriveBrowserProps,
   DriveEntry,
@@ -45,6 +46,7 @@ import { useUploads } from "@/components/plugins/drive/use-uploads";
 import {
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
+  errorCode,
   safeDownloadUrl,
   scopeKey,
 } from "@/components/plugins/drive/utils";
@@ -276,7 +278,7 @@ function Browser({
   locale,
   className,
 }: DriveBrowserProps) {
-  const labels = { ...driveLabels, ...overrides };
+  const labels = useMemo(() => ({ ...driveLabels, ...overrides }), [overrides]);
   const [search, setSearch] = useState("");
   const [cursor, setCursor] = useState<string>();
   const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
@@ -285,6 +287,8 @@ function Browser({
     setCursor(undefined);
   };
   const [revision, setRevision] = useState(0);
+  const [trashView, setTrashView] = useState(false);
+  const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
   const request = useMemo(
     () => ({ client, scope, parentId, search, cursor, sort, revision }),
     [client, scope, parentId, search, cursor, sort, revision],
@@ -299,6 +303,10 @@ function Browser({
   const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
+  const currentClient = useRef(client);
+  useEffect(() => {
+    currentClient.current = client;
+  }, [client]);
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -327,30 +335,116 @@ function Browser({
   }, [request]);
   const capabilities = data?.space.capabilities;
   const actionsDisabled = loading || !!error;
+  function deleted(entry: DriveEntry) {
+    refresh();
+    setFeedback(undefined);
+    const trashed = trashEnabled && entry.state === "ready";
+    let pending = false;
+    const actionProps = { children: labels.undo, onClick: () => void undo() };
+    const id = toastManager.add({
+      title: trashed ? labels.trashed : labels.deleted,
+      type: "success",
+      actionProps: trashed && capabilities?.restore ? actionProps : undefined,
+    });
+    async function undo() {
+      if (pending) return;
+      pending = true;
+      toastManager.update(id, {
+        title: labels.restoring,
+        type: "loading",
+        timeout: 0,
+        description: undefined,
+        actionProps: { ...actionProps, disabled: true, "aria-busy": true },
+      });
+      try {
+        await currentClient.current.restoreEntry!({ scope, entryId: entry.id });
+        refresh();
+        toastManager.update(id, {
+          title: labels.restored,
+          type: "success",
+          description: undefined,
+          actionProps: undefined,
+          timeout: 5000,
+        });
+      } catch (reason) {
+        const conflict = errorCode(reason) === "RESTORE_CONFLICT";
+        toastManager.update(id, {
+          title: labels.trashed,
+          type: "error",
+          description: conflict ? labels.undoConflict : messageFor(reason, labels),
+          actionProps: conflict
+            ? {
+                children: labels.trash,
+                onClick: () => {
+                  toastManager.close(id);
+                  setTrashView(true);
+                },
+              }
+            : actionProps,
+        });
+      } finally {
+        pending = false;
+      }
+    }
+  }
   async function download(entry: DriveEntry) {
     if (actionsDisabled || downloadLock.current) return;
     downloadLock.current = true;
     setDownloading(true);
     setFeedback(undefined);
     try {
-      const result = await client.getDownload({ scope, entryId: entry.id });
-      const url = safeDownloadUrl(result.url);
-      if (!url) throw new DriveError("INVALID");
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = entry.name;
-      anchor.rel = "noopener";
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      toastManager.add({ title: labels.downloading, type: "info" });
-    } catch (reason) {
-      setFeedback({ message: messageFor(reason, labels), error: true });
+      await toastManager
+        .promise(
+          (async () => {
+            const result = await client.getDownload({ scope, entryId: entry.id });
+            const url = safeDownloadUrl(result.url);
+            if (!url) throw new DriveError("INVALID");
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = entry.name;
+            anchor.rel = "noopener";
+            document.body.append(anchor);
+            anchor.click();
+            anchor.remove();
+          })(),
+          {
+            loading: { title: labels.loading },
+            success: { title: labels.downloading },
+            error: (reason) => ({ title: messageFor(reason, labels), timeout: 0 }),
+          },
+        )
+        .catch(() => undefined);
     } finally {
       downloadLock.current = false;
       setDownloading(false);
     }
   }
+  if (trashView && trashEnabled)
+    return (
+      <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
+        <button
+          className={buttonClass}
+          onClick={() => {
+            setTrashView(false);
+            refresh();
+          }}
+        >
+          <ArrowLeftIcon aria-hidden="true" />
+          {labels.root}
+        </button>
+        <h2 className="text-xl font-semibold">
+          {data?.space.name ?? labels.title} · {labels.trash}
+        </h2>
+        <TrashBrowser
+          client={client}
+          scope={scope}
+          labels={labels}
+          locale={locale}
+          refreshKey={revision}
+        />
+        <DriveToasts labels={labels} queue={queue} />
+      </section>
+    );
   return (
     <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
       {backHref && (
@@ -399,7 +493,13 @@ function Browser({
           ))}
         </ol>
       </nav>
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
+        {trashEnabled && (
+          <button className={buttonClass} onClick={() => setTrashView(true)}>
+            <Trash2Icon aria-hidden="true" />
+            {labels.trash}
+          </button>
+        )}
         <TableSearch
           value={search}
           label={labels.searchFiles}
@@ -642,13 +742,10 @@ function Browser({
                           parentId={parentId}
                           entry={entry}
                           deleting
+                          trashing={trashEnabled && entry.state === "ready"}
                           disabled={actionsDisabled}
                           labels={labels}
-                          refresh={() => {
-                            refresh();
-                            setFeedback(undefined);
-                            toastManager.add({ title: labels.deleted, type: "success" });
-                          }}
+                          refresh={() => deleted(entry)}
                         >
                           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
                         </EntryDialog>

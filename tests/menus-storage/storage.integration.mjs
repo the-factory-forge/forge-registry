@@ -47,6 +47,7 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     db,
     s3,
     bucket,
+    trash: {},
     canDelete: menuImageDeleteGuard,
     resolveScope: async (actor, scope) => {
       if (actor !== "staff" || scope.type !== "menu-item") return null;
@@ -263,6 +264,10 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), image);
   const preview = await driveClient.previewDelete({ scope, entryId: entry.id });
   await rejected(
+    driveClient.trashEntry({ scope, entryId: entry.id, token: preview.token }),
+    "CONFLICT",
+  );
+  await rejected(
     driveClient.deleteEntry({ scope, entryId: entry.id, token: preview.token }),
     "CONFLICT",
   );
@@ -278,7 +283,15 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
   assert.equal(hidden.priceMinor, 1450);
   await rejected(menus.readPublicImage(item.id), "NOT_FOUND");
   await staff.save(item.id, hidden.version, input);
-  await driveClient.deleteEntry({ scope, entryId: entry.id, token: preview.token });
+  await driveClient.trashEntry({ scope, entryId: entry.id, token: preview.token });
+  const current = await staff.get(item.id);
+  await rejected(
+    staff.save(item.id, current.version, { ...input, imageEntryId: entry.id }),
+    "NOT_FOUND",
+  );
+  await rejected(drive.readTrustedFile(scope, entry.id, 1000000), "NOT_FOUND");
+  const purge = await driveClient.previewDelete({ scope, entryId: entry.id });
+  await driveClient.deleteEntry({ scope, entryId: entry.id, token: purge.token });
   await staff.remove(item.id);
   await rejected(staff.get(item.id), "NOT_FOUND");
 

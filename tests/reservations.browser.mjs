@@ -40,9 +40,9 @@ async function createBooking(page, name = "Robin Example") {
 
 test("homepage discovery, booking, calendar views, private rescheduling and cancellation", async (t) => {
   const page = await preview(t, "/");
-  await page.getByRole("link", { name: /Reservations Appointments and overnight stays/ }).waitFor();
+  await page.locator('main a[href="/en/reservations"]').waitFor();
   await page.getByRole("button", { name: "Plugin", exact: true }).click();
-  await page.getByRole("link", { name: /Reservations Appointments and overnight stays/ }).click();
+  await page.locator('main a[href="/en/reservations"]').click();
   await createBooking(page);
   await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
   await page

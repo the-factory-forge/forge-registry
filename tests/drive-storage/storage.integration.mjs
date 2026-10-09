@@ -36,7 +36,14 @@ const s3 = new S3Client({
   requestChecksumCalculation: "WHEN_REQUIRED",
   responseChecksumValidation: "WHEN_REQUIRED",
 });
-const writable = { upload: true, createFolder: true, rename: true, delete: true, download: true };
+const writable = {
+  upload: true,
+  createFolder: true,
+  rename: true,
+  delete: true,
+  download: true,
+  restore: true,
+};
 const a = { type: "project", id: "alpha" },
   b = { type: "customer", id: "alpha" };
 let allowed = true;
@@ -52,7 +59,14 @@ const options = {
           name: `${scope.type} ${scope.id}`,
           capabilities:
             user === "reader"
-              ? { ...writable, upload: false, createFolder: false, rename: false, delete: false }
+              ? {
+                  ...writable,
+                  upload: false,
+                  createFolder: false,
+                  rename: false,
+                  delete: false,
+                  restore: false,
+                }
               : writable,
         }
       : null,
@@ -112,6 +126,22 @@ test("private Drive persistence and storage recovery", async (t) => {
       entryId: page.items[0].id,
     });
     assert.equal(await (await fetch(url)).text(), "hello");
+    const recovery = createDriveStorage({ ...options, trash: {} });
+    const recovering = recovery.client("editor");
+    const scope = { type: "workspace", id: "trash-restart" };
+    const { items } = await recovering.listTrash({ scope });
+    assert.equal(items[0].name, "Persistent trash.txt");
+    await recovering.restoreEntry({ scope, entryId: items[0].id });
+    assert.equal(
+      await (
+        await fetch((await recovering.getDownload({ scope, entryId: items[0].id })).url)
+      ).text(),
+      "hello",
+    );
+    const pendingScope = { type: "workspace", id: "purge-restart" };
+    assert.equal((await recovering.listTrash({ scope: pendingScope })).items[0].state, "deleting");
+    for (let i = 0; i < 5; i++) await recovery.maintenance({ limit: 100 });
+    assert.equal((await recovering.listTrash({ scope: pendingScope })).items.length, 0);
     return;
   }
   await pool.unsafe("DROP TABLE IF EXISTS drive_upload, drive_entry, drive_space CASCADE");
@@ -525,6 +555,177 @@ test("private Drive persistence and storage recovery", async (t) => {
       assert.ok(result.operations <= 1);
       for (let i = 0; i < 10; i++) await storage.maintenance({ limit: 5 });
       assert.equal((await pool`select * from drive_entry where state <> 'ready'`).length, 0);
+    },
+  );
+  await t.test(
+    "initial schema supports guarded trash recovery and durable expiry cleanup",
+    async () => {
+      assert.equal(client.trashEntry, undefined);
+      for (const retentionDays of [0, 1.5, 366])
+        assert.throws(() => createDriveStorage({ ...options, trash: { retentionDays } }), {
+          code: "INVALID",
+        });
+      const recovery = createDriveStorage({ ...options, trash: {} });
+      const recovering = recovery.client("editor");
+      const scope = { type: "workspace", id: "trash" };
+      const page = (parentId = null) => recovering.listEntries({ scope, parentId });
+      const trash = async (entry) => {
+        const preview = await recovering.previewDelete({ scope, entryId: entry.id });
+        await recovering.trashEntry({ scope, entryId: entry.id, token: preview.token });
+      };
+      await recovering.createFolder({ scope, parentId: null, name: "Parent" });
+      const parent = (await page()).items[0];
+      await recovering.createFolder({ scope, parentId: parent.id, name: "Nested" });
+      const nested = (await page(parent.id)).items[0];
+      await upload("Keep bytes.txt", nested.id, scope);
+      const file = (await page(nested.id)).items[0];
+      const originalKey = (await recovering.getDownload({ scope, entryId: file.id })).url.split(
+        "?",
+      )[0];
+      const reservation = await reserve("In progress.txt", nested.id, scope);
+      const preview = await recovering.previewDelete({ scope, entryId: nested.id });
+      await rejected(
+        recovering.trashEntry({ scope, entryId: nested.id, token: preview.token }),
+        "CONFLICT",
+      );
+      await client.cancelUpload({ scope, uploadId: reservation.ticket.id });
+      await rejected(
+        recovering.trashEntry({ scope, entryId: nested.id, token: preview.token }),
+        "CONFLICT",
+      );
+      const guard = createDriveStorage({
+        ...options,
+        trash: {},
+        canDelete: async (_actor, _scope, ids) => !ids.includes(file.id),
+      }).client("editor");
+      const fresh = await recovering.previewDelete({ scope, entryId: nested.id });
+      await rejected(
+        guard.trashEntry({ scope, entryId: nested.id, token: fresh.token }),
+        "CONFLICT",
+      );
+      await rejected(
+        recovery.client("reader").trashEntry({ scope, entryId: nested.id, token: fresh.token }),
+        "FORBIDDEN",
+      );
+      await trash(nested);
+      await recovering.trashEntry({ scope, entryId: nested.id, token: fresh.token });
+      assert.equal((await page(parent.id)).items.length, 0);
+      assert.equal((await page()).items.length, 1);
+      await rejected(recovering.getDownload({ scope, entryId: file.id }), "NOT_FOUND");
+      await rejected(recovery.readTrustedFile(scope, file.id, 1024), "NOT_FOUND");
+      await rejected(recovering.previewDelete({ scope, entryId: file.id }), "NOT_FOUND");
+      await rejected(recovery.deleteSpace("editor", scope), "CONFLICT");
+      const item = (await recovering.listTrash({ scope })).items[0];
+      assert.equal(item.originalPath, "Parent");
+      assert.equal(item.originalParentId, parent.id);
+      assert.equal(Date.parse(item.expiresAt) - Date.parse(item.deletedAt), 30 * 86400000);
+      assert.equal((await recovering.listTrash({ scope: b })).items.length, 0);
+      await rejected(
+        recovery.client("reader").restoreEntry({ scope, entryId: nested.id }),
+        "FORBIDDEN",
+      );
+      await recovering.createFolder({ scope, parentId: parent.id, name: "Nested" });
+      await rejected(recovering.restoreEntry({ scope, entryId: nested.id }), "RESTORE_CONFLICT");
+      const noRename = createDriveStorage({
+        ...options,
+        trash: {},
+        resolveScope: async (actor, requested) => {
+          const space = await options.resolveScope(actor, requested);
+          return space && { ...space, capabilities: { ...space.capabilities, rename: false } };
+        },
+      }).client("editor");
+      await rejected(
+        noRename.restoreEntry({ scope, entryId: nested.id, name: "Renamed" }),
+        "FORBIDDEN",
+      );
+      await rejected(recovering.restoreEntry({ scope: b, entryId: nested.id }), "NOT_FOUND");
+      await rejected(
+        recovering.restoreEntry({ scope, entryId: nested.id, parentId: randomUUID() }),
+        "RESTORE_CONFLICT",
+      );
+      await rejected(
+        recovering.restoreEntry({ scope, entryId: nested.id, parentId: nested.id }),
+        "RESTORE_CONFLICT",
+      );
+      await recovering.restoreEntry({ scope, entryId: nested.id, name: "Recovered" });
+      assert.equal((await page(nested.id)).items[0].id, file.id);
+      const restoredUrl = (await recovering.getDownload({ scope, entryId: file.id })).url;
+      assert.equal(restoredUrl.split("?")[0], originalKey);
+      assert.equal(await (await fetch(restoredUrl)).text(), "hello");
+      await trash(file);
+      await trash(nested);
+      assert.equal((await recovering.listTrash({ scope })).items.length, 2);
+      await recovering.restoreEntry({ scope, entryId: nested.id });
+      assert.equal((await page(nested.id)).items.length, 0);
+      await remove(scope, parent); // Original folders can be removed without purging independent trash.
+      await rejected(recovering.restoreEntry({ scope, entryId: file.id }), "RESTORE_CONFLICT");
+      await recovering.restoreEntry({ scope, entryId: file.id, parentId: null });
+      await trash(file); // Root names can also be reused without overwriting on restoration.
+      await upload(file.name, null, scope);
+      await rejected(recovering.restoreEntry({ scope, entryId: file.id }), "RESTORE_CONFLICT");
+      const send = s3.send.bind(s3);
+      s3.send = async (command, ...rest) => {
+        if (command instanceof DeleteObjectCommand) throw new Error("purge offline");
+        return send(command, ...rest);
+      };
+      try {
+        const token = await recovering.previewDelete({ scope, entryId: file.id });
+        await rejected(
+          recovering.deleteEntry({ scope, entryId: file.id, token: token.token }),
+          "DELETE_PENDING",
+        );
+      } finally {
+        s3.send = send;
+      }
+      assert.equal((await recovering.listTrash({ scope })).items[0].state, "deleting");
+      await rejected(recovering.restoreEntry({ scope, entryId: file.id }), "NOT_FOUND");
+      assert.equal((await page()).items.length, 1);
+      for (let i = 0; i < 5; i++)
+        assert.ok((await recovery.maintenance({ limit: 1 })).operations <= 1);
+      assert.equal((await recovering.listTrash({ scope })).items.length, 0);
+      const active = (await page()).items[0];
+      await trash(active);
+      await rejected(recovery.assertSpaceEmpty("editor", scope), "CONFLICT");
+      await rejected(recovery.deleteSpace("editor", scope), "CONFLICT");
+      await pool`update drive_entry set expires_at=now()-interval '1 second' where trash_root_id=${active.id}`;
+      await rejected(recovering.restoreEntry({ scope, entryId: active.id }), "NOT_FOUND");
+      for (let i = 0; i < 5; i++)
+        assert.ok((await recovery.maintenance({ limit: 1 })).operations <= 1);
+      assert.equal((await recovering.listTrash({ scope })).items.length, 0);
+      await recovery.deleteSpace("editor", scope);
+      for (const [id, name] of [
+        ["trash-restart", "Persistent trash.txt"],
+        ["purge-restart", "Pending purge.txt"],
+      ]) {
+        const restartScope = { type: "workspace", id };
+        await upload(name, null, restartScope);
+        const entry = (await recovering.listEntries({ scope: restartScope, parentId: null }))
+          .items[0];
+        const token = await recovering.previewDelete({ scope: restartScope, entryId: entry.id });
+        await recovering.trashEntry({ scope: restartScope, entryId: entry.id, token: token.token });
+        if (id === "purge-restart") {
+          s3.send = async (command, ...rest) => {
+            if (command instanceof DeleteObjectCommand) throw new Error("purge offline");
+            return send(command, ...rest);
+          };
+          try {
+            const preview = await recovering.previewDelete({
+              scope: restartScope,
+              entryId: entry.id,
+            });
+            await rejected(
+              recovering.deleteEntry({
+                scope: restartScope,
+                entryId: entry.id,
+                token: preview.token,
+              }),
+              "DELETE_PENDING",
+            );
+          } finally {
+            s3.send = send;
+          }
+        }
+      }
     },
   );
   await upload("Persistent.txt", null, { type: "workspace", id: "restart" });

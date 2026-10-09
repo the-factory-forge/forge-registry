@@ -39,6 +39,105 @@ const file = (name, text = "hello") => ({
 });
 const row = (page, name) => page.getByRole("row").filter({ hasText: name });
 
+test("Drive confirmation stays available while its preview loads", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await row(page, "Design brief.txt").waitFor();
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
+      const trigger = row(page, "Design brief.txt").getByRole("button", {
+        name: "Delete",
+        exact: true,
+      });
+      await trigger.evaluate((button) => button.click());
+      const dialog = page.getByRole("dialog", {
+        name: "Move files and folders to trash",
+        exact: true,
+      });
+      const confirm = dialog.getByRole("button", { name: "Move to trash", exact: true });
+      assert.equal(
+        await confirm.count(),
+        1,
+        "Keep the action visible while preparing confirmation",
+      );
+      assert.equal(await confirm.isEnabled(), true);
+      const cancel = dialog.getByRole("button", { name: "Cancel", exact: true });
+      assert.equal(await cancel.isEnabled(), true);
+      await dialog.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+      const position = await confirm.boundingBox();
+      await page.screenshot({ path: `/tmp/forge-delete-preview-${width}-${colorScheme}.png` });
+      await page.clock.runFor(300);
+      await dialog.getByText(/including 1 file\(s\) and 0 folder\(s\)/).waitFor();
+      assert.deepEqual(
+        await confirm.boundingBox(),
+        position,
+        "Preview feedback must not move the button",
+      );
+      await cancel.click();
+      await page.clock.runFor(1000);
+      await dialog.waitFor({ state: "hidden" });
+      await trigger.evaluate((button) => button.click());
+      await dialog.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+      await confirm.evaluate((button) => {
+        button.click();
+        button.click();
+      });
+      assert.equal(await confirm.isDisabled(), true);
+      await dialog.getByRole("status").filter({ hasText: "Please wait" }).waitFor();
+      await page.clock.runFor(1000);
+      await dialog.waitFor({ state: "hidden" });
+      await row(page, "Design brief.txt").waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "Trash", exact: true }).click();
+      await page.clock.runFor(1000);
+      await row(page, "Design brief.txt").waitFor();
+      assert.equal(await row(page, "Design brief.txt").count(), 1);
+      await page.close();
+    }
+});
+
+test("Drive can cancel a loading preview and retry a failed confirmation", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal", { reducedMotion: "reduce" });
+  await row(page, "Design brief.txt").waitFor();
+  const now = new Date();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 1000));
+  await row(page, "Design brief.txt")
+    .getByRole("button", { name: "Delete", exact: true })
+    .evaluate((button) => button.click());
+  const dialog = page.getByRole("dialog", { name: "Move files and folders to trash", exact: true });
+  const confirm = dialog.getByRole("button", { name: "Move to trash", exact: true });
+  await dialog.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.clock.runFor(1000);
+  assert.equal(await row(page, "Design brief.txt").count(), 1);
+  await page.getByLabel("Simulate action failures").check();
+  await page.clock.runFor(1000);
+  await row(page, "Design brief.txt").getByRole("button", { name: "Delete", exact: true }).click();
+  await confirm.click();
+  await page.clock.runFor(1000);
+  await dialog.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal(await confirm.isEnabled(), true);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.clock.runFor(1000);
+  await page.getByLabel("Simulate action failures").uncheck();
+  await page.clock.runFor(1000);
+  await row(page, "Design brief.txt").getByRole("button", { name: "Delete", exact: true }).click();
+  await confirm.click();
+  await page.clock.runFor(1000);
+  await dialog.waitFor({ state: "hidden" });
+  await row(page, "Design brief.txt").waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await page.clock.runFor(1000);
+  await row(page, "Design brief.txt").waitFor();
+  assert.equal(await row(page, "Design brief.txt").count(), 1);
+});
+
 test("Drive keeps permitted actions visible while search results load", async (t) => {
   const page = await preview(t, "/en/drive/project/portal");
   await row(page, "Annual report.txt").waitFor();
@@ -216,15 +315,34 @@ test("upload toasts preserve layout and recovery, then dismiss completed feedbac
       await page.locator('input[type="file"]:enabled').waitFor({ state: "attached" });
       const top = await headerTop();
       const name = "W1405-2_participants_with_additional_customer_portal_notes.xlsx";
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
       await page.locator('input[type="file"]:enabled').setInputFiles(file(name));
       const toast = page.getByRole("dialog", { name: "Uploads", exact: true });
       const upload = toast.getByRole("listitem").filter({ hasText: name });
       await upload.getByRole("progressbar").waitFor();
+      assert.equal(await toast.getAttribute("data-type"), "loading");
+      assert.equal(await toast.getAttribute("aria-busy"), "true");
+      const spinner = toast.locator("svg").first();
+      assert.equal(
+        await spinner.evaluate((element) => getComputedStyle(element).animationName),
+        "none",
+      );
+      const iconBounds = await spinner.boundingBox();
+      const titleBounds = await toast.getByText("Uploads", { exact: true }).boundingBox();
+      assert.equal(iconBounds.y + iconBounds.height / 2, titleBounds.y + titleBounds.height / 2);
+      await toast.screenshot({
+        path: `/tmp/forge-drive-upload-loading-${width}-${colorScheme}.png`,
+      });
       assert.equal(await toast.getByRole("button", { name: "Close", exact: true }).count(), 0);
       await upload.getByRole("button", { name: "Cancel", exact: true }).focus();
       await page.keyboard.press("Escape");
       assert.equal(await toast.isVisible(), true);
+      await page.clock.resume();
       await upload.getByRole("button", { name: "Retry", exact: true }).waitFor();
+      assert.equal(await toast.getAttribute("data-type"), "error");
+      assert.equal(await toast.getAttribute("aria-busy"), "false");
       assert.equal(await headerTop(), top);
       assert.equal(
         await toast.evaluate((element) => getComputedStyle(element.parentElement).position),
@@ -247,6 +365,7 @@ test("upload toasts preserve layout and recovery, then dismiss completed feedbac
       });
       await upload.getByRole("button", { name: "Retry", exact: true }).click();
       await upload.getByText("Uploaded", { exact: true }).waitFor();
+      assert.equal(await toast.getAttribute("data-type"), "success");
       await row(page, name).waitFor();
       assert.equal(await headerTop(), top);
       assert.equal(
@@ -268,32 +387,51 @@ test("upload toasts preserve layout and recovery, then dismiss completed feedbac
     }
 });
 
-test("recursive deletion confirmation cancels, restores focus, and retries durable failures", async (t) => {
+test("trash confirmation preserves folders and permanent purge retries failures", async (t) => {
   const page = await preview(t, "/en/drive/project/website");
   await folder(page, "Documents");
   await page.getByRole("link", { name: "Documents", exact: true }).click();
-  await page
-    .getByRole("navigation", { name: "Folder navigation" })
-    .getByRole("link", { name: "Documents", exact: true })
-    .waitFor();
   await page.locator('input[type="file"]').setInputFiles(file("nested.txt"));
   await row(page, "nested.txt").waitFor();
   await page.getByRole("link", { name: "All files", exact: true }).click();
   const trigger = row(page, "Documents").getByRole("button", { name: "Delete", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Move files and folders to trash", exact: true });
   await dialog.getByText(/including 1 file\(s\) and 1 folder\(s\)/).waitFor();
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "hidden" });
   assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
-  await page.getByRole("button", { name: "Interrupt next deletion", exact: true }).click();
   await trigger.click();
-  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
-  await dialog.getByRole("alert").filter({ hasText: "Deletion is incomplete" }).waitFor();
-  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await dialog.getByRole("button", { name: "Move to trash", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
-  await page.getByText("This folder is empty.", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await row(page, "Documents").getByRole("button", { name: "Restore", exact: true }).click();
+  await row(page, "Documents").waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "All files", exact: true }).click();
+  await page.getByRole("link", { name: "Documents", exact: true }).click();
+  await row(page, "nested.txt").waitFor();
+  await page.getByRole("link", { name: "All files", exact: true }).click();
+  await row(page, "Documents").getByRole("button", { name: "Delete", exact: true }).click();
+  await dialog.getByRole("button", { name: "Move to trash", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await page.getByRole("button", { name: "Interrupt next deletion", exact: true }).click();
+  await row(page, "Documents").getByRole("button", { name: "Delete", exact: true }).click();
+  const purge = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+  await purge.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await purge.getByRole("alert").filter({ hasText: "Deletion is incomplete" }).waitFor();
+  await purge.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await row(page, "Documents").getByText("Deletion pending", { exact: true }).waitFor();
+  assert.equal(
+    await row(page, "Documents").getByRole("button", { name: "Restore", exact: true }).count(),
+    0,
+  );
+  await row(page, "Documents").getByRole("button", { name: "Delete", exact: true }).click();
+  await purge.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await purge.waitFor({ state: "hidden" });
+  await page.getByText(/Trash is empty/).waitFor();
 });
 
 test("Drive confirmations use dismissible toasts without moving the file table", async (t) => {
@@ -357,9 +495,62 @@ test("Drive confirmations use dismissible toasts without moving the file table",
       await row(page, "Renamed folder")
         .getByRole("button", { name: "Delete", exact: true })
         .click();
-      const deletion = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
-      await deletion.getByRole("button", { name: "Delete permanently", exact: true }).click();
-      const deleted = page.getByRole("dialog", { name: "Files and folders deleted.", exact: true });
+      const deletion = page.getByRole("dialog", {
+        name: "Move files and folders to trash",
+        exact: true,
+      });
+      await deletion.getByRole("button", { name: "Move to trash", exact: true }).click();
+      const deleted = page.getByRole("dialog", {
+        name: "Files and folders moved to trash.",
+        exact: true,
+      });
+      await deleted.waitFor();
+      const undo = deleted.getByRole("button", { name: "Undo", exact: true });
+      await undo.waitFor();
+      await deleted.screenshot({ path: `/tmp/forge-drive-undo-${width}-${colorScheme}.png` });
+      const toastBounds = await deleted.boundingBox();
+      assert.ok(toastBounds.x >= 0 && toastBounds.x + toastBounds.width <= width);
+      assert.equal(
+        await table.evaluate((element) => element.getBoundingClientRect().top + scrollY),
+        tableTop,
+      );
+      const undoInTrash = width === 390 && colorScheme === "dark";
+      if (undoInTrash) {
+        await page.getByRole("button", { name: "Trash", exact: true }).click();
+        await page.getByRole("table", { name: "Trash", exact: true }).waitFor();
+        await row(page, "Renamed folder").waitFor();
+      }
+      await undo.focus();
+      await page.keyboard.press("Enter");
+      const restoring = page.getByRole("dialog", { name: "Restoring…", exact: true });
+      await restoring.waitFor();
+      assert.equal(
+        await restoring.getByRole("button", { name: "Undo", exact: true }).isDisabled(),
+        true,
+      );
+      assert.equal(await restoring.getAttribute("data-type"), "loading");
+      const pendingToast = await restoring.elementHandle();
+      await page.keyboard.press("Enter");
+      const restored = page.getByRole("dialog", {
+        name: "Files and folders restored.",
+        exact: true,
+      });
+      await restored.waitFor();
+      assert.equal(
+        await restored.evaluate((element, pending) => element === pending, pendingToast),
+        true,
+      );
+      assert.equal(await restored.getAttribute("data-type"), "success");
+      if (undoInTrash) {
+        await row(page, "Renamed folder").waitFor({ state: "hidden" });
+        await page.getByRole("button", { name: "All files", exact: true }).click();
+      }
+      await row(page, "Renamed folder").waitFor();
+      await restored.getByRole("button", { name: "Close", exact: true }).click();
+      await row(page, "Renamed folder")
+        .getByRole("button", { name: "Delete", exact: true })
+        .click();
+      await deletion.getByRole("button", { name: "Move to trash", exact: true }).click();
       await deleted.waitFor();
       await deleted.getByRole("button", { name: "Close", exact: true }).click();
       await deleted.waitFor({ state: "hidden" });
@@ -377,6 +568,130 @@ test("Drive confirmations use dismissible toasts without moving the file table",
       );
       await page.close();
     }
+});
+
+void test("download promise toast updates in place through loading, success and error", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const reducedMotion = width === 1440 && colorScheme === "light" ? "no-preference" : "reduce";
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion,
+      });
+      const download = row(page, "Annual report.txt").getByRole("button", {
+        name: "Download",
+        exact: true,
+      });
+      await download.waitFor();
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
+      await download.click();
+      const loading = page.getByRole("dialog", { name: "Loading…", exact: true });
+      await loading.waitFor();
+      const pending = await loading.elementHandle();
+      assert.equal(await loading.getAttribute("data-type"), "loading");
+      assert.equal(await loading.getAttribute("aria-busy"), "true");
+      const animation = await loading
+        .locator("svg")
+        .first()
+        .evaluate((element) => getComputedStyle(element).animationName);
+      assert.equal(animation === "none", reducedMotion === "reduce");
+      assert.equal(await download.isDisabled(), true);
+      await loading.screenshot({
+        path: `/tmp/forge-drive-download-loading-${width}-${colorScheme}.png`,
+      });
+      const started = page.waitForEvent("download");
+      await page.clock.runFor(1000);
+      await started;
+      const success = page.getByRole("dialog", { name: "Download started.", exact: true });
+      await success.waitFor();
+      assert.equal(
+        await success.evaluate((element, previous) => element === previous, pending),
+        true,
+      );
+      assert.equal(await success.getAttribute("data-type"), "success");
+      assert.equal(await success.getAttribute("aria-busy"), "false");
+      await success.getByRole("button", { name: "Close", exact: true }).click();
+
+      await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).check();
+      await page.clock.runFor(1000);
+      await page.locator('[aria-busy="false"] table').waitFor();
+      await download.click();
+      await loading.waitFor();
+      const failed = await loading.elementHandle();
+      await page.clock.runFor(1000);
+      const error = page.getByRole("dialog", {
+        name: "Storage is unavailable. Please retry.",
+        exact: true,
+      });
+      await error.waitFor();
+      assert.equal(await error.evaluate((element, previous) => element === previous, failed), true);
+      assert.equal(await error.getAttribute("data-type"), "error");
+      assert.equal(await error.getAttribute("aria-busy"), "false");
+      assert.equal(await download.isEnabled(), true);
+      await page.clock.runFor(6000);
+      assert.equal(await error.isVisible(), true);
+      await error.getByRole("button", { name: "Close", exact: true }).click();
+      await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).uncheck();
+      await page.clock.runFor(1000);
+      await page.locator('[aria-busy="false"] table').waitFor();
+      const retried = page.waitForEvent("download");
+      await download.click();
+      await page.clock.runFor(1000);
+      await retried;
+      await success.waitFor();
+      await page.close();
+    }
+});
+
+test("trash Undo retries failures and offers Trash for restore conflicts", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  async function trashReport() {
+    await row(page, "Annual report.txt")
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: "Move files and folders to trash",
+      exact: true,
+    });
+    await dialog.getByRole("button", { name: "Move to trash", exact: true }).click();
+    const toast = page.getByRole("dialog", {
+      name: "Files and folders moved to trash.",
+      exact: true,
+    });
+    await toast.waitFor();
+    await toast.hover();
+    return toast;
+  }
+  const toast = await trashReport();
+  await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).check();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  await toast.getByRole("button", { name: "Undo", exact: true }).click();
+  await toast.getByText("Storage is unavailable. Please retry.", { exact: true }).waitFor();
+  assert.equal(await row(page, "Annual report.txt").count(), 0);
+  await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).uncheck();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  await toast.getByRole("button", { name: "Undo", exact: true }).click();
+  await row(page, "Annual report.txt").waitFor();
+  const restored = page.getByRole("dialog", { name: "Files and folders restored.", exact: true });
+  await restored.getByRole("button", { name: "Close", exact: true }).click();
+
+  const conflict = await trashReport();
+  await page.locator('input[type="file"]').setInputFiles(file("Annual report.txt", "replacement"));
+  await row(page, "Annual report.txt").waitFor();
+  await conflict.getByRole("button", { name: "Undo", exact: true }).click();
+  await conflict
+    .getByText("Open Trash to choose a folder or another name for this item.", { exact: true })
+    .waitFor();
+  assert.equal(await row(page, "Annual report.txt").count(), 1);
+  await conflict.getByRole("button", { name: "Trash", exact: true }).click();
+  await page.getByRole("table", { name: "Trash", exact: true }).waitFor();
+  await row(page, "Annual report.txt")
+    .getByRole("button", { name: "Restore", exact: true })
+    .click();
+  await page.getByRole("dialog", { name: "Restore files and folders", exact: true }).waitFor();
 });
 
 test("Drive loading preserves table headers, guidance and disabled actions", async (t) => {
@@ -729,4 +1044,80 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
     await row(page, "Annual report.txt").getByRole("cell").nth(3).innerText(),
     "Acme Studio",
   );
+});
+
+test("trash conflicts offer name and nested destination recovery in both themes and widths", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+      });
+      await row(page, "Annual report.txt").waitFor();
+      await row(page, "Annual report.txt")
+        .getByRole("button", { name: "Delete", exact: true })
+        .click();
+      const trash = page.getByRole("dialog", {
+        name: "Move files and folders to trash",
+        exact: true,
+      });
+      await trash.getByRole("button", { name: "Move to trash", exact: true }).click();
+      await trash.waitFor({ state: "hidden" });
+      await folder(page, "Destination");
+      await page.getByRole("link", { name: "Destination", exact: true }).click();
+      await folder(page, "Nested");
+      await page.getByRole("link", { name: "All files", exact: true }).click();
+      await page
+        .locator('input[type="file"]')
+        .setInputFiles(file("Annual report.txt", "new bytes"));
+      await row(page, "Annual report.txt").waitFor();
+      await page.getByRole("button", { name: "Trash", exact: true }).click();
+      assert.deepEqual(
+        await page
+          .getByRole("table", { name: "Trash", exact: true })
+          .getByRole("columnheader")
+          .allTextContents(),
+        ["Name", "Original location", "Deleted", "Expires", "Actions"],
+      );
+      await row(page, "Annual report.txt").waitFor();
+      await page.locator('[aria-busy="false"] table').waitFor();
+      await page.screenshot({
+        path: `/tmp/forge-trash-${width}-${colorScheme}.png`,
+        fullPage: true,
+      });
+      await row(page, "Annual report.txt")
+        .getByRole("button", { name: "Restore", exact: true })
+        .click();
+      const restore = page.getByRole("dialog", { name: "Restore files and folders", exact: true });
+      await restore.getByRole("alert").filter({ hasText: "original folder" }).waitFor();
+      await restore
+        .getByRole("textbox", { name: "Name", exact: true })
+        .fill("Recovered report.txt");
+      const picker = restore.getByRole("combobox", { name: "Destination folder", exact: true });
+      const restoreButton = restore.getByRole("button", { name: "Restore", exact: true });
+      await restore.locator("select:enabled").waitFor({ state: "attached" });
+      const beforeLoading = await restoreButton.boundingBox();
+      await picker.selectOption({ label: "Destination" });
+      const duringLoading = await restoreButton.boundingBox();
+      assert.ok(
+        Math.abs(beforeLoading.y - duringLoading.y) <= 1,
+        "Folder loading must keep the restore action in place",
+      );
+      await picker.selectOption({ label: "Nested" });
+      await restore.locator("select:enabled").waitFor({ state: "attached" });
+      await page.screenshot({ path: `/tmp/forge-trash-restore-${width}-${colorScheme}.png` });
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await restore.getByRole("button", { name: "Restore", exact: true }).click();
+      await restore.waitFor({ state: "hidden" });
+      await row(page, "Annual report.txt").waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "All files", exact: true }).click();
+      await row(page, "Annual report.txt").waitFor();
+      await page.getByRole("link", { name: "Destination", exact: true }).click();
+      await page.getByRole("link", { name: "Nested", exact: true }).click();
+      await row(page, "Recovered report.txt").waitFor();
+      await page.close();
+    }
 });

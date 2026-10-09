@@ -3,6 +3,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { PlusIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   createEmployeeSchema,
@@ -127,7 +128,7 @@ export function EmployeeCreateDialog({
             </div>
             <div className="grid gap-2">
               <label htmlFor={`${id}-role`}>{labels.role}</label>
-              <select
+              <NativeSelect
                 id={`${id}-role`}
                 name="role"
                 defaultValue="user"
@@ -136,7 +137,7 @@ export function EmployeeCreateDialog({
               >
                 <option value="user">{labels.roleUser}</option>
                 <option value="admin">{labels.roleAdmin}</option>
-              </select>
+              </NativeSelect>
             </div>
             {failed && (
               <p role="alert" className="text-destructive">

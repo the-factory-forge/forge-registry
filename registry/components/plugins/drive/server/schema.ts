@@ -9,6 +9,7 @@ import {
   foreignKey,
   check,
   index,
+  uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
 export const driveSpaces = pgTable(
@@ -35,19 +36,35 @@ export const driveEntries = pgTable(
     storageId: uuid("storage_id"),
     state: text("state").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    trashRootId: uuid("trash_root_id"),
+    originalParentId: uuid("original_parent_id"),
+    originalPath: text("original_path"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
   },
   (t) => [
     unique("drive_entry_space_id").on(t.spaceId, t.id),
-    unique("drive_entry_name").on(t.spaceId, t.parentId, t.name).nullsNotDistinct(),
+    uniqueIndex("drive_entry_name")
+      .on(t.spaceId, t.parentId, t.name)
+      .where(sql`${t.trashRootId} is null and ${t.parentId} is not null`),
+    uniqueIndex("drive_entry_root_name")
+      .on(t.spaceId, t.name)
+      .where(sql`${t.trashRootId} is null and ${t.parentId} is null`),
     foreignKey({
       name: "drive_entry_parent",
       columns: [t.spaceId, t.parentId],
       foreignColumns: [t.spaceId, t.id],
     }),
     check("drive_entry_kind", sql`${t.kind} in ('file', 'folder')`),
-    check("drive_entry_state", sql`${t.state} in ('uploading', 'ready', 'deleting')`),
+    check(
+      "drive_entry_state",
+      sql`${t.state} in ('uploading', 'ready', 'deleting', 'trashed', 'purging')`,
+    ),
     check("drive_entry_size", sql`${t.size} >= 0`),
     index("drive_entry_cleanup").on(t.state),
+    index("drive_entry_trash_expiry")
+      .on(t.expiresAt)
+      .where(sql`${t.state} = 'trashed'`),
   ],
 );
 

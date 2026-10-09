@@ -3,6 +3,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 
 import { Link } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import {
   cardClass,
   Feedback,
@@ -137,7 +138,7 @@ export function ProjectForm({
             <label htmlFor={`${id}-status`} className="block text-sm font-semibold">
               {labels.status}
             </label>
-            <select
+            <NativeSelect
               {...fieldProps("status")}
               value={values.status}
               onChange={(event) => {
@@ -150,7 +151,7 @@ export function ProjectForm({
                   {labels[status]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {error("status")}
           </div>
           <div className="space-y-2 md:col-span-2">

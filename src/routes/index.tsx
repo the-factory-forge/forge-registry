@@ -28,6 +28,14 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/native-select",
+      category: "Component",
+      title: "Native select",
+      description:
+        "Consistent dropdown arrow spacing with native keyboard controls and form behavior.",
+      keywords: ["select", "dropdown", "arrow", "form", "control"],
+    },
+    {
       href: "/en/reservations",
       category: "Plugin",
       title: "Reservations",
@@ -185,8 +193,8 @@ const examples = (
       category: "Plugin",
       title: "Drive",
       icon: pluginIcons.drive,
-      description: "Private file spaces for customers, projects, or any host record.",
-      tags: ["File browser", "Folders", "Uploads", "Downloads"],
+      description: "Private file spaces with uploads, trash and restoration for any host record.",
+      tags: ["File browser", "Folders", "Uploads", "Trash", "Restoration"],
       keywords: ["drive page", "drive browser", "file spaces", "folders", "files", "uploads"],
     },
     {

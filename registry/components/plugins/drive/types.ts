@@ -14,6 +14,8 @@ export interface DriveCapabilities {
   rename: boolean;
   delete: boolean;
   download: boolean;
+  /** Recovery is denied unless the host explicitly grants it. */
+  restore?: boolean;
 }
 export interface DriveSpace {
   scope: DriveScope;
@@ -36,6 +38,16 @@ export interface DriveEntry {
   contentType: string;
   updatedAt: string;
   state: "ready" | "deleting";
+}
+export interface DriveTrashEntry extends Omit<DriveEntry, "state"> {
+  state: "trashed" | "deleting";
+  originalParentId: string | null;
+  originalPath: string;
+  deletedAt: string;
+  expiresAt: string;
+}
+export interface DriveTrashResult extends DrivePageResult<DriveTrashEntry> {
+  space: DriveSpace;
 }
 export interface DrivePageResult<T> {
   items: T[];
@@ -86,6 +98,15 @@ export interface DriveClient {
   rename(input: { scope: DriveScope; entryId: string; name: string }): Promise<void>;
   previewDelete(input: { scope: DriveScope; entryId: string }): Promise<DriveDeletePreview>;
   deleteEntry(input: { scope: DriveScope; entryId: string; token: string }): Promise<void>;
+  listTrash?(input: DriveQuery & { scope: DriveScope }): Promise<DriveTrashResult>;
+  trashEntry?(input: { scope: DriveScope; entryId: string; token: string }): Promise<void>;
+  restoreEntry?(input: {
+    scope: DriveScope;
+    entryId: string;
+    /** Omit to restore to the original folder; null selects the space root. */
+    parentId?: string | null;
+    name?: string;
+  }): Promise<void>;
   prepareUpload(input: DriveUploadInput): Promise<DriveUploadTicket>;
   completeUpload(input: { scope: DriveScope; uploadId: string }): Promise<void>;
   cancelUpload(input: { scope: DriveScope; uploadId: string }): Promise<void>;

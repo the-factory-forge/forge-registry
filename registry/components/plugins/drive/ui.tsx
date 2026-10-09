@@ -8,8 +8,9 @@ import {
   RefreshCwIcon,
   ArrowUpIcon,
   CircleCheckIcon,
+  CircleAlertIcon,
+  LoaderCircleIcon,
   DownloadIcon,
-  UploadIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -163,6 +164,9 @@ export function DriveToasts({
   const { toasts, add, close } = Toast.useToastManager<{ uploads: typeof queue.uploads }>();
   const { uploads, dismiss } = queue;
   const finished = uploads.every((upload) => ["done", "cancelled"].includes(upload.state));
+  const loading = uploads.some((upload) =>
+    ["queued", "uploading", "finishing", "cancelling"].includes(upload.state),
+  );
   useEffect(() => {
     if (!uploads.length) {
       close("drive-uploads");
@@ -170,7 +174,7 @@ export function DriveToasts({
     }
     add({
       id: "drive-uploads",
-      type: "uploads",
+      type: loading ? "loading" : finished ? "success" : "error",
       title: labels.uploads,
       data: { uploads },
       timeout: finished ? 5000 : 0,
@@ -178,7 +182,7 @@ export function DriveToasts({
         for (const upload of uploads) dismiss(upload.id);
       },
     });
-  }, [uploads, finished, labels.uploads, dismiss, add, close]);
+  }, [uploads, finished, loading, labels.uploads, dismiss, add, close]);
   return (
     <Toast.Portal>
       <Toast.Viewport
@@ -189,80 +193,90 @@ export function DriveToasts({
           <Toast.Root
             key={toast.id}
             toast={toast}
-            swipeDirection={toast.type === "uploads" && !finished ? [] : undefined}
+            aria-busy={toast.type === "loading"}
+            swipeDirection={toast.data?.uploads && !finished ? [] : undefined}
             onKeyDownCapture={(event) => {
-              if (toast.type === "uploads" && !finished && event.key === "Escape")
+              if (toast.data?.uploads && !finished && event.key === "Escape")
                 event.stopPropagation();
             }}
-            className="flex items-start gap-3 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring data-ending:opacity-0 data-limited:hidden motion-safe:transition-opacity dark:border dark:border-border dark:shadow-none"
+            className="flex flex-col gap-3 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring data-ending:opacity-0 data-limited:hidden motion-safe:transition-opacity dark:border dark:border-border dark:shadow-none"
           >
-            {toast.type === "uploads" ? (
-              <UploadIcon
-                className="mt-1 size-5 shrink-0 text-status-info-foreground"
-                aria-hidden="true"
+            <div className="flex items-center gap-3">
+              {toast.type === "loading" ? (
+                <LoaderCircleIcon
+                  className="size-5 shrink-0 text-muted-foreground motion-safe:animate-spin"
+                  aria-hidden="true"
+                />
+              ) : toast.type === "success" ? (
+                <CircleCheckIcon
+                  className="size-5 shrink-0 text-status-success-foreground"
+                  aria-hidden="true"
+                />
+              ) : toast.type === "error" ? (
+                <CircleAlertIcon className="size-5 shrink-0 text-destructive" aria-hidden="true" />
+              ) : (
+                <DownloadIcon
+                  className="size-5 shrink-0 text-status-info-foreground"
+                  aria-hidden="true"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <Toast.Title className="text-sm break-words" />
+                <Toast.Description className="mt-1 text-sm break-words text-muted-foreground" />
+              </div>
+              <Toast.Action
+                className={cn(outlineButtonClass, "shrink-0")}
+                disabled={toast.actionProps?.disabled}
               />
-            ) : toast.type === "success" ? (
-              <CircleCheckIcon
-                className="size-5 shrink-0 text-status-success-foreground"
-                aria-hidden="true"
-              />
-            ) : (
-              <DownloadIcon
-                className="size-5 shrink-0 text-status-info-foreground"
-                aria-hidden="true"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <Toast.Title className="text-sm break-words" />
-              {toast.data?.uploads && (
-                <ul className="mt-3 max-h-[50dvh] space-y-4 overflow-y-auto">
-                  {toast.data.uploads.map((upload) => (
-                    <li key={upload.id} className="space-y-2">
-                      <span className="block text-sm break-all">{upload.file.name}</span>
-                      <progress
-                        className="h-2 w-full accent-primary"
-                        max={100}
-                        value={upload.progress}
-                        aria-label={labels.progress(upload.file.name)}
-                      />
-                      <DriveFeedback
-                        message={labels[upload.state]}
-                        error={upload.state === "failed" || upload.state === "cancelFailed"}
-                      />
-                      {upload.error !== undefined && (
-                        <DriveFeedback message={messageFor(upload.error, labels)} error />
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        {["failed", "cancelFailed"].includes(upload.state) && (
-                          <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
-                            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                            {labels.retry}
-                          </button>
-                        )}
-                        {["queued", "uploading", "failed"].includes(upload.state) && (
-                          <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
-                            {labels.cancel}
-                          </button>
-                        )}
-                        {["done", "cancelled"].includes(upload.state) && (
-                          <button className={buttonClass} onClick={() => dismiss(upload.id)}>
-                            {labels.dismiss}
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              {(!toast.data?.uploads || finished) && (
+                <Toast.Close
+                  aria-label={labels.close}
+                  aria-hidden={false}
+                  className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+                >
+                  <XIcon aria-hidden="true" />
+                </Toast.Close>
               )}
             </div>
-            {(toast.type !== "uploads" || finished) && (
-              <Toast.Close
-                aria-label={labels.close}
-                aria-hidden={false}
-                className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
-              >
-                <XIcon aria-hidden="true" />
-              </Toast.Close>
+            {toast.data?.uploads && (
+              <ul className="ms-8 max-h-[50dvh] space-y-4 overflow-y-auto">
+                {toast.data.uploads.map((upload) => (
+                  <li key={upload.id} className="space-y-2">
+                    <span className="block text-sm break-all">{upload.file.name}</span>
+                    <progress
+                      className="h-2 w-full accent-primary"
+                      max={100}
+                      value={upload.progress}
+                      aria-label={labels.progress(upload.file.name)}
+                    />
+                    <DriveFeedback
+                      message={labels[upload.state]}
+                      error={upload.state === "failed" || upload.state === "cancelFailed"}
+                    />
+                    {upload.error !== undefined && (
+                      <DriveFeedback message={messageFor(upload.error, labels)} error />
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {["failed", "cancelFailed"].includes(upload.state) && (
+                        <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
+                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                          {labels.retry}
+                        </button>
+                      )}
+                      {["queued", "uploading", "failed"].includes(upload.state) && (
+                        <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
+                          {labels.cancel}
+                        </button>
+                      )}
+                      {["done", "cancelled"].includes(upload.state) && (
+                        <button className={buttonClass} onClick={() => dismiss(upload.id)}>
+                          {labels.dismiss}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </Toast.Root>
         ))}
@@ -277,6 +291,7 @@ export function EntryDialog({
   parentId,
   entry,
   deleting = false,
+  trashing = false,
   disabled = false,
   labels,
   refresh,
@@ -287,6 +302,7 @@ export function EntryDialog({
   parentId: string | null;
   entry?: DriveEntry;
   deleting?: boolean;
+  trashing?: boolean;
   disabled?: boolean;
   labels: DriveLabels;
   refresh: () => void;
@@ -295,41 +311,65 @@ export function EntryDialog({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(entry?.name ?? "");
   const [pending, setPending] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [preview, setPreview] = useState<DriveDeletePreview>();
+  const previewRequest = useRef<Promise<DriveDeletePreview> | undefined>(undefined);
   const lock = useRef(false);
   const fieldId = `factory-drive-field-${useId()}`;
-  const title = deleting ? labels.deleteTitle : entry ? labels.rename : labels.newFolder;
-  async function loadPreview() {
-    if (disabled || !entry || lock.current) return;
-    lock.current = true;
-    setPending(true);
+  const title = deleting
+    ? trashing
+      ? labels.trashTitle
+      : labels.deleteTitle
+    : entry
+      ? labels.rename
+      : labels.newFolder;
+  function loadPreview() {
+    if (disabled || !entry) return;
+    setPreviewLoading(true);
     setError(undefined);
     setPreview(undefined);
-    try {
-      setPreview(await client.previewDelete({ scope, entryId: entry.id }));
-    } catch (reason) {
-      setError(messageFor(reason, labels));
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
+    const request = Promise.resolve().then(() =>
+      client.previewDelete({ scope, entryId: entry.id }),
+    );
+    previewRequest.current = request;
+    void request.then(
+      (result) => {
+        if (previewRequest.current !== request) return;
+        setPreview(result);
+        setPreviewLoading(false);
+      },
+      (reason) => {
+        if (previewRequest.current !== request) return;
+        previewRequest.current = undefined;
+        setError(messageFor(reason, labels));
+        setPreviewLoading(false);
+      },
+    );
+    return request;
   }
   async function submit() {
-    if (disabled || lock.current || (deleting && !preview)) return;
+    if (disabled || lock.current) return;
     lock.current = true;
     setPending(true);
     setError(undefined);
     try {
-      if (deleting && entry && preview)
-        await client.deleteEntry({ scope, entryId: entry.id, token: preview.token });
-      else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
+      if (deleting && entry) {
+        const confirmation = preview ?? (await (previewRequest.current ?? loadPreview()));
+        if (!confirmation) return;
+        if (trashing)
+          await client.trashEntry!({ scope, entryId: entry.id, token: confirmation.token });
+        else await client.deleteEntry({ scope, entryId: entry.id, token: confirmation.token });
+      } else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
       else await client.createFolder({ scope, parentId, name: validName(name) });
       setOpen(false);
       refresh();
     } catch (reason) {
       setError(messageFor(reason, labels));
-      if (deleting && errorCode(reason) === "CONFLICT") setPreview(undefined);
+      if (deleting && errorCode(reason) === "CONFLICT") {
+        setPreview(undefined);
+        previewRequest.current = undefined;
+      }
     } finally {
       lock.current = false;
       setPending(false);
@@ -345,6 +385,9 @@ export function EntryDialog({
           setName(entry?.name ?? "");
           setError(undefined);
           if (deleting) void loadPreview();
+        } else {
+          previewRequest.current = undefined;
+          setPreviewLoading(false);
         }
       }}
     >
@@ -369,11 +412,19 @@ export function EntryDialog({
           )}
         >
           <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="text-sm text-muted-foreground">
+          <Dialog.Description
+            className={cn("text-sm text-muted-foreground", deleting && "min-h-20")}
+          >
             {deleting
               ? preview && entry
-                ? labels.deleteDescription(entry.name, preview.files, preview.folders)
-                : labels.loading
+                ? (trashing ? labels.trashDescription : labels.deleteDescription)(
+                    entry.name,
+                    preview.files,
+                    preview.folders,
+                  )
+                : entry
+                  ? (trashing ? labels.trashConfirmation : labels.deleteConfirmation)(entry.name)
+                  : labels.loading
               : labels.nameHint}
           </Dialog.Description>
           <form
@@ -399,40 +450,42 @@ export function EntryDialog({
                 />
               </div>
             )}
-            <DriveFeedback message={error} error />
+            <div className={deleting ? "min-h-5" : undefined}>
+              <DriveFeedback
+                message={
+                  error ??
+                  (deleting && (pending || previewLoading)
+                    ? pending
+                      ? labels.pending
+                      : labels.loading
+                    : undefined)
+                }
+                error={Boolean(error)}
+              />
+            </div>
             <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
-              {deleting && !preview ? (
-                <button
-                  type="button"
-                  className={primaryClass}
-                  disabled={pending || disabled}
-                  onClick={() => void loadPreview()}
-                >
-                  <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                  {pending ? labels.pending : labels.retry}
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className={cn(
-                    primaryClass,
-                    deleting &&
-                      "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                  )}
-                  disabled={pending || disabled}
-                >
-                  {pending
-                    ? labels.pending
-                    : deleting
-                      ? labels.confirmDelete
-                      : entry
-                        ? labels.save
-                        : labels.create}
-                </button>
-              )}
+              <button
+                type="submit"
+                className={cn(
+                  primaryClass,
+                  deleting &&
+                    "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+                )}
+                disabled={pending || disabled}
+              >
+                {pending && !deleting
+                  ? labels.pending
+                  : deleting
+                    ? trashing
+                      ? labels.moveToTrash
+                      : labels.confirmDelete
+                    : entry
+                      ? labels.save
+                      : labels.create}
+              </button>
             </div>
           </form>
         </Dialog.Popup>

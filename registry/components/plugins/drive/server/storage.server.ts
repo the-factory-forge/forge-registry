@@ -23,6 +23,7 @@ import type {
   DriveEntry,
   DriveScope,
   DriveSpace,
+  DriveTrashEntry,
   DriveUploadInput,
 } from "@/components/plugins/drive/types";
 import {
@@ -44,10 +45,15 @@ type Entry = {
   name: string;
   size: number | string;
   content_type: string;
-  state: "uploading" | "ready" | "deleting";
+  state: "uploading" | "ready" | "deleting" | "trashed" | "purging";
   storage_id: string | null;
   updated_at: Date | string;
   depth?: number;
+  trash_root_id?: string | null;
+  original_parent_id?: string | null;
+  original_path?: string;
+  deleted_at?: Date | string;
+  expires_at?: Date | string;
 };
 type Upload = {
   id: string;
@@ -99,13 +105,17 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
   const { db, s3, bucket } = options;
   const prefix = options.keyPrefix ?? "drive/";
   const maxFileBytes = options.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
+  const retentionDays = options.trash?.retentionDays ?? 30;
   if (
     !bucket ||
     !/^[a-zA-Z0-9_/-]+\/$/.test(prefix) ||
     prefix.includes("..") ||
     !Number.isSafeInteger(maxFileBytes) ||
     maxFileBytes < 1 ||
-    maxFileBytes > 5_000_000_000
+    maxFileBytes > 5_000_000_000 ||
+    !Number.isInteger(retentionDays) ||
+    retentionDays < 1 ||
+    retentionDays > 365
   )
     throw new DriveError("INVALID");
   const key = (spaceId: string, storageId: string, staging = false) =>
@@ -218,7 +228,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       if (!spaceId) return { remaining: 0, failures: 0, processed: 0 };
       let failures = 0;
       const rows = await tx.execute<Entry>(
-        sql`select e.* from drive_entry e where e.space_id=${spaceId} and e.state='deleting' and not exists(select 1 from drive_entry child where child.space_id=e.space_id and child.parent_id=e.id) order by e.id limit ${limit}`,
+        sql`select e.* from drive_entry e where e.space_id=${spaceId} and e.state in ('deleting','purging') and not exists(select 1 from drive_entry child where child.space_id=e.space_id and child.parent_id=e.id) order by e.id limit ${limit}`,
       );
       for (const row of rows) {
         try {
@@ -232,7 +242,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         }
       }
       const [count] = await tx.execute<{ count: string }>(
-        sql`select count(*)::text as count from drive_entry where space_id=${spaceId} and state='deleting'`,
+        sql`select count(*)::text as count from drive_entry where space_id=${spaceId} and state in ('deleting','purging')`,
       );
       return { remaining: Number(count.count), failures, processed: rows.length };
     });
@@ -248,6 +258,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
 
   function client(context: Context): DriveClient {
     return {
+      ...(options.trash ? trashClient(context) : {}),
       async listSpaces(query) {
         const page = await options.listScopes(context, {
           search: (query.search ?? "").slice(0, 255),
@@ -284,7 +295,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             name,
           }));
           const rows = await tx.execute<Entry>(
-            sql`select * from drive_entry where space_id=${spaceId ?? null} and parent_id is not distinct from ${parentId}::uuid and state <> 'uploading' and strpos(lower(name), lower(${search.slice(0, 255)})) > 0 order by kind desc, ${column} ${direction} nulls last, name, id limit ${pageSize + 1} offset ${offset}`,
+            sql`select * from drive_entry where space_id=${spaceId ?? null} and parent_id is not distinct from ${parentId}::uuid and state in ('ready','deleting') and strpos(lower(name), lower(${search.slice(0, 255)})) > 0 order by kind desc, ${column} ${direction} nulls last, name, id limit ${pageSize + 1} offset ${offset}`,
           );
           return {
             space,
@@ -320,7 +331,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       async previewDelete({ scope, entryId }) {
         await access(context, scope, "delete");
         return authorized(context, scope, false, "delete", async (tx, spaceId) => {
-          await entry(tx, spaceId, entryId);
+          const row = await entry(tx, spaceId, entryId);
+          if (row.trash_root_id && row.trash_root_id !== entryId) throw new DriveError("NOT_FOUND");
           return preview(await subtree(tx, spaceId!, entryId));
         });
       },
@@ -332,7 +344,9 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           const rows = await subtree(tx, spaceId, entryId);
           if (!rows.length) return; // Repeating a confirmed deletion is harmless.
           const root = rows.find((row) => row.id === entryId)!;
-          if (root.state !== "deleting" && preview(rows).token !== token)
+          if (root.trash_root_id && root.trash_root_id !== entryId)
+            throw new DriveError("NOT_FOUND");
+          if (!["deleting", "purging"].includes(root.state) && preview(rows).token !== token)
             throw new DriveError("CONFLICT");
           if (
             options.canDelete &&
@@ -345,7 +359,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           )
             throw new DriveError("CONFLICT");
           await tx.execute(
-            sql`update drive_entry set state='deleting',updated_at=now() where space_id=${spaceId} and id in (${sql.join(
+            sql`update drive_entry set state=${root.trash_root_id ? "purging" : "deleting"},updated_at=now() where space_id=${spaceId} and id in (${sql.join(
               rows.map((row) => sql`${row.id}::uuid`),
               sql`,`,
             )})`,
@@ -517,6 +531,101 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     };
   }
 
+  function trashClient(
+    context: Context,
+  ): Pick<DriveClient, "listTrash" | "trashEntry" | "restoreEntry"> {
+    return {
+      async listTrash({ scope, search = "", cursor }) {
+        const space = await access(context, scope);
+        const offset = offsetFor(cursor);
+        return authorized(context, scope, false, undefined, async (tx, spaceId) => {
+          const rows = await tx.execute<Entry>(
+            sql`select * from drive_entry where space_id=${spaceId ?? null} and id=trash_root_id and state in ('trashed','purging') and strpos(lower(name),lower(${search.slice(0, 255)})) > 0 order by deleted_at desc, id limit ${pageSize + 1} offset ${offset}`,
+          );
+          return {
+            space,
+            items: rows.slice(0, pageSize).map((row): DriveTrashEntry => ({
+              ...publicEntry(row),
+              state: row.state === "purging" ? "deleting" : "trashed",
+              originalParentId: row.original_parent_id ?? null,
+              originalPath: row.original_path!,
+              deletedAt: new Date(row.deleted_at!).toISOString(),
+              expiresAt: new Date(row.expires_at!).toISOString(),
+            })),
+            nextCursor: rows.length > pageSize ? String(offset + pageSize) : undefined,
+          };
+        });
+      },
+      async trashEntry({ scope, entryId, token }) {
+        await access(context, scope, "delete");
+        await authorized(context, scope, false, "delete", async (tx, spaceId) => {
+          const root = await entry(tx, spaceId, entryId);
+          if (root.state === "trashed" && root.trash_root_id === root.id) return;
+          const rows = await subtree(tx, spaceId!, entryId);
+          if (rows.some((row) => row.state !== "ready") || preview(rows).token !== token)
+            throw new DriveError("CONFLICT");
+          const ancestors = await parents(tx, spaceId, root.parent_id);
+          if (
+            options.canDelete &&
+            !(await options.canDelete(
+              context,
+              scope,
+              rows.map((row) => row.id),
+              tx,
+            ))
+          )
+            throw new DriveError("CONFLICT");
+          // Detach only the root. Descendant IDs, relationships and immutable bytes survive.
+          await tx.execute(
+            sql`update drive_entry set state='trashed',trash_root_id=${entryId},original_parent_id=parent_id,original_path=${ancestors.map((row) => row.name).join("/")},deleted_at=now(),expires_at=now()+${retentionDays}*interval '1 day',parent_id=case when id=${entryId} then null else parent_id end,updated_at=now() where space_id=${spaceId} and id in (${sql.join(
+              rows.map((row) => sql`${row.id}::uuid`),
+              sql`,`,
+            )})`,
+          );
+        });
+      },
+      async restoreEntry({ scope, entryId, parentId, name }) {
+        await access(context, scope, "restore");
+        await authorized(context, scope, false, "restore", async (tx, spaceId) => {
+          const root = await entry(tx, spaceId, entryId);
+          if (root.state !== "trashed" || root.trash_root_id !== root.id)
+            throw new DriveError("NOT_FOUND");
+          if (new Date(root.expires_at!).getTime() <= Date.now()) throw new DriveError("NOT_FOUND");
+          const normalized = name === undefined ? root.name : validName(name);
+          if (normalized !== root.name) await access(context, scope, "rename");
+          const destination = parentId === undefined ? (root.original_parent_id ?? null) : parentId;
+          let ancestors: Entry[];
+          try {
+            ancestors = await parents(tx, spaceId, destination);
+          } catch (error) {
+            if (error instanceof DriveError && ["NOT_FOUND", "CONFLICT"].includes(error.code))
+              throw new DriveError("RESTORE_CONFLICT");
+            throw error;
+          }
+          const rows = await subtree(tx, spaceId!, entryId);
+          if (rows.some((row) => row.state !== "trashed" || row.trash_root_id !== entryId))
+            throw new DriveError("CONFLICT");
+          if (
+            ancestors.length +
+              rows.reduce(
+                (depth, row) => Math.max(depth, (row.depth ?? 0) + (row.kind === "folder" ? 1 : 0)),
+                0,
+              ) >
+            100
+          )
+            throw new DriveError("INVALID");
+          const conflicts = await tx.execute(
+            sql`select id from drive_entry where space_id=${spaceId} and parent_id is not distinct from ${destination}::uuid and name=${normalized} and trash_root_id is null limit 1`,
+          );
+          if (conflicts.length) throw new DriveError("RESTORE_CONFLICT");
+          await tx.execute(
+            sql`update drive_entry set state='ready',parent_id=case when id=${entryId} then ${destination}::uuid else parent_id end,name=case when id=${entryId} then ${normalized} else name end,trash_root_id=null,original_parent_id=null,original_path=null,deleted_at=null,expires_at=null,updated_at=now() where space_id=${spaceId} and trash_root_id=${entryId}`,
+          );
+        });
+      },
+    };
+  }
+
   return {
     client,
     verifyBucket,
@@ -583,7 +692,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     async maintenance({ limit = 100 }: { limit?: number } = {}) {
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new DriveError("INVALID");
       const spaces = await db.execute<{ entity_type: string; entity_id: string }>(
-        sql`select s.entity_type,s.entity_id from drive_space s where exists(select 1 from drive_entry e where e.space_id=s.id and e.state='deleting') or exists(select 1 from drive_upload u where u.space_id=s.id and u.expires_at <= now()) order by s.id limit ${limit}`,
+        sql`select s.entity_type,s.entity_id from drive_space s where exists(select 1 from drive_entry e where e.space_id=s.id and e.state in ('deleting','purging')) or ${options.trash ? sql`exists(select 1 from drive_entry e where e.space_id=s.id and e.state='trashed' and e.expires_at <= now())` : sql`false`} or exists(select 1 from drive_upload u where u.space_id=s.id and u.expires_at <= now()) order by s.id limit ${limit}`,
       );
       let failures = 0;
       let remaining = limit;
@@ -594,6 +703,18 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         const scope = { type: space.entity_type, id: space.entity_id };
         try {
           await locked(scope, false, async (tx, spaceId) => {
+            if (options.trash) {
+              const expired = await tx.execute<{ id: string }>(
+                sql`select id from drive_entry where space_id=${spaceId} and id=trash_root_id and state='trashed' and expires_at <= now() order by expires_at,id limit ${remaining}`,
+              );
+              for (const root of expired) {
+                remaining--;
+                await tx.execute(
+                  sql`update drive_entry set state='purging',updated_at=now() where space_id=${spaceId} and trash_root_id=${root.id} and state='trashed'`,
+                );
+              }
+            }
+            if (!remaining) return;
             const uploads = await tx.execute<Upload>(
               sql`select * from drive_upload where space_id=${spaceId} and expires_at <= now() order by expires_at limit ${remaining}`,
             );

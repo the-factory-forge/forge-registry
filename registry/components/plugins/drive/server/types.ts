@@ -22,6 +22,8 @@ export interface DriveStorageOptions<Context> {
   bucket: string;
   keyPrefix?: string;
   maxFileBytes?: number;
+  /** Enable trash with a default retention of 30 days. */
+  trash?: { retentionDays?: number };
   resolveScope: (context: Context, scope: DriveScope) => Promise<DriveSpace | null>;
   listScopes: (
     context: Context,

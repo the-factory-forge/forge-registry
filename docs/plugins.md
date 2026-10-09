@@ -16,7 +16,7 @@ is authoritative for files and dependencies.
 | `employees`    | Admin-only employee accounts, editing and verification                                                                              | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
 | `customers`    | Customer contact/company records and composition of Projects/Sync                                                                   | Host callbacks         | [Customers](./customers.md)                 |
 | `projects`     | Customer-owned project records, assignment and Details/Drive views                                                                  | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped file spaces, folders, upload/download and file management                                                                    | `drive-storage`        | [Drive](./drive.md)                         |
+| `drive`        | Scoped files, folders, uploads/downloads, opt-in trash/restoration and loading, success and error toasts                            | `drive-storage`        | [Drive](./drive.md)                         |
 | `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
@@ -28,6 +28,11 @@ Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
 settings, create, edit and delete use the shared Lucide conventions.
+
+Single-choice dropdowns share `@forge/native-select`, which keeps a 12px chevron inset
+and reserves space between the selected text and arrow. Its native control preserves
+keyboard selection, labels, validation and disabled states. The dependency ships
+with affected plugins; see the [native select guide](./native-select.md).
 
 Create/edit modal forms support Cmd+Enter on macOS and Ctrl+Enter on Windows/Linux.
 The shortcut activates the existing submit button, preserving validation, disabled

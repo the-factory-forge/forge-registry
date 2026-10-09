@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import {
   getReservationLabels,
   type ReservationLabels,
@@ -160,7 +161,7 @@ export function ReservationsCalendar({
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label={labels.resource}>
-              <select
+              <NativeSelect
                 className={fieldClass}
                 value={range.resourceId ?? ""}
                 onChange={(e) => setRange({ ...range, resourceId: e.target.value || undefined })}
@@ -171,10 +172,10 @@ export function ReservationsCalendar({
                     {r.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={labels.service}>
-              <select
+              <NativeSelect
                 className={fieldClass}
                 value={range.serviceId ?? ""}
                 onChange={(e) => setRange({ ...range, serviceId: e.target.value || undefined })}
@@ -185,10 +186,10 @@ export function ReservationsCalendar({
                     {s.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label={labels.status}>
-              <select
+              <NativeSelect
                 className={fieldClass}
                 value={range.status ?? ""}
                 onChange={(e) =>
@@ -204,7 +205,7 @@ export function ReservationsCalendar({
                     {labels[s]}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
           <p className="text-sm text-muted-foreground">

@@ -44,6 +44,21 @@
       ]
     },
     {
+      "name": "native-select",
+      "type": "registry:ui",
+      "title": "Native select",
+      "description": "Native select with a consistently inset chevron, reserved text spacing, and standard keyboard and form behavior.",
+      "files": [
+        {
+          "path": "registry/components/native-select.tsx",
+          "type": "registry:component",
+          "target": "@components/native-select.tsx"
+        }
+      ],
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "table-search",
       "type": "registry:ui",
       "title": "Table Search",
@@ -801,7 +816,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/native-select"
       ]
     },
     {
@@ -815,7 +831,8 @@
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/native-select"
       ],
       "files": [
         {
@@ -852,6 +869,11 @@
           "path": "registry/components/plugins/drive/utils.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/utils.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/trash.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/trash.tsx"
         }
       ]
     },
@@ -915,7 +937,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/native-select"
       ],
       "files": [
         {
@@ -1007,7 +1030,8 @@
         "@forge/drive",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/native-select"
       ],
       "files": [
         {
@@ -1199,7 +1223,8 @@
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/native-select"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1270,7 +1295,12 @@
         "lucide-react@1.49.0",
         "zod@4.5.4"
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/dialog-submit"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/dialog-submit",
+        "@forge/native-select"
+      ],
       "files": [
         {
           "path": "registry/components/plugins/reservations/admin.tsx",

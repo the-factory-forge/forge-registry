@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import type { Customer } from "@/components/plugins/customers";
 import type { DriveSpace } from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
@@ -62,6 +63,7 @@ function usePreviewState() {
       rename: true,
       delete: true,
       download: true,
+      restore: true,
     };
     const readOnly = {
       upload: false,
@@ -195,7 +197,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
             </label>
             <label>
               People directories{" "}
-              <select
+              <NativeSelect
                 aria-label="People directories"
                 value={state.peopleState}
                 onChange={(event) => state.setPeopleState(event.target.value)}
@@ -206,7 +208,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
                 <option value="error">Error</option>
                 <option value="empty">No customers</option>
                 <option value="unavailable">Current owner unavailable</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -234,7 +236,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
             </label>
             <label>
               Directory state{" "}
-              <select
+              <NativeSelect
                 value={state.directoryState}
                 onChange={(event) => state.setDirectoryState(event.target.value)}
                 className="rounded border border-border bg-background p-1"
@@ -242,7 +244,7 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
                 <option value="ready">Ready</option>
                 <option value="loading">Loading</option>
                 <option value="error">Error</option>
-              </select>
+              </NativeSelect>
             </label>
           </>
         }

@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeftIcon, ChevronDownIcon, PrinterIcon } from "lucide-react";
+import { ArrowLeftIcon, PrinterIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { Image, type ImageProps } from "@/components/image";
 import { Link, type LinkProps } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import { MenuLabelBadge } from "@/components/plugins/menus/label-badge";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
 import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
@@ -219,21 +220,15 @@ export function MenuPrintPage({
           <label className="block" htmlFor={`${id}-size`}>
             {labels.paperSize}
           </label>
-          <span className="relative block">
-            <select
-              id={`${id}-size`}
-              value={paperSize}
-              onChange={(event) => setPaperSize(event.target.value === "A5" ? "A5" : "A4")}
-              className={cn(field, "peer cursor-pointer appearance-none pr-10")}
-            >
-              <option value="A4">A4</option>
-              <option value="A5">A5</option>
-            </select>
-            <ChevronDownIcon
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground peer-disabled:opacity-50"
-            />
-          </span>
+          <NativeSelect
+            id={`${id}-size`}
+            value={paperSize}
+            onChange={(event) => setPaperSize(event.target.value === "A5" ? "A5" : "A4")}
+            className={field}
+          >
+            <option value="A4">A4</option>
+            <option value="A5">A5</option>
+          </NativeSelect>
         </div>
         <div className="space-y-2 text-sm font-medium">
           <label className="block" htmlFor={`${id}-title`}>

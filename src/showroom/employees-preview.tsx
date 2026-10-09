@@ -1,11 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import { EmployeesPage, type Employee } from "@/components/plugins/employees";
 import { matchesTableSearch } from "@/components/table-search";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 export function EmployeesPreview() {
+  const selectId = `factory-showroom-employees-${useId()}`;
   const [employees, setEmployees] = useState<Employee[]>([
     {
       id: "admin",
@@ -37,9 +39,10 @@ export function EmployeesPreview() {
       notice={previewDataNotice}
       controls={
         <>
-          <label className="flex items-center gap-2 text-sm">
+          <label htmlFor={`${selectId}-role`} className="flex items-center gap-2 text-sm">
             Preview as
-            <select
+            <NativeSelect
+              id={`${selectId}-role`}
               className="rounded border bg-background p-2"
               value={role}
               onChange={(event) => setRole(event.target.value)}
@@ -47,7 +50,7 @@ export function EmployeesPreview() {
               <option value="admin">Administrator</option>
               <option value="user">Employee</option>
               <option value="">No role</option>
-            </select>
+            </NativeSelect>
           </label>
           <label className="flex gap-2 text-sm">
             <input

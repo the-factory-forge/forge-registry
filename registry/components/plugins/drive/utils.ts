@@ -6,6 +6,7 @@ export type DriveErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "CONFLICT"
+  | "RESTORE_CONFLICT"
   | "EXPIRED"
   | "DELETE_PENDING"
   | "STORAGE";
@@ -63,6 +64,7 @@ export function errorCode(error: unknown): DriveErrorCode | undefined {
       "NOT_FOUND",
       "FORBIDDEN",
       "CONFLICT",
+      "RESTORE_CONFLICT",
       "EXPIRED",
       "DELETE_PENDING",
       "STORAGE",

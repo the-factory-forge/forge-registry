@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import type { ComponentType } from "react";
 
 import { Link, type LinkProps } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import {
   getReservationLabels,
   type ReservationLabels,
@@ -396,7 +397,7 @@ function ServiceEditor({
             </>
           )}
           <Field label={labels.approval}>
-            <select
+            <NativeSelect
               className={fieldClass}
               value={draft.approval}
               onChange={(e) => {
@@ -406,7 +407,7 @@ function ServiceEditor({
             >
               <option value="automatic">{labels.automatic}</option>
               <option value="manual">{labels.manual}</option>
-            </select>
+            </NativeSelect>
           </Field>
         </div>
       </div>

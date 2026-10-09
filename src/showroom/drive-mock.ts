@@ -4,6 +4,7 @@ import type {
   DriveEntry,
   DriveScope,
   DriveSpace,
+  DriveTrashEntry,
   DriveUploadInput,
 } from "@/components/plugins/drive/types";
 import {
@@ -56,6 +57,7 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
   const delay = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));
   let failNextTransfer = false;
   let failNextDeletion = false;
+  const trash = new Map<string, { scope: DriveScope; entry: DriveTrashEntry; rows: MockEntry[] }>();
   function owned(scope: DriveScope) {
     return entries.filter((entry) => scopeKey(entry.scope) === scopeKey(scope));
   }
@@ -136,6 +138,7 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
     assertEmpty(scope: DriveScope) {
       if (
         owned(scope).length ||
+        [...trash.values()].some((group) => scopeKey(group.scope) === scopeKey(scope)) ||
         [...uploads.values()].some(
           (upload) =>
             scopeKey(upload.input.scope) === scopeKey(scope) &&
@@ -170,6 +173,95 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         };
       };
       return {
+        async listTrash({ scope, search = "", cursor }) {
+          const space = authorize(scope);
+          await listing();
+          return {
+            space,
+            ...paginate(
+              [...trash.values()]
+                .filter(
+                  (group) =>
+                    scopeKey(group.scope) === scopeKey(scope) &&
+                    group.entry.name.toLowerCase().includes(search.toLowerCase()),
+                )
+                .map((group) => group.entry)
+                .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt) || a.id.localeCompare(b.id)),
+              cursor,
+            ),
+          };
+        },
+        async trashEntry({ scope, entryId, token: expected }) {
+          await mutation(scope, "delete");
+          const existing = trash.get(entryId);
+          if (
+            existing &&
+            scopeKey(existing.scope) === scopeKey(scope) &&
+            existing.entry.state === "trashed"
+          )
+            return;
+          const rows = descendants(scope, entryId);
+          if (
+            rows.some((row) => row.state !== "ready") ||
+            token(rows) !== expected ||
+            [...uploads.values()].some(
+              (upload) =>
+                !upload.completed &&
+                !upload.cancelled &&
+                scopeKey(upload.input.scope) === scopeKey(scope) &&
+                rows.some((row) => row.id === upload.input.parentId),
+            )
+          )
+            throw new DriveError("CONFLICT");
+          const root = find(scope, entryId);
+          const path: string[] = [];
+          let parent = root.parentId;
+          while (parent) {
+            const folder = find(scope, parent);
+            path.unshift(folder.name);
+            parent = folder.parentId;
+          }
+          const deletedAt = new Date().toISOString();
+          trash.set(entryId, {
+            scope,
+            entry: {
+              ...root,
+              state: "trashed",
+              originalParentId: root.parentId,
+              originalPath: path.join("/"),
+              deletedAt,
+              expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+            },
+            rows,
+          });
+          for (const row of rows) entries.splice(entries.indexOf(row), 1);
+        },
+        async restoreEntry({ scope, entryId, parentId, name }) {
+          await mutation(scope, "restore");
+          const group = trash.get(entryId);
+          if (
+            !group ||
+            scopeKey(group.scope) !== scopeKey(scope) ||
+            group.entry.state !== "trashed" ||
+            Date.parse(group.entry.expiresAt) <= Date.now()
+          )
+            throw new DriveError("NOT_FOUND");
+          const normalized = name === undefined ? group.entry.name : validName(name);
+          if (normalized !== group.entry.name) authorize(scope, "rename");
+          const destination = parentId === undefined ? group.entry.originalParentId : parentId;
+          try {
+            available(scope, destination, normalized);
+          } catch (reason) {
+            if (reason instanceof DriveError && ["NOT_FOUND", "CONFLICT"].includes(reason.code))
+              throw new DriveError("RESTORE_CONFLICT");
+            throw reason;
+          }
+          const root = group.rows.find((row) => row.id === entryId)!;
+          root.parentId = destination;
+          root.name = normalized;
+          entries.push(...group.rows);
+          trash.delete(entryId);
+        },
         async listSpaces({ search = "", cursor, sort: inputSort }) {
           const sort = validSort(inputSort);
           await listing();
@@ -263,7 +355,9 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         async previewDelete({ scope, entryId }) {
           authorize(scope, "delete");
           await delay();
-          const rows = descendants(scope, entryId);
+          const group = trash.get(entryId);
+          if (group && scopeKey(group.scope) !== scopeKey(scope)) throw new DriveError("NOT_FOUND");
+          const rows = group?.rows ?? descendants(scope, entryId);
           return {
             token: token(rows),
             files: rows.filter((entry) => entry.kind === "file").length,
@@ -272,6 +366,20 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         },
         async deleteEntry({ scope, entryId, token: expected }) {
           await mutation(scope, "delete");
+          const group = trash.get(entryId);
+          if (group) {
+            if (scopeKey(group.scope) !== scopeKey(scope)) throw new DriveError("NOT_FOUND");
+            if (group.entry.state !== "deleting" && token(group.rows) !== expected)
+              throw new DriveError("CONFLICT");
+            group.entry.state = "deleting";
+            if (failNextDeletion) {
+              failNextDeletion = false;
+              throw new DriveError("DELETE_PENDING");
+            }
+            for (const row of group.rows) if (row.blob && row.url) URL.revokeObjectURL(row.url);
+            trash.delete(entryId);
+            return;
+          }
           if (!owned(scope).some((item) => item.id === entryId)) return;
           const rows = descendants(scope, entryId);
           if (find(scope, entryId).state !== "deleting" && token(rows) !== expected)

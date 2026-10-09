@@ -4,7 +4,7 @@
 browser at `@components/plugins/drive`. It has no customer, project, server,
 storage, or authentication dependency. `@forge/drive-storage` is an optional
 Node server companion using PostgreSQL 15+ through Drizzle and a private,
-unversioned S3-compatible bucket. TC migration is separate.
+unversioned S3-compatible bucket.
 
 ## Install and entrypoints
 
@@ -17,7 +17,7 @@ pnpm dlx shadcn@4.21.1 add @forge/drive-storage
 ```
 
 Browser exports: `DrivePage`, `DriveBrowser`, their props, `DriveClient`,
-`DriveScope`, `DriveSpace`, `DriveEntry`, `DriveSort`, capabilities, pagination, upload and
+`DriveScope`, `DriveSpace`, `DriveEntry`, `DriveTrashEntry`, `DriveTrashResult`, `DriveSort`, capabilities, pagination, upload and
 label types, `DriveError`, and the default XHR `transferDriveUpload`.
 Server exports live **only** at `@/components/plugins/drive/server`:
 `createDriveStorage`, `driveSpaces`, `driveEntries`, `driveUploads`, and
@@ -73,11 +73,14 @@ bottom-right toasts using the item's existing Base UI dependency. They dismiss
 after five seconds, pause while hovered or focused, and can be closed with the
 translated `close` label. Each browser provides its own toast context; hosts need
 no notification provider. Uploads share that fixed toast area, with per-file
-progress, Cancel, Retry and Dismiss controls. Active uploads and failures stay
+progress, Cancel, Retry and Dismiss controls. Loading toasts show a spinner and
+update in place to success or error when their operation settles. Downloads use
+the Base UI promise manager; Undo keeps its retry and conflict recovery actions.
+Active uploads and failures stay
 visible until resolved; a finished batch clears after five seconds or can be
 closed manually. Hovering or focusing pauses dismissal. Large batches scroll
 inside the toast, and other confirmations cannot hide upload recovery controls.
-Loading, form validation and listing errors remain inline with the affected controls.
+Form loading, validation and listing errors remain inline with the affected controls.
 
 ## Table metadata and ordering
 
@@ -128,7 +131,7 @@ fresh capabilities. No database migration is needed for these optional fields.
 
 ## Authenticated transport
 
-`DriveClient` is the boundary between the UI and persistence. Implement its ten
+`DriveClient` is the boundary between the UI and persistence. Implement its required
 methods with your framework's authenticated API or server functions. Forward
 read `AbortSignal`s to fetch, validate JSON inputs at the API boundary, enforce
 CSRF protection for cookie-authenticated writes, and construct a fresh
@@ -174,12 +177,13 @@ and pagination; folder pages use 50 entries and current-folder substring search.
 
 ## Database and storage setup
 
-Copy the shipped `server/migration.sql` into the host's migration workflow and
-apply it once. Installation does **not** migrate a database. Alternatively,
+Copy the shipped `server/migration.sql` into the host's schema workflow and
+apply it once to initialize the database, including trash metadata and indexes.
+Installing source does **not** create database tables. Alternatively,
 include the exported table definitions in the host Drizzle schema and generate
 a reviewed migration. The three tables retain spaces, entries, and upload
 idempotency records. A composite parent foreign key prevents cross-space parent
-relationships; names are unique within a folder, including its root. Names are
+relationships; active names are unique within a folder, including its root. Names are
 case-sensitive. Do not write these tables directly from application features.
 
 ```ts
@@ -287,7 +291,13 @@ usable until expiry even if access is later revoked.
 
 Deletion previews count affected files and folders (including the selected
 folder and unfinished reservations). The confirmation token detects changed
-contents. Deletion first commits a deleting subtree, then removes objects and
+contents. The dialog keeps its confirmation and Cancel buttons available while
+the preview loads, with progress in a separate status line. Confirming early
+waits for that preview before submitting the mutation. Once confirmed, controls
+are disabled to prevent duplicate submissions; failures remain retryable from
+the same confirmation button. Hosts can translate `trashConfirmation` and
+`deleteConfirmation` for the initial description before counts arrive.
+Deletion first commits a deleting subtree, then removes objects and
 metadata from leaves upward. Writes into that subtree are blocked. Storage
 failures keep cleanup metadata and return `DELETE_PENDING`; explicit retry or
 maintenance finishes it. Large trees may need multiple bounded passes. Metadata
@@ -296,11 +306,72 @@ locks serialize mutations and storage finalization; inject bounded SDK timeouts
 and size the host pool accordingly. This is intended for ordinary business-file
 spaces, not unbounded concurrent ingestion.
 
+## Trash and restoration
+
+The initial SQL and exported Drizzle schema both include trash metadata and
+partial indexes for active names. Storage configured without `trash` and adapters
+without the optional trash methods keep permanent deletion. `deleteEntry` always
+means permanent deletion. Enable trash when configuring the server:
+
+```ts
+const storage = createDriveStorage({
+  ...hostOptions,
+  trash: {}, // 30 days; optionally { retentionDays: 1..365 }
+});
+```
+
+Forward the optional `listTrash`, `trashEntry` and `restoreEntry` operations through
+an explicit authenticated transport allowlist. The browser exposes Trash only
+when all three are available. In that browser, confirmed routine deletion calls
+`trashEntry`; Trash offers restoration and separately confirmed permanent deletion.
+The confirmation toast offers Undo when restore permission is granted. Undo restores
+the item to its original location, disables duplicate clicks while pending, and
+keeps failures retryable. A location or name conflict offers a Trash action for
+choosing a different destination or name; existing files are never overwritten.
+Adapters without trash retain their current UI. `listTrash` supports search and cursor
+pagination, newest deletion first, and returns roots rather than every descendant.
+Its rows include original location, deletion time, expiry and pending purge state.
+Grant `capabilities.restore: true` explicitly for recovery; omitted means denied.
+Deleting or trashing requires `delete`; changing a restored name also requires
+`rename`. All permissions are rechecked on the server under the space lock.
+
+Trashing validates the existing deletion preview token, invokes `canDelete` with
+all affected IDs, and rejects unfinished uploads or pending deletion in the
+subtree. Use `menuImageDeleteGuard` for Menus hosts: referenced menu images cannot
+be trashed. Trashed images cannot be selected, published or read through trusted
+file access. Keep other host references subject to the same guard and ready-state
+validation.
+
+Each trash group keeps its IDs and immutable object keys. Its root detaches from
+the active tree; descendant relationships remain intact. Previously trashed groups
+stay independent. Normal listings, search, downloads and trusted reads exclude
+trash. Active names can be reused. Previously issued signed URLs and requests
+already authorized may remain usable until they expire or finish.
+
+`restoreEntry({ scope, entryId })` restores the original folder and name. If the
+folder is missing, trashed or unavailable, or its name has been reused, it returns
+`RESTORE_CONFLICT`. The browser then offers an available name and a folder picker,
+including nested folders and pagination. Supply `parentId: null` for the space
+root, or an authorized folder ID in the same space; omit it for the original
+folder. Supply `name` only when changing it. Recovery never overwrites an active
+entry, accepts a file/trashed folder as a destination, or crosses spaces. Original
+parent IDs are historical references without foreign keys, so their later purge
+does not destroy recoverable trash. Restoration is refused after expiry or once
+permanent cleanup has started.
+
+Run the existing trusted `maintenance` job regularly. It marks expired groups for
+permanent cleanup, then deletes objects and metadata using durable leaf-first
+retries. Storage failures leave the group visible as Deletion pending; retry or
+another maintenance pass completes it, including after a process restart. Trash
+and pending cleanup block `assertSpaceEmpty`, `deleteSpace` and owning-entity
+removal. Keep trash enabled until retained groups have been drained. Final objects
+stay in the private unversioned bucket; S3 versioning is not required or supported.
+
 ## Entity deletion and maintenance
 
 Do not cascade customer deletion into project spaces or assume another plugin's
 relationships. Block entity removal while its own Drive space contains files,
-folders, reservations, or unfinished deletion. Remove its contents explicitly.
+folders, trash, reservations, or unfinished deletion. Remove its contents explicitly.
 `assertSpaceEmpty(context, scope)` is useful for showing a message, but a separate
 check and write is **not** an atomic deletion guard.
 
@@ -328,7 +399,9 @@ const result = await storage.maintenance({ limit: 100 });
 if (result.failures) logger.warn("Drive maintenance needs retry", result);
 ```
 
-Each call attempts at most `limit` expired reservations/deleting entries (1–1000).
+Each call attempts at most `limit` expired reservations, trash groups marked for purge,
+or deleting entries (1–1000). Marking a trash group scales with its subtree; object
+cleanup remains bounded and runs from leaves upward.
 Repeated runs drain larger backlogs. Monitor failures and schedule another pass;
 no hosted worker or automation is installed. Lifecycle expiry is still mandatory:
 a previously signed staging URL can be replayed after cancellation or completion
@@ -366,7 +439,7 @@ use `TEST_BASE_URL` and cover the mock showroom; storage tests use real signed
 transfers and fault injection. Run `pnpm test`, `pnpm test:browser`, registry
 checks, typecheck, combined checks, and the production build for changes.
 
-Public sharing, previews/editors, file moves, version history, restoration,
+Public sharing, previews/editors, file moves, version history,
 folder uploads, and multipart/resumable transfers are outside this version.
 Keep host transport, auth, schema migrations, scheduling, and entity adapters
 outside registry-managed paths. Registry updates copy source; inspect the diff,

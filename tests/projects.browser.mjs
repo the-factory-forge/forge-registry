@@ -249,17 +249,40 @@ test("delete confirmation handles cancellation, failure, success and customer or
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   // The portal has sample Drive files; delete them before removing their project.
   await page.getByRole("link", { name: "Drive", exact: true }).click();
-  await page.getByRole("table").waitFor();
+  await page.getByRole("row").filter({ hasText: "Annual report.txt" }).waitFor();
   while (await page.getByRole("button", { name: "Delete", exact: true }).count()) {
     await page.getByRole("button", { name: "Delete", exact: true }).first().click();
-    const driveDialog = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
-    await driveDialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+    const driveDialog = page.getByRole("dialog", {
+      name: "Move files and folders to trash",
+      exact: true,
+    });
+    await driveDialog.getByRole("button", { name: "Move to trash", exact: true }).click();
     await driveDialog.waitFor({ state: "hidden" });
     await page
       .locator('[aria-busy="false"]')
       .filter({ has: page.getByRole("table") })
-      .or(page.getByText("This folder is empty.", { exact: true }))
       .waitFor();
+  }
+  await page.getByRole("link", { name: "Details", exact: true }).click();
+  await page.getByRole("button", { name: "Delete project", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("dialog").getByRole("alert").waitFor();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("link", { name: "Drive", exact: true }).click();
+  await page.getByRole("button", { name: "Trash", exact: true }).click();
+  await page.locator('[aria-busy="false"] table').waitFor();
+  while (
+    await page.getByRole("table").getByRole("button", { name: "Delete", exact: true }).count()
+  ) {
+    await page
+      .getByRole("table")
+      .getByRole("button", { name: "Delete", exact: true })
+      .first()
+      .click();
+    const purge = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+    await purge.getByRole("button", { name: "Delete permanently", exact: true }).click();
+    await purge.waitFor({ state: "hidden" });
+    await page.locator('[aria-busy="false"] table').waitFor();
   }
   await page.getByRole("link", { name: "Details", exact: true }).click();
   await page.getByRole("button", { name: "Delete project", exact: true }).click();

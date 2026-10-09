@@ -7,10 +7,12 @@ import {
   useEffect,
   useMemo,
   useState,
+  useId,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import {
   BlogCategoriesPage,
   BlogEditPage,
@@ -70,6 +72,7 @@ function useBlogsPreview() {
   return value;
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
+  const selectId = `factory-showroom-blogs-${useId()}`;
   const { locale } = useShowroomParams();
   const state = usePreview();
   return (
@@ -85,16 +88,17 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
         }
         controls={
           <>
-            <label className="flex items-center gap-2">
+            <label htmlFor={`${selectId}-editor`} className="flex items-center gap-2">
               Editor
-              <select
+              <NativeSelect
+                id={`${selectId}-editor`}
                 aria-label="Editor"
                 value={state.editor}
                 onChange={(e) => state.setEditor(e.target.value)}
               >
                 <option value="jordan">Jordan Lee</option>
                 <option value="alex">Alex Morgan</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -115,9 +119,10 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
             <button onClick={() => state.setFailUpload(true)} className="underline">
               Fail next upload{state.failUpload ? " (armed)" : ""}
             </button>
-            <label className="flex items-center gap-2">
+            <label htmlFor={`${selectId}-directory`} className="flex items-center gap-2">
               Directory state
-              <select
+              <NativeSelect
+                id={`${selectId}-directory`}
                 aria-label="Directory state"
                 value={state.state}
                 onChange={(e) => state.setState(e.target.value)}
@@ -126,7 +131,7 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
                 <option value="loading">Loading</option>
                 <option value="error">Error</option>
                 <option value="empty">Empty</option>
-              </select>
+              </NativeSelect>
             </label>
           </>
         }

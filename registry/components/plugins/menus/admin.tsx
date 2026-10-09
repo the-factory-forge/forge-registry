@@ -16,6 +16,7 @@ import { useEffect, useId, useRef, useState, type ComponentType, type PointerEve
 import { createPortal } from "react-dom";
 
 import { Link, type LinkProps } from "@/components/link";
+import { NativeSelect } from "@/components/native-select";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
 import { MenuLabelBadge, MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
@@ -682,7 +683,7 @@ export function MenuItemEditorPage({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1">
             <span>{labels.category}</span>
-            <select
+            <NativeSelect
               className={field}
               value={draft.categoryId}
               onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
@@ -693,7 +694,7 @@ export function MenuItemEditorPage({
                   {category.translations[baseLocale]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
           {sizes.length === 0 ? (
             <label className="space-y-1">
@@ -1080,14 +1081,14 @@ function TaxonomyDialog({
               <>
                 <label className="block space-y-1">
                   <span>{labels.labelKind}</span>
-                  <select
+                  <NativeSelect
                     className={field}
                     value={labelKind}
                     onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
                   >
                     <option value="allergen">{labels.allergens}</option>
                     <option value="dietary">{labels.dietary}</option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label className="block space-y-1">
                   <span>{labels.icon}</span>
@@ -1100,7 +1101,7 @@ function TaxonomyDialog({
                         icon,
                       }}
                     />
-                    <select
+                    <NativeSelect
                       className={field}
                       value={icon ?? ""}
                       onChange={(event) =>
@@ -1115,7 +1116,7 @@ function TaxonomyDialog({
                             {iconNames[value]}
                           </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                   </span>
                 </label>
               </>

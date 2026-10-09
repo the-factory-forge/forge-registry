@@ -1,8 +1,16 @@
 "use client";
 
 import { useNavigate } from "@tanstack/react-router";
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useId,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
+import { NativeSelect } from "@/components/native-select";
 import {
   ReservationBookingPage,
   ReservationManagePage,
@@ -164,6 +172,7 @@ function useMock() {
 }
 
 export function ReservationsPreviewProvider({ children }: { children: ReactNode }) {
+  const selectId = `factory-showroom-reservations-${useId()}`;
   const [mock] = useState(createReservationsMock);
   const { locale } = useShowroomParams();
   useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
@@ -184,9 +193,10 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
         }
         controls={
           <div className="space-y-4">
-            <label className="grid gap-2">
+            <label htmlFor={`${selectId}-example`} className="grid gap-2">
               Example
-              <select
+              <NativeSelect
+                id={`${selectId}-example`}
                 className="rounded-md border border-input bg-background p-2"
                 value={mock.scenario}
                 onChange={(e) =>
@@ -196,7 +206,7 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
                 <option value="hairdresser">Hairdresser</option>
                 <option value="apartment">Apartment · overnight stays</option>
                 <option value="clinic">Clinic · manual approval</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="flex items-center gap-2">
               <input

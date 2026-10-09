@@ -58,7 +58,10 @@ test("Drive shortcuts validate, create once, retain failed edits, and exclude de
   const renamed = page.getByRole("row").filter({ hasText: "Renamed by shortcut" });
   await renamed.waitFor();
   await renamed.getByRole("button", { name: "Delete", exact: true }).click();
-  const deleting = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+  const deleting = page.getByRole("dialog", {
+    name: "Move files and folders to trash",
+    exact: true,
+  });
   await deleting.locator('button[type="submit"]').waitFor();
   await deleting.focus();
   await page.keyboard.press("Meta+Enter");
