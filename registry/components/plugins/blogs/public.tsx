@@ -295,7 +295,7 @@ export function BlogPostPage({
     >
       <BlogLink
         href={backHref}
-        className="text-sm font-medium text-muted-foreground hover:text-foreground"
+        className="inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring md:min-h-8"
       >
         ← {labels.back}
       </BlogLink>

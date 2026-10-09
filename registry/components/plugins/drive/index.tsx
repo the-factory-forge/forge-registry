@@ -1,11 +1,13 @@
 "use client";
 
+import { Toast } from "@base-ui/react/toast";
 import {
   RefreshCwIcon,
   ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
+  ExternalLinkIcon,
   FileIcon,
   FolderIcon,
   FolderPlusIcon,
@@ -28,11 +30,11 @@ import type {
 } from "@/components/plugins/drive/types";
 import {
   buttonClass,
-  cardClass,
   DriveFeedback,
   DriveModified,
   DriveOwner,
   DriveSize,
+  DriveToasts,
   SortHeading,
   EntryDialog,
   iconButtonClass,
@@ -40,7 +42,12 @@ import {
   primaryClass,
 } from "@/components/plugins/drive/ui";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
-import { DriveError, safeDownloadUrl, scopeKey } from "@/components/plugins/drive/utils";
+import {
+  DEFAULT_MAX_FILE_BYTES,
+  DriveError,
+  safeDownloadUrl,
+  scopeKey,
+} from "@/components/plugins/drive/utils";
 import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
@@ -117,6 +124,7 @@ export function DrivePage({
             <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
           </div>
           <TableSearch
+            className="ml-auto"
             value={search}
             label={labels.searchSpaces}
             clearLabel={labels.clearSearch}
@@ -126,87 +134,100 @@ export function DrivePage({
             }}
           />
         </header>
-        {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
-        {loading && !data?.items.length ? (
-          <DriveFeedback message={labels.loading} />
-        ) : error ? (
-          <>
-            <DriveFeedback message={messageFor(error, labels)} error />
-            <button className={buttonClass} onClick={() => setRevision((value) => value + 1)}>
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.retry}
-            </button>
-          </>
-        ) : !data?.items.length ? (
-          <p className="text-sm text-muted-foreground">{labels.emptySpaces}</p>
-        ) : (
-          <div className="relative overflow-x-auto">
-            <table aria-label={labels.spaces} className={cn(tableClass, "min-w-[44rem]")}>
-              <thead>
-                <tr className={tableRowClass}>
-                  <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
-                  <SortHeading
-                    field="updatedAt"
-                    label={labels.modified}
-                    sort={sort}
-                    onSort={onSort}
-                  />
-                  <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
-                  <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
-                  <th scope="col" className={tableActionCellClass}>
-                    {labels.actions}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {data.items.map((space) => (
-                  <tr key={scopeKey(space.scope)} className={tableRowClass}>
-                    <td className={tableCellClass}>
-                      <HostLink
-                        href={getSpaceHref(space)}
-                        className={cn(buttonClass, "-ml-3 justify-start text-left")}
-                      >
-                        <FolderIcon className="shrink-0" aria-hidden="true" />
-                        {space.name}
-                      </HostLink>
-                      {!Object.entries(space.capabilities).some(
-                        ([key, value]) => key !== "download" && value,
-                      ) && (
-                        <span className="block text-xs text-muted-foreground">
-                          {labels.readOnly}
-                        </span>
-                      )}
-                    </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                      <DriveModified
-                        value={space.updatedAt}
-                        locale={locale}
-                        fallback={labels.unavailable}
+        <div className="relative overflow-x-auto">
+          <table aria-label={labels.spaces} className={cn(tableClass, "min-w-[44rem]")}>
+            <caption className="sr-only">
+              <DriveFeedback message={loading && data?.items.length ? labels.loading : undefined} />
+            </caption>
+            <thead>
+              <tr className={tableRowClass}>
+                <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
+                <SortHeading
+                  field="updatedAt"
+                  label={labels.modified}
+                  sort={sort}
+                  onSort={onSort}
+                />
+                <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
+                <th scope="col" className={tableActionCellClass}>
+                  {labels.actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {(!!error || !data?.items.length) && (
+                <tr>
+                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <DriveFeedback
+                        message={
+                          error
+                            ? messageFor(error, labels)
+                            : loading
+                              ? labels.loading
+                              : labels.emptySpaces
+                        }
+                        error={!!error}
                       />
-                    </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                      <DriveSize value={space.size} locale={locale} fallback={labels.unavailable} />
-                    </td>
-                    <td className={cn(tableCellClass, "text-muted-foreground")}>
-                      <DriveOwner owner={space.owner} fallback={labels.unavailable} />
-                    </td>
-                    <td className={tableActionCellClass}>
-                      {space.href && (
-                        <HostLink
-                          href={space.href}
-                          className={cn(buttonClass, "whitespace-nowrap")}
+                      {!!error && (
+                        <button
+                          className={buttonClass}
+                          onClick={() => setRevision((value) => value + 1)}
                         >
-                          {labels.openRecord}
-                          <span className="sr-only">: {space.name}</span>
-                        </HostLink>
+                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                          {labels.retry}
+                        </button>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {data?.items.map((space) => (
+                <tr key={scopeKey(space.scope)} className={tableRowClass}>
+                  <td className={tableCellClass}>
+                    <HostLink
+                      href={getSpaceHref(space)}
+                      className={cn(buttonClass, "-ml-3 justify-start text-left")}
+                    >
+                      <FolderIcon className="shrink-0" aria-hidden="true" />
+                      {space.name}
+                    </HostLink>
+                    {!Object.entries(space.capabilities).some(
+                      ([key, value]) => key !== "download" && value,
+                    ) && (
+                      <span className="block text-xs text-muted-foreground">{labels.readOnly}</span>
+                    )}
+                  </td>
+                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                    <DriveModified
+                      value={space.updatedAt}
+                      locale={locale}
+                      fallback={labels.unavailable}
+                    />
+                  </td>
+                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                    <DriveSize value={space.size} locale={locale} fallback={labels.unavailable} />
+                  </td>
+                  <td className={cn(tableCellClass, "text-muted-foreground")}>
+                    <DriveOwner owner={space.owner} fallback={labels.unavailable} />
+                  </td>
+                  <td className={tableActionCellClass}>
+                    {space.href && (
+                      <HostLink
+                        href={space.href}
+                        className={iconButtonClass}
+                        aria-label={`${labels.openRecord}: ${space.name}`}
+                      >
+                        <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                      </HostLink>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className={tableFooterClass}>
           <button
             type="button"
@@ -233,7 +254,11 @@ export function DrivePage({
 }
 
 export function DriveBrowser(props: DriveBrowserProps) {
-  return <Browser key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`} {...props} />;
+  return (
+    <Toast.Provider key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`} limit={Infinity}>
+      <Browser {...props} />
+    </Toast.Provider>
+  );
 }
 function Browser({
   client,
@@ -273,6 +298,7 @@ function Browser({
   const data = result?.data;
   const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
+  const toastManager = Toast.useToastManager();
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -299,9 +325,10 @@ function Browser({
       });
     return () => controller.abort();
   }, [request]);
-  const capabilities = !loading && !error ? data?.space.capabilities : undefined;
+  const capabilities = data?.space.capabilities;
+  const actionsDisabled = loading || !!error;
   async function download(entry: DriveEntry) {
-    if (downloadLock.current) return;
+    if (actionsDisabled || downloadLock.current) return;
     downloadLock.current = true;
     setDownloading(true);
     setFeedback(undefined);
@@ -316,7 +343,7 @@ function Browser({
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
-      setFeedback({ message: labels.downloading });
+      toastManager.add({ title: labels.downloading, type: "info" });
     } catch (reason) {
       setFeedback({ message: messageFor(reason, labels), error: true });
     } finally {
@@ -327,16 +354,23 @@ function Browser({
   return (
     <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
       {backHref && (
-        <HostLink href={backHref} className={buttonClass}>
+        <HostLink
+          href={backHref}
+          className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+        >
           <ArrowLeftIcon aria-hidden="true" />
           {labels.back}
         </HostLink>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-h-10 flex-wrap items-center justify-between gap-3 md:min-h-8">
         <h2 className="text-xl font-semibold">{data?.space.name ?? labels.title}</h2>
         {data?.space.href && (
-          <HostLink href={data.space.href} className={buttonClass}>
-            {labels.openRecord}
+          <HostLink
+            href={data.space.href}
+            className={iconButtonClass}
+            aria-label={`${labels.openRecord}: ${data.space.name}`}
+          >
+            <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
           </HostLink>
         )}
       </div>
@@ -365,7 +399,7 @@ function Browser({
           ))}
         </ol>
       </nav>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <TableSearch
           value={search}
           label={labels.searchFiles}
@@ -380,10 +414,12 @@ function Browser({
             client={client}
             scope={scope}
             parentId={parentId}
+            disabled={actionsDisabled}
             labels={labels}
             refresh={() => {
               refresh();
-              setFeedback({ message: labels.saved });
+              setFeedback(undefined);
+              toastManager.add({ title: labels.saved, type: "success" });
             }}
           >
             <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -398,13 +434,18 @@ function Browser({
               accept={uploadAccept}
               multiple
               hidden
+              disabled={actionsDisabled}
               onChange={(event) => {
-                if (event.target.files && data)
+                if (!actionsDisabled && event.target.files && data)
                   queue.add(Array.from(event.target.files), data.maxFileBytes);
                 event.target.value = "";
               }}
             />
-            <button className={primaryClass} onClick={() => fileInput.current?.click()}>
+            <button
+              className={primaryClass}
+              disabled={actionsDisabled}
+              onClick={() => fileInput.current?.click()}
+            >
               <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.upload}
             </button>
@@ -423,14 +464,14 @@ function Browser({
         className={cn(tablePanelClass, "overflow-hidden")}
         aria-busy={loading}
         onDragOver={(event) => {
-          if (capabilities?.upload) {
+          if (!actionsDisabled && capabilities?.upload) {
             event.preventDefault();
             event.dataTransfer.dropEffect = "copy";
           }
         }}
         onDrop={(event) => {
           event.preventDefault();
-          if (!capabilities?.upload || !data) return;
+          if (actionsDisabled || !capabilities?.upload || !data) return;
           if (
             Array.from(event.dataTransfer.items).some(
               (item) => item.webkitGetAsEntry?.()?.isDirectory,
@@ -442,162 +483,183 @@ function Browser({
           queue.add(Array.from(event.dataTransfer.files), data.maxFileBytes);
         }}
       >
-        {capabilities?.upload && (
-          <p className="mb-4 text-sm text-muted-foreground">
-            {labels.drop} {data && labels.uploadLimit(data.maxFileBytes)}
-          </p>
-        )}
-        {loading && !!data?.items.length && <DriveFeedback message={labels.loading} />}
-        {loading && !data?.items.length ? (
-          <DriveFeedback message={labels.loading} />
-        ) : error ? (
-          <>
-            <DriveFeedback message={messageFor(error, labels)} error />
-            <button className={buttonClass} onClick={refresh}>
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.retry}
-            </button>
-          </>
-        ) : !data?.items.length ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {search ? labels.noMatches : labels.empty}
-          </p>
-        ) : (
-          <div className="relative overflow-x-auto">
-            <table aria-label={data.space.name} className={cn(tableClass, "min-w-[44rem]")}>
-              <thead>
-                <tr className={tableRowClass}>
-                  <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
-                  <SortHeading
-                    field="updatedAt"
-                    label={labels.modified}
-                    sort={sort}
-                    onSort={onSort}
-                  />
-                  <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.owner}
-                  </th>
-                  <th scope="col" className={tableActionCellClass}>
-                    {labels.actions}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {data.items.map((entry) => (
-                  <tr key={entry.id} className={tableRowClass}>
-                    <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
-                      <div className="flex items-center gap-2">
-                        {entry.kind === "folder" ? (
-                          <FolderIcon
-                            className="size-5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <FileIcon
-                            className="size-5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        )}
-                        {entry.kind === "folder" && entry.state === "ready" ? (
-                          <HostLink
-                            href={getFolderHref(entry.id)}
-                            className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          >
-                            {entry.name}
-                          </HostLink>
-                        ) : (
-                          <span className="break-all">{entry.name}</span>
-                        )}
-                      </div>
-                      {entry.state === "deleting" && (
-                        <output className="mt-1 block text-xs text-muted-foreground">
-                          {labels.deleting}
-                        </output>
+        <p
+          className={cn("mb-4 text-sm text-muted-foreground", !capabilities?.upload && "invisible")}
+          aria-hidden={!capabilities?.upload}
+        >
+          {labels.drop} {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
+        </p>
+        <div className="relative overflow-x-auto">
+          <table
+            aria-label={data?.space.name ?? labels.title}
+            className={cn(tableClass, "min-w-[44rem]")}
+          >
+            <caption className="sr-only">
+              <DriveFeedback message={loading && data?.items.length ? labels.loading : undefined} />
+            </caption>
+            <thead>
+              <tr className={tableRowClass}>
+                <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
+                <SortHeading
+                  field="updatedAt"
+                  label={labels.modified}
+                  sort={sort}
+                  onSort={onSort}
+                />
+                <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.owner}
+                </th>
+                <th scope="col" className={tableActionCellClass}>
+                  {labels.actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="[&_tr:last-child]:border-0">
+              {(!!error || !data?.items.length) && (
+                <tr>
+                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <DriveFeedback
+                        message={
+                          error
+                            ? messageFor(error, labels)
+                            : loading
+                              ? labels.loading
+                              : search
+                                ? labels.noMatches
+                                : labels.empty
+                        }
+                        error={!!error}
+                      />
+                      {!!error && (
+                        <button className={buttonClass} onClick={refresh}>
+                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                          {labels.retry}
+                        </button>
                       )}
-                    </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                      <DriveModified
-                        value={entry.updatedAt}
-                        locale={locale}
-                        fallback={labels.unavailable}
-                      />
-                    </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                      <DriveSize
-                        value={entry.kind === "file" ? entry.size : undefined}
-                        locale={locale}
-                        fallback={labels.unavailable}
-                      />
-                    </td>
-                    <td className={cn(tableCellClass, "text-muted-foreground")}>
-                      <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
-                    </td>
-                    <td className={tableActionCellClass}>
-                      <div className="flex justify-end">
-                        {onSelectFile &&
-                          entry.kind === "file" &&
-                          entry.state === "ready" &&
-                          (!isSelectableFile || isSelectableFile(entry)) && (
-                            <button
-                              type="button"
-                              className={buttonClass}
-                              onClick={() => onSelectFile(entry)}
-                            >
-                              {selectFileLabel}
-                            </button>
-                          )}
-                        {entry.state === "ready" &&
-                          capabilities?.download &&
-                          entry.kind === "file" && (
-                            <button
-                              className={iconButtonClass}
-                              aria-label={labels.download}
-                              disabled={downloading}
-                              onClick={() => void download(entry)}
-                            >
-                              <DownloadIcon aria-hidden="true" />
-                            </button>
-                          )}
-                        {entry.state === "ready" && capabilities?.rename && (
-                          <EntryDialog
-                            client={client}
-                            scope={scope}
-                            parentId={parentId}
-                            entry={entry}
-                            labels={labels}
-                            refresh={() => {
-                              refresh();
-                              setFeedback({ message: labels.saved });
-                            }}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {data?.items.map((entry) => (
+                <tr key={entry.id} className={tableRowClass}>
+                  <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
+                    <div className="flex items-center gap-2">
+                      {entry.kind === "folder" ? (
+                        <FolderIcon
+                          className="size-5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <FileIcon
+                          className="size-5 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      )}
+                      {entry.kind === "folder" && entry.state === "ready" ? (
+                        <HostLink
+                          href={getFolderHref(entry.id)}
+                          className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                          {entry.name}
+                        </HostLink>
+                      ) : (
+                        <span className="break-all">{entry.name}</span>
+                      )}
+                    </div>
+                    {entry.state === "deleting" && (
+                      <output className="mt-1 block text-xs text-muted-foreground">
+                        {labels.deleting}
+                      </output>
+                    )}
+                  </td>
+                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                    <DriveModified
+                      value={entry.updatedAt}
+                      locale={locale}
+                      fallback={labels.unavailable}
+                    />
+                  </td>
+                  <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
+                    <DriveSize
+                      value={entry.kind === "file" ? entry.size : undefined}
+                      locale={locale}
+                      fallback={labels.unavailable}
+                    />
+                  </td>
+                  <td className={cn(tableCellClass, "text-muted-foreground")}>
+                    <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
+                  </td>
+                  <td className={tableActionCellClass}>
+                    <div className="flex justify-end gap-2">
+                      {onSelectFile &&
+                        entry.kind === "file" &&
+                        entry.state === "ready" &&
+                        (!isSelectableFile || isSelectableFile(entry)) && (
+                          <button
+                            type="button"
+                            className={buttonClass}
+                            disabled={actionsDisabled}
+                            onClick={() => onSelectFile(entry)}
                           >
-                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                          </EntryDialog>
+                            {selectFileLabel}
+                          </button>
                         )}
-                        {capabilities?.delete && (
-                          <EntryDialog
-                            client={client}
-                            scope={scope}
-                            parentId={parentId}
-                            entry={entry}
-                            deleting
-                            labels={labels}
-                            refresh={() => {
-                              refresh();
-                              setFeedback({ message: labels.saved });
-                            }}
+                      {entry.state === "ready" &&
+                        capabilities?.download &&
+                        entry.kind === "file" && (
+                          <button
+                            className={iconButtonClass}
+                            aria-label={labels.download}
+                            disabled={actionsDisabled || downloading}
+                            onClick={() => void download(entry)}
                           >
-                            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                          </EntryDialog>
+                            <DownloadIcon aria-hidden="true" />
+                          </button>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      {entry.state === "ready" && capabilities?.rename && (
+                        <EntryDialog
+                          client={client}
+                          scope={scope}
+                          parentId={parentId}
+                          entry={entry}
+                          disabled={actionsDisabled}
+                          labels={labels}
+                          refresh={() => {
+                            refresh();
+                            setFeedback(undefined);
+                            toastManager.add({ title: labels.saved, type: "success" });
+                          }}
+                        >
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                        </EntryDialog>
+                      )}
+                      {capabilities?.delete && (
+                        <EntryDialog
+                          client={client}
+                          scope={scope}
+                          parentId={parentId}
+                          entry={entry}
+                          deleting
+                          disabled={actionsDisabled}
+                          labels={labels}
+                          refresh={() => {
+                            refresh();
+                            setFeedback(undefined);
+                            toastManager.add({ title: labels.deleted, type: "success" });
+                          }}
+                        >
+                          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                        </EntryDialog>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className={tableFooterClass}>
           <button
             type="button"
@@ -619,51 +681,7 @@ function Browser({
           </button>
         </div>
       </div>
-      {queue.uploads.length > 0 && (
-        <div className={cn(cardClass, "space-y-4")}>
-          <h3 className="font-semibold">{labels.uploads}</h3>
-          <ul className="space-y-4">
-            {queue.uploads.map((upload) => (
-              <li key={upload.id} className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="min-w-0 text-sm break-all">{upload.file.name}</span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {["failed", "cancelFailed"].includes(upload.state) && (
-                      <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
-                        <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                        {labels.retry}
-                      </button>
-                    )}
-                    {["queued", "uploading", "failed"].includes(upload.state) && (
-                      <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
-                        {labels.cancel}
-                      </button>
-                    )}
-                    {["done", "cancelled"].includes(upload.state) && (
-                      <button className={buttonClass} onClick={() => queue.dismiss(upload.id)}>
-                        {labels.dismiss}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <progress
-                  className="h-2 w-full accent-primary"
-                  max={100}
-                  value={upload.progress}
-                  aria-label={labels.progress(upload.file.name)}
-                />
-                <DriveFeedback
-                  message={labels[upload.state]}
-                  error={upload.state === "failed" || upload.state === "cancelFailed"}
-                />
-                {upload.error !== undefined && (
-                  <DriveFeedback message={messageFor(upload.error, labels)} error />
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <DriveToasts labels={labels} queue={queue} />
     </section>
   );
 }

@@ -228,6 +228,65 @@ content stays unchanged, and changed positions increment versions so stale item
 editors cannot overwrite the new order. No schema migration is needed. Existing
 clients without this method still render the table without handles.
 
+## Printing
+
+`MenuPrintPage` and `MenuPrintPageProps` provide a branded print preview in the
+existing `@forge/menus` item. Add an authorized staff route and pass its URL as
+the optional `printHref` on `MenuItemsPage` to show the Print menu link. Existing
+hosts without that prop retain their current toolbar. No storage update or
+database migration is needed.
+
+Load the current menu with `service.publicMenu(locale)` in the host loader, or
+use `buildMenu` with the existing items, categories, labels and base locale. Pass
+the resulting sections to the preview:
+
+```tsx
+<MenuPrintPage
+  sections={sections}
+  locale={locale}
+  currency="CHF"
+  restaurantName={restaurant.name}
+  logo={restaurant.logo}
+  initialTitle="Menu"
+  initialFooter=""
+  backHref={menuManagementHref}
+  linkComponent={HostLink}
+  labels={translatedLabels}
+/>
+```
+
+`logo` is optional and accepts the Image shim's `src`, `alt`, dimensions,
+`srcSet` and `sizes`. Supply a logo suitable for the host's light background.
+Branding belongs to the host. The title and footer are editable only for the
+current session. Returning to the page restores the supplied defaults.
+
+The paper includes every visible dish in its existing order, descriptions, all
+size prices, assigned labels, spice information and sold-out text. It excludes
+hidden dishes, empty categories and dish photos. Public allergen/dietary filters
+do not affect printing. The current locale and existing fallback rules apply.
+
+Staff choose A4 portrait or A5 landscape, defaulting to A4, then use Print / Save PDF.
+The component prepares an isolated iframe containing only the paper and copies
+the host's styles. Print geometry ships in the component. The host still supplies
+the normal semantic tokens, Tailwind utilities and font roles, including a light
+theme. Styles, fonts and the optional logo must load before the dialog opens;
+failure keeps the settings and allows retry. Empty menus cannot be printed.
+
+The browser dialog supplies final pagination and PDF saving. Select the matching
+paper size, orientation and 100% scale, and disable browser headers and footers. Menus flow
+onto additional pages; headings and dishes stay together where they fit.
+An individual dish longer than a page may split. A5 means individual pages,
+not booklet imposition. There is no saved menu, direct PDF endpoint, or layout
+editor. The screen preview adapts to narrow screens; the print dialog shows the
+actual page breaks. Hosts own authorization and must guard the print route
+before loading staff data.
+
+Preview `/en/admin/menus/print` or `/fr/admin/menus/print`. The Menus homepage
+entry includes a searchable Menu printer tag; open it and follow Menu printer
+in the preview navigation. Print labels are optional additions to `MenusLabels` with
+English defaults. Override them together with existing sold-out and spice labels
+for the host's language.
+
 ## Showroom and checks
 
 Preview `/en/menus`, `/fr/menus`, and `/en/admin/menus`. In-memory edits survive

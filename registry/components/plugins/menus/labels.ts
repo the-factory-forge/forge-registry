@@ -5,6 +5,17 @@ export interface MenusLabels {
   search: string;
   noMatches: string;
   menu: string;
+  printMenu?: string;
+  print?: string;
+  preparingPrint?: string;
+  printSettings?: string;
+  paperSize?: string;
+  menuTitle?: string;
+  footerText?: string;
+  printHelp?: string;
+  printError?: string;
+  printPreview?: string;
+  emptyPrintMenu?: string;
   emptyMenu: string;
   soldOut: string;
   allergens: string;
@@ -77,6 +88,20 @@ export const menusLabels = {
   search: "Search menu items",
   noMatches: "No menu items match your search.",
   menu: "Menu",
+  printMenu: "Print menu",
+  print: "Print / Save PDF",
+  preparingPrint: "Preparing print…",
+  printSettings: "Print settings",
+  paperSize: "Paper size",
+  menuTitle: "Menu title",
+  footerText: "Footer text (optional)",
+  printHelp:
+    "Print all visible dishes. Choose A4 portrait or A5 landscape, 100% scale, and turn off browser headers and footers in the print dialog. You can also save as PDF. These settings are not saved.",
+  printError:
+    "Could not prepare the menu for printing. Check that the logo and styles can load, then try again.",
+  printPreview: "Menu print preview",
+  emptyPrintMenu:
+    "There are no visible dishes to print. Make an item visible in menu management first.",
   emptyMenu: "The menu is being prepared.",
   soldOut: "Sold out",
   allergens: "Allergens",

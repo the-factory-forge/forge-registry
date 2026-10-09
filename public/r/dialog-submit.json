@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "dialog-submit",
+  "title": "Dialog submit shortcut",
+  "description": "Cmd+Enter and Ctrl+Enter submit modal forms through their existing save buttons.",
+  "files": [
+    {
+      "path": "registry/components/utils/dialog-submit.ts",
+      "content": "import type { KeyboardEvent } from \"react\";\n\nexport function submitDialogOnShortcut(event: KeyboardEvent<HTMLElement>) {\n  if (\n    event.key !== \"Enter\" ||\n    !(event.metaKey || event.ctrlKey) ||\n    event.altKey ||\n    event.shiftKey ||\n    event.nativeEvent.isComposing ||\n    event.defaultPrevented ||\n    !event.currentTarget.contains(event.target as Node)\n  )\n    return;\n\n  const submit = event.currentTarget.querySelector<HTMLButtonElement | HTMLInputElement>(\n    'form button[type=\"submit\"], form button:not([type]), form input[type=\"submit\"]',\n  );\n  if (!submit) return;\n\n  event.preventDefault();\n  event.stopPropagation();\n  if (!event.repeat && !submit.matches(':disabled, [aria-disabled=\"true\"]')) submit.click();\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/dialog-submit.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

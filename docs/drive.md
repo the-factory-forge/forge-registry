@@ -68,6 +68,17 @@ via `labels`. Use `locale` for file sizes and dates; dates use UTC for consisten
 SSR. Use `className` and the host's semantic theme tokens. Navigation defaults
 to the Link shim. No router, query, auth, or notification library is needed.
 
+Folder creation, rename, deletion, and download confirmations appear as
+bottom-right toasts using the item's existing Base UI dependency. They dismiss
+after five seconds, pause while hovered or focused, and can be closed with the
+translated `close` label. Each browser provides its own toast context; hosts need
+no notification provider. Uploads share that fixed toast area, with per-file
+progress, Cancel, Retry and Dismiss controls. Active uploads and failures stay
+visible until resolved; a finished batch clears after five seconds or can be
+closed manually. Hovering or focusing pauses dismissal. Large batches scroll
+inside the toast, and other confirmations cannot hide upload recovery controls.
+Loading, form validation and listing errors remain inline with the affected controls.
+
 ## Table metadata and ordering
 
 Both views use a table with Name, Modified, Size, Owned, and Actions columns.
@@ -75,6 +86,17 @@ The directory sorts by all four metadata columns. Within a space, files sort by
 name, modification date, or size; Owned is shared by every entry, so it has no
 sort button. Headers support keyboard activation and expose `aria-sort`. Narrow
 screens scroll within the table to keep every column available.
+
+Linked-record navigation uses icon-only links in the directory's Actions column
+and the browser header. Each link's accessible name combines the translated
+`openRecord` label with the space name; hosts keep supplying the destination via
+`DriveSpace.href`.
+
+Headers stay mounted during loading, empty results and listing errors. Initial
+loading and empty/error feedback use a row spanning all five columns. Background
+requests retain loaded rows, upload guidance and known controls; actions are
+disabled until the request finishes. Guidance space is reserved before permissions
+arrive and on read-only views, without displaying upload instructions there.
 
 The host can supply these optional `DriveSpace` fields:
 

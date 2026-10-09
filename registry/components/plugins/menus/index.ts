@@ -1,4 +1,5 @@
 export { MenuPage, type MenuPageProps } from "@/components/plugins/menus/public";
+export { MenuPrintPage, type MenuPrintPageProps } from "@/components/plugins/menus/print";
 export {
   MenuItemsPage,
   MenuItemEditorPage,

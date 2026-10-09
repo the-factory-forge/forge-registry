@@ -6,6 +6,7 @@ import test from "node:test";
 const { createArticle, publishArticle, saveArticle, validateCategory } =
   await import("../registry/components/plugins/blogs/model.ts");
 const {
+  articleListItem,
   emptyContent,
   markdownAssetIds,
   normalizeCategories,
@@ -30,6 +31,14 @@ const child = {
   translations: { en: { name: "Design", slug: "design" } },
 };
 const categories = [parent, child];
+test("admin list includes assigned category names with locale fallback", () => {
+  const article = createArticle(randomUUID(), "Draft", "en", actor, now);
+  assert.deepEqual(articleListItem(article, "en", categories).categoryNames, []);
+  article.shared.categoryIds = [parent.id, child.id];
+  assert.deepEqual(articleListItem(article, "en", categories).categoryNames, ["Ideas", "Design"]);
+  assert.deepEqual(articleListItem(article, "fr", categories).categoryNames, ["Idées", "Design"]);
+  assert.deepEqual(articleListItem(article, "en").categoryNames, []);
+});
 test("publication snapshots isolate languages, shared media, attribution, and category counts", () => {
   let article = createArticle(randomUUID(), "First title", "en", actor, now);
   const image = randomUUID(),

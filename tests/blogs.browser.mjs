@@ -28,6 +28,121 @@ async function saved(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "Draft saved." }).waitFor();
 }
+test("admin categories stay readable and long table text truncates in both themes", async (t) => {
+  const page = await preview(t, "/en/admin/blogs", { viewport: { width: 1440, height: 1000 } });
+  const row = page.getByRole("row").filter({
+    has: page.locator(`a[href="/en/admin/blogs/${existing}"]`),
+  });
+  await page.getByRole("columnheader", { name: "Categories", exact: true }).waitFor();
+  assert.equal(await row.getByRole("cell").nth(1).textContent(), "Ideas & practice, Design");
+  const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
+  assert.equal(await draft.getByRole("cell").nth(1).textContent(), "—");
+  await page.getByRole("link", { name: "Manage categories", exact: true }).click();
+  await page.getByRole("button", { name: "Ideas & practice", exact: true }).click();
+  const categoryName = "A category with a name that is far too long to fit in a compact table cell";
+  await page
+    .getByRole("group", { name: "English", exact: true })
+    .getByLabel("Category name", { exact: true })
+    .fill(categoryName);
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Category saved." }).waitFor();
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  await row.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
+  const title =
+    "A post title that is far too long to fit in a compact table cell without truncation";
+  await page.getByLabel("Title", { exact: true }).fill(title);
+  await saved(page);
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  for (const [theme, width] of [
+    ["light", 1440],
+    ["dark", 390],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    if (theme === "dark")
+      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    const link = row.getByRole("link", { name: title, exact: true });
+    const category = row.getByRole("cell").nth(1).locator("p");
+    assert.equal(await link.getAttribute("title"), title);
+    assert.deepEqual(
+      (await category.getAttribute("title")).split(", ").sort(),
+      [categoryName, "Design"].sort(),
+    );
+    for (const text of [link, category]) {
+      assert.equal(
+        await text.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return style.textOverflow === "ellipsis" && node.scrollWidth > node.clientWidth;
+        }),
+        true,
+      );
+    }
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await row.getByRole("button", { name: `Delete post: ${title}`, exact: true }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    await page.screenshot({ path: `/tmp/forge-blogs-categories-${theme}.png`, fullPage: true });
+  }
+  await page.getByRole("link", { name: "French blog", exact: true }).click();
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  const frenchRow = page.getByRole("row").filter({
+    has: page.locator(`a[href="/fr/admin/blogs/${existing}"]`),
+  });
+  assert.deepEqual((await frenchRow.getByRole("cell").nth(1).textContent()).split(", ").sort(), [
+    "Design",
+    "Idées et pratique",
+  ]);
+});
+test("editor groups child categories with their parent and preserves linked selection", async (t) => {
+  const page = await preview(t, `/en/admin/blogs/${existing}`, {
+    viewport: { width: 1440, height: 1000 },
+  });
+  const group = page.getByRole("group", { name: "Categories", exact: true });
+  const parent = group.getByRole("checkbox", { name: "Ideas & practice", exact: true });
+  const child = group.getByRole("checkbox", { name: "Design", exact: true });
+  const parentItem = group.locator(":scope > ul > li").filter({
+    has: page.getByRole("checkbox", { name: "Design", exact: true }),
+  });
+  assert.equal(
+    await parentItem.locator("ul").getByRole("checkbox", { name: "Design", exact: true }).count(),
+    1,
+  );
+  assert.equal(
+    await parentItem.getByRole("checkbox", { name: "Inside the studio", exact: true }).count(),
+    0,
+  );
+  await parent.uncheck();
+  assert.equal(await child.isChecked(), false);
+  await child.press("Space");
+  assert.equal(await parent.isChecked(), true);
+  assert.equal(await child.isChecked(), true);
+  await saved(page);
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  assert.equal(
+    await group.getByRole("checkbox", { name: "Idées et pratique", exact: true }).isChecked(),
+    true,
+  );
+  for (const [theme, width] of [
+    ["light", 1440],
+    ["dark", 390],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    if (theme === "dark")
+      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    const nested = parentItem.locator("ul");
+    assert.equal(await nested.evaluate((node) => getComputedStyle(node).borderLeftWidth), "1px");
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await group.screenshot({ path: `/tmp/forge-blog-category-hierarchy-${theme}.png` });
+  }
+  await page.getByLabel("Read-only", { exact: true }).check();
+  assert.equal(await child.isDisabled(), true);
+});
 test("list deletion confirms the selected post, retains failures, and respects permissions", async (t) => {
   const page = await preview(t, "/en/admin/blogs");
   const title = "Make room for better ideas";

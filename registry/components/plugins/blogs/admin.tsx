@@ -150,12 +150,13 @@ export function BlogsPage({
         ) : !data.items.length ? (
           <Feedback message={labels.empty} />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className={tableClass}>
               <thead>
                 <tr className={tableRowClass}>
                   {[
                     labels.title,
+                    labels.categories,
                     labels.languages,
                     labels.editor,
                     labels.modified,
@@ -164,7 +165,7 @@ export function BlogsPage({
                     <th
                       key={label}
                       scope="col"
-                      className={index === 4 ? tableActionCellClass : tableHeaderClass}
+                      className={index === 5 ? tableActionCellClass : tableHeaderClass}
                     >
                       {label}
                     </th>
@@ -177,10 +178,16 @@ export function BlogsPage({
                     <td className={cn(tableCellClass, "min-w-48 font-medium")}>
                       <BlogLink
                         href={editHref(post.id)}
-                        className="text-foreground hover:underline"
+                        className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
+                        title={post.title}
                       >
                         {post.title}
                       </BlogLink>
+                    </td>
+                    <td className={tableCellClass}>
+                      <p className="max-w-48 truncate" title={post.categoryNames?.join(", ")}>
+                        {post.categoryNames?.join(", ") || "—"}
+                      </p>
                     </td>
                     <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
                       <div className="flex flex-nowrap gap-2">
@@ -267,7 +274,10 @@ export function BlogNewPage({
   }
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink href={backHref} className={buttonClass}>
+      <BlogLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         ← {labels.back}
       </BlogLink>
       <h1 className="font-serif text-3xl font-semibold">{labels.newPost}</h1>
@@ -363,7 +373,7 @@ function BackLink({
   labels: overrides,
 }: Pick<BlogEditPageProps, "linkComponent" | "backHref" | "labels">) {
   return (
-    <BlogLink href={backHref} className={buttonClass}>
+    <BlogLink href={backHref} className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}>
       ← {{ ...blogsLabels, ...overrides }.back}
     </BlogLink>
   );
@@ -564,6 +574,33 @@ function EditorForm({
       </div>
     );
   }
+  const categoryCheckbox = (category: BlogCategory) => (
+    <label
+      className={cn(
+        "flex min-w-0 items-start gap-2 text-sm",
+        category.parentId ? "text-muted-foreground" : "font-medium",
+      )}
+    >
+      <input
+        type="checkbox"
+        className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
+        checked={shared.categoryIds.includes(category.id)}
+        onChange={(e) => {
+          const ids = e.target.checked
+            ? [...shared.categoryIds, category.id]
+            : shared.categoryIds.filter(
+                (value) =>
+                  value !== category.id &&
+                  categories.find((c) => c.id === value)?.parentId !== category.id,
+              );
+          sharedField("categoryIds", normalizeCategories(ids, categories));
+        }}
+      />
+      <span className="min-w-0 wrap-anywhere">
+        {category.translations[locale]?.name ?? Object.values(category.translations)[0]?.name}
+      </span>
+    </label>
+  );
   return (
     <>
       <header className="space-y-2">
@@ -633,31 +670,25 @@ function EditorForm({
           <p className="text-xs text-muted-foreground">{labels.imageHint}</p>
           <fieldset className="space-y-3">
             <legend className="mb-3 text-sm font-medium">{labels.categories}</legend>
-            <div className="flex flex-wrap gap-4">
-              {categories.map((c) => (
-                <label
-                  key={c.id}
-                  className={cn("flex items-center gap-2 text-sm", c.parentId && "pl-3")}
-                >
-                  <input
-                    type="checkbox"
-                    checked={shared.categoryIds.includes(c.id)}
-                    onChange={(e) => {
-                      const ids = e.target.checked
-                        ? [...shared.categoryIds, c.id]
-                        : shared.categoryIds.filter(
-                            (value) =>
-                              value !== c.id &&
-                              categories.find((category) => category.id === value)?.parentId !==
-                                c.id,
-                          );
-                      sharedField("categoryIds", normalizeCategories(ids, categories));
-                    }}
-                  />
-                  {c.translations[locale]?.name ?? Object.values(c.translations)[0]?.name}
-                </label>
-              ))}
-            </div>
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {categories
+                .filter((category) => !category.parentId)
+                .map((parent) => {
+                  const children = categories.filter((category) => category.parentId === parent.id);
+                  return (
+                    <li key={parent.id} className="min-w-0">
+                      {categoryCheckbox(parent)}
+                      {children.length > 0 && (
+                        <ul className="mt-2 ml-2 space-y-2 border-l border-border pl-4">
+                          {children.map((child) => (
+                            <li key={child.id}>{categoryCheckbox(child)}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+            </ul>
           </fieldset>
         </fieldset>
         <div className={cn(cardClass, "space-y-4")}>
@@ -836,7 +867,10 @@ export function BlogCategoriesPage({
   );
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink href={backHref} className={buttonClass}>
+      <BlogLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         ← {labels.back}
       </BlogLink>
       <header className="flex flex-wrap items-center justify-between gap-3">

@@ -158,13 +158,26 @@ export function hasUnpublishedChanges(article: BlogArticle, locale: string) {
     JSON.stringify(article.shared) !== JSON.stringify(translation.published.shared)
   );
 }
-export function articleListItem(article: BlogArticle, locale: string): BlogListItem {
+export function articleListItem(
+  article: BlogArticle,
+  locale: string,
+  categories: BlogCategory[] = [],
+): BlogListItem {
   return {
     id: article.id,
     title:
       article.translations[locale]?.draft.title ??
       Object.values(article.translations)[0]?.draft.title ??
       "",
+    categoryNames: categories
+      .filter((category) => article.shared.categoryIds.includes(category.id))
+      .map(
+        (category) =>
+          category.translations[locale]?.name ??
+          Object.values(category.translations)[0]?.name ??
+          "",
+      )
+      .filter(Boolean),
     editor: article.editor,
     updatedAt: article.updatedAt,
     translations: Object.entries(article.translations).map(([code, t]) => ({

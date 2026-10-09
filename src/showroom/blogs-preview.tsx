@@ -184,7 +184,13 @@ export function BlogsAdminPreview() {
     if (!article)
       return (
         <p role="alert" className="p-8">
-          Article unavailable. <Link href={root}>Back to posts</Link>
+          Article unavailable.{" "}
+          <Link
+            href={root}
+            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            Back to posts
+          </Link>
         </p>
       );
     return (
@@ -210,7 +216,7 @@ export function BlogsAdminPreview() {
               t.draft.title.toLowerCase().includes(search.toLowerCase()),
             ),
           )
-          .map((a) => articleListItem(a, locale));
+          .map((a) => articleListItem(a, locale, state.mock.categories()));
   return (
     <BlogsPage
       {...common}
@@ -269,7 +275,13 @@ export function BlogsPublicPreview() {
     if (!post)
       return (
         <p role="alert" className="p-8">
-          This translation is not published. <Link href={root}>Back to posts</Link>
+          This translation is not published.{" "}
+          <Link
+            href={root}
+            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            Back to posts
+          </Link>
         </p>
       );
     const article = state.mock.get(post.id),

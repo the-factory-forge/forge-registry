@@ -260,7 +260,10 @@ export function ProjectDetailPage({
   const website = safeProjectUrl(project.url);
   return (
     <div className={cn(pageClass, className)}>
-      <ProjectLink href={backHref} className={buttonClass}>
+      <ProjectLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         <ArrowLeftIcon aria-hidden="true" />
         {labels.back}
       </ProjectLink>
@@ -330,7 +333,10 @@ export function ProjectNewPage({
   const labels = { ...projectLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <ProjectLink href={backHref} className={buttonClass}>
+      <ProjectLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         <ArrowLeftIcon aria-hidden="true" />
         {labels.back}
       </ProjectLink>

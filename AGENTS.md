@@ -1,5 +1,29 @@
 # Project context for AI contributors
 
+## Git worktree workflow
+
+Use an isolated Git worktree for every task that changes files, including
+documentation. This applies to delegated agents too. Reuse a worktree already
+dedicated to the task.
+
+1. Record the original checkout path, its current branch and commit, and existing
+   staged, unstaged and untracked changes. Create the worktree from that branch's
+   current commit. Use `codex/<task>` for a temporary branch; do not assume the
+   destination branch is `main`.
+2. Make changes and run the required checks in the worktree. If the task depends
+   on uncommitted work in the original checkout, copy only the needed files and
+   record that baseline so those edits are not mistaken for your own.
+3. When the task is complete, apply only your task's diff back to the original
+   checkout on the recorded branch, including added and deleted files, assets and
+   generated output. Leave the transferred changes uncommitted. Preserve existing
+   edits and staged contents. Recheck the branch and overlapping edits before
+   transferring; resolve conflicts without overwriting someone else's work.
+4. Review the transferred diff and run the relevant checks in the original
+   checkout. Only then remove the task's worktree and any temporary branch you
+   created. Preserve any needed ignored files before cleanup. If transfer or
+   verification is blocked, keep the worktree and report what remains.
+5. Do not push unless the user explicitly requests it.
+
 ## Shared Forge specifications
 
 Before implementation, read `../forge-spec/AGENTS.md` and the shared
@@ -82,6 +106,8 @@ in `tc-website`; this registry contains reusable components for multiple custome
 - [README.md](./README.md): overview, inventory, distribution, and commands.
 - [CONTEXT.md](./CONTEXT.md): DOM ID naming and screenshot integration.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
+- [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
+  including layout stability across asynchronous states.
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.
 - `vite.config.ts`: Vite Plus lint and format settings; TanStack Start, React, Tailwind, and Nitro plugins run the showroom.
@@ -175,6 +201,11 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   save/confirmation buttons retain their visible text.
 - Keep components compatible with server rendering. Add `"use client"` where
   hooks, events, or browser APIs require it; do not access browser globals during render.
+- Avoid layout shifts during loading, empty results, errors and action feedback.
+  Follow [Layout stability](./DESIGN.md#layout-stability): preserve established
+  structure and loaded content, reserve feedback space, and disable pending
+  actions instead of hiding them. Verify persistent element positions during
+  asynchronous transitions as part of visual checks.
 - Keep framework imports out of shared UI. Use the `ui-shims` item for Link,
   Image, Script, and pathname access. Consumers adapt these implementations to
   their framework while preserving the registry's exported names and props

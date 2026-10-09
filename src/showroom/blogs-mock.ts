@@ -243,7 +243,7 @@ export function createBlogsMock() {
         return {
           items: filtered
             .slice((page - 1) * pageSize, page * pageSize)
-            .map((a) => articleListItem(a, q.locale)),
+            .map((a) => articleListItem(a, q.locale, categories)),
           total: filtered.length,
           page,
           pageSize,

@@ -150,6 +150,19 @@ Reusable page sections use the existing container and section-spacing helpers.
 Their host requirements are separate from showroom geometry. Adjacent action
 buttons retain at least 4px spacing; toolbars and form actions normally use 8px.
 
+### Layout stability
+
+Design asynchronous states to avoid layout shifts. Keep established headings,
+table headers, guidance and controls mounted while data reloads. Retain loaded
+rows during background requests and disable unavailable actions without hiding
+them. Put initial loading, empty and error feedback inside the existing content
+region, using a spanning table row where applicable. Reserve space for content
+whose permissions or size are not yet known without implying access. Use fixed
+toasts for brief action confirmations. Verify the positions of persistent elements
+across these transitions on desktop and mobile in both themes. New data may
+naturally change content height; temporary feedback should not move the surrounding
+interface.
+
 ## Elevation & Depth
 
 The interface is lightly layered, combining borders and small soft shadows.

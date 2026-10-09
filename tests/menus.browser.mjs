@@ -33,6 +33,11 @@ test("homepage links, public visibility, sold out labels, language fallback, and
   await page.getByRole("button", { name: "Plugin", exact: true }).click();
   await page.locator('main a[href="/en/menus"]').click();
   await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
+  const image = page.getByRole("img", { name: "Burrata with tomatoes", exact: true });
+  await image.scrollIntoViewIfNeeded();
+  await image.evaluate((element) => element.decode());
+  assert.equal(await page.locator("article img").count(), 1);
+  assert.equal(await image.getAttribute("src"), "/showroom/menus/burrata-with-tomatoes.png");
   await page.getByRole("link", { name: "Manage menu" }).click();
   await page.getByRole("heading", { name: "Menu items" }).waitFor();
   await page.getByRole("link", { name: "Public menu" }).click();
@@ -44,7 +49,59 @@ test("homepage links, public visibility, sold out labels, language fallback, and
   await page.getByRole("heading", { name: "House pasta" }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole("img", { name: "Burrata aux tomates", exact: true })
+      .evaluate((element) => getComputedStyle(element).filter),
+    "invert(1)",
+  );
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+
+test("sample menu image can be removed, reselected, and replaced with an uploaded image", async (t) => {
+  const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001");
+  await page.getByRole("button", { name: "Remove photo", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  assert.equal(await page.locator("article img").count(), 0);
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "burrata-with-tomatoes.png" })
+    .getByRole("button", { name: "Use as photo", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  assert.equal(
+    await page.locator("article img").getAttribute("src"),
+    "/showroom/menus/burrata-with-tomatoes.png",
+  );
+  await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+  await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "replacement.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8ioAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await page
+    .getByRole("row")
+    .filter({ hasText: "replacement.png" })
+    .getByRole("button", { name: "Use as photo", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await page.getByRole("link", { name: "Public menu", exact: true }).click();
+  const image = page.getByRole("img", { name: "Burrata with tomatoes", exact: true });
+  await image.scrollIntoViewIfNeeded();
+  await image.evaluate((element) => element.decode());
+  assert.match(await image.getAttribute("src"), /^blob:/);
+  assert.equal(await image.evaluate((element) => getComputedStyle(element).filter), "none");
 });
 
 test("category tabs scroll, track sections, translate, and follow dish filters", async (t) => {

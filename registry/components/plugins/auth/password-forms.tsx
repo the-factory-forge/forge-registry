@@ -142,7 +142,13 @@ export function ForgotPasswordForm({
         </form>
       )}
       {loginHref && (
-        <FormLink href={loginHref} className={linkClass}>
+        <FormLink
+          href={loginHref}
+          className={cn(
+            linkClass,
+            "min-h-10 justify-self-start rounded-lg px-3 hover:bg-primary/5 hover:no-underline",
+          )}
+        >
           <ArrowLeftIcon className="size-4" aria-hidden="true" />
           {labels.backToLogin}
         </FormLink>
@@ -319,7 +325,13 @@ export function ResetPasswordForm({
         </FormLink>
       )}
       {loginHref && (
-        <FormLink href={loginHref} className={linkClass}>
+        <FormLink
+          href={loginHref}
+          className={cn(
+            linkClass,
+            "min-h-10 justify-self-start rounded-lg px-3 hover:bg-primary/5 hover:no-underline",
+          )}
+        >
           {labels.backToLogin}
         </FormLink>
       )}

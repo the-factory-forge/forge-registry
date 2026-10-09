@@ -1,12 +1,20 @@
 "use client";
 
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import {
   MenuItemEditorPage,
   MenuItemsPage,
   MenuPage,
+  MenuPrintPage,
   MenuTaxonomyPage,
   buildMenu,
   menuLabelPresets,
@@ -28,7 +36,20 @@ const locales = [
 ];
 
 function createMock() {
-  const drive = createDriveMock();
+  const drive = createDriveMock([
+    {
+      id: "40000000-0000-4000-8000-000000000001",
+      scope: { type: "menu-item", id: "30000000-0000-4000-8000-000000000001" },
+      parentId: null,
+      kind: "file",
+      name: "burrata-with-tomatoes.png",
+      size: 1380907,
+      contentType: "image/png",
+      updatedAt: "2026-10-08T00:00:00Z",
+      state: "ready",
+      url: "/showroom/menus/burrata-with-tomatoes.png",
+    },
+  ]);
   let categories: MenuCategory[] = [
     {
       id: "10000000-0000-4000-8000-000000000001",
@@ -61,7 +82,7 @@ function createMock() {
       position: 0,
       visible: true,
       soldOut: false,
-      imageEntryId: null,
+      imageEntryId: "40000000-0000-4000-8000-000000000001",
       labelIds: [labels[0].id, labels[1].id],
       translations: {
         en: { name: "Burrata with tomatoes", description: "Basil, olive oil, and toasted bread." },
@@ -248,6 +269,7 @@ function useMock() {
 
 export function MenusPreviewProvider({ children }: { children: ReactNode }) {
   const [mock] = useState(createMock);
+  useEffect(() => () => mock.drive.dispose(), [mock]);
   const { locale } = useShowroomParams();
   useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   return (
@@ -258,6 +280,7 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
           <>
             <Link href={`/${locale}/menus`}>Public menu</Link>
             <Link href={`/${locale}/admin/menus`}>Manage menu</Link>
+            <Link href={`/${locale}/admin/menus/print`}>Menu printer</Link>
             <Link href="/fr/menus">French menu</Link>
           </>
         }
@@ -287,7 +310,13 @@ export function MenuPublicPreview() {
       sections={sections}
       locale={locale}
       currency="CHF"
-      className="showroom-page [--menu-top-offset:var(--showroom-top-offset)]"
+      imageUrl={(itemId) =>
+        mock.drive.fileUrl(
+          { type: "menu-item", id: itemId },
+          mock.items.find((item) => item.id === itemId)?.imageEntryId ?? "",
+        )
+      }
+      className="showroom-page [--menu-top-offset:var(--showroom-top-offset)] [&_img[src='/showroom/menus/burrata-with-tomatoes.png']]:object-contain [&_img[src='/showroom/menus/burrata-with-tomatoes.png']]:mix-blend-multiply dark:[&_img[src='/showroom/menus/burrata-with-tomatoes.png']]:mix-blend-screen dark:[&_img[src='/showroom/menus/burrata-with-tomatoes.png']]:invert"
       labels={
         locale === "fr"
           ? {
@@ -329,6 +358,45 @@ export function MenuAdminPreview() {
     mock.fail,
     "ready",
   );
+  if (id === "print")
+    return (
+      <MenuPrintPage
+        key={locale}
+        sections={buildMenu(mock.items, mock.categories, mock.labels, locale, baseLocale)}
+        locale={locale}
+        currency="CHF"
+        restaurantName="Acme restaurant"
+        backHref={base}
+        linkComponent={Link}
+        className="showroom-page"
+        labels={
+          locale === "fr"
+            ? {
+                menu: "La carte",
+                printMenu: "Imprimer le menu",
+                print: "Imprimer / Enregistrer en PDF",
+                preparingPrint: "Préparation de l'impression…",
+                printSettings: "Paramètres d'impression",
+                paperSize: "Format du papier",
+                menuTitle: "Titre du menu",
+                footerText: "Texte de pied de page (facultatif)",
+                printHelp:
+                  "Imprimez tous les plats visibles. Choisissez A4 portrait ou A5 paysage et une échelle de 100 %, puis désactivez les en-têtes et pieds de page du navigateur. Vous pouvez aussi enregistrer un PDF. Ces paramètres ne sont pas conservés.",
+                printError:
+                  "Impossible de préparer l'impression. Vérifiez le chargement du logo et des styles, puis réessayez.",
+                printPreview: "Aperçu du menu à imprimer",
+                emptyPrintMenu:
+                  "Aucun plat visible à imprimer. Rendez d'abord un plat visible dans la gestion du menu.",
+                back: "Retour aux plats",
+                soldOut: "Épuisé",
+                mildSpice: "Peu épicé",
+                mediumSpice: "Épicé",
+                hotSpice: "Extrêmement épicé",
+              }
+            : undefined
+        }
+      />
+    );
   if (id === "taxonomy")
     return (
       <MenuTaxonomyPage
@@ -370,6 +438,7 @@ export function MenuAdminPreview() {
       baseLocale={baseLocale}
       newHref={`${base}/new`}
       taxonomyHref={`${base}/taxonomy`}
+      printHref={`${base}/print`}
       getEditHref={(entry) => `${base}/${entry.id}`}
       linkComponent={Link}
       className="showroom-page"

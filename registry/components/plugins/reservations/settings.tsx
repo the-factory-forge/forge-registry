@@ -69,7 +69,10 @@ export function ReservationSettingsPage({
       : config?.resources.find((r) => r.id === editor?.id);
   return (
     <section className={cn(pageClass, className)}>
-      <HostLink className={buttonClass} href={backHref}>
+      <HostLink
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+        href={backHref}
+      >
         {labels.back}
       </HostLink>
       <h1 className="font-serif text-3xl font-semibold">
@@ -749,7 +752,12 @@ function ArchiveDialog({
     >
       <ErrorNotice error={action.error} labels={labels} />
       <div className="flex gap-3">
-        <button type="button" className={buttonClass} onClick={onClose} disabled={action.busy}>
+        <button
+          type="button"
+          className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+          onClick={onClose}
+          disabled={action.busy}
+        >
           {labels.back}
         </button>
         <button

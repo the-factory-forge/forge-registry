@@ -131,7 +131,7 @@ export function ProjectPersonPicker({
         aria-label={`${title}${required ? " *" : ""}`}
         className={cn(
           buttonClass,
-          "min-h-14 w-full min-w-0 justify-start border border-border px-3 text-left aria-invalid:ring-2 aria-invalid:ring-destructive",
+          "min-h-14 w-full min-w-0 justify-start border border-border px-3 py-2 text-left aria-invalid:ring-2 aria-invalid:ring-destructive",
         )}
       >
         <ProjectAvatar name={selected?.name ?? ""} image={selected?.image} />

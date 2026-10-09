@@ -58,7 +58,10 @@ export function DrivePreview() {
     return (
       <p>
         Drive space not found.{" "}
-        <Link className="underline" href={base}>
+        <Link
+          className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+          href={base}
+        >
           Back to drive
         </Link>
       </p>

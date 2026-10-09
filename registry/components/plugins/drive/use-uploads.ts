@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
 import { transferDriveUpload } from "@/components/plugins/drive/transfer";
@@ -37,9 +37,18 @@ export function useUploads(
   const jobs = useRef<Job[]>([]);
   const mounted = useRef(true);
   const [uploads, setUploads] = useState<Job[]>([]);
-  const publish = () => {
+  const publish = useCallback(() => {
     if (mounted.current) setUploads(jobs.current.map((job) => ({ ...job })));
-  };
+  }, []);
+  const dismiss = useCallback(
+    (id: string) => {
+      jobs.current = jobs.current.filter(
+        (job) => job.id !== id || !["done", "cancelled"].includes(job.state),
+      );
+      publish();
+    },
+    [publish],
+  );
   async function abandon(job: Job) {
     job.state = "cancelling";
     publish();
@@ -184,11 +193,6 @@ export function useUploads(
       publish();
       pump();
     },
-    dismiss(id: string) {
-      jobs.current = jobs.current.filter(
-        (job) => job.id !== id || !["done", "cancelled"].includes(job.state),
-      );
-      publish();
-    },
+    dismiss,
   };
 }

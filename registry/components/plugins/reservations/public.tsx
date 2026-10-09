@@ -341,7 +341,7 @@ export function BookingForm({
         {reviewing && (
           <button
             type="button"
-            className={buttonClass}
+            className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
             disabled={action.busy}
             onClick={() => setReviewing(false)}
           >

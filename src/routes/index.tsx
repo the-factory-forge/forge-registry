@@ -34,6 +34,7 @@ const examples = (
       icon: pluginIcons.reservations,
       description:
         "Appointments and overnight stays, year and staff calendars, approval, cleaning buffers, and guest management.",
+      tags: ["Public booking", "Staff calendar", "Guest management", "Booking settings"],
       keywords: [
         "reservations",
         "booking",
@@ -98,6 +99,7 @@ const examples = (
       title: "Auth",
       icon: pluginIcons.auth,
       description: "Sign-in, sign-out, password recovery and changes, and access-denied states.",
+      tags: ["Sign in", "Sign out", "Password recovery", "Password changes", "Access denied"],
       keywords: [
         "login form",
         "sign in",
@@ -116,6 +118,7 @@ const examples = (
       title: "Employees",
       icon: pluginIcons.employees,
       description: "Create and edit users, delete accounts, and send email verification reminders.",
+      tags: ["Employee directory", "Account management", "Email verification"],
       keywords: [
         "employee list",
         "create employee",
@@ -132,6 +135,7 @@ const examples = (
       icon: pluginIcons.blogs,
       description:
         "Multilingual Markdown articles, shared images, categories, and draft publishing.",
+      tags: ["Public blog", "Post editor", "Categories", "Publishing"],
       keywords: [
         "blog index",
         "blog post",
@@ -150,7 +154,8 @@ const examples = (
       title: "Menus",
       icon: pluginIcons.menus,
       description:
-        "Translated restaurant menu with draggable item ordering, size prices, category tabs, icon badges, spice levels, allergen and dietary filters, and staff management.",
+        "Translated restaurant menu with draggable item ordering, size prices, category tabs, icon badges, spice levels, allergen and dietary filters, staff management, and A4/A5 printing.",
+      tags: ["Public menu", "Menu management", "Menu printer"],
       keywords: [
         "public menu",
         "restaurant menu",
@@ -167,6 +172,12 @@ const examples = (
         "dietary filters",
         "labels",
         "photos",
+        "print menu",
+        "restaurant",
+        "paper",
+        "A4",
+        "A5",
+        "PDF",
       ],
     },
     {
@@ -175,6 +186,7 @@ const examples = (
       title: "Drive",
       icon: pluginIcons.drive,
       description: "Private file spaces for customers, projects, or any host record.",
+      tags: ["File browser", "Folders", "Uploads", "Downloads"],
       keywords: ["drive page", "drive browser", "file spaces", "folders", "files", "uploads"],
     },
     {
@@ -183,6 +195,7 @@ const examples = (
       title: "Projects",
       icon: pluginIcons.projects,
       description: "Customer-owned projects, shared lists, Details and Drive sections.",
+      tags: ["Project list", "Project details", "Assignments", "Drive integration"],
       keywords: [
         "project list",
         "project details",
@@ -198,6 +211,13 @@ const examples = (
       title: "Customers",
       icon: pluginIcons.customers,
       description: "Customer directory, contact details, and creation with host-owned actions.",
+      tags: [
+        "Customer directory",
+        "Contact details",
+        "Customer creation",
+        "Projects integration",
+        "Sync integration",
+      ],
       keywords: [
         "customer list",
         "customer details",
@@ -241,6 +261,7 @@ const examples = (
     title: string;
     icon?: LucideIcon;
     description: string;
+    tags?: string[];
     keywords: string[];
   }[]
 ).sort((a, b) => a.title.localeCompare(b.title, "en"));
@@ -258,7 +279,9 @@ function Home() {
   const visibleExamples = examples.filter(
     (example) =>
       (type === "All" || example.category === type) &&
-      [example.title, ...example.keywords].some((value) => value.toLowerCase().includes(query)),
+      [example.title, ...(example.tags ?? []), ...example.keywords].some((value) =>
+        value.toLowerCase().includes(query),
+      ),
   );
 
   return (
@@ -368,6 +391,21 @@ function Home() {
               <p className="mt-4 flex-1 text-sm leading-relaxed text-pretty text-muted-foreground">
                 {example.description}
               </p>
+              {example.tags && (
+                <ul
+                  aria-label={`Included in ${example.title}`}
+                  className="mt-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                >
+                  {example.tags.map((tag) => (
+                    <li
+                      key={tag}
+                      className="shrink-0 rounded-md border border-border px-2 py-1 text-xs whitespace-nowrap text-muted-foreground"
+                    >
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <p className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary">
                 Open {example.category.toLowerCase()}{" "}
                 <ArrowRightIcon

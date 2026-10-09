@@ -7,6 +7,7 @@ import {
   GripVerticalIcon,
   PencilIcon,
   PlusIcon,
+  PrinterIcon,
   RefreshCwIcon,
   SettingsIcon,
   Trash2Icon,
@@ -31,6 +32,7 @@ import type {
 } from "@/components/plugins/menus/types";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
+import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
   tableActionCellClass,
   tableCellClass,
@@ -147,6 +149,7 @@ export interface MenuItemsPageProps {
   baseLocale: string;
   newHref: string;
   taxonomyHref: string;
+  printHref?: string;
   getEditHref: (item: MenuItem) => string;
   linkComponent?: ComponentType<LinkProps>;
   labels?: Partial<MenusLabels>;
@@ -158,6 +161,7 @@ export function MenuItemsPage({
   baseLocale,
   newHref,
   taxonomyHref,
+  printHref,
   getEditHref,
   linkComponent: HostLink = Link,
   labels: overrides,
@@ -302,6 +306,12 @@ export function MenuItemsPage({
               <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.categories} / {labels.labels}
             </HostLink>
+            {printHref && (
+              <HostLink href={printHref} className={outlineButton}>
+                <PrinterIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.printMenu}
+              </HostLink>
+            )}
             <HostLink href={newHref} className={primary}>
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
               {labels.newItem}
@@ -657,7 +667,7 @@ export function MenuItemEditorPage({
   }
   return (
     <section className={cn(page, className)}>
-      <HostLink href={backHref} className={button}>
+      <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
         <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
       </HostLink>
@@ -1016,7 +1026,10 @@ function TaxonomyDialog({
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
+        <Dialog.Popup
+          onKeyDownCapture={submitDialogOnShortcut}
+          className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+        >
           <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
           <form
             className="mt-5 space-y-4"
@@ -1155,7 +1168,7 @@ export function MenuTaxonomyPage({
   const refresh = () => setRevision((n) => n + 1);
   return (
     <section className={cn(page, className)}>
-      <HostLink href={backHref} className={button}>
+      <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
         <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
       </HostLink>

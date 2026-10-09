@@ -31,6 +31,19 @@
       ]
     },
     {
+      "name": "dialog-submit",
+      "type": "registry:lib",
+      "title": "Dialog submit shortcut",
+      "description": "Cmd+Enter and Ctrl+Enter submit modal forms through their existing save buttons.",
+      "files": [
+        {
+          "path": "registry/components/utils/dialog-submit.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/dialog-submit.ts"
+        }
+      ]
+    },
+    {
       "name": "table-search",
       "type": "registry:ui",
       "title": "Table Search",
@@ -801,7 +814,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/dialog-submit"
       ],
       "files": [
         {
@@ -895,7 +909,7 @@
       "name": "blogs",
       "type": "registry:block",
       "title": "Blogs",
-      "description": "Multilingual Markdown articles, public pages, and editorial workflows.",
+      "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
       "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/cn",
@@ -985,14 +999,15 @@
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",
-      "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, default allergen and dietary filters, and staff item and taxonomy editors.",
+      "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, allergen and dietary filters, staff editors, and branded A4/A5 printing.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/drive",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/dialog-submit"
       ],
       "files": [
         {
@@ -1019,6 +1034,11 @@
           "path": "registry/components/plugins/menus/public.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/print.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/print.tsx"
         },
         {
           "path": "registry/components/plugins/menus/admin.tsx",
@@ -1178,7 +1198,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/dialog-submit"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1249,7 +1270,7 @@
         "lucide-react@1.49.0",
         "zod@4.5.4"
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/dialog-submit"],
       "files": [
         {
           "path": "registry/components/plugins/reservations/admin.tsx",

@@ -420,7 +420,7 @@ export function ReservationsCalendar({
           <ErrorNotice error={action.error} labels={labels} />
           <div className="flex gap-2">
             <button
-              className={buttonClass}
+              className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
               disabled={action.busy}
               onClick={() => setDialog(undefined)}
             >

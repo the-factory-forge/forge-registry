@@ -53,6 +53,7 @@ export interface BlogArticle {
 export interface BlogListItem {
   id: string;
   title: string;
+  categoryNames?: string[];
   editor: BlogEditor;
   updatedAt: string;
   translations: { locale: string; slug: string; status: "draft" | "published" | "changed" }[];

@@ -15,9 +15,10 @@ import {
   validSort,
 } from "@/components/plugins/drive/utils";
 
-type MockEntry = DriveEntry & { scope: DriveScope; blob?: Blob };
-export function createDriveMock() {
+type MockEntry = DriveEntry & { scope: DriveScope; blob?: Blob; url?: string };
+export function createDriveMock(initialEntries: MockEntry[] = []) {
   const entries: MockEntry[] = [
+    ...initialEntries,
     {
       id: "10000000-0000-4000-8000-000000000001",
       scope: { type: "workspace", id: "handbook" },
@@ -118,6 +119,14 @@ export function createDriveMock() {
   };
   return {
     transfer,
+    fileUrl(scope: DriveScope, entryId: string) {
+      return owned(scope).find((entry) => entry.id === entryId)?.url ?? "";
+    },
+    dispose() {
+      for (const entry of entries) {
+        if (entry.blob && entry.url) URL.revokeObjectURL(entry.url);
+      }
+    },
     failUpload() {
       failNextTransfer = true;
     },
@@ -274,7 +283,10 @@ export function createDriveMock() {
             failNextDeletion = false;
             throw new DriveError("DELETE_PENDING");
           }
-          for (const entry of rows) entries.splice(entries.indexOf(entry), 1);
+          for (const entry of rows) {
+            if (entry.blob && entry.url) URL.revokeObjectURL(entry.url);
+            entries.splice(entries.indexOf(entry), 1);
+          }
         },
         async prepareUpload(input) {
           await mutation(input.scope, "upload");
@@ -308,6 +320,7 @@ export function createDriveMock() {
             state: "ready",
             updatedAt: new Date().toISOString(),
             blob: upload.blob,
+            url: URL.createObjectURL(upload.blob),
           });
           upload.completed = true;
         },
@@ -324,6 +337,7 @@ export function createDriveMock() {
           await mutation(scope, "download");
           const entry = find(scope, entryId);
           if (entry.state !== "ready") throw new DriveError("CONFLICT");
+          if (entry.url) return { url: new URL(entry.url, window.location.href).href };
           const url = URL.createObjectURL(
             entry.blob ?? new Blob(["Welcome to the Forge Drive.\n"], { type: "text/plain" }),
           );

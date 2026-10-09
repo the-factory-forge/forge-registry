@@ -10,16 +10,16 @@ The shared [Plugins specification](https://github.com/the-factory-forge/forge-sp
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
-| Plugin         | Purpose                                                                                                             | Optional server item   | Guide                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
-| `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                        | Host auth provider     | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing and verification                                                              | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records and composition of Projects/Sync                                                   | Host callbacks         | [Customers](./customers.md)                 |
-| `projects`     | Customer-owned project records, assignment and Details/Drive views                                                  | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped file spaces, folders, upload/download and file management                                                    | `drive-storage`        | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons and spice levels | `menus-storage`        | [Menus](./menus.md)                         |
-| `reservations` | Appointments or overnight stays, policies and calendars                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
+| Plugin         | Purpose                                                                                                                             | Optional server item   | Guide                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                        | Host auth provider     | [Auth](./intranet-auth.md)                  |
+| `employees`    | Admin-only employee accounts, editing and verification                                                                              | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
+| `customers`    | Customer contact/company records and composition of Projects/Sync                                                                   | Host callbacks         | [Customers](./customers.md)                 |
+| `projects`     | Customer-owned project records, assignment and Details/Drive views                                                                  | Host callbacks         | [Projects](./projects.md)                   |
+| `drive`        | Scoped file spaces, folders, upload/download and file management                                                                    | `drive-storage`        | [Drive](./drive.md)                         |
+| `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
+| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
+| `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
 
 ## Shared presentation
 
@@ -28,6 +28,13 @@ Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
 settings, create, edit and delete use the shared Lucide conventions.
+
+Create/edit modal forms support Cmd+Enter on macOS and Ctrl+Enter on Windows/Linux.
+The shortcut activates the existing submit button, preserving validation, disabled
+states and failure handling. It stays inside the active dialog and does not add
+a shortcut to destructive confirmations or standalone page forms. The
+`@forge/dialog-submit` utility ships with Drive, Employees, Menus and Reservations;
+their existing showroom examples demonstrate it.
 
 Default action and field labels use sentence case, such as **Create customer**
 and **Save changes**. Employee account actions use **employee** consistently.

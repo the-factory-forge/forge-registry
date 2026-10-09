@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { Customer } from "@/components/plugins/customers";
 import type { DriveSpace } from "@/components/plugins/drive";
@@ -27,6 +27,7 @@ const initialCustomers: Customer[] = [
 function usePreviewState() {
   const { locale } = useShowroomParams();
   const [driveMock] = useState(createDriveMock);
+  useEffect(() => () => driveMock.dispose(), [driveMock]);
   const [showDrive, setShowDrive] = useState(true);
   const [customers, setCustomers] = useState(initialCustomers);
   const [projects, setProjects] = useState<Project[]>([

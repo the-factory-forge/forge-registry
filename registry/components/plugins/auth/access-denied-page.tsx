@@ -37,7 +37,7 @@ export function AccessDeniedPage({
       </div>
       <PageLink
         href={homeHref}
-        className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+        className="cursor-pointer rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
       >
         {labels.accessDeniedCta}
       </PageLink>

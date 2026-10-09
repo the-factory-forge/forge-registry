@@ -20,6 +20,7 @@ import {
   dialogClass,
 } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
+import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 export interface EmployeeActionCallbacks {
   onUpdate: (values: UpdateEmployee) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -118,7 +119,7 @@ export function EmployeeActions({
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-            <Dialog.Popup className={dialogClass}>
+            <Dialog.Popup className={dialogClass} onKeyDownCapture={submitDialogOnShortcut}>
               <div className="space-y-2">
                 <Dialog.Title className="text-lg font-semibold">{labels.editTitle}</Dialog.Title>
                 <Dialog.Description className="text-sm text-muted-foreground">

@@ -64,7 +64,10 @@ export function CustomersPreview() {
       return (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
-          <Link href={base} className="underline">
+          <Link
+            href={base}
+            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
+          >
             Back to customers
           </Link>
         </div>

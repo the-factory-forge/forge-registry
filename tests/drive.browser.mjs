@@ -39,6 +39,64 @@ const file = (name, text = "hello") => ({
 });
 const row = (page, name) => page.getByRole("row").filter({ hasText: name });
 
+test("Drive keeps permitted actions visible while search results load", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await row(page, "Annual report.txt").waitFor();
+  const newFolder = page.getByRole("button", { name: "New folder", exact: true });
+  const upload = page.getByRole("button", { name: "Upload files", exact: true });
+  await page.getByRole("button", { name: "Search this folder", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search this folder", exact: true });
+
+  await page.getByLabel("Directory state").selectOption("loading");
+  await search.fill("annual");
+  await page.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+  assert.equal(await newFolder.isVisible(), true);
+  assert.equal(await upload.isVisible(), true);
+  assert.equal(await newFolder.isDisabled(), true);
+  assert.equal(await upload.isDisabled(), true);
+  for (const name of ["Download", "Rename", "Delete"]) {
+    const action = row(page, "Annual report.txt").getByRole("button", { name, exact: true });
+    assert.equal(await action.isVisible(), true);
+    assert.equal(await action.isDisabled(), true);
+  }
+  assert.equal(await search.evaluate((element) => element === document.activeElement), true);
+
+  await page.getByLabel("Directory state").selectOption("ready");
+  await row(page, "Design brief.txt").waitFor({ state: "hidden" });
+  assert.equal(await newFolder.isVisible(), true);
+  assert.equal(await upload.isVisible(), true);
+  assert.equal(await newFolder.isEnabled(), true);
+  assert.equal(await upload.isEnabled(), true);
+  await search.fill("missing");
+  await page.getByText("No matching files or folders.", { exact: true }).waitFor();
+  assert.equal(await newFolder.isVisible(), true);
+  assert.equal(await upload.isVisible(), true);
+
+  await page.getByLabel("Directory state").selectOption("error");
+  await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal(await newFolder.count(), 0);
+  assert.equal(await upload.count(), 0);
+  await page.getByLabel("Directory state").selectOption("loading");
+  await search.fill("annual");
+  await page.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+  assert.equal(await newFolder.count(), 0);
+  assert.equal(await upload.count(), 0);
+
+  await page.getByLabel("Directory state").selectOption("ready");
+  await row(page, "Annual report.txt").waitFor();
+  await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+  await page.getByRole("link", { name: "Team handbook", exact: true }).click();
+  await row(page, "Welcome.txt").waitFor();
+  await page.getByLabel("Directory state").selectOption("loading");
+  await page.getByRole("button", { name: "Search this folder", exact: true }).click();
+  await search.fill("welcome");
+  await page.getByRole("status").filter({ hasText: "Loading" }).waitFor();
+  assert.equal(await newFolder.count(), 0);
+  assert.equal(await upload.count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Rename", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Delete", exact: true }).count(), 0);
+});
+
 test("Drive navigation, scoped folders, search, permissions and listing failures", async (t) => {
   const page = await preview(t);
   await page.getByRole("link", { name: "Team handbook", exact: true }).waitFor();
@@ -70,7 +128,7 @@ test("Drive navigation, scoped folders, search, permissions and listing failures
   await page.getByRole("searchbox", { name: "Search this folder" }).fill("missing");
   await page.getByText("No matching files or folders.", { exact: true }).waitFor();
   await page.getByRole("searchbox", { name: "Search this folder" }).fill("");
-  await page.getByRole("link", { name: "Open linked record", exact: true }).click();
+  await page.getByRole("link", { name: "Open linked record: Studio website", exact: true }).click();
   await page.getByRole("link", { name: "Drive", exact: true }).click();
   await page.getByRole("link", { name: "Assets", exact: true }).click();
   await page.getByRole("link", { name: "Nested", exact: true }).waitFor();
@@ -106,7 +164,7 @@ test("uploads progress independently, retry, cancel, retain failures and share e
   await page.getByRole("button", { name: "Upload files", exact: true }).waitFor();
   await page.getByRole("button", { name: "Fail next upload", exact: true }).click();
   await page
-    .locator('input[type="file"]')
+    .locator('input[type="file"]:enabled')
     .setInputFiles([file("one.txt"), file("two.txt"), file("three.txt")]);
   await page
     .getByRole("progressbar", { name: "Upload progress for one.txt", exact: true })
@@ -143,6 +201,73 @@ test("uploads progress independently, retry, cancel, retain failures and share e
   await row(page, "renamed.txt").waitFor();
 });
 
+test("upload toasts preserve layout and recovery, then dismiss completed feedback", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await row(page, "Annual report.txt").waitFor();
+      const headerTop = () =>
+        page.locator("thead").evaluate((element) => element.getBoundingClientRect().top + scrollY);
+      await page.getByRole("button", { name: "Fail next upload", exact: true }).click();
+      await page.locator('input[type="file"]:enabled').waitFor({ state: "attached" });
+      const top = await headerTop();
+      const name = "W1405-2_participants_with_additional_customer_portal_notes.xlsx";
+      await page.locator('input[type="file"]:enabled').setInputFiles(file(name));
+      const toast = page.getByRole("dialog", { name: "Uploads", exact: true });
+      const upload = toast.getByRole("listitem").filter({ hasText: name });
+      await upload.getByRole("progressbar").waitFor();
+      assert.equal(await toast.getByRole("button", { name: "Close", exact: true }).count(), 0);
+      await upload.getByRole("button", { name: "Cancel", exact: true }).focus();
+      await page.keyboard.press("Escape");
+      assert.equal(await toast.isVisible(), true);
+      await upload.getByRole("button", { name: "Retry", exact: true }).waitFor();
+      assert.equal(await headerTop(), top);
+      assert.equal(
+        await toast.evaluate((element) => getComputedStyle(element.parentElement).position),
+        "fixed",
+      );
+      assert.equal(
+        await toast.evaluate((element) => element.closest('section[aria-label="Drive"]') === null),
+        true,
+      );
+      // Other confirmations must not limit away a failed upload's recovery controls.
+      for (let index = 0; index < 3; index++) await folder(page, `Toast ${index}`);
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(5200);
+      assert.equal(
+        await upload.getByRole("button", { name: "Retry", exact: true }).isEnabled(),
+        true,
+      );
+      await toast.screenshot({
+        path: `/tmp/forge-drive-upload-failed-${width}-${colorScheme}.png`,
+      });
+      await upload.getByRole("button", { name: "Retry", exact: true }).click();
+      await upload.getByText("Uploaded", { exact: true }).waitFor();
+      await row(page, name).waitFor();
+      assert.equal(await headerTop(), top);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await toast.screenshot({ path: `/tmp/forge-drive-upload-done-${width}-${colorScheme}.png` });
+      await page.mouse.move(0, 0);
+      await toast.waitFor({ state: "hidden", timeout: 8000 });
+      assert.equal(await row(page, name).count(), 1);
+      // A dismissed batch must not reappear when a later upload starts.
+      await page.locator('input[type="file"]:enabled').setInputFiles(file("next.txt"));
+      await toast.getByText("next.txt", { exact: true }).waitFor();
+      assert.equal(await toast.getByText(name, { exact: true }).count(), 0);
+      await toast.getByText("Uploaded", { exact: true }).waitFor();
+      await toast.getByRole("button", { name: "Close", exact: true }).click();
+      await toast.waitFor({ state: "hidden" });
+      await page.close();
+    }
+});
+
 test("recursive deletion confirmation cancels, restores focus, and retries durable failures", async (t) => {
   const page = await preview(t, "/en/drive/project/website");
   await folder(page, "Documents");
@@ -171,6 +296,263 @@ test("recursive deletion confirmation cancels, restores focus, and retries durab
   await page.getByText("This folder is empty.", { exact: true }).waitFor();
 });
 
+test("Drive confirmations use dismissible toasts without moving the file table", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/website", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await page.getByRole("button", { name: "Upload files", exact: true }).waitFor();
+      const table = page.getByRole("table");
+      await table.waitFor();
+      await page.locator('input[type="file"]:enabled').waitFor({ state: "attached" });
+      const tableTop = await table.evaluate(
+        (element) => element.getBoundingClientRect().top + scrollY,
+      );
+      await folder(page, "Toast folder");
+      const saved = page.getByRole("dialog", { name: "Changes saved.", exact: true });
+      await saved.waitFor();
+      assert.equal(
+        await page.locator("section p").filter({ hasText: "Changes saved." }).count(),
+        0,
+      );
+      assert.equal(
+        await saved.locator("..").evaluate((element) => getComputedStyle(element).position),
+        "fixed",
+      );
+      assert.equal(
+        await table.evaluate((element) => element.getBoundingClientRect().top + scrollY),
+        tableTop,
+      );
+      const bounds = await saved.boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+      assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 900);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await page.screenshot({ path: `/tmp/forge-drive-toast-${width}-${colorScheme}.png` });
+      await page.keyboard.press("F6");
+      await page.keyboard.press("Tab");
+      assert.equal(await saved.evaluate((element) => element === document.activeElement), true);
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await saved
+          .getByRole("button", { name: "Close", exact: true })
+          .evaluate((element) => element === document.activeElement),
+        true,
+      );
+      await page.keyboard.press("Enter");
+      await saved.waitFor({ state: "hidden" });
+
+      await row(page, "Toast folder").getByRole("button", { name: "Rename", exact: true }).click();
+      const rename = page.getByRole("dialog", { name: "Rename", exact: true });
+      await rename.getByRole("textbox").fill("Renamed folder");
+      await rename.getByRole("button", { name: "Save", exact: true }).click();
+      await saved.waitFor();
+      await page.mouse.move(0, 0);
+      await saved.waitFor({ state: "hidden", timeout: 8000 });
+      await row(page, "Renamed folder")
+        .getByRole("button", { name: "Delete", exact: true })
+        .click();
+      const deletion = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+      await deletion.getByRole("button", { name: "Delete permanently", exact: true }).click();
+      const deleted = page.getByRole("dialog", { name: "Files and folders deleted.", exact: true });
+      await deleted.waitFor();
+      await deleted.getByRole("button", { name: "Close", exact: true }).click();
+      await deleted.waitFor({ state: "hidden" });
+
+      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page.getByRole("link", { name: "Team handbook", exact: true }).click();
+      const download = page.waitForEvent("download");
+      await row(page, "Welcome.txt").getByRole("button", { name: "Download", exact: true }).click();
+      await download;
+      await page.getByRole("dialog", { name: "Download started.", exact: true }).waitFor();
+      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      assert.equal(
+        await page.getByRole("dialog", { name: "Download started.", exact: true }).count(),
+        0,
+      );
+      await page.close();
+    }
+});
+
+test("Drive loading preserves table headers, guidance and disabled actions", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive", {
+        viewport: { width, height: 900 },
+        colorScheme,
+      });
+      for (const path of ["/en/drive", "/en/drive/project/portal", "/en/drive/project/website"]) {
+        await page.goto(`${baseURL}${path}`);
+        await page.locator('[data-preview-ready="true"]').waitFor();
+        const table = page.getByRole("table");
+        await page.locator('[aria-busy="false"] table').waitFor();
+        const panel = table.locator("../..");
+        const headings = await table.getByRole("columnheader").allTextContents();
+        const position = () =>
+          table
+            .locator("thead")
+            .evaluate((element) => element.getBoundingClientRect().top + scrollY);
+        const top = await position();
+        const rows = await table.locator("tbody tr").allTextContents();
+        const guidance = panel.getByText(/Drop files here or choose Upload files/);
+        const guideTop =
+          path === "/en/drive"
+            ? undefined
+            : await guidance.evaluate((element) => element.getBoundingClientRect().top + scrollY);
+        await page.getByLabel("Directory state").selectOption("loading");
+        await panel.locator('[role="status"]').filter({ hasText: "Loading" }).waitFor();
+        assert.deepEqual(await table.getByRole("columnheader").allTextContents(), headings);
+        assert.equal(await position(), top);
+        if (guideTop !== undefined) {
+          assert.equal(await guidance.isVisible(), true);
+          assert.equal(
+            await guidance.evaluate((element) => element.getBoundingClientRect().top + scrollY),
+            guideTop,
+          );
+          assert.equal(
+            await page.getByRole("button", { name: "Upload files", exact: true }).isDisabled(),
+            true,
+          );
+          assert.equal(
+            await page.getByRole("button", { name: "New folder", exact: true }).isDisabled(),
+            true,
+          );
+          assert.equal(await page.locator('input[type="file"]').isDisabled(), true);
+        }
+        if (!path.endsWith("website")) {
+          assert.deepEqual(await table.locator("tbody tr").allTextContents(), rows);
+        } else {
+          assert.equal(
+            await table.getByRole("cell").filter({ hasText: "Loading" }).getAttribute("colspan"),
+            "5",
+          );
+        }
+        if (path.endsWith("portal")) {
+          assert.equal(
+            await table.getByRole("button", { name: "Rename", exact: true }).first().isDisabled(),
+            true,
+          );
+          assert.equal(
+            await table.getByRole("button", { name: "Download", exact: true }).first().isDisabled(),
+            true,
+          );
+        }
+        await panel.screenshot({
+          path: `/tmp/forge-drive-loading-${width}-${colorScheme}-${path.split("/").at(-1)}.png`,
+        });
+        await page.getByLabel("Directory state").selectOption("ready");
+        await page.locator('[aria-busy="false"] table').waitFor();
+        assert.equal(await position(), top);
+      }
+      await page.getByLabel("Directory state").selectOption("loading");
+      await page.getByRole("link", { name: "Back to drive", exact: true }).click();
+      await page.getByRole("table").getByRole("cell").filter({ hasText: "Loading" }).waitFor();
+      assert.equal(await page.getByRole("table").getByRole("columnheader").count(), 5);
+      await page.getByLabel("Directory state").selectOption("ready");
+      await page.getByRole("link", { name: "Customer portal", exact: true }).waitFor();
+      await page.getByLabel("Directory state").selectOption("loading");
+      await page.getByRole("link", { name: "Customer portal", exact: true }).click();
+      const table = page.getByRole("table");
+      await table.getByRole("cell").filter({ hasText: "Loading" }).waitFor();
+      assert.equal(await table.getByRole("columnheader").count(), 5);
+      assert.equal(
+        await page.getByRole("button", { name: "Upload files", exact: true }).count(),
+        0,
+      );
+      const top = await table
+        .locator("thead")
+        .evaluate((element) => element.getBoundingClientRect().top + scrollY);
+      await page.getByLabel("Directory state").selectOption("ready");
+      await row(page, "Annual report.txt").waitFor();
+      assert.equal(
+        await table
+          .locator("thead")
+          .evaluate((element) => element.getBoundingClientRect().top + scrollY),
+        top,
+      );
+      await row(page, "Annual report.txt")
+        .getByRole("button", { name: "Rename", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+      await page.getByLabel("Directory state").selectOption("loading");
+      assert.equal(
+        await dialog.getByRole("button", { name: "Save", exact: true }).isDisabled(),
+        true,
+      );
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await page.getByLabel("Directory state").selectOption("error");
+      await table.getByRole("alert").waitFor();
+      assert.equal(await table.getByRole("columnheader").count(), 5);
+      await page.close();
+    }
+});
+
+test("Drive empty results retain table headers and a full-width feedback row", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive", {
+        viewport: { width, height: 900 },
+        colorScheme,
+      });
+      for (const [path, searchLabel, query, message] of [
+        ["/en/drive", "Search spaces", "missing", "No spaces found."],
+        ["/en/drive/project/website", "Search this folder", "", "This folder is empty."],
+        [
+          "/en/drive/workspace/handbook",
+          "Search this folder",
+          "missing",
+          "No matching files or folders.",
+        ],
+      ]) {
+        await page.goto(`${baseURL}${path}`);
+        await page.locator('[data-preview-ready="true"]').waitFor();
+        if (query) {
+          await page.getByRole("button", { name: searchLabel, exact: true }).click();
+          await page.getByRole("searchbox", { name: searchLabel, exact: true }).fill(query);
+        }
+        const table = page.getByRole("table");
+        const feedback = table.getByRole("status").filter({ hasText: message });
+        await feedback.waitFor();
+        assert.deepEqual(await table.getByRole("columnheader").allTextContents(), [
+          "Name",
+          "Modified",
+          "Size",
+          "Owner",
+          "Actions",
+        ]);
+        assert.equal(await table.getByRole("row").count(), 2);
+        assert.equal(
+          await table.getByRole("cell").filter({ hasText: message }).getAttribute("colspan"),
+          "5",
+        );
+        assert.equal(await page.getByRole("button", { name: "Next page" }).isDisabled(), true);
+        assert.equal(
+          await feedback.evaluate((element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const { left, right } = range.getBoundingClientRect();
+            return left >= 0 && right <= innerWidth;
+          }),
+          true,
+          "Empty feedback must be readable without horizontal scrolling",
+        );
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+        await table.locator("../..").screenshot({
+          path: `/tmp/forge-drive-empty-${width}-${colorScheme}-${path.split("/").at(-1)}.png`,
+        });
+      }
+      await page.close();
+    }
+});
+
 test("Drive fits mobile and desktop in light and dark themes", async (t) => {
   for (const colorScheme of ["light", "dark"])
     for (const width of [390, 1440]) {
@@ -194,6 +576,21 @@ test("Drive fits mobile and desktop in light and dark themes", async (t) => {
         true,
         "Space action labels must stay inside the horizontally scrolling table",
       );
+      const openRecord = page.getByRole("link", {
+        name: "Open linked record: Customer portal",
+        exact: true,
+      });
+      assert.equal(await openRecord.innerText(), "");
+      const target = await openRecord.boundingBox();
+      assert.ok(target.width >= (width < 768 ? 40 : 32));
+      assert.ok(target.height >= (width < 768 ? 40 : 32));
+      await page.screenshot({
+        path: `/tmp/forge-drive-spaces-${width}-${colorScheme}.png`,
+        fullPage: true,
+      });
+      await openRecord.focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("heading", { name: "Customer portal", exact: true }).waitFor();
       await page.close();
     }
 });
@@ -236,6 +633,7 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   });
   await dialog.waitFor({ state: "hidden" });
   await page.getByRole("link", { name: "Valid", exact: true }).waitFor();
+  assert.equal(await page.getByRole("alert").count(), 0);
   assert.equal(await page.getByRole("link", { name: "Valid", exact: true }).count(), 1);
   await page
     .locator('input[type="file"]')
@@ -322,7 +720,9 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
   assert.deepEqual(await files(), ["Design brief.txt", "Annual report.txt"]);
   await sortBy("Size");
   assert.deepEqual(await files(), ["Annual report.txt", "Design brief.txt"]);
-  await page.getByRole("link", { name: "Open linked record", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Open linked record: Customer portal", exact: true })
+    .click();
   await page.getByRole("link", { name: "Drive", exact: true }).click();
   await row(page, "Annual report.txt").waitFor();
   assert.equal(

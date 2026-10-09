@@ -1,8 +1,18 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowDownIcon, ArrowUpDownIcon, RefreshCwIcon, ArrowUpIcon } from "lucide-react";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { Toast } from "@base-ui/react/toast";
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  RefreshCwIcon,
+  ArrowUpIcon,
+  CircleCheckIcon,
+  DownloadIcon,
+  UploadIcon,
+  XIcon,
+} from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { Image } from "@/components/image";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -14,8 +24,10 @@ import type {
   DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
+import type { useUploads } from "@/components/plugins/drive/use-uploads";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
+import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableHeaderClass } from "@/components/utils/table-styles";
 
 export const buttonClass =
@@ -141,12 +153,131 @@ export function DriveFeedback({ message, error = false }: { message?: string; er
   ) : null;
 }
 
+export function DriveToasts({
+  labels,
+  queue,
+}: {
+  labels: DriveLabels;
+  queue: ReturnType<typeof useUploads>;
+}) {
+  const { toasts, add, close } = Toast.useToastManager<{ uploads: typeof queue.uploads }>();
+  const { uploads, dismiss } = queue;
+  const finished = uploads.every((upload) => ["done", "cancelled"].includes(upload.state));
+  useEffect(() => {
+    if (!uploads.length) {
+      close("drive-uploads");
+      return;
+    }
+    add({
+      id: "drive-uploads",
+      type: "uploads",
+      title: labels.uploads,
+      data: { uploads },
+      timeout: finished ? 5000 : 0,
+      onClose: () => {
+        for (const upload of uploads) dismiss(upload.id);
+      },
+    });
+  }, [uploads, finished, labels.uploads, dismiss, add, close]);
+  return (
+    <Toast.Portal>
+      <Toast.Viewport
+        aria-label={labels.title}
+        className="fixed right-4 bottom-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm flex-col gap-2 overflow-y-auto outline-none sm:right-6 sm:bottom-6"
+      >
+        {toasts.map((toast) => (
+          <Toast.Root
+            key={toast.id}
+            toast={toast}
+            swipeDirection={toast.type === "uploads" && !finished ? [] : undefined}
+            onKeyDownCapture={(event) => {
+              if (toast.type === "uploads" && !finished && event.key === "Escape")
+                event.stopPropagation();
+            }}
+            className="flex items-start gap-3 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring data-ending:opacity-0 data-limited:hidden motion-safe:transition-opacity dark:border dark:border-border dark:shadow-none"
+          >
+            {toast.type === "uploads" ? (
+              <UploadIcon
+                className="mt-1 size-5 shrink-0 text-status-info-foreground"
+                aria-hidden="true"
+              />
+            ) : toast.type === "success" ? (
+              <CircleCheckIcon
+                className="size-5 shrink-0 text-status-success-foreground"
+                aria-hidden="true"
+              />
+            ) : (
+              <DownloadIcon
+                className="size-5 shrink-0 text-status-info-foreground"
+                aria-hidden="true"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <Toast.Title className="text-sm break-words" />
+              {toast.data?.uploads && (
+                <ul className="mt-3 max-h-[50dvh] space-y-4 overflow-y-auto">
+                  {toast.data.uploads.map((upload) => (
+                    <li key={upload.id} className="space-y-2">
+                      <span className="block text-sm break-all">{upload.file.name}</span>
+                      <progress
+                        className="h-2 w-full accent-primary"
+                        max={100}
+                        value={upload.progress}
+                        aria-label={labels.progress(upload.file.name)}
+                      />
+                      <DriveFeedback
+                        message={labels[upload.state]}
+                        error={upload.state === "failed" || upload.state === "cancelFailed"}
+                      />
+                      {upload.error !== undefined && (
+                        <DriveFeedback message={messageFor(upload.error, labels)} error />
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {["failed", "cancelFailed"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
+                            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                            {labels.retry}
+                          </button>
+                        )}
+                        {["queued", "uploading", "failed"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
+                            {labels.cancel}
+                          </button>
+                        )}
+                        {["done", "cancelled"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => dismiss(upload.id)}>
+                            {labels.dismiss}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {(toast.type !== "uploads" || finished) && (
+              <Toast.Close
+                aria-label={labels.close}
+                aria-hidden={false}
+                className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+              >
+                <XIcon aria-hidden="true" />
+              </Toast.Close>
+            )}
+          </Toast.Root>
+        ))}
+      </Toast.Viewport>
+    </Toast.Portal>
+  );
+}
+
 export function EntryDialog({
   client,
   scope,
   parentId,
   entry,
   deleting = false,
+  disabled = false,
   labels,
   refresh,
   children,
@@ -156,6 +287,7 @@ export function EntryDialog({
   parentId: string | null;
   entry?: DriveEntry;
   deleting?: boolean;
+  disabled?: boolean;
   labels: DriveLabels;
   refresh: () => void;
   children: ReactNode;
@@ -169,7 +301,7 @@ export function EntryDialog({
   const fieldId = `factory-drive-field-${useId()}`;
   const title = deleting ? labels.deleteTitle : entry ? labels.rename : labels.newFolder;
   async function loadPreview() {
-    if (!entry || lock.current) return;
+    if (disabled || !entry || lock.current) return;
     lock.current = true;
     setPending(true);
     setError(undefined);
@@ -184,7 +316,7 @@ export function EntryDialog({
     }
   }
   async function submit() {
-    if (lock.current || (deleting && !preview)) return;
+    if (disabled || lock.current || (deleting && !preview)) return;
     lock.current = true;
     setPending(true);
     setError(undefined);
@@ -217,6 +349,7 @@ export function EntryDialog({
       }}
     >
       <Dialog.Trigger
+        disabled={disabled}
         className={cn(
           entry ? iconButtonClass : buttonClass,
           deleting &&
@@ -229,6 +362,7 @@ export function EntryDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
           className={cn(
             cardClass,
             "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
@@ -261,7 +395,7 @@ export function EntryDialog({
                   onChange={(event) => setName(event.target.value)}
                   maxLength={255}
                   required
-                  disabled={pending}
+                  disabled={pending || disabled}
                 />
               </div>
             )}
@@ -274,7 +408,7 @@ export function EntryDialog({
                 <button
                   type="button"
                   className={primaryClass}
-                  disabled={pending}
+                  disabled={pending || disabled}
                   onClick={() => void loadPreview()}
                 >
                   <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -288,7 +422,7 @@ export function EntryDialog({
                     deleting &&
                       "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
                   )}
-                  disabled={pending}
+                  disabled={pending || disabled}
                 >
                   {pending
                     ? labels.pending

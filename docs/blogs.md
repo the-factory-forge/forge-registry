@@ -44,6 +44,13 @@ stylesheet does not ship with the item; forge-template supplies the defaults.
 
 ## Editing and publishing
 
+The administrative table shows each post's assigned categories. `BlogListItem.categoryNames`
+contains names in the requested locale, falling back to an existing category translation.
+The storage client supplies these names; custom list adapters should supply them too,
+or pass categories to `articleListItem(article, locale, categories)`. The field is optional
+for existing integrations. Long titles and category lists truncate visually; their full
+text remains available on hover and to assistive technology.
+
 `BlogsPage` accepts an optional `onDelete(id, requestId)` callback. With this
 callback and `capabilities.delete`, each row shows a trash icon beside Edit.
 The confirmation names the post and warns that deletion removes all translations
@@ -74,8 +81,10 @@ Titles do not automatically change existing slugs. Explicit slug changes take
 effect when published; the host owns redirects. Unpublished/missing translations
 have no public language fallback.
 
-Categories form one translated tree with at most two levels. Selecting a child
-also selects its parent; parent filters count each article once. Category slugs
+Categories form one translated tree with at most two levels. The post editor
+nests child checkboxes beneath their parent with indentation and a connecting guide.
+Selecting a child also selects its parent; clearing a parent clears its children.
+Parent filters count each article once. Category slugs
 are unique per language. Publication requires names in that language for every
 selected category. Existing labels cannot be removed. Categories in use cannot
 be deleted or reparented; parents with children cannot be deleted. Reassign drafts

@@ -71,7 +71,7 @@ export function AuthLayout({
         <header className="flex items-center justify-between gap-2 p-4 sm:px-8 sm:py-6">
           <LayoutLink
             href={homeHref}
-            className="inline-flex items-center gap-2 rounded-sm text-sm font-medium text-muted-foreground! hover:text-primary! focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground! transition-colors hover:bg-primary/5 hover:text-primary! focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
           >
             <ArrowLeftIcon className="size-4" aria-hidden="true" />
             {labels.backHome}

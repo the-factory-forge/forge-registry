@@ -12,6 +12,7 @@ import {
   type ReservationSlot,
 } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
+import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -127,7 +128,10 @@ export function Modal({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
+        <Dialog.Popup
+          onKeyDownCapture={submitDialogOnShortcut}
+          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+        >
           <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
           <Dialog.Description className="text-sm text-muted-foreground">
             {description}

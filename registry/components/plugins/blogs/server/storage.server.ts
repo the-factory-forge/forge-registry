@@ -510,6 +510,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       const allowed: StoredArticle[] = [];
       for (const { document } of records)
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
+      const categories = await allCategories(db);
       const items = allowed.slice((page - 1) * pageSize, page * pageSize).map((document) =>
         articleListItem(
           {
@@ -525,6 +526,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             ),
           },
           input.locale,
+          categories,
         ),
       );
       return { items, total: allowed.length, page, pageSize };

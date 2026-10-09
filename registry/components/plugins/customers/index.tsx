@@ -228,7 +228,10 @@ export function CustomerDetailPage({
   const labels = { ...customerLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <CustomerLink href={backHref} className={buttonClass}>
+      <CustomerLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         <ArrowLeftIcon aria-hidden="true" />
         {labels.back}
       </CustomerLink>
@@ -318,7 +321,10 @@ export function CustomerNewPage({
   const labels = { ...customerLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <CustomerLink href={backHref} className={buttonClass}>
+      <CustomerLink
+        href={backHref}
+        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+      >
         <ArrowLeftIcon aria-hidden="true" />
         {labels.back}
       </CustomerLink>
