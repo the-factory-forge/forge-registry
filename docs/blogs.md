@@ -262,3 +262,10 @@ and repository lint/type/build checks. Generate endpoints with `pnpm registry:sy
 and test independent UI/server installation in temporary consumers. Review source
 diffs before overwriting installed files. There is no auth integration, automatic
 translation, scheduled publishing, comment system, or website migration.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

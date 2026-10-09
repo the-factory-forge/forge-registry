@@ -44,6 +44,11 @@ their existing showroom examples demonstrate it.
 Default action and field labels use sentence case, such as **Create customer**
 and **Save changes**. Employee account actions use **employee** consistently.
 Success messages name the completed action without an added “successfully”.
+Brief save, update and action confirmations use fixed, dismissible
+[`@forge/action-toast`](./action-toast.md) notifications. Validation errors and
+persistent instructions remain beside their controls. Plugin entrypoints provide
+a queue automatically; a host-level provider preserves it across navigation.
+Drive retains its upload and recovery toasts.
 Hosts can still override labels through the existing props.
 
 Administrative form fields and text buttons use a 40px minimum height with lg

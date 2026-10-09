@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -124,7 +126,7 @@ test("editing retains drafts, supports reassignment, clearing assignee and proje
   assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Updated website");
   await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Project updated" }).waitFor();
+  await actionToast(page, "Project updated");
   await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
   await page.getByRole("link", { name: "Back to projects", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "Updated website" });

@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -35,7 +36,7 @@ export interface ProjectFormProps
   onDelete?: (id: string) => Promise<void>;
 }
 
-export function ProjectForm({
+function ProjectFormContent({
   project,
   labels,
   onSubmit,
@@ -275,5 +276,13 @@ export function ProjectForm({
         </div>
       )}
     </div>
+  );
+}
+
+export function ProjectForm(props: ProjectFormProps) {
+  return (
+    <ActionToastProvider>
+      <ProjectFormContent {...props} />
+    </ActionToastProvider>
   );
 }

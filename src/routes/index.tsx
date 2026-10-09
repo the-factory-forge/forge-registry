@@ -28,6 +28,14 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/action-toast",
+      category: "Component",
+      title: "Action toast",
+      description:
+        "Dismissible success feedback for saves and updates, without moving page content.",
+      keywords: ["toast", "feedback", "save", "update", "notification"],
+    },
+    {
       href: "/native-select",
       category: "Component",
       title: "Native select",

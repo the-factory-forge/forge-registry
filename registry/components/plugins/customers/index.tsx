@@ -10,6 +10,7 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import { Link } from "@/components/link";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
@@ -53,7 +54,7 @@ export type { CustomersLabels } from "@/components/plugins/customers/labels";
 
 const pageClass = "mx-auto w-full min-w-0 space-y-6 px-4 py-8 text-foreground";
 
-export function CustomersPage({
+function CustomersPageContent({
   customers,
   search,
   onSearchChange,
@@ -211,7 +212,7 @@ export function CustomersPage({
   );
 }
 
-export function CustomerDetailPage({
+function CustomerDetailPageContent({
   customer,
   section = "about",
   backHref,
@@ -339,5 +340,21 @@ export function CustomerNewPage({
         passwordMaxLength={passwordMaxLength}
       />
     </div>
+  );
+}
+
+export function CustomersPage(props: CustomersPageProps) {
+  return (
+    <ActionToastProvider>
+      <CustomersPageContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function CustomerDetailPage(props: CustomerDetailPageProps) {
+  return (
+    <ActionToastProvider>
+      <CustomerDetailPageContent {...props} />
+    </ActionToastProvider>
   );
 }

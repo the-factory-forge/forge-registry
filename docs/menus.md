@@ -295,3 +295,10 @@ toggle and Drive's upload flow. Run `pnpm test`, `pnpm typecheck`, `pnpm check`,
 `pnpm build`, and browser tests, then verify a local shadcn consumer install
 before publishing. Test the storage companion against disposable PostgreSQL and
 S3 services; do not point it at a restaurant or TC database during development.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

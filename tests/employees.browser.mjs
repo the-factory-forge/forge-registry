@@ -3,6 +3,8 @@ import { test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 test("employee pages show content only to administrators", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
@@ -50,5 +52,15 @@ test("employee pages show content only to administrators", async (t) => {
   await dialog.getByRole("button", { name: "Create employee", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await page.getByText("taylor@example.test", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
+  const edit = page.getByRole("dialog", { name: "Edit employee", exact: true });
+  await edit.getByLabel("Name", { exact: true }).fill("Taylor Lee");
+  await edit.getByRole("button", { name: "Save changes", exact: true }).click();
+  await edit.waitFor({ state: "hidden" });
+  await actionToast(page, "Employee updated.");
+  await page
+    .getByRole("button", { name: "Send verification email to Taylor Lee", exact: true })
+    .click();
+  await actionToast(page, "Verification email sent.");
   assert.deepEqual(errors, []);
 });

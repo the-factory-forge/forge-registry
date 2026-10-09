@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -89,7 +90,7 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   error?: string;
   onRetry?: () => void;
 }
-export function BlogsPage({
+function BlogsPageContent({
   data,
   search,
   onSearchChange,
@@ -249,7 +250,7 @@ export interface BlogNewPageProps extends BlogsAppearanceProps {
   onCreated: (article: BlogArticle) => void;
   capabilities: BlogCapabilities;
 }
-export function BlogNewPage({
+function BlogNewPageContent({
   client,
   locales,
   defaultLocale,
@@ -333,7 +334,7 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   onSaved?: (article: BlogArticle) => void;
   onDeleted: () => void;
 }
-export function BlogEditPage(props: BlogEditPageProps) {
+function BlogEditPageContent(props: BlogEditPageProps) {
   return <Editor key={props.article.id} {...props} />;
 }
 function Editor(props: BlogEditPageProps) {
@@ -825,7 +826,7 @@ export interface BlogCategoriesPageProps extends BlogsAppearanceProps {
   backHref: string;
   onChanged: () => void;
 }
-export function BlogCategoriesPage({
+function BlogCategoriesPageContent({
   client,
   categories,
   locales,
@@ -1053,5 +1054,37 @@ function CategoryForm({
       </fieldset>
       <Feedback {...action.feedback} />
     </form>
+  );
+}
+
+export function BlogsPage(props: BlogsPageProps) {
+  return (
+    <ActionToastProvider>
+      <BlogsPageContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function BlogNewPage(props: BlogNewPageProps) {
+  return (
+    <ActionToastProvider>
+      <BlogNewPageContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function BlogEditPage(props: BlogEditPageProps) {
+  return (
+    <ActionToastProvider>
+      <BlogEditPageContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function BlogCategoriesPage(props: BlogCategoriesPageProps) {
+  return (
+    <ActionToastProvider>
+      <BlogCategoriesPageContent {...props} />
+    </ActionToastProvider>
   );
 }

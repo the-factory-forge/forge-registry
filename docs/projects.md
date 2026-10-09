@@ -143,3 +143,10 @@ Run `pnpm test` and `pnpm test:browser` against a running showroom (override
 `TEST_BASE_URL` when needed), plus the standard contributor checks. Verify a
 local-registry shadcn install and consumer typecheck, and check that installing
 customers alone does not install projects. TC migration remains a separate task.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

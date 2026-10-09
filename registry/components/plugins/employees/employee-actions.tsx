@@ -3,6 +3,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -35,7 +36,7 @@ export interface EmployeeActionsProps extends EmployeeActionCallbacks {
   labels?: Partial<EmployeeLabels>;
   className?: string;
 }
-export function EmployeeActions({
+function EmployeeActionsContent({
   employee,
   currentUserId,
   onUpdate,
@@ -51,6 +52,7 @@ export function EmployeeActions({
   const [pending, setPending] = useState(false);
   const [failedAction, setFailedAction] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null);
+  const notify = useActionToast();
   const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
   async function run(kind: "edit" | "remove" | "send", action: () => Promise<void>) {
@@ -86,15 +88,11 @@ export function EmployeeActions({
             onClick={() =>
               void run("send", async () => {
                 const { status } = await onSendVerification(employee.id);
-                setFeedback({
-                  error: status === "unavailable",
-                  message:
-                    status === "unavailable"
-                      ? labels.emailUnavailable
-                      : status === "verified"
-                        ? labels.verified
-                        : labels.emailSent,
-                });
+                if (status === "unavailable") {
+                  setFeedback({ error: true, message: labels.emailUnavailable });
+                } else {
+                  notify(status === "verified" ? labels.verified : labels.emailSent);
+                }
               })
             }
           >
@@ -140,6 +138,7 @@ export function EmployeeActions({
                         role: isSelf ? "admin" : data.get("role"),
                       }),
                     );
+                    notify(labels.updated);
                     setEditing(false);
                   });
                 }}
@@ -282,5 +281,13 @@ export function EmployeeActions({
         </p>
       )}
     </div>
+  );
+}
+
+export function EmployeeActions(props: EmployeeActionsProps) {
+  return (
+    <ActionToastProvider>
+      <EmployeeActionsContent {...props} />
+    </ActionToastProvider>
   );
 }

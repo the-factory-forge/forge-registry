@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { useActionToast } from "@/components/action-toast";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { cn } from "@/components/utils/cn";
 import { tableFooterClass } from "@/components/utils/table-styles";
@@ -40,6 +41,7 @@ export function Feedback({ message, error = false }: { message?: string; error?:
   ) : null;
 }
 export function useBlogAction(labels: BlogsLabels) {
+  const notify = useActionToast();
   const lock = useRef(false);
   const request = useRef<{ key: string; id: string } | null>(null);
   const [pending, setPending] = useState(false),
@@ -57,7 +59,7 @@ export function useBlogAction(labels: BlogsLabels) {
     try {
       const result = await action(request.current.id);
       request.current = null;
-      if (success) setFeedback({ message: success });
+      if (success) notify(success);
       return result;
     } catch (error) {
       setFeedback({ message: errorMessage(error, labels), error: true });

@@ -4,6 +4,7 @@ import { Tooltip } from "@base-ui/react/tooltip";
 import { ChevronLeftIcon, ChevronRightIcon, ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
 import { useState } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import {
   EmployeeActions,
   type EmployeeActionCallbacks,
@@ -53,7 +54,7 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
   labels?: Partial<EmployeeLabels>;
   className?: string;
 }
-export function EmployeesPage({
+function EmployeesPageContent({
   employees,
   search: controlledSearch,
   onSearchChange,
@@ -277,5 +278,13 @@ export function EmployeesPage({
         )}
       </div>
     </section>
+  );
+}
+
+export function EmployeesPage(props: EmployeesPageProps) {
+  return (
+    <ActionToastProvider>
+      <EmployeesPageContent {...props} />
+    </ActionToastProvider>
   );
 }

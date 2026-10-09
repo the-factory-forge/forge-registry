@@ -15,6 +15,7 @@ import {
 import { useEffect, useId, useRef, useState, type ComponentType, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 
+import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
@@ -157,7 +158,7 @@ export interface MenuItemsPageProps {
   className?: string;
 }
 
-export function MenuItemsPage({
+function MenuItemsPageContent({
   client,
   baseLocale,
   newHref,
@@ -174,7 +175,8 @@ export function MenuItemsPage({
   const [data, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
   const [error, setError] = useState(false);
   const [reordering, setReordering] = useState(false);
-  const [orderFeedback, setOrderFeedback] = useState<"saved" | "error">();
+  const notify = useActionToast();
+  const [orderFeedback, setOrderFeedback] = useState<"error">();
   const [dragPreview, setDragPreview] = useState<{
     id: string;
     x: number;
@@ -268,7 +270,7 @@ export function MenuItemsPage({
     try {
       const items = await client.reorder(ordered.map(({ id, version }) => ({ id, version })));
       setData((current) => (current ? { ...current, items } : current));
-      setOrderFeedback("saved");
+      notify(labels.saved);
     } catch {
       setOrderFeedback("error");
       setRevision((value) => value + 1);
@@ -325,9 +327,6 @@ export function MenuItemsPage({
           </p>
         )}
         {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
-        {orderFeedback === "saved" ? (
-          <output className="block text-sm">{labels.saved}</output>
-        ) : null}
         {orderFeedback === "error" ? <ErrorMessage message={labels.error} /> : null}
         {error ? (
           <div>
@@ -554,7 +553,7 @@ export interface MenuItemEditorPageProps {
   className?: string;
 }
 
-export function MenuItemEditorPage({
+function MenuItemEditorPageContent({
   client,
   item,
   categories,
@@ -605,6 +604,7 @@ export function MenuItemEditorPage({
     }),
   );
   const [pending, setPending] = useState(false);
+  const notify = useActionToast();
   const [feedback, setFeedback] = useState<{ error: boolean; text: string }>();
   const [photoName, setPhotoName] = useState("");
   const [savedVersion, setSavedVersion] = useState(item?.version);
@@ -657,7 +657,7 @@ export function MenuItemEditorPage({
         ? await client.save(item.id, savedVersion ?? item.version, input)
         : await client.create(input);
       setSavedVersion(saved.version);
-      setFeedback({ error: false, text: labels.saved });
+      notify(labels.saved);
       onSaved(saved);
     } catch {
       setFeedback({ error: true, text: labels.error });
@@ -1305,5 +1305,21 @@ export function MenuTaxonomyPage({
         </>
       ) : null}
     </section>
+  );
+}
+
+export function MenuItemsPage(props: MenuItemsPageProps) {
+  return (
+    <ActionToastProvider>
+      <MenuItemsPageContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function MenuItemEditorPage(props: MenuItemEditorPageProps) {
+  return (
+    <ActionToastProvider>
+      <MenuItemEditorPageContent {...props} />
+    </ActionToastProvider>
   );
 }

@@ -42,6 +42,7 @@ export const employeeLabels = {
     "Update the employee’s details. Changing their email requires verification again.",
   editError: "Could not save changes. Check the details and whether the email is already in use.",
   saveChanges: "Save changes",
+  updated: "Employee updated.",
   saving: "Saving…",
   delete: "Delete",
   deleteTitle: "Delete employee",

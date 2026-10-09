@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3215";
 let browser;
 before(async () => {
@@ -442,4 +444,17 @@ test("staff configures stay policy and creates a manually approved stay", async 
     .getByText(/Staff Stay ·.*Confirmed/)
     .first()
     .waitFor();
+});
+
+void test("business settings saves show toasts and failures stay with the form", async (t) => {
+  const page = await preview(t, "/en/admin/reservations/settings");
+  const save = page.getByRole("button", { name: "Save", exact: true });
+  await save.click();
+  await actionToast(page, "Saved.");
+  await save.click();
+  await actionToast(page, "Saved.");
+  await page.getByLabel("Simulate action failures").check();
+  await save.click();
+  await page.getByRole("alert").waitFor();
+  assert.equal(await page.getByRole("dialog", { name: "Saved.", exact: true }).count(), 0);
 });

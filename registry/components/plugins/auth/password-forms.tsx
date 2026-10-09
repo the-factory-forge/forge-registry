@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, CheckCircleIcon, LoaderCircleIcon, MailCheckIcon } from "lucide-react";
 import { useId, useRef, useState, type ComponentType } from "react";
 
+import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { Link, type LinkProps } from "@/components/link";
 import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
@@ -157,7 +158,7 @@ export function ForgotPasswordForm({
   );
 }
 
-function PasswordForm({
+function PasswordFormContent({
   onChangePassword,
   minLength = 8,
   maxLength = 128,
@@ -170,12 +171,13 @@ function PasswordForm({
   const state = useSubmission();
   const [mismatch, setMismatch] = useState(false);
   const reset = mode === "reset";
+  const notify = useActionToast();
   return (
     <div className={cn("grid gap-5", className)}>
-      {state.succeeded && (
+      {reset && state.succeeded && (
         <output className="flex items-center gap-3 rounded-xl bg-status-success p-4 text-sm text-status-success-foreground">
           <CheckCircleIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
-          {reset ? labels.resetSuccess : labels.passwordChanged}
+          {labels.resetSuccess}
         </output>
       )}
       {!(reset && state.succeeded) && (
@@ -196,7 +198,10 @@ function PasswordForm({
               form.querySelector<HTMLInputElement>('[name="confirmPassword"]')?.focus();
               return;
             }
-            void state.submit(() => onChangePassword({ currentPassword, newPassword }), form);
+            void state.submit(async () => {
+              await onChangePassword({ currentPassword, newPassword });
+              if (!reset) notify(labels.passwordChanged);
+            }, form);
           }}
         >
           {!reset && (
@@ -359,5 +364,13 @@ export function ChangePasswordPage({
       </div>
       <ChangePasswordForm {...props} labels={labels} />
     </section>
+  );
+}
+
+function PasswordForm(props: ChangePasswordFormProps & { mode?: "change" | "reset" }) {
+  return (
+    <ActionToastProvider>
+      <PasswordFormContent {...props} />
+    </ActionToastProvider>
   );
 }

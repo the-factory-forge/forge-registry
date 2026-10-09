@@ -1,0 +1,19 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "action-toast",
+  "title": "Action toast",
+  "description": "Shared, dismissible success confirmations that keep forms and tables still.",
+  "dependencies": [
+    "@base-ui/react",
+    "lucide-react"
+  ],
+  "files": [
+    {
+      "path": "registry/components/action-toast.tsx",
+      "content": "\"use client\";\n\nimport { Toast } from \"@base-ui/react/toast\";\nimport { CircleCheckIcon, XIcon } from \"lucide-react\";\nimport { createContext, useContext, type ReactNode } from \"react\";\n\nconst ActionToastContext = createContext(false);\n\nexport interface ActionToastProviderProps {\n  children: ReactNode;\n  closeLabel?: string;\n}\n\nexport function ActionToastProvider({ children, closeLabel = \"Close\" }: ActionToastProviderProps) {\n  const inherited = useContext(ActionToastContext);\n  if (inherited) return children;\n  return (\n    <ActionToastContext.Provider value={true}>\n      <Toast.Provider>\n        {children}\n        <ActionToastViewport closeLabel={closeLabel} />\n      </Toast.Provider>\n    </ActionToastContext.Provider>\n  );\n}\n\nexport function useActionToast() {\n  const { add } = Toast.useToastManager();\n  return (message: string) => add({ title: message, type: \"success\" });\n}\n\nfunction ActionToastViewport({ closeLabel }: { closeLabel: string }) {\n  const { toasts } = Toast.useToastManager();\n  return (\n    <Toast.Portal>\n      <Toast.Viewport className=\"fixed top-4 right-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm flex-col gap-2 overflow-y-auto outline-none sm:top-6 sm:right-6\">\n        {toasts.map((toast) => (\n          <Toast.Root\n            key={toast.id}\n            toast={toast}\n            className=\"flex items-center gap-3 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring data-ending:opacity-0 data-limited:hidden motion-safe:transition-opacity dark:border dark:border-border dark:shadow-none\"\n          >\n            <CircleCheckIcon\n              className=\"size-5 shrink-0 text-status-success-foreground\"\n              aria-hidden=\"true\"\n            />\n            <Toast.Title className=\"min-w-0 flex-1 text-sm break-words\" />\n            <Toast.Close\n              aria-label={closeLabel}\n              aria-hidden={false}\n              className=\"flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring md:size-8\"\n            >\n              <XIcon className=\"size-4\" aria-hidden=\"true\" />\n            </Toast.Close>\n          </Toast.Root>\n        ))}\n      </Toast.Viewport>\n    </Toast.Portal>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/action-toast.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

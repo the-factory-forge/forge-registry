@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { useRef } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import { Link } from "@/components/link";
 import {
   buttonClass,
@@ -49,7 +50,7 @@ export type { ProjectsLabels } from "@/components/plugins/projects/labels";
 
 const pageClass = "mx-auto w-full min-w-0 space-y-6 px-4 py-8 text-foreground";
 
-export function ProjectsList({
+function ProjectsListContent({
   projects,
   customers,
   assignees = [],
@@ -243,7 +244,7 @@ export function ProjectsPage({ className, ...props }: ProjectsPageProps) {
   );
 }
 
-export function ProjectDetailPage({
+function ProjectDetailPageContent({
   project,
   section = "details",
   backHref,
@@ -352,5 +353,21 @@ export function ProjectNewPage({
         linkComponent={ProjectLink}
       />
     </div>
+  );
+}
+
+export function ProjectsList(props: ProjectsListProps) {
+  return (
+    <ActionToastProvider>
+      <ProjectsListContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+export function ProjectDetailPage(props: ProjectDetailPageProps) {
+  return (
+    <ActionToastProvider>
+      <ProjectDetailPageContent {...props} />
+    </ActionToastProvider>
   );
 }

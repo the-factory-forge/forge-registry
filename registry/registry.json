@@ -770,7 +770,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/action-toast"
       ]
     },
     {
@@ -817,7 +818,8 @@
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/action-toast"
       ]
     },
     {
@@ -938,7 +940,8 @@
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/action-toast"
       ],
       "files": [
         {
@@ -1031,7 +1034,8 @@
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/dialog-submit",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/action-toast"
       ],
       "files": [
         {
@@ -1178,7 +1182,7 @@
           "target": "@components/plugins/auth/auth-controls.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/action-toast"],
       "dependencies": ["lucide-react"]
     },
     {
@@ -1224,7 +1228,8 @@
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/dialog-submit",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/action-toast"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1299,7 +1304,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/dialog-submit",
-        "@forge/native-select"
+        "@forge/native-select",
+        "@forge/action-toast"
       ],
       "files": [
         {
@@ -1386,6 +1392,20 @@
           "path": "registry/components/plugins/reservations/server/service.server.ts",
           "type": "registry:component",
           "target": "@components/plugins/reservations/server/service.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "action-toast",
+      "type": "registry:ui",
+      "title": "Action toast",
+      "description": "Shared, dismissible success confirmations that keep forms and tables still.",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [
+        {
+          "path": "registry/components/action-toast.tsx",
+          "type": "registry:component",
+          "target": "@components/action-toast.tsx"
         }
       ]
     }

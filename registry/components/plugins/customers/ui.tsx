@@ -5,6 +5,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Trash2Icon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 
+import { useActionToast } from "@/components/action-toast";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
@@ -26,6 +27,7 @@ export const inputClass =
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
 
 export function useCustomerAction(errorMessage: string) {
+  const notify = useActionToast();
   const lock = useRef(false);
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ error: boolean; message: string }>();
@@ -36,7 +38,7 @@ export function useCustomerAction(errorMessage: string) {
     setFeedback(undefined);
     try {
       await action();
-      setFeedback({ error: false, message: success });
+      notify(success);
       return true;
     } catch {
       setFeedback({ error: true, message: errorMessage });

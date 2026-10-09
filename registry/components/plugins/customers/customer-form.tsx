@@ -4,6 +4,7 @@ import { Input } from "@base-ui/react/input";
 import { CopyIcon, DicesIcon } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 
+import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type {
   Customer,
@@ -30,7 +31,7 @@ export interface CustomerFormProps {
   passwordMaxLength?: number;
 }
 
-export function CustomerForm({
+function CustomerFormContent({
   customer,
   labels,
   onSubmit,
@@ -43,13 +44,15 @@ export function CustomerForm({
   const [values, setValues] = useState(() => customerFormValues(customer));
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerCreateValues, string>>>({});
+  const notify = useActionToast();
   const [passwordFeedback, setPasswordFeedback] = useState<{ error: boolean; message: string }>();
   const action = useCustomerAction(labels.actionError);
 
   async function copyPassword(value: string) {
     try {
       await navigator.clipboard.writeText(value);
-      setPasswordFeedback({ error: false, message: labels.passwordCopied });
+      setPasswordFeedback(undefined);
+      notify(labels.passwordCopied);
     } catch {
       setPasswordFeedback({ error: true, message: labels.passwordCopyError });
     }
@@ -271,5 +274,13 @@ export function CustomerForm({
       </fieldset>
       <Feedback feedback={action.feedback} />
     </form>
+  );
+}
+
+export function CustomerForm(props: CustomerFormProps) {
+  return (
+    <ActionToastProvider>
+      <CustomerFormContent {...props} />
+    </ActionToastProvider>
   );
 }

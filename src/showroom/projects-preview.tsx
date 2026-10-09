@@ -48,7 +48,6 @@ function useProjectList(customerId?: string) {
           await state.beforeAction();
           state.driveMock.assertEmpty({ type: "project", id });
           state.setProjects((current) => current.filter((project) => project.id !== id));
-          state.setNotice("Project deleted.");
         }
       : undefined,
     linkComponent: Link,
@@ -129,7 +128,7 @@ export function ProjectsPreview() {
           await validateOwner(values);
           const id = crypto.randomUUID();
           state.setProjects((current) => [...current, { ...values, id }]);
-          state.setNotice("Project created.");
+
           await navigate({ href: `${base}/${id}${context}` });
         }}
       />

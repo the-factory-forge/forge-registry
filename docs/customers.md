@@ -117,3 +117,10 @@ Run `pnpm test`, and with the showroom running, `pnpm test:browser` (set
 before publishing. Verify installation in a temporary shadcn consumer using
 the local `@forge` namespace and typecheck the installed files. Updates copy
 source; host adapters should stay outside the managed plugin directory.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

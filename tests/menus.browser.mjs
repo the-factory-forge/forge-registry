@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 let browser;
 before(async () => {
@@ -62,7 +64,7 @@ test("sample menu image can be removed, reselected, and replaced with an uploade
   const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001");
   await page.getByRole("button", { name: "Remove photo", exact: true }).click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   assert.equal(await page.locator("article img").count(), 0);
   await page.getByRole("link", { name: "Manage menu", exact: true }).click();
@@ -73,7 +75,7 @@ test("sample menu image can be removed, reselected, and replaced with an uploade
     .getByRole("button", { name: "Use as photo", exact: true })
     .click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   assert.equal(
     await page.locator("article img").getAttribute("src"),
@@ -95,7 +97,7 @@ test("sample menu image can be removed, reselected, and replaced with an uploade
     .getByRole("button", { name: "Use as photo", exact: true })
     .click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   const image = page.getByRole("img", { name: "Burrata with tomatoes", exact: true });
   await image.scrollIntoViewIfNeeded();
@@ -237,7 +239,7 @@ test("staff creates, edits, and publishes an item; failure retains the draft", a
   assert.equal(await page.getByRole("textbox", { name: "Name *" }).inputValue(), "Seasonal soup");
   await page.getByText("Simulate action failures").locator("input").uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu" }).click();
   await page.getByRole("heading", { name: "Seasonal soup" }).waitFor();
   await page.getByRole("link", { name: "French menu" }).click();
@@ -354,7 +356,7 @@ test("public allergen and dietary filters combine, clear, and translate on mobil
   assert.equal(await editorLabels.getByRole("checkbox").count(), 19);
   await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   const pescatarian = page
     .getByRole("group", { name: "Régimes alimentaires", exact: true })
@@ -365,7 +367,7 @@ test("public allergen and dietary filters combine, clear, and translate on mobil
   await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
   await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
   assert.equal(await pescatarian.count(), 0);
@@ -382,7 +384,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
     .getByRole("combobox", { name: "Category", exact: true })
     .selectOption({ label: "Starters" });
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Back to items", exact: true }).click();
   const names = () => page.locator("tbody tr td:first-child").allTextContents();
   const burrata = page.getByRole("button", {
@@ -408,7 +410,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   await page.mouse.up();
   assert.equal(await ghost.count(), 0);
   assert.equal(await page.locator("[data-menu-drop-edge]").count(), 0);
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
@@ -421,7 +423,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
   await page.setViewportSize({ width: 390, height: 844 });
   await burrata.press("ArrowUp");
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
   await page.getByRole("checkbox", { name: "Simulate action failures", exact: true }).check();
   await burrata.press("ArrowUp");
@@ -438,7 +440,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   await page.getByRole("button", { name: "Clear search", exact: true }).click();
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
   await burrata.press("ArrowUp");
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), ["Burrata with tomatoes", "House pasta", "Homemade lemonade"]);
   const touch = await page.context().newCDPSession(page);
   await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true });
@@ -461,7 +463,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   assert.ok(ghostBounds.x >= 0 && ghostBounds.x + ghostBounds.width <= 390);
   await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   assert.equal(await ghost.count(), 0);
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
   await touch.detach();
   await page.getByRole("link", { name: "New item", exact: true }).click();
@@ -522,7 +524,7 @@ test("drag preview marks exact insertion edges and clears on canceled or invalid
   await start(original[0]);
   await hover(2, "before");
   await page.mouse.up();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   assert.deepEqual(await names(), [original[1], original[0], original[2]]);
   await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await start(original[2]);
@@ -559,7 +561,7 @@ test("staff sets independent spice levels with one, two or three flames and can 
     assert.equal(await spices.getByRole("radio").count(), 4);
     await spices.getByRole("radio", { name: text, exact: true }).check();
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+    await actionToast(page, "Saved.");
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
     const pasta = page
       .locator("article")
@@ -594,7 +596,7 @@ test("staff sets independent spice levels with one, two or three flames and can 
   );
   await page.getByRole("radio", { name: "Not spicy", exact: true }).check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   await page.getByRole("heading", { name: "House pasta", exact: true }).waitFor();
   assert.equal(await page.getByText("Extrêmement épicé", { exact: true }).count(), 0);
@@ -640,7 +642,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   await page.getByRole("heading", { name: "Edit item", exact: true }).waitFor();
   await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   const pizza = page
     .locator("article")
@@ -695,7 +697,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   );
   await page.getByText("Simulate action failures").locator("input").uncheck();
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   for (const name of ["Small · 30 cm", "Family · 40 cm"]) {
     await page.getByRole("button", { name: `Remove size: ${name}`, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: `Remove size: ${name}`, exact: true });
@@ -704,7 +706,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   }
   await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("24.00");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Public menu", exact: true }).click();
   await pizza.getByRole("heading", { name: "Margherita pizza", exact: true }).waitFor();
   assert.equal(await pizza.getByRole("group").count(), 0);

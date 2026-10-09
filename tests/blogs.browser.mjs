@@ -3,6 +3,8 @@ import { before, after, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 const existing = "b1000000-0000-4000-8000-000000000001";
 let browser;
@@ -26,7 +28,7 @@ async function preview(t, path = "/en/blogs", options = {}) {
 }
 async function saved(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Draft saved." }).waitFor();
+  await actionToast(page, "Draft saved.");
 }
 test("admin categories stay readable and long table text truncates in both themes", async (t) => {
   const page = await preview(t, "/en/admin/blogs", { viewport: { width: 1440, height: 1000 } });
@@ -45,7 +47,7 @@ test("admin categories stay readable and long table text truncates in both theme
     .getByLabel("Category name", { exact: true })
     .fill(categoryName);
   await page.getByRole("button", { name: "Save category", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Category saved." }).waitFor();
+  await actionToast(page, "Category saved.");
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await row.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
   const title =
@@ -281,7 +283,7 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
   await saved(page);
   await page.getByLabel("Editor", { exact: true }).selectOption("alex");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "This language is now published" }).waitFor();
+  await actionToast(page, "This language is now published");
   await page.getByRole("link", { name: "Public blog", exact: true }).click();
   await page.getByRole("link", { name: "A browser-created post", exact: true }).click();
   await page.getByText("Alex Morgan", { exact: true }).last().waitFor();
@@ -319,7 +321,7 @@ test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion
   await upload.setInputFiles(file);
   await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
   await upload.setInputFiles(file);
-  await page.getByRole("status").filter({ hasText: "Image uploaded." }).waitFor();
+  await actionToast(page, "Image uploaded.");
   assert.match(await page.getByLabel("Thumbnail", { exact: true }).inputValue(), /^[\da-f-]+$/);
   const text = page.getByRole("textbox", { name: "Markdown", exact: true });
   await text.fill("A new paragraph");
@@ -329,7 +331,7 @@ test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion
   await page.keyboard.press("Enter");
   assert.equal(await text.inputValue(), "**A new paragraph**");
   await page.getByLabel("Insert image", { exact: true }).setInputFiles(file);
-  await page.getByRole("status").filter({ hasText: "Image uploaded." }).waitFor();
+  await actionToast(page, "Image uploaded.");
   assert.match(await text.inputValue(), /\.\/assets\/[\da-f-]+/);
   await saved(page);
   const trigger = page.getByRole("button", { name: "Delete post", exact: true });
@@ -360,6 +362,7 @@ test("categories, optional translations, required publication fields, directory 
     .getByRole("combobox", { name: "Parent category", exact: true })
     .selectOption({ label: "Ideas & practice" });
   await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await actionToast(page, "Category saved.");
   const navigation = page.getByRole("navigation", { name: "Categories", exact: true });
   await navigation.getByRole("button", { name: "New category", exact: true }).waitFor();
   const parentGroup = navigation.locator(":scope > ul > li").filter({
@@ -388,7 +391,7 @@ test("categories, optional translations, required publication fields, directory 
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Un nouveau texte.");
   await saved(page);
   await page.getByRole("button", { name: "Publish", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "This language is now published" }).waitFor();
+  await actionToast(page, "This language is now published");
   await page.getByRole("link", { name: "French blog", exact: true }).click();
   await page.getByRole("link", { name: "Une idée", exact: true }).waitFor();
 });

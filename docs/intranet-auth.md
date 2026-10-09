@@ -200,3 +200,10 @@ shim and `cn` adapter when adapting the registry imports.
 After updating registry source, run `pnpm registry:sync`, install the generated
 items in the consumer, and run its login and employee integration tests against
 a disposable local database. Review the diff before overwriting host adapters.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

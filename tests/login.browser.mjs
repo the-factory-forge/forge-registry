@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
+
+import { actionToast } from "./action-toast-helpers.mjs";
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -98,15 +100,11 @@ test("password forms validate, retain failed values, and clear successful creden
     assert.equal(await password.getAttribute("minlength"), "12");
     assert.equal(await password.getAttribute("maxlength"), "16");
     await button.click();
-    await page
-      .getByRole("status")
-      .filter({
-        hasText:
-          view === "reset-password"
-            ? "Your password has been reset"
-            : "Password changed successfully",
-      })
-      .waitFor();
+    if (view === "reset-password") {
+      await page.getByRole("status").filter({ hasText: "Your password has been reset" }).waitFor();
+    } else {
+      await actionToast(page, "Password changed successfully");
+    }
     assert.equal(await page.getByTestId("callback-count").textContent(), "2");
     if (view === "reset-password") assert.equal(await password.count(), 0);
     else {

@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -78,7 +80,7 @@ test("editing retains drafts across rerenders and failures, then refreshes saved
   await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Save changes" }).click();
   await page.getByRole("heading", { name: "Updated Studio", exact: true }).waitFor();
-  await page.getByRole("status").filter({ hasText: "Customer updated" }).waitFor();
+  await actionToast(page, "Customer updated");
   await page.getByRole("link", { name: "Back to customers" }).click();
   await page.getByRole("row").filter({ hasText: "Updated Studio" }).waitFor();
   await page
@@ -131,7 +133,7 @@ test("creation validates fields, handles clipboard failures and never displays i
     }),
   );
   await page.getByRole("button", { name: "Copy password", exact: true }).click();
-  await page.getByRole("status").filter({ hasText: "Password copied." }).waitFor();
+  await actionToast(page, "Password copied.");
   await page.getByLabel("Email *", { exact: true }).fill("taylor@example.com");
   await page.getByLabel("Simulate action failures").check();
   await submit.click();

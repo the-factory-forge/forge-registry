@@ -14,6 +14,7 @@ import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as ReservationsRouteImport } from './routes/_reservations'
+import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
@@ -59,6 +60,11 @@ const PluginsRoute = PluginsRouteImport.update({
 } as any)
 const ReservationsRoute = ReservationsRouteImport.update({
   id: '/_reservations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActionToastRoute = ActionToastRouteImport.update({
+  id: '/action-toast',
+  path: '/action-toast',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookieBannerRoute = CookieBannerRouteImport.update({
@@ -195,6 +201,7 @@ const ReservationsLocaleAdminReservationsSplatRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/_menus': typeof MenusRouteWithChildren
   '/_plugins': typeof PluginsRouteWithChildren
   '/_reservations': typeof ReservationsRouteWithChildren
+  '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/action-toast'
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/action-toast'
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/_menus'
     | '/_plugins'
     | '/_reservations'
+    | '/action-toast'
     | '/cookie-banner'
     | '/native-select'
     | '/newsletter'
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   MenusRoute: typeof MenusRouteWithChildren
   PluginsRoute: typeof PluginsRouteWithChildren
   ReservationsRoute: typeof ReservationsRouteWithChildren
+  ActionToastRoute: typeof ActionToastRoute
   CookieBannerRoute: typeof CookieBannerRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ReservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/action-toast': {
+      id: '/action-toast'
+      path: '/action-toast'
+      fullPath: '/action-toast'
+      preLoaderRoute: typeof ActionToastRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookie-banner': {
@@ -673,6 +693,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenusRoute: MenusRouteWithChildren,
   PluginsRoute: PluginsRouteWithChildren,
   ReservationsRoute: ReservationsRouteWithChildren,
+  ActionToastRoute: ActionToastRoute,
   CookieBannerRoute: CookieBannerRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,

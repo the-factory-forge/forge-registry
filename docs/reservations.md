@@ -272,3 +272,10 @@ registry output, and verify a disposable shadcn consumer install before publicat
 This release does not install the plugin into forge-template or tc-website and does
 not deploy a website. Payments, reminders, groups, recurring bookings,
 multiple simultaneous resources, and external calendar synchronization are excluded.
+
+## Action confirmations
+
+Successful updates use the shared [action toast](./action-toast.md). Errors stay
+with the form. The dependency installs automatically; wrap the persistent host
+layout in `ActionToastProvider` to retain confirmations across navigation and
+translate its Close label. Existing callback and label props are unchanged.

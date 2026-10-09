@@ -4,6 +4,7 @@ import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import { useCallback, useState } from "react";
 import type { ComponentType } from "react";
 
+import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -49,7 +50,7 @@ export interface ReservationSettingsPageProps {
   linkComponent?: ComponentType<LinkProps>;
 }
 
-export function ReservationSettingsPage({
+function ReservationSettingsPageContent({
   client,
   editor,
   getServiceHref,
@@ -167,17 +168,17 @@ function BusinessSettings({
   labels: ReservationLabels;
 }) {
   const [draft, setDraft] = useState(value);
-  const [saved, setSaved] = useState(false);
+  const notify = useActionToast();
   const action = useReservationAction();
   return (
     <form
       className={cn(panelClass, "space-y-4")}
       onSubmit={(e) => {
         e.preventDefault();
-        setSaved(false);
+
         void action.run(async () => {
           setDraft(await client.saveSettings(draft));
-          setSaved(true);
+          notify(labels.saved);
         });
       }}
     >
@@ -191,7 +192,6 @@ function BusinessSettings({
           placeholder="Europe/Zurich"
           onChange={(e) => {
             setDraft({ ...draft, timeZone: e.target.value });
-            setSaved(false);
           }}
         />
       </Field>
@@ -201,7 +201,6 @@ function BusinessSettings({
           checked={draft.publicBookingEnabled}
           onChange={(e) => {
             setDraft({ ...draft, publicBookingEnabled: e.target.checked });
-            setSaved(false);
           }}
         />
         {labels.publicEnabled}
@@ -209,7 +208,6 @@ function BusinessSettings({
       <button className={primaryClass} disabled={action.busy}>
         {action.busy ? labels.saving : labels.save}
       </button>
-      {saved && <output className="block">{labels.saved}</output>}
     </form>
   );
 }
@@ -253,7 +251,7 @@ function ServiceEditor({
         resourceIds: [],
       },
   );
-  const [saved, setSaved] = useState(false);
+  const notify = useActionToast();
   const [archiving, setArchiving] = useState(false);
   const action = useReservationAction();
   const save = async (archive = false) => {
@@ -263,10 +261,10 @@ function ServiceEditor({
       archived: archive || draft.archived,
     };
     setDraft(input);
-    setSaved(false);
+
     const next = await client.saveService(input);
     setDraft(next);
-    setSaved(true);
+    notify(labels.saved);
     setArchiving(false);
     onSaved(next.id);
   };
@@ -288,7 +286,6 @@ function ServiceEditor({
             value={draft.name}
             onChange={(e) => {
               setDraft({ ...draft, name: e.target.value });
-              setSaved(false);
             }}
           />
         </Field>
@@ -299,7 +296,6 @@ function ServiceEditor({
             value={draft.description}
             onChange={(e) => {
               setDraft({ ...draft, description: e.target.value });
-              setSaved(false);
             }}
           />
         </Field>
@@ -310,7 +306,6 @@ function ServiceEditor({
             disabled={draft.archived}
             onChange={(e) => {
               setDraft({ ...draft, active: e.target.checked });
-              setSaved(false);
             }}
           />
           {labels.active}
@@ -332,7 +327,6 @@ function ServiceEditor({
                       ? [...draft.resourceIds, r.id]
                       : draft.resourceIds.filter((id) => id !== r.id),
                   });
-                  setSaved(false);
                 }}
               />
               {r.name}
@@ -356,7 +350,6 @@ function ServiceEditor({
                   value={draft[field] || (field === "durationMinutes" ? "" : 0)}
                   onChange={(e) => {
                     setDraft({ ...draft, [field]: e.target.valueAsNumber });
-                    setSaved(false);
                   }}
                 />
               </Field>
@@ -372,7 +365,6 @@ function ServiceEditor({
                     value={draft[field]}
                     onChange={(e) => {
                       setDraft({ ...draft, [field]: e.target.value });
-                      setSaved(false);
                     }}
                   />
                 </Field>
@@ -389,7 +381,6 @@ function ServiceEditor({
                     value={draft[field]}
                     onChange={(e) => {
                       setDraft({ ...draft, [field]: e.target.valueAsNumber });
-                      setSaved(false);
                     }}
                   />
                 </Field>
@@ -402,7 +393,6 @@ function ServiceEditor({
               value={draft.approval}
               onChange={(e) => {
                 setDraft({ ...draft, approval: e.target.value as "automatic" | "manual" });
-                setSaved(false);
               }}
             >
               <option value="automatic">{labels.automatic}</option>
@@ -419,7 +409,6 @@ function ServiceEditor({
           <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
         )}
         {draft.archived && <span>{labels.archived}</span>}
-        {saved && <output className="block">{labels.saved}</output>}
       </div>
       {archiving && (
         <ArchiveDialog
@@ -520,12 +509,11 @@ function ResourceEditor({
       },
   );
   const [date, setDate] = useState("");
-  const [saved, setSaved] = useState(false);
+  const notify = useActionToast();
   const [archiving, setArchiving] = useState(false);
   const action = useReservationAction();
   const change = (value: ReservationResource) => {
     setDraft(value);
-    setSaved(false);
   };
   const save = async (archive = false) => {
     const input = {
@@ -536,7 +524,7 @@ function ResourceEditor({
     change(input);
     const next = await client.saveResource(input);
     setDraft(next);
-    setSaved(true);
+    notify(labels.saved);
     setArchiving(false);
     onSaved(next.id);
   };
@@ -707,7 +695,6 @@ function ResourceEditor({
           <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
         )}
         {draft.archived && <span>{labels.archived}</span>}
-        {saved && <output className="block">{labels.saved}</output>}
       </div>
       {archiving && (
         <ArchiveDialog
@@ -773,5 +760,13 @@ function ArchiveDialog({
         </button>
       </div>
     </Modal>
+  );
+}
+
+export function ReservationSettingsPage(props: ReservationSettingsPageProps) {
+  return (
+    <ActionToastProvider>
+      <ReservationSettingsPageContent {...props} />
+    </ActionToastProvider>
   );
 }

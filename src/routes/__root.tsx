@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import { isLocale } from "@/lib/i18n/config";
 import { ShowroomLink } from "@/showroom/routing";
 import { notFoundHead } from "@/showroom/seo";
@@ -75,7 +76,9 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-full flex-col">
         <ShowroomHeader />
-        <div className="showroom-content min-w-0 flex-1">{children}</div>
+        <ActionToastProvider>
+          <div className="showroom-content min-w-0 flex-1">{children}</div>
+        </ActionToastProvider>
         <Scripts />
       </body>
     </html>
