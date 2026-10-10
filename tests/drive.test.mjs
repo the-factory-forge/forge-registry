@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   compareDriveItems,
+  folderUploadPath,
   validSort,
   validName,
   validId,
@@ -52,6 +53,7 @@ test("Drive UI ships independently; only the companion contains storage dependen
     "@forge/icon-tooltip",
     "@forge/sidebar-navigation",
     "@forge/subpage-sidebar",
+    "@forge/action-toast",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react"]);
   assert.deepEqual(server.registryDependencies, ["@forge/drive"]);
@@ -111,4 +113,24 @@ test("Drive sorting validates fields, compares raw values and keeps unknown meta
   assert.deepEqual(ordered("updatedAt", "desc"), ["Large", "Small", "Empty", "Unknown"]);
   assert.deepEqual(ordered("owner", "asc"), ["Small", "Large", "Empty", "Unknown"]);
   assert.deepEqual(ordered("owner", "desc"), ["Large", "Small", "Empty", "Unknown"]);
+});
+
+void test("folder uploads reject traversal, malformed paths and excessive nesting", () => {
+  assert.deepEqual(folderUploadPath("Bills/2026/receipt.txt", "receipt.txt"), [
+    "Bills",
+    "2026",
+    "receipt.txt",
+  ]);
+  for (const path of [
+    undefined,
+    "receipt.txt",
+    "/Bills/receipt.txt",
+    "Bills//receipt.txt",
+    "Bills/../receipt.txt",
+    "Bills/./receipt.txt",
+    "Bills\\bad/receipt.txt",
+    "Bills/other.txt",
+    `${"a/".repeat(101)}receipt.txt`,
+  ])
+    assert.throws(() => folderUploadPath(path, "receipt.txt"), { code: "INVALID" });
 });

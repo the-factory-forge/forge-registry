@@ -5,6 +5,7 @@ import { ArrowLeftIcon, LayoutGridIcon } from "lucide-react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { cn } from "@/components/utils/cn";
 import { isLocale, localeNames, locales, localeShort } from "@/lib/i18n/config";
 import { ShowroomLink as Link } from "@/showroom/routing";
 import { ThemeControl } from "@/showroom/theme-control";
@@ -46,9 +47,16 @@ export function ShowroomHeader() {
           <Link
             href="/"
             aria-current={isList ? "page" : undefined}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:text-primary sm:px-3"
+            className="group/showroom-back inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:text-primary sm:px-3"
           >
-            <Icon className="hidden size-4 shrink-0 sm:block" aria-hidden="true" />
+            <Icon
+              className={cn(
+                "hidden size-4 shrink-0 sm:block",
+                !isList &&
+                  "motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/showroom-back:-translate-x-0.5 motion-safe:group-focus-visible/showroom-back:-translate-x-0.5",
+              )}
+              aria-hidden="true"
+            />
             All components
           </Link>
         </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { Collapsible } from "@base-ui/react/collapsible";
-import { ChevronRightIcon, FolderIcon, RefreshCwIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRightIcon, RefreshCwIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -11,7 +11,7 @@ import type {
   DriveEntry,
   DriveFolderResult,
 } from "@/components/plugins/drive/types";
-import { DriveFeedback, messageFor } from "@/components/plugins/drive/ui";
+import { DriveFeedback, DriveFolderIcon, messageFor } from "@/components/plugins/drive/ui";
 import { errorCode } from "@/components/plugins/drive/utils";
 import { sidebarNavActiveClass, sidebarNavItemClass } from "@/components/sidebar-navigation";
 import { cn } from "@/components/utils/cn";
@@ -25,6 +25,7 @@ type FolderTreeProps = Pick<DriveBrowserProps, "client" | "scope" | "getFolderHr
   onNavigate: () => void;
   refreshKey: number;
   filesActive: boolean;
+  renderActions: (entry: DriveEntry, disabled: boolean) => ReactNode;
 };
 
 export function DriveFolderTree(props: FolderTreeProps) {
@@ -39,7 +40,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
   );
   const [result, setResult] = useState<{
     request: typeof request;
-    entries: Pick<DriveEntry, "id" | "name">[];
+    entries: DriveEntry[];
     nextCursor?: string;
     error?: unknown;
   }>();
@@ -100,7 +101,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
     <div aria-busy={loading}>
       <ul className="space-y-0.5">
         {visibleEntries.map((entry) => (
-          <FolderNode key={entry.id} {...props} entry={entry} />
+          <FolderNode key={entry.id} {...props} entry={entry} disabled={loading || !!error} />
         ))}
       </ul>
       <div className="flex h-10 items-center gap-1 px-2 md:h-8">
@@ -145,8 +146,12 @@ export function DriveFolderTree(props: FolderTreeProps) {
 
 function FolderNode({
   entry,
+  disabled,
   ...props
-}: FolderTreeProps & { entry: Pick<DriveEntry, "id" | "name"> }) {
+}: FolderTreeProps & {
+  entry: DriveEntry | DriveFolderResult["breadcrumbs"][number];
+  disabled: boolean;
+}) {
   const {
     currentFolderId,
     breadcrumbs,
@@ -185,7 +190,11 @@ function FolderNode({
             href={getFolderHref(entry.id)}
             aria-label={`${labels.folder}: ${entry.name}`}
             aria-current={filesActive && entry.id === currentFolderId ? "page" : undefined}
-            className={cn(sidebarNavItemClass, "min-w-0 flex-1", active && sidebarNavActiveClass)}
+            className={cn(
+              sidebarNavItemClass,
+              "group/drive-folder min-w-0 flex-1",
+              active && sidebarNavActiveClass,
+            )}
             onClick={(event) => {
               if (
                 !event.defaultPrevented &&
@@ -198,9 +207,10 @@ function FolderNode({
                 onNavigate();
             }}
           >
-            <FolderIcon className="size-4 shrink-0" aria-hidden="true" />
+            <DriveFolderIcon open={open || active} />
             <span className="min-w-0 wrap-anywhere">{entry.name}</span>
           </HostLink>
+          {"kind" in entry && props.renderActions(entry, disabled)}
         </div>
         <Collapsible.Panel>
           <div className="ml-4 border-l border-sidebar-border pl-2">

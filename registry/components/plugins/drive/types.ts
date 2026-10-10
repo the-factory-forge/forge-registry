@@ -96,6 +96,8 @@ export interface DriveClient {
   ): Promise<DriveFolderResult>;
   createFolder(input: { scope: DriveScope; parentId: string | null; name: string }): Promise<void>;
   rename(input: { scope: DriveScope; entryId: string; name: string }): Promise<void>;
+  /** Copy an entry and its descendants beside the original, without replacing existing names. */
+  duplicateEntry?(input: { scope: DriveScope; entryId: string; name: string }): Promise<void>;
   previewDelete(input: { scope: DriveScope; entryId: string }): Promise<DriveDeletePreview>;
   deleteEntry(input: { scope: DriveScope; entryId: string; token: string }): Promise<void>;
   listTrash?(input: DriveQuery & { scope: DriveScope }): Promise<DriveTrashResult>;
@@ -108,6 +110,10 @@ export interface DriveClient {
     name?: string;
   }): Promise<void>;
   prepareUpload(input: DriveUploadInput): Promise<DriveUploadTicket>;
+  /** Preserve the selected directory path, including its root folder. */
+  prepareFolderUpload?(
+    input: DriveUploadInput & { relativePath: string },
+  ): Promise<DriveUploadTicket>;
   completeUpload(input: { scope: DriveScope; uploadId: string }): Promise<void>;
   cancelUpload(input: { scope: DriveScope; uploadId: string }): Promise<void>;
   getDownload(input: { scope: DriveScope; entryId: string }): Promise<{ url: string }>;

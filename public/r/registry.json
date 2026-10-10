@@ -938,7 +938,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/sidebar-navigation",
-        "@forge/subpage-sidebar"
+        "@forge/subpage-sidebar",
+        "@forge/action-toast"
       ],
       "files": [
         {
@@ -985,6 +986,11 @@
           "path": "registry/components/plugins/drive/folder-tree.tsx",
           "type": "registry:component",
           "target": "@components/plugins/drive/folder-tree.tsx"
+        },
+        {
+          "path": "registry/components/plugins/drive/folder-menu.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/folder-menu.tsx"
         }
       ]
     },
@@ -1531,7 +1537,7 @@
       "name": "action-toast",
       "type": "registry:ui",
       "title": "Action toast",
-      "description": "Shared, dismissible success confirmations that keep forms and tables still.",
+      "description": "Shared toast queue, status indicators and action footers for confirmations and background operations.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
@@ -1540,7 +1546,7 @@
           "target": "@components/action-toast.tsx"
         }
       ],
-      "registryDependencies": ["@forge/icon-tooltip"]
+      "registryDependencies": ["@forge/icon-tooltip", "@forge/cn"]
     },
     {
       "name": "optimistic-action",

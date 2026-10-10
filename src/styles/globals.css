@@ -220,7 +220,8 @@
   margin-inline: 0;
   padding: 0;
 }
-.showroom-fill {
+.showroom-fill,
+.showroom-fill .min-h-svh {
   min-height: var(--showroom-preview-height);
 }
 .showroom-sticky {

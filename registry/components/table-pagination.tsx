@@ -25,7 +25,7 @@ export interface TablePaginationProps {
 }
 
 const buttonClass =
-  "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8";
+  "group/pagination inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-background text-foreground outline-none transition-colors enabled:hover:bg-accent enabled:hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8";
 
 export function TablePagination({
   summary,
@@ -55,7 +55,10 @@ export function TablePagination({
             onClick={onPrevious}
             aria-label={previousLabel}
           >
-            <ChevronLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+            <ChevronLeftIcon
+              className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-[:enabled:focus-visible]/pagination:-translate-x-0.5 motion-safe:group-[:enabled:hover]/pagination:-translate-x-0.5"
+              aria-hidden="true"
+            />
           </button>
         </IconTooltip>
         {page != null && (
@@ -75,7 +78,10 @@ export function TablePagination({
             onClick={onNext}
             aria-label={nextLabel}
           >
-            <ChevronRightIcon className="size-4 shrink-0" aria-hidden="true" />
+            <ChevronRightIcon
+              className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-[:enabled:focus-visible]/pagination:translate-x-0.5 motion-safe:group-[:enabled:hover]/pagination:translate-x-0.5"
+              aria-hidden="true"
+            />
           </button>
         </IconTooltip>
       </div>

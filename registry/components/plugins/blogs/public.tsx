@@ -252,10 +252,13 @@ export function BlogIndexPage({
                     )}
                     <BlogLink
                       href={postHref(post)}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                      className="group/read-more inline-flex items-center gap-2 text-sm font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {labels.readMore}
-                      <ArrowUpRight className="size-4" />
+                      <ArrowUpRight
+                        className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/read-more:translate-x-0.5 motion-safe:group-hover/read-more:-translate-y-0.5 motion-safe:group-focus-visible/read-more:translate-x-0.5 motion-safe:group-focus-visible/read-more:-translate-y-0.5"
+                        aria-hidden="true"
+                      />
                     </BlogLink>
                   </div>
                 </article>

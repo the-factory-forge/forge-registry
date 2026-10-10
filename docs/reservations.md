@@ -180,8 +180,10 @@ rechecks capacity on the server before reserving a slot.
 
 Duration is elapsed minutes. The Temporal dependency resolves IANA time zones without
 changing globals. Nonexistent local starts are omitted; repeated starts are separate
-UTC instants with offset labels. An opening/closing boundary inside a daylight-saving
-gap closes that working interval instead of silently moving the boundary.
+UTC instants. Time-slot buttons show only local times, with the UTC offset at the
+top right of their group. Dates spanning an offset change use separate groups so
+repeated local times remain distinguishable. An opening/closing boundary inside a
+daylight-saving gap closes that working interval instead of silently moving the boundary.
 
 Pending and confirmed bookings occupy capacity. Pending requests never expire
 automatically. Staff can approve or reject pending requests and cancel active bookings;

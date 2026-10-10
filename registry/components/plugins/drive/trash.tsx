@@ -5,6 +5,7 @@ import { Toast } from "@base-ui/react/toast";
 import { RefreshCwIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { useActionToast } from "@/components/action-toast";
 import { NativeSelect } from "@/components/native-select";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
@@ -75,6 +76,7 @@ export function TrashBrowser({
   const [restoreEntry, setRestoreEntry] = useState<DriveTrashEntry>();
   const lock = useRef(false);
   const manager = Toast.useToastManager();
+  const notify = useActionToast();
   const loading = result?.request !== request;
   const mutationScope = useMemo(
     () => ({ client, scope, search, cursor }),
@@ -89,7 +91,7 @@ export function TrashBrowser({
     setRestoreEntry(undefined);
     refresh();
     onChanged?.();
-    manager.add({ title: labels.restored, type: "success" });
+    notify(labels.restored);
   };
   useEffect(() => {
     const controller = new AbortController();
@@ -120,7 +122,12 @@ export function TrashBrowser({
       restored();
     } catch (reason) {
       if (errorCode(reason) === "RESTORE_CONFLICT") setRestoreEntry(entry);
-      else manager.add({ title: messageFor(reason, labels), type: "error" });
+      else
+        manager.add({
+          title: messageFor(reason, labels),
+          type: "error",
+          data: { closeLabel: labels.close },
+        });
     } finally {
       lock.current = false;
       setRestoring(undefined);
@@ -132,23 +139,25 @@ export function TrashBrowser({
         message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
         error
       />
-      <div className="flex flex-wrap justify-end gap-2">
-        <TableSearch
-          value={search}
-          label={labels.searchTrash}
-          clearLabel={labels.clearSearch}
-          onValueChange={(value) => {
-            setSearch(value);
-            setCursors([]);
-          }}
-        />
-        <button className={buttonClass} disabled={loading} onClick={refresh}>
-          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.retry}
-        </button>
-      </div>
       <div className={tablePanelClass} aria-busy={loading}>
-        <p className="mb-4 text-sm text-muted-foreground">{labels.trashHint}</p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <p className="flex-1 basis-80 text-sm text-muted-foreground">{labels.trashHint}</p>
+          <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2">
+            <TableSearch
+              value={search}
+              label={labels.searchTrash}
+              clearLabel={labels.clearSearch}
+              onValueChange={(value) => {
+                setSearch(value);
+                setCursors([]);
+              }}
+            />
+            <button className={buttonClass} disabled={loading} onClick={refresh}>
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+              {labels.retry}
+            </button>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className={cn(tableClass, "min-w-[44rem]")} aria-label={labels.trash}>
             <thead>
@@ -262,7 +271,7 @@ export function TrashBrowser({
                               labels={labels}
                               refresh={() => {
                                 refresh();
-                                manager.add({ title: labels.deleted, type: "success" });
+                                notify(labels.deleted);
                               }}
                             >
                               <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />

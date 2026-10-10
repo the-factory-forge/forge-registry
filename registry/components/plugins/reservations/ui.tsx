@@ -176,7 +176,6 @@ export function formatTime(iso: string, locale: string, zone: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
-    timeZoneName: "shortOffset",
     timeZone: zone,
   }).format(new Date(iso));
 }
@@ -471,23 +470,45 @@ export function SlotPicker({
   zone: string;
   labels: ReservationLabels;
 }) {
+  const offsetFormatter = new Intl.DateTimeFormat(locale, {
+    timeZone: zone,
+    timeZoneName: "shortOffset",
+  });
+  const groups = new Map<string, ReservationSlot[]>();
+  for (const slot of slots) {
+    const offset = offsetFormatter
+      .formatToParts(new Date(slot.startsAt))
+      .find((part) => part.type === "timeZoneName")!.value;
+    const group = groups.get(offset) ?? [];
+    group.push(slot);
+    groups.set(offset, group);
+  }
   return slots.length ? (
-    <fieldset className="space-y-3">
-      <legend className="mb-2 text-sm font-medium">{labels.time}</legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {slots.map((slot) => (
-          <button
-            key={slot.startsAt}
-            type="button"
-            className={selected === slot.startsAt ? primaryClass : buttonClass}
-            aria-pressed={selected === slot.startsAt}
-            onClick={() => onChange(slot.startsAt)}
-          >
-            {formatTime(slot.startsAt, locale, zone)}
-          </button>
-        ))}
-      </div>
-    </fieldset>
+    <div className="space-y-4">
+      {Array.from(groups, ([offset, group]) => (
+        <fieldset key={offset}>
+          <legend className="mb-2 w-full text-sm font-medium">
+            <span className="flex items-center justify-between gap-2">
+              <span>{labels.time}</span>{" "}
+              <span className="shrink-0 text-muted-foreground">{offset}</span>
+            </span>
+          </legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {group.map((slot) => (
+              <button
+                key={slot.startsAt}
+                type="button"
+                className={selected === slot.startsAt ? primaryClass : buttonClass}
+                aria-pressed={selected === slot.startsAt}
+                onClick={() => onChange(slot.startsAt)}
+              >
+                {formatTime(slot.startsAt, locale, zone)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </div>
   ) : (
     <output className="block text-sm text-muted-foreground">{labels.emptySlots}</output>
   );

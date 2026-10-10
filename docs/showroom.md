@@ -197,8 +197,11 @@ small examples, and `width="full"` for complete application layouts that supply
 their own main landmark. The frame owns gutters, maximum width, and viewport
 height. Existing registry page components accept `className="showroom-page"` to
 let the host frame control their outer spacing; their installed defaults remain
-unchanged. Full-height layouts can use `showroom-fill`; intranet content uses
-`showroom-inset` and its custom sticky toolbar uses `showroom-sticky`.
+unchanged. Full-height layouts can use `showroom-fill`, which also sizes nested
+`min-h-svh` panels to the available preview height. This override stays in the
+showroom stylesheet; installed components retain their full viewport height.
+Intranet content uses `showroom-inset` and its custom sticky toolbar uses
+`showroom-sticky`.
 
 The shared stylesheet defines the header height once. The desktop settings sidebar
 stays below that header, occupies its own grid column, and scrolls independently

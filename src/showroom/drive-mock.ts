@@ -12,6 +12,7 @@ import {
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
   scopeKey,
+  folderUploadPath,
   validName,
   validSort,
 } from "@/components/plugins/drive/utils";
@@ -172,6 +173,49 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
           nextCursor: items.length > offset + 10 ? String(offset + 10) : undefined,
         };
       };
+      async function prepareUpload(input: DriveUploadInput, relativePath?: string) {
+        await mutation(input.scope, "upload");
+        if (input.size > DEFAULT_MAX_FILE_BYTES) throw new DriveError("INVALID");
+        const existing = uploads.get(input.requestId);
+        if (existing) {
+          if (existing.cancelled) throw new DriveError("EXPIRED");
+          return { id: input.requestId, completed: Boolean(existing.completed) };
+        }
+        const name = validName(input.name);
+        if (relativePath !== undefined) {
+          authorize(input.scope, "createFolder");
+          const path = folderUploadPath(relativePath, input.name);
+          let parentId = input.parentId;
+          checkParent(input.scope, parentId);
+          for (const name of path.slice(0, -1)) {
+            let folder = owned(input.scope).find(
+              (entry) => entry.parentId === parentId && entry.name === name,
+            );
+            if (folder && (folder.kind !== "folder" || folder.state !== "ready"))
+              throw new DriveError("CONFLICT");
+            if (!folder) {
+              available(input.scope, parentId, name);
+              folder = {
+                id: crypto.randomUUID(),
+                scope: input.scope,
+                parentId,
+                name,
+                kind: "folder",
+                size: 0,
+                contentType: "",
+                state: "ready",
+                updatedAt: new Date().toISOString(),
+              };
+              entries.push(folder);
+            }
+            parentId = folder.id;
+          }
+          input = { ...input, parentId };
+        }
+        available(input.scope, input.parentId, name);
+        uploads.set(input.requestId, { input: { ...input, name }, entryId: crypto.randomUUID() });
+        return { id: input.requestId, completed: false };
+      }
       return {
         async listTrash({ scope, search = "", cursor }) {
           const space = authorize(scope);
@@ -352,6 +396,37 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
           entry.name = name;
           entry.updatedAt = new Date().toISOString();
         },
+        async duplicateEntry({ scope, entryId, name: input }) {
+          await mutation(scope, "upload");
+          authorize(scope, "download");
+          authorize(scope, "createFolder");
+          const source = find(scope, entryId);
+          const name = validName(input);
+          available(scope, source.parentId, name);
+          const rows = descendants(scope, entryId);
+          if (
+            rows.some((row) => row.state !== "ready") ||
+            [...uploads.values()].some(
+              (upload) =>
+                !upload.completed &&
+                !upload.cancelled &&
+                scopeKey(upload.input.scope) === scopeKey(scope) &&
+                rows.some((row) => row.id === upload.input.parentId),
+            )
+          )
+            throw new DriveError("CONFLICT");
+          const ids = new Map(rows.map((row) => [row.id, crypto.randomUUID()]));
+          entries.push(
+            ...rows.map((row) => ({
+              ...row,
+              id: ids.get(row.id)!,
+              parentId: row.id === entryId ? row.parentId : ids.get(row.parentId!)!,
+              name: row.id === entryId ? name : row.name,
+              updatedAt: new Date().toISOString(),
+              url: row.blob ? URL.createObjectURL(row.blob) : row.url,
+            })),
+          );
+        },
         async previewDelete({ scope, entryId }) {
           authorize(scope, "delete");
           await delay();
@@ -396,19 +471,8 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
             entries.splice(entries.indexOf(entry), 1);
           }
         },
-        async prepareUpload(input) {
-          await mutation(input.scope, "upload");
-          if (input.size > DEFAULT_MAX_FILE_BYTES) throw new DriveError("INVALID");
-          const existing = uploads.get(input.requestId);
-          if (existing) {
-            if (existing.cancelled) throw new DriveError("EXPIRED");
-            return { id: input.requestId, completed: Boolean(existing.completed) };
-          }
-          const name = validName(input.name);
-          available(input.scope, input.parentId, name);
-          uploads.set(input.requestId, { input: { ...input, name }, entryId: crypto.randomUUID() });
-          return { id: input.requestId, completed: false };
-        },
+        prepareUpload: (input) => prepareUpload(input),
+        prepareFolderUpload: (input) => prepareUpload(input, input.relativePath),
         async completeUpload({ scope, uploadId }) {
           await mutation(scope, "upload");
           const upload = uploads.get(uploadId);

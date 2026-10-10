@@ -1,9 +1,47 @@
+import { Toast } from "@base-ui/react/toast";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import {
+  ActionToastProvider,
+  actionToastButtonClass,
+  useActionToast,
+} from "@/components/action-toast";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
+
+function BackgroundActionExample({ fail }: { fail: boolean }) {
+  const { add, update, close } = Toast.useToastManager();
+  const [pending, setPending] = useState(false);
+  return (
+    <button
+      type="button"
+      className={actionToastButtonClass}
+      disabled={pending}
+      onClick={async () => {
+        if (pending) return;
+        setPending(true);
+        const id = add({
+          title: "Background action",
+          description: "Working…",
+          type: "loading",
+          timeout: 0,
+          actionProps: { children: "Dismiss", disabled: true },
+        });
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        update(id, {
+          description: fail ? "The action failed. Please try again." : "Completed",
+          type: fail ? "error" : "success",
+          timeout: fail ? 0 : 5000,
+          actionProps: { children: "Dismiss", onClick: () => close(id) },
+        });
+        setPending(false);
+      }}
+    >
+      Run background action
+    </button>
+  );
+}
 
 function ActionToastExample() {
   const notify = useActionToast();
@@ -26,7 +64,8 @@ function ActionToastExample() {
     >
       <ShowroomIntro title="Action toast">
         Save to show a confirmation. It closes after five seconds, pauses while hovered or focused,
-        and can be dismissed with its Close button. Errors stay beside the form.
+        and can be dismissed with its Close button. Form errors stay beside the form. Background
+        actions use the same toast, with their status on the left and actions on the right.
       </ShowroomIntro>
       <form
         className="space-y-4"
@@ -54,6 +93,7 @@ function ActionToastExample() {
           </p>
         )}
       </form>
+      <BackgroundActionExample fail={fail} />
     </ShowroomPreview>
   );
 }

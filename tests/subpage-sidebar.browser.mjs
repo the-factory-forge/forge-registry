@@ -101,7 +101,7 @@ test("Drive sidebar expands folders, selects descendants and returns from Trash 
       await page.getByRole("table").getByRole("link", { name: "Assets", exact: true }).click();
       await createFolder(page, "Brand");
       let nav = await navigation(page);
-      await nav.getByRole("link", { name: "All files", exact: true }).click();
+      await nav.getByRole("link", { name: "Studio website", exact: true }).click();
       await page.getByRole("table").getByRole("link", { name: "Assets", exact: true }).waitFor();
       nav = await navigation(page);
       await nav.getByRole("button", { name: "Expand folder: Assets", exact: true }).click();
@@ -132,7 +132,7 @@ test("Drive sidebar expands folders, selects descendants and returns from Trash 
         await nav.getByRole("button", { name: "Trash", exact: true }).getAttribute("aria-current"),
         "page",
       );
-      await nav.getByRole("link", { name: "All files", exact: true }).click();
+      await nav.getByRole("link", { name: "Studio website", exact: true }).click();
       await page.getByRole("table").getByRole("link", { name: "Archive", exact: true }).waitFor();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

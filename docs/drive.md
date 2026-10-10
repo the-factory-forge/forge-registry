@@ -15,18 +15,73 @@ returns cursors. Host paging callbacks stay compatible; translate the new
 
 ## Folder navigation
 
-The file browser uses [`SubpageSidebar`](./subpage-sidebar.md) for All files,
-a nested folder tree and optional Trash. The breadcrumb stays above the local
+The file browser uses [`SubpageSidebar`](./subpage-sidebar.md) for the space root,
+a nested folder tree and optional Trash. The root link uses the same space name
+as the breadcrumb, including after renaming. The breadcrumb stays above the local
 navigation and file table; search stays inside the table panel. On mobile,
 **Drive navigation** opens the drawer. The tree reads one authorized cursor page
 at a time, loads children when expanded, and offers loading and retry feedback.
-All files and folder links use `getFolderHref` and the host link adapter. Trash
+The root and folder links use `getFolderHref` and the host link adapter. Trash
 keeps the existing recovery flow and only appears with all required trash methods.
 
+Folder links show an open folder on hover or keyboard focus. Expanded and active
+tree folders stay open. Icons keep a fixed footprint, and reduced-motion users
+get an immediate state change without the crossfade. Pending folders retain their
+closed icon until navigation is available.
+
 Translate `navigation`, `closeNavigation`, `expandFolder`, `collapseFolder`, and
-`loadMoreFolders` through the existing labels prop. No new client method, storage
-migration or authorization rule is required. Favorites, recent changes and sharing
+`loadMoreFolders` through the existing labels prop. Navigation uses the existing
+client reads. Favorites, recent changes and sharing
 from the reference application are outside this navigation change.
+
+## Folder action menu
+
+Each loaded folder in the tree has a three-dot menu for permitted actions:
+Add > Upload file / Upload folder, Rename, Duplicate and Move to trash. The menu
+acts on that folder even when the table shows another folder. It supports touch
+and keyboard navigation and uses the host theme. Rename and trash reuse the
+existing dialogs. Trashing requires the complete optional trash integration;
+this menu never substitutes permanent deletion for Move to trash.
+
+Translate `add`, `uploadFile`, `uploadFolder`, `duplicate`, `duplicateName` and
+`duplicated` alongside the existing action labels. Duplicate asks for an available
+sibling name, initially supplied by `duplicateName`. Failed forms retain the name
+and allow retry. Trashing the open folder or an ancestor shows a link to its parent;
+Undo restores the browser's location and contents.
+
+Hosts enable the new actions by forwarding these optional authenticated methods:
+
+- `prepareFolderUpload({ ...uploadInput, relativePath })`, returning the same
+  upload ticket as `prepareUpload`. The path includes the selected directory and
+  filename, such as `Bills/2026/receipt.pdf`. Require upload and folder-creation
+  permissions. The companion validates every segment and the total folder depth,
+  creates missing folders under the target folder, and reuses matching ready
+  folders. It rejects conflicting files without overwriting them. Each file keeps
+  its request ID, target folder and path on retry; completion and cancellation
+  use the existing methods.
+- `duplicateEntry({ scope, entryId, name })`, requiring download, upload and
+  folder-creation permissions. The companion copies the complete ready subtree
+  into a sibling with fresh entry IDs in one database transaction. In-progress
+  uploads, pending deletion, cross-space IDs and occupied names are rejected.
+
+Both methods remain optional in `DriveClient`; adapters without them keep working
+and omit the corresponding menu actions. Forward them through an explicit
+transport allowlist with validated inputs and fresh session authorization. The
+server rechecks every permission under the space lock. No schema migration is
+needed. The showroom implements both methods in its in-memory adapter.
+
+Directory selection uses the browser's directory file picker. It preserves paths
+for selected files, including nested folders, and uses the existing two-transfer
+queue. Empty directories are not supplied by this picker. Cancelled or failed
+batches can leave folders and completed files; per-file Retry and Cancel remain
+available. Folder drag-and-drop remains unsupported and points to Upload folder.
+
+The storage companion shares immutable object bytes between duplicated entries.
+Names, folder relationships, trash state and entry IDs are independent. Permanent
+cleanup removes an object only after its last entry reference, including trash,
+is removed. Back up metadata and objects together. Deploy the updated companion
+to all writers and maintenance workers before enabling duplication; reverting to
+older cleanup code after creating copies can delete bytes still used by a copy.
 
 ## Install and entrypoints
 
@@ -104,10 +159,10 @@ the dialog and entered name for retry. Existing adapters need no changes unless
 they want to enable space renaming; the storage companion does not rename host records.
 
 Folder creation, rename, deletion, and download confirmations appear as
-bottom-right toasts using the item's existing Base UI dependency. They dismiss
+bottom-right toasts using the shared [`@forge/action-toast`](./action-toast.md) renderer. They dismiss
 after five seconds, pause while hovered or focused, and can be closed with the
-translated `close` label. Each browser provides its own toast context; hosts need
-no notification provider. Uploads share that fixed toast area, with per-file
+translated `close` label. Standalone browsers provide the shared toast context;
+embedded browsers join the host's existing queue. Uploads share that fixed toast area, with per-file
 progress, Cancel, Retry and Dismiss controls. Uploads show an orange spinner and
 progress bar while pending, then a green check and progress bar after success.
 Each file's bottom row places its status on the left and actions on the right.
@@ -117,7 +172,18 @@ Active uploads and failures stay
 visible until resolved; a finished batch clears after five seconds or can be
 closed manually. Hovering or focusing pauses dismissal. Large batches scroll
 inside the toast, and other confirmations cannot hide upload recovery controls.
+Each browser has its own upload batch ID; leaving that browser closes its batch
+and keeps the existing upload cancellation behavior. Context-bound Undo controls
+also close when their browser unmounts; ordinary confirmations can remain in the
+host queue across navigation.
 Form loading, validation and listing errors remain inline with the affected controls.
+
+Dragging files over the upload-enabled table shows an overlay with the translated
+`dropActive` instruction and file-size limit. The overlay covers only the drop
+area, keeps the table in place and clears on leave, drop, cancellation or loss of
+upload availability. Text/link drags and read-only or loading views do not show it.
+File drops keep the existing validation, including folder rejection. Upload files
+remains the keyboard and touch alternative.
 
 ## Table metadata and ordering
 
@@ -126,6 +192,11 @@ The directory sorts by all four metadata columns. Within a space, files sort by
 name, modification date, or size; Owned is shared by every entry, so it has no
 sort button. Headers support keyboard activation and expose `aria-sort`. Narrow
 screens scroll within the table to keep every column available.
+
+Every directory row includes an open-folder action that uses `getSpaceHref`,
+matching its title link. It remains available for read-only spaces and spaces
+without a linked record. Translate `openFolder` through the existing labels prop;
+the tooltip and accessible name include the space name.
 
 Linked-record navigation uses icon-only links in the directory's Actions column
 and the browser header. Each link's accessible name combines the translated
@@ -477,7 +548,7 @@ transfers and fault injection. Run `pnpm test`, `pnpm test:browser`, registry
 checks, typecheck, combined checks, and the production build for changes.
 
 Public sharing, previews/editors, file moves, version history,
-folder uploads, and multipart/resumable transfers are outside this version.
+empty-directory uploads, and multipart/resumable transfers are outside this version.
 Keep host transport, auth, schema migrations, scheduling, and entity adapters
 outside registry-managed paths. Registry updates copy source; inspect the diff,
 review migrations, and validate host integrations before deploying an update.

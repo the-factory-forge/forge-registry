@@ -8,6 +8,7 @@ import {
   ExternalLinkIcon,
   FileIcon,
   FolderIcon,
+  FolderOpenIcon,
   FolderPlusIcon,
   PencilIcon,
   Trash2Icon,
@@ -15,8 +16,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { DriveFolderMenu } from "@/components/plugins/drive/folder-menu";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { TrashBrowser } from "@/components/plugins/drive/trash";
@@ -33,6 +36,7 @@ import type {
 import {
   buttonClass,
   DriveFeedback,
+  DriveFolderIcon,
   DriveModified,
   DriveOwner,
   DriveSize,
@@ -196,9 +200,12 @@ export function DrivePage({
                   <td className={tableCellClass}>
                     <HostLink
                       href={getSpaceHref(space)}
-                      className={cn(buttonClass, "-ml-3 justify-start text-left")}
+                      className={cn(
+                        buttonClass,
+                        "group/drive-folder -ml-3 justify-start text-left",
+                      )}
                     >
-                      <FolderIcon className="shrink-0" aria-hidden="true" />
+                      <DriveFolderIcon />
                       {space.name}
                     </HostLink>
                     {!Object.entries(space.capabilities).some(
@@ -221,17 +228,28 @@ export function DrivePage({
                     <DriveOwner owner={space.owner} fallback={labels.unavailable} />
                   </td>
                   <td className={tableActionCellClass}>
-                    {space.href && (
-                      <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
+                    <div className={tableActionsClass}>
+                      <IconTooltip label={`${labels.openFolder}: ${space.name}`}>
                         <HostLink
-                          href={space.href}
+                          href={getSpaceHref(space)}
                           className={iconButtonClass}
-                          aria-label={`${labels.openRecord}: ${space.name}`}
+                          aria-label={`${labels.openFolder}: ${space.name}`}
                         >
-                          <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                          <FolderOpenIcon className="size-4 shrink-0" aria-hidden="true" />
                         </HostLink>
                       </IconTooltip>
-                    )}
+                      {space.href && (
+                        <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
+                          <HostLink
+                            href={space.href}
+                            className={iconButtonClass}
+                            aria-label={`${labels.openRecord}: ${space.name}`}
+                          >
+                            <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                          </HostLink>
+                        </IconTooltip>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -258,9 +276,12 @@ export function DrivePage({
 
 export function DriveBrowser(props: DriveBrowserProps) {
   return (
-    <Toast.Provider key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`} limit={Infinity}>
+    <ActionToastProvider
+      key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`}
+      closeLabel={props.labels?.close}
+    >
       <Browser {...props} />
-    </Toast.Provider>
+    </ActionToastProvider>
   );
 }
 function Browser({
@@ -311,6 +332,15 @@ function Browser({
   const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
+  const notify = useActionToast();
+  const undoToasts = useRef(new Set<string>());
+  const { close: closeToast } = toastManager;
+  useEffect(() => {
+    const ids = undoToasts.current;
+    return () => {
+      for (const id of ids) closeToast(id);
+    };
+  }, [closeToast]);
   const currentClient = useRef(client);
   useEffect(() => {
     currentClient.current = client;
@@ -318,6 +348,13 @@ function Browser({
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadDestination = useRef(parentId);
+  const menuTrigger = useRef<HTMLElement | null>(null);
+  const [folderAction, setFolderAction] = useState<{
+    entry: DriveEntry;
+    action: "rename" | "duplicate" | "trash";
+  }>();
+  const [removedFolder, setRemovedFolder] = useState<DriveEntry>();
   const refresh = () => {
     setRevision((value) => value + 1);
   };
@@ -342,7 +379,31 @@ function Browser({
     return () => controller.abort();
   }, [request]);
   const capabilities = data?.space.capabilities;
-  const actionsDisabled = loading || !!error || optimistic.pending;
+  const actionsDisabled = loading || !!error || optimistic.pending || !!removedFolder;
+  const canDrop = !actionsDisabled && !!capabilities?.upload && !trashView;
+  const dragDepth = useRef(0);
+  const [dragActive, setDragActive] = useState(false);
+  useEffect(() => {
+    const clearDrag = () => {
+      dragDepth.current = 0;
+      setDragActive(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") clearDrag();
+    };
+    clearDrag();
+    if (!canDrop) return;
+    window.addEventListener("drop", clearDrag);
+    window.addEventListener("dragend", clearDrag);
+    window.addEventListener("blur", clearDrag);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("drop", clearDrag);
+      window.removeEventListener("dragend", clearDrag);
+      window.removeEventListener("blur", clearDrag);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [canDrop]);
   const actionClient: DriveClient = {
     ...client,
     rename: (input) =>
@@ -401,6 +462,7 @@ function Browser({
         () => onRenameSpace(name),
       ));
   function deleted(entry: DriveEntry) {
+    if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
     refresh();
     setFeedback(undefined);
     const trashed = trashEnabled && entry.state === "ready";
@@ -408,9 +470,14 @@ function Browser({
     const actionProps = { children: labels.undo, onClick: () => void undo() };
     const id = toastManager.add({
       title: trashed ? labels.trashed : labels.deleted,
+      data: { closeLabel: labels.close },
       type: "success",
       actionProps: trashed && capabilities?.restore ? actionProps : undefined,
+      onRemove: () => {
+        undoToasts.current.delete(id);
+      },
     });
+    if (trashed && capabilities?.restore) undoToasts.current.add(id);
     async function undo() {
       if (pending) return;
       pending = true;
@@ -426,12 +493,14 @@ function Browser({
           (current) =>
             current && {
               ...current,
-              items: current.items.some((row) => row.id === entry.id)
-                ? current.items
-                : [...current.items, entry],
+              items:
+                entry.parentId !== parentId || current.items.some((row) => row.id === entry.id)
+                  ? current.items
+                  : [...current.items, entry],
             },
           () => currentClient.current.restoreEntry!({ scope, entryId: entry.id }),
         );
+        setRemovedFolder(undefined);
         refresh();
         toastManager.update(id, {
           title: labels.restored,
@@ -482,7 +551,7 @@ function Browser({
             anchor.remove();
           })(),
           {
-            loading: { title: labels.loading },
+            loading: { title: labels.loading, data: { closeLabel: labels.close } },
             success: { title: labels.downloading },
             error: (reason) => ({ title: messageFor(reason, labels), timeout: 0 }),
           },
@@ -495,6 +564,54 @@ function Browser({
   }
   return (
     <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
+      {capabilities?.upload && (
+        <input
+          ref={fileInput}
+          type="file"
+          accept={uploadAccept}
+          multiple
+          hidden
+          disabled={actionsDisabled}
+          onChange={(event) => {
+            const directory = event.currentTarget.webkitdirectory;
+            if (
+              !actionsDisabled &&
+              event.target.files &&
+              data &&
+              (!directory || (capabilities.createFolder && client.prepareFolderUpload))
+            )
+              queue.add(
+                Array.from(event.target.files),
+                data.maxFileBytes,
+                uploadDestination.current,
+                directory,
+              );
+            event.target.value = "";
+            event.currentTarget.webkitdirectory = false;
+          }}
+        />
+      )}
+      {folderAction && (
+        <EntryDialog
+          client={actionClient}
+          scope={scope}
+          parentId={folderAction.entry.parentId}
+          entry={folderAction.entry}
+          labels={labels}
+          deleting={folderAction.action === "trash"}
+          trashing={folderAction.action === "trash"}
+          duplicating={folderAction.action === "duplicate"}
+          onClose={() => setFolderAction(undefined)}
+          returnFocus={menuTrigger}
+          refresh={() => {
+            if (folderAction.action === "trash") deleted(folderAction.entry);
+            else {
+              refresh();
+              notify(folderAction.action === "duplicate" ? labels.duplicated : labels.saved);
+            }
+          }}
+        />
+      )}
       <DriveFeedback
         message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
         error
@@ -540,7 +657,7 @@ function Browser({
                         refresh={() => {
                           refresh();
                           setFeedback(undefined);
-                          toastManager.add({ title: labels.saved, type: "success" });
+                          notify(labels.saved);
                         }}
                       />
                     )}
@@ -590,8 +707,8 @@ function Browser({
               items: [
                 {
                   id: "all-files",
-                  label: labels.root,
-                  icon: <FolderIcon />,
+                  label: data?.space.name ?? labels.title,
+                  icon: <DriveFolderIcon open={!trashView && parentId === null} />,
                   href: getFolderHref(null),
                   exact: true,
                   onNavigate: () => {
@@ -612,6 +729,27 @@ function Browser({
                   linkComponent={HostLink}
                   refreshKey={revision}
                   filesActive={!trashView}
+                  renderActions={(entry, disabled) => (
+                    <DriveFolderMenu
+                      entry={entry}
+                      client={client}
+                      capabilities={capabilities}
+                      trashEnabled={trashEnabled}
+                      labels={labels}
+                      disabled={disabled || actionsDisabled}
+                      onUpload={(folder, directory) => {
+                        uploadDestination.current = folder.id;
+                        if (fileInput.current) {
+                          fileInput.current.webkitdirectory = directory;
+                          fileInput.current.click();
+                        }
+                      }}
+                      onAction={(entry, action, trigger) => {
+                        menuTrigger.current = trigger;
+                        setFolderAction({ entry, action });
+                      }}
+                    />
+                  )}
                   onNavigate={() => {
                     setTrashView(false);
                     closeNavigation();
@@ -650,6 +788,13 @@ function Browser({
                 onChanged={refresh}
               />
             </>
+          ) : removedFolder ? (
+            <div className={tablePanelClass}>
+              <p className="mb-3 text-sm">{labels.trashed}</p>
+              <HostLink href={getFolderHref(removedFolder.parentId)} className={buttonClass}>
+                {labels.openFolder}
+              </HostLink>
+            </div>
           ) : (
             <>
               <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
@@ -663,7 +808,7 @@ function Browser({
                     refresh={() => {
                       refresh();
                       setFeedback(undefined);
-                      toastManager.add({ title: labels.saved, type: "success" });
+                      notify(labels.saved);
                     }}
                   >
                     <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -671,29 +816,20 @@ function Browser({
                   </EntryDialog>
                 )}
                 {capabilities?.upload && (
-                  <>
-                    <input
-                      ref={fileInput}
-                      type="file"
-                      accept={uploadAccept}
-                      multiple
-                      hidden
-                      disabled={actionsDisabled}
-                      onChange={(event) => {
-                        if (!actionsDisabled && event.target.files && data)
-                          queue.add(Array.from(event.target.files), data.maxFileBytes);
-                        event.target.value = "";
-                      }}
-                    />
-                    <button
-                      className={primaryClass}
-                      disabled={actionsDisabled}
-                      onClick={() => fileInput.current?.click()}
-                    >
-                      <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
-                      {labels.upload}
-                    </button>
-                  </>
+                  <button
+                    className={primaryClass}
+                    disabled={actionsDisabled}
+                    onClick={() => {
+                      uploadDestination.current = parentId;
+                      if (fileInput.current) {
+                        fileInput.current.webkitdirectory = false;
+                        fileInput.current.click();
+                      }
+                    }}
+                  >
+                    <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
+                    {labels.upload}
+                  </button>
                 )}
                 {capabilities &&
                   !capabilities.upload &&
@@ -705,17 +841,29 @@ function Browser({
               </div>
               <DriveFeedback {...feedback} />
               <div
-                className={cn(tablePanelClass, "overflow-hidden")}
+                className={cn(tablePanelClass, "relative overflow-hidden")}
                 aria-busy={loading}
+                onDragEnter={(event) => {
+                  if (!canDrop || !event.dataTransfer.types.includes("Files")) return;
+                  event.preventDefault();
+                  dragDepth.current += 1;
+                  setDragActive(true);
+                }}
+                onDragLeave={() => {
+                  dragDepth.current = Math.max(0, dragDepth.current - 1);
+                  if (dragDepth.current === 0) setDragActive(false);
+                }}
                 onDragOver={(event) => {
-                  if (!actionsDisabled && capabilities?.upload) {
+                  if (canDrop && event.dataTransfer.types.includes("Files")) {
                     event.preventDefault();
                     event.dataTransfer.dropEffect = "copy";
                   }
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
-                  if (actionsDisabled || !capabilities?.upload || !data) return;
+                  dragDepth.current = 0;
+                  setDragActive(false);
+                  if (!canDrop || !data) return;
                   if (
                     Array.from(event.dataTransfer.items).some(
                       (item) => item.webkitGetAsEntry?.()?.isDirectory,
@@ -727,6 +875,19 @@ function Browser({
                   queue.add(Array.from(event.dataTransfer.files), data.maxFileBytes);
                 }}
               >
+                {canDrop && dragActive && (
+                  <div
+                    role="status"
+                    aria-atomic="true"
+                    className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary bg-background/95 p-6 text-center text-foreground"
+                  >
+                    <UploadIcon className="size-10 shrink-0 text-primary" aria-hidden="true" />
+                    <p className="text-lg font-semibold">{labels.dropActive}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
+                    </p>
+                  </div>
+                )}
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <p
                     className={cn(
@@ -816,17 +977,6 @@ function Browser({
                           >
                             <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
                               <div className="flex items-center gap-2">
-                                {entry.kind === "folder" ? (
-                                  <FolderIcon
-                                    className="size-5 shrink-0 text-muted-foreground"
-                                    aria-hidden="true"
-                                  />
-                                ) : (
-                                  <FileIcon
-                                    className="size-5 shrink-0 text-muted-foreground"
-                                    aria-hidden="true"
-                                  />
-                                )}
                                 {entry.kind === "folder" && entry.state === "ready" ? (
                                   <HostLink
                                     href={getFolderHref(entry.id)}
@@ -834,12 +984,29 @@ function Browser({
                                     onClick={(event) => {
                                       if (entry.id.startsWith("pending-")) event.preventDefault();
                                     }}
-                                    className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    className={cn(
+                                      "inline-flex items-center gap-2 rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-not-allowed",
+                                      !entry.id.startsWith("pending-") && "group/drive-folder",
+                                    )}
                                   >
-                                    {entry.name}
+                                    <DriveFolderIcon className="size-5 text-muted-foreground" />
+                                    <span>{entry.name}</span>
                                   </HostLink>
                                 ) : (
-                                  <span className="break-all">{entry.name}</span>
+                                  <>
+                                    {entry.kind === "folder" ? (
+                                      <FolderIcon
+                                        className="size-5 shrink-0 text-muted-foreground"
+                                        aria-hidden="true"
+                                      />
+                                    ) : (
+                                      <FileIcon
+                                        className="size-5 shrink-0 text-muted-foreground"
+                                        aria-hidden="true"
+                                      />
+                                    )}
+                                    <span className="break-all">{entry.name}</span>
+                                  </>
                                 )}
                               </div>
                               {entry.state === "deleting" && (
@@ -915,7 +1082,7 @@ function Browser({
                                     refresh={() => {
                                       refresh();
                                       setFeedback(undefined);
-                                      toastManager.add({ title: labels.saved, type: "success" });
+                                      notify(labels.saved);
                                     }}
                                   >
                                     <PencilIcon className="size-4 shrink-0" aria-hidden="true" />

@@ -44,7 +44,7 @@ export function ServiceCard({
     <Link
       href={href}
       className={cn(
-        "group block rounded-xl border border-border bg-background shadow-sm transition-shadow hover:shadow-lg",
+        "group/service-card block rounded-xl border border-border bg-background shadow-sm transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         className,
       )}
     >
@@ -55,7 +55,7 @@ export function ServiceCard({
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           srcSet={imageSrcSet}
-          className="transition-transform duration-500 group-hover:scale-105"
+          className="motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover/service-card:scale-105 motion-safe:group-focus-visible/service-card:scale-105"
           fallbackLabel={fallbackLabel}
         />
       </div>
@@ -74,10 +74,10 @@ export function ServiceCard({
         <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
           {description}
         </p>
-        <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors group-hover:gap-2">
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
           {readMoreLabel}
           <ArrowRight
-            className="h-4 w-4 transition-transform group-hover:translate-x-1"
+            className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/service-card:translate-x-1 motion-safe:group-focus-visible/service-card:translate-x-1"
             aria-hidden="true"
           />
         </span>

@@ -21,12 +21,12 @@ is authoritative for files and dependencies.
 | `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                            | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
 | `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                     | Host callbacks         | [Customers](./customers.md)                 |
 | `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                              | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped file browser, breadcrumb navigation, host-owned space renaming, uploads/downloads and opt-in trash/restoration               | `drive-storage`        | [Drive](./drive.md)                         |
+| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                          | `drive-storage`        | [Drive](./drive.md)                         |
 | `blogs`        | Multilingual Markdown articles, publishing, categories, automatic public search and confirmed post deletion                         | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
 
-Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for All files, an
+Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for the named space root, an
 expandable folder tree and optional Trash. The tree uses the existing scoped
 client reads; navigation does not grant access or change storage semantics.
 
@@ -83,7 +83,10 @@ Brief save, update and action confirmations use fixed, dismissible
 [`@forge/action-toast`](./action-toast.md) notifications. Validation errors and
 persistent instructions remain beside their controls. Plugin entrypoints provide
 a queue automatically; a host-level provider preserves it across navigation.
-Drive retains its upload and recovery toasts.
+Drive uploads, downloads and recovery actions use the same renderer and queue.
+All toasts stack at the bottom right, use semantic loading/result icons, and put
+optional status/details left and actions right in the footer. Reuse the shared
+provider and footer for new toast content; do not add another toast layout.
 Hosts can still override labels through the existing props.
 
 Administrative form fields and text buttons use a 40px minimum height with lg

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
 import { transferDriveUpload } from "@/components/plugins/drive/transfer";
 import type { DriveClient, DriveScope } from "@/components/plugins/drive/types";
-import { DriveError, errorCode } from "@/components/plugins/drive/utils";
+import { DriveError, errorCode, folderUploadPath } from "@/components/plugins/drive/utils";
 
 type State =
   | "queued"
@@ -19,6 +19,8 @@ type State =
 interface Job {
   id: string;
   file: File;
+  parentId: string | null;
+  relativePath?: string;
   state: State;
   progress: number;
   error?: unknown;
@@ -67,16 +69,24 @@ export function useUploads(
     job.error = undefined;
     publish();
     try {
+      if (job.relativePath !== undefined) {
+        if (!client.prepareFolderUpload) throw new DriveError("INVALID");
+        folderUploadPath(job.relativePath, job.file.name);
+      }
       // Mark before preparation: a lost preparation response may still reserve a file.
       job.reserved = true;
-      const ticket = await client.prepareUpload({
+      const input = {
         scope,
-        parentId,
+        parentId: job.parentId,
         requestId: job.id,
         name: job.file.name,
         size: job.file.size,
         contentType: job.file.type,
-      });
+      };
+      const ticket =
+        job.relativePath !== undefined
+          ? await client.prepareFolderUpload!({ ...input, relativePath: job.relativePath })
+          : await client.prepareUpload(input);
       if (job.cancelled) {
         await abandon(job);
         return;
@@ -151,19 +161,32 @@ export function useUploads(
   }, []);
   return {
     uploads,
-    add(files: File[], maxBytes: number) {
-      for (const file of files)
+    add(files: File[], maxBytes: number, destination = parentId, directory = false) {
+      for (const file of files) {
+        let error: unknown;
+        try {
+          if (file.size > maxBytes) throw new DriveError("INVALID");
+          if (directory) {
+            if (!client.prepareFolderUpload) throw new DriveError("INVALID");
+            folderUploadPath(file.webkitRelativePath, file.name);
+          }
+        } catch (reason) {
+          error = reason;
+        }
         jobs.current.push({
           id: crypto.randomUUID(),
           file,
-          state: file.size > maxBytes ? "failed" : "queued",
-          error: file.size > maxBytes ? new DriveError("INVALID") : undefined,
+          parentId: destination,
+          relativePath: directory ? file.webkitRelativePath : undefined,
+          state: error ? "failed" : "queued",
+          error,
           progress: 0,
           controller: new AbortController(),
           reserved: false,
           busy: false,
           cancelled: false,
         });
+      }
       publish();
       pump();
     },

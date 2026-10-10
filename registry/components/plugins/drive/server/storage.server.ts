@@ -30,6 +30,7 @@ import {
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
   scopeKey,
+  folderUploadPath,
   validId,
   validName,
   validScope,
@@ -60,7 +61,13 @@ type Upload = {
   space_id: string;
   entry_id: string;
   storage_id: string;
-  input: { parentId: string | null; name: string; size: number; contentType: string };
+  input: {
+    parentId: string | null;
+    name: string;
+    size: number;
+    contentType: string;
+    relativePath?: string;
+  };
   state: "active" | "completed" | "cancelled";
   expires_at: Date | string;
 };
@@ -216,7 +223,12 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       folders: rows.filter((row) => row.kind === "folder").length,
     };
   }
-  async function removeObjects(spaceId: string, storageId: string) {
+  async function removeObjects(tx: QueryDb, spaceId: string, storageId: string, entryId: string) {
+    // Copies share immutable bytes; only the last reference may remove them.
+    const [reference] = await tx.execute(
+      sql`select id from drive_entry where space_id=${spaceId} and storage_id=${storageId} and id<>${entryId} limit 1`,
+    );
+    if (reference) return;
     await verifyBucket();
     for (const staging of [false, true])
       await s3.send(
@@ -232,7 +244,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       );
       for (const row of rows) {
         try {
-          if (row.storage_id) await removeObjects(spaceId, row.storage_id);
+          if (row.storage_id) await removeObjects(tx, spaceId, row.storage_id, row.id);
           await tx.execute(
             sql`update drive_upload set state='cancelled' where space_id=${spaceId} and entry_id=${row.id} and state='active'`,
           );
@@ -254,6 +266,101 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     );
     if (!upload) throw new DriveError("NOT_FOUND");
     return upload;
+  }
+
+  async function prepareUpload(context: Context, input: DriveUploadInput, relativePath?: string) {
+    const { scope, parentId, requestId, size } = input;
+    await access(context, scope, "upload");
+    validId(requestId);
+    const path =
+      relativePath === undefined ? undefined : folderUploadPath(relativePath, input.name);
+    const normalizedPath = path?.join("/");
+    const name = validName(input.name);
+    const contentType =
+      typeof input.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(input.contentType)
+        ? input.contentType
+        : "application/octet-stream";
+    if (!Number.isSafeInteger(size) || size < 0 || size > maxFileBytes)
+      throw new DriveError("INVALID");
+    await verifyBucket();
+    return authorized(context, scope, true, "upload", async (tx, spaceId) => {
+      if (path) await access(context, scope, "createFolder");
+      const [existing] = await tx.execute<Upload>(
+        sql`select * from drive_upload where id=${requestId}`,
+      );
+      const fields = { parentId, name, size, contentType, relativePath: normalizedPath };
+      let upload = existing;
+      if (upload) {
+        if (upload.space_id !== spaceId) throw new DriveError("NOT_FOUND");
+        if (
+          Object.entries(fields).some(
+            ([field, value]) => upload.input[field as keyof typeof fields] !== value,
+          )
+        )
+          throw new DriveError("CONFLICT");
+        if (upload.state === "completed") return { id: requestId, completed: true };
+        if (upload.state !== "active" || new Date(upload.expires_at).getTime() <= Date.now())
+          throw new DriveError("EXPIRED");
+      } else {
+        const ancestors = await parents(tx, spaceId, parentId);
+        if (ancestors.length + (path?.length ?? 1) - 1 > 100) throw new DriveError("INVALID");
+        let destination = parentId;
+        for (const folderName of path?.slice(0, -1) ?? []) {
+          const [folder] = await tx.execute<Entry>(
+            sql`select * from drive_entry where space_id=${spaceId} and parent_id is not distinct from ${destination}::uuid and name=${folderName} and trash_root_id is null`,
+          );
+          if (folder) {
+            if (folder.kind !== "folder" || folder.state !== "ready")
+              throw new DriveError("CONFLICT");
+            destination = folder.id;
+          } else {
+            const id = randomUUID();
+            await tx.execute(
+              sql`insert into drive_entry (id,space_id,parent_id,kind,name,state) values (${id},${spaceId},${destination},'folder',${folderName},'ready')`,
+            );
+            destination = id;
+          }
+        }
+        const entryId = randomUUID(),
+          storageId = randomUUID();
+        const expiresAt = new Date(Date.now() + uploadLifetime);
+        await tx.execute(
+          sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id) values (${entryId},${spaceId},${destination},'file',${name},${size},${contentType},'uploading',${storageId})`,
+        );
+        const [created] = await tx.execute<Upload>(
+          sql`insert into drive_upload (id,space_id,entry_id,storage_id,input,state,expires_at) values (${requestId},${spaceId},${entryId},${storageId},${JSON.stringify(fields)}::jsonb,'active',${expiresAt.toISOString()}) returning *`,
+        );
+        upload = created;
+      }
+      const row = await entry(tx, spaceId, upload.entry_id);
+      await parents(tx, spaceId, row.parent_id);
+      if (row.state !== "uploading") throw new DriveError("CONFLICT");
+      const expiresIn = Math.max(
+        1,
+        Math.min(600, Math.floor((new Date(upload.expires_at).getTime() - Date.now()) / 1000)),
+      );
+      const url = await getSignedUrl(
+        s3,
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key(spaceId!, upload.storage_id, true),
+          ContentLength: size,
+          ContentType: contentType,
+          IfNoneMatch: "*",
+        }),
+        {
+          expiresIn,
+          signableHeaders: new Set(["content-length", "content-type", "if-none-match"]),
+        },
+      );
+      return {
+        id: requestId,
+        completed: false,
+        url,
+        headers: { "Content-Type": contentType, "If-None-Match": "*" },
+        expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      };
+    });
   }
 
   function client(context: Context): DriveClient {
@@ -328,6 +435,24 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           );
         });
       },
+      async duplicateEntry({ scope, entryId, name }) {
+        await access(context, scope, "upload");
+        const normalized = validName(name);
+        await authorized(context, scope, false, "upload", async (tx, spaceId) => {
+          await access(context, scope, "download");
+          await access(context, scope, "createFolder");
+          const source = await entry(tx, spaceId, entryId);
+          await parents(tx, spaceId, source.parent_id);
+          const rows = await subtree(tx, spaceId!, source.id);
+          if (rows.some((row) => row.state !== "ready")) throw new DriveError("CONFLICT");
+          const ids = new Map(rows.map((row) => [row.id, randomUUID()]));
+          for (const row of rows.toReversed()) {
+            await tx.execute(
+              sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id) values (${ids.get(row.id)},${spaceId},${row.id === entryId ? row.parent_id : ids.get(row.parent_id!)},${row.kind},${row.id === entryId ? normalized : row.name},${row.size},${row.content_type},'ready',${row.storage_id})`,
+            );
+          }
+        });
+      },
       async previewDelete({ scope, entryId }) {
         await access(context, scope, "delete");
         return authorized(context, scope, false, "delete", async (tx, spaceId) => {
@@ -373,77 +498,10 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         }
         throw new DriveError("DELETE_PENDING");
       },
-      async prepareUpload(input: DriveUploadInput) {
-        const { scope, parentId, requestId, size } = input;
-        await access(context, scope, "upload");
-        validId(requestId);
-        const name = validName(input.name);
-        const contentType =
-          typeof input.contentType === "string" && /^[\w.+-]+\/[\w.+-]+$/.test(input.contentType)
-            ? input.contentType
-            : "application/octet-stream";
-        if (!Number.isSafeInteger(size) || size < 0 || size > maxFileBytes)
-          throw new DriveError("INVALID");
-        await verifyBucket();
-        return authorized(context, scope, true, "upload", async (tx, spaceId) => {
-          const [existing] = await tx.execute<Upload>(
-            sql`select * from drive_upload where id=${requestId}`,
-          );
-          const fields = { parentId, name, size, contentType };
-          let upload = existing;
-          if (upload) {
-            if (upload.space_id !== spaceId) throw new DriveError("NOT_FOUND");
-            if (
-              Object.entries(fields).some(
-                ([field, value]) => upload.input[field as keyof typeof fields] !== value,
-              )
-            )
-              throw new DriveError("CONFLICT");
-            if (upload.state === "completed") return { id: requestId, completed: true };
-            if (upload.state !== "active" || new Date(upload.expires_at).getTime() <= Date.now())
-              throw new DriveError("EXPIRED");
-          } else {
-            await parents(tx, spaceId, parentId);
-            const entryId = randomUUID(),
-              storageId = randomUUID();
-            const expiresAt = new Date(Date.now() + uploadLifetime);
-            await tx.execute(
-              sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id) values (${entryId},${spaceId},${parentId},'file',${name},${size},${contentType},'uploading',${storageId})`,
-            );
-            const [created] = await tx.execute<Upload>(
-              sql`insert into drive_upload (id,space_id,entry_id,storage_id,input,state,expires_at) values (${requestId},${spaceId},${entryId},${storageId},${JSON.stringify(fields)}::jsonb,'active',${expiresAt.toISOString()}) returning *`,
-            );
-            upload = created;
-          }
-          await parents(tx, spaceId, parentId);
-          const row = await entry(tx, spaceId, upload.entry_id);
-          if (row.state !== "uploading") throw new DriveError("CONFLICT");
-          const expiresIn = Math.max(
-            1,
-            Math.min(600, Math.floor((new Date(upload.expires_at).getTime() - Date.now()) / 1000)),
-          );
-          const url = await getSignedUrl(
-            s3,
-            new PutObjectCommand({
-              Bucket: bucket,
-              Key: key(spaceId!, upload.storage_id, true),
-              ContentLength: size,
-              ContentType: contentType,
-              IfNoneMatch: "*",
-            }),
-            {
-              expiresIn,
-              signableHeaders: new Set(["content-length", "content-type", "if-none-match"]),
-            },
-          );
-          return {
-            id: requestId,
-            completed: false,
-            url,
-            headers: { "Content-Type": contentType, "If-None-Match": "*" },
-            expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
-          };
-        });
+      prepareUpload: (input) => prepareUpload(context, input),
+      prepareFolderUpload: async (input) => {
+        folderUploadPath(input.relativePath, input.name);
+        return prepareUpload(context, input, input.relativePath);
       },
       async completeUpload({ scope, uploadId }) {
         await access(context, scope, "upload");

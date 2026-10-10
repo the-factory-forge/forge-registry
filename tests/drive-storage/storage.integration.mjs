@@ -208,6 +208,147 @@ test("private Drive persistence and storage recovery", async (t) => {
     },
   );
   await t.test(
+    "folder uploads preserve paths, retry safely and enforce scope and creation permissions",
+    async () => {
+      const scope = { type: "workspace", id: "folder-upload" };
+      const input = {
+        scope,
+        parentId: null,
+        requestId: randomUUID(),
+        name: "receipt.txt",
+        size: 5,
+        contentType: "text/plain",
+        relativePath: "Bills/2026/receipt.txt",
+      };
+      const ticket = await client.prepareFolderUpload(input);
+      await put({ ticket, body: "hello" });
+      await client.completeUpload({ scope, uploadId: input.requestId });
+      assert.equal((await client.prepareFolderUpload(input)).completed, true);
+      await rejected(
+        client.prepareFolderUpload({ ...input, relativePath: "Other/receipt.txt" }),
+        "CONFLICT",
+      );
+      await rejected(client.prepareUpload(input), "CONFLICT");
+      const bills = (await list(scope)).items[0];
+      const year = (await list(scope, bills.id)).items[0];
+      const file = (await list(scope, year.id)).items[0];
+      assert.equal(bills.name, "Bills");
+      assert.equal(year.name, "2026");
+      assert.equal(file.name, "receipt.txt");
+      assert.equal(
+        await (await fetch((await client.getDownload({ scope, entryId: file.id })).url)).text(),
+        "hello",
+      );
+      await rejected(client.prepareFolderUpload({ ...input, requestId: randomUUID() }), "CONFLICT");
+      await rejected(
+        client.prepareFolderUpload({
+          ...input,
+          requestId: randomUUID(),
+          relativePath: "../receipt.txt",
+        }),
+        "INVALID",
+      );
+      await rejected(
+        client.prepareFolderUpload({ ...input, requestId: randomUUID(), parentId: file.id }),
+        "CONFLICT",
+      );
+      await rejected(
+        client.prepareFolderUpload({
+          ...input,
+          requestId: randomUUID(),
+          scope: b,
+          parentId: bills.id,
+        }),
+        "NOT_FOUND",
+      );
+      const restricted = createDriveStorage({
+        ...options,
+        resolveScope: async (_, scope) => ({
+          scope,
+          name: "Restricted",
+          capabilities: { ...writable, createFolder: false },
+        }),
+      });
+      await rejected(
+        restricted.client("editor").prepareFolderUpload({ ...input, requestId: randomUUID() }),
+        "FORBIDDEN",
+      );
+      await remove(scope, bills);
+    },
+  );
+
+  await t.test(
+    "duplication is atomic and deleting either copy preserves all remaining references",
+    async () => {
+      const scope = { type: "workspace", id: "folder-copy" };
+      await client.createFolder({ scope, parentId: null, name: "Original" });
+      const original = (await list(scope)).items[0];
+      await client.createFolder({ scope, parentId: original.id, name: "Nested" });
+      const nested = (await list(scope, original.id)).items[0];
+      await upload("shared.txt", nested.id, scope);
+      const sourceFile = (await list(scope, nested.id)).items[0];
+      const [{ storage_id: keyId, space_id: spaceId }] =
+        await pool`select storage_id,space_id from drive_entry where id=${sourceFile.id}`;
+      const copying = { scope, entryId: original.id, name: "Copy" };
+      await client.duplicateEntry(copying);
+      await rejected(client.duplicateEntry(copying), "CONFLICT");
+      await rejected(
+        client.duplicateEntry({ ...copying, scope: b, name: "Wrong space" }),
+        "NOT_FOUND",
+      );
+      await rejected(
+        storage.client("reader").duplicateEntry({ ...copying, name: "Forbidden" }),
+        "FORBIDDEN",
+      );
+      for (const capability of ["download", "createFolder"]) {
+        const restricted = createDriveStorage({
+          ...options,
+          resolveScope: async (_, scope) => ({
+            scope,
+            name: "Restricted",
+            capabilities: { ...writable, [capability]: false },
+          }),
+        });
+        await rejected(
+          restricted.client("editor").duplicateEntry({ ...copying, name: "Forbidden" }),
+          "FORBIDDEN",
+        );
+      }
+      const pending = await reserve("pending.txt", nested.id, scope);
+      await rejected(client.duplicateEntry({ ...copying, name: "Incomplete" }), "CONFLICT");
+      assert.equal((await list(scope)).items.length, 2);
+      await client.cancelUpload({ scope, uploadId: pending.input.requestId });
+      const copy = (await list(scope)).items.find((entry) => entry.name === "Copy");
+      const copiedNested = (await list(scope, copy.id)).items[0];
+      const copiedFile = (await list(scope, copiedNested.id)).items[0];
+      assert.notEqual(copiedFile.id, sourceFile.id);
+      await client.rename({ scope, entryId: copiedFile.id, name: "renamed.txt" });
+      assert.equal((await list(scope, nested.id)).items[0].name, "shared.txt");
+      const recovery = createDriveStorage({ ...options, trash: {} }).client("editor");
+      await recovery.trashEntry({
+        scope,
+        entryId: copy.id,
+        ...(await recovery.previewDelete({ scope, entryId: copy.id })),
+      });
+      await remove(scope, original);
+      await storage.maintenance();
+      await recovery.restoreEntry({ scope, entryId: copy.id });
+      assert.equal(
+        await (
+          await fetch((await client.getDownload({ scope, entryId: copiedFile.id })).url)
+        ).text(),
+        "hello",
+      );
+      await remove(scope, copy);
+      const objects = await s3.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: `drive/objects/${spaceId}/${keyId}` }),
+      );
+      assert.equal(objects.Contents?.length ?? 0, 0);
+      assert.equal((await list(scope)).items.length, 0);
+    },
+  );
+
+  await t.test(
     "verified uploads are idempotent, private and downloaded as attachments",
     async () => {
       const value = await reserve("Notes.txt");

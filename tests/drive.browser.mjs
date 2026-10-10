@@ -36,9 +36,7 @@ async function driveNavigation(page, name) {
   const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
   if (await toggle.isVisible()) await toggle.click();
   const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
-  await navigation
-    .getByRole(name === "All files" ? "link" : "button", { name, exact: true })
-    .click();
+  await navigation.getByRole(name === "Trash" ? "button" : "link", { name, exact: true }).click();
 }
 const file = (name, text = "hello") => ({
   name,
@@ -390,7 +388,9 @@ test("upload toasts preserve layout and recovery, then dismiss completed feedbac
       const iconBounds = await spinner.boundingBox();
       const titleBounds = await toast.getByText("Uploads", { exact: true }).boundingBox();
       assert.equal(iconBounds.y + iconBounds.height / 2, titleBounds.y + titleBounds.height / 2);
-      await toast.screenshot({
+      // The clock is paused; locator screenshots wait for frames that cannot advance.
+      await page.screenshot({
+        clip: await toast.boundingBox(),
         path: `/tmp/forge-drive-upload-loading-${width}-${colorScheme}.png`,
       });
       assert.equal(await toast.getByRole("button", { name: "Close", exact: true }).count(), 0);
@@ -412,7 +412,18 @@ test("upload toasts preserve layout and recovery, then dismiss completed feedbac
         true,
       );
       // Other confirmations must not limit away a failed upload's recovery controls.
-      for (let index = 0; index < 3; index++) await folder(page, `Toast ${index}`);
+      for (let index = 0; index < 3; index++) {
+        await folder(page, `Toast ${index}`);
+        const saved = page.getByRole("dialog", { name: "Changes saved.", exact: true }).last();
+        const savedHandle = await saved.elementHandle();
+        assert.equal(
+          await toast.evaluate(
+            (element, other) => element.parentElement === other.parentElement,
+            savedHandle,
+          ),
+          true,
+        );
+      }
       await page.mouse.move(0, 0);
       await page.waitForTimeout(5200);
       assert.equal(
@@ -482,7 +493,7 @@ test("trash confirmation preserves folders and permanent purge retries failures"
   await driveNavigation(page, "Trash");
   await row(page, "Documents").getByRole("button", { name: "Restore", exact: true }).click();
   await row(page, "Documents").waitFor({ state: "hidden" });
-  await driveNavigation(page, "All files");
+  await driveNavigation(page, "Studio website");
   await page.getByRole("link", { name: "Documents", exact: true }).click();
   await row(page, "nested.txt").waitFor();
   await page
@@ -621,7 +632,7 @@ test("Drive confirmations use dismissible toasts without moving the file table",
       assert.equal(await restored.getAttribute("data-type"), "success");
       if (undoInTrash) {
         await row(page, "Renamed folder").waitFor({ state: "hidden" });
-        await driveNavigation(page, "All files");
+        await driveNavigation(page, "Studio website");
       }
       await row(page, "Renamed folder").waitFor();
       await restored.getByRole("button", { name: "Close", exact: true }).click();
@@ -648,8 +659,12 @@ test("Drive confirmations use dismissible toasts without moving the file table",
         .click();
       assert.equal(
         await page.getByRole("dialog", { name: "Download started.", exact: true }).count(),
-        0,
+        1,
       );
+      await page
+        .getByRole("dialog", { name: "Download started.", exact: true })
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
       await page.close();
     }
 });
@@ -1025,7 +1040,10 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
       if (original) Object.defineProperty(DataTransferItem.prototype, "webkitGetAsEntry", original);
     }
   });
-  await page.getByRole("alert").filter({ hasText: "Folder uploads are not supported" }).waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Use Upload folder to preserve subfolders" })
+    .waitFor();
   await page.getByRole("button", { name: "New folder", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New folder", exact: true });
   await dialog.getByRole("textbox").fill("../invalid");
@@ -1236,7 +1254,7 @@ test("trash conflicts offer name and nested destination recovery in both themes 
       await restore.getByRole("button", { name: "Restore", exact: true }).click();
       await restore.waitFor({ state: "hidden" });
       await row(page, "Annual report.txt").waitFor({ state: "hidden" });
-      await driveNavigation(page, "All files");
+      await driveNavigation(page, "Customer portal");
       await row(page, "Annual report.txt").waitFor();
       await page.getByRole("link", { name: "Destination", exact: true }).click();
       await page.getByRole("link", { name: "Nested", exact: true }).click();
@@ -1249,6 +1267,8 @@ test("breadcrumb rename preserves drafts, updates host records and navigates nes
   const page = await preview(t, "/en/drive/project/portal", { reducedMotion: "reduce" });
   const nav = page.getByRole("navigation", { name: "Folder navigation" });
   await nav.getByRole("heading", { name: "Customer portal", exact: true }).waitFor();
+  const sidebar = page.getByRole("navigation", { name: "Drive navigation", exact: true });
+  await sidebar.getByRole("link", { name: "Customer portal", exact: true }).waitFor();
   assert.equal(await page.getByRole("link", { name: "Back to drive", exact: true }).count(), 0);
   assert.equal(await nav.getByRole("heading").count(), 1);
   const actions = nav.getByRole("button", { name: "Actions: Customer portal", exact: true });
@@ -1274,12 +1294,17 @@ test("breadcrumb rename preserves drafts, updates host records and navigates nes
     await page.locator('nav[aria-label="Folder navigation"] h2').textContent(),
     "Customer portal",
   );
+  assert.equal(
+    await page.locator('nav[aria-label="Drive navigation"] a').first().textContent(),
+    "Customer portal",
+  );
   // Change the host's failure setting without dismissing the modal or its draft.
   await page.getByLabel("Simulate action failures").evaluate((node) => node.click());
   await input.fill("Client portal");
   await input.press("ControlOrMeta+Enter");
   await dialog.waitFor({ state: "hidden" });
   await nav.getByRole("heading", { name: "Client portal", exact: true }).waitFor();
+  await sidebar.getByRole("link", { name: "Client portal", exact: true }).waitFor();
   await folder(page, "Assets");
   await page.getByRole("link", { name: "Assets", exact: true }).click();
   await folder(page, "Images");
@@ -1290,6 +1315,8 @@ test("breadcrumb rename preserves drafts, updates host records and navigates nes
   await dialog.getByRole("button", { name: "Save", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await nav.getByRole("heading", { name: "Photos", exact: true }).waitFor();
+  await sidebar.getByRole("link", { name: "Folder: Photos", exact: true }).waitFor();
+  assert.equal(await sidebar.getByRole("link", { name: "Client portal", exact: true }).count(), 1);
   await nav.getByRole("link", { name: "Assets", exact: true }).click();
   await page.getByRole("link", { name: "Photos", exact: true }).waitFor();
   await nav.getByRole("link", { name: "Client portal", exact: true }).click();
@@ -1340,10 +1367,302 @@ test("breadcrumb menus and long names fit both themes and viewport sizes", async
       const box = await nav.getByRole("button").boundingBox();
       assert.ok(box.width >= (width < 768 ? 40 : 32));
       await page.getByRole("button", { name: "Close", exact: true }).click();
+      const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
+      if (await toggle.isVisible()) await toggle.click();
+      const sidebar = page.getByRole("navigation", { name: "Drive navigation", exact: true });
+      const root = sidebar.getByRole("link", { name: /^Kundenportal/ });
+      await root.waitFor();
+      assert.equal(await root.getAttribute("aria-current"), "page");
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
       await page.screenshot({
         path: `/tmp/drive-breadcrumb-long-${width}-${colorScheme}.png`,
         fullPage: true,
       });
+      await page.close();
+    }
+});
+
+test("leaving a Drive browser removes its active upload from the shared queue", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await row(page, "Annual report.txt").waitFor();
+  const now = new Date();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 1000));
+  await page.locator('input[type="file"]:enabled').setInputFiles(file("leaving.txt"));
+  const toast = page.getByRole("dialog", { name: "Uploads", exact: true });
+  await toast.waitFor();
+  await page.getByRole("link", { name: "All components", exact: true }).click();
+  await page.clock.resume();
+  await toast.waitFor({ state: "hidden" });
+});
+
+test("Drive removes context-bound Undo controls when its browser unmounts", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await row(page, "Design brief.txt").getByRole("button", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Move files and folders to trash", exact: true })
+    .getByRole("button", { name: "Move to trash", exact: true })
+    .click();
+  const toast = page.getByRole("dialog", {
+    name: "Files and folders moved to trash.",
+    exact: true,
+  });
+  await toast.getByRole("button", { name: "Undo", exact: true }).waitFor();
+  await page.getByRole("link", { name: "All components", exact: true }).click();
+  await toast.waitFor({ state: "hidden" });
+});
+
+void test("file drag overlay covers the drop area without shifting rows or flickering", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await row(page, "Annual report.txt").waitFor();
+      const table = page.getByRole("table", { name: "Customer portal", exact: true });
+      const panel = table.locator("../..");
+      await panel.scrollIntoViewIfNeeded();
+      const before = await table.boundingBox();
+      const overlay = panel.getByRole("status").filter({ hasText: "Drop files to upload" });
+      const dataTransfer = await page.evaluateHandle(() => {
+        const data = new DataTransfer();
+        data.items.add(new File(["dropped"], "overlay-drop.txt", { type: "text/plain" }));
+        return data;
+      });
+      await panel.dispatchEvent("dragenter", { dataTransfer });
+      await overlay.waitFor();
+      assert.equal(
+        await panel.evaluate(
+          (element, data) =>
+            !element.dispatchEvent(
+              new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }),
+            ),
+          dataTransfer,
+        ),
+        true,
+        "The drop target accepts the file drag",
+      );
+      const area = await panel.boundingBox();
+      const bounds = await overlay.boundingBox();
+      assert.ok(Math.abs(bounds.x - area.x) <= 2 && Math.abs(bounds.y - area.y) <= 2);
+      assert.ok(Math.abs(bounds.width - area.width) <= 2);
+      assert.ok(Math.abs(bounds.height - area.height) <= 2);
+      assert.equal(
+        await overlay.evaluate((element) => getComputedStyle(element).pointerEvents),
+        "none",
+      );
+      assert.equal(
+        await overlay.evaluate((element) => getComputedStyle(element).borderTopStyle),
+        "dashed",
+      );
+      assert.equal(
+        await overlay.getByText("Maximum file size: 100 MB.", { exact: true }).count(),
+        1,
+      );
+      const first = row(page, "Annual report.txt");
+      const second = row(page, "Design brief.txt");
+      await first.dispatchEvent("dragenter", { dataTransfer });
+      await panel.dispatchEvent("dragleave", { dataTransfer });
+      assert.equal(await overlay.isVisible(), true);
+      await second.dispatchEvent("dragenter", { dataTransfer });
+      await first.dispatchEvent("dragleave", { dataTransfer });
+      assert.equal(await overlay.isVisible(), true);
+      assert.deepEqual(await table.boundingBox(), before);
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+      await panel.screenshot({
+        path: `/private/tmp/drive-drop-overlay-${width}-${colorScheme}.png`,
+      });
+      await second.dispatchEvent("dragleave", { dataTransfer });
+      await overlay.waitFor({ state: "hidden" });
+      await first.dispatchEvent("dragenter", { dataTransfer });
+      await first.dispatchEvent("drop", { dataTransfer });
+      await overlay.waitFor({ state: "hidden" });
+      await row(page, "overlay-drop.txt").waitFor();
+      await page.close();
+    }
+});
+
+void test("file drag overlay clears on cancellation and respects upload availability", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await row(page, "Annual report.txt").waitFor();
+  const panel = page.getByRole("table").locator("../..");
+  const overlay = page.getByRole("status").filter({ hasText: "Drop files to upload" });
+  const files = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    data.items.add(new File(["cancel"], "not-uploaded.txt"));
+    return data;
+  });
+  const text = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    data.setData("text/plain", "selected text");
+    return data;
+  });
+  await panel.dispatchEvent("dragenter", { dataTransfer: text });
+  await panel.dispatchEvent("dragover", { dataTransfer: text });
+  assert.equal(await overlay.count(), 0);
+  for (const event of ["escape", "dragend", "blur", "drop"]) {
+    await panel.dispatchEvent("dragenter", { dataTransfer: files });
+    await overlay.waitFor();
+    if (event === "escape") await page.keyboard.press("Escape");
+    else await page.evaluate((name) => window.dispatchEvent(new Event(name)), event);
+    await overlay.waitFor({ state: "hidden" });
+  }
+  await panel.dispatchEvent("dragenter", { dataTransfer: files });
+  await overlay.waitFor();
+  await page.getByLabel("Directory state").selectOption("loading");
+  await overlay.waitFor({ state: "hidden" });
+  await panel.dispatchEvent("dragenter", { dataTransfer: files });
+  await panel.dispatchEvent("drop", { dataTransfer: files });
+  assert.equal(await overlay.count(), 0);
+  await page.getByLabel("Directory state").selectOption("ready");
+  await row(page, "Annual report.txt").waitFor();
+  assert.equal(await overlay.count(), 0);
+  assert.equal(await row(page, "not-uploaded.txt").count(), 0);
+  await page.goto(`${baseURL}/en/drive/workspace/handbook`);
+  await row(page, "Welcome.txt").waitFor();
+  const readOnlyFiles = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    data.items.add(new File(["denied"], "denied.txt"));
+    return data;
+  });
+  await panel.dispatchEvent("dragenter", { dataTransfer: readOnlyFiles });
+  await panel.dispatchEvent("drop", { dataTransfer: readOnlyFiles });
+  assert.equal(await overlay.count(), 0);
+  assert.equal(await page.getByRole("dialog", { name: "Uploads", exact: true }).count(), 0);
+  assert.equal(await row(page, "denied.txt").count(), 0);
+});
+
+async function folderMenu(page, name) {
+  const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
+  if (!(await navigation.isVisible()))
+    await page.getByRole("button", { name: "Drive navigation", exact: true }).click();
+  const trigger = navigation.getByRole("button", { name: `Actions: ${name}`, exact: true });
+  await trigger.click();
+  return trigger;
+}
+
+void test("folder menus upload into the selected folder, duplicate recursively, rename and trash", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await folder(page, "Bills");
+  await folder(page, "Unrelated");
+  await page.getByRole("link", { name: "Unrelated", exact: true }).click();
+  await page.getByText("This folder is empty.", { exact: true }).waitFor();
+  await folderMenu(page, "Bills");
+  await page.getByRole("menuitem", { name: "Add", exact: true }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: "Upload file", exact: true }).click();
+  await (await chooser).setFiles(file("receipt.txt"));
+  await page.getByText("Uploaded", { exact: true }).waitFor();
+  assert.equal(await row(page, "receipt.txt").count(), 0);
+  await page
+    .getByRole("navigation", { name: "Drive navigation", exact: true })
+    .getByRole("link", { name: "Folder: Bills", exact: true })
+    .click();
+  await row(page, "receipt.txt").waitFor();
+  await folderMenu(page, "Bills");
+  await page.getByRole("menuitem", { name: "Duplicate", exact: true }).click();
+  let dialog = page.getByRole("dialog", { name: "Duplicate", exact: true });
+  assert.equal(
+    await dialog.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Bills (copy)",
+  );
+  await dialog.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await page
+    .getByRole("navigation", { name: "Drive navigation", exact: true })
+    .getByRole("link", { name: "Folder: Bills (copy)", exact: true })
+    .click();
+  await row(page, "receipt.txt").waitFor();
+  await folderMenu(page, "Bills (copy)");
+  await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+  dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Bills archived");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await folderMenu(page, "Bills archived");
+  await page.getByRole("menuitem", { name: "Move to trash", exact: true }).click();
+  dialog = page.getByRole("dialog", { name: "Move files and folders to trash", exact: true });
+  await dialog.getByRole("button", { name: "Move to trash", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await page.getByRole("link", { name: "Open folder", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await row(page, "receipt.txt").waitFor();
+});
+
+void test("folder menu directory uploads retain nested paths and file retry", async (t) => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import("node:fs/promises");
+  const directory = await mkdtemp("/tmp/forge-folder-upload-");
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await mkdir(`${directory}/Receipts/2026`, { recursive: true });
+  await writeFile(`${directory}/Receipts/2026/one.txt`, "one");
+  await writeFile(`${directory}/Receipts/two.txt`, "two");
+  const page = await preview(t, "/en/drive/project/portal");
+  await folder(page, "Destination");
+  await page.getByRole("button", { name: "Fail next upload", exact: true }).click();
+  await folderMenu(page, "Destination");
+  await page.getByRole("menuitem", { name: "Add", exact: true }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: "Upload folder", exact: true }).click();
+  await (await chooser).setFiles(`${directory}/Receipts`);
+  await page.getByText("Failed", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Retry", exact: true }).last().click();
+  await page.getByText("Uploaded", { exact: true }).nth(1).waitFor();
+  await page.getByRole("link", { name: "Destination", exact: true }).click();
+  await page.getByRole("link", { name: "Receipts", exact: true }).click();
+  await row(page, "two.txt").waitFor();
+  await page.getByRole("link", { name: "2026", exact: true }).click();
+  await row(page, "one.txt").waitFor();
+});
+
+void test("folder menus and dialogs remain usable on mobile and in both themes", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/drive/project/portal", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await folder(page, "Bills");
+      const trigger = await folderMenu(page, "Bills");
+      await page.getByRole("menuitem", { name: "Add", exact: true }).focus();
+      await page.keyboard.press("ArrowRight");
+      await page.getByRole("menuitem", { name: "Upload folder", exact: true }).waitFor();
+      await page
+        .getByRole("menu")
+        .last()
+        .evaluate(async (menu) => {
+          await Promise.all(
+            menu
+              .getAnimations({ subtree: true })
+              .map((animation) => animation.finished.catch(() => {})),
+          );
+        });
+      await page.screenshot({ path: `/tmp/forge-folder-menu-${width}-${colorScheme}.png` });
+      for (const menu of await page.getByRole("menu").all()) {
+        const box = await menu.boundingBox();
+        assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
+      }
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("menuitem", { name: "Upload folder", exact: true })
+        .waitFor({ state: "hidden" });
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("menuitem", { name: "Rename", exact: true })
+        .waitFor({ state: "hidden" });
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+      await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Renamed");
+      await dialog.getByRole("button", { name: "Save", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await page.getByRole("link", { name: "Folder: Renamed", exact: true }).waitFor();
       await page.close();
     }
 });

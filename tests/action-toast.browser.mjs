@@ -95,3 +95,109 @@ void test("toast example remains available directly and failures retain inline r
   await actionToast(page, "Project updated.");
   assert.equal(await page.getByRole("alert").count(), 0);
 });
+
+void test("background toasts share the confirmation frame and keep footer actions right", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const context = await browser.newContext({
+        viewport: { width, height: 900 },
+        reducedMotion: "reduce",
+      });
+      t.after(() => context.close());
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.goto(`${baseURL}/action-toast`);
+      if (colorScheme === "dark")
+        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.getByRole("button", { name: "Save changes", exact: true }).click();
+      const saved = page.getByRole("dialog", { name: "Project updated.", exact: true });
+      await saved.waitFor();
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
+      await page.getByRole("button", { name: "Run background action", exact: true }).click();
+      const toast = page.getByRole("dialog", { name: "Background action", exact: true });
+      await toast.getByText("Working…", { exact: true }).waitFor();
+      const original = await toast.elementHandle();
+      assert.equal(await toast.getAttribute("data-type"), "loading");
+      assert.equal(await toast.getAttribute("aria-busy"), "true");
+      assert.ok(
+        (await toast.locator("svg").first().getAttribute("class")).includes(
+          "text-status-pending-foreground",
+        ),
+      );
+      assert.equal(
+        await toast
+          .locator("svg")
+          .first()
+          .evaluate((el) => getComputedStyle(el).animationName),
+        "none",
+      );
+      assert.equal(
+        await toast.getByRole("button", { name: "Dismiss", exact: true }).isDisabled(),
+        true,
+      );
+      const savedHandle = await saved.elementHandle();
+      assert.equal(
+        await toast.evaluate((el, other) => el.parentElement === other.parentElement, savedHandle),
+        true,
+      );
+      const viewport = await toast.locator("..").boundingBox();
+      assert.equal(viewport.y + viewport.height, 900 - (width >= 640 ? 8 : 0));
+      const frame = async (locator) =>
+        locator.evaluate((el) => {
+          const css = getComputedStyle(el);
+          return [css.backgroundColor, css.borderRadius, css.padding, css.boxShadow, css.gap];
+        });
+      assert.deepEqual(await frame(toast), await frame(saved));
+      const checkFooter = async (message) => {
+        const status = await toast.getByText(message, { exact: true }).boundingBox();
+        const action = await toast
+          .getByRole("button", { name: "Dismiss", exact: true })
+          .boundingBox();
+        assert.ok(status.x + status.width <= action.x);
+        assert.ok(status.y < action.y + action.height && action.y < status.y + status.height);
+        const bounds = await toast.boundingBox();
+        assert.equal(
+          action.x + action.width,
+          bounds.x + bounds.width - 12 - (colorScheme === "dark" ? 1 : 0),
+        );
+      };
+      await checkFooter("Working…");
+      await toast.screenshot({
+        path: `/private/tmp/unified-toast-loading-${width}-${colorScheme}.png`,
+      });
+      await page.clock.runFor(1000);
+      await toast.getByText("Completed", { exact: true }).waitFor();
+      assert.equal(await toast.evaluate((el, before) => el === before, original), true);
+      assert.equal(await toast.getAttribute("data-type"), "success");
+      assert.ok(
+        (await toast.locator("svg").first().getAttribute("class")).includes(
+          "text-status-success-foreground",
+        ),
+      );
+      await checkFooter("Completed");
+      await toast.screenshot({
+        path: `/private/tmp/unified-toast-success-${width}-${colorScheme}.png`,
+      });
+      await toast.getByRole("button", { name: "Dismiss", exact: true }).click();
+      await page.clock.runFor(500);
+      await toast.waitFor({ state: "hidden" });
+      await page.getByLabel("Simulate action failures").check();
+      await page.getByRole("button", { name: "Run background action", exact: true }).click();
+      await page.clock.runFor(1000);
+      await toast.getByText("The action failed. Please try again.", { exact: true }).waitFor();
+      assert.equal(await toast.getAttribute("data-type"), "error");
+      await checkFooter("The action failed. Please try again.");
+      await toast.screenshot({
+        path: `/private/tmp/unified-toast-error-${width}-${colorScheme}.png`,
+      });
+      await page.clock.runFor(6000);
+      assert.equal(await toast.isVisible(), true);
+      await toast.getByRole("button", { name: "Dismiss", exact: true }).click();
+      await page.clock.runFor(500);
+      await toast.waitFor({ state: "hidden" });
+      assert.deepEqual(errors, []);
+    }
+});

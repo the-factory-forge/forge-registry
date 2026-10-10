@@ -29,7 +29,7 @@ async function createBooking(page, name = "Robin Example") {
   await page
     .getByRole("combobox", { name: "Practitioner or resource", exact: true })
     .selectOption("10000000-0000-4000-8000-000000000001");
-  await page.getByRole("button", { name: /09:00.*GMT/ }).focus();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).focus();
   await page.keyboard.press("Enter");
   await page.getByRole("textbox", { name: "Name", exact: true }).fill(name);
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("robin@example.test");
@@ -42,7 +42,7 @@ async function createBooking(page, name = "Robin Example") {
 
 test("booking calendar disables dates without available slots", async (t) => {
   const page = await preview(t);
-  await page.getByRole("button", { name: /09:00.*GMT/ }).waitFor();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).waitFor();
   const calendar = page.locator('.grid-cols-7[aria-busy="false"]');
   await calendar.waitFor();
   const weekends = page.getByRole("button", { name: /^(Saturday|Sunday),/ });
@@ -156,7 +156,7 @@ test("homepage discovery, booking, calendar views, private rescheduling and canc
   await page.getByRole("link", { name: "Manage latest reservation" }).click();
   await page.getByRole("button", { name: "Reschedule", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: /(?:13:00|01:00.*PM).*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^(?:13:00|01:00.*PM)$/ }).click();
   await dialog.getByRole("button", { name: "Save new time" }).click();
   await dialog.waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Cancel reservation", exact: true }).click();
@@ -240,7 +240,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
   });
   await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("clinic");
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: /09:00.*GMT/ }).click();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Pat Example");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("pat@example.test");
   await page.getByRole("button", { name: "Review booking" }).click();
@@ -251,7 +251,7 @@ test("manual approval, retained fields on failure, mobile and French", async (t)
     "Pat Example",
   );
   await page.getByLabel("Simulate action failures").uncheck();
-  await page.getByRole("button", { name: /09:00.*GMT/ }).click();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
   await page.getByRole("button", { name: "Review booking" }).click();
   await page.getByRole("button", { name: "Book appointment", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
@@ -307,7 +307,7 @@ test("settings editors, server-style failures, new resources, closures and share
   await page
     .getByRole("combobox", { name: "Service", exact: true })
     .selectOption({ label: "Consultation" });
-  await page.getByRole("button", { name: /09:00.*GMT/ }).waitFor();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).waitFor();
 });
 
 test("empty calendar, loading state and keyboard date selection", async (t) => {
@@ -325,7 +325,7 @@ test("empty calendar, loading state and keyboard date selection", async (t) => {
   const selected = page.locator('button[aria-pressed="true"]').first();
   await selected.focus();
   await page.keyboard.press("Enter");
-  await page.getByRole("button", { name: /09:00.*GMT/ }).waitFor();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).waitFor();
 });
 
 void test("settings list archives services and resources with confirmation and failure recovery", async (t) => {
@@ -426,7 +426,7 @@ test("staff create, filter, reschedule and reject a manual request", async (t) =
   await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("clinic");
   await page.getByRole("button", { name: "New reservation", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: /09:00.*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Staff Guest");
   await dialog
     .getByRole("textbox", { name: "Email", exact: true })
@@ -441,7 +441,7 @@ test("staff create, filter, reschedule and reject a manual request", async (t) =
   await status.selectOption("pending");
   await event.click();
   await dialog.getByRole("button", { name: "Reschedule", exact: true }).click();
-  await dialog.getByRole("button", { name: /(?:13:00|01:00.*PM).*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^(?:13:00|01:00.*PM)$/ }).click();
   await dialog.getByRole("button", { name: "Save new time", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await event.click();
@@ -557,7 +557,7 @@ test("apartment stay booking, retained dates, multi-day calendar, rescheduling a
     new Date(Date.parse(`${arrival}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
   const departure = addDays(3);
   await page.getByLabel("Departure date", { exact: true }).fill(departure);
-  await page.getByRole("button", { name: /(?:15:00|03:00.*PM).*GMT/ }).click();
+  await page.getByRole("button", { name: /^(?:15:00|03:00.*PM)$/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Stay Guest");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("stay@example.test");
   await page.getByLabel("Simulate action failures").check();
@@ -604,7 +604,7 @@ test("apartment stay booking, retained dates, multi-day calendar, rescheduling a
   await page.getByRole("button", { name: "Reschedule", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Departure date", { exact: true }).fill(addDays(4));
-  await dialog.getByRole("button", { name: /(?:16:00|04:00.*PM).*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^(?:16:00|04:00.*PM)$/ }).click();
   await dialog.getByRole("button", { name: "Save new time", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
   await page.getByText(/Nights: 4/).waitFor();
@@ -635,7 +635,7 @@ test("French stay dates and arrival choices work by keyboard on mobile in both t
       await toggle.click();
     await page.getByRole("button", { name: "Date de départ", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await page.getByRole("button", { name: /15:00.*UTC/ }).focus();
+    await page.getByRole("button", { name: /^15:00$/ }).focus();
     await page.keyboard.press("Enter");
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -680,7 +680,7 @@ test("staff configures stay policy and creates a manually approved stay", async 
   await dialog
     .getByLabel("Departure date", { exact: true })
     .fill(new Date(Date.parse(`${arrival}T12:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10));
-  await dialog.getByRole("button", { name: /(?:15:00|03:00.*PM).*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^(?:15:00|03:00.*PM)$/ }).click();
   await dialog.getByLabel("Name", { exact: true }).fill("Staff Stay");
   await dialog.getByLabel("Email", { exact: true }).fill("staffstay@example.test");
   await dialog.getByRole("button", { name: "Book stay", exact: true }).click();
@@ -710,4 +710,56 @@ void test("business settings saves show toasts and failures stay with the form",
   await save.click();
   await page.getByRole("alert").waitFor();
   assert.equal(await page.getByRole("dialog", { name: "Saved.", exact: true }).count(), 0);
+});
+
+void test("slot offsets appear once per group and distinguish repeated autumn times", async (t) => {
+  const page = await preview(t);
+  await page.clock.setFixedTime(new Date("2026-10-10T10:00:00Z"));
+  await page.reload();
+  await page.getByLabel("Date", { exact: true }).fill("2026-10-12");
+  const summer = page.getByRole("group", { name: "Time GMT+2", exact: true });
+  await summer.waitFor();
+  assert.equal(await summer.getByText("GMT+2", { exact: true }).count(), 1);
+  assert.doesNotMatch((await summer.getByRole("button").allTextContents()).join(" "), /GMT/);
+  await page.getByLabel("Date", { exact: true }).fill("2026-11-02");
+  await page.getByRole("group", { name: "Time GMT+1", exact: true }).waitFor();
+
+  await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "New resource", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("Night shift");
+  await page.getByRole("checkbox", { name: "Active", exact: true }).check();
+  const sunday = page.getByRole("group", { name: "Sunday", exact: true });
+  await sunday.getByRole("button", { name: "Add interval" }).click();
+  await sunday.getByLabel("Start", { exact: true }).fill("02:00");
+  await sunday.getByLabel("End", { exact: true }).fill("04:00");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Archive", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Back", exact: true }).click();
+  await page.getByRole("link", { name: "New service", exact: true }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("Night appointment");
+  await page.getByRole("spinbutton", { name: "Duration (minutes)", exact: true }).fill("30");
+  await page.getByRole("checkbox", { name: "Night shift", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Active", exact: true }).check();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Archive", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Public booking", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Service", exact: true })
+    .selectOption({ label: "Night appointment" });
+  await page.getByLabel("Date", { exact: true }).fill("2026-10-25");
+  const first = page.getByRole("group", { name: "Time GMT+2", exact: true });
+  const second = page.getByRole("group", { name: "Time GMT+1", exact: true });
+  await second.waitFor();
+  for (const group of [first, second]) {
+    assert.doesNotMatch((await group.getByRole("button").allTextContents()).join(" "), /GMT/);
+    const slot = group.getByRole("button", { name: /^02:00(?: AM)?$/ });
+    await slot.focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await slot.getAttribute("aria-pressed"), "true");
+  }
+  assert.equal(
+    await first.getByRole("button", { name: /^02:00(?: AM)?$/ }).getAttribute("aria-pressed"),
+    "false",
+  );
 });

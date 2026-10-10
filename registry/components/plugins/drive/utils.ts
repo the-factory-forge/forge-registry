@@ -45,6 +45,13 @@ export function validScope(scope: DriveScope) {
     throw new DriveError("INVALID");
   return scope;
 }
+export function folderUploadPath(path: string, name: string) {
+  if (typeof path !== "string" || path.length > 25_855) throw new DriveError("INVALID");
+  const segments = path.split("/").map(validName);
+  if (segments.length < 2 || segments.length > 101 || segments.at(-1) !== validName(name))
+    throw new DriveError("INVALID");
+  return segments;
+}
 export function validId(id: string) {
   if (
     typeof id !== "string" ||
