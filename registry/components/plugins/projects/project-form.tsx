@@ -23,20 +23,35 @@ import { cn } from "@/components/utils/cn";
 
 export interface ProjectFormProps {
   className?: string;
+  disabled?: boolean;
+  statusUpdate?: { status: ProjectFormValues["status"] };
   project?: Project;
   labels: ProjectsLabels;
   onSubmit: (values: ProjectFormValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
 
-function ProjectFormContent({ project, labels, onSubmit, onDelete, className }: ProjectFormProps) {
+function ProjectFormContent({
+  project,
+  labels,
+  onSubmit,
+  onDelete,
+  className,
+  disabled,
+  statusUpdate,
+}: ProjectFormProps) {
   const id = `factory-project-form-${useId()}`;
   const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(() => projectFormValues(project));
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormValues, string>>>({});
   const [deleting, setDeleting] = useState(false);
   const action = useCustomerAction(labels.actionError);
-  const pending = action.pending || deleting;
+  const pending = disabled || action.pending || deleting;
+  const [previousStatusUpdate, setPreviousStatusUpdate] = useState(statusUpdate);
+  if (statusUpdate !== previousStatusUpdate) {
+    setPreviousStatusUpdate(statusUpdate);
+    if (statusUpdate) setValues((current) => ({ ...current, status: statusUpdate.status }));
+  }
 
   function change<K extends keyof ProjectFormValues>(name: K, value: ProjectFormValues[K]) {
     setValues((current) => ({ ...current, [name]: value }));

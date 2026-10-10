@@ -59,6 +59,7 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
   sectionHrefs: Record<CustomerSection, string>;
   onSave: (values: CustomerFormValues) => Promise<void>;
   onDelete?: (customerId: string) => Promise<void>;
+  onSetVerified?: (customerId: string, verified: boolean) => Promise<void>;
   emailChangeDescription?: string;
   projectsContent?: ReactNode;
   syncContent?: ReactNode;

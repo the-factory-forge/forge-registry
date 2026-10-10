@@ -11,6 +11,7 @@ import {
   ProjectsList,
   ProjectsPage,
   type Project,
+  type ProjectStatus,
 } from "@/components/plugins/projects";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
@@ -43,6 +44,14 @@ function useProjectList(customerId?: string) {
     getProjectHref: (project: Project) => `${base}/${encodeURIComponent(project.id)}${context}`,
     getCustomerHref: (customer: { id: string }) =>
       `/${locale}/customers/${encodeURIComponent(customer.id)}`,
+    onStatusChange: state.showActions
+      ? async (id: string, status: ProjectStatus) => {
+          await state.beforeAction();
+          state.setProjects((current) =>
+            current.map((project) => (project.id === id ? { ...project, status } : project)),
+          );
+        }
+      : undefined,
     onDelete: state.showActions
       ? async (id: string) => {
           await state.beforeAction();
@@ -149,6 +158,7 @@ export function ProjectsPreview() {
         details: `${base}/${project.id}${context}`,
         drive: `${base}/${project.id}/drive${context}`,
       }}
+      onStatusChange={listProps.onStatusChange}
       onSave={async (values) => {
         await validateOwner(project.ownerId);
         state.setProjects((current) =>

@@ -13,10 +13,12 @@ import {
   Feedback,
   outlineButtonClass,
   useCustomerAction,
+  StatusBadge,
 } from "@/components/plugins/customers/ui";
 import { customerInitials } from "@/components/plugins/customers/utils";
 import type { ProjectsLabels } from "@/components/plugins/projects/labels";
 import type { Project, ProjectStatus } from "@/components/plugins/projects/types";
+import { projectStatuses } from "@/components/plugins/projects/utils";
 import { cn } from "@/components/utils/cn";
 
 const popupClass = cn(
@@ -48,26 +50,36 @@ export function ProjectAvatar({
 
 export function ProjectStatusBadge({
   status,
+  name,
   labels,
+  onChange,
+  disabled,
 }: {
   status: ProjectStatus;
+  name: string;
   labels: ProjectsLabels;
+  onChange?: (status: ProjectStatus) => Promise<void>;
+  disabled?: boolean;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+    <StatusBadge
+      value={status}
+      label={labels.changeStatus(name)}
+      options={projectStatuses.map((value) => ({ value, label: labels[value] }))}
+      className={
         status === "production"
           ? "bg-status-success text-status-success-foreground"
           : status === "under-construction"
             ? "bg-status-pending text-status-pending-foreground"
             : status === "prospect"
               ? "bg-status-info text-status-info-foreground"
-              : "bg-status-not-started text-status-not-started-foreground",
-      )}
-    >
-      {labels[status]}
-    </span>
+              : "bg-status-not-started text-status-not-started-foreground"
+      }
+      onChange={onChange}
+      disabled={disabled}
+      errorMessage={labels.actionError}
+      successMessage={labels.saved}
+    />
   );
 }
 

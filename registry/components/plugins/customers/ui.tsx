@@ -2,10 +2,17 @@
 
 import { Avatar } from "@base-ui/react/avatar";
 import { Dialog } from "@base-ui/react/dialog";
-import { Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, Trash2Icon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 
 import { useActionToast } from "@/components/action-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
 import { IconTooltip } from "@/components/icon-tooltip";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
@@ -190,5 +197,122 @@ export function DeleteCustomer({
       </Dialog.Root>
       {!open && <Feedback feedback={action.feedback} />}
     </div>
+  );
+}
+
+export interface StatusBadgeProps<T extends string> {
+  value: T;
+  options: readonly { value: T; label: string }[];
+  label: string;
+  className: string;
+  disabled?: boolean;
+  onChange?: (value: T) => Promise<void>;
+  errorMessage: string;
+  successMessage: string;
+}
+
+export function StatusBadge<T extends string>({
+  value,
+  options,
+  label,
+  className,
+  disabled,
+  onChange,
+  errorMessage,
+  successMessage,
+}: StatusBadgeProps<T>) {
+  const [open, setOpen] = useState(false);
+  const action = useCustomerAction(errorMessage);
+  const badgeClass = cn(
+    "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+    className,
+  );
+  const text = options.find((option) => option.value === value)?.label;
+  if (!onChange) return <span className={badgeClass}>{text}</span>;
+  return (
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        if (!action.pending) setOpen(next);
+      }}
+    >
+      <DropdownMenuTrigger
+        aria-label={`${label}: ${text}`}
+        disabled={disabled || action.pending}
+        aria-busy={action.pending}
+        className={cn(
+          badgeClass,
+          "min-h-10 outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:min-h-8",
+        )}
+      >
+        {text}
+        <ChevronDownIcon className="size-3 shrink-0" aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-max max-w-[calc(100vw-2rem)] min-w-48 rounded-xl"
+      >
+        <DropdownMenuRadioGroup
+          value={value}
+          aria-label={label}
+          onValueChange={(next) => {
+            const option = options.find((entry) => entry.value === next);
+            if (!option || option.value === value || disabled || action.pending) return;
+            void action
+              .run(() => onChange(option.value), successMessage)
+              .then((success) => {
+                if (success) setOpen(false);
+              });
+          }}
+        >
+          {options.map((option) => (
+            <DropdownMenuRadioItem
+              key={option.value}
+              value={option.value}
+              closeOnClick={false}
+              disabled={disabled || action.pending}
+              className="min-h-10 rounded-md md:min-h-8"
+            >
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <div className="min-h-5 max-w-64 px-2" aria-busy={action.pending}>
+          <Feedback feedback={action.feedback} />
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+export function CustomerStatusBadge({
+  customer,
+  labels,
+  onChange,
+  disabled,
+}: {
+  customer: Customer;
+  labels: CustomersLabels;
+  onChange?: (verified: boolean) => Promise<void>;
+  disabled?: boolean;
+}) {
+  return (
+    <StatusBadge
+      value={customer.emailVerified ? "verified" : "unverified"}
+      options={[
+        { value: "verified", label: labels.verified },
+        { value: "unverified", label: labels.unverified },
+      ]}
+      label={labels.verification(customerDisplayName(customer))}
+      className={
+        customer.emailVerified
+          ? "bg-status-success text-status-success-foreground"
+          : "bg-status-pending text-status-pending-foreground"
+      }
+      disabled={disabled}
+      onChange={onChange ? (value) => onChange(value === "verified") : undefined}
+      errorMessage={labels.actionError}
+      successMessage={labels.saved}
+    />
   );
 }

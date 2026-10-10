@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -17,12 +17,13 @@ import { projectLabels } from "@/components/plugins/projects/labels";
 import { ProjectForm } from "@/components/plugins/projects/project-form";
 import type {
   ProjectDetailPageProps,
+  ProjectStatus,
   ProjectNewPageProps,
   ProjectsListProps,
   ProjectsPageProps,
 } from "@/components/plugins/projects/types";
 import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
-import { safeProjectUrl } from "@/components/plugins/projects/utils";
+import { projectFormValues, safeProjectUrl } from "@/components/plugins/projects/utils";
 import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
@@ -64,6 +65,7 @@ function ProjectsListContent({
   getProjectHref,
   getCustomerHref,
   onDelete,
+  onStatusChange,
   labels: overrides,
   linkComponent: ProjectLink = Link,
   className,
@@ -209,7 +211,24 @@ function ProjectsListContent({
                     )}
                   </td>
                   <td className={tableCellClass}>
-                    <ProjectStatusBadge status={project.status} labels={labels} />
+                    <ProjectStatusBadge
+                      status={project.status}
+                      name={project.name}
+                      labels={labels}
+                      disabled={loading || optimistic.pending || !!loadError}
+                      onChange={
+                        onStatusChange
+                          ? (status) =>
+                              optimistic.run(
+                                (rows) =>
+                                  rows.map((row) =>
+                                    row.id === project.id ? { ...row, status } : row,
+                                  ),
+                                () => onStatusChange(project.id, status),
+                              )
+                          : undefined
+                      }
+                    />
                   </td>
                   <td className={tableActionCellClass}>
                     <div className="flex items-start justify-end gap-1">
@@ -280,6 +299,7 @@ function ProjectDetailPageContent({
   sectionHrefs,
   onSave,
   onDelete,
+  onStatusChange,
   driveContent,
   className,
   labels: overrides,
@@ -288,6 +308,7 @@ function ProjectDetailPageContent({
   const labels = { ...projectLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedProject, suppliedProject.id);
   const project = optimistic.value;
+  const [statusUpdate, setStatusUpdate] = useState<{ status: ProjectStatus }>();
   const website = safeProjectUrl(project.url);
   return (
     <div className={cn(pageClass, className)}>
@@ -318,7 +339,22 @@ function ProjectDetailPageContent({
           </p>
         </div>
         <div className="ml-auto self-start">
-          <ProjectStatusBadge status={project.status} labels={labels} />
+          <ProjectStatusBadge
+            status={project.status}
+            name={project.name}
+            labels={labels}
+            disabled={optimistic.pending}
+            onChange={async (status) => {
+              await optimistic.run(
+                (row) => ({ ...row, status }),
+                () =>
+                  onStatusChange
+                    ? onStatusChange(project.id, status)
+                    : onSave({ ...projectFormValues(project), status }),
+              );
+              setStatusUpdate({ status });
+            }}
+          />
         </div>
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
@@ -340,6 +376,7 @@ function ProjectDetailPageContent({
         <ProjectForm
           key={project.id}
           project={project}
+          statusUpdate={statusUpdate}
           labels={labels}
           onSubmit={(values) =>
             optimistic.run(
@@ -347,7 +384,16 @@ function ProjectDetailPageContent({
               () => onSave(values),
             )
           }
-          onDelete={onDelete}
+          disabled={optimistic.pending}
+          onDelete={
+            onDelete
+              ? (id) =>
+                  optimistic.run(
+                    (row) => row,
+                    () => onDelete(id),
+                  )
+              : undefined
+          }
         />
       ) : (
         driveContent
@@ -393,7 +439,7 @@ export function ProjectsList(props: ProjectsListProps) {
 export function ProjectDetailPage(props: ProjectDetailPageProps) {
   return (
     <ActionToastProvider>
-      <ProjectDetailPageContent {...props} />
+      <ProjectDetailPageContent key={props.project.id} {...props} />
     </ActionToastProvider>
   );
 }

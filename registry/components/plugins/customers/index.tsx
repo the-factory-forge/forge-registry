@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ArrowLeftIcon,
-  FolderKanbanIcon,
-  PencilIcon,
-  PlusIcon,
-  ShieldCheckIcon,
-  ShieldOffIcon,
-  UserRoundIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -26,6 +18,7 @@ import {
   cardClass,
   CustomerActionButton,
   CustomerAvatar,
+  CustomerStatusBadge,
   DeleteCustomer,
   iconButtonClass,
   primaryButtonClass,
@@ -149,34 +142,25 @@ function CustomersPageContent({
                     <td className={tableCellClass}>
                       <div className="flex items-center gap-1">
                         <span>{customer.email}</span>
-                        {onSetVerified ? (
-                          <CustomerActionButton
-                            disabled={loading || optimistic.pending || !!loadError}
-                            label={customer.emailVerified ? labels.unverify : labels.verify}
-                            labels={labels}
-                            onAction={() =>
-                              optimistic.run(
-                                (rows) =>
-                                  rows.map((row) =>
-                                    row.id === customer.id
-                                      ? { ...row, emailVerified: !customer.emailVerified }
-                                      : row,
-                                  ),
-                                () => onSetVerified(customer.id, !customer.emailVerified),
-                              )
-                            }
-                          >
-                            {customer.emailVerified ? (
-                              <ShieldOffIcon aria-hidden="true" />
-                            ) : (
-                              <ShieldCheckIcon aria-hidden="true" />
-                            )}
-                          </CustomerActionButton>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {customer.emailVerified ? labels.verified : labels.unverified}
-                          </span>
-                        )}
+                        <CustomerStatusBadge
+                          customer={customer}
+                          labels={labels}
+                          disabled={loading || optimistic.pending || !!loadError}
+                          onChange={
+                            onSetVerified
+                              ? (verified) =>
+                                  optimistic.run(
+                                    (rows) =>
+                                      rows.map((row) =>
+                                        row.id === customer.id
+                                          ? { ...row, emailVerified: verified }
+                                          : row,
+                                      ),
+                                    () => onSetVerified(customer.id, verified),
+                                  )
+                              : undefined
+                          }
+                        />
                       </div>
                     </td>
                     {syncColumn && (
@@ -261,6 +245,7 @@ function CustomerDetailPageContent({
   sectionHrefs,
   onSave,
   onDelete,
+  onSetVerified,
   emailChangeDescription,
   projectsContent,
   syncContent,
@@ -291,15 +276,21 @@ function CustomerDetailPageContent({
         <dl className="ml-auto flex flex-wrap justify-end gap-x-6 gap-y-2 self-start text-sm">
           <div>
             <dt className="text-muted-foreground">{labels.email}</dt>
-            <dd
-              className={cn(
-                "mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                customer.emailVerified
-                  ? "bg-status-success text-status-success-foreground"
-                  : "bg-status-pending text-status-pending-foreground",
-              )}
-            >
-              {customer.emailVerified ? labels.verified : labels.unverified}
+            <dd className="mt-1">
+              <CustomerStatusBadge
+                customer={customer}
+                labels={labels}
+                disabled={optimistic.pending}
+                onChange={
+                  onSetVerified
+                    ? (verified) =>
+                        optimistic.run(
+                          (row) => ({ ...row, emailVerified: verified }),
+                          () => onSetVerified(customer.id, verified),
+                        )
+                    : undefined
+                }
+              />
             </dd>
           </div>
           {customer.banned && (
@@ -344,13 +335,20 @@ function CustomerDetailPageContent({
               )
             }
             emailChangeDescription={emailChangeDescription}
+            disabled={optimistic.pending}
           />
           {onDelete && (
             <DeleteCustomer
               key={customer.id}
               customer={customer}
               labels={labels}
-              onDelete={onDelete}
+              disabled={optimistic.pending}
+              onDelete={(id) =>
+                optimistic.run(
+                  (row) => row,
+                  () => onDelete(id),
+                )
+              }
             />
           )}
         </>
@@ -407,7 +405,7 @@ export function CustomersPage(props: CustomersPageProps) {
 export function CustomerDetailPage(props: CustomerDetailPageProps) {
   return (
     <ActionToastProvider>
-      <CustomerDetailPageContent {...props} />
+      <CustomerDetailPageContent key={props.customer.id} {...props} />
     </ActionToastProvider>
   );
 }

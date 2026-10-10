@@ -815,7 +815,8 @@
         "@forge/table-search",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/dropdown-menu"
       ]
     },
     {

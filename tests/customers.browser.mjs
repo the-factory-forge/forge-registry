@@ -56,11 +56,21 @@ test("verification and impersonation callbacks support errors and retry", async 
   const page = await preview(t);
   const row = page.getByRole("row").filter({ hasText: "Acme Studio" });
   await page.getByLabel("Simulate action failures").check();
-  await row.getByRole("button", { name: "Verify customer", exact: true }).click();
-  await row.getByRole("alert").waitFor();
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Unverified", exact: true })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Verified", exact: true }).click();
+  await page.getByRole("menu").getByRole("alert").waitFor();
+  await page.keyboard.press("Escape");
   await page.getByLabel("Simulate action failures").uncheck();
-  await row.getByRole("button", { name: "Verify customer", exact: true }).click();
-  await row.getByRole("button", { name: "Unverify customer", exact: true }).waitFor();
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Unverified", exact: true })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Verified", exact: true }).click();
+  await actionToast(page, "Customer updated");
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Verified", exact: true })
+    .waitFor();
   await row.getByRole("button", { name: "Impersonate customer" }).click();
   await page
     .getByRole("status")
@@ -250,4 +260,25 @@ test("desktop and mobile pages fit in both themes", async (t) => {
       });
     }
   }
+});
+
+test("customer detail verification preserves drafts and follows host permissions", async (t) => {
+  const page = await preview(t, "/acme");
+  const company = page.getByRole("textbox", { name: "Company name", exact: true });
+  await company.fill("Unsaved company");
+  const badge = page.getByRole("button", { name: /Email verification for Acme Studio:/ });
+  await badge.click();
+  await page.getByRole("menuitemradio", { name: "Verified", exact: true }).click();
+  await actionToast(page, "Customer updated");
+  assert.equal(await company.inputValue(), "Unsaved company");
+  await page.getByRole("heading", { name: "Acme Studio", exact: true }).waitFor();
+  await page.getByLabel("Account actions", { exact: true }).uncheck();
+  assert.equal(await badge.count(), 0);
+  await page.getByText("Verified", { exact: true }).waitFor();
+  await page.getByRole("link", { name: "Back to customers", exact: true }).click();
+  const row = page.getByRole("row").filter({ hasText: "Acme Studio" });
+  await row.getByText("Verified", { exact: true }).waitFor();
+  await page.getByLabel("Account actions", { exact: true }).check();
+  await page.getByLabel("Directory state").selectOption("loading");
+  assert.equal(await row.getByRole("button", { name: /Email verification/ }).isDisabled(), true);
 });

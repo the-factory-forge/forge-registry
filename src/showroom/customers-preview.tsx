@@ -36,6 +36,17 @@ export function CustomersPreview() {
       }
     : undefined;
 
+  const onSetVerified = state.showActions
+    ? async (id: string, verified: boolean) => {
+        await beforeAction();
+        setCustomers((current) =>
+          current.map((customer) =>
+            customer.id === id ? { ...customer, emailVerified: verified } : customer,
+          ),
+        );
+      }
+    : undefined;
+
   if (customerId === "new")
     return (
       <CustomerNewPage
@@ -85,6 +96,7 @@ export function CustomersPreview() {
         }}
         linkComponent={Link}
         onDelete={onDelete}
+        onSetVerified={onSetVerified}
         onSave={async (values: CustomerFormValues) => {
           await beforeAction();
           setCustomers((current) =>
@@ -122,18 +134,7 @@ export function CustomersPreview() {
       }
       linkComponent={Link}
       onDelete={onDelete}
-      onSetVerified={
-        state.showActions
-          ? async (id, verified) => {
-              await beforeAction();
-              setCustomers((current) =>
-                current.map((customer) =>
-                  customer.id === id ? { ...customer, emailVerified: verified } : customer,
-                ),
-              );
-            }
-          : undefined
-      }
+      onSetVerified={onSetVerified}
       onImpersonate={
         state.showActions
           ? async (id) => {

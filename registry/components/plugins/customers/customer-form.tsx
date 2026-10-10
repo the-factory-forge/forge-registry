@@ -25,6 +25,7 @@ import { cn } from "@/components/utils/cn";
 
 export interface CustomerFormProps {
   customer?: Customer;
+  disabled?: boolean;
   labels: CustomersLabels;
   onSubmit: (values: CustomerCreateValues) => Promise<void>;
   emailChangeDescription?: string;
@@ -34,6 +35,7 @@ export interface CustomerFormProps {
 
 function CustomerFormContent({
   customer,
+  disabled,
   labels,
   onSubmit,
   emailChangeDescription,
@@ -48,6 +50,7 @@ function CustomerFormContent({
   const notify = useActionToast();
   const [passwordFeedback, setPasswordFeedback] = useState<{ error: boolean; message: string }>();
   const action = useCustomerAction(labels.actionError);
+  const pending = disabled || action.pending;
 
   async function copyPassword(value: string) {
     try {
@@ -61,7 +64,7 @@ function CustomerFormContent({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (action.pending) return;
+    if (pending) return;
     const form = event.currentTarget;
     const nextErrors: typeof errors = {};
     if (!values.name.trim()) nextErrors.name = labels.nameRequired;
@@ -148,8 +151,8 @@ function CustomerFormContent({
   }
 
   return (
-    <form noValidate onSubmit={submit} aria-busy={action.pending} className="space-y-6">
-      <fieldset disabled={action.pending} className="min-w-0 space-y-6">
+    <form noValidate onSubmit={submit} aria-busy={pending} className="space-y-6">
+      <fieldset disabled={pending} className="min-w-0 space-y-6">
         <section aria-labelledby={`${id}-contact`} className={cn(cardClass, "space-y-5")}>
           <div className="space-y-1.5">
             <h2 id={`${id}-contact`} className="font-semibold">
@@ -273,7 +276,7 @@ function CustomerFormContent({
         </section>
         <div className="flex justify-end">
           <button type="submit" className={primaryButtonClass}>
-            {action.pending ? labels.pending : creating ? labels.create : labels.save}
+            {pending ? labels.pending : creating ? labels.create : labels.save}
           </button>
         </div>
       </fieldset>

@@ -14,6 +14,7 @@ export const projectLabels = {
   drive: "Drive",
   name: "Name",
   status: "Status",
+  changeStatus: (name: string) => `Change status of ${name}`,
   projectDescription: "Description",
   owner: "Owner",
   assignee: "Assignee",

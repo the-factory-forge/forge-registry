@@ -130,3 +130,18 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Change email verification from a badge
+
+The Verified/Unverified badge opens a menu in both the customer header and table.
+Supply `onSetVerified(customerId, verified)` to `CustomerDetailPage` or
+`CustomersPage` to enable it. Without the callback the badge is read-only.
+This replaces the table's separate verification icon with a visible status label.
+Banned remains informational; no account enable/disable action is added.
+
+Selection updates immediately, disables competing saves while pending and rolls
+back on rejection. Errors appear in the menu for retry; successful changes show
+the existing toast. Unsaved contact fields remain intact. Hosts must authorize
+verification writes and reject failed requests. The `verification(name)` label
+provides the translated accessible name. The dropdown dependency installs with
+Customers and is also used by Projects.

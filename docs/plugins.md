@@ -19,8 +19,8 @@ is authoritative for files and dependencies.
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
 | `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                        | Host auth provider     | [Auth](./intranet-auth.md)                  |
 | `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                            | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records and composition of Projects/Sync                                                                   | Host callbacks         | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, host-owned customer relationships and Details/Drive views                                                      | Host callbacks         | [Projects](./projects.md)                   |
+| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                     | Host callbacks         | [Customers](./customers.md)                 |
+| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                              | Host callbacks         | [Projects](./projects.md)                   |
 | `drive`        | Scoped file browser, breadcrumb navigation, host-owned space renaming, uploads/downloads and opt-in trash/restoration               | `drive-storage`        | [Drive](./drive.md)                         |
 | `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
@@ -49,7 +49,11 @@ retains supplied rows, announces progress and disables mutations and pagination.
 Hosts using controlled lists must keep their last loaded rows while fetching.
 Employee tables still render nothing without an authenticated admin role.
 
-Single-choice dropdowns share `@forge/native-select`, which keeps a 12px chevron inset
+Customer verification and project lifecycle badges open an accessible status menu
+when the host supplies the corresponding mutation callback. Project details can
+also use their existing save callback. Other statuses remain informational.
+
+Single-choice form dropdowns share `@forge/native-select`, which keeps a 12px chevron inset
 and reserves space between the selected text and arrow. Its native control preserves
 keyboard selection, labels, validation and disabled states. The dependency ships
 with affected plugins; see the [native select guide](./native-select.md).

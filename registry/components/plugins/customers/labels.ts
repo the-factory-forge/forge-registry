@@ -18,6 +18,7 @@ export const customerLabels = {
   about: "About",
   projects: "Projects",
   sync: "Sync",
+  verification: (name: string) => `Email verification for ${name}`,
   verified: "Verified",
   unverified: "Unverified",
   banned: "Banned",

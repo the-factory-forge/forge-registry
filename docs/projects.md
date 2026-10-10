@@ -37,14 +37,14 @@ Framework route files are not shipped.
 
 The directory receives `projects`, `customers`, optional `assignees`, controlled
 `search`/`onSearchChange`, `loading`/`error`, optional `createHref`, required
-`getProjectHref`, optional `getCustomerHref`, and optional `onDelete(id)`.
+`getProjectHref`, optional `getCustomerHref`, optional `onDelete(id)`, and optional `onStatusChange(id, status)`.
 The host searches/fetches records. `customerId` additionally scopes the supplied
 projects and hides Owner. Missing create/delete props hide those controls.
 Customer company names take precedence over contact names.
 
 Detail receives `project`, `backHref`, `sectionHrefs: { details, drive }`,
 `section` (default `details`), `onSave(values)`, optional `onDelete(id)`, and
-optional `driveContent`. Drive is empty by default. Images are display-only;
+optional `onStatusChange(id, status)` and `driveContent`. Drive is empty by default. Images are display-only;
 there is no upload or cropping workflow. Creation takes `backHref` and
 `onCreate(values)` and has no summary, section navigation, or deletion.
 
@@ -53,6 +53,20 @@ failure. Check SDK error-return objects and throw in the adapter if necessary.
 The plugin prevents duplicate submissions and reports overridable generic
 feedback. The host owns persistence, access checks, reloading data, and
 navigation after creation/deletion. Hiding an action is not authorization.
+
+## Change status from a badge
+
+Click a status badge in the detail header or table to choose Requested, Prospect,
+Under construction or Production. Selection updates immediately and rolls back on
+failure. The menu reports errors and permits retry; success closes it and shows
+the existing confirmation toast. Loading and pending operations disable mutations.
+
+The table enables its picker when `onStatusChange(id, status)` is supplied.
+The detail header uses that callback when supplied, otherwise `onSave` with the
+saved name and description plus the selected status. Unsaved form edits remain
+in the form. After a successful badge update, its Status field adopts the new
+value so a later form save does not restore the old status. A rejected badge update
+preserves all draft fields. These callbacks must enforce server authorization.
 
 ## Customer composition
 

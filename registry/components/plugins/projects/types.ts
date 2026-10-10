@@ -50,6 +50,7 @@ export interface ProjectsListProps extends ProjectsAppearanceProps {
   getProjectHref: (project: Project) => string;
   getCustomerHref?: (customer: Customer) => string;
   onDelete?: (projectId: string) => Promise<void>;
+  onStatusChange?: (projectId: string, status: ProjectStatus) => Promise<void>;
 }
 
 export type ProjectsPageProps = ProjectsListProps;
@@ -61,6 +62,7 @@ export interface ProjectDetailPageProps extends ProjectsAppearanceProps {
   sectionHrefs: Record<ProjectSection, string>;
   onSave: (values: ProjectFormValues) => Promise<void>;
   onDelete?: (projectId: string) => Promise<void>;
+  onStatusChange?: (projectId: string, status: ProjectStatus) => Promise<void>;
   driveContent?: ReactNode;
 }
 

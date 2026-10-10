@@ -36,16 +36,28 @@ void test("verification is immediate, rolls back on failure, and retries", async
   const page = await preview(t, "/en/customers");
   const row = page.getByRole("row").filter({ hasText: "Acme Studio" });
   await page.getByLabel("Simulate action failures").check();
-  await row.getByRole("button", { name: "Verify customer", exact: true }).click();
-  const changed = row.getByRole("button", { name: "Unverify customer", exact: true });
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Unverified", exact: true })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Verified", exact: true }).click();
+  const changed = row.getByRole("button", {
+    name: "Email verification for Acme Studio: Verified",
+    exact: true,
+  });
   await changed.waitFor({ timeout: 700 });
   assert.equal(await changed.isDisabled(), true);
-  await row.getByRole("button", { name: "Verify customer", exact: true }).waitFor();
-  await page.getByRole("alert").first().waitFor();
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Unverified", exact: true })
+    .waitFor();
+  await page.getByRole("menu").getByRole("alert").waitFor();
+  await page.keyboard.press("Escape");
   await page.getByLabel("Simulate action failures").uncheck();
-  await row.getByRole("button", { name: "Verify customer", exact: true }).click();
+  await row
+    .getByRole("button", { name: "Email verification for Acme Studio: Unverified", exact: true })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Verified", exact: true }).click();
   await changed.waitFor({ timeout: 700 });
-  await actionToast(page, "Action completed");
+  await actionToast(page, "Customer updated");
   assert.equal(await changed.isEnabled(), true);
 });
 
