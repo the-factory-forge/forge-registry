@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 
+import { unzipSync, strFromU8 } from "fflate";
 import { chromium } from "playwright";
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -1545,6 +1547,52 @@ async function folderMenu(page, name) {
   await trigger.click();
   return trigger;
 }
+
+void test("folder menus create in the selected parent and download a complete ZIP", async (t) => {
+  const page = await preview(t, "/en/drive/project/portal");
+  await folder(page, "Bills");
+  await folder(page, "Unrelated");
+  await page.getByRole("link", { name: "Unrelated", exact: true }).click();
+  await page.getByText("This folder is empty.", { exact: true }).waitFor();
+  await folderMenu(page, "Bills");
+  await page.getByRole("menuitem", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Folder", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "New folder", exact: true });
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("2026");
+  await page.locator("tbody").evaluate((table) => {
+    window.wrongFolderShown = false;
+    window.tableObserver = new MutationObserver(() => {
+      if (table.textContent.includes("2026")) window.wrongFolderShown = true;
+    });
+    window.tableObserver.observe(table, { childList: true, subtree: true });
+  });
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await row(page, "2026").count(), 0);
+  assert.equal(
+    await page.evaluate(() => {
+      window.tableObserver.disconnect();
+      return window.wrongFolderShown;
+    }),
+    false,
+  );
+  await folderMenu(page, "Bills");
+  await page.getByRole("menuitem", { name: "Add", exact: true }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menuitem", { name: "Upload file", exact: true }).click();
+  await (await chooser).setFiles(file("receipt.txt", "Receipt bytes"));
+  await page.getByText("Uploaded", { exact: true }).waitFor();
+  await folderMenu(page, "Bills");
+  const download = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: "Download", exact: true }).click();
+  const downloaded = await download;
+  assert.equal(downloaded.suggestedFilename(), "Bills.zip");
+  const files = unzipSync(await readFile(await downloaded.path()));
+  assert.deepEqual(Object.keys(files).sort(), ["Bills/", "Bills/2026/", "Bills/receipt.txt"]);
+  assert.equal(strFromU8(files["Bills/receipt.txt"]), "Receipt bytes");
+  await page.getByRole("link", { name: "Folder: Bills", exact: true }).click();
+  await page.getByRole("link", { name: "2026", exact: true }).waitFor();
+});
 
 void test("folder menus upload into the selected folder, duplicate recursively, rename and trash", async (t) => {
   const page = await preview(t, "/en/drive/project/portal");

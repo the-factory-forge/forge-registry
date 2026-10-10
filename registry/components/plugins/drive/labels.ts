@@ -104,6 +104,8 @@ export const driveLabels = {
     "The original folder is unavailable or the name is already used. Choose a folder or another name.",
   EXPIRED: "This upload expired. Select the file again.",
   DELETE_PENDING: "Deletion is incomplete. Retry to finish removing the remaining contents.",
+  DOWNLOAD_LIMIT:
+    "This folder exceeds the 100 MB or 1,000 item download limit. Download smaller subfolders or individual files.",
   STORAGE: "Storage is unavailable. Please retry.",
 };
 export type DriveLabels = typeof driveLabels;

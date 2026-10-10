@@ -9,6 +9,7 @@ export type DriveErrorCode =
   | "RESTORE_CONFLICT"
   | "EXPIRED"
   | "DELETE_PENDING"
+  | "DOWNLOAD_LIMIT"
   | "STORAGE";
 export class DriveError extends Error {
   readonly code: DriveErrorCode;
@@ -74,6 +75,7 @@ export function errorCode(error: unknown): DriveErrorCode | undefined {
       "RESTORE_CONFLICT",
       "EXPIRED",
       "DELETE_PENDING",
+      "DOWNLOAD_LIMIT",
       "STORAGE",
     ].includes(error.code)
   )

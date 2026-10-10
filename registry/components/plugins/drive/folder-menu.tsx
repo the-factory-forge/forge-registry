@@ -2,6 +2,8 @@
 
 import {
   CopyIcon,
+  DownloadIcon,
+  FolderPlusIcon,
   EllipsisVerticalIcon,
   PencilIcon,
   PlusIcon,
@@ -33,11 +35,13 @@ export interface DriveFolderMenuProps {
   client: DriveClient;
   trashEnabled: boolean;
   disabled: boolean;
+  downloading: boolean;
   labels: DriveLabels;
   onUpload: (entry: DriveEntry, directory: boolean) => void;
+  onDownload: (entry: DriveEntry) => void;
   onAction: (
     entry: DriveEntry,
-    action: "rename" | "duplicate" | "trash",
+    action: "create" | "rename" | "duplicate" | "trash",
     trigger: HTMLButtonElement | null,
   ) => void;
 }
@@ -48,8 +52,10 @@ export function DriveFolderMenu({
   client,
   trashEnabled,
   disabled,
+  downloading,
   labels,
   onUpload,
+  onDownload,
   onAction,
 }: DriveFolderMenuProps) {
   const trigger = useRef<HTMLButtonElement>(null);
@@ -59,7 +65,16 @@ export function DriveFolderMenu({
     capabilities.upload &&
     capabilities.createFolder;
   const trash = trashEnabled && capabilities?.delete;
-  if (!capabilities?.upload && !capabilities?.rename && !duplicate && !trash) return null;
+  if (
+    !capabilities ||
+    (!capabilities.upload &&
+      !capabilities.createFolder &&
+      !capabilities.rename &&
+      !capabilities.download &&
+      !duplicate &&
+      !trash)
+  )
+    return null;
   const label = `${labels.actions}: ${entry.name}`;
   const itemClass = "min-h-10 rounded-md md:min-h-8";
   return (
@@ -77,22 +92,36 @@ export function DriveFolderMenu({
       <DropdownMenuContent align="end" className="min-w-52 rounded-xl motion-reduce:animate-none">
         <p className="max-w-64 truncate px-2 py-2 text-sm font-semibold">{entry.name}</p>
         <DropdownMenuSeparator />
-        {capabilities?.upload && (
+        {(capabilities.upload || capabilities.createFolder) && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className={itemClass}>
               <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.add}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="min-w-48 rounded-xl motion-reduce:animate-none">
-              <DropdownMenuItem className={itemClass} onClick={() => onUpload(entry, false)}>
-                <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.uploadFile}
-              </DropdownMenuItem>
-              {capabilities.createFolder && client.prepareFolderUpload && (
+              {capabilities.upload && (
+                <DropdownMenuItem className={itemClass} onClick={() => onUpload(entry, false)}>
+                  <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
+                  {labels.uploadFile}
+                </DropdownMenuItem>
+              )}
+              {capabilities.upload && capabilities.createFolder && client.prepareFolderUpload && (
                 <DropdownMenuItem className={itemClass} onClick={() => onUpload(entry, true)}>
                   <FolderUpIcon className="size-4 shrink-0" aria-hidden="true" />
                   {labels.uploadFolder}
                 </DropdownMenuItem>
+              )}
+              {capabilities.createFolder && (
+                <>
+                  {capabilities.upload && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    className={itemClass}
+                    onClick={() => onAction(entry, "create", trigger.current)}
+                  >
+                    <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                    {labels.folder}
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -113,6 +142,16 @@ export function DriveFolderMenu({
           >
             <CopyIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.duplicate}
+          </DropdownMenuItem>
+        )}
+        {capabilities.download && (
+          <DropdownMenuItem
+            className={itemClass}
+            disabled={downloading}
+            onClick={() => onDownload(entry)}
+          >
+            <DownloadIcon className="size-4 shrink-0" aria-hidden="true" />
+            {labels.download}
           </DropdownMenuItem>
         )}
         {trash && (

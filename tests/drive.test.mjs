@@ -55,7 +55,7 @@ test("Drive UI ships independently; only the companion contains storage dependen
     "@forge/subpage-sidebar",
     "@forge/action-toast",
   ]);
-  assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react"]);
+  assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react", "fflate@0.8.3"]);
   assert.deepEqual(server.registryDependencies, ["@forge/drive"]);
   assert.deepEqual(server.dependencies, [
     "drizzle-orm",

@@ -37,11 +37,30 @@ from the reference application are outside this navigation change.
 ## Folder action menu
 
 Each loaded folder in the tree has a three-dot menu for permitted actions:
-Add > Upload file / Upload folder, Rename, Duplicate and Move to trash. The menu
+Add > Upload file / Upload folder / Folder, Rename, Duplicate, Download and Move to trash. The menu
 acts on that folder even when the table shows another folder. It supports touch
 and keyboard navigation and uses the host theme. Rename and trash reuse the
 existing dialogs. Trashing requires the complete optional trash integration;
 this menu never substitutes permanent deletion for Move to trash.
+
+Add > Folder reuses the short creation dialog and creates a child of the selected
+folder. It is available with folder-creation permission even without upload
+permission. Download remains available to users with download-only access.
+
+Download saves one ZIP named after the selected folder, including its nested
+files and empty folders. It reads every cursor page through `listEntries` and
+uses `getDownload` for each file, preserving the existing server authorization.
+Signed file URLs must permit browser GET requests from the host origin through
+CORS, as in the companion's `cors.json`. The browser fetches these URLs without
+cookies; they must authorize the read themselves.
+
+The lazy-loaded `fflate` dependency creates the ZIP in browser memory. Downloads
+are limited to 100 MB of uncompressed files, 1,000 entries including folders, and
+100 nested levels. Translate `DOWNLOAD_LIMIT` for the limit error. Larger trees
+can be downloaded as smaller subfolders or individual files. Failed reads,
+revoked permissions and changed or invalid entries produce an error toast and
+no partial ZIP; leaving the browser cancels active archive reads. This is not an
+atomic snapshot of concurrent edits. No new client method or schema is required.
 
 Translate `add`, `uploadFile`, `uploadFolder`, `duplicate`, `duplicateName` and
 `duplicated` alongside the existing action labels. Duplicate asks for an available

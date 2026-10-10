@@ -347,12 +347,14 @@ function Browser({
   }, [client]);
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
+  const downloadController = useRef<AbortController | null>(null);
+  useEffect(() => () => downloadController.current?.abort(), []);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadDestination = useRef(parentId);
   const menuTrigger = useRef<HTMLElement | null>(null);
   const [folderAction, setFolderAction] = useState<{
     entry: DriveEntry;
-    action: "rename" | "duplicate" | "trash";
+    action: "create" | "rename" | "duplicate" | "trash";
   }>();
   const [removedFolder, setRemovedFolder] = useState<DriveEntry>();
   const refresh = () => {
@@ -423,7 +425,7 @@ function Browser({
     createFolder: (input) => {
       const entry: DriveEntry = {
         id: `pending-${crypto.randomUUID()}`,
-        parentId,
+        parentId: input.parentId,
         kind: "folder",
         name: input.name,
         size: 0,
@@ -432,7 +434,10 @@ function Browser({
         state: "ready",
       };
       return optimistic.run(
-        (current) => current && { ...current, items: [...current.items, entry] },
+        (current) =>
+          current && input.parentId === parentId
+            ? { ...current, items: [...current.items, entry] }
+            : current,
         () => client.createFolder(input),
       );
     },
@@ -533,22 +538,34 @@ function Browser({
   async function download(entry: DriveEntry) {
     if (actionsDisabled || downloadLock.current) return;
     downloadLock.current = true;
+    const controller = new AbortController();
+    downloadController.current = controller;
     setDownloading(true);
     setFeedback(undefined);
     try {
       await toastManager
         .promise(
           (async () => {
-            const result = await client.getDownload({ scope, entryId: entry.id });
+            const archive =
+              entry.kind === "folder"
+                ? await import("@/components/plugins/drive/download").then(({ downloadFolder }) =>
+                    downloadFolder(client, scope, entry, controller.signal),
+                  )
+                : undefined;
+            controller.signal.throwIfAborted();
+            const result = archive
+              ? { url: URL.createObjectURL(archive) }
+              : await client.getDownload({ scope, entryId: entry.id });
             const url = safeDownloadUrl(result.url);
             if (!url) throw new DriveError("INVALID");
             const anchor = document.createElement("a");
             anchor.href = url;
-            anchor.download = entry.name;
+            anchor.download = entry.kind === "folder" ? `${entry.name}.zip` : entry.name;
             anchor.rel = "noopener";
             document.body.append(anchor);
             anchor.click();
             anchor.remove();
+            if (archive) setTimeout(() => URL.revokeObjectURL(url), 60_000);
           })(),
           {
             loading: { title: labels.loading, data: { closeLabel: labels.close } },
@@ -559,6 +576,7 @@ function Browser({
         .catch(() => undefined);
     } finally {
       downloadLock.current = false;
+      downloadController.current = null;
       setDownloading(false);
     }
   }
@@ -595,8 +613,10 @@ function Browser({
         <EntryDialog
           client={actionClient}
           scope={scope}
-          parentId={folderAction.entry.parentId}
-          entry={folderAction.entry}
+          parentId={
+            folderAction.action === "create" ? folderAction.entry.id : folderAction.entry.parentId
+          }
+          entry={folderAction.action === "create" ? undefined : folderAction.entry}
           labels={labels}
           deleting={folderAction.action === "trash"}
           trashing={folderAction.action === "trash"}
@@ -737,6 +757,8 @@ function Browser({
                       trashEnabled={trashEnabled}
                       labels={labels}
                       disabled={disabled || actionsDisabled}
+                      downloading={downloading}
+                      onDownload={(entry) => void download(entry)}
                       onUpload={(folder, directory) => {
                         uploadDestination.current = folder.id;
                         if (fileInput.current) {

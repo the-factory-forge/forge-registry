@@ -212,6 +212,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(kysely@0.29.6)(postgres@3.4.9)
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       lucide-react:
         specifier: 1.49.0
         version: 1.49.0(@types/react@19.3.0)(react@19.3.0)

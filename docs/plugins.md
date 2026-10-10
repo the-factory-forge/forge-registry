@@ -26,6 +26,10 @@ is authoritative for files and dependencies.
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
 
+Drive folder menus support child-folder creation and ZIP downloads alongside
+uploads, rename, duplication and trash. ZIPs use the existing authenticated reads
+with the browser size limits described in the [Drive guide](./drive.md#folder-action-menu).
+
 Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for the named space root, an
 expandable folder tree and optional Trash. The tree uses the existing scoped
 client reads; navigation does not grant access or change storage semantics.

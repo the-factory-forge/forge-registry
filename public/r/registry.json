@@ -925,7 +925,7 @@
       "type": "registry:block",
       "title": "Drive",
       "description": "Scoped file browser with folder-tree navigation, uploads, downloads and optional trash.",
-      "dependencies": ["@base-ui/react", "lucide-react"],
+      "dependencies": ["@base-ui/react", "lucide-react", "fflate@0.8.3"],
       "registryDependencies": [
         "@forge/table-pagination",
         "@forge/cn",
@@ -991,6 +991,11 @@
           "path": "registry/components/plugins/drive/folder-menu.tsx",
           "type": "registry:component",
           "target": "@components/plugins/drive/folder-menu.tsx"
+        },
+        {
+          "path": "registry/components/plugins/drive/download.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/download.ts"
         }
       ]
     },
