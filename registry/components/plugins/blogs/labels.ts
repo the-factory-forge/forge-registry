@@ -27,6 +27,7 @@ export const blogsLabels = {
   actions: "Actions",
   draft: "Draft",
   published: "Published",
+  publicationStatus: "Publication status",
   changed: "Unpublished changes",
   missing: "Not translated",
   save: "Save draft",

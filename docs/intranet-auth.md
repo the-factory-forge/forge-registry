@@ -138,6 +138,24 @@ with the plugin. Hosts retain the existing total, offset and translated labels.
 `EmployeesPage` receives the current page of employees, total, offset,
 `onOffsetChange`, `currentUserId`, `currentUserRole`, `onCreate`, and async action callbacks.
 The default page size is exported as `EMPLOYEE_PAGE_SIZE`.
+Supply `Employee.websitePublished` from the host's public-profile data: `true`
+shows a green **Visible on website** badge and `false` a gray **Hidden on website**
+badge in the Website column and at the top right of the edit dialog. Omitted
+values show **Not provided** in the table and no dialog badge; account access or
+email verification never implies publication. Override `website`, `websiteVisible`,
+`websiteHidden` and `websiteUnknown` through `labels` for translations.
+To make the edit-dialog badge an immediate toggle, supply the optional
+`onSetWebsitePublished(id, published)` callback. Clicking it saves visibility
+independently of **Save changes**, preserving unsaved account fields. The directory
+previews the new status while pending, disables duplicate actions and restores
+the previous status with an error if saving fails. Without the callback the badge
+remains read-only. Account create/update payloads remain unchanged.
+The host must authorize and validate publication, persist the public-profile
+status and refresh employee data before resolving the callback. Override
+`websiteUpdated` and `websiteError` for translated feedback.
+Define the `status-success` and `status-not-started` foreground/background pairs
+and their Tailwind mappings before installing the updated item.
+
 `EmployeeCreateDialog.onCreate` receives validated values including the temporary
 password and closes after a successful mutation. `onUpdate` and `onDelete` resolve after persistence and
 host cache refresh. `onSendVerification` returns a `sent`, `verified`, or

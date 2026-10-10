@@ -6,6 +6,7 @@ import { useId, useRef, useState } from "react";
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
+import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   isEmployeeAdmin,
@@ -26,6 +27,8 @@ import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 export interface EmployeeActionCallbacks {
   onUpdate: (values: UpdateEmployee) => Promise<void>;
+  /** Persist public-profile visibility and refresh the host's employee data. */
+  onSetWebsitePublished?: (id: string, published: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   /** @deprecated The employee list no longer provides an access toggle. */
   onSetBan?: (id: string, banned: boolean) => Promise<void>;
@@ -42,6 +45,7 @@ function EmployeeActionsContent({
   employee,
   currentUserId,
   onUpdate,
+  onSetWebsitePublished,
   onDelete,
   onSendVerification,
   labels: overrides,
@@ -58,7 +62,7 @@ function EmployeeActionsContent({
   const notify = useActionToast();
   const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
-  async function run(kind: "edit" | "remove" | "send", action: () => Promise<void>) {
+  async function run(kind: "edit" | "remove" | "send" | "website", action: () => Promise<void>) {
     if (disabled || lock.current) return;
     lock.current = true;
     setPending(true);
@@ -127,10 +131,44 @@ function EmployeeActionsContent({
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
             <Dialog.Popup className={dialogClass} onKeyDownCapture={submitDialogOnShortcut}>
               <div className="space-y-2">
-                <Dialog.Title className="text-lg font-semibold">{labels.editTitle}</Dialog.Title>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <Dialog.Title className="text-lg font-semibold">{labels.editTitle}</Dialog.Title>
+                  {employee.websitePublished !== undefined &&
+                    (onSetWebsitePublished ? (
+                      <button
+                        type="button"
+                        aria-label={labels.website}
+                        aria-pressed={employee.websitePublished}
+                        disabled={disabled || pending}
+                        className="ml-auto inline-flex min-h-10 cursor-pointer items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8"
+                        onClick={() =>
+                          void run("website", async () => {
+                            await onSetWebsitePublished(employee.id, !employee.websitePublished);
+                            notify(labels.websiteUpdated);
+                          })
+                        }
+                      >
+                        <EmployeeWebsiteStatus
+                          published={employee.websitePublished}
+                          labels={labels}
+                        />
+                      </button>
+                    ) : (
+                      <EmployeeWebsiteStatus
+                        published={employee.websitePublished}
+                        labels={labels}
+                        className="ml-auto"
+                      />
+                    ))}
+                </div>
                 <Dialog.Description className="text-sm text-muted-foreground">
                   {labels.editDescription}
                 </Dialog.Description>
+                {failedAction === "website" && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {labels.websiteError}
+                  </p>
+                )}
               </div>
               <form
                 className="space-y-4"

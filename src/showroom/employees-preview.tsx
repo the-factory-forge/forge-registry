@@ -15,6 +15,7 @@ export function EmployeesPreview() {
       email: "alex@example.test",
       role: "admin",
       emailVerified: true,
+      websitePublished: true,
     },
     {
       id: "user",
@@ -22,6 +23,7 @@ export function EmployeesPreview() {
       email: "sam@example.test",
       role: "user",
       emailVerified: false,
+      websitePublished: false,
     },
   ]);
   const [state, setState] = useState("ready");
@@ -96,7 +98,7 @@ export function EmployeesPreview() {
           await beforeAction();
           setEmployees((current) => [
             ...current,
-            { ...values, id: crypto.randomUUID(), emailVerified: false },
+            { ...values, id: crypto.randomUUID(), emailVerified: false, websitePublished: false },
           ]);
         }}
         onUpdate={async (values) => {
@@ -110,6 +112,14 @@ export function EmployeesPreview() {
                     emailVerified: employee.email === values.email && employee.emailVerified,
                   }
                 : employee,
+            ),
+          );
+        }}
+        onSetWebsitePublished={async (id, published) => {
+          await beforeAction();
+          setEmployees((current) =>
+            current.map((employee) =>
+              employee.id === id ? { ...employee, websitePublished: published } : employee,
             ),
           );
         }}

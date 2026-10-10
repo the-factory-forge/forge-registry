@@ -47,6 +47,20 @@ stylesheet does not ship with the item; forge-template supplies the defaults.
 
 ## Editing and publishing
 
+The editor's status badge toggles publication for the selected language immediately.
+Save unsaved edits first. Published and Unpublished changes both mean the language
+is live; clicking either unpublishes it. The existing Publish action still publishes
+a saved revision without first taking the live translation offline.
+
+`BlogsPage` accepts an optional `onSetPublished(id, locale, published, requestId)`
+callback. With this callback and `capabilities.publish`, the table's language pills
+toggle that translation immediately. Wire it to `client.get(id)` followed by
+`client[published ? "publish" : "unpublish"]({ id, version: article.version, locale, requestId })`,
+then refresh the list query. Hosts retain authorization, validation and version checks.
+Without the callback or permission, badges remain read-only. Toggles show the new
+status while saving, prevent duplicate clicks, and roll back with an error if saving
+fails. Successful saves show the existing publication toast.
+
 The administrative table shows each post's assigned categories. `BlogListItem.categoryNames`
 contains names in the requested locale, falling back to an existing category translation.
 The storage client supplies these names; custom list adapters should supply them too,

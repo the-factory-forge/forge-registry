@@ -1249,7 +1249,7 @@
       "name": "employees",
       "type": "registry:block",
       "title": "Employees",
-      "description": "Admin-only employee dashboard with create/edit/delete dialogs, verification and access controls. Requires the authenticated viewer's role and host server authorization.",
+      "description": "Admin-only employee dashboard with create/edit/delete dialogs, verification and host-supplied website visibility. Requires the authenticated viewer's role and host server authorization.",
       "files": [
         {
           "path": "registry/components/plugins/employees/index.tsx",
@@ -1265,6 +1265,11 @@
           "path": "registry/components/plugins/employees/employee-actions.tsx",
           "type": "registry:component",
           "target": "@components/plugins/employees/employee-actions.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-website-status.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-website-status.tsx"
         },
         {
           "path": "registry/components/plugins/employees/labels.ts",

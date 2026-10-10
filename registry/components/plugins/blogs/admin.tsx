@@ -41,6 +41,7 @@ import {
   buttonClass,
   cardClass,
   ConfirmDelete,
+  errorMessage,
   Feedback,
   iconButtonClass,
   inputClass,
@@ -77,6 +78,8 @@ const blogStatusClass = {
   changed: "bg-status-pending text-status-pending-foreground",
   draft: "bg-status-not-started text-status-not-started-foreground",
 };
+const publicationToggleClass =
+  "cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 export interface BlogsPageProps extends BlogsAppearanceProps {
   data: BlogPage<BlogListItem>;
@@ -88,6 +91,12 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   categoriesHref: string;
   capabilities: BlogCapabilities;
   onDelete?: (id: string, requestId: string) => Promise<void>;
+  onSetPublished?: (
+    id: string,
+    locale: string,
+    published: boolean,
+    requestId: string,
+  ) => Promise<void>;
   loading?: boolean;
   error?: string;
   onRetry?: () => void;
@@ -102,6 +111,7 @@ function BlogsPageContent({
   categoriesHref,
   capabilities,
   onDelete,
+  onSetPublished,
   loading,
   error: loadError,
   onRetry,
@@ -112,8 +122,38 @@ function BlogsPageContent({
 }: BlogsPageProps) {
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, `${search}:${suppliedData.page}`);
+  const publication = useBlogAction(labels);
   const data = optimistic.value;
-  const error = loadError || (optimistic.error ? labels.error : undefined);
+  const error =
+    loadError || (optimistic.error ? errorMessage(optimistic.error, labels) : undefined);
+  const canPublish = capabilities.publish && !!onSetPublished;
+  const StatusBadge = canPublish ? "button" : "span";
+  function togglePublication(post: BlogListItem, locale: string, published: boolean) {
+    if (!canPublish || !onSetPublished || loading || optimistic.pending || loadError) return;
+    void publication.run(
+      JSON.stringify([post.id, locale, published]),
+      (requestId) =>
+        optimistic.run(
+          (page) => ({
+            ...page,
+            items: page.items.map((row) =>
+              row.id === post.id
+                ? {
+                    ...row,
+                    translations: row.translations.map((translation) =>
+                      translation.locale === locale
+                        ? { ...translation, status: published ? "published" : "draft" }
+                        : translation,
+                    ),
+                  }
+                : row,
+            ),
+          }),
+          () => onSetPublished(post.id, locale, published, requestId),
+        ),
+      published ? labels.publishedSuccess : labels.unpublishedSuccess,
+    );
+  }
   return (
     <section className={cn(pageClass, className)}>
       <div className={cn(tablePanelClass, "space-y-5")}>
@@ -211,17 +251,38 @@ function BlogsPageContent({
                     <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
                       <div className="flex flex-nowrap gap-2">
                         {post.translations.map((t) => (
-                          <span
+                          <StatusBadge
                             key={t.locale}
+                            type={canPublish ? "button" : undefined}
                             title={labels[t.status]}
+                            aria-label={
+                              canPublish
+                                ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
+                                : undefined
+                            }
+                            aria-pressed={canPublish ? t.status !== "draft" : undefined}
+                            disabled={
+                              canPublish
+                                ? loading ||
+                                  optimistic.pending ||
+                                  publication.pending ||
+                                  !!loadError
+                                : undefined
+                            }
+                            onClick={
+                              canPublish
+                                ? () => togglePublication(post, t.locale, t.status === "draft")
+                                : undefined
+                            }
                             className={cn(
-                              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                              "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
                               blogStatusClass[t.status],
+                              canPublish && publicationToggleClass,
                             )}
                           >
                             {t.locale.toUpperCase()}
                             <span className="sr-only"> · {labels[t.status]}</span>
-                          </span>
+                          </StatusBadge>
                         ))}
                       </div>
                     </td>
@@ -455,6 +516,7 @@ function EditorForm({
   const readOnly = !capabilities.edit,
     pending = action.pending,
     status = optimistic.value;
+  const StatusBadge = capabilities.publish ? "button" : "span";
   function changed() {
     setDirty(true);
     onDirty(true);
@@ -650,14 +712,22 @@ function EditorForm({
           <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
             {content.title || labels.newPost}
           </h1>
-          <span
+          <StatusBadge
+            type={capabilities.publish ? "button" : undefined}
+            aria-label={capabilities.publish ? labels.publicationStatus : undefined}
+            aria-pressed={capabilities.publish ? status !== "draft" : undefined}
+            disabled={
+              capabilities.publish ? pending || dirty || !base.translations[locale] : undefined
+            }
+            onClick={capabilities.publish ? () => void publish(status !== "draft") : undefined}
             className={cn(
-              "ml-auto inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+              "ml-auto inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
               blogStatusClass[status],
+              capabilities.publish && publicationToggleClass,
             )}
           >
             {labels[status]}
-          </span>
+          </StatusBadge>
         </div>
         {!base.translations[locale] && (
           <p className="text-sm text-muted-foreground">{labels.translationHint}</p>

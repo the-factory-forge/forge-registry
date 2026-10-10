@@ -18,7 +18,7 @@ is authoritative for files and dependencies.
 | Plugin         | Purpose                                                                                                                             | Optional server item   | Guide                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
 | `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                        | Host auth provider     | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing and verification                                                                              | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
+| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                            | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
 | `customers`    | Customer contact/company records and composition of Projects/Sync                                                                   | Host callbacks         | [Customers](./customers.md)                 |
 | `projects`     | Basic project forms, host-owned customer relationships and Details/Drive views                                                      | Host callbacks         | [Projects](./projects.md)                   |
 | `drive`        | Scoped file browser, breadcrumb navigation, host-owned space renaming, uploads/downloads and opt-in trash/restoration               | `drive-storage`        | [Drive](./drive.md)                         |
@@ -87,6 +87,7 @@ mappings described in [Design tokens](../CONTRIBUTING.md#design-tokens), includi
 | Project requested / prospect / under construction / production | Not started / informational / pending / success |
 | Customer or employee verified / unverified                     | Success / pending                               |
 | Employee active                                                | Success                                         |
+| Employee visible / hidden on website                           | Success / not started                           |
 | Employee or customer disabled                                  | Canceled                                        |
 | Blog published / unpublished changes / draft                   | Success / pending / not started                 |
 | Menu visible / hidden, available / sold out                    | Success / not started, success / pending        |

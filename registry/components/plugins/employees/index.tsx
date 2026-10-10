@@ -10,6 +10,7 @@ import {
   type EmployeeActionCallbacks,
 } from "@/components/plugins/employees/employee-actions";
 import { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
+import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   EMPLOYEE_PAGE_SIZE,
@@ -67,6 +68,7 @@ function EmployeesPageContent({
   loading = false,
   error = false,
   onUpdate,
+  onSetWebsitePublished,
   onDelete,
   onSendVerification,
   labels: overrides,
@@ -152,6 +154,9 @@ function EmployeesPageContent({
                 <th scope="col" className={tableHeaderClass}>
                   {labels.status}
                 </th>
+                <th scope="col" className={tableHeaderClass}>
+                  {labels.website}
+                </th>
                 <th scope="col" className={tableActionCellClass}>
                   {labels.actions}
                 </th>
@@ -235,6 +240,12 @@ function EmployeesPageContent({
                         {employee.banned ? labels.disabled : labels.active}
                       </span>
                     </td>
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      <EmployeeWebsiteStatus
+                        published={employee.websitePublished}
+                        labels={labels}
+                      />
+                    </td>
                     <td className={tableActionCellClass}>
                       <EmployeeActions
                         employee={employee}
@@ -246,6 +257,18 @@ function EmployeesPageContent({
                         }
                         currentUserId={currentUserId}
                         labels={labels}
+                        onSetWebsitePublished={
+                          onSetWebsitePublished
+                            ? (id, published) =>
+                                optimistic.run(
+                                  (rows) =>
+                                    rows.map((row) =>
+                                      row.id === id ? { ...row, websitePublished: published } : row,
+                                    ),
+                                  () => onSetWebsitePublished(id, published),
+                                )
+                            : undefined
+                        }
                         onUpdate={(values) =>
                           optimistic.run(
                             (rows) =>
@@ -276,7 +299,7 @@ function EmployeesPageContent({
               )}
               {((error && !loading) || optimistic.error || filteredEmployees.length === 0) && (
                 <tr>
-                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
                     {(error && !loading) || optimistic.error ? (
                       <p role="alert" className="text-destructive">
                         {error ? labels.error : labels.updateError}

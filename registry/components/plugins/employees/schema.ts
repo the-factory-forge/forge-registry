@@ -36,6 +36,8 @@ export interface Employee {
   image?: string | null;
   emailVerified: boolean;
   banned?: boolean | null;
+  /** Public-profile publication status supplied by the host, independent of account access. */
+  websitePublished?: boolean;
 }
 export type VerificationResult = { status: "sent" | "verified" | "unavailable" };
 export function isEmployeeAdmin(role: string | null | undefined): boolean {

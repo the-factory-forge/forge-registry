@@ -237,6 +237,15 @@ export function BlogsAdminPreview() {
         setPage(1);
       }}
       onPageChange={setPage}
+      onSetPublished={async (id, locale, published, requestId) => {
+        const article = state.mock.get(id);
+        await state.client[published ? "publish" : "unpublish"]({
+          id,
+          version: article.version,
+          locale,
+          requestId,
+        });
+      }}
       onDelete={async (id, requestId) => {
         const article = state.mock.get(id);
         await state.client.delete({ id, version: article.version, requestId });

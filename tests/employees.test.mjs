@@ -13,6 +13,7 @@ function fixture(options = {}) {
     email: "alex@example.test",
     role: "user",
     emailVerified: true,
+    websitePublished: true,
   };
   const calls = [];
   const api = {
@@ -102,6 +103,7 @@ test("creation validates credentials and requires a first-login password change"
         email: "alex@example.test",
         role: "user",
         emailVerified: true,
+        websitePublished: true,
       },
     ],
     total: 1,
@@ -120,8 +122,14 @@ test("editing protects the current administrator and resets verification only fo
     name: "New name",
     email: "ALEX@example.test",
     role: "admin",
+    websitePublished: false,
   });
   assert.equal(unchanged.emailVerified, true);
+  assert.equal(unchanged.websitePublished, true);
+  assert.equal(
+    "websitePublished" in calls.find(([action]) => action === "update")[1].body.data,
+    false,
+  );
   assert.equal(unchanged.email, "alex@example.test");
   const changed = await service.update({
     id: "employee",
