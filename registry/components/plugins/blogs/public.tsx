@@ -268,14 +268,12 @@ export interface BlogPostPageProps extends BlogsAppearanceProps {
   categories: BlogCategory[];
   backHref: string;
   categoryHref: (id: string) => string;
-  translations?: { locale: string; name: string; href: string }[];
 }
 export function BlogPostPage({
   post,
   categories,
   backHref,
   categoryHref,
-  translations = [],
   labels: overrides,
   linkComponent: BlogLink = Link,
   imageComponent: BlogImage = Image,
@@ -331,21 +329,6 @@ export function BlogPostPage({
             <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, post.locale)}</time>
           </span>
         </div>
-        {translations.length > 1 && (
-          <nav aria-label={labels.languages} className="flex gap-3 text-sm">
-            {translations.map((t) => (
-              <BlogLink
-                key={t.locale}
-                href={t.href}
-                hrefLang={t.locale}
-                aria-current={post.locale === t.locale ? "page" : undefined}
-                className="underline"
-              >
-                {t.name}
-              </BlogLink>
-            ))}
-          </nav>
-        )}
       </header>
       {post.shared.bannerId && (
         <BlogImage

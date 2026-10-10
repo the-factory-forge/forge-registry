@@ -5,6 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Temporal } from "temporal-polyfill";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import type { ReservationLabels } from "@/components/plugins/reservations/labels";
 import {
   ReservationError,
@@ -255,25 +256,29 @@ export function DatePicker({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          className={buttonClass}
-          aria-label={labels.previous}
-          onClick={() => setMonth(start.subtract({ months: 1 }).toString())}
-        >
-          <ChevronLeftIcon className="size-4" aria-hidden="true" />
-        </button>
+        <IconTooltip label={labels.previous}>
+          <button
+            type="button"
+            className={buttonClass}
+            aria-label={labels.previous}
+            onClick={() => setMonth(start.subtract({ months: 1 }).toString())}
+          >
+            <ChevronLeftIcon className="size-4" aria-hidden="true" />
+          </button>
+        </IconTooltip>
         <span className="font-medium" aria-live="polite">
           {monthLabel}
         </span>
-        <button
-          type="button"
-          className={buttonClass}
-          aria-label={labels.next}
-          onClick={() => setMonth(start.add({ months: 1 }).toString())}
-        >
-          <ChevronRightIcon className="size-4" aria-hidden="true" />
-        </button>
+        <IconTooltip label={labels.next}>
+          <button
+            type="button"
+            className={buttonClass}
+            aria-label={labels.next}
+            onClick={() => setMonth(start.add({ months: 1 }).toString())}
+          >
+            <ChevronRightIcon className="size-4" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: 7 }, (_, i) => (

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useAuthAction } from "@/components/plugins/auth/auth-controls";
 import { cn } from "@/components/utils/cn";
@@ -190,28 +191,30 @@ export function IntranetSidebarToggle({
 }: IntranetSidebarToggleProps) {
   const { id, isMobile, open, mobileOpen, toggle, triggerRef } = useIntranetSidebar();
   return (
-    <button
-      type="button"
-      data-sidebar="trigger"
-      aria-label={label}
-      aria-controls={id}
-      aria-expanded={isMobile ? mobileOpen : open}
-      className={cn(
-        "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-accent disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed print:hidden",
-        focusClassName,
-        className,
-      )}
-      onClick={(event) => {
-        onClick?.(event);
-        if (!event.defaultPrevented) {
-          triggerRef.current = event.currentTarget;
-          toggle();
-        }
-      }}
-      {...props}
-    >
-      {children ?? <PanelLeftIcon className="size-4" aria-hidden="true" />}
-    </button>
+    <IconTooltip label={label}>
+      <button
+        type="button"
+        data-sidebar="trigger"
+        aria-label={label}
+        aria-controls={id}
+        aria-expanded={isMobile ? mobileOpen : open}
+        className={cn(
+          "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-accent disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed print:hidden",
+          focusClassName,
+          className,
+        )}
+        onClick={(event) => {
+          onClick?.(event);
+          if (!event.defaultPrevented) {
+            triggerRef.current = event.currentTarget;
+            toggle();
+          }
+        }}
+        {...props}
+      >
+        {children ?? <PanelLeftIcon className="size-4" aria-hidden="true" />}
+      </button>
+    </IconTooltip>
   );
 }
 
@@ -332,15 +335,17 @@ function NavigationItem({
         {link ? (
           <div className="flex items-center">
             {link}
-            <Collapsible.Trigger
-              aria-label={`${expanded ? labels.collapse : labels.expand} ${item.label}`}
-              className={cn(
-                "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
-                sidebarFocusClassName,
-              )}
-            >
-              {chevron}
-            </Collapsible.Trigger>
+            <IconTooltip label={`${expanded ? labels.collapse : labels.expand} ${item.label}`}>
+              <Collapsible.Trigger
+                aria-label={`${expanded ? labels.collapse : labels.expand} ${item.label}`}
+                className={cn(
+                  "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                  sidebarFocusClassName,
+                )}
+              >
+                {chevron}
+              </Collapsible.Trigger>
+            </IconTooltip>
           </div>
         ) : (
           <Collapsible.Trigger className={cn(navClassName, itemClasses)}>
@@ -546,15 +551,17 @@ export function IntranetSidebar({
               )}
             >
               <Dialog.Title className="sr-only">{labels.navigation}</Dialog.Title>
-              <Dialog.Close
-                aria-label={labels.close}
-                className={cn(
-                  "absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
-                  sidebarFocusClassName,
-                )}
-              >
-                <PanelLeftIcon className="size-4" aria-hidden="true" />
-              </Dialog.Close>
+              <IconTooltip label={labels.close}>
+                <Dialog.Close
+                  aria-label={labels.close}
+                  className={cn(
+                    "absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                    sidebarFocusClassName,
+                  )}
+                >
+                  <PanelLeftIcon className="size-4" aria-hidden="true" />
+                </Dialog.Close>
+              </IconTooltip>
               {content}
             </Dialog.Popup>
           </Dialog.Portal>

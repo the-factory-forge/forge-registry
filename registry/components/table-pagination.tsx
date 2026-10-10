@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 import { tableFooterClass } from "@/components/utils/table-styles";
 
@@ -46,15 +47,17 @@ export function TablePagination({
         <span className="min-w-0 text-sm text-muted-foreground tabular-nums">{summary}</span>
       )}
       <div className="flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          className={buttonClass}
-          disabled={disabled || previousDisabled}
-          onClick={onPrevious}
-          aria-label={previousLabel}
-        >
-          <ChevronLeftIcon className="size-4 shrink-0" aria-hidden="true" />
-        </button>
+        <IconTooltip label={previousLabel}>
+          <button
+            type="button"
+            className={buttonClass}
+            disabled={disabled || previousDisabled}
+            onClick={onPrevious}
+            aria-label={previousLabel}
+          >
+            <ChevronLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
         {page != null && (
           <span
             className="min-w-9 text-center text-sm whitespace-nowrap text-muted-foreground tabular-nums"
@@ -64,15 +67,17 @@ export function TablePagination({
             {pageCount == null ? page : `${page}/${pageCount}`}
           </span>
         )}
-        <button
-          type="button"
-          className={buttonClass}
-          disabled={disabled || nextDisabled}
-          onClick={onNext}
-          aria-label={nextLabel}
-        >
-          <ChevronRightIcon className="size-4 shrink-0" aria-hidden="true" />
-        </button>
+        <IconTooltip label={nextLabel}>
+          <button
+            type="button"
+            className={buttonClass}
+            disabled={disabled || nextDisabled}
+            onClick={onNext}
+            aria-label={nextLabel}
+          >
+            <ChevronRightIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       </div>
     </nav>
   );

@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Link } from "@/components/link";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/sheet";
@@ -167,24 +168,28 @@ export function Navbar({
           )}
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              aria-label={menuLabel}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring min-[1400px]:hidden"
-            >
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            </SheetTrigger>
+            <IconTooltip label={menuLabel}>
+              <SheetTrigger
+                aria-label={menuLabel}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring min-[1400px]:hidden"
+              >
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              </SheetTrigger>
+            </IconTooltip>
             <SheetContent side="right" showCloseButton={false} className="w-full max-w-sm p-0">
               <SheetTitle className="sr-only">{menuLabel}</SheetTitle>
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <span className="text-lg font-bold text-foreground">{siteName}</span>
-                <button
-                  type="button"
-                  onClick={() => setMobileOpen(false)}
-                  aria-label={closeLabel}
-                  className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-muted disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
-                >
-                  <X className="h-5 w-5" aria-hidden="true" />
-                </button>
+                <IconTooltip label={closeLabel}>
+                  <button
+                    type="button"
+                    onClick={() => setMobileOpen(false)}
+                    aria-label={closeLabel}
+                    className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-muted disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+                  >
+                    <X className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </IconTooltip>
               </div>
               <nav
                 className="flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto px-5 py-6"

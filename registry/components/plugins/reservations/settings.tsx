@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import type { ComponentType } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -139,15 +140,17 @@ function ReservationSettingsPageContent({
                         </span>
                       )}
                     </div>
-                    <HostLink
-                      className={cn(buttonClass, "size-10 p-0")}
-                      href={
-                        kind === "service" ? getServiceHref(entry.id) : getResourceHref(entry.id)
-                      }
-                      aria-label={`${labels.edit} ${entry.name}`}
-                    >
-                      <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
-                    </HostLink>
+                    <IconTooltip label={`${labels.edit} ${entry.name}`}>
+                      <HostLink
+                        className={cn(buttonClass, "size-10 p-0")}
+                        href={
+                          kind === "service" ? getServiceHref(entry.id) : getResourceHref(entry.id)
+                        }
+                        aria-label={`${labels.edit} ${entry.name}`}
+                      >
+                        <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
+                      </HostLink>
+                    </IconTooltip>
                   </li>
                 ))}
               </ul>
@@ -465,14 +468,16 @@ function HoursEditor({
               }
             />
           </Field>
-          <button
-            type="button"
-            className={cn(buttonClass, "size-10 p-0")}
-            aria-label={`${labels.remove} ${hours.start}–${hours.end}`}
-            onClick={() => onChange(value.filter((_, j) => j !== i))}
-          >
-            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-          </button>
+          <IconTooltip label={`${labels.remove} ${hours.start}–${hours.end}`}>
+            <button
+              type="button"
+              className={cn(buttonClass, "size-10 p-0")}
+              aria-label={`${labels.remove} ${hours.start}–${hours.end}`}
+              onClick={() => onChange(value.filter((_, j) => j !== i))}
+            >
+              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          </IconTooltip>
         </div>
       ))}
       <button
@@ -595,19 +600,21 @@ function ResourceEditor({
                   />
                 </Field>
               ))}
-              <button
-                type="button"
-                className={cn(buttonClass, "size-10 p-0")}
-                aria-label={`${labels.remove} ${block.from}–${block.through}`}
-                onClick={() =>
-                  change({
-                    ...draft,
-                    blockedDates: draft.blockedDates!.filter((_, i) => i !== index),
-                  })
-                }
-              >
-                <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
-              </button>
+              <IconTooltip label={`${labels.remove} ${block.from}–${block.through}`}>
+                <button
+                  type="button"
+                  className={cn(buttonClass, "size-10 p-0")}
+                  aria-label={`${labels.remove} ${block.from}–${block.through}`}
+                  onClick={() =>
+                    change({
+                      ...draft,
+                      blockedDates: draft.blockedDates!.filter((_, i) => i !== index),
+                    })
+                  }
+                >
+                  <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
+                </button>
+              </IconTooltip>
             </div>
           ))}
           <button
@@ -680,18 +687,20 @@ function ResourceEditor({
                       change({ ...draft, exceptions: { ...draft.exceptions, [day]: next } })
                     }
                   />
-                  <button
-                    type="button"
-                    className={cn(buttonClass, "size-10 p-0")}
-                    aria-label={`${labels.remove} ${day}`}
-                    onClick={() => {
-                      const exceptions = { ...draft.exceptions };
-                      delete exceptions[day];
-                      change({ ...draft, exceptions });
-                    }}
-                  >
-                    <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                  </button>
+                  <IconTooltip label={`${labels.remove} ${day}`}>
+                    <button
+                      type="button"
+                      className={cn(buttonClass, "size-10 p-0")}
+                      aria-label={`${labels.remove} ${day}`}
+                      onClick={() => {
+                        const exceptions = { ...draft.exceptions };
+                        delete exceptions[day];
+                        change({ ...draft, exceptions });
+                      }}
+                    >
+                      <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                    </button>
+                  </IconTooltip>
                 </fieldset>
               ))}
           </div>
@@ -720,14 +729,16 @@ function ResourceEditor({
 
 function ArchiveButton({ labels, onClick }: { labels: ReservationLabels; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className={cn(buttonClass, "size-10 p-0 text-destructive")}
-      aria-label={labels.archive}
-      onClick={onClick}
-    >
-      <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-    </button>
+    <IconTooltip label={labels.archive}>
+      <button
+        type="button"
+        className={cn(buttonClass, "size-10 p-0 text-destructive")}
+        aria-label={labels.archive}
+        onClick={onClick}
+      >
+        <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+      </button>
+    </IconTooltip>
   );
 }
 function ArchiveDialog({

@@ -113,7 +113,7 @@ in `tc-website`; this registry contains reusable components for multiple custome
 ## Read first and source of truth
 
 - [README.md](./README.md): overview, inventory, distribution, and commands.
-- [CONTEXT.md](./CONTEXT.md): DOM ID naming and screenshot integration.
+- [GLOSSARY.md](./GLOSSARY.md): DOM ID naming and screenshot integration.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
 - [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
   including layout stability across asynchronous states.
@@ -187,7 +187,7 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   and `PlusIcon` for new/create/add entry points. Place the icon before the visible
   translated label with `size-4 shrink-0`, inherited color, and `aria-hidden="true"`.
   Reuse the existing button/link styles. Icons supplement these labels;
-  do not hide labels or add tooltips just because an icon is present.
+  do not hide visible action labels or add duplicate tooltips to text buttons.
 - Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
   Always separate adjacent action buttons and button-styled links by at least
   `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column
@@ -202,12 +202,18 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   and delete/remove actions with `Trash2Icon`, as icon-only controls using the
   existing button styles. Delete triggers keep their confirmation dialogs.
   Keep a translated `aria-label`, hide the decorative icon with `aria-hidden="true"`,
-  and preserve visible keyboard focus and a usable hit area. Familiar action icons
-  such as edit and delete do not need tooltips or native `title` hints; do not add
-  tooltips to every icon control by default. Omit the employee enable/disable
-  access action from the list.
-  Use links for navigation and buttons for in-place actions. Form headings and
-  save/confirmation buttons retain their visible text.
+  and preserve visible keyboard focus and a usable hit area. Omit the employee
+  enable/disable access action from the list. Use links for navigation and buttons
+  for in-place actions. Form headings and save/confirmation buttons retain their
+  visible text.
+- Every icon-only button or action link, including edit, delete, close, navigation
+  and toolbar controls, must use [`IconTooltip`](./docs/icon-tooltip.md) from
+  `@/components/icon-tooltip`. Reuse its translated accessible name as the tooltip
+  label; retain `aria-label`, decorative `aria-hidden` icons, keyboard focus,
+  disabled behavior and confirmation. Tooltips must open on hover and keyboard
+  focus and dismiss with Escape. Do not use native `title` as the only tooltip or
+  wrap controls in another button. Controls with visible action text do not need
+  duplicate tooltips. Declare `@forge/icon-tooltip` for each registry item importing it.
 - Keep components compatible with server rendering. Add `"use client"` where
   hooks, events, or browser APIs require it; do not access browser globals during render.
 - Avoid layout shifts during loading, empty results, errors and action feedback.

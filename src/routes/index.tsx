@@ -28,6 +28,13 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/icon-tooltip",
+      category: "Component",
+      title: "Icon tooltip",
+      description: "Hover and keyboard hints for icon actions, links and dialog controls.",
+      keywords: ["tooltip", "icon", "button", "accessibility"],
+    },
+    {
       href: "/action-toast",
       category: "Component",
       title: "Action toast",

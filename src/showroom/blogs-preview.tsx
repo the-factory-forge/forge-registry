@@ -289,18 +289,12 @@ export function BlogsPublicPreview() {
           </Link>
         </p>
       );
-    const article = state.mock.get(post.id),
-      translations = blogLocales.flatMap((l) => {
-        const p = article.translations[l.code]?.published;
-        return p ? [{ locale: l.code, name: l.name, href: `/${l.code}/blogs/${p.slug}` }] : [];
-      });
     return (
       <BlogPostPage
         {...common}
         post={post}
         backHref={root}
         categoryHref={(id) => `${root}?category=${id}`}
-        translations={translations}
       />
     );
   }

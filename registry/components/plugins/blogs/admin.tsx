@@ -18,6 +18,7 @@ import {
 import { useId, useRef, useState, type FormEvent } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -230,13 +231,15 @@ function BlogsPageContent({
                     </td>
                     <td className={tableActionCellClass}>
                       <div className="flex justify-end gap-2">
-                        <BlogLink
-                          href={editHref(post.id)}
-                          className={iconButtonClass}
-                          aria-label={`${labels.edit}: ${post.title}`}
-                        >
-                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                        </BlogLink>
+                        <IconTooltip label={`${labels.edit}: ${post.title}`}>
+                          <BlogLink
+                            href={editHref(post.id)}
+                            className={iconButtonClass}
+                            aria-label={`${labels.edit}: ${post.title}`}
+                          >
+                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                          </BlogLink>
+                        </IconTooltip>
                         {capabilities.delete && onDelete && (
                           <ConfirmDelete
                             labels={labels}
@@ -745,35 +748,38 @@ function EditorForm({
                 { label: labels.quote, icon: Quote, prefix: "\n> ", suffix: "" },
                 { label: labels.code, icon: Code, prefix: "`", suffix: "`" },
               ].map((tool) => (
-                <button
-                  key={tool.label}
-                  type="button"
-                  className={buttonClass}
-                  disabled={pending || readOnly}
-                  aria-label={tool.label}
-                  onClick={() => insert(tool.prefix, tool.suffix)}
-                >
-                  <tool.icon />
-                </button>
+                <IconTooltip key={tool.label} label={tool.label}>
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    disabled={pending || readOnly}
+                    aria-label={tool.label}
+                    onClick={() => insert(tool.prefix, tool.suffix)}
+                  >
+                    <tool.icon aria-hidden="true" />
+                  </button>
+                </IconTooltip>
               ))}
               {capabilities.upload && !readOnly && (
                 <label
                   className={cn(buttonClass, "relative focus-within:ring-2 focus-within:ring-ring")}
                 >
-                  <ImagePlus />
+                  <ImagePlus aria-hidden="true" />
                   <span className="sr-only">{labels.insertImage}</span>
-                  <input
-                    aria-label={labels.insertImage}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    disabled={pending}
-                    className="absolute inset-0 w-full cursor-pointer opacity-0"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (file) void upload(file, "inline");
-                    }}
-                  />
+                  <IconTooltip label={labels.insertImage}>
+                    <input
+                      aria-label={labels.insertImage}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={pending}
+                      className="absolute inset-0 w-full cursor-pointer opacity-0"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (file) void upload(file, "inline");
+                      }}
+                    />
+                  </IconTooltip>
                 </label>
               )}
             </fieldset>

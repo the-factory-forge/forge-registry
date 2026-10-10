@@ -5,6 +5,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Trash2Icon } from "lucide-react";
 import { useRef, useState, type RefObject } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import {
   buttonClass,
   iconButtonClass,
@@ -96,17 +97,19 @@ export function DeleteProject({
           if (!action.pending) setOpen(next);
         }}
       >
-        <Dialog.Trigger
-          ref={trigger}
-          disabled={disabled || action.pending}
-          className={cn(
-            iconButtonClass,
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          aria-label={labels.deleteProject}
-        >
-          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-        </Dialog.Trigger>
+        <IconTooltip label={labels.deleteProject}>
+          <Dialog.Trigger
+            ref={trigger}
+            disabled={disabled || action.pending}
+            className={cn(
+              iconButtonClass,
+              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            )}
+            aria-label={labels.deleteProject}
+          >
+            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+          </Dialog.Trigger>
+        </IconTooltip>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
           <Dialog.Popup

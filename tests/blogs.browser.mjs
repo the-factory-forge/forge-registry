@@ -191,8 +191,14 @@ test("list deletion confirms the selected post, retains failures, and respects p
   await page.getByLabel("Read-only", { exact: true }).uncheck();
   await page.getByLabel("Simulate action failures", { exact: true }).check();
   await trigger.click();
-  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  const confirmBeforeFailure = dialog.getByRole("button", {
+    name: "Delete permanently",
+    exact: true,
+  });
+  const beforeFailure = await confirmBeforeFailure.boundingBox();
+  await confirmBeforeFailure.click();
   await dialog.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal((await confirmBeforeFailure.boundingBox()).y, beforeFailure.y);
   assert.equal(await post.count(), 1);
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
@@ -274,6 +280,7 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   assert.equal(await page.locator("article").count(), 1);
   await page.getByRole("link", { name: "Faire de la place aux idées", exact: true }).click();
   await page.getByRole("heading", { name: "Commencer par une question", exact: true }).waitFor();
+  assert.equal(await page.getByRole("navigation", { name: "Languages", exact: true }).count(), 0);
   const html = await (await fetch(`${baseURL}/en/blogs/make-room-for-better-ideas`)).text();
   assert.match(html, /Begin with a question/);
   assert.doesNotMatch(html, /An idea for tomorrow/);

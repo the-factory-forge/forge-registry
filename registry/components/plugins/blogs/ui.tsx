@@ -5,6 +5,7 @@ import { Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
@@ -95,16 +96,18 @@ export function ConfirmDelete({
         if (!action.pending) setOpen(next);
       }}
     >
-      <Dialog.Trigger
-        className={cn(
-          iconButtonClass,
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-        )}
-        aria-label={label}
-        disabled={disabled}
-      >
-        <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-      </Dialog.Trigger>
+      <IconTooltip label={label}>
+        <Dialog.Trigger
+          className={cn(
+            iconButtonClass,
+            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          )}
+          aria-label={label}
+          disabled={disabled}
+        >
+          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+        </Dialog.Trigger>
+      </IconTooltip>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
@@ -117,7 +120,9 @@ export function ConfirmDelete({
           <Dialog.Description className="text-sm text-muted-foreground">
             {description}
           </Dialog.Description>
-          <Feedback {...action.feedback} />
+          <div className="min-h-10">
+            <Feedback {...action.feedback} />
+          </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
               {labels.cancel}

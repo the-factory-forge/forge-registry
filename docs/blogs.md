@@ -63,6 +63,13 @@ callbacks keep the dialog open with an error and allow retry. Without the callba
 existing list integrations retain their edit action; deletion remains available
 in the editor when permitted.
 
+Wire the callback to `client.get(id)` and then
+`client.delete({ id, version: article.version, requestId })`. Do not pass a locale:
+the operation deletes the whole article. Refresh the active list query after
+success even if the client only marks its caches stale to avoid refetching a
+deleted editor. When deleting the last row on a later page, navigate to the last
+remaining page with the current search preserved.
+
 An article groups linked translations. Each has its own title, slug, summary,
 Markdown, image alternative text, draft, and publication. Thumbnail, banner, and
 category assignments are shared. Publishing one language captures the current
@@ -185,6 +192,10 @@ belongs in the host pipeline. Browser-to-bucket CORS and presigned uploads are
 unnecessary because transfers use the host endpoint.
 
 ## Public pages and images
+
+Article language switching belongs in the host navbar. `BlogPostPage` does not
+render language links or accept a `translations` prop; remove that prop when
+updating existing integrations and keep published locale URLs in the host navigation.
 
 Public search uses the shared 44px field height, rounded corners and focus treatment.
 It remains a native GET form: Enter or Search submits the query and current category.

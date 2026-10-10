@@ -32,7 +32,10 @@ Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/for
 Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
-settings, create, edit and delete use the shared Lucide conventions.
+settings, create, edit and delete use the shared Lucide conventions. Icon-only
+buttons and action links use [`@forge/icon-tooltip`](./icon-tooltip.md) with their
+translated accessible names, including edit/delete and close controls. Existing
+confirmations, disabled states and visible action labels remain in place.
 
 Paginated plugin tables share [`@forge/table-pagination`](./table-pagination.md).
 Blogs and Employees supply totals and page numbers. Drive shows the current page

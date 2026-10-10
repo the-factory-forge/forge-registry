@@ -4,6 +4,7 @@ import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
@@ -90,10 +91,12 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed">
-            <XIcon className="size-4" />
-            <span className="sr-only">{closeLabel}</span>
-          </SheetPrimitive.Close>
+          <IconTooltip label={closeLabel}>
+            <SheetPrimitive.Close className="absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed">
+              <XIcon className="size-4" aria-hidden="true" />
+              <span className="sr-only">{closeLabel}</span>
+            </SheetPrimitive.Close>
+          </IconTooltip>
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>

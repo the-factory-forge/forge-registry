@@ -1,5 +1,6 @@
 import { MapPinIcon, PhoneIcon, MailIcon, ClockIcon } from "lucide-react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { type SocialPlatform, socialIconMap } from "@/components/social-icons";
 import { cn } from "@/components/utils/cn";
 import { type SectionVariant, sectionVariantClasses } from "@/components/utils/section-variants";
@@ -117,19 +118,20 @@ export function ContactInfo({
                 {socials.map((s) => {
                   const Icon = socialIconMap[s.platform];
                   return (
-                    <a
-                      key={s.platform}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
-                        colors.heading,
-                      )}
-                      aria-label={s.label ?? s.platform}
-                    >
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </a>
+                    <IconTooltip key={s.platform} label={s.label ?? s.platform}>
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
+                          colors.heading,
+                        )}
+                        aria-label={s.label ?? s.platform}
+                      >
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </a>
+                    </IconTooltip>
                   );
                 })}
               </div>

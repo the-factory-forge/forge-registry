@@ -1194,6 +1194,7 @@ test("breadcrumb rename preserves drafts, updates host records and navigates nes
   await actions.focus();
   await page.keyboard.press("ArrowDown");
   await page.getByRole("menuitem", { name: "Rename", exact: true }).waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "menuitem");
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
   const input = dialog.getByRole("textbox", { name: "Name", exact: true });

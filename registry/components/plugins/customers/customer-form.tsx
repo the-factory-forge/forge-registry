@@ -5,6 +5,7 @@ import { CopyIcon, DicesIcon } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type {
   Customer,
@@ -188,38 +189,42 @@ function CustomerFormContent({
                     aria-describedby={`${id}-password-description${errors.password ? ` ${id}-password-error` : ""}`}
                   />
                   <div className="absolute inset-y-0 left-1 flex items-center">
-                    <button
-                      type="button"
-                      className={cn(buttonClass, "px-2")}
-                      aria-label={labels.generatePassword}
-                      onClick={() => {
-                        try {
-                          const generated = generateCustomerPassword(
-                            passwordMinLength,
-                            passwordMaxLength,
-                          );
-                          setPassword(generated);
-                          setErrors({ ...errors, password: undefined });
-                          void copyPassword(generated);
-                        } catch {
-                          setPasswordFeedback({
-                            error: true,
-                            message: labels.passwordGenerateError,
-                          });
-                        }
-                      }}
-                    >
-                      <DicesIcon aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(buttonClass, "px-2")}
-                      disabled={!password}
-                      aria-label={labels.copyPassword}
-                      onClick={() => void copyPassword(password)}
-                    >
-                      <CopyIcon aria-hidden="true" />
-                    </button>
+                    <IconTooltip label={labels.generatePassword}>
+                      <button
+                        type="button"
+                        className={cn(buttonClass, "px-2")}
+                        aria-label={labels.generatePassword}
+                        onClick={() => {
+                          try {
+                            const generated = generateCustomerPassword(
+                              passwordMinLength,
+                              passwordMaxLength,
+                            );
+                            setPassword(generated);
+                            setErrors({ ...errors, password: undefined });
+                            void copyPassword(generated);
+                          } catch {
+                            setPasswordFeedback({
+                              error: true,
+                              message: labels.passwordGenerateError,
+                            });
+                          }
+                        }}
+                      >
+                        <DicesIcon aria-hidden="true" />
+                      </button>
+                    </IconTooltip>
+                    <IconTooltip label={labels.copyPassword}>
+                      <button
+                        type="button"
+                        className={cn(buttonClass, "px-2")}
+                        disabled={!password}
+                        aria-label={labels.copyPassword}
+                        onClick={() => void copyPassword(password)}
+                      >
+                        <CopyIcon aria-hidden="true" />
+                      </button>
+                    </IconTooltip>
                   </div>
                 </div>
                 <p id={`${id}-password-description`} className="text-sm text-muted-foreground">

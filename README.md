@@ -65,6 +65,9 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pu
 
 ## Registry items
 
+Icon-only actions use [`icon-tooltip`](./docs/icon-tooltip.md) for translated hover
+and keyboard hints, with a [showroom example](https://registry.the-corner.io/icon-tooltip).
+
 The source of truth for this inventory is `registry/registry.json`.
 
 Internal i18n helpers, locale dictionaries, and their

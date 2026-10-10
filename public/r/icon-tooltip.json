@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "icon-tooltip",
+  "title": "Icon tooltip",
+  "description": "Accessible hover and keyboard hints for icon-only buttons and links, using existing translated labels.",
+  "dependencies": [
+    "@base-ui/react"
+  ],
+  "files": [
+    {
+      "path": "registry/components/icon-tooltip.tsx",
+      "content": "\"use client\";\n\nimport { Tooltip } from \"@base-ui/react/tooltip\";\nimport type { ReactElement } from \"react\";\n\nexport interface IconTooltipProps {\n  label?: string;\n  children: ReactElement;\n}\n\n/** Compose with the existing control so its semantics, ref and layout stay intact. */\nexport function IconTooltip({ label, children }: IconTooltipProps) {\n  if (!label) return children;\n\n  return (\n    <Tooltip.Root>\n      <Tooltip.Trigger render={children} />\n      <Tooltip.Portal>\n        <Tooltip.Positioner sideOffset={8} className=\"z-[110]\">\n          <Tooltip.Popup\n            role=\"tooltip\"\n            className=\"max-w-[min(20rem,calc(100vw-2rem))] rounded-md bg-popover px-3 py-2 text-xs break-words text-popover-foreground shadow-md dark:border dark:border-border dark:shadow-none\"\n          >\n            {label}\n          </Tooltip.Popup>\n        </Tooltip.Positioner>\n      </Tooltip.Portal>\n    </Tooltip.Root>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/icon-tooltip.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

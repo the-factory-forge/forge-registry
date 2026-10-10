@@ -1,10 +1,10 @@
 "use client";
 import { Avatar } from "@base-ui/react/avatar";
-import { Tooltip } from "@base-ui/react/tooltip";
 import { ShieldCheckIcon, ShieldOffIcon } from "lucide-react";
 import { useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import {
   EmployeeActions,
   type EmployeeActionCallbacks,
@@ -193,8 +193,10 @@ function EmployeesPageContent({
                     </td>
                     <td className={cn(tableCellClass, "whitespace-nowrap")}>
                       <div className="flex items-center gap-3">
-                        <Tooltip.Root>
-                          <Tooltip.Trigger
+                        <IconTooltip
+                          label={employee.emailVerified ? labels.verified : labels.unverified}
+                        >
+                          <button
                             type="button"
                             aria-label={
                               employee.emailVerified ? labels.verified : labels.unverified
@@ -211,18 +213,8 @@ function EmployeesPageContent({
                             ) : (
                               <ShieldOffIcon className="size-4 shrink-0" aria-hidden="true" />
                             )}
-                          </Tooltip.Trigger>
-                          <Tooltip.Portal>
-                            <Tooltip.Positioner sideOffset={8} className="z-50">
-                              <Tooltip.Popup
-                                role="tooltip"
-                                className="max-w-xs rounded-md bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
-                              >
-                                {employee.emailVerified ? labels.verified : labels.unverified}
-                              </Tooltip.Popup>
-                            </Tooltip.Positioner>
-                          </Tooltip.Portal>
-                        </Tooltip.Root>
+                          </button>
+                        </IconTooltip>
                         <span className="max-w-72 truncate" title={employee.email}>
                           {employee.email}
                         </span>

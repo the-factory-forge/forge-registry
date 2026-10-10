@@ -4,6 +4,7 @@ import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon } from "lucide-re
 import { useRef } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import {
   buttonClass,
@@ -192,15 +193,17 @@ function ProjectsListContent({
                   </td>
                   <td className={tableCellClass}>
                     {website ? (
-                      <ProjectLink
-                        href={website}
-                        target={website.startsWith("/") ? undefined : "_blank"}
-                        rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
-                        aria-label={labels.visit(project.name)}
-                        className={iconButtonClass}
-                      >
-                        <ExternalLinkIcon aria-hidden="true" />
-                      </ProjectLink>
+                      <IconTooltip label={labels.visit(project.name)}>
+                        <ProjectLink
+                          href={website}
+                          target={website.startsWith("/") ? undefined : "_blank"}
+                          rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
+                          aria-label={labels.visit(project.name)}
+                          className={iconButtonClass}
+                        >
+                          <ExternalLinkIcon aria-hidden="true" />
+                        </ProjectLink>
+                      </IconTooltip>
                     ) : (
                       <span className="text-muted-foreground">{labels.noWebsite}</span>
                     )}
@@ -210,13 +213,15 @@ function ProjectsListContent({
                   </td>
                   <td className={tableActionCellClass}>
                     <div className="flex items-start justify-end gap-1">
-                      <ProjectLink
-                        href={getProjectHref(project)}
-                        aria-label={labels.edit(project.name)}
-                        className={iconButtonClass}
-                      >
-                        <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                      </ProjectLink>
+                      <IconTooltip label={labels.edit(project.name)}>
+                        <ProjectLink
+                          href={getProjectHref(project)}
+                          aria-label={labels.edit(project.name)}
+                          className={iconButtonClass}
+                        >
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                        </ProjectLink>
+                      </IconTooltip>
                       {onDelete && (
                         <DeleteProject
                           project={project}

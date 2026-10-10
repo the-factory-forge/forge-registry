@@ -3,6 +3,8 @@
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
+
 const storageKey = "forge-showroom-theme";
 type Theme = "light" | "dark";
 
@@ -37,23 +39,25 @@ export function ThemeControl() {
   const Icon = theme === "dark" ? SunIcon : MoonIcon;
 
   return (
-    <button
-      type="button"
-      aria-label="Dark mode"
-      aria-pressed={theme === "dark"}
-      onClick={() => {
-        const nextTheme = theme === "dark" ? "light" : "dark";
-        applyTheme(nextTheme);
-        try {
-          localStorage.setItem(storageKey, nextTheme);
-        } catch {
-          /* The current tab still works without storage. */
-        }
-        window.dispatchEvent(new Event("showroom-theme"));
-      }}
-      className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-    >
-      <Icon className="size-5" aria-hidden="true" />
-    </button>
+    <IconTooltip label="Dark mode">
+      <button
+        type="button"
+        aria-label="Dark mode"
+        aria-pressed={theme === "dark"}
+        onClick={() => {
+          const nextTheme = theme === "dark" ? "light" : "dark";
+          applyTheme(nextTheme);
+          try {
+            localStorage.setItem(storageKey, nextTheme);
+          } catch {
+            /* The current tab still works without storage. */
+          }
+          window.dispatchEvent(new Event("showroom-theme"));
+        }}
+        className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <Icon className="size-5" aria-hidden="true" />
+      </button>
+    </IconTooltip>
   );
 }

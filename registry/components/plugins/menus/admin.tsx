@@ -16,6 +16,7 @@ import { useEffect, useId, useRef, useState, type ComponentType, type PointerEve
 import { createPortal } from "react-dom";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
@@ -95,16 +96,18 @@ function DeleteControl({
   const lock = useRef(false);
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <Dialog.Trigger
-        className={cn(
-          iconButton,
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-        )}
-        disabled={disabled || pending}
-        aria-label={label}
-      >
-        <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
-      </Dialog.Trigger>
+      <IconTooltip label={label}>
+        <Dialog.Trigger
+          className={cn(
+            iconButton,
+            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+          )}
+          disabled={disabled || pending}
+          aria-label={label}
+        >
+          <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
+        </Dialog.Trigger>
+      </IconTooltip>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
@@ -394,70 +397,74 @@ function MenuItemsPageContent({
                     <td className={cn(tableCellClass, "font-medium")}>
                       <div className="flex items-center gap-2">
                         {client.reorder && (
-                          <button
-                            type="button"
-                            className={cn(iconButton, "touch-none")}
-                            aria-label={`${labels.reorder}: ${item.translations[baseLocale]?.name}`}
-                            aria-describedby={reorderHelpId}
-                            aria-disabled={reorderDisabled}
-                            onPointerDown={(event) => {
-                              if (
-                                reorderDisabled ||
-                                reorderLock.current ||
-                                event.button !== 0 ||
-                                !event.isPrimary
-                              )
-                                return;
-                              event.currentTarget.setPointerCapture(event.pointerId);
-                              event.currentTarget.focus({ preventScroll: true });
-                              drag.current = {
-                                id: item.id,
-                                pointerId: event.pointerId,
-                                startX: event.clientX,
-                                startY: event.clientY,
-                                active: false,
-                              };
-                            }}
-                            onPointerMove={updateDrag}
-                            onPointerUp={(event) => {
-                              updateDrag(event);
-                              const current = drag.current;
-                              clearDrag();
-                              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                                event.currentTarget.releasePointerCapture(event.pointerId);
-                              }
-                              if (current?.to !== undefined) {
-                                void moveItem(current.id, current.to);
-                              }
-                            }}
-                            onPointerCancel={clearDrag}
-                            onLostPointerCapture={clearDrag}
-                            onKeyDown={(event) => {
-                              if (event.key === "Escape") {
+                          <IconTooltip
+                            label={`${labels.reorder}: ${item.translations[baseLocale]?.name}`}
+                          >
+                            <button
+                              type="button"
+                              className={cn(iconButton, "touch-none")}
+                              aria-label={`${labels.reorder}: ${item.translations[baseLocale]?.name}`}
+                              aria-describedby={reorderHelpId}
+                              aria-disabled={reorderDisabled}
+                              onPointerDown={(event) => {
+                                if (
+                                  reorderDisabled ||
+                                  reorderLock.current ||
+                                  event.button !== 0 ||
+                                  !event.isPrimary
+                                )
+                                  return;
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                                event.currentTarget.focus({ preventScroll: true });
+                                drag.current = {
+                                  id: item.id,
+                                  pointerId: event.pointerId,
+                                  startX: event.clientX,
+                                  startY: event.clientY,
+                                  active: false,
+                                };
+                              }}
+                              onPointerMove={updateDrag}
+                              onPointerUp={(event) => {
+                                updateDrag(event);
                                 const current = drag.current;
                                 clearDrag();
-                                if (
-                                  current &&
-                                  event.currentTarget.hasPointerCapture(current.pointerId)
-                                ) {
-                                  event.currentTarget.releasePointerCapture(current.pointerId);
+                                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                                  event.currentTarget.releasePointerCapture(event.pointerId);
                                 }
-                              }
-                              if (
-                                drag.current ||
-                                reorderDisabled ||
-                                !["ArrowUp", "ArrowDown"].includes(event.key)
-                              )
-                                return;
-                              event.preventDefault();
-                              const index = filteredItems.findIndex(
-                                (entry) => entry.id === item.id,
-                              );
-                              void moveItem(item.id, index + (event.key === "ArrowUp" ? -1 : 1));
-                            }}
-                          >
-                            <GripVerticalIcon className="size-4 shrink-0" aria-hidden="true" />
-                          </button>
+                                if (current?.to !== undefined) {
+                                  void moveItem(current.id, current.to);
+                                }
+                              }}
+                              onPointerCancel={clearDrag}
+                              onLostPointerCapture={clearDrag}
+                              onKeyDown={(event) => {
+                                if (event.key === "Escape") {
+                                  const current = drag.current;
+                                  clearDrag();
+                                  if (
+                                    current &&
+                                    event.currentTarget.hasPointerCapture(current.pointerId)
+                                  ) {
+                                    event.currentTarget.releasePointerCapture(current.pointerId);
+                                  }
+                                }
+                                if (
+                                  drag.current ||
+                                  reorderDisabled ||
+                                  !["ArrowUp", "ArrowDown"].includes(event.key)
+                                )
+                                  return;
+                                event.preventDefault();
+                                const index = filteredItems.findIndex(
+                                  (entry) => entry.id === item.id,
+                                );
+                                void moveItem(item.id, index + (event.key === "ArrowUp" ? -1 : 1));
+                              }}
+                            >
+                              <GripVerticalIcon className="size-4 shrink-0" aria-hidden="true" />
+                            </button>
+                          </IconTooltip>
                         )}
                         {item.translations[baseLocale]?.name}
                       </div>
@@ -489,13 +496,17 @@ function MenuItemsPageContent({
                     </td>
                     <td className={tableActionCellClass}>
                       <div className="flex flex-wrap justify-end gap-2">
-                        <HostLink
-                          href={getEditHref(item)}
-                          className={iconButton}
-                          aria-label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
+                        <IconTooltip
+                          label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
                         >
-                          <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
-                        </HostLink>
+                          <HostLink
+                            href={getEditHref(item)}
+                            className={iconButton}
+                            aria-label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
+                          >
+                            <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
+                          </HostLink>
+                        </IconTooltip>
                         <DeleteControl
                           disabled={loading || error || reordering || optimistic.pending}
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
@@ -1072,20 +1083,22 @@ function TaxonomyDialog({
         : labels.newLabel;
   return (
     <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <Dialog.Trigger
-        disabled={disabled}
-        className={existing ? iconButton : primary}
-        aria-label={title}
-      >
-        {existing ? (
-          <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
-        ) : (
-          <>
-            <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-            {title}
-          </>
-        )}
-      </Dialog.Trigger>
+      <IconTooltip label={existing ? title : undefined}>
+        <Dialog.Trigger
+          disabled={disabled}
+          className={existing ? iconButton : primary}
+          aria-label={title}
+        >
+          {existing ? (
+            <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
+          ) : (
+            <>
+              <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
+              {title}
+            </>
+          )}
+        </Dialog.Trigger>
+      </IconTooltip>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup

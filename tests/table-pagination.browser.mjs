@@ -15,12 +15,12 @@ void test("combined table demo supports discovery, search, pagination and stable
   await page.locator('[data-preview-ready="true"]').waitFor();
   const card = page.locator('main a[href="/table-pagination"]');
   assert.equal(await card.count(), 1);
-  assert.equal(await card.getByRole("heading", { name: "Table search & pagination" }).count(), 1);
+  assert.equal(await card.getByRole("heading", { name: "Table", exact: true }).count(), 1);
   assert.equal(await page.locator('main a[href="/table-search"]').count(), 0);
   const directorySearch = page.getByRole("searchbox", { name: "Search examples" });
   for (const category of ["All", "Component"]) {
     await page.getByRole("button", { name: category, exact: true }).click();
-    for (const query of ["table search", "pagination"]) {
+    for (const query of ["table", "pagination"]) {
       await directorySearch.fill(query);
       assert.equal(await page.locator("main a h2").count(), 1);
       assert.equal(await card.count(), 1);

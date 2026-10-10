@@ -44,6 +44,20 @@
       ]
     },
     {
+      "name": "icon-tooltip",
+      "type": "registry:ui",
+      "title": "Icon tooltip",
+      "description": "Accessible hover and keyboard hints for icon-only buttons and links, using existing translated labels.",
+      "files": [
+        {
+          "path": "registry/components/icon-tooltip.tsx",
+          "type": "registry:component",
+          "target": "@components/icon-tooltip.tsx"
+        }
+      ],
+      "dependencies": ["@base-ui/react"]
+    },
+    {
       "name": "native-select",
       "type": "registry:ui",
       "title": "Native select",
@@ -71,7 +85,7 @@
         }
       ],
       "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/table-styles"]
+      "registryDependencies": ["@forge/cn", "@forge/table-styles", "@forge/icon-tooltip"]
     },
     {
       "name": "table-search",
@@ -91,7 +105,7 @@
         }
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn"]
+      "registryDependencies": ["@forge/cn", "@forge/icon-tooltip"]
     },
     {
       "name": "section-variants",
@@ -219,7 +233,8 @@
           "target": "@components/back-to-top.tsx"
         }
       ],
-      "dependencies": ["lucide-react"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/icon-tooltip"]
     },
     {
       "name": "section-heading",
@@ -263,7 +278,7 @@
         }
       ],
       "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims"]
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/icon-tooltip"]
     },
     {
       "name": "cta-button",
@@ -322,7 +337,7 @@
         }
       ],
       "dependencies": ["lucide-react", "@base-ui/react"],
-      "registryDependencies": ["@forge/cn"]
+      "registryDependencies": ["@forge/cn", "@forge/icon-tooltip"]
     },
     {
       "name": "ui-shims",
@@ -420,7 +435,8 @@
         "@forge/language-switcher",
         "@forge/dropdown-menu",
         "@forge/sheet",
-        "@forge/ui-shims"
+        "@forge/ui-shims",
+        "@forge/icon-tooltip"
       ]
     },
     {
@@ -453,7 +469,8 @@
         "@forge/cn",
         "@forge/social-icons",
         "@forge/manage-cookies-button",
-        "@forge/ui-shims"
+        "@forge/ui-shims",
+        "@forge/icon-tooltip"
       ]
     },
     {
@@ -647,7 +664,12 @@
         }
       ],
       "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/social-icons", "@forge/section-variants"]
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/social-icons",
+        "@forge/section-variants",
+        "@forge/icon-tooltip"
+      ]
     },
     {
       "name": "page-legal",
@@ -710,7 +732,12 @@
       "title": "Intranet Sidebar",
       "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/auth"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/auth",
+        "@forge/icon-tooltip"
+      ],
       "files": [
         {
           "path": "registry/components/intranet-sidebar.tsx",
@@ -787,7 +814,8 @@
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ]
     },
     {
@@ -836,7 +864,8 @@
         "@forge/table-search",
         "@forge/native-select",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ]
     },
     {
@@ -854,7 +883,8 @@
         "@forge/dialog-submit",
         "@forge/native-select",
         "@forge/dropdown-menu",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ],
       "files": [
         {
@@ -963,7 +993,8 @@
         "@forge/table-search",
         "@forge/native-select",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ],
       "files": [
         {
@@ -1058,7 +1089,8 @@
         "@forge/dialog-submit",
         "@forge/native-select",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ],
       "files": [
         {
@@ -1205,7 +1237,12 @@
           "target": "@components/plugins/auth/auth-controls.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/action-toast"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/action-toast",
+        "@forge/icon-tooltip"
+      ],
       "dependencies": ["lucide-react"]
     },
     {
@@ -1254,7 +1291,8 @@
         "@forge/dialog-submit",
         "@forge/native-select",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1331,7 +1369,8 @@
         "@forge/dialog-submit",
         "@forge/native-select",
         "@forge/action-toast",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip"
       ],
       "files": [
         {
@@ -1433,7 +1472,8 @@
           "type": "registry:component",
           "target": "@components/action-toast.tsx"
         }
-      ]
+      ],
+      "registryDependencies": ["@forge/icon-tooltip"]
     },
     {
       "name": "optimistic-action",

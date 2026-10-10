@@ -1,5 +1,6 @@
 import { Mail, MapPin, Phone, Clock } from "lucide-react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { ManageCookiesButton } from "@/components/manage-cookies-button";
@@ -190,20 +191,21 @@ export function Footer({
                 {socials.map((social) => {
                   const Icon = socialIconMap[social.platform];
                   return (
-                    <a
-                      key={social.platform}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        socialIcon,
-                        dark &&
-                          "flex h-9 w-9 items-center justify-center rounded-full bg-dark-foreground/10",
-                      )}
-                      aria-label={social.platform}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </a>
+                    <IconTooltip key={social.platform} label={social.platform}>
+                      <a
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          socialIcon,
+                          dark &&
+                            "flex h-9 w-9 items-center justify-center rounded-full bg-dark-foreground/10",
+                        )}
+                        aria-label={social.platform}
+                      >
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </a>
+                    </IconTooltip>
                   );
                 })}
               </div>

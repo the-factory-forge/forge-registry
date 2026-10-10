@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
@@ -193,20 +194,24 @@ function CustomersPageContent({
                             <UserRoundIcon aria-hidden="true" />
                           </CustomerActionButton>
                         )}
-                        <CustomerLink
-                          href={getCustomerHref(customer, "projects")}
-                          className={iconButtonClass}
-                          aria-label={labels.viewProjects}
-                        >
-                          <FolderKanbanIcon aria-hidden="true" />
-                        </CustomerLink>
-                        <CustomerLink
-                          href={getCustomerHref(customer, "about")}
-                          className={iconButtonClass}
-                          aria-label={labels.edit}
-                        >
-                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                        </CustomerLink>
+                        <IconTooltip label={labels.viewProjects}>
+                          <CustomerLink
+                            href={getCustomerHref(customer, "projects")}
+                            className={iconButtonClass}
+                            aria-label={labels.viewProjects}
+                          >
+                            <FolderKanbanIcon aria-hidden="true" />
+                          </CustomerLink>
+                        </IconTooltip>
+                        <IconTooltip label={labels.edit}>
+                          <CustomerLink
+                            href={getCustomerHref(customer, "about")}
+                            className={iconButtonClass}
+                            aria-label={labels.edit}
+                          >
+                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                          </CustomerLink>
+                        </IconTooltip>
                         {onDelete && (
                           <DeleteCustomer
                             customer={customer}

@@ -104,7 +104,7 @@ both themes, and reduced-motion preferences. Communicate status with text as wel
 as color. These are contributor requirements, not a claim of audited compliance.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the implementation rules and
-[CONTEXT.md](./CONTEXT.md) for existing interaction requirements.
+[GLOSSARY.md](./GLOSSARY.md) for existing interaction requirements.
 
 ## Open decisions
 

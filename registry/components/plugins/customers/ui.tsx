@@ -6,6 +6,7 @@ import { Trash2Icon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 
 import { useActionToast } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
@@ -103,16 +104,18 @@ export function CustomerActionButton({
   const action = useCustomerAction(labels.actionError);
   return (
     <div>
-      <button
-        type="button"
-        className={iconButtonClass}
-        aria-label={label}
-        disabled={disabled || action.pending}
-        aria-busy={action.pending}
-        onClick={() => void action.run(onAction, labels.actionSuccess)}
-      >
-        {children}
-      </button>
+      <IconTooltip label={label}>
+        <button
+          type="button"
+          className={iconButtonClass}
+          aria-label={label}
+          disabled={disabled || action.pending}
+          aria-busy={action.pending}
+          onClick={() => void action.run(onAction, labels.actionSuccess)}
+        >
+          {children}
+        </button>
+      </IconTooltip>
       <Feedback feedback={action.feedback} />
     </div>
   );
@@ -139,16 +142,18 @@ export function DeleteCustomer({
           if (!action.pending) setOpen(next);
         }}
       >
-        <Dialog.Trigger
-          className={cn(
-            iconButtonClass,
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          aria-label={labels.deleteCustomer}
-          disabled={disabled || action.pending}
-        >
-          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-        </Dialog.Trigger>
+        <IconTooltip label={labels.deleteCustomer}>
+          <Dialog.Trigger
+            className={cn(
+              iconButtonClass,
+              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            )}
+            aria-label={labels.deleteCustomer}
+            disabled={disabled || action.pending}
+          >
+            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+          </Dialog.Trigger>
+        </IconTooltip>
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
           <Dialog.Popup

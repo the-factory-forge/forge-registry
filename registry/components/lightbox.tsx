@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { cn } from "@/components/utils/cn";
 
@@ -86,14 +87,16 @@ export function Lightbox({
             aria-modal="true"
             onClick={closeModal}
           >
-            <button
-              type="button"
-              onClick={closeModal}
-              className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-dark-foreground/10 text-dark-foreground backdrop-blur-sm transition-colors hover:bg-dark-foreground/20 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
-              aria-label={closeLabel}
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <IconTooltip label={closeLabel}>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-dark-foreground/10 text-dark-foreground backdrop-blur-sm transition-colors hover:bg-dark-foreground/20 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+                aria-label={closeLabel}
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </IconTooltip>
             <img
               src={src}
               alt={alt}

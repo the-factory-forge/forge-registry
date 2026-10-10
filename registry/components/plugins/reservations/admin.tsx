@@ -1,14 +1,21 @@
 "use client";
 
-import FullCalendar, { type DatesSetInfo } from "@fullcalendar/react";
+import FullCalendar, { useCalendarController, type DatesSetInfo } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/react/daygrid";
 import listPlugin from "@fullcalendar/react/list";
 import classicTheme from "@fullcalendar/react/themes/classic";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
-import { PlusIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SettingsIcon,
+} from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { ComponentType } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -77,6 +84,7 @@ export function ReservationsCalendar({
   className,
   linkComponent: HostLink = Link,
 }: ReservationsCalendarProps) {
+  const calendar = useCalendarController();
   const mounted = useSyncExternalStore(
     subscribe,
     () => true,
@@ -258,15 +266,44 @@ export function ReservationsCalendar({
       {mounted && config.value && (
         <div className="reservations-calendar min-w-0 overflow-x-auto rounded-xl border border-border p-3">
           <FullCalendar
+            controller={calendar}
             plugins={[classicTheme, dayGridPlugin, timeGridPlugin, listPlugin]}
             initialView={mobile ? "listWeek" : "timeGridWeek"}
             initialDate={initialDate}
             locale={locale}
             timeZone={config.value.settings.timeZone}
             headerToolbar={{
-              start: "prev,next today",
+              start: "previousPeriod,nextPeriod today",
               center: "title",
               end: "reservationsYear,dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+            }}
+            toolbarElements={{
+              previousPeriod: () => (
+                <IconTooltip label={labels.previous}>
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    aria-label={labels.previous}
+                    disabled={calendar.getButtonState().prev?.isDisabled}
+                    onClick={() => calendar.prev()}
+                  >
+                    <ChevronLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </button>
+                </IconTooltip>
+              ),
+              nextPeriod: () => (
+                <IconTooltip label={labels.next}>
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    aria-label={labels.next}
+                    disabled={calendar.getButtonState().next?.isDisabled}
+                    onClick={() => calendar.next()}
+                  >
+                    <ChevronRightIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </button>
+                </IconTooltip>
+              ),
             }}
             views={{
               reservationsYear: {

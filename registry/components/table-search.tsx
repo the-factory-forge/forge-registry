@@ -5,6 +5,7 @@ import { Input } from "@base-ui/react/input";
 import { SearchIcon, XIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 
 export { matchesTableSearch } from "@/components/utils/table-search";
@@ -58,23 +59,25 @@ export function TableSearch({
         if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
       }}
     >
-      <Button
-        type="button"
-        className={cn(
-          iconClass,
-          compact ? "left-px" : "left-0.5",
-          "z-10",
-          expanded && "text-primary",
-        )}
-        aria-label={label}
-        aria-controls={id}
-        aria-expanded={expanded}
-        tabIndex={expanded ? -1 : 0}
-        onFocus={() => inputRef.current?.focus()}
-        onClick={() => inputRef.current?.focus()}
-      >
-        <SearchIcon aria-hidden="true" />
-      </Button>
+      <IconTooltip label={label}>
+        <Button
+          type="button"
+          className={cn(
+            iconClass,
+            compact ? "left-px" : "left-0.5",
+            "z-10",
+            expanded && "text-primary",
+          )}
+          aria-label={label}
+          aria-controls={id}
+          aria-expanded={expanded}
+          tabIndex={expanded ? -1 : 0}
+          onFocus={() => inputRef.current?.focus()}
+          onClick={() => inputRef.current?.focus()}
+        >
+          <SearchIcon aria-hidden="true" />
+        </Button>
+      </IconTooltip>
       <Input
         ref={inputRef}
         id={id}
@@ -99,21 +102,23 @@ export function TableSearch({
         )}
       />
       {value && (
-        <Button
-          type="button"
-          className={cn(
-            iconClass,
-            compact ? "right-px" : "right-0.5",
-            "bg-foreground/5 [&_svg]:size-3.5",
-          )}
-          aria-label={clearLabel}
-          onClick={() => {
-            onValueChange("");
-            inputRef.current?.focus();
-          }}
-        >
-          <XIcon aria-hidden="true" />
-        </Button>
+        <IconTooltip label={clearLabel}>
+          <Button
+            type="button"
+            className={cn(
+              iconClass,
+              compact ? "right-px" : "right-0.5",
+              "bg-foreground/5 [&_svg]:size-3.5",
+            )}
+            aria-label={clearLabel}
+            onClick={() => {
+              onValueChange("");
+              inputRef.current?.focus();
+            }}
+          >
+            <XIcon aria-hidden="true" />
+          </Button>
+        </IconTooltip>
       )}
     </div>
   );

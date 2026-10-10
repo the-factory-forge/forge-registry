@@ -6,21 +6,32 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { transformWithOxc } from "vite";
 
+const tooltipSource = await readFile("registry/components/icon-tooltip.tsx", "utf8");
+const { code: tooltipCode } = await transformWithOxc(tooltipSource, "icon-tooltip.tsx", {
+  jsx: { runtime: "automatic" },
+});
+const tooltipUrl = `data:text/javascript;base64,${Buffer.from(
+  tooltipCode.replace(/"(@base-ui\/react\/tooltip|react\/jsx-runtime)"/g, (_, name) =>
+    JSON.stringify(import.meta.resolve(name)),
+  ),
+).toString("base64")}`;
 const source = await readFile("registry/components/table-pagination.tsx", "utf8");
 const { code } = await transformWithOxc(source, "table-pagination.tsx", {
   jsx: { runtime: "automatic" },
 });
 const resolved = code.replace(
-  /"(lucide-react|@\/components\/utils\/cn|@\/components\/utils\/table-styles|react\/jsx-runtime)"/g,
+  /"(lucide-react|@\/components\/icon-tooltip|@\/components\/utils\/cn|@\/components\/utils\/table-styles|react\/jsx-runtime)"/g,
   (_, name) =>
     JSON.stringify(
-      import.meta.resolve(
-        name === "@/components/utils/cn"
-          ? "cnfast"
-          : name === "@/components/utils/table-styles"
-            ? "../registry/components/utils/table-styles.ts"
-            : name,
-      ),
+      name === "@/components/icon-tooltip"
+        ? tooltipUrl
+        : import.meta.resolve(
+            name === "@/components/utils/cn"
+              ? "cnfast"
+              : name === "@/components/utils/table-styles"
+                ? "../registry/components/utils/table-styles.ts"
+                : name,
+          ),
     ),
 );
 const { TablePagination } = await import(

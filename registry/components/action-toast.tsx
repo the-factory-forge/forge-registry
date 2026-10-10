@@ -4,6 +4,8 @@ import { Toast } from "@base-ui/react/toast";
 import { CircleCheckIcon, XIcon } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
+
 const ActionToastContext = createContext(false);
 
 export interface ActionToastProviderProps {
@@ -45,13 +47,15 @@ function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
               aria-hidden="true"
             />
             <Toast.Title className="min-w-0 flex-1 text-sm break-words" />
-            <Toast.Close
-              aria-label={closeLabel}
-              aria-hidden={false}
-              className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring md:size-8"
-            >
-              <XIcon className="size-4" aria-hidden="true" />
-            </Toast.Close>
+            <IconTooltip label={closeLabel}>
+              <Toast.Close
+                aria-label={closeLabel}
+                aria-hidden={false}
+                className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring md:size-8"
+              >
+                <XIcon className="size-4" aria-hidden="true" />
+              </Toast.Close>
+            </IconTooltip>
           </Toast.Root>
         ))}
       </Toast.Viewport>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useId, useState, type ComponentType } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { GoogleSignInButton, useAuthAction } from "@/components/plugins/auth/auth-controls";
 import { loginLabels, type LoginLabels } from "@/components/plugins/auth/labels";
@@ -176,16 +177,22 @@ export function LoginForm({
                 </>
               )}
             </output>
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? labels.hidePassword : labels.showPassword}
-              aria-controls={`${id}-password`}
-              aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground! hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
-            >
-              {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-            </button>
+            <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                aria-controls={`${id}-password`}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground! hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+              >
+                {showPassword ? (
+                  <EyeOffIcon className="size-4" aria-hidden="true" />
+                ) : (
+                  <EyeIcon className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </IconTooltip>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">

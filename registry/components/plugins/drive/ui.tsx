@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/dropdown-menu";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
@@ -238,13 +239,15 @@ export function DriveToasts({
                 disabled={toast.actionProps?.disabled}
               />
               {(!toast.data?.uploads || finished) && (
-                <Toast.Close
-                  aria-label={labels.close}
-                  aria-hidden={false}
-                  className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
-                >
-                  <XIcon aria-hidden="true" />
-                </Toast.Close>
+                <IconTooltip label={labels.close}>
+                  <Toast.Close
+                    aria-label={labels.close}
+                    aria-hidden={false}
+                    className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+                  >
+                    <XIcon aria-hidden="true" />
+                  </Toast.Close>
+                </IconTooltip>
               )}
             </div>
             {toast.data?.uploads && (
@@ -408,14 +411,16 @@ export function EntryDialog({
     <Dialog.Root open={open} onOpenChange={changeOpen}>
       {menu ? (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            ref={menuTrigger}
-            disabled={disabled}
-            className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
-            aria-label={`${labels.actions}: ${entry?.name ?? space?.name}`}
-          >
-            <ChevronDownIcon className="size-4 shrink-0" aria-hidden="true" />
-          </DropdownMenuTrigger>
+          <IconTooltip label={`${labels.actions}: ${entry?.name ?? space?.name}`}>
+            <DropdownMenuTrigger
+              ref={menuTrigger}
+              disabled={disabled}
+              className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+              aria-label={`${labels.actions}: ${entry?.name ?? space?.name}`}
+            >
+              <ChevronDownIcon className="size-4 shrink-0" aria-hidden="true" />
+            </DropdownMenuTrigger>
+          </IconTooltip>
           <DropdownMenuContent className="min-w-40 rounded-xl motion-reduce:animate-none">
             <DropdownMenuItem onClick={() => changeOpen(true)} className="min-h-10 rounded-md">
               <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -424,17 +429,19 @@ export function EntryDialog({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Dialog.Trigger
-          disabled={disabled}
-          className={cn(
-            entry ? iconButtonClass : buttonClass,
-            deleting &&
-              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
-        >
-          {children}
-        </Dialog.Trigger>
+        <IconTooltip label={entry ? (deleting ? labels.delete : labels.rename) : undefined}>
+          <Dialog.Trigger
+            disabled={disabled}
+            className={cn(
+              entry ? iconButtonClass : buttonClass,
+              deleting &&
+                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            )}
+            aria-label={deleting ? labels.delete : entry ? labels.rename : labels.newFolder}
+          >
+            {children}
+          </Dialog.Trigger>
+        </IconTooltip>
       )}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />

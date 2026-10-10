@@ -4,6 +4,7 @@ import { PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -81,25 +82,27 @@ function EmployeeActionsContent({
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className="flex items-center justify-end gap-1">
         {!employee.emailVerified && (
-          <button
-            type="button"
-            className={iconButtonClass}
+          <IconTooltip label={`${labels.sendEmail} ${employee.name}`}>
+            <button
+              type="button"
+              className={iconButtonClass}
 
-            disabled={disabled || pending}
-            aria-label={`${labels.sendEmail} ${employee.name}`}
-            onClick={() =>
-              void run("send", async () => {
-                const { status } = await onSendVerification(employee.id);
-                if (status === "unavailable") {
-                  setFeedback({ error: true, message: labels.emailUnavailable });
-                } else {
-                  notify(status === "verified" ? labels.verified : labels.emailSent);
-                }
-              })
-            }
-          >
-            <SendHorizontalIcon aria-hidden="true" />
-          </button>
+              disabled={disabled || pending}
+              aria-label={`${labels.sendEmail} ${employee.name}`}
+              onClick={() =>
+                void run("send", async () => {
+                  const { status } = await onSendVerification(employee.id);
+                  if (status === "unavailable") {
+                    setFeedback({ error: true, message: labels.emailUnavailable });
+                  } else {
+                    notify(status === "verified" ? labels.verified : labels.emailSent);
+                  }
+                })
+              }
+            >
+              <SendHorizontalIcon aria-hidden="true" />
+            </button>
+          </IconTooltip>
         )}
         <Dialog.Root
           open={editing}
@@ -110,14 +113,16 @@ function EmployeeActionsContent({
             }
           }}
         >
-          <Dialog.Trigger
-            disabled={disabled || pending}
-            className={iconButtonClass}
+          <IconTooltip label={`${labels.edit} ${employee.name}`}>
+            <Dialog.Trigger
+              disabled={disabled || pending}
+              className={iconButtonClass}
 
-            aria-label={`${labels.edit} ${employee.name}`}
-          >
-            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-          </Dialog.Trigger>
+              aria-label={`${labels.edit} ${employee.name}`}
+            >
+              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+            </Dialog.Trigger>
+          </IconTooltip>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
             <Dialog.Popup className={dialogClass} onKeyDownCapture={submitDialogOnShortcut}>
@@ -218,16 +223,18 @@ function EmployeeActionsContent({
               }
             }}
           >
-            <Dialog.Trigger
-              disabled={disabled || pending}
-              className={cn(
-                iconButtonClass,
-                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-              )}
-              aria-label={`${labels.delete} ${employee.name}`}
-            >
-              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-            </Dialog.Trigger>
+            <IconTooltip label={`${labels.delete} ${employee.name}`}>
+              <Dialog.Trigger
+                disabled={disabled || pending}
+                className={cn(
+                  iconButtonClass,
+                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+                )}
+                aria-label={`${labels.delete} ${employee.name}`}
+              >
+                <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Trigger>
+            </IconTooltip>
             <Dialog.Portal>
               <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
               <Dialog.Popup className={dialogClass}>

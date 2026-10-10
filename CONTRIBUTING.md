@@ -143,7 +143,7 @@ Keep existing button/link variants, focus styles and responsive wrapping.
 
 Edit/rename and delete/remove retain the existing `PencilIcon` and `Trash2Icon`
 icon-only convention, with translated accessible names and deletion confirmation.
-Do not add tooltips to familiar icons by default. Reuse the same icon for the same
+Add `IconTooltip` to every icon-only action, including familiar edit/delete icons. Reuse the same icon for the same
 action across plugins and hosts; do not add icons to every field or label.
 
 ### Button spacing
@@ -173,7 +173,10 @@ Every component must include:
 - Semantic HTML elements (`<form>`, `<nav>`, `<section>`, `<button>`)
 - Visible `focus-visible:ring-2 focus-visible:ring-ring` states
 - `aria-*` attributes when state changes (e.g. `aria-invalid`, `aria-describedby`)
-- `aria-label` on icon-only buttons
+- `aria-label` and `IconTooltip` on every icon-only button and action link, using
+  the same translated label. Tooltips open on hover and keyboard focus and close
+  with Escape; native `title` alone is insufficient. Preserve disabled states and
+  declare `@forge/icon-tooltip` in each importing registry item.
 - `sr-only` labels where a visible label would be redundant
 - `role="alert"` / `aria-live` for dynamic status messages
 

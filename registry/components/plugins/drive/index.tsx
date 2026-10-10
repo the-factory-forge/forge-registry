@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { TrashBrowser } from "@/components/plugins/drive/trash";
@@ -218,13 +219,15 @@ export function DrivePage({
                   </td>
                   <td className={tableActionCellClass}>
                     {space.href && (
-                      <HostLink
-                        href={space.href}
-                        className={iconButtonClass}
-                        aria-label={`${labels.openRecord}: ${space.name}`}
-                      >
-                        <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
-                      </HostLink>
+                      <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
+                        <HostLink
+                          href={space.href}
+                          className={iconButtonClass}
+                          aria-label={`${labels.openRecord}: ${space.name}`}
+                        >
+                          <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                        </HostLink>
+                      </IconTooltip>
                     )}
                   </td>
                 </tr>
@@ -592,13 +595,15 @@ function Browser({
           </ol>
         </nav>
         {data?.space.href && (
-          <HostLink
-            href={data.space.href}
-            className={iconButtonClass}
-            aria-label={`${labels.openRecord}: ${data.space.name}`}
-          >
-            <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
-          </HostLink>
+          <IconTooltip label={`${labels.openRecord}: ${data.space.name}`}>
+            <HostLink
+              href={data.space.href}
+              className={iconButtonClass}
+              aria-label={`${labels.openRecord}: ${data.space.name}`}
+            >
+              <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+            </HostLink>
+          </IconTooltip>
         )}
       </div>
       <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
@@ -827,14 +832,16 @@ function Browser({
                           {entry.state === "ready" &&
                             capabilities?.download &&
                             entry.kind === "file" && (
-                              <button
-                                className={iconButtonClass}
-                                aria-label={labels.download}
-                                disabled={actionsDisabled || downloading}
-                                onClick={() => void download(entry)}
-                              >
-                                <DownloadIcon aria-hidden="true" />
-                              </button>
+                              <IconTooltip label={labels.download}>
+                                <button
+                                  className={iconButtonClass}
+                                  aria-label={labels.download}
+                                  disabled={actionsDisabled || downloading}
+                                  onClick={() => void download(entry)}
+                                >
+                                  <DownloadIcon aria-hidden="true" />
+                                </button>
+                              </IconTooltip>
                             )}
                           {entry.state === "ready" && capabilities?.rename && (
                             <EntryDialog
