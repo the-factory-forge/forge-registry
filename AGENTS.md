@@ -43,6 +43,13 @@ For plugin work, also read the shared [Plugins specification](https://github.com
 and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
 module requirement when adding or materially changing a feature.
 
+## Filter and view state
+
+When creating or changing filters, search, sorting, pagination or calendar views,
+read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
+Expose controlled values and change callbacks in portable UI; bind them to URL
+parameters in showroom and consumer adapters. Verify reload and Back/Forward.
+
 ## Shared color contract
 
 Use the same semantic color names across forge-registry, forge-template, and

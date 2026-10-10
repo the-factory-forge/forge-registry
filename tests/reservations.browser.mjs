@@ -625,6 +625,46 @@ test("apartment stay booking, retained dates, multi-day calendar, rescheduling a
   await page.getByText("Saved.", { exact: true }).waitFor();
 });
 
+void test("stay calendar switches to arrival only for dates before the selected arrival", async (t) => {
+  const page = await preview(t);
+  await page.clock.setFixedTime(new Date("2026-10-10T10:00:00Z"));
+  await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
+  const arrival = page.getByLabel("Arrival date", { exact: true });
+  const departure = page.getByLabel("Departure date", { exact: true });
+  assert.equal(await page.getByRole("button", { name: "Arrival date", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Departure date", exact: true }).count(), 0);
+  const day = (value) =>
+    page.getByRole("button", {
+      name: new Intl.DateTimeFormat("en", { dateStyle: "full", timeZone: "UTC" }).format(
+        new Date(`${value}T12:00:00Z`),
+      ),
+      exact: true,
+    });
+  await arrival.fill("2026-11-01");
+  await departure.fill("2026-11-05");
+  await day("2026-11-03").click();
+  assert.equal(await arrival.inputValue(), "2026-11-01");
+  assert.equal(await departure.inputValue(), "2026-11-03");
+  assert.equal(await day("2026-11-01").isDisabled(), true);
+
+  await day("2026-10-31").click();
+  assert.equal(await arrival.inputValue(), "2026-10-31");
+  assert.equal(await departure.inputValue(), "2026-11-03");
+  assert.equal(await arrival.evaluate((input) => input === document.activeElement), true);
+  assert.equal(await day("2026-10-31").getAttribute("aria-pressed"), "true");
+  await departure.focus();
+  await day("2026-10-30").focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await arrival.inputValue(), "2026-10-30");
+  assert.equal(await departure.inputValue(), "2026-11-03");
+  assert.equal(await arrival.evaluate((input) => input === document.activeElement), true);
+
+  await departure.focus();
+  await day("2026-11-04").click();
+  assert.equal(await arrival.inputValue(), "2026-10-30");
+  assert.equal(await departure.inputValue(), "2026-11-04");
+});
+
 test("French stay dates and arrival choices work by keyboard on mobile in both themes", async (t) => {
   const page = await preview(t, "/fr/reservations", { viewport: { width: 390, height: 844 } });
   await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
@@ -633,8 +673,7 @@ test("French stay dates and arrival choices work by keyboard on mobile in both t
     const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
     if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
       await toggle.click();
-    await page.getByRole("button", { name: "Date de départ", exact: true }).focus();
-    await page.keyboard.press("Enter");
+    await page.getByLabel("Date de départ", { exact: true }).focus();
     await page.getByRole("button", { name: /^15:00$/ }).focus();
     await page.keyboard.press("Enter");
     assert.equal(
@@ -680,6 +719,18 @@ test("staff configures stay policy and creates a manually approved stay", async 
   await dialog
     .getByLabel("Departure date", { exact: true })
     .fill(new Date(Date.parse(`${arrival}T12:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10));
+  const shortStayDate = new Date(Date.parse(`${arrival}T12:00:00Z`) + 86400000);
+  assert.equal(
+    await dialog
+      .getByRole("button", {
+        name: new Intl.DateTimeFormat("en", { dateStyle: "full", timeZone: "UTC" }).format(
+          shortStayDate,
+        ),
+        exact: true,
+      })
+      .isDisabled(),
+    true,
+  );
   await dialog.getByRole("button", { name: /^(?:15:00|03:00.*PM)$/ }).click();
   await dialog.getByLabel("Name", { exact: true }).fill("Staff Stay");
   await dialog.getByLabel("Email", { exact: true }).fill("staffstay@example.test");

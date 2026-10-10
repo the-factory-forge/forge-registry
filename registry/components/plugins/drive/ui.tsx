@@ -6,8 +6,7 @@ import {
   ArrowDownIcon,
   FolderIcon,
   FolderOpenIcon,
-  ChevronDownIcon,
-  PencilIcon,
+  LoaderCircleIcon,
   ArrowUpDownIcon,
   RefreshCwIcon,
   ArrowUpIcon,
@@ -19,12 +18,6 @@ import {
   actionToastButtonClass,
   type ActionToastData,
 } from "@/components/action-toast";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/dropdown-menu";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -62,11 +55,20 @@ export const messageFor = (error: unknown, labels: DriveLabels) =>
 
 export function DriveFolderIcon({
   open = false,
+  loading = false,
   className,
 }: {
   open?: boolean;
+  loading?: boolean;
   className?: string;
 }) {
+  if (loading)
+    return (
+      <LoaderCircleIcon
+        aria-hidden="true"
+        className={cn("size-4 shrink-0 motion-safe:animate-spin", className)}
+      />
+    );
   return (
     <span aria-hidden="true" className={cn("grid size-4 shrink-0", className)}>
       <FolderIcon
@@ -298,6 +300,121 @@ export function DriveToasts({
   return null;
 }
 
+export function DriveTitle({
+  name,
+  onRename,
+  disabled,
+  labels,
+}: {
+  name: string;
+  onRename?: (name: string) => Promise<void>;
+  disabled: boolean;
+  labels: DriveLabels;
+}) {
+  const [draft, setDraft] = useState<string>();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string>();
+  const input = useRef<HTMLInputElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const lock = useRef(false);
+  const restoreFocus = useRef(false);
+  const errorId = `factory-drive-title-error-${useId()}`;
+  const editing = draft !== undefined;
+  const { add } = Toast.useToastManager();
+  useEffect(() => {
+    if (editing) input.current?.select();
+  }, [editing]);
+  useEffect(() => {
+    if (!editing && !disabled && restoreFocus.current) {
+      trigger.current?.focus();
+      restoreFocus.current = false;
+    }
+  }, [editing, disabled]);
+  async function save(returnFocus: boolean) {
+    if (disabled || lock.current || draft === undefined || !onRename) return;
+    lock.current = true;
+    setPending(true);
+    setError(undefined);
+    try {
+      const next = validName(draft);
+      if (next !== name) await onRename(next);
+      restoreFocus.current = returnFocus;
+      setDraft(undefined);
+      setError(undefined);
+    } catch (reason) {
+      const message = messageFor(reason, labels);
+      setError(message);
+      add({ title: message, type: "error", data: { closeLabel: labels.close } });
+    } finally {
+      lock.current = false;
+      setPending(false);
+    }
+  }
+  return (
+    <h2
+      className="relative min-w-0 font-medium"
+      aria-current="page"
+      aria-label={name}
+      aria-busy={pending}
+    >
+      {onRename ? (
+        <button
+          ref={trigger}
+          type="button"
+          disabled={disabled}
+          aria-label={`${labels.rename}: ${name}`}
+          className={cn(
+            buttonClass,
+            "max-w-full justify-start px-0 text-left text-base wrap-anywhere",
+            editing && "invisible",
+          )}
+          onClick={() => {
+            setError(undefined);
+            setDraft(name);
+          }}
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="block py-1.5 wrap-anywhere">{name}</span>
+      )}
+      {editing && (
+        <input
+          ref={input}
+          aria-label={labels.name}
+          aria-invalid={!!error}
+          aria-describedby={error ? errorId : undefined}
+          value={draft}
+          readOnly={disabled || pending || !onRename}
+          className={cn(inputClass, "absolute inset-0 h-full px-0 font-medium md:text-base")}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setError(undefined);
+          }}
+          onBlur={() => void save(false)}
+          onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing) return;
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void save(true);
+            } else if (event.key === "Escape" && !lock.current) {
+              event.preventDefault();
+              restoreFocus.current = true;
+              setDraft(undefined);
+              setError(undefined);
+            }
+          }}
+        />
+      )}
+      {error && (
+        <span id={errorId} className="sr-only">
+          {error}
+        </span>
+      )}
+    </h2>
+  );
+}
+
 export function EntryDialog({
   client,
   scope,
@@ -305,7 +422,6 @@ export function EntryDialog({
   entry,
   space,
   onRenameSpace,
-  menu = false,
   deleting = false,
   trashing = false,
   duplicating = false,
@@ -322,7 +438,6 @@ export function EntryDialog({
   entry?: Pick<DriveEntry, "id" | "name">;
   space?: DriveSpace;
   onRenameSpace?: DriveBrowserProps["onRenameSpace"];
-  menu?: boolean;
   deleting?: boolean;
   trashing?: boolean;
   duplicating?: boolean;
@@ -338,7 +453,6 @@ export function EntryDialog({
   const [name, setName] = useState(
     duplicating && entry ? labels.duplicateName(entry.name) : (entry?.name ?? space?.name ?? ""),
   );
-  const menuTrigger = useRef<HTMLButtonElement>(null);
   const [pending, setPending] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(!!onClose && deleting);
   const [error, setError] = useState<string>();
@@ -437,26 +551,7 @@ export function EntryDialog({
   }
   return (
     <Dialog.Root open={open} onOpenChange={changeOpen}>
-      {onClose ? null : menu ? (
-        <DropdownMenu>
-          <IconTooltip label={`${labels.actions}: ${entry?.name ?? space?.name}`}>
-            <DropdownMenuTrigger
-              ref={menuTrigger}
-              disabled={disabled}
-              className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
-              aria-label={`${labels.actions}: ${entry?.name ?? space?.name}`}
-            >
-              <ChevronDownIcon className="size-4 shrink-0" aria-hidden="true" />
-            </DropdownMenuTrigger>
-          </IconTooltip>
-          <DropdownMenuContent className="min-w-40 rounded-xl motion-reduce:animate-none">
-            <DropdownMenuItem onClick={() => changeOpen(true)} className="min-h-10 rounded-md">
-              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.rename}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
+      {onClose ? null : (
         <IconTooltip label={entry ? (deleting ? labels.delete : labels.rename) : undefined}>
           <Dialog.Trigger
             disabled={disabled}
@@ -474,7 +569,7 @@ export function EntryDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
-          finalFocus={returnFocus ?? (menu ? menuTrigger : undefined)}
+          finalFocus={returnFocus}
           onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
           className={cn(
             cardClass,

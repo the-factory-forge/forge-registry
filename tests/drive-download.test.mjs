@@ -23,6 +23,36 @@ const page = (items, nextCursor) => ({
 });
 const signal = () => new AbortController().signal;
 
+void test("space ZIP reads the null parent and includes root files and nested folders", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => new Response("one"));
+  const archive = await downloadFolder(
+    {
+      async listEntries({ parentId }) {
+        if (parentId === null)
+          return page([
+            { ...file, parentId: null },
+            { ...folder, id: "empty", name: "Empty", parentId: null },
+          ]);
+        assert.equal(parentId, "empty");
+        return page([]);
+      },
+      async getDownload() {
+        return { url: "https://storage.example/file" };
+      },
+    },
+    scope,
+    { name: "Customer portal", scope, capabilities: { download: true } },
+    signal(),
+  );
+  const files = unzipSync(new Uint8Array(await archive.arrayBuffer()));
+  assert.deepEqual(Object.keys(files), [
+    "Customer portal/",
+    "Customer portal/résumé.txt",
+    "Customer portal/Empty/",
+  ]);
+  assert.equal(strFromU8(files["Customer portal/résumé.txt"]), "one");
+});
+
 void test("folder ZIP includes every page, nested bytes and empty folders", async (t) => {
   const requests = [];
   t.mock.method(globalThis, "fetch", async () => new Response("one"));

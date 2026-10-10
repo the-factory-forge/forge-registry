@@ -45,7 +45,7 @@ export const driveLabels = {
   first: "First page",
   previous: "Previous page",
   readOnly: "Read-only",
-  drop: "Drop files here or choose Upload files.",
+  drop: "Drop files here or upload from the folder menu.",
   dropActive: "Drop files to upload",
   pending: "Please wait…",
   saved: "Changes saved.",

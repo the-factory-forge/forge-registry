@@ -1,6 +1,11 @@
 import { zipSync } from "fflate";
 
-import type { DriveClient, DriveEntry, DriveScope } from "@/components/plugins/drive/types";
+import type {
+  DriveClient,
+  DriveEntry,
+  DriveScope,
+  DriveSpace,
+} from "@/components/plugins/drive/types";
 import { DriveError, safeDownloadUrl, validName } from "@/components/plugins/drive/utils";
 
 // shortcut: browser ZIPs hold bytes in memory; use server streaming for larger archives.
@@ -10,25 +15,28 @@ const MAX_ENTRIES = 1000;
 export async function downloadFolder(
   client: DriveClient,
   scope: DriveScope,
-  folder: DriveEntry,
+  folder: DriveEntry | DriveSpace,
   signal: AbortSignal,
 ): Promise<Blob> {
   const files: Record<string, Uint8Array> = Object.create(null);
   const pending: { entry: DriveEntry; path: string }[] = [];
-  const visited = new Set<string>();
+  const visited = new Set<string | null>();
   let expectedBytes = 0;
   let receivedBytes = 0;
 
-  async function collect(entry: DriveEntry, prefix: string, depth: number) {
+  async function collect(entry: DriveEntry | DriveSpace, prefix: string, depth: number) {
     signal.throwIfAborted();
-    if (entry.state !== "ready" || visited.has(entry.id)) throw new DriveError("CONFLICT");
+    const id = "kind" in entry ? entry.id : null;
+    if (("kind" in entry && entry.state !== "ready") || visited.has(id))
+      throw new DriveError("CONFLICT");
     if (entry.name !== validName(entry.name)) throw new DriveError("INVALID");
-    visited.add(entry.id);
+    visited.add(id);
     if (visited.size > MAX_ENTRIES || depth > 100) throw new DriveError("DOWNLOAD_LIMIT");
-    const path = `${prefix}${entry.name}${entry.kind === "folder" ? "/" : ""}`;
+    const isFile = "kind" in entry && entry.kind === "file";
+    const path = `${prefix}${entry.name}${isFile ? "" : "/"}`;
     if (Object.hasOwn(files, path)) throw new DriveError("CONFLICT");
     files[path] = new Uint8Array();
-    if (entry.kind === "file") {
+    if (isFile) {
       if (!Number.isSafeInteger(entry.size) || entry.size < 0) throw new DriveError("INVALID");
       expectedBytes += entry.size;
       if (expectedBytes > MAX_BYTES) throw new DriveError("DOWNLOAD_LIMIT");
@@ -38,10 +46,10 @@ export async function downloadFolder(
     let cursor: string | undefined;
     const cursors = new Set<string>();
     do {
-      const page = await client.listEntries({ scope, parentId: entry.id, cursor, signal });
+      const page = await client.listEntries({ scope, parentId: id, cursor, signal });
       if (!page.space.capabilities.download) throw new DriveError("FORBIDDEN");
       for (const child of page.items) {
-        if (child.parentId !== entry.id) throw new DriveError("CONFLICT");
+        if (child.parentId !== id) throw new DriveError("CONFLICT");
         await collect(child, path, depth + 1);
       }
       cursor = page.nextCursor;
@@ -50,7 +58,7 @@ export async function downloadFolder(
     } while (cursor);
   }
 
-  if (folder.kind !== "folder") throw new DriveError("INVALID");
+  if ("kind" in folder && folder.kind !== "folder") throw new DriveError("INVALID");
   await collect(folder, "", 0);
   for (const { entry, path } of pending) {
     signal.throwIfAborted();

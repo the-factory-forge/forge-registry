@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -75,11 +77,12 @@ void test("Drive folders open on hover and keyboard focus without shifting rows"
         path: `/tmp/forge-icons-drive-${width}-${dark ? "dark" : "light"}.png`,
       });
       await page.keyboard.press("Enter");
-      await page.getByRole("button", { name: "New folder", exact: true }).click();
+      await openDriveFolderDialog(page);
       const dialog = page.getByRole("dialog", { name: "New folder", exact: true });
       await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Documents");
       await dialog.getByRole("button", { name: "Create", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
+      await closeDriveNavigation(page);
       const folder = page
         .getByRole("table")
         .getByRole("link", { name: "Documents", exact: true })
@@ -192,7 +195,7 @@ void test("Drive directory actions open every space, including read-only spaces"
         path: `/tmp/forge-drive-open-${width}-${dark ? "dark" : "light"}.png`,
       });
       await page.keyboard.press("Enter");
-      await page.getByRole("button", { name: "New folder", exact: true }).waitFor();
+      await page.locator('[aria-busy="false"] table').waitFor();
       await page
         .getByRole("navigation", { name: "Folder navigation", exact: true })
         .getByRole("link", { name: "Drive", exact: true })

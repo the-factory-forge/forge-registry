@@ -20,7 +20,10 @@ a nested folder tree and optional Trash. The root link uses the same space name
 as the breadcrumb, including after renaming. The breadcrumb stays above the local
 navigation and file table; search stays inside the table panel. On mobile,
 **Drive navigation** opens the drawer. The tree reads one authorized cursor page
-at a time, loads children when expanded, and offers loading and retry feedback.
+at a time and loads children when expanded. While a listing loads, its parent
+folder icon becomes a spinner, with loading text available only to screen readers.
+The icon keeps its size and stops spinning for reduced-motion users. Listing
+errors keep their visible retry feedback.
 The root and folder links use `getFolderHref` and the host link adapter. Trash
 keeps the existing recovery flow and only appears with all required trash methods.
 
@@ -35,6 +38,20 @@ client reads. Favorites, recent changes and sharing
 from the reference application are outside this navigation change.
 
 ## Folder action menu
+
+Create folders and upload files through Add in the root or folder menu. The file
+browser has no separate creation/upload toolbar; drag-and-drop stays available.
+
+The named space root also has a three-dot menu, including when it has no child
+folders. Its Add actions target the space root even while another folder or Trash
+is open. Rename uses the host's optional `onRenameSpace` callback. Download saves
+the whole space as a ZIP using the same limits below. Read-only spaces retain
+Download. Space duplication and deletion are host-record operations and are not
+offered by the Drive menu.
+
+The root's dots remain visible. Child-folder dots appear when their row is hovered
+or contains keyboard focus, and stay visible while the menu is open. Touch devices
+keep all dots visible. The controls keep their space so folder labels do not shift.
 
 Each loaded folder in the tree has a three-dot menu for permitted actions:
 Add > Upload file / Upload folder / Folder, Rename, Duplicate, Download and Move to trash. The menu
@@ -166,15 +183,18 @@ to the Link shim. No router, query, auth, or notification library is needed.
 
 The browser uses one breadcrumb for the directory, space and nested folders.
 `backHref` supplies the optional Drive directory link. Ancestors navigate through
-`getFolderHref`; the current item has a chevron menu with Rename when permitted.
+`getFolderHref`; clicking the current title edits its name inline when permitted.
+Keyboard users can focus the title and press Enter or Space to edit. Enter or
+leaving the field saves; Escape cancels. The field selects the current name,
+retains failed drafts for retry, and prevents duplicate saves while pending.
 Folder renames use `client.rename` and the space's rename capability.
 
 To rename the space's host record, supply `onRenameSpace(name): Promise<void>`
 only when the current user can rename it. The callback must validate the name,
 recheck server authorization, persist the record and invalidate host queries so
 `listEntries` and `listSpaces` return its new name. Without this callback the
-space has no rename menu, independently of file permissions. Failed renames keep
-the dialog and entered name for retry. Existing adapters need no changes unless
+space has no editable title or rename action, independently of file permissions.
+Failed renames keep the entered name for retry and show an error toast. Existing adapters need no changes unless
 they want to enable space renaming; the storage companion does not rename host records.
 
 Folder creation, rename, deletion, and download confirmations appear as

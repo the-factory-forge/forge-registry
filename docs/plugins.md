@@ -29,6 +29,10 @@ is authoritative for files and dependencies.
 Drive folder menus support child-folder creation and ZIP downloads alongside
 uploads, rename, duplication and trash. ZIPs use the existing authenticated reads
 with the browser size limits described in the [Drive guide](./drive.md#folder-action-menu).
+The named space root exposes uploads, folder creation, whole-space ZIP download
+and host-authorized rename through the same three-dot menu.
+The current breadcrumb title supports direct inline renaming with Enter or blur
+to save and Escape to cancel, using the existing permissions and host callback.
 
 Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for the named space root, an
 expandable folder tree and optional Trash. The tree uses the existing scoped

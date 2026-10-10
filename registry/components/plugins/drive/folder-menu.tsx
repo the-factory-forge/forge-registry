@@ -25,22 +25,27 @@ import {
 } from "@/components/dropdown-menu";
 import { IconTooltip } from "@/components/icon-tooltip";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
-import type { DriveCapabilities, DriveClient, DriveEntry } from "@/components/plugins/drive/types";
+import type {
+  DriveCapabilities,
+  DriveClient,
+  DriveEntry,
+  DriveSpace,
+} from "@/components/plugins/drive/types";
 import { buttonClass } from "@/components/plugins/drive/ui";
 import { cn } from "@/components/utils/cn";
 
 export interface DriveFolderMenuProps {
-  entry: DriveEntry;
+  entry: DriveEntry | DriveSpace;
   capabilities?: DriveCapabilities;
   client: DriveClient;
   trashEnabled: boolean;
   disabled: boolean;
   downloading: boolean;
   labels: DriveLabels;
-  onUpload: (entry: DriveEntry, directory: boolean) => void;
-  onDownload: (entry: DriveEntry) => void;
+  onUpload: (entry: DriveEntry | DriveSpace, directory: boolean) => void;
+  onDownload: (entry: DriveEntry | DriveSpace) => void;
   onAction: (
-    entry: DriveEntry,
+    entry: DriveEntry | DriveSpace,
     action: "create" | "rename" | "duplicate" | "trash",
     trigger: HTMLButtonElement | null,
   ) => void;
@@ -60,11 +65,12 @@ export function DriveFolderMenu({
 }: DriveFolderMenuProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const duplicate =
+    "kind" in entry &&
     !!client.duplicateEntry &&
     capabilities?.download &&
     capabilities.upload &&
     capabilities.createFolder;
-  const trash = trashEnabled && capabilities?.delete;
+  const trash = "kind" in entry && trashEnabled && capabilities?.delete;
   if (
     !capabilities ||
     (!capabilities.upload &&
@@ -84,9 +90,16 @@ export function DriveFolderMenu({
           ref={trigger}
           disabled={disabled}
           aria-label={label}
-          className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+          className={cn(buttonClass, "group/drive-folder-menu size-10 shrink-0 p-0 md:size-8")}
         >
-          <EllipsisVerticalIcon className="size-4 shrink-0" aria-hidden="true" />
+          <EllipsisVerticalIcon
+            className={cn(
+              "size-4 shrink-0",
+              "kind" in entry &&
+                "group-focus-within/drive-folder-row:opacity-100 group-hover/drive-folder-row:opacity-100 group-data-popup-open/drive-folder-menu:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:opacity-0",
+            )}
+            aria-hidden="true"
+          />
         </DropdownMenuTrigger>
       </IconTooltip>
       <DropdownMenuContent align="end" className="min-w-52 rounded-xl motion-reduce:animate-none">

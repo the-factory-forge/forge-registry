@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 let browser;
 before(async () => {
@@ -27,7 +29,7 @@ async function preview(t, path, options = {}) {
 
 test("Drive shortcuts validate, create once, retain failed edits, and exclude delete dialogs", async (t) => {
   const page = await preview(t, "/en/projects/portal/drive");
-  await page.getByRole("button", { name: "New folder", exact: true }).click();
+  await openDriveFolderDialog(page);
   const create = page.getByRole("dialog", { name: "New folder", exact: true });
   const name = create.getByRole("textbox", { name: "Name", exact: true });
   await name.press("Meta+Enter");
@@ -37,6 +39,7 @@ test("Drive shortcuts validate, create once, retain failed edits, and exclude de
   await page.screenshot({ path: "/tmp/forge-modal-shortcut-desktop.png" });
   await name.press("Meta+Enter");
   await create.waitFor({ state: "hidden" });
+  await closeDriveNavigation(page);
   const row = page.getByRole("row").filter({ hasText: "Shortcut folder" });
   await row.waitFor();
   assert.equal(await row.count(), 1);

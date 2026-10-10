@@ -23,13 +23,14 @@ type FolderTreeProps = Pick<DriveBrowserProps, "client" | "scope" | "getFolderHr
   labels: DriveLabels;
   linkComponent: NonNullable<DriveBrowserProps["linkComponent"]>;
   onNavigate: () => void;
+  onLoadingChange: (loading: boolean) => void;
   refreshKey: number;
   filesActive: boolean;
   renderActions: (entry: DriveEntry, disabled: boolean) => ReactNode;
 };
 
 export function DriveFolderTree(props: FolderTreeProps) {
-  const { client, scope, parentId, labels, refreshKey } = props;
+  const { client, scope, parentId, labels, refreshKey, onLoadingChange } = props;
   const [page, setPage] = useState<{ refreshKey: number; cursor?: string }>({ refreshKey });
   if (page.refreshKey !== refreshKey) setPage({ refreshKey });
   const cursor = page.refreshKey === refreshKey ? page.cursor : undefined;
@@ -45,6 +46,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
     error?: unknown;
   }>();
   const loading = result?.request !== request;
+  useEffect(() => onLoadingChange(loading), [loading, onLoadingChange]);
   const error = loading ? undefined : result?.error;
   const nextCursor = result?.nextCursor;
   const lock = useRef(false);
@@ -104,42 +106,45 @@ export function DriveFolderTree(props: FolderTreeProps) {
           <FolderNode key={entry.id} {...props} entry={entry} disabled={loading || !!error} />
         ))}
       </ul>
-      <div className="flex h-10 items-center gap-1 px-2 md:h-8">
-        {loading ? (
-          <div className="min-w-0 [&>p]:truncate">
-            <DriveFeedback message={labels.loading} />
-          </div>
-        ) : error ? (
-          <>
-            <p role="alert" className="min-w-0 flex-1 truncate text-sm text-destructive">
-              {messageFor(error, labels)}
-            </p>
-            <IconTooltip label={`${messageFor(error, labels)} ${labels.retry}`}>
-              <button
-                type="button"
-                aria-label={`${messageFor(error, labels)} ${labels.retry}`}
-                className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring md:size-8"
-                onClick={() => setRevision((value) => value + 1)}
-              >
-                <RefreshCwIcon className="size-4" aria-hidden="true" />
-              </button>
-            </IconTooltip>
-          </>
-        ) : nextCursor ? (
-          <button
-            type="button"
-            className={sidebarNavItemClass}
-            disabled={loading}
-            onClick={() => {
-              if (loading || lock.current) return;
-              lock.current = true;
-              setPage({ refreshKey, cursor: nextCursor });
-            }}
-          >
-            <span className="truncate">{labels.loadMoreFolders}</span>
-          </button>
-        ) : null}
-      </div>
+      {loading && (
+        <div className="sr-only">
+          <DriveFeedback message={labels.loading} />
+        </div>
+      )}
+      {(!!error || !!nextCursor) && (
+        <div className="flex h-10 items-center gap-1 px-2 md:h-8">
+          {error ? (
+            <>
+              <p role="alert" className="min-w-0 flex-1 truncate text-sm text-destructive">
+                {messageFor(error, labels)}
+              </p>
+              <IconTooltip label={`${messageFor(error, labels)} ${labels.retry}`}>
+                <button
+                  type="button"
+                  aria-label={`${messageFor(error, labels)} ${labels.retry}`}
+                  className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring md:size-8"
+                  onClick={() => setRevision((value) => value + 1)}
+                >
+                  <RefreshCwIcon className="size-4" aria-hidden="true" />
+                </button>
+              </IconTooltip>
+            </>
+          ) : nextCursor ? (
+            <button
+              type="button"
+              className={sidebarNavItemClass}
+              disabled={loading}
+              onClick={() => {
+                if (loading || lock.current) return;
+                lock.current = true;
+                setPage({ refreshKey, cursor: nextCursor });
+              }}
+            >
+              <span className="truncate">{labels.loadMoreFolders}</span>
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -167,11 +172,12 @@ function FolderNode({
   const [expansion, setExpansion] = useState({ active, open: active });
   if (expansion.active !== active) setExpansion({ active, open: expansion.open || active });
   const open = expansion.open;
+  const [loading, setLoading] = useState(true);
   const toggleLabel = `${open ? labels.collapseFolder : labels.expandFolder}: ${entry.name}`;
   return (
     <li>
       <Collapsible.Root open={open} onOpenChange={(open) => setExpansion({ active, open })}>
-        <div className="flex items-center gap-1">
+        <div className="group/drive-folder-row flex items-center gap-1">
           <IconTooltip label={toggleLabel}>
             <Collapsible.Trigger
               aria-label={toggleLabel}
@@ -207,14 +213,16 @@ function FolderNode({
                 onNavigate();
             }}
           >
-            <DriveFolderIcon open={open || active} />
+            <DriveFolderIcon open={open || active} loading={open && loading} />
             <span className="min-w-0 wrap-anywhere">{entry.name}</span>
           </HostLink>
           {"kind" in entry && props.renderActions(entry, disabled)}
         </div>
         <Collapsible.Panel>
           <div className="ml-4 border-l border-sidebar-border pl-2">
-            {open && <DriveFolderTree {...props} parentId={entry.id} />}
+            {open && (
+              <DriveFolderTree {...props} parentId={entry.id} onLoadingChange={setLoading} />
+            )}
           </div>
         </Collapsible.Panel>
       </Collapsible.Root>

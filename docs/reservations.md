@@ -132,6 +132,12 @@ booking requires 30 minutes of preparation. Both slots still respect their arriv
 window. Pending and confirmed stays block time, including intermediate dates.
 
 Forms show arrival/departure inputs, a calendar range, arrival choices and a review.
+Focusing either date input selects which endpoint the calendar edits; no separate
+arrival/departure buttons are shown.
+While Departure date is active, clicking a date before the selected arrival sets
+that date as the new arrival, activates Arrival date and focuses its input. The
+departure stays unchanged. Dates on or after arrival still follow the minimum-night
+restriction for departure; a date between the two endpoints edits departure.
 Private and staff rescheduling use the same rules. Details and emails show both
 endpoints and nights. Year counts every local date intersecting arrival-to-checkout,
 including checkout day when checkout is after midnight; cleanup is not another stay.
@@ -221,6 +227,9 @@ object so loading does not restart on every parent render. Settings support
 `editor={{ kind: "service" | "resource", id }}` with `id: "new"` for creation.
 Use dedicated host routes for these editors. The optional `onSaved(kind, id)` can
 navigate a new item to its edit URL. The showroom demonstrates these adapters.
+
+`ReservationsCalendar` opens in Agenda on desktop and mobile. Staff can switch to
+Year, Month, Week or Day using the calendar toolbar.
 
 `ReservationsCalendar` accepts optional controlled `filters` and `onFiltersChange`
 props using the exported `ReservationFilters` type. It contains `resourceId`,

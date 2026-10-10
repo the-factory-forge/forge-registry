@@ -287,7 +287,7 @@ export function ReservationsCalendar({
           <FullCalendar
             controller={calendar}
             plugins={[classicTheme, dayGridPlugin, timeGridPlugin, listPlugin]}
-            initialView={mobile ? "listWeek" : "timeGridWeek"}
+            initialView="listWeek"
             initialDate={initialDate}
             locale={locale}
             timeZone={config.value.settings.timeZone}

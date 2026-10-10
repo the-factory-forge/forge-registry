@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -40,11 +42,12 @@ async function navigation(page, label = "Drive navigation") {
 }
 
 async function createFolder(page, name) {
-  await page.getByRole("button", { name: "New folder", exact: true }).click();
+  await openDriveFolderDialog(page);
   const dialog = page.getByRole("dialog", { name: "New folder", exact: true });
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill(name);
   await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
+  await closeDriveNavigation(page);
   await page.getByRole("table").getByRole("link", { name, exact: true }).waitFor();
 }
 
@@ -99,6 +102,7 @@ test("Drive sidebar expands folders, selects descendants and returns from Trash 
       await createFolder(page, "Assets");
       await createFolder(page, "Archive");
       await page.getByRole("table").getByRole("link", { name: "Assets", exact: true }).click();
+      await page.getByRole("heading", { name: "Assets", exact: true }).waitFor();
       await createFolder(page, "Brand");
       let nav = await navigation(page);
       await nav.getByRole("link", { name: "Studio website", exact: true }).click();
@@ -147,22 +151,110 @@ test("Drive sidebar expands folders, selects descendants and returns from Trash 
     }
 });
 
+void test("Drive folder loading replaces icons without visible text or shifting navigation", async (t) => {
+  for (const width of [390, 1440])
+    for (const theme of ["light", "dark"]) {
+      const page = await preview(t, "/en/drive/project/website", width, theme);
+      await createFolder(page, "Assets");
+      let nav = await navigation(page);
+      const root = nav.getByRole("link").first();
+      const folder = nav.getByRole("link", { name: "Folder: Assets", exact: true });
+      await root.locator(".lucide-folder-open").waitFor();
+      const position = await root.boundingBox();
+      const now = new Date();
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(new Date(now.getTime() + 1000));
+      await nav.getByRole("button", { name: "Expand folder: Assets", exact: true }).click();
+      const spinner = folder.locator(".lucide-loader-circle");
+      await spinner.waitFor();
+      assert.equal(await folder.locator(".lucide-folder-open").count(), 0);
+      assert.equal(await spinner.evaluate((icon) => getComputedStyle(icon).animationName), "none");
+      assert.equal(
+        await nav.getByRole("status").evaluate((node) => !!node.closest(".sr-only")),
+        true,
+      );
+      const folderPosition = await folder.boundingBox();
+      const trashPosition = await nav
+        .getByRole("button", { name: "Trash", exact: true })
+        .boundingBox();
+      await page.screenshot({ path: `/tmp/drive-folder-spinner-${width}-${theme}.png` });
+      await page.clock.runFor(200);
+      await folder.locator(".lucide-folder-open").waitFor();
+      assert.deepEqual(await folder.boundingBox(), folderPosition);
+      assert.deepEqual(
+        await nav.getByRole("button", { name: "Trash", exact: true }).boundingBox(),
+        trashPosition,
+      );
+      const treeHeights = await nav.locator('[aria-busy="false"]').evaluateAll((trees) =>
+        trees.map((tree) => ({
+          actual: tree.getBoundingClientRect().height,
+          folders: tree.querySelector(":scope > ul").getBoundingClientRect().height,
+        })),
+      );
+      for (const { actual, folders } of treeHeights)
+        assert.equal(actual, folders, "Folder trees must not reserve empty feedback rows");
+      await page.clock.resume();
+      await closeDriveNavigation(page);
+      await page.getByLabel("Directory state").selectOption("loading");
+      nav = await navigation(page);
+      await root.locator(".lucide-loader-circle").waitFor();
+      assert.deepEqual(await root.boundingBox(), position);
+      assert.equal(
+        await nav
+          .getByRole("status")
+          .evaluateAll((nodes) => nodes.every((node) => !!node.closest(".sr-only"))),
+        true,
+      );
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      assert.equal(
+        await root
+          .locator(".lucide-loader-circle")
+          .evaluate((icon) => getComputedStyle(icon).animationName),
+        "spin",
+      );
+      await page.screenshot({ path: `/tmp/drive-root-spinner-${width}-${theme}.png` });
+      await closeDriveNavigation(page);
+      await page.getByLabel("Directory state").selectOption("error");
+      nav = await navigation(page);
+      await root.locator(".lucide-folder-open").waitFor();
+      await nav.getByRole("alert").first().waitFor();
+      assert.equal(await root.locator(".lucide-loader-circle").count(), 0);
+      await closeDriveNavigation(page);
+      await page.getByLabel("Directory state").selectOption("ready");
+      nav = await navigation(page);
+      await root.locator(".lucide-folder-open").waitFor();
+      await page.waitForFunction(
+        () => !document.querySelector('nav[aria-label="Drive navigation"] [aria-busy="true"]'),
+      );
+      assert.equal(await nav.getByRole("status").count(), 0);
+      await page.close();
+    }
+});
+
 test("Drive tree paginates folders and recovers from listing errors", async (t) => {
   const page = await preview(t, "/en/drive/project/website");
   for (let index = 0; index < 11; index++) {
-    await page.getByRole("button", { name: "New folder", exact: true }).click();
+    await openDriveFolderDialog(page);
     const dialog = page.getByRole("dialog", { name: "New folder", exact: true });
     await dialog
       .getByRole("textbox", { name: "Name", exact: true })
       .fill(`Folder ${String(index).padStart(2, "0")}`);
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
+    await closeDriveNavigation(page);
   }
   const nav = await navigation(page);
   await nav.getByRole("button", { name: "Load more folders", exact: true }).click();
   await nav.getByRole("link", { name: "Folder: Folder 10", exact: true }).waitFor();
   const positions = async () => ({
-    folder: await nav.getByRole("link", { name: "Folder: Folder 00", exact: true }).boundingBox(),
+    folder: await nav
+      .getByRole("link", { name: "Folder: Folder 00", exact: true })
+      .evaluate((node) => ({
+        top:
+          node.getBoundingClientRect().top -
+          node.closest("[aria-busy]").getBoundingClientRect().top,
+        height: node.getBoundingClientRect().height,
+      })),
     trash: await nav.getByRole("button", { name: "Trash", exact: true }).boundingBox(),
   });
   const settled = await positions();
@@ -171,10 +263,10 @@ test("Drive tree paginates folders and recovers from listing errors", async (t) 
   assert.deepEqual(await positions(), settled);
   await page.getByLabel("Directory state").selectOption("error");
   await nav.getByRole("alert").waitFor();
-  assert.deepEqual(await positions(), settled);
+  assert.deepEqual((await positions()).folder, settled.folder);
   await nav.getByRole("button", { name: /Retry$/ }).click();
   await nav.getByRole("alert").waitFor();
-  assert.deepEqual(await positions(), settled);
+  assert.deepEqual((await positions()).folder, settled.folder);
   await page.getByLabel("Directory state").selectOption("ready");
   await nav.getByRole("link", { name: "Folder: Folder 00", exact: true }).waitFor();
   await nav.getByRole("alert").waitFor({ state: "hidden" });

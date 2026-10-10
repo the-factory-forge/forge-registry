@@ -313,7 +313,10 @@ export function DatePicker({
             <button
               type="button"
               key={value}
-              disabled={(!!minDate && value < minDate) || (!!availability && !dates.value?.[value])}
+              disabled={
+                (!!minDate && value < minDate && (!range || value >= range.from)) ||
+                (!!availability && !dates.value?.[value])
+              }
               aria-pressed={range ? value >= range.from && value <= range.to : date === value}
               aria-label={new Intl.DateTimeFormat(locale, {
                 dateStyle: "full",
@@ -384,6 +387,7 @@ export function StayDatePicker({
   locale: string;
 }) {
   const [endpoint, setEndpoint] = useState<"arrival" | "departure">("arrival");
+  const arrivalInput = useRef<HTMLInputElement>(null);
   const departureInput = useRef<HTMLInputElement>(null);
   const choose = (value: string, part = endpoint) => {
     if (part === "arrival") {
@@ -401,7 +405,7 @@ export function StayDatePicker({
               type="date"
               required
               className={fieldClass}
-              ref={part === "departure" ? departureInput : undefined}
+              ref={part === "departure" ? departureInput : arrivalInput}
               value={part === "arrival" ? arrival : departure}
               min={
                 part === "departure"
@@ -416,30 +420,18 @@ export function StayDatePicker({
           </Field>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={endpoint === "arrival" ? primaryClass : buttonClass}
-          aria-pressed={endpoint === "arrival"}
-          onClick={() => setEndpoint("arrival")}
-        >
-          {labels.arrivalDate}
-        </button>
-        <button
-          type="button"
-          className={endpoint === "departure" ? primaryClass : buttonClass}
-          aria-pressed={endpoint === "departure"}
-          onClick={() => setEndpoint("departure")}
-        >
-          {labels.departureDate}
-        </button>
-      </div>
       <DatePicker
         key={endpoint + (endpoint === "arrival" ? arrival.slice(0, 7) : departure.slice(0, 7))}
         date={endpoint === "arrival" ? arrival : departure}
         onChange={(value) => {
-          choose(value);
-          if (endpoint === "arrival") departureInput.current?.focus();
+          if (endpoint === "departure" && value < arrival) {
+            onChange(value, departure);
+            setEndpoint("arrival");
+            arrivalInput.current?.focus();
+          } else {
+            choose(value);
+            if (endpoint === "arrival") departureInput.current?.focus();
+          }
         }}
         labels={labels}
         locale={locale}

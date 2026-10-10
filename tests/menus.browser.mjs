@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
+import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 let browser;
@@ -738,11 +739,12 @@ test("staff taxonomy and nested photo folders work with keyboard navigation on m
     .waitFor();
   await page.getByRole("link", { name: "Back to items" }).click();
   await page.getByRole("link", { name: "Edit item: Burrata with tomatoes" }).click();
-  await page.getByRole("button", { name: "New folder" }).click();
+  await openDriveFolderDialog(page);
   const folderDialog = page.getByRole("dialog", { name: "New folder" });
   await folderDialog.getByRole("textbox", { name: "Name" }).fill("Photos");
   await folderDialog.getByRole("button", { name: "Create" }).click();
   await folderDialog.waitFor({ state: "hidden" });
+  await closeDriveNavigation(page);
   await page.getByRole("link", { name: "Photos", exact: true }).click();
   await page
     .getByRole("navigation", { name: "Folder navigation" })
