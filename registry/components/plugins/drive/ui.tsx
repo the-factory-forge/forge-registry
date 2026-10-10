@@ -214,7 +214,7 @@ export function DriveToasts({
             <div className="flex items-center gap-3">
               {toast.type === "loading" ? (
                 <LoaderCircleIcon
-                  className="size-5 shrink-0 text-muted-foreground motion-safe:animate-spin"
+                  className="size-5 shrink-0 text-status-pending-foreground motion-safe:animate-spin"
                   aria-hidden="true"
                 />
               ) : toast.type === "success" ? (
@@ -256,35 +256,48 @@ export function DriveToasts({
                   <li key={upload.id} className="space-y-2">
                     <span className="block text-sm break-all">{upload.file.name}</span>
                     <progress
-                      className="h-2 w-full accent-primary"
+                      className={cn(
+                        "h-2 w-full appearance-none bg-muted [&::-moz-progress-bar]:bg-current [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-current",
+                        upload.state === "done"
+                          ? "text-status-success-foreground"
+                          : upload.state === "failed" || upload.state === "cancelFailed"
+                            ? "text-destructive"
+                            : upload.state === "cancelled"
+                              ? "text-status-canceled-foreground"
+                              : "text-status-pending-foreground",
+                      )}
                       max={100}
                       value={upload.progress}
                       aria-label={labels.progress(upload.file.name)}
                     />
-                    <DriveFeedback
-                      message={labels[upload.state]}
-                      error={upload.state === "failed" || upload.state === "cancelFailed"}
-                    />
                     {upload.error !== undefined && (
                       <DriveFeedback message={messageFor(upload.error, labels)} error />
                     )}
-                    <div className="flex flex-wrap gap-2">
-                      {["failed", "cancelFailed"].includes(upload.state) && (
-                        <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
-                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                          {labels.retry}
-                        </button>
-                      )}
-                      {["queued", "uploading", "failed"].includes(upload.state) && (
-                        <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
-                          {labels.cancel}
-                        </button>
-                      )}
-                      {["done", "cancelled"].includes(upload.state) && (
-                        <button className={buttonClass} onClick={() => dismiss(upload.id)}>
-                          {labels.dismiss}
-                        </button>
-                      )}
+                    <div className="flex min-h-10 flex-wrap items-center gap-2 md:min-h-8">
+                      <div className="min-w-0 flex-1">
+                        <DriveFeedback
+                          message={labels[upload.state]}
+                          error={upload.state === "failed" || upload.state === "cancelFailed"}
+                        />
+                      </div>
+                      <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2">
+                        {["failed", "cancelFailed"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => queue.retry(upload.id)}>
+                            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                            {labels.retry}
+                          </button>
+                        )}
+                        {["queued", "uploading", "failed"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => queue.cancel(upload.id)}>
+                            {labels.cancel}
+                          </button>
+                        )}
+                        {["done", "cancelled"].includes(upload.state) && (
+                          <button className={buttonClass} onClick={() => dismiss(upload.id)}>
+                            {labels.dismiss}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}

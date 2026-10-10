@@ -44,6 +44,19 @@
       ]
     },
     {
+      "name": "editor-form",
+      "type": "registry:lib",
+      "title": "Plugin editor forms",
+      "description": "Shared sticky actions and accessible field validation for standalone plugin editors.",
+      "files": [
+        {
+          "path": "registry/components/utils/editor-form.tsx",
+          "type": "registry:lib",
+          "target": "@components/utils/editor-form.tsx"
+        }
+      ]
+    },
+    {
       "name": "icon-tooltip",
       "type": "registry:ui",
       "title": "Icon tooltip",
@@ -727,6 +740,46 @@
       "registryDependencies": ["@forge/footer"]
     },
     {
+      "name": "sidebar-navigation",
+      "type": "registry:component",
+      "title": "Sidebar navigation",
+      "description": "Shared grouped and nested navigation for intranet and subpage sidebars.",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/icon-tooltip"],
+      "files": [
+        {
+          "path": "registry/components/sidebar-navigation.tsx",
+          "type": "registry:component",
+          "target": "@components/sidebar-navigation.tsx"
+        },
+        {
+          "path": "registry/components/utils/intranet-sidebar-active.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/intranet-sidebar-active.ts"
+        },
+        {
+          "path": "registry/components/utils/use-sidebar-mobile.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/use-sidebar-mobile.ts"
+        }
+      ]
+    },
+    {
+      "name": "subpage-sidebar",
+      "type": "registry:component",
+      "title": "Subpage sidebar",
+      "description": "Page-local grouped and nested navigation with a mobile drawer, using the intranet sidebar navigation.",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/sidebar-navigation", "@forge/cn", "@forge/icon-tooltip"],
+      "files": [
+        {
+          "path": "registry/components/subpage-sidebar.tsx",
+          "type": "registry:component",
+          "target": "@components/subpage-sidebar.tsx"
+        }
+      ]
+    },
+    {
       "name": "intranet-sidebar",
       "type": "registry:block",
       "title": "Intranet Sidebar",
@@ -736,18 +789,14 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/auth",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/sidebar-navigation"
       ],
       "files": [
         {
           "path": "registry/components/intranet-sidebar.tsx",
           "type": "registry:component",
           "target": "@components/intranet-sidebar.tsx"
-        },
-        {
-          "path": "registry/components/utils/intranet-sidebar-active.ts",
-          "type": "registry:lib",
-          "target": "@components/utils/intranet-sidebar-active.ts"
         },
         {
           "path": "registry/components/utils/plugin-icons.ts",
@@ -816,6 +865,7 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
+        "@forge/editor-form",
         "@forge/dropdown-menu"
       ]
     },
@@ -866,14 +916,15 @@
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/editor-form"
       ]
     },
     {
       "name": "drive",
       "type": "registry:block",
       "title": "Drive",
-      "description": "Standalone and embeddable file browser for any host entity.",
+      "description": "Scoped file browser with folder-tree navigation, uploads, downloads and optional trash.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/table-pagination",
@@ -885,7 +936,9 @@
         "@forge/native-select",
         "@forge/dropdown-menu",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/sidebar-navigation",
+        "@forge/subpage-sidebar"
       ],
       "files": [
         {
@@ -927,6 +980,11 @@
           "path": "registry/components/plugins/drive/trash.tsx",
           "type": "registry:component",
           "target": "@components/plugins/drive/trash.tsx"
+        },
+        {
+          "path": "registry/components/plugins/drive/folder-tree.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/folder-tree.tsx"
         }
       ]
     },
@@ -995,7 +1053,8 @@
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/editor-form"
       ],
       "files": [
         {
@@ -1091,7 +1150,8 @@
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/editor-form"
       ],
       "files": [
         {
@@ -1374,6 +1434,7 @@
         "@forge/ui-shims",
         "@forge/dialog-submit",
         "@forge/native-select",
+        "@forge/table-styles",
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip"

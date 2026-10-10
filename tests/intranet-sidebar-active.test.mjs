@@ -49,3 +49,9 @@ test("a parent link is the current page only for its own exact destination", () 
   assert.equal(itemIsActive(destination, "/projects"), true);
   assert.equal(itemIsActive(destination, "/projects/design"), false);
 });
+
+test("controlled subpage selections activate their parent group without changing route matching", () => {
+  assert.equal(itemIsActive({ active: true }, "/drive"), true);
+  assert.equal(itemIsActive({ active: false }, "/drive"), false);
+  assert.equal(itemIsActive({ items: [{ active: true }] }, "/drive"), true);
+});

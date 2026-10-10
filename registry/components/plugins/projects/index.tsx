@@ -28,6 +28,8 @@ import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -137,7 +139,7 @@ function ProjectsListContent({
                   scope="col"
                   className={
                     index === (customerId === undefined ? 5 : 4)
-                      ? tableActionCellClass
+                      ? tableActionHeaderClass
                       : tableHeaderClass
                   }
                 >
@@ -166,7 +168,7 @@ function ProjectsListContent({
                   <td className={tableCellClass}>
                     <ProjectLink
                       href={getProjectHref(project)}
-                      className="font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                      className="font-medium whitespace-nowrap hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {project.name}
                     </ProjectLink>
@@ -231,7 +233,7 @@ function ProjectsListContent({
                     />
                   </td>
                   <td className={tableActionCellClass}>
-                    <div className="flex items-start justify-end gap-1">
+                    <div className={tableActionsClass}>
                       <IconTooltip label={labels.edit(project.name)}>
                         <ProjectLink
                           href={getProjectHref(project)}

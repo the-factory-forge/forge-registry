@@ -85,6 +85,11 @@ export const blogsLabels = {
   addTranslation: "Add translation",
   translationHint: "Write this language version and save it as a draft.",
   required: "Complete the required fields.",
+  fieldRequired: "This field is required to publish.",
+  slugInvalid: "Use lowercase letters, numbers, and single hyphens between words.",
+  contentTooLong: "The content exceeds the allowed size. Shorten it before saving.",
+  categoryTranslationRequired:
+    "Translate this category’s name in Manage categories, or deselect it.",
   publicationHint:
     "Publishing requires a title, slug, content, and translated names for selected categories.",
   CONFLICT:

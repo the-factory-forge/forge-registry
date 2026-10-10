@@ -3,7 +3,6 @@
 import { Toast } from "@base-ui/react/toast";
 import {
   RefreshCwIcon,
-  ArrowLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   ExternalLinkIcon,
@@ -18,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { TrashBrowser } from "@/components/plugins/drive/trash";
 import type {
@@ -51,11 +51,14 @@ import {
   safeDownloadUrl,
   scopeKey,
 } from "@/components/plugins/drive/utils";
+import { SubpageSidebar } from "@/components/subpage-sidebar";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -155,7 +158,7 @@ export function DrivePage({
                 />
                 <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
                 <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
-                <th scope="col" className={tableActionCellClass}>
+                <th scope="col" className={tableActionHeaderClass}>
                   {labels.actions}
                 </th>
               </tr>
@@ -490,37 +493,6 @@ function Browser({
       setDownloading(false);
     }
   }
-  if (trashView && trashEnabled)
-    return (
-      <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
-        <DriveFeedback
-          message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
-          error
-        />
-        <button
-          className={buttonClass}
-          onClick={() => {
-            setTrashView(false);
-            refresh();
-          }}
-        >
-          <ArrowLeftIcon aria-hidden="true" />
-          {labels.root}
-        </button>
-        <h2 className="text-xl font-semibold">
-          {data?.space.name ?? labels.title} · {labels.trash}
-        </h2>
-        <TrashBrowser
-          client={client}
-          scope={scope}
-          labels={labels}
-          locale={locale}
-          refreshKey={revision}
-          onChanged={refresh}
-        />
-        <DriveToasts labels={labels} queue={queue} />
-      </section>
-    );
   return (
     <section className={cn("space-y-5 text-foreground", className)} aria-label={labels.title}>
       <DriveFeedback
@@ -606,296 +578,388 @@ function Browser({
           </IconTooltip>
         )}
       </div>
-      <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
-        {trashEnabled && (
-          <button className={buttonClass} onClick={() => setTrashView(true)}>
-            <Trash2Icon aria-hidden="true" />
-            {labels.trash}
-          </button>
-        )}
-        <TableSearch
-          value={search}
-          label={labels.searchFiles}
-          clearLabel={labels.clearSearch}
-          onValueChange={(value) => {
-            setSearch(value);
-            setCursors([]);
-          }}
-        />
-        {capabilities?.createFolder && (
-          <EntryDialog
-            client={actionClient}
-            scope={scope}
-            parentId={parentId}
-            disabled={actionsDisabled}
-            labels={labels}
-            refresh={() => {
-              refresh();
-              setFeedback(undefined);
-              toastManager.add({ title: labels.saved, type: "success" });
-            }}
-          >
-            <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.newFolder}
-          </EntryDialog>
-        )}
-        {capabilities?.upload && (
-          <>
-            <input
-              ref={fileInput}
-              type="file"
-              accept={uploadAccept}
-              multiple
-              hidden
-              disabled={actionsDisabled}
-              onChange={(event) => {
-                if (!actionsDisabled && event.target.files && data)
-                  queue.add(Array.from(event.target.files), data.maxFileBytes);
-                event.target.value = "";
-              }}
-            />
-            <button
-              className={primaryClass}
-              disabled={actionsDisabled}
-              onClick={() => fileInput.current?.click()}
-            >
-              <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.upload}
-            </button>
-          </>
-        )}
-        {capabilities &&
-          !capabilities.upload &&
-          !capabilities.createFolder &&
-          !capabilities.rename &&
-          !capabilities.delete && (
-            <span className="text-sm text-muted-foreground">{labels.readOnly}</span>
-          )}
-      </div>
-      <DriveFeedback {...feedback} />
-      <div
-        className={cn(tablePanelClass, "overflow-hidden")}
-        aria-busy={loading}
-        onDragOver={(event) => {
-          if (!actionsDisabled && capabilities?.upload) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "copy";
-          }
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          if (actionsDisabled || !capabilities?.upload || !data) return;
-          if (
-            Array.from(event.dataTransfer.items).some(
-              (item) => item.webkitGetAsEntry?.()?.isDirectory,
-            )
-          ) {
-            setFeedback({ message: labels.folderDrop, error: true });
-            return;
-          }
-          queue.add(Array.from(event.dataTransfer.files), data.maxFileBytes);
-        }}
-      >
-        <p
-          className={cn("mb-4 text-sm text-muted-foreground", !capabilities?.upload && "invisible")}
-          aria-hidden={!capabilities?.upload}
-        >
-          {labels.drop} {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
-        </p>
-        <div className="relative overflow-x-auto">
-          <table
-            aria-label={data?.space.name ?? labels.title}
-            className={cn(tableClass, "min-w-[44rem]")}
-          >
-            <caption className="sr-only">
-              <DriveFeedback message={loading && data?.items.length ? labels.loading : undefined} />
-            </caption>
-            <thead>
-              <tr className={tableRowClass}>
-                <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
-                <SortHeading
-                  field="updatedAt"
-                  label={labels.modified}
-                  sort={sort}
-                  onSort={onSort}
+      <div className="flex min-w-0 flex-col gap-5 md:flex-row">
+        <SubpageSidebar
+          label={labels.navigation}
+          closeLabel={labels.closeNavigation}
+          pathname={trashView ? "" : getFolderHref(parentId)}
+          linkComponent={HostLink}
+          groups={[
+            {
+              id: "files",
+              items: [
+                {
+                  id: "all-files",
+                  label: labels.root,
+                  icon: <FolderIcon />,
+                  href: getFolderHref(null),
+                  exact: true,
+                  onNavigate: () => {
+                    setTrashView(false);
+                    refresh();
+                  },
+                },
+              ],
+              footer: (closeNavigation) => (
+                <DriveFolderTree
+                  client={client}
+                  scope={scope}
+                  parentId={null}
+                  currentFolderId={parentId}
+                  breadcrumbs={data?.breadcrumbs ?? []}
+                  labels={labels}
+                  getFolderHref={getFolderHref}
+                  linkComponent={HostLink}
+                  refreshKey={revision}
+                  filesActive={!trashView}
+                  onNavigate={() => {
+                    setTrashView(false);
+                    closeNavigation();
+                  }}
                 />
-                <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
-                <th scope="col" className={tableHeaderClass}>
-                  {labels.owner}
-                </th>
-                <th scope="col" className={tableActionCellClass}>
-                  {labels.actions}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="[&_tr:last-child]:border-0">
-              {(!!error || !data?.items.length) && (
-                <tr>
-                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DriveFeedback
-                        message={
-                          error
-                            ? messageFor(error, labels)
-                            : loading
-                              ? labels.loading
-                              : search
-                                ? labels.noMatches
-                                : labels.empty
-                        }
-                        error={!!error}
-                      />
-                      {!!error && (
-                        <button className={buttonClass} onClick={refresh}>
-                          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                          {labels.retry}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
-              {data &&
-                retainRemovedItems(data.items, result?.data?.items ?? [], optimistic.pending).map(
-                  (entry) => (
-                    <tr
-                      key={entry.id}
-                      hidden={!data.items.some((row) => row.id === entry.id)}
-                      className={tableRowClass}
-                    >
-                      <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
-                        <div className="flex items-center gap-2">
-                          {entry.kind === "folder" ? (
-                            <FolderIcon
-                              className="size-5 shrink-0 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <FileIcon
-                              className="size-5 shrink-0 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          )}
-                          {entry.kind === "folder" && entry.state === "ready" ? (
-                            <HostLink
-                              href={getFolderHref(entry.id)}
-                              aria-disabled={entry.id.startsWith("pending-")}
-                              onClick={(event) => {
-                                if (entry.id.startsWith("pending-")) event.preventDefault();
-                              }}
-                              className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                            >
-                              {entry.name}
-                            </HostLink>
-                          ) : (
-                            <span className="break-all">{entry.name}</span>
-                          )}
-                        </div>
-                        {entry.state === "deleting" && (
-                          <output className="mt-1 block text-xs text-muted-foreground">
-                            {labels.deleting}
-                          </output>
-                        )}
-                      </td>
-                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                        <DriveModified
-                          value={entry.updatedAt}
-                          locale={locale}
-                          fallback={labels.unavailable}
-                        />
-                      </td>
-                      <td className={cn(tableCellClass, "whitespace-nowrap text-muted-foreground")}>
-                        <DriveSize
-                          value={entry.kind === "file" ? entry.size : undefined}
-                          locale={locale}
-                          fallback={labels.unavailable}
-                        />
-                      </td>
-                      <td className={cn(tableCellClass, "text-muted-foreground")}>
-                        <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
-                      </td>
-                      <td className={tableActionCellClass}>
-                        <div className="flex justify-end gap-2">
-                          {onSelectFile &&
-                            entry.kind === "file" &&
-                            entry.state === "ready" &&
-                            (!isSelectableFile || isSelectableFile(entry)) && (
-                              <button
-                                type="button"
-                                className={buttonClass}
-                                disabled={actionsDisabled}
-                                onClick={() => onSelectFile(entry)}
-                              >
-                                {selectFileLabel}
-                              </button>
-                            )}
-                          {entry.state === "ready" &&
-                            capabilities?.download &&
-                            entry.kind === "file" && (
-                              <IconTooltip label={labels.download}>
-                                <button
-                                  className={iconButtonClass}
-                                  aria-label={labels.download}
-                                  disabled={actionsDisabled || downloading}
-                                  onClick={() => void download(entry)}
-                                >
-                                  <DownloadIcon aria-hidden="true" />
-                                </button>
-                              </IconTooltip>
-                            )}
-                          {entry.state === "ready" && capabilities?.rename && (
-                            <EntryDialog
-                              client={actionClient}
-                              scope={scope}
-                              parentId={parentId}
-                              entry={entry}
-                              disabled={actionsDisabled}
-                              labels={labels}
-                              refresh={() => {
-                                refresh();
-                                setFeedback(undefined);
-                                toastManager.add({ title: labels.saved, type: "success" });
-                              }}
-                            >
-                              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                            </EntryDialog>
-                          )}
-                          {capabilities?.delete && (
-                            <EntryDialog
-                              client={actionClient}
-                              scope={scope}
-                              parentId={parentId}
-                              entry={entry}
-                              deleting
-                              trashing={trashEnabled && entry.state === "ready"}
-                              disabled={actionsDisabled}
-                              labels={labels}
-                              refresh={() => deleted(entry)}
-                            >
-                              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                            </EntryDialog>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ),
-                )}
-            </tbody>
-          </table>
-        </div>
-        <TablePagination
-          label={labels.title}
-          page={cursors.length + 1}
-          previousLabel={labels.previous}
-          nextLabel={labels.next}
-          previousDisabled={cursors.length === 0}
-          nextDisabled={!!error || !data?.nextCursor}
-          disabled={loading}
-          onPrevious={() => setCursors(cursors.slice(0, -1))}
-          onNext={() => {
-            if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
-          }}
+              ),
+            },
+            ...(trashEnabled
+              ? [
+                  {
+                    id: "trash",
+                    items: [
+                      {
+                        id: "trash",
+                        label: labels.trash,
+                        icon: <Trash2Icon />,
+                        active: trashView,
+                        onSelect: () => setTrashView(true),
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ]}
         />
+        <div className="min-w-0 flex-1 space-y-5">
+          {trashView && trashEnabled ? (
+            <>
+              <h2 className="text-base font-semibold">{labels.trash}</h2>
+              <TrashBrowser
+                client={client}
+                scope={scope}
+                labels={labels}
+                locale={locale}
+                refreshKey={revision}
+                onChanged={refresh}
+              />
+            </>
+          ) : (
+            <>
+              <div className="flex min-h-22 flex-wrap content-end items-center justify-end gap-2 md:min-h-8">
+                {capabilities?.createFolder && (
+                  <EntryDialog
+                    client={actionClient}
+                    scope={scope}
+                    parentId={parentId}
+                    disabled={actionsDisabled}
+                    labels={labels}
+                    refresh={() => {
+                      refresh();
+                      setFeedback(undefined);
+                      toastManager.add({ title: labels.saved, type: "success" });
+                    }}
+                  >
+                    <FolderPlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                    {labels.newFolder}
+                  </EntryDialog>
+                )}
+                {capabilities?.upload && (
+                  <>
+                    <input
+                      ref={fileInput}
+                      type="file"
+                      accept={uploadAccept}
+                      multiple
+                      hidden
+                      disabled={actionsDisabled}
+                      onChange={(event) => {
+                        if (!actionsDisabled && event.target.files && data)
+                          queue.add(Array.from(event.target.files), data.maxFileBytes);
+                        event.target.value = "";
+                      }}
+                    />
+                    <button
+                      className={primaryClass}
+                      disabled={actionsDisabled}
+                      onClick={() => fileInput.current?.click()}
+                    >
+                      <UploadIcon className="size-4 shrink-0" aria-hidden="true" />
+                      {labels.upload}
+                    </button>
+                  </>
+                )}
+                {capabilities &&
+                  !capabilities.upload &&
+                  !capabilities.createFolder &&
+                  !capabilities.rename &&
+                  !capabilities.delete && (
+                    <span className="text-sm text-muted-foreground">{labels.readOnly}</span>
+                  )}
+              </div>
+              <DriveFeedback {...feedback} />
+              <div
+                className={cn(tablePanelClass, "overflow-hidden")}
+                aria-busy={loading}
+                onDragOver={(event) => {
+                  if (!actionsDisabled && capabilities?.upload) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "copy";
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (actionsDisabled || !capabilities?.upload || !data) return;
+                  if (
+                    Array.from(event.dataTransfer.items).some(
+                      (item) => item.webkitGetAsEntry?.()?.isDirectory,
+                    )
+                  ) {
+                    setFeedback({ message: labels.folderDrop, error: true });
+                    return;
+                  }
+                  queue.add(Array.from(event.dataTransfer.files), data.maxFileBytes);
+                }}
+              >
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <p
+                    className={cn(
+                      "text-sm text-muted-foreground",
+                      !capabilities?.upload && "invisible",
+                    )}
+                    aria-hidden={!capabilities?.upload}
+                  >
+                    {labels.drop} {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
+                  </p>
+                  <TableSearch
+                    className="ml-auto"
+                    value={search}
+                    label={labels.searchFiles}
+                    clearLabel={labels.clearSearch}
+                    onValueChange={(value) => {
+                      setSearch(value);
+                      setCursors([]);
+                    }}
+                  />
+                </div>
+                <div className="relative overflow-x-auto">
+                  <table
+                    aria-label={data?.space.name ?? labels.title}
+                    className={cn(tableClass, "min-w-[44rem]")}
+                  >
+                    <caption className="sr-only">
+                      <DriveFeedback
+                        message={loading && data?.items.length ? labels.loading : undefined}
+                      />
+                    </caption>
+                    <thead>
+                      <tr className={tableRowClass}>
+                        <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
+                        <SortHeading
+                          field="updatedAt"
+                          label={labels.modified}
+                          sort={sort}
+                          onSort={onSort}
+                        />
+                        <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                        <th scope="col" className={tableHeaderClass}>
+                          {labels.owner}
+                        </th>
+                        <th scope="col" className={tableActionHeaderClass}>
+                          {labels.actions}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {(!!error || !data?.items.length) && (
+                        <tr>
+                          <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <DriveFeedback
+                                message={
+                                  error
+                                    ? messageFor(error, labels)
+                                    : loading
+                                      ? labels.loading
+                                      : search
+                                        ? labels.noMatches
+                                        : labels.empty
+                                }
+                                error={!!error}
+                              />
+                              {!!error && (
+                                <button className={buttonClass} onClick={refresh}>
+                                  <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                                  {labels.retry}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {data &&
+                        retainRemovedItems(
+                          data.items,
+                          result?.data?.items ?? [],
+                          optimistic.pending,
+                        ).map((entry) => (
+                          <tr
+                            key={entry.id}
+                            hidden={!data.items.some((row) => row.id === entry.id)}
+                            className={tableRowClass}
+                          >
+                            <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
+                              <div className="flex items-center gap-2">
+                                {entry.kind === "folder" ? (
+                                  <FolderIcon
+                                    className="size-5 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                  />
+                                ) : (
+                                  <FileIcon
+                                    className="size-5 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                  />
+                                )}
+                                {entry.kind === "folder" && entry.state === "ready" ? (
+                                  <HostLink
+                                    href={getFolderHref(entry.id)}
+                                    aria-disabled={entry.id.startsWith("pending-")}
+                                    onClick={(event) => {
+                                      if (entry.id.startsWith("pending-")) event.preventDefault();
+                                    }}
+                                    className="rounded break-all hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                  >
+                                    {entry.name}
+                                  </HostLink>
+                                ) : (
+                                  <span className="break-all">{entry.name}</span>
+                                )}
+                              </div>
+                              {entry.state === "deleting" && (
+                                <output className="mt-1 block text-xs text-muted-foreground">
+                                  {labels.deleting}
+                                </output>
+                              )}
+                            </td>
+                            <td
+                              className={cn(
+                                tableCellClass,
+                                "whitespace-nowrap text-muted-foreground",
+                              )}
+                            >
+                              <DriveModified
+                                value={entry.updatedAt}
+                                locale={locale}
+                                fallback={labels.unavailable}
+                              />
+                            </td>
+                            <td
+                              className={cn(
+                                tableCellClass,
+                                "whitespace-nowrap text-muted-foreground",
+                              )}
+                            >
+                              <DriveSize
+                                value={entry.kind === "file" ? entry.size : undefined}
+                                locale={locale}
+                                fallback={labels.unavailable}
+                              />
+                            </td>
+                            <td className={cn(tableCellClass, "text-muted-foreground")}>
+                              <DriveOwner owner={data.space.owner} fallback={labels.unavailable} />
+                            </td>
+                            <td className={tableActionCellClass}>
+                              <div className={tableActionsClass}>
+                                {onSelectFile &&
+                                  entry.kind === "file" &&
+                                  entry.state === "ready" &&
+                                  (!isSelectableFile || isSelectableFile(entry)) && (
+                                    <button
+                                      type="button"
+                                      className={buttonClass}
+                                      disabled={actionsDisabled}
+                                      onClick={() => onSelectFile(entry)}
+                                    >
+                                      {selectFileLabel}
+                                    </button>
+                                  )}
+                                {entry.state === "ready" &&
+                                  capabilities?.download &&
+                                  entry.kind === "file" && (
+                                    <IconTooltip label={labels.download}>
+                                      <button
+                                        className={iconButtonClass}
+                                        aria-label={labels.download}
+                                        disabled={actionsDisabled || downloading}
+                                        onClick={() => void download(entry)}
+                                      >
+                                        <DownloadIcon aria-hidden="true" />
+                                      </button>
+                                    </IconTooltip>
+                                  )}
+                                {entry.state === "ready" && capabilities?.rename && (
+                                  <EntryDialog
+                                    client={actionClient}
+                                    scope={scope}
+                                    parentId={parentId}
+                                    entry={entry}
+                                    disabled={actionsDisabled}
+                                    labels={labels}
+                                    refresh={() => {
+                                      refresh();
+                                      setFeedback(undefined);
+                                      toastManager.add({ title: labels.saved, type: "success" });
+                                    }}
+                                  >
+                                    <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                                  </EntryDialog>
+                                )}
+                                {capabilities?.delete && (
+                                  <EntryDialog
+                                    client={actionClient}
+                                    scope={scope}
+                                    parentId={parentId}
+                                    entry={entry}
+                                    deleting
+                                    trashing={trashEnabled && entry.state === "ready"}
+                                    disabled={actionsDisabled}
+                                    labels={labels}
+                                    refresh={() => deleted(entry)}
+                                  >
+                                    <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                                  </EntryDialog>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+                <TablePagination
+                  label={labels.title}
+                  page={cursors.length + 1}
+                  previousLabel={labels.previous}
+                  nextLabel={labels.next}
+                  previousDisabled={cursors.length === 0}
+                  nextDisabled={!!error || !data?.nextCursor}
+                  disabled={loading}
+                  onPrevious={() => setCursors(cursors.slice(0, -1))}
+                  onNext={() => {
+                    if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <DriveToasts labels={labels} queue={queue} />
     </section>

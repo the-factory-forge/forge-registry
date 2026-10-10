@@ -8,7 +8,7 @@ import {
   SearchIcon,
   type LucideIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 import { TableSearch } from "@/components/table-search";
 import { pluginIcons } from "@/components/utils/plugin-icons";
@@ -28,27 +28,12 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
-      href: "/icon-tooltip",
+      href: "/subpage-sidebar",
       category: "Component",
-      title: "Icon tooltip",
-      description: "Hover and keyboard hints for icon actions, links and dialog controls.",
-      keywords: ["tooltip", "icon", "button", "accessibility"],
-    },
-    {
-      href: "/action-toast",
-      category: "Component",
-      title: "Action toast",
-      description:
-        "Dismissible success feedback for saves and updates, without moving page content.",
-      keywords: ["toast", "feedback", "save", "update", "notification"],
-    },
-    {
-      href: "/native-select",
-      category: "Component",
-      title: "Native select",
-      description:
-        "Consistent dropdown arrow spacing with native keyboard controls and form behavior.",
-      keywords: ["select", "dropdown", "arrow", "form", "control"],
+      title: "Subpage sidebar",
+      description: "Grouped and nested page navigation with active links and a mobile drawer.",
+      tags: ["Navigation", "Nested pages", "Mobile drawer"],
+      keywords: ["sidebar", "sidenav", "subpages", "folders"],
     },
     {
       href: "/en/reservations",
@@ -88,6 +73,14 @@ const examples = (
         "employees",
         "projects",
       ],
+    },
+    {
+      href: "/page-hero",
+      category: "Component",
+      title: "Page header",
+      description:
+        "The shared FAQ and Contact header with breadcrumbs, eyebrow, title, and subtitle.",
+      keywords: ["page hero", "page header", "breadcrumb", "heading", "faq", "contact"],
     },
     {
       href: "/en/faq",
@@ -275,18 +268,22 @@ const examples = (
       keywords: ["newsletter form", "signup form", "email signup"],
     },
     {
-      href: "/en/intranet-sidebar",
-      category: "Component",
-      title: "Intranet sidebar",
-      description: "Customer branding, nested navigation, profile, and responsive drawer.",
-      keywords: ["navigation", "profile", "mobile drawer", "sidebar toggle"],
-    },
-    {
       href: "/en/intranet",
       category: "Layout",
       title: "Intranet shell",
-      description: "Complete workspace shell with sidebar, topbar, banner, and content area.",
-      keywords: ["workspace layout", "sidebar", "topbar", "announcement banner", "content area"],
+      description:
+        "Complete workspace with a branded sidebar, nested navigation, user profile, mobile drawer, topbar, banner, and content area.",
+      keywords: [
+        "workspace layout",
+        "intranet sidebar",
+        "navigation",
+        "profile",
+        "mobile drawer",
+        "sidebar toggle",
+        "topbar",
+        "announcement banner",
+        "content area",
+      ],
     },
   ] satisfies {
     href: string;
@@ -305,8 +302,9 @@ const types: (Category | "All")[] = [
 ];
 
 function Home() {
-  const [type, setType] = useState("All");
-  const [search, setSearch] = useState("");
+  const { category, search = "" } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const type = types.find((option) => option === category) ?? "All";
   const allFilterRef = useRef<HTMLButtonElement>(null);
   const query = search.trim().toLowerCase();
   const visibleExamples = examples.filter(
@@ -316,6 +314,14 @@ function Home() {
         value.toLowerCase().includes(query),
       ),
   );
+
+  function updateFilters(filters: { category?: Category; search?: string }) {
+    void navigate({
+      search: (previous) => ({ ...previous, ...filters }),
+      replace: true,
+      resetScroll: false,
+    });
+  }
 
   return (
     <ShowroomPreview>
@@ -341,7 +347,7 @@ function Home() {
                 ref={option === "All" ? allFilterRef : undefined}
                 type="button"
                 aria-pressed={type === option}
-                onClick={() => setType(option)}
+                onClick={() => updateFilters({ category: option === "All" ? undefined : option })}
                 className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none ${
                   type === option
                     ? "border-primary bg-primary text-primary-foreground"
@@ -361,7 +367,7 @@ function Home() {
         </fieldset>
         <TableSearch
           value={search}
-          onValueChange={setSearch}
+          onValueChange={(value) => updateFilters({ search: value || undefined })}
           label="Search examples"
           placeholder="Search titles or keywords..."
           alwaysExpanded
@@ -380,8 +386,7 @@ function Home() {
           <button
             type="button"
             onClick={() => {
-              setType("All");
-              setSearch("");
+              updateFilters({ category: undefined, search: undefined });
               allFilterRef.current?.focus();
             }}
             className="min-h-9 cursor-pointer rounded-lg px-3 text-sm font-medium text-primary underline-offset-4 hover:bg-primary/5 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

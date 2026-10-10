@@ -23,6 +23,7 @@ import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -157,7 +158,7 @@ function EmployeesPageContent({
                 <th scope="col" className={tableHeaderClass}>
                   {labels.website}
                 </th>
-                <th scope="col" className={tableActionCellClass}>
+                <th scope="col" className={tableActionHeaderClass}>
                   {labels.actions}
                 </th>
               </tr>

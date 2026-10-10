@@ -138,16 +138,17 @@ export function BookingForm({
   const action = useReservationAction();
   const service = catalog.services.find((s) => s.id === serviceId);
   const stay = catalog.mode === "stay";
-  const loadSlots = useCallback(
-    () =>
+  const availability = useCallback(
+    (selectedDate: string) =>
       client.availability({
         serviceId,
         resourceId: resourceId || undefined,
-        date,
+        date: selectedDate,
         ...(stay ? { departureDate } : {}),
       }),
-    [client, serviceId, resourceId, date, stay, departureDate],
+    [client, serviceId, resourceId, stay, departureDate],
   );
+  const loadSlots = useCallback(() => availability(date), [availability, date]);
   const slots = useReservationLoad(loadSlots);
   const selectedSlot = slots.value?.find((slot) => slot.startsAt === startsAt);
   const zone = catalog.settings.timeZone;
@@ -268,7 +269,13 @@ export function BookingForm({
               </Field>
             ) : (
               <div className={panelClass}>
-                <DatePicker date={date} onChange={selectDate} labels={labels} locale={locale} />
+                <DatePicker
+                  date={date}
+                  onChange={selectDate}
+                  labels={labels}
+                  locale={locale}
+                  availability={availability}
+                />
               </div>
             )}
             <div className={cn(!staff && panelClass, "space-y-4")}>

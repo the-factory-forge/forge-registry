@@ -28,6 +28,8 @@ import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -105,6 +107,7 @@ function CustomersPageContent({
                 {[
                   labels.customer,
                   labels.email,
+                  labels.status,
                   ...(syncColumn ? [syncColumn.label] : []),
                   labels.actions,
                 ].map((label, index) => (
@@ -112,7 +115,7 @@ function CustomersPageContent({
                     scope="col"
                     key={index}
                     className={
-                      index === (syncColumn ? 3 : 2) ? tableActionCellClass : tableHeaderClass
+                      index === (syncColumn ? 4 : 3) ? tableActionHeaderClass : tableHeaderClass
                     }
                   >
                     {label}
@@ -131,43 +134,48 @@ function CustomersPageContent({
                     <td className={tableCellClass}>
                       <div className="flex items-center gap-3">
                         <CustomerAvatar customer={customer} />
-                        <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="font-medium">{customerDisplayName(customer)}</span>
+                        <div className="space-y-0.5">
+                          <CustomerLink
+                            href={getCustomerHref(customer, "about")}
+                            className="font-medium whitespace-nowrap hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {customerDisplayName(customer)}
+                          </CustomerLink>
                           {customer.companyName?.trim() && (
-                            <span className="text-xs text-muted-foreground">{customer.name}</span>
+                            <p className="text-xs text-muted-foreground">{customer.name}</p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className={tableCellClass}>
-                      <div className="flex items-center gap-1">
-                        <span>{customer.email}</span>
-                        <CustomerStatusBadge
-                          customer={customer}
-                          labels={labels}
-                          disabled={loading || optimistic.pending || !!loadError}
-                          onChange={
-                            onSetVerified
-                              ? (verified) =>
-                                  optimistic.run(
-                                    (rows) =>
-                                      rows.map((row) =>
-                                        row.id === customer.id
-                                          ? { ...row, emailVerified: verified }
-                                          : row,
-                                      ),
-                                    () => onSetVerified(customer.id, verified),
-                                  )
-                              : undefined
-                          }
-                        />
-                      </div>
+                      <span className="whitespace-nowrap">{customer.email}</span>
+                    </td>
+                    <td className={tableCellClass}>
+                      <CustomerStatusBadge
+                        customer={customer}
+                        labels={labels}
+                        disabled={loading || optimistic.pending || !!loadError}
+                        onChange={
+                          onSetVerified
+                            ? (verified) =>
+                                optimistic.run(
+                                  (rows) =>
+                                    rows.map((row) =>
+                                      row.id === customer.id
+                                        ? { ...row, emailVerified: verified }
+                                        : row,
+                                    ),
+                                  () => onSetVerified(customer.id, verified),
+                                )
+                            : undefined
+                        }
+                      />
                     </td>
                     {syncColumn && (
                       <td className={tableCellClass}>{syncColumn.render(customer)}</td>
                     )}
                     <td className={tableActionCellClass}>
-                      <div className="flex items-start justify-end gap-1">
+                      <div className={tableActionsClass}>
                         {onImpersonate && (
                           <CustomerActionButton
                             disabled={loading || optimistic.pending || !!loadError}
@@ -217,7 +225,7 @@ function CustomersPageContent({
               {((error && !loading) || customers.length === 0) && (
                 <tr className={tableRowClass}>
                   <td
-                    colSpan={syncColumn ? 4 : 3}
+                    colSpan={syncColumn ? 5 : 4}
                     className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                   >
                     {error && !loading ? (
@@ -336,21 +344,16 @@ function CustomerDetailPageContent({
             }
             emailChangeDescription={emailChangeDescription}
             disabled={optimistic.pending}
+            onDelete={
+              onDelete
+                ? (id) =>
+                    optimistic.run(
+                      (row) => row,
+                      () => onDelete(id),
+                    )
+                : undefined
+            }
           />
-          {onDelete && (
-            <DeleteCustomer
-              key={customer.id}
-              customer={customer}
-              labels={labels}
-              disabled={optimistic.pending}
-              onDelete={(id) =>
-                optimistic.run(
-                  (row) => row,
-                  () => onDelete(id),
-                )
-              }
-            />
-          )}
         </>
       ) : section === "projects" ? (
         projectsContent

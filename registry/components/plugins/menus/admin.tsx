@@ -37,7 +37,14 @@ import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
+  editorActionsClass,
+  editorInvalidClass,
+  useEditorValidation,
+} from "@/components/utils/editor-form";
+import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -46,8 +53,10 @@ import {
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
-const field =
-  "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
+const field = cn(
+  "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
+  editorInvalidClass,
+);
 const button =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 const outlineButton = cn(button, "border border-border");
@@ -369,8 +378,8 @@ function MenuItemsPageContent({
                 <th scope="col" className={tableHeaderClass}>
                   {labels.unavailable}
                 </th>
-                <th scope="col" className={tableActionCellClass}>
-                  {labels.editItem}
+                <th scope="col" className={tableActionHeaderClass}>
+                  {labels.actions}
                 </th>
               </tr>
             </thead>
@@ -495,7 +504,7 @@ function MenuItemsPageContent({
                       </span>
                     </td>
                     <td className={tableActionCellClass}>
-                      <div className="flex flex-wrap justify-end gap-2">
+                      <div className={tableActionsClass}>
                         <IconTooltip
                           label={`${labels.editItem}: ${item.translations[baseLocale]?.name}`}
                         >
@@ -638,6 +647,8 @@ function MenuItemEditorPageContent({
   className,
 }: MenuItemEditorPageProps) {
   const labels = { ...menusLabels, ...overrides };
+  const { formRef, ...fields } = useEditorValidation();
+  const id = `factory-menu-editor-${useId()}`;
   const [draft, setDraft] = useState<MenuItemInput>(() =>
     item
       ? {
@@ -695,20 +706,32 @@ function MenuItemEditorPageContent({
     }));
   async function submit() {
     if (lock.current) return;
+    const issues: Record<string, string> = {};
+    if (!draft.translations[baseLocale]?.name.trim()) {
+      issues[`${id}-name-${baseLocale}`] = labels.baseNameRequired;
+    }
+    for (const size of sizes) {
+      if (!size.translations[baseLocale]?.trim()) {
+        issues[`${id}-size-${size.id}-${baseLocale}`] = labels.baseSizeNameRequired;
+      }
+    }
+    for (const [key, value] of sizes.length
+      ? sizes.map((size) => [`${id}-price-${size.id}`, size.price])
+      : [[`${id}-price`, price]]) {
+      try {
+        parsePrice(value, digits);
+      } catch {
+        issues[key] = labels.priceInvalid;
+      }
+    }
+    if (Object.keys(issues).some((key) => key.endsWith(`-${baseLocale}`))) {
+      setSelectedLocale(baseLocale);
+    }
+    if (!fields.validate(issues)) return;
     lock.current = true;
     setPending(true);
     setFeedback(undefined);
     try {
-      if (!draft.translations[baseLocale]?.name.trim()) {
-        setSelectedLocale(baseLocale);
-        setFeedback({ error: true, text: labels.baseNameRequired });
-        return;
-      }
-      if (sizes.some((size) => !size.translations[baseLocale]?.trim())) {
-        setSelectedLocale(baseLocale);
-        setFeedback({ error: true, text: labels.baseSizeNameRequired });
-        return;
-      }
       const sizePrices = sizes.map((size) => ({
         id: size.id,
         priceMinor: parsePrice(size.price, digits),
@@ -740,6 +763,9 @@ function MenuItemEditorPageContent({
       </HostLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
       <form
+        ref={formRef}
+        noValidate
+        onChange={(event) => fields.clear(event.target.id)}
         className="space-y-6"
         onSubmit={(event) => {
           event.preventDefault();
@@ -751,6 +777,8 @@ function MenuItemEditorPageContent({
             <span>{labels.category}</span>
             <NativeSelect
               className={field}
+              {...fields.field(`${id}-category`)}
+              aria-label={labels.category}
               value={draft.categoryId}
               onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
               required
@@ -761,6 +789,7 @@ function MenuItemEditorPageContent({
                 </option>
               ))}
             </NativeSelect>
+            {fields.message(`${id}-category`)}
           </label>
           {sizes.length === 0 ? (
             <label className="space-y-1">
@@ -770,10 +799,13 @@ function MenuItemEditorPageContent({
               <input
                 className={field}
                 inputMode="decimal"
+                {...fields.field(`${id}-price`)}
+                aria-label={`${labels.price} (${currency})`}
                 value={price}
                 onChange={(event) => setPrice(event.target.value)}
                 required
               />
+              {fields.message(`${id}-price`)}
             </label>
           ) : null}
         </div>
@@ -807,6 +839,8 @@ function MenuItemEditorPageContent({
                   </span>
                   <input
                     className={field}
+                    {...fields.field(`${id}-name-${locale.code}`)}
+                    aria-label={`${labels.name}${locale.code === baseLocale ? " *" : ""}`}
                     value={translation.name}
                     onChange={(event) =>
                       updateTranslation(locale.code, { name: event.target.value })
@@ -814,18 +848,22 @@ function MenuItemEditorPageContent({
                     maxLength={200}
                     required={locale.code === baseLocale}
                   />
+                  {fields.message(`${id}-name-${locale.code}`)}
                 </label>
                 <label className="block space-y-1">
                   <span>{labels.description}</span>
                   <textarea
                     className={field}
                     rows={4}
+                    {...fields.field(`${id}-description-${locale.code}`)}
+                    aria-label={labels.description}
                     value={translation.description}
                     onChange={(event) =>
                       updateTranslation(locale.code, { description: event.target.value })
                     }
                     maxLength={2000}
                   />
+                  {fields.message(`${id}-description-${locale.code}`)}
                 </label>
               </Tabs.Panel>
             );
@@ -843,6 +881,8 @@ function MenuItemEditorPageContent({
                   </span>
                   <input
                     className={field}
+                    {...fields.field(`${id}-size-${size.id}-${selectedLocale}`)}
+                    aria-label={`${labels.sizeName} (${selectedLocale}) ${index + 1}`}
                     value={size.translations[selectedLocale] ?? ""}
                     maxLength={120}
                     onChange={(event) =>
@@ -861,6 +901,7 @@ function MenuItemEditorPageContent({
                       )
                     }
                   />
+                  {fields.message(`${id}-size-${size.id}-${selectedLocale}`)}
                 </label>
                 <label className="min-w-0 space-y-1">
                   <span>
@@ -869,6 +910,8 @@ function MenuItemEditorPageContent({
                   <input
                     className={field}
                     inputMode="decimal"
+                    {...fields.field(`${id}-price-${size.id}`)}
+                    aria-label={`${labels.price} (${currency}) ${index + 1}`}
                     value={size.price}
                     required
                     onChange={(event) =>
@@ -879,6 +922,7 @@ function MenuItemEditorPageContent({
                       )
                     }
                   />
+                  {fields.message(`${id}-price-${size.id}`)}
                 </label>
               </div>
               <DeleteControl
@@ -995,9 +1039,11 @@ function MenuItemEditorPageContent({
             {feedback.text}
           </p>
         ) : null}
-        <button type="submit" className={primary} disabled={pending || !categories.length}>
-          {pending ? labels.saving : labels.save}
-        </button>
+        <div className={editorActionsClass}>
+          <button type="submit" className={primary} disabled={pending || !categories.length}>
+            {pending ? labels.saving : labels.save}
+          </button>
+        </div>
       </form>
       {item && driveClient && getFolderHref ? (
         <div className="border-t border-border pt-6">

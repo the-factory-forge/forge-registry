@@ -246,8 +246,9 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)
 - [ ] Registry entry added to `registry/registry.json`
 - [ ] Working showroom example added with representative interactions
-- [ ] Entry added to `examples` in `src/routes/index.tsx` so the component is discoverable from `/`
-- [ ] Homepage entry checked under All and its category filter, and its demo link verified
+- [ ] Composed components, page sections, layouts and plugins listed in `examples` in `src/routes/index.tsx`; basic controls and feedback helpers stay out of the homepage list
+- [ ] Homepage entry, when applicable, checked under All and its category filter, and its demo link verified
+- [ ] Basic control and feedback demos linked from documentation or parent examples
 - [ ] Non-visual helpers and server companions documented with the parent component's linked example
 - [ ] Formatting and validation flow above completed; generated artifacts match the final source
 

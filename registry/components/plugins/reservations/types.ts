@@ -141,6 +141,8 @@ export interface ReservationRange {
   status?: ReservationStatus;
 }
 
+export type ReservationFilters = Pick<ReservationRange, "resourceId" | "serviceId" | "status">;
+
 export interface ReservationAdminRecord extends Reservation {
   outsideHours: boolean;
   emailFailed: boolean;

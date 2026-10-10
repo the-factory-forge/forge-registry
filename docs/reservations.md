@@ -154,6 +154,11 @@ intervals. Duration is required. Service/resource IDs are host-generated UUIDs; 
 record uses version `0`. Saves return the incremented version. Referenced records
 are archived rather than deleted.
 
+The settings overview and individual editors provide a trash action to archive a
+service or resource after confirmation. The overview updates in place, retains
+archived rows and existing reservations, and keeps the confirmation open on failure
+so staff can retry.
+
 The whole occupied interval is `[start - preparation, end + cleanup)`. Both buffers
 must fit inside a working interval, and adjacent occupied intervals may touch.
 Starts align with each working interval's start, using the service interval. A
@@ -165,6 +170,13 @@ selects the first available eligible resource in ID order while holding the sche
 lock. Availability responses contain only start/end instants, not customer details.
 Availability queries cover one local date. Calendar queries are limited to 43 elapsed
 days so a six-week month including a daylight-saving transition fits.
+
+The public appointment calendar disables dates without available slots for the
+selected service and resource. It checks all 42 displayed dates through the existing
+availability client when the month, service or resource changes. Dates remain
+disabled during loading or a failed check, with a refresh action to retry. Hosts
+must allow these availability reads through their rate limits. Booking still
+rechecks capacity on the server before reserving a slot.
 
 Duration is elapsed minutes. The Temporal dependency resolves IANA time zones without
 changing globals. Nonexistent local starts are omitted; repeated starts are separate
@@ -207,6 +219,15 @@ object so loading does not restart on every parent render. Settings support
 `editor={{ kind: "service" | "resource", id }}` with `id: "new"` for creation.
 Use dedicated host routes for these editors. The optional `onSaved(kind, id)` can
 navigate a new item to its edit URL. The showroom demonstrates these adapters.
+
+`ReservationsCalendar` accepts optional controlled `filters` and `onFiltersChange`
+props using the exported `ReservationFilters` type. It contains `resourceId`,
+`serviceId` and `status`; omitted values mean All. Without `filters`, the calendar
+keeps its own filter state. Hosts own URL parsing and navigation. The showroom
+stores non-default filters in matching query parameters, restores them on reload
+and Back/Forward, and removes each parameter when its dropdown returns to All.
+Malformed IDs and unsupported statuses fall back to All. Filter changes preserve
+other query parameters and the URL fragment.
 
 The Year view shows twelve months starting at the current calendar month, with one
 month per row and a count of matching reservations on each date. Appointments count

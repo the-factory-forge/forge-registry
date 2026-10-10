@@ -32,6 +32,8 @@ import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -161,7 +163,7 @@ export function TrashBrowser({
                   <th
                     key={index}
                     scope="col"
-                    className={index === 4 ? tableActionCellClass : tableHeaderClass}
+                    className={index === 4 ? tableActionHeaderClass : tableHeaderClass}
                   >
                     {label}
                   </th>
@@ -223,7 +225,7 @@ export function TrashBrowser({
                         />
                       </td>
                       <td className={tableActionCellClass}>
-                        <div className="flex justify-end gap-2">
+                        <div className={tableActionsClass}>
                           {data.space.capabilities.restore && entry.state === "trashed" && (
                             <button
                               className={buttonClass}

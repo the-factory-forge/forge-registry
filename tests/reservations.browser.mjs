@@ -40,6 +40,101 @@ async function createBooking(page, name = "Robin Example") {
   await page.getByText("Your reservation has been saved.", { exact: false }).waitFor();
 }
 
+test("booking calendar disables dates without available slots", async (t) => {
+  const page = await preview(t);
+  await page.getByRole("button", { name: /09:00.*GMT/ }).waitFor();
+  const calendar = page.locator('.grid-cols-7[aria-busy="false"]');
+  await calendar.waitFor();
+  const weekends = page.getByRole("button", { name: /^(Saturday|Sunday),/ });
+  assert.equal(await weekends.count(), 12);
+  assert.equal(
+    await weekends.evaluateAll((buttons) => buttons.every((button) => button.disabled)),
+    true,
+  );
+  assert.equal(await calendar.locator('button[aria-pressed="true"]').isEnabled(), true);
+  await calendar.locator('button[aria-pressed="true"]').focus();
+  await page.keyboard.press("Enter");
+  assert.equal(
+    await page.getByRole("button", { name: "Review booking", exact: true }).isDisabled(),
+    true,
+  );
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await calendar.waitFor();
+  assert.equal(
+    await weekends.evaluateAll((buttons) => buttons.every((button) => button.disabled)),
+    true,
+  );
+  assert.ok(await calendar.locator("button:enabled").count());
+  await page.getByLabel("Slow responses").check();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  const loading = page.locator('.grid-cols-7[aria-busy="true"]');
+  await loading.waitFor();
+  assert.equal(await loading.locator("button:enabled").count(), 0);
+  const name = page.getByRole("textbox", { name: "Name", exact: true });
+  const loadingPosition = await name.boundingBox();
+  await calendar.waitFor();
+  assert.deepEqual(await name.boundingBox(), loadingPosition);
+  assert.equal(
+    await weekends.evaluateAll((buttons) => buttons.every((button) => button.disabled)),
+    true,
+  );
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const theme of ["light", "dark"]) {
+      if (theme === "dark")
+        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await calendar.scrollIntoViewIfNeeded();
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      assert.equal(
+        await weekends.first().evaluate((button) => getComputedStyle(button).cursor),
+        "not-allowed",
+      );
+      await page.screenshot({ path: `/tmp/booking-availability-${width}-${theme}.png` });
+    }
+    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  }
+});
+
+test("booking calendar respects fully booked resources and date closures", async (t) => {
+  const page = await preview(t);
+  const date = await page.getByLabel("Date", { exact: true }).inputValue();
+  const dateLabel = new Intl.DateTimeFormat("en", { dateStyle: "full", timeZone: "UTC" }).format(
+    new Date(`${date}T12:00:00Z`),
+  );
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Edit Alex", exact: true }).click();
+  await page.getByLabel("Date", { exact: true }).fill(date);
+  await page.getByRole("button", { name: "Add date", exact: true }).click();
+  const exception = page.getByRole("group", { name: date, exact: true });
+  await exception.getByRole("button", { name: "Add interval", exact: true }).click();
+  await exception.getByLabel("Start", { exact: true }).fill("10:00");
+  await exception.getByLabel("End", { exact: true }).fill("11:00");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await actionToast(page, "Saved.");
+  await page.getByRole("link", { name: "Public booking", exact: true }).click();
+  const resource = page.getByRole("combobox", { name: "Practitioner or resource", exact: true });
+  const calendar = page.locator('.grid-cols-7[aria-busy="false"]');
+  await resource.selectOption({ label: "Alex" });
+  await calendar.waitFor();
+  assert.equal(await page.getByRole("button", { name: dateLabel, exact: true }).isDisabled(), true);
+  await page.getByText("No available times on this date.", { exact: true }).waitFor();
+  await resource.selectOption("");
+  await calendar.waitFor();
+  assert.equal(await page.getByRole("button", { name: dateLabel, exact: true }).isEnabled(), true);
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await page.getByRole("link", { name: "Edit Sam", exact: true }).click();
+  await page.getByLabel("Date", { exact: true }).fill(date);
+  await page.getByRole("button", { name: "Add date", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await actionToast(page, "Saved.");
+  await page.getByRole("link", { name: "Public booking", exact: true }).click();
+  await calendar.waitFor();
+  assert.equal(await page.getByRole("button", { name: dateLabel, exact: true }).isDisabled(), true);
+});
+
 test("homepage discovery, booking, calendar views, private rescheduling and cancellation", async (t) => {
   const page = await preview(t, "/");
   await page.locator('main a[href="/en/reservations"]').waitFor();
@@ -71,6 +166,71 @@ test("homepage discovery, booking, calendar views, private rescheduling and canc
     .click();
   await page.getByText("Cancelled", { exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Reschedule", exact: true }).count(), 0);
+});
+
+test("calendar filters round-trip through URLs, reloads and browser history", async (t) => {
+  const page = await preview(
+    t,
+    "/en/admin/reservations?category=Plugin&ref=calendar#factory-preview",
+  );
+  const resource = page.getByRole("combobox", { name: "Practitioner or resource", exact: true });
+  const service = page.getByRole("combobox", { name: "Service", exact: true });
+  const status = page.getByRole("combobox", { name: "Status", exact: true });
+  const resourceId = "10000000-0000-4000-8000-000000000001";
+  const serviceId = "20000000-0000-4000-8000-000000000001";
+  const selected = page.getByText(/Jamie Taylor ·/).first();
+  await selected.waitFor();
+  await resource.selectOption(resourceId);
+  await page.waitForURL((url) => url.searchParams.get("resourceId") === resourceId);
+  await service.selectOption(serviceId);
+  await page.waitForURL((url) => url.searchParams.get("serviceId") === serviceId);
+  await status.selectOption("pending");
+  await page.waitForURL((url) => url.searchParams.get("status") === "pending");
+  await selected.waitFor({ state: "hidden" });
+  await status.selectOption("confirmed");
+  await page.waitForURL((url) => url.searchParams.get("status") === "confirmed");
+  await selected.waitFor();
+  await page.goBack();
+  await page.waitForURL((url) => url.searchParams.get("status") === "pending");
+  assert.equal(await status.inputValue(), "pending");
+  await selected.waitFor({ state: "hidden" });
+  await page.goForward();
+  await page.waitForURL((url) => url.searchParams.get("status") === "confirmed");
+  await selected.waitFor();
+  await page.reload();
+  await selected.waitFor();
+  assert.equal(await resource.inputValue(), resourceId);
+  assert.equal(await service.inputValue(), serviceId);
+  assert.equal(await status.inputValue(), "confirmed");
+  for (const [control, key] of [
+    [resource, "resourceId"],
+    [service, "serviceId"],
+    [status, "status"],
+  ]) {
+    await control.selectOption("");
+    await page.waitForURL((url) => !url.searchParams.has(key));
+  }
+  assert.equal(new URL(page.url()).search, "?category=Plugin&ref=calendar");
+  assert.equal(new URL(page.url()).hash, "#factory-preview");
+  await page.goto(baseURL + "/en/admin/reservations?status=confirmed");
+  await status.selectOption("");
+  await page.waitForURL((url) => url.search === "");
+});
+
+test("malformed calendar filter parameters fall back to All", async (t) => {
+  const page = await preview(
+    t,
+    "/en/admin/reservations?resourceId=invalid&serviceId=123&status=unknown",
+  );
+  await page
+    .getByText(/Jamie Taylor ·/)
+    .first()
+    .waitFor();
+  for (const name of ["Practitioner or resource", "Service", "Status"]) {
+    assert.equal(await page.getByRole("combobox", { name, exact: true }).inputValue(), "");
+  }
+  await page.getByRole("combobox", { name: "Status", exact: true }).selectOption("confirmed");
+  await page.waitForURL((url) => url.search === "?status=confirmed");
 });
 
 test("manual approval, retained fields on failure, mobile and French", async (t) => {
@@ -166,6 +326,99 @@ test("empty calendar, loading state and keyboard date selection", async (t) => {
   await selected.focus();
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /09:00.*GMT/ }).waitFor();
+});
+
+void test("settings list archives services and resources with confirmation and failure recovery", async (t) => {
+  const page = await preview(t);
+  await createBooking(page);
+  await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  const archiveResource = page.getByRole("button", { name: "Archive Alex", exact: true });
+  const resource = page.locator("li").filter({ hasText: "Alex" });
+  const dialog = page.getByRole("dialog", { name: "Archive", exact: true });
+  await archiveResource.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.getByRole("tooltip", { name: "Archive Alex", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Enter");
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
+  assert.equal(await resource.getByText("Archived", { exact: true }).count(), 0);
+
+  await page.getByLabel("Simulate action failures").check();
+  await page.getByLabel("Slow responses").check();
+  await archiveResource.click();
+  await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await resource.getByText("Archived", { exact: true }).waitFor();
+  assert.equal(
+    await dialog.getByRole("button", { name: "Archive", exact: true }).isDisabled(),
+    true,
+  );
+  assert.equal(await dialog.getByRole("button", { name: "Back", exact: true }).isDisabled(), true);
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await resource.getByText("Archived", { exact: true }).count(), 0);
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByLabel("Simulate action failures").uncheck();
+  await archiveResource.click();
+  await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await actionToast(page, "Saved.");
+  await resource.getByText("Archived", { exact: true }).waitFor();
+  assert.equal(await archiveResource.isDisabled(), true);
+  assert.equal(
+    await page.getByRole("button", { name: "Archive Sam", exact: true }).isEnabled(),
+    true,
+  );
+  await page.getByLabel("Slow responses").uncheck();
+
+  const archiveService = page.getByRole("button", { name: "Archive Haircut / Coupe", exact: true });
+  await archiveService.click();
+  await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await archiveService.isDisabled(), true);
+  assert.match(page.url(), /\/settings$/);
+  await page.getByRole("link", { name: "Back", exact: true }).click();
+  await page
+    .getByText(/Robin Example ·/)
+    .first()
+    .waitFor();
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  assert.equal(await archiveResource.isDisabled(), true);
+  assert.equal(await archiveService.isDisabled(), true);
+});
+
+void test("settings list archive actions work in French, dark mode and stay mode on mobile", async (t) => {
+  const page = await preview(t, "/fr/admin/reservations/settings", {
+    viewport: { width: 390, height: 844 },
+  });
+  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
+  const archive = page.getByRole("button", {
+    name: "Archiver Apartment stay / Séjour",
+    exact: true,
+  });
+  const row = page.getByRole("listitem").filter({ has: archive });
+  const edit = row.getByRole("link");
+  const editBox = await edit.boundingBox();
+  const archiveBox = await archive.boundingBox();
+  assert.ok(archiveBox.x - editBox.x - editBox.width >= 4);
+  const heading = page.getByRole("heading", { name: "Paramètres des réservations", exact: true });
+  const before = await heading.evaluate((element) => element.getBoundingClientRect().top + scrollY);
+  await page.screenshot({ path: "/tmp/reservation-settings-mobile-dark.png", fullPage: true });
+  await archive.click();
+  const dialog = page.getByRole("dialog", { name: "Archiver", exact: true });
+  await page.screenshot({
+    path: "/tmp/reservation-settings-archive-mobile-dark.png",
+    fullPage: true,
+  });
+  await dialog.getByRole("button", { name: "Archiver", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await row.getByText("Archivé", { exact: true }).waitFor();
+  assert.equal(
+    await heading.evaluate((element) => element.getBoundingClientRect().top + scrollY),
+    before,
+  );
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
 
 test("staff create, filter, reschedule and reject a manual request", async (t) => {

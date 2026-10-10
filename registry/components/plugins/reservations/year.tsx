@@ -7,6 +7,7 @@ import type { ReservationLabels } from "@/components/plugins/reservations/labels
 import { localDate } from "@/components/plugins/reservations/model";
 import type { ReservationAdminRecord } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
+import { tableClass, tableHeaderClass } from "@/components/utils/table-styles";
 
 export interface ReservationYearViewProps {
   start: string;
@@ -56,8 +57,8 @@ export function ReservationYearView({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">{labels.yearHelp}</p>
-      <div className="max-w-full overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[88rem] table-fixed border-separate border-spacing-0 text-sm">
+      <div className="max-w-full overflow-x-auto rounded-xl border border-border">
+        <table className={cn(tableClass, "min-w-[88rem] table-fixed")}>
           <caption className="sr-only">{labels.year}</caption>
           <colgroup>
             <col className="w-40" />
@@ -72,7 +73,10 @@ export function ReservationYearView({
                 <tr key={month.toString()}>
                   <th
                     scope="row"
-                    className="sticky left-0 z-10 border-r border-b border-border bg-background px-3 py-2 text-left font-medium"
+                    className={cn(
+                      tableHeaderClass,
+                      "sticky left-0 z-10 border-r border-b border-border bg-background py-2",
+                    )}
                   >
                     {monthFormat.format(new Date(`${month.toString()}T12:00:00Z`))}
                   </th>

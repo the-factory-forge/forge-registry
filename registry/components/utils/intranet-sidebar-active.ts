@@ -1,10 +1,12 @@
 type NavItem = {
+  active?: boolean;
   href?: string;
   exact?: boolean;
   items?: readonly NavItem[];
 };
 
 export function itemIsActive(item: NavItem, pathname: string): boolean {
+  if (item.active !== undefined) return item.active;
   const path = item.href?.replace(/\/$/, "") || "/";
   const current = pathname.replace(/\/$/, "") || "/";
   if (

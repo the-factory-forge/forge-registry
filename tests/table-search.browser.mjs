@@ -18,6 +18,12 @@ test("homepage search starts expanded and stays visible through filtering, clear
   assert.equal(await search.evaluate((el) => el.parentElement.getBoundingClientRect().height), 44);
   assert.equal(await search.evaluate((el) => el === document.activeElement), false);
   const allCount = await page.locator("main a h2").count();
+  for (const category of ["All", "Component"]) {
+    await page.getByRole("button", { name: category, exact: true }).click();
+    for (const path of ["/native-select", "/icon-tooltip", "/action-toast"])
+      assert.equal(await page.locator(`main a[href="${path}"]`).count(), 0);
+  }
+  await page.getByRole("button", { name: "All", exact: true }).click();
   await page.getByRole("button", { name: "Plugin", exact: true }).focus();
   await page.keyboard.press("Tab");
   assert.equal(await search.evaluate((el) => el === document.activeElement), true);

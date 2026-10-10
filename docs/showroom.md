@@ -19,7 +19,9 @@ upstream Cove independently of those consumers.
   shims remain framework independent.
 - `src/routes/` contains file routes. `__root.tsx` owns the document, metadata,
   stylesheet, shared header, and not-found view. `index.tsx` contains the showroom
-  example directory. Add new demos there as well as creating their route.
+  example directory for composed components, page sections, layouts and plugins.
+  Keep basic controls and feedback helpers out of this list; link their demos
+  from documentation or parent examples.
 - `src/router.tsx` creates a router per request. The Start Vite plugin generates
   `src/routeTree.gen.ts`; commit that generated file after route changes so a fresh
   checkout can typecheck before starting Vite. Do not edit it manually.

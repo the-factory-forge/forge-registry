@@ -25,7 +25,7 @@ const plugins = [
 void test("plugin tables retain headers, loaded rows and paging through loading, empty and error states", async (t) => {
   const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
   t.after(() => browser.close());
-  const page = await browser.newPage();
+  const page = await browser.newPage({ reducedMotion: "reduce" });
   page.setDefaultTimeout(10000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

@@ -1,9 +1,35 @@
 # FAQ and Contact pages
 
-`@forge/page-faq` and `@forge/page-contact` compose the template's page hero with
-its FAQ or contact section. The existing `page-faq-list` and `page-contact-info`
+`@forge/page-faq` and `@forge/page-contact` both use `PageHero` from
+`@forge/page-hero` for their shared header, followed by their FAQ or contact
+section. The existing `page-faq-list` and `page-contact-info`
 items remain available separately. Preview the complete pages at `/en/faq` and
 `/en/contact` in the showroom.
+
+## Shared page header
+
+Preview the header on its own at `/page-hero`. It includes the breadcrumb,
+optional eyebrow, title, and optional subtitle. Both complete pages pass their
+`hero` props to this same component, so header changes apply to both.
+
+To reuse it on another page, install `@forge/page-hero` and import it directly:
+
+```tsx
+import { PageHero } from "@/components/pages/page-hero";
+
+<PageHero
+  title="About us"
+  eyebrow="Our studio"
+  subtitle="Meet the people behind the work."
+  homeLabel="Home"
+  homeHref="/en"
+  breadcrumbs={[{ label: "About", href: "/en/about" }]}
+/>;
+```
+
+`PageHeroProps` also supports `backgroundImage`, `overlayClass`, `className`,
+and the breadcrumb routing and translation props described below. The host
+supplies the surrounding main landmark.
 
 ## Install and update
 

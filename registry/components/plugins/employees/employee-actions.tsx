@@ -25,6 +25,7 @@ import {
 } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
+import { tableActionsClass } from "@/components/utils/table-styles";
 export interface EmployeeActionCallbacks {
   onUpdate: (values: UpdateEmployee) => Promise<void>;
   /** Persist public-profile visibility and refresh the host's employee data. */
@@ -84,7 +85,7 @@ function EmployeeActionsContent({
   }
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
-      <div className="flex items-center justify-end gap-1">
+      <div className={tableActionsClass}>
         {!employee.emailVerified && (
           <IconTooltip label={`${labels.sendEmail} ${employee.name}`}>
             <button

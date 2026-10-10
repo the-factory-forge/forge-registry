@@ -41,6 +41,95 @@ test("Start serves deep links, SSR documents, locale redirects, and registry end
   assert.equal((await fetch(`${baseURL}/missing-page`)).status, 404);
 });
 
+void test("directory filters persist in the URL across reloads and browser navigation", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.goto(baseURL);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const search = page.getByRole("searchbox", { name: "Search examples" });
+  const cards = page.getByRole("region", { name: "Examples", exact: true }).getByRole("link");
+  const allCount = await cards.count();
+  const historyLength = await page.evaluate(() => history.length);
+
+  await page.getByRole("button", { name: "Page", exact: true }).click();
+  await page.waitForURL((url) => url.searchParams.get("category") === "Page");
+  await search.pressSequentially("faq");
+  await page.waitForURL((url) => url.searchParams.get("search") === "faq");
+  assert.equal(new URL(page.url()).searchParams.get("category"), "Page");
+  assert.equal(await page.evaluate(() => history.length), historyLength);
+  assert.equal(await search.evaluate((input) => document.activeElement === input), true);
+  assert.equal(await cards.count(), 1);
+  const filteredURL = page.url();
+
+  const html = await (await fetch(filteredURL)).text();
+  const serverState = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return {
+      category: doc.querySelector('fieldset button[aria-pressed="true"]')?.textContent,
+      search: doc.querySelector('input[type="search"]')?.value,
+      titles: [...doc.querySelectorAll('section[aria-label="Examples"] h2')].map(
+        (heading) => heading.textContent,
+      ),
+    };
+  }, html);
+  assert.match(serverState.category, /^Page/);
+  assert.equal(serverState.search, "faq");
+  assert.deepEqual(serverState.titles, ["FAQ"]);
+
+  await page.reload();
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  assert.equal(await search.inputValue(), "faq");
+  assert.equal(
+    await page.getByRole("button", { name: "Page", exact: true }).getAttribute("aria-pressed"),
+    "true",
+  );
+  await cards.first().click();
+  await page.waitForURL(`${baseURL}/en/faq`);
+  await page.goBack();
+  await page.waitForURL(filteredURL);
+  assert.equal(await search.inputValue(), "faq");
+  assert.equal(await cards.count(), 1);
+  await page.goForward();
+  await page.waitForURL(`${baseURL}/en/faq`);
+  await page.goBack();
+  await page.waitForURL(filteredURL);
+
+  await page.getByRole("button", { name: "All", exact: true }).click();
+  await page.waitForURL((url) => !url.searchParams.has("category"));
+  assert.equal(await search.inputValue(), "faq");
+  await page.getByRole("button", { name: "Page", exact: true }).click();
+  await page.getByRole("button", { name: "Clear search examples", exact: true }).click();
+  await page.waitForURL((url) => !url.searchParams.has("search"));
+  assert.equal(new URL(page.url()).searchParams.get("category"), "Page");
+
+  const specialSearch = "  café & tea? #1  ";
+  await search.fill(specialSearch);
+  await page.waitForURL((url) => url.searchParams.get("search") === specialSearch);
+  await page.reload();
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  assert.equal(await search.inputValue(), specialSearch);
+  assert.equal(await cards.count(), 0);
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await page.waitForURL((url) => !url.search);
+  assert.equal(await search.inputValue(), "");
+  assert.equal(await cards.count(), allCount);
+  assert.equal(
+    await page
+      .getByRole("button", { name: "All", exact: true })
+      .evaluate((button) => document.activeElement === button),
+    true,
+  );
+
+  await page.goto(`${baseURL}/?category=unknown&search=faq`);
+  assert.equal(
+    await page.getByRole("button", { name: "All", exact: true }).getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.equal(await search.inputValue(), "faq");
+  assert.equal(await page.getByRole("heading", { name: "FAQ", exact: true }).count(), 1);
+});
+
 test("every directory entry navigates and returns through a stable shared header", async (t) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   t.after(() => context.close());

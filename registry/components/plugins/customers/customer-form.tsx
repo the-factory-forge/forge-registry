@@ -16,18 +16,21 @@ import {
   buttonClass,
   cardClass,
   Feedback,
+  DeleteCustomer,
   inputClass,
   primaryButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
 import { customerFormValues, generateCustomerPassword } from "@/components/plugins/customers/utils";
 import { cn } from "@/components/utils/cn";
+import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
 export interface CustomerFormProps {
   customer?: Customer;
   disabled?: boolean;
   labels: CustomersLabels;
   onSubmit: (values: CustomerCreateValues) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
   emailChangeDescription?: string;
   passwordMinLength?: number;
   passwordMaxLength?: number;
@@ -38,19 +41,21 @@ function CustomerFormContent({
   disabled,
   labels,
   onSubmit,
+  onDelete,
   emailChangeDescription,
   passwordMinLength = 12,
   passwordMaxLength = 128,
 }: CustomerFormProps) {
   const id = `factory-customer-form-${useId()}`;
   const creating = !customer;
+  const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState(() => customerFormValues(customer));
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof CustomerCreateValues, string>>>({});
+  const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
   const notify = useActionToast();
   const [passwordFeedback, setPasswordFeedback] = useState<{ error: boolean; message: string }>();
   const action = useCustomerAction(labels.actionError);
-  const pending = disabled || action.pending;
+  const pending = disabled || action.pending || deleting;
 
   async function copyPassword(value: string) {
     try {
@@ -78,11 +83,7 @@ function CustomerFormContent({
     )
       nextErrors.password = labels.passwordInvalid(passwordMinLength, passwordMaxLength);
     setErrors(nextErrors);
-    const firstInvalid = Object.keys(nextErrors)[0];
-    if (firstInvalid) {
-      (form.elements.namedItem(firstInvalid) as HTMLInputElement)?.focus();
-      return;
-    }
+    if (Object.keys(nextErrors).length) return;
     const normalized: CustomerFormValues = {
       ...values,
       name: values.name.trim(),
@@ -126,7 +127,7 @@ function CustomerFormContent({
           value={values[name]}
           onChange={(event) => {
             setValues({ ...values, [name]: event.target.value });
-            setErrors({ ...errors, [name]: undefined });
+            clear(name);
           }}
           className={inputClass}
           aria-invalid={Boolean(error)}
@@ -151,7 +152,7 @@ function CustomerFormContent({
   }
 
   return (
-    <form noValidate onSubmit={submit} aria-busy={pending} className="space-y-6">
+    <form ref={formRef} noValidate onSubmit={submit} aria-busy={pending} className="space-y-6">
       <fieldset disabled={pending} className="min-w-0 space-y-6">
         <section aria-labelledby={`${id}-contact`} className={cn(cardClass, "space-y-5")}>
           <div className="space-y-1.5">
@@ -184,7 +185,7 @@ function CustomerFormContent({
                     maxLength={passwordMaxLength}
                     onChange={(event) => {
                       setPassword(event.target.value);
-                      setErrors({ ...errors, password: undefined });
+                      clear("password");
                       setPasswordFeedback(undefined);
                     }}
                     className={cn(inputClass, "pl-20")}
@@ -204,7 +205,7 @@ function CustomerFormContent({
                               passwordMaxLength,
                             );
                             setPassword(generated);
-                            setErrors({ ...errors, password: undefined });
+                            clear("password");
                             void copyPassword(generated);
                           } catch {
                             setPasswordFeedback({
@@ -274,12 +275,27 @@ function CustomerFormContent({
             })}
           </div>
         </section>
-        <div className="flex justify-end">
-          <button type="submit" className={primaryButtonClass}>
-            {pending ? labels.pending : creating ? labels.create : labels.save}
-          </button>
-        </div>
       </fieldset>
+      <div className={editorActionsClass}>
+        {customer && onDelete && (
+          <DeleteCustomer
+            customer={customer}
+            labels={labels}
+            disabled={pending}
+            onDelete={async (id) => {
+              setDeleting(true);
+              try {
+                await onDelete(id);
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          />
+        )}
+        <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
+          {pending ? labels.pending : creating ? labels.create : labels.save}
+        </button>
+      </div>
       <Feedback feedback={action.feedback} />
     </form>
   );

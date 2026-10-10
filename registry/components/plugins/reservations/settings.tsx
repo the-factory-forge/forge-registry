@@ -65,8 +65,49 @@ function ReservationSettingsPageContent({
 }: ReservationSettingsPageProps) {
   const load = useCallback(() => client.configuration(), [client]);
   const data = useReservationLoad(load);
-  const config = data.value;
+  const optimistic = useOptimisticAction(data.value, client);
+  const config = optimistic.value;
+  const notify = useActionToast();
+  const action = useReservationAction();
+  const [archiving, setArchiving] = useState<{ kind: "service" | "resource"; id: string }>();
   const labels = getReservationLabels(overrides, config?.mode);
+  const archive = async () => {
+    if (!archiving || !config) return;
+    const { kind, id } = archiving;
+    await optimistic.run(
+      (current) => {
+        if (!current) return current;
+        const key = kind === "service" ? "services" : "resources";
+        return {
+          ...current,
+          [key]: current[key].map((entry) =>
+            entry.id === id ? { ...entry, archived: true, active: false } : entry,
+          ),
+        };
+      },
+      async () => {
+        if (kind === "service") {
+          const entry = config.services.find((entry) => entry.id === id);
+          if (!entry) return;
+          const saved = await client.saveService({ ...entry, archived: true });
+          data.setValue((current) => ({
+            ...current,
+            services: current.services.map((entry) => (entry.id === id ? saved : entry)),
+          }));
+        } else {
+          const entry = config.resources.find((entry) => entry.id === id);
+          if (!entry) return;
+          const saved = await client.saveResource({ ...entry, archived: true });
+          data.setValue((current) => ({
+            ...current,
+            resources: current.resources.map((entry) => (entry.id === id ? saved : entry)),
+          }));
+        }
+      },
+    );
+    notify(labels.saved);
+    setArchiving(undefined);
+  };
   const item =
     editor?.kind === "service"
       ? config?.services.find((s) => s.id === editor.id)
@@ -132,7 +173,7 @@ function ReservationSettingsPageContent({
               <ul className="divide-y divide-border">
                 {(kind === "service" ? config.services : config.resources).map((entry) => (
                   <li key={entry.id} className="flex items-center justify-between gap-3 py-3">
-                    <div>
+                    <div className="min-w-0 wrap-anywhere">
                       <span className="font-medium">{entry.name}</span>
                       {entry.archived && (
                         <span className="ml-2 text-sm text-muted-foreground">
@@ -140,22 +181,40 @@ function ReservationSettingsPageContent({
                         </span>
                       )}
                     </div>
-                    <IconTooltip label={`${labels.edit} ${entry.name}`}>
-                      <HostLink
-                        className={cn(buttonClass, "size-10 p-0")}
-                        href={
-                          kind === "service" ? getServiceHref(entry.id) : getResourceHref(entry.id)
-                        }
-                        aria-label={`${labels.edit} ${entry.name}`}
-                      >
-                        <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
-                      </HostLink>
-                    </IconTooltip>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <IconTooltip label={`${labels.edit} ${entry.name}`}>
+                        <HostLink
+                          className={cn(buttonClass, "size-10 p-0")}
+                          href={
+                            kind === "service"
+                              ? getServiceHref(entry.id)
+                              : getResourceHref(entry.id)
+                          }
+                          aria-label={`${labels.edit} ${entry.name}`}
+                        >
+                          <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
+                        </HostLink>
+                      </IconTooltip>
+                      <ArchiveButton
+                        labels={labels}
+                        name={entry.name}
+                        disabled={action.busy || entry.archived}
+                        onClick={() => setArchiving({ kind, id: entry.id })}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
+          {archiving && (
+            <ArchiveDialog
+              labels={labels}
+              action={action}
+              onClose={() => setArchiving(undefined)}
+              onArchive={archive}
+            />
+          )}
         </>
       )}
     </section>
@@ -727,13 +786,25 @@ function ResourceEditor({
   );
 }
 
-function ArchiveButton({ labels, onClick }: { labels: ReservationLabels; onClick: () => void }) {
+function ArchiveButton({
+  labels,
+  name,
+  disabled,
+  onClick,
+}: {
+  labels: ReservationLabels;
+  name?: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const label = name ? `${labels.archive} ${name}` : labels.archive;
   return (
-    <IconTooltip label={labels.archive}>
+    <IconTooltip label={label}>
       <button
         type="button"
         className={cn(buttonClass, "size-10 p-0 text-destructive")}
-        aria-label={labels.archive}
+        aria-label={label}
+        disabled={disabled}
         onClick={onClick}
       >
         <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />

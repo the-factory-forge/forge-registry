@@ -10,10 +10,7 @@ void test("select arrows keep their inset across previews, themes and narrow scr
   t.after(() => browser.close());
   const page = await browser.newPage();
   page.setDefaultTimeout(10000);
-  await page.goto(baseURL);
-  assert.equal(await page.locator('main a[href="/native-select"]').count(), 1);
-  await page.getByRole("button", { name: "Component", exact: true }).click();
-  await page.locator('main a[href="/native-select"]').click();
+  await page.goto(`${baseURL}/native-select`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   const state = page.getByRole("combobox", { name: "Directory state", exact: true });
   await state.focus();

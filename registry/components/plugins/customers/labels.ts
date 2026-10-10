@@ -4,6 +4,7 @@ export const customerLabels = {
   description: "Manage your customers and their contact details.",
   customer: "Customer",
   actions: "Actions",
+  status: "Status",
   search: "Search customers",
   searchPlaceholder: "Search customers…",
   loading: "Loading customers…",

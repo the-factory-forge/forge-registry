@@ -1,6 +1,6 @@
 "use client";
 
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -164,6 +164,7 @@ const french: ReservationLabels = {
 };
 
 const Context = createContext<ReturnType<typeof createReservationsMock> | null>(null);
+const adminRoute = getRouteApi("/_reservations/$locale/admin/reservations/$");
 function useMock() {
   const mock = useContext(Context);
   if (!mock) throw new Error("Missing reservations preview provider");
@@ -285,7 +286,8 @@ export function ReservationPublicPreview() {
 export function ReservationAdminPreview() {
   const mock = useMock();
   const { locale, segments } = useShowroomParams();
-  const navigate = useNavigate();
+  const navigate = adminRoute.useNavigate();
+  const { resourceId, serviceId, status } = adminRoute.useSearch();
   const labels = locale === "fr" ? french : undefined;
   const base = `/${locale}/admin/reservations`;
   if (segments[0] === "settings")
@@ -323,6 +325,14 @@ export function ReservationAdminPreview() {
       labels={labels}
       initialDate={mock.initialDate}
       settingsHref={`${base}/settings`}
+      filters={{ resourceId, serviceId, status }}
+      onFiltersChange={(filters) => {
+        void navigate({
+          search: (previous) => ({ ...previous, ...filters }),
+          hash: true,
+          resetScroll: false,
+        });
+      }}
       linkComponent={Link}
       className="showroom-page"
     />

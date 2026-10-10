@@ -81,14 +81,10 @@ void test("toast expiry pauses on hover, nested providers share one queue, and n
   await toast.waitFor({ state: "hidden", timeout: 8000 });
 });
 
-void test("toast example is discoverable and failures retain inline recovery", async (t) => {
+void test("toast example remains available directly and failures retain inline recovery", async (t) => {
   const page = await browser.newPage();
   t.after(() => page.close());
-  await page.goto(baseURL);
-  const link = page.getByRole("link").filter({ hasText: "Action toast" });
-  await link.waitFor();
-  await page.getByRole("button", { name: /^Component/ }).click();
-  await link.click();
+  await page.goto(`${baseURL}/action-toast`);
   await page.getByRole("heading", { name: "Action toast", exact: true }).waitFor();
   await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();

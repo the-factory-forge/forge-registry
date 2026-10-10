@@ -28,11 +28,7 @@ void test("icon tooltips preserve actions, links, disabled states, dialog focus 
   page.setDefaultTimeout(10000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(baseURL);
-  await page.locator('[data-preview-ready="true"]').waitFor();
-  assert.equal(await page.locator('main a[href="/icon-tooltip"]').count(), 1);
-  await page.getByRole("button", { name: "Component", exact: true }).click();
-  await page.locator('main a[href="/icon-tooltip"]').click();
+  await page.goto(`${baseURL}/icon-tooltip`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   const edit = page.getByRole("button", { name: "Edit example", exact: true });
   const before = await edit.boundingBox();

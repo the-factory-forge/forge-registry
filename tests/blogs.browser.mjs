@@ -351,6 +351,71 @@ test("showroom illustrations load without cropping in both themes", async (t) =>
   }
   assert.equal(seen.size, 6);
 });
+void test("public search debounces typing, clears filters, and keeps Enter submission", async (t) => {
+  const page = await preview(t);
+  await page.clock.install();
+  await page.getByRole("link", { name: "Ideas & practice (2)", exact: true }).click();
+  const category = new URL(page.url()).searchParams.get("category");
+  const search = page.getByRole("searchbox", { name: "Search posts", exact: true });
+  const form = page.locator("form").filter({ has: search });
+  assert.equal(await form.getByRole("button").count(), 0);
+  await form.evaluate((node) => {
+    node.dataset.submissions = "0";
+    node.addEventListener("submit", () => {
+      node.dataset.submissions = String(Number(node.dataset.submissions) + 1);
+    });
+  });
+  await search.fill("quiet");
+  await page.clock.runFor(200);
+  await search.fill("quieter");
+  await page.clock.runFor(299);
+  assert.equal(await form.getAttribute("data-submissions"), "0");
+  await page.clock.runFor(1);
+  await page.waitForURL((url) => url.searchParams.get("search") === "quieter");
+  assert.equal(new URL(page.url()).searchParams.get("category"), category);
+  assert.equal(await page.locator("article").count(), 1);
+  assert.equal(await form.getAttribute("data-submissions"), "1");
+
+  await search.fill("");
+  await page.clock.runFor(300);
+  await page.waitForURL((url) => !url.searchParams.has("search"));
+  assert.equal(new URL(page.url()).searchParams.get("category"), category);
+  assert.equal(await page.locator("article").count(), 2);
+  await search.fill("quieter");
+  await search.press("Enter");
+  await page.waitForURL((url) => url.searchParams.get("search") === "quieter");
+  await page.clock.runFor(500);
+  assert.equal(await form.getAttribute("data-submissions"), "3");
+
+  await search.dispatchEvent("compositionstart");
+  await search.fill("ideas");
+  await page.clock.runFor(500);
+  assert.equal(await form.getAttribute("data-submissions"), "3");
+  await search.dispatchEvent("compositionend");
+  await page.clock.runFor(300);
+  await page.waitForURL((url) => url.searchParams.get("search") === "ideas");
+  assert.equal(await form.getAttribute("data-submissions"), "4");
+
+  for (const [theme, width] of [
+    ["light", 1440],
+    ["dark", 390],
+  ]) {
+    await page.setViewportSize({ width, height: 900 });
+    if (theme === "dark")
+      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await search.focus();
+    await page.screenshot({ path: `/tmp/forge-blog-auto-search-${theme}.png`, fullPage: true });
+  }
+  await search.fill("pending");
+  await page.getByRole("link", { name: "French blog", exact: true }).click();
+  await page.clock.runFor(500);
+  assert.equal(new URL(page.url()).pathname, "/fr/blogs");
+  assert.notEqual(new URL(page.url()).searchParams.get("search"), "pending");
+});
 test("public listing, filtering, translated article, Markdown SSR, and responsive themes", async (t) => {
   const page = await preview(t);
   assert.equal(await page.locator("article").count(), 3);
@@ -362,7 +427,7 @@ test("public listing, filtering, translated article, Markdown SSR, and responsiv
   await page.getByRole("link", { name: "All categories", exact: true }).click();
   await page.getByRole("heading", { name: "Make room for better ideas", exact: true }).waitFor();
   await page.getByRole("searchbox", { name: "Search posts", exact: true }).fill("quieter");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.waitForURL(`${baseURL}/en/blogs?search=quieter`);
   await page
     .getByRole("heading", { name: "A quieter kind of productivity", exact: true })
     .waitFor();
@@ -511,7 +576,7 @@ test("categories, optional translations, required publication fields, directory 
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await page.getByRole("link", { name: "An idea for tomorrow", exact: true }).click();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "Check your fields" }).waitFor();
+  await page.getByRole("alert").filter({ hasText: "This field is required to publish." }).waitFor();
   await page.getByRole("tab", { name: "Français", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("Une idée");
   await page.getByLabel("Slug", { exact: true }).fill("une-idee");

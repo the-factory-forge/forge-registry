@@ -64,6 +64,7 @@ test("customers distribution is complete and contains no website integrations", 
     "@forge/action-toast",
     "@forge/optimistic-action",
     "@forge/icon-tooltip",
+    "@forge/editor-form",
     "@forge/dropdown-menu",
   ]);
   for (const file of item.files) {

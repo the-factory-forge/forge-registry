@@ -31,5 +31,5 @@ and set its translated Close label. Full page loads clear notifications.
 Projects, Customers, Blogs, Menus, reservation settings, employee verification
 and password changes use this component. Drive keeps its existing bottom-right upload and
 recovery toast queue. Booking receipts, reset instructions, loading and empty
-states remain in the page. The [showroom example](../src/routes/action-toast.tsx)
+states remain in the page. The [showroom example](https://registry.the-corner.io/action-toast)
 includes success, repeated saves and simulated failure.

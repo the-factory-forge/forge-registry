@@ -50,6 +50,8 @@ test("Drive UI ships independently; only the companion contains storage dependen
     "@forge/dropdown-menu",
     "@forge/optimistic-action",
     "@forge/icon-tooltip",
+    "@forge/sidebar-navigation",
+    "@forge/subpage-sidebar",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react"]);
   assert.deepEqual(server.registryDependencies, ["@forge/drive"]);

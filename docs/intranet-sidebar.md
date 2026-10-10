@@ -8,6 +8,11 @@ The website supplies its branding, allowed destinations, and Better Auth actions
 For a complete internal website layout, use [IntranetShell](./intranet.md).
 It composes this sidebar with optional banner, topbar, and controls.
 
+For navigation within a page, use [SubpageSidebar](./subpage-sidebar.md). Both
+components share grouped/nested navigation and active styles through
+`@forge/sidebar-navigation`; the full intranet sidebar retains its public exports,
+auth integration, viewport placement and keyboard shortcut.
+
 ## Install and update
 
 After these registry artifacts are published to `main`, install from a project

@@ -6,6 +6,9 @@ adds Better Auth schema registration, Drizzle tables, and server operations. It
 also installs Drive storage for private image uploads. No restaurant routes,
 sessions, database migration, or bucket configuration are installed automatically.
 
+The item action bar stays visible while editing. Invalid base-language names,
+size names and prices are highlighted inline and focused when saving.
+
 ## Install and integrate
 
 ```sh

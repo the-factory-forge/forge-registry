@@ -55,6 +55,7 @@ import {
   emptyContent,
   hasUnpublishedChanges,
   MAX_IMAGE_BYTES,
+  MAX_MARKDOWN_BYTES,
   normalizeCategories,
   safeAssetUrl,
   slugify,
@@ -63,6 +64,8 @@ import { TableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
+  tableActionHeaderClass,
+  tableActionsClass,
   tableCellClass,
   tableClass,
   tableHeaderClass,
@@ -73,6 +76,8 @@ import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-
 
 const languageTabClass =
   "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
+
 const blogStatusClass = {
   published: "bg-status-success text-status-success-foreground",
   changed: "bg-status-pending text-status-pending-foreground",
@@ -201,7 +206,7 @@ function BlogsPageContent({
                   <th
                     key={label}
                     scope="col"
-                    className={index === 5 ? tableActionCellClass : tableHeaderClass}
+                    className={index === 5 ? tableActionHeaderClass : tableHeaderClass}
                   >
                     {label}
                   </th>
@@ -291,7 +296,7 @@ function BlogsPageContent({
                       <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
                     </td>
                     <td className={tableActionCellClass}>
-                      <div className="flex justify-end gap-2">
+                      <div className={tableActionsClass}>
                         <IconTooltip label={`${labels.edit}: ${post.title}`}>
                           <BlogLink
                             href={editHref(post.id)}
@@ -490,7 +495,7 @@ function EditorForm({
   imageComponent: BlogImage = Image,
   linkComponent,
   maxImageBytes = MAX_IMAGE_BYTES,
-  maxMarkdownBytes,
+  maxMarkdownBytes = MAX_MARKDOWN_BYTES,
 }: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
   const labels = { ...blogsLabels, ...overrides },
     action = useBlogAction(labels),
@@ -512,6 +517,7 @@ function EditorForm({
         : "published",
     `${base.id}:${locale}`,
   );
+  const { formRef, ...fields } = useEditorValidation();
   const [validation, setValidation] = useState("");
   const readOnly = !capabilities.edit,
     pending = action.pending,
@@ -524,10 +530,12 @@ function EditorForm({
   }
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
     changed();
+    fields.clear(`${id}-${key}`);
     setContent((c) => ({ ...c, [key]: value }));
   }
   function sharedField<K extends keyof BlogShared>(key: K, value: BlogShared[K]) {
     changed();
+    if (key === "categoryIds") fields.clear(`${id}-category`);
     setShared((s) => ({ ...s, [key]: value }));
   }
   function accept(result: BlogArticle) {
@@ -538,9 +546,32 @@ function EditorForm({
     onDirty(false);
     onSaved?.(result);
   }
+  function validate(publishing = false) {
+    const issues: Record<string, string> = {};
+    if (publishing) {
+      for (const key of ["title", "slug", "markdown"] as const) {
+        if (!content[key].trim()) issues[`${id}-${key}`] = labels.fieldRequired;
+      }
+      for (const category of categories) {
+        if (
+          shared.categoryIds.includes(category.id) &&
+          !category.translations[locale]?.name.trim()
+        ) {
+          issues[`${id}-category.${category.id}`] = labels.categoryTranslationRequired;
+        }
+      }
+    }
+    if (content.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(content.slug)) {
+      issues[`${id}-slug`] = labels.slugInvalid;
+    }
+    if (new TextEncoder().encode(content.markdown).length > maxMarkdownBytes) {
+      issues[`${id}-markdown`] = labels.contentTooLong;
+    }
+    return fields.validate(issues);
+  }
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (pending) return;
+    if (pending || !validate()) return;
     onDirty(true);
     const result = await action.run(
       JSON.stringify(["save", base.version, locale, content, shared]),
@@ -561,6 +592,7 @@ function EditorForm({
       setValidation(labels.unsaved);
       return;
     }
+    if (!remove && !validate(true)) return;
     onDirty(true);
     const result = await action.run(
       JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
@@ -671,9 +703,12 @@ function EditorForm({
           <input
             className={inputClass}
             maxLength={1000}
+            {...fields.field(`${id}-${alt}`)}
+            aria-label={`${label} · ${labels.alt}`}
             value={content[alt]}
             onChange={(e) => field(alt, e.target.value)}
           />
+          {fields.message(`${id}-${alt}`)}
         </label>
       </div>
     );
@@ -682,12 +717,17 @@ function EditorForm({
     <label
       className={cn(
         "flex min-w-0 items-start gap-2 text-sm",
+        fields.issues[`${id}-category.${category.id}`] && "text-destructive",
         category.parentId ? "text-muted-foreground" : "font-medium",
       )}
     >
       <input
+        {...fields.field(`${id}-category.${category.id}`)}
+        aria-label={
+          category.translations[locale]?.name ?? Object.values(category.translations)[0]?.name
+        }
         type="checkbox"
-        className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed"
+        className="mt-0.5 size-4 shrink-0 cursor-pointer accent-primary disabled:cursor-not-allowed aria-invalid:outline-2 aria-invalid:outline-destructive"
         checked={shared.categoryIds.includes(category.id)}
         onChange={(e) => {
           const ids = e.target.checked
@@ -702,6 +742,7 @@ function EditorForm({
       />
       <span className="min-w-0 wrap-anywhere">
         {category.translations[locale]?.name ?? Object.values(category.translations)[0]?.name}
+        {fields.message(`${id}-category.${category.id}`)}
       </span>
     </label>
   );
@@ -734,7 +775,13 @@ function EditorForm({
         )}
         {readOnly && <Feedback message={labels.readOnly} />}
       </header>
-      <form onSubmit={(e) => void save(e)} className="space-y-6" aria-busy={pending}>
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={(e) => void save(e)}
+        className="space-y-6"
+        aria-busy={pending}
+      >
         <fieldset
           disabled={pending || readOnly}
           className={cn(cardClass, "grid min-w-0 gap-5 md:grid-cols-2")}
@@ -744,19 +791,25 @@ function EditorForm({
             <input
               maxLength={250}
               className={inputClass}
+              {...fields.field(`${id}-title`)}
+              aria-label={labels.title}
               value={content.title}
               onChange={(e) => field("title", e.target.value)}
             />
+            {fields.message(`${id}-title`)}
           </label>
           <label className="space-y-2 text-sm font-medium">
             <span>{labels.slug}</span>
             <input
               maxLength={120}
               className={inputClass}
+              {...fields.field(`${id}-slug`)}
+              aria-label={labels.slug}
               value={content.slug}
               onChange={(e) => field("slug", e.target.value)}
               pattern="[a-z0-9]+(-[a-z0-9]+)*"
             />
+            {fields.message(`${id}-slug`)}
           </label>
           <label className="space-y-2 text-sm font-medium md:col-span-2">
             <span>{labels.summary}</span>
@@ -764,9 +817,12 @@ function EditorForm({
               rows={3}
               maxLength={2000}
               className={cn(inputClass, "h-auto py-3")}
+              {...fields.field(`${id}-summary`)}
+              aria-label={labels.summary}
               value={content.summary}
               onChange={(e) => field("summary", e.target.value)}
             />
+            {fields.message(`${id}-summary`)}
           </label>
         </fieldset>
         <fieldset disabled={pending || readOnly} className={cn(cardClass, "space-y-5")}>
@@ -855,18 +911,21 @@ function EditorForm({
             </fieldset>
           </div>
           <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-            <textarea
-              ref={textarea}
-              id={`${id}-markdown`}
-              className={cn(
-                inputClass,
-                "h-auto min-h-96 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
-              )}
-              value={content.markdown}
-              disabled={pending || readOnly}
-              spellCheck={false}
-              onChange={(e) => field("markdown", e.target.value)}
-            />
+            <div className="min-w-0 space-y-2">
+              <textarea
+                ref={textarea}
+                {...fields.field(`${id}-markdown`)}
+                className={cn(
+                  inputClass,
+                  "h-auto min-h-96 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
+                )}
+                value={content.markdown}
+                disabled={pending || readOnly}
+                spellCheck={false}
+                onChange={(e) => field("markdown", e.target.value)}
+              />
+              {fields.message(`${id}-markdown`)}
+            </div>
             <section
               aria-label={labels.preview}
               className="min-w-0 rounded-2xl border border-border p-4"
@@ -888,7 +947,7 @@ function EditorForm({
         <Feedback message={validation} error />
         <Feedback {...action.feedback} />
         {dirty && <Feedback message={labels.unsaved} />}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className={editorActionsClass}>
           {capabilities.delete && (
             <ConfirmDelete
               labels={labels}
@@ -934,7 +993,6 @@ function EditorForm({
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">{labels.publicationHint}</p>
       </form>
     </>
   );

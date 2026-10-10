@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { NativeSelect } from "@/components/native-select";
@@ -20,6 +20,7 @@ import {
   validateProject,
 } from "@/components/plugins/projects/utils";
 import { cn } from "@/components/utils/cn";
+import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
 export interface ProjectFormProps {
   className?: string;
@@ -41,9 +42,8 @@ function ProjectFormContent({
   statusUpdate,
 }: ProjectFormProps) {
   const id = `factory-project-form-${useId()}`;
-  const formRef = useRef<HTMLFormElement>(null);
   const [values, setValues] = useState(() => projectFormValues(project));
-  const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormValues, string>>>({});
+  const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
   const [deleting, setDeleting] = useState(false);
   const action = useCustomerAction(labels.actionError);
   const pending = disabled || action.pending || deleting;
@@ -55,7 +55,7 @@ function ProjectFormContent({
 
   function change<K extends keyof ProjectFormValues>(name: K, value: ProjectFormValues[K]) {
     setValues((current) => ({ ...current, [name]: value }));
-    setErrors((current) => ({ ...current, [name]: undefined }));
+    clear(name);
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,11 +67,7 @@ function ProjectFormContent({
     };
     const nextErrors = validateProject(normalized, labels);
     setErrors(nextErrors);
-    const firstInvalid = Object.keys(nextErrors)[0];
-    if (firstInvalid) {
-      (event.currentTarget.elements.namedItem(firstInvalid) as HTMLElement | null)?.focus();
-      return;
-    }
+    if (Object.keys(nextErrors).length) return;
     if (await action.run(() => onSubmit(normalized), project ? labels.saved : labels.created))
       setValues(normalized);
   }
@@ -153,26 +149,26 @@ function ProjectFormContent({
             />
             {error("description")}
           </div>
-          <div className="flex justify-end md:col-span-2">
-            <button type="submit" className={primaryButtonClass}>
-              {pending ? labels.pending : project ? labels.save : labels.create}
-            </button>
-          </div>
         </fieldset>
         <Feedback feedback={action.feedback} />
-      </form>
-      {project && onDelete && (
-        <div className="mt-6">
-          <DeleteProject
-            project={project}
-            onDelete={onDelete}
-            labels={labels}
-            disabled={pending}
-            onPendingChange={setDeleting}
-            returnFocus={formRef}
-          />
+        <div className={editorActionsClass}>
+          {project && onDelete && (
+            <div>
+              <DeleteProject
+                project={project}
+                onDelete={onDelete}
+                labels={labels}
+                disabled={pending}
+                onPendingChange={setDeleting}
+                returnFocus={formRef}
+              />
+            </div>
+          )}
+          <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
+            {pending ? labels.pending : project ? labels.save : labels.create}
+          </button>
         </div>
-      )}
+      </form>
     </div>
   );
 }

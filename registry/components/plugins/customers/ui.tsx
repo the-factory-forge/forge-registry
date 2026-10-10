@@ -18,6 +18,7 @@ import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
 import { cn } from "@/components/utils/cn";
+import { editorInvalidClass } from "@/components/utils/editor-form";
 
 export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
 export const buttonClass =
@@ -31,8 +32,10 @@ export const iconButtonClass = cn(
   buttonClass,
   "size-10 min-h-10 border border-border bg-background p-0 md:size-8 md:min-h-8",
 );
-export const inputClass =
-  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm";
+export const inputClass = cn(
+  "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
+  editorInvalidClass,
+);
 
 export function useCustomerAction(errorMessage: string) {
   const notify = useActionToast();

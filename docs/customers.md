@@ -133,7 +133,9 @@ The plugin installs its TanStack Query dependency through `@forge/optimistic-act
 
 ## Change email verification from a badge
 
-The Verified/Unverified badge opens a menu in both the customer header and table.
+The Verified/Unverified badge opens a menu in both the customer header and the
+dedicated Status table column. Override its heading with `labels.status`. Customer
+names link to About; the row keeps project navigation, edit and delete actions.
 Supply `onSetVerified(customerId, verified)` to `CustomerDetailPage` or
 `CustomersPage` to enable it. Without the callback the badge is read-only.
 This replaces the table's separate verification icon with a visible status label.

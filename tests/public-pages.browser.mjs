@@ -36,6 +36,33 @@ test("newsletter demo retains input after failure and supports retry and disable
   );
 });
 
+test("shared page header is discoverable and supports optional copy and breadcrumb navigation", async (t) => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.goto(baseURL);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  for (const category of ["All", "Component"]) {
+    await page.getByRole("button", { name: category, exact: true }).click();
+    assert.equal(await page.locator('main a[href="/page-hero"]').count(), 1);
+  }
+  await page.locator('main a[href="/page-hero"]').click();
+  await page.getByRole("heading", { level: 1, name: "Page header", exact: true }).waitFor();
+  const preview = page.locator("#factory-showroom-preview");
+  await preview.getByText("Help", { exact: true }).waitFor();
+  await page.getByLabel("Eyebrow", { exact: true }).uncheck();
+  assert.equal(await preview.getByText("Help", { exact: true }).count(), 0);
+  await page.getByLabel("Subtitle", { exact: true }).uncheck();
+  assert.equal(await preview.locator("p").count(), 0);
+  await page.getByLabel("Eyebrow", { exact: true }).check();
+  await page.getByLabel("Subtitle", { exact: true }).check();
+  await preview.getByText("Help", { exact: true }).waitFor();
+  await preview.getByText("The shared header for FAQ, Contact, and other inner pages.").waitFor();
+  const home = preview.getByRole("link", { name: "All components", exact: true });
+  await home.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+});
+
 test("FAQ categories close answers and preserve keyboard navigation", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
@@ -76,6 +103,9 @@ test("FAQ categories close answers and preserve keyboard navigation", async (t) 
 test("public pages are discoverable, responsive, and retain contact links and optional map", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
+  await context.route("https://www.google.com/maps/embed?*", (route) =>
+    route.fulfill({ contentType: "text/html", body: "Map embed test fixture" }),
+  );
   const page = await context.newPage();
   await page.goto(baseURL);
   await page.locator('[data-preview-ready="true"]').waitFor();
@@ -107,19 +137,32 @@ test("public pages are discoverable, responsive, and retain contact links and op
   await page.locator('main a[href="/en/contact"]').click();
   await page.getByRole("heading", { name: "Contact us", exact: true }).waitFor();
   assert.equal(
-    await page.getByRole("link", { name: "hello@example.com" }).getAttribute("href"),
-    "mailto:hello@example.com",
+    await page.getByRole("link", { name: "support@the-corner.io" }).getAttribute("href"),
+    "mailto:support@the-corner.io",
   );
   assert.equal(
-    await page.getByRole("link", { name: "+41 22 555 01 23" }).getAttribute("href"),
-    "tel:+41225550123",
+    await page.getByRole("link", { name: "+41 79 963 47 74" }).getAttribute("href"),
+    "tel:+41799634774",
   );
-  await page.getByLabel("Map embed", { exact: true }).check();
-  await page.locator('iframe[title="Studio location"]').scrollIntoViewIfNeeded();
+  assert.equal(
+    await page.getByRole("link", { name: "Rue de Saint-Guérin 6, 1950 Sion" }).getAttribute("href"),
+    "https://www.google.com/maps/place/The+Corner+Factory+SA/data=!4m2!3m1!1s0x0:0xce2ae13c0797074c",
+  );
+  await page.getByRole("heading", { name: "The Corner Factory SA", exact: true }).waitFor();
+  assert.deepEqual(await page.locator("main dd").allTextContents(), ["09:00–16:00", "Closed"]);
+  const map = page.locator('iframe[title="The Corner Factory SA location"]');
+  assert.match(await map.getAttribute("src"), /^https:\/\/www\.google\.com\/maps\/embed\?/);
+  assert.match(await map.getAttribute("src"), /0xce2ae13c0797074c/);
+  await map.scrollIntoViewIfNeeded();
   await page
-    .frameLocator('iframe[title="Studio location"]')
-    .getByText("Local map placeholder")
+    .frameLocator('iframe[title="The Corner Factory SA location"]')
+    .getByText("Map embed test fixture")
     .waitFor();
+  await page.getByLabel("Map embed", { exact: true }).uncheck();
+  assert.equal(await map.count(), 0);
+  await page.getByText("Enable Map embed to view The Corner Factory SA in Sion.").waitFor();
+  await page.getByLabel("Map embed", { exact: true }).check();
+  await map.waitFor();
   await page.getByLabel("Contact details", { exact: true }).uncheck();
   assert.equal(await page.locator('main a[href^="mailto:"]').count(), 0);
   for (const theme of ["Light", "Dark"]) {
@@ -129,6 +172,7 @@ test("public pages are discoverable, responsive, and retain contact links and op
     for (const width of [1440, 375]) {
       await page.setViewportSize({ width, height: 900 });
       for (const path of [
+        "/page-hero",
         "/en/faq",
         "/en/contact",
         "/en/legal/cgv",

@@ -37,6 +37,7 @@ export interface MenusLabels {
   labels: string;
   newItem: string;
   editItem: string;
+  actions?: string;
   deleteItem: string;
   confirmDelete: string;
   deleteFilesFirst: string;
@@ -68,6 +69,7 @@ export interface MenusLabels {
   removePhoto: string;
   language: string;
   baseNameRequired: string;
+  priceInvalid?: string;
   back: string;
   newCategory: string;
   editCategory: string;
@@ -123,6 +125,7 @@ export const menusLabels = {
   labels: "Labels",
   newItem: "New item",
   editItem: "Edit item",
+  actions: "Actions",
   deleteItem: "Delete item",
   confirmDelete: "Delete permanently",
   deleteFilesFirst: "Remove this item's Drive files before deleting it.",
@@ -153,6 +156,7 @@ export const menusLabels = {
   selectPhoto: "Use as photo",
   removePhoto: "Remove photo",
   language: "Language",
+  priceInvalid: "Enter a valid, non-negative price within the allowed range.",
   baseNameRequired: "Enter a name in the base language.",
   back: "Back to items",
   newCategory: "New category",

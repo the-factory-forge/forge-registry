@@ -274,11 +274,13 @@ out of shipped registry components.
 
 ## Showroom homepage requirement
 
-Every new registry UI component or module must have a working showroom example
-and an entry in the `examples` array in `src/routes/index.tsx`, the showroom root `/`.
-Add both in the same change as the component. A dedicated demo route alone is
-not enough: visitors must be able to find it from the homepage. Give the entry
-an accurate title, category, description, and link to its example.
+Every new registry UI component or module must have a working showroom example.
+Keep the homepage `examples` array in `src/routes/index.tsx` focused on composed
+components, page sections, layouts and plugins. Basic controls and feedback helpers,
+such as native selects, icon tooltips and action toasts, must not have standalone
+homepage cards; keep their demos accessible through documentation or parent examples.
+For items that belong on the homepage, add the entry with the component and give
+it an accurate title, category, description, and link to its example.
 
 Verify the entry appears under All and its category filter, and that its link
 opens the demo. Include representative interactions and error states where

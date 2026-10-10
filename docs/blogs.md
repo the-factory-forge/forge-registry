@@ -8,6 +8,9 @@ depends on customers, projects, or Drive.
 Table pagination uses [`@forge/table-pagination`](./table-pagination.md), included
 as a dependency. Existing host labels and paging callbacks remain compatible.
 
+The article action bar stays visible while editing. Publishing focuses missing
+content or untranslated selected categories; saving incomplete drafts remains supported.
+
 ## Install and compose
 
 Configure the `@forge` namespace as described in the repository README, then:
@@ -212,7 +215,10 @@ render language links or accept a `translations` prop; remove that prop when
 updating existing integrations and keep published locale URLs in the host navigation.
 
 Public search uses the shared 44px field height, rounded corners and focus treatment.
-It remains a native GET form: Enter or Search submits the query and current category.
+It submits automatically 300 ms after typing stops, including when the field is
+cleared, without a Search button. Enter still submits immediately. The native GET
+form preserves the current category and resets pagination; hosts can intercept
+its submit event for client-side navigation.
 
 The public listing places categories above the posts on narrow screens, in a
 compact disclosure that starts closed and supports keyboard toggling. At the

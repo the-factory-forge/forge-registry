@@ -1,5 +1,8 @@
+"use client";
+
 import { Markdown } from "@tanstack/markdown/react";
 import { ArrowUpRight, CalendarDays, ChevronDownIcon, SearchIcon, UserRound } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
@@ -98,6 +101,15 @@ export function BlogIndexPage({
   formatDate = defaultDate,
   className,
 }: BlogIndexPageProps) {
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const composing = useRef(false);
+  useEffect(() => () => clearTimeout(searchTimer.current), [actionHref, categoryId, search]);
+  function scheduleSearch(input: HTMLInputElement) {
+    clearTimeout(searchTimer.current);
+    if (composing.current || input.value === search) return;
+    const form = input.form;
+    searchTimer.current = setTimeout(() => form?.requestSubmit(), 300);
+  }
   const labels = { ...blogsLabels, ...overrides },
     pages = Math.max(1, Math.ceil(data.total / data.pageSize));
   const categoryNavigation = (
@@ -139,7 +151,12 @@ export function BlogIndexPage({
         <h1 className="font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
           {labels.publicTitle}
         </h1>
-        <form action={actionHref} method="get" className="flex max-w-lg gap-2">
+        <form
+          action={actionHref}
+          method="get"
+          className="ml-auto max-w-lg"
+          onSubmit={() => clearTimeout(searchTimer.current)}
+        >
           <label className="sr-only" htmlFor="factory-blog-search">
             {labels.search}
           </label>
@@ -153,17 +170,20 @@ export function BlogIndexPage({
               type="search"
               name="search"
               defaultValue={search}
+              onChange={(event) => scheduleSearch(event.currentTarget)}
+              onCompositionStart={() => {
+                composing.current = true;
+                clearTimeout(searchTimer.current);
+              }}
+              onCompositionEnd={(event) => {
+                composing.current = false;
+                scheduleSearch(event.currentTarget);
+              }}
               placeholder={`${labels.search}...`}
               className="h-full w-full min-w-0 appearance-none rounded-xl border-0 bg-transparent py-1 pr-3 pl-11 text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
           {categoryId && <input type="hidden" name="category" value={categoryId} />}
-          <button
-            type="submit"
-            className="inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed motion-reduce:transition-none"
-          >
-            {labels.searchSubmit}
-          </button>
         </form>
       </header>
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">

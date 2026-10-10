@@ -116,27 +116,28 @@ supply their own translations and theme configuration.
 
 ### Blocks (19)
 
-| Name                                           | Description                                                                                                 |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [page-faq](./docs/faq-contact.md)              | Complete FAQ page with hero, category filters, and accessible answers                                       |
-| [page-contact](./docs/faq-contact.md)          | Complete Contact page with hero, details, hours, social links, and optional map                             |
-| `cookie-banner`                                | Compact custom selection, accept all, saved consent, and host analytics callback                            |
-| `navbar`                                       | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
-| [intranet-sidebar](./docs/intranet-sidebar.md) | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
-| `footer`                                       | Multi-column with brand, contact, socials, legal links                                                      |
-| `page-home-hero`                               | Full-viewport hero with image, gradient, CTA                                                                |
-| `page-hero`                                    | Inner page hero with breadcrumb                                                                             |
-| `page-cta-band`                                | Full-width CTA banner                                                                                       |
-| `page-trust-section`                           | Trust/expertise icon grid                                                                                   |
-| `service-card`                                 | Service card with image, icon, hover effect                                                                 |
-| `page-services-grid`                           | Responsive grid of service cards                                                                            |
-| `page-faq-list`                                | Accordion FAQ with category filters                                                                         |
-| `page-testimonials`                            | Client testimonials                                                                                         |
-| `page-method-steps`                            | Numbered steps with connecting line                                                                         |
-| `page-pricing-table`                           | Dynamic pricing table                                                                                       |
-| `page-contact-info`                            | Contact details + hours + Google Maps embed                                                                 |
-| [page-legal](./docs/legal-pages.md)            | Prose layout for legal pages                                                                                |
-| `page-not-found`                               | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
+| Name                                                  | Description                                                                                                 |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [page-faq](./docs/faq-contact.md)                     | Complete FAQ page with hero, category filters, and accessible answers                                       |
+| [page-contact](./docs/faq-contact.md)                 | Complete Contact page with hero, details, hours, social links, and optional map                             |
+| `cookie-banner`                                       | Compact custom selection, accept all, saved consent, and host analytics callback                            |
+| `navbar`                                              | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
+| [subpage-sidebar](./docs/subpage-sidebar.md)          | Page-local nested navigation with a mobile drawer, reused by Drive                                          |
+| [intranet-sidebar](./docs/intranet-sidebar.md)        | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
+| `footer`                                              | Multi-column with brand, contact, socials, legal links                                                      |
+| `page-home-hero`                                      | Full-viewport hero with image, gradient, CTA                                                                |
+| [page-hero](./docs/faq-contact.md#shared-page-header) | Shared FAQ and Contact header with breadcrumb, eyebrow, title, and subtitle                                 |
+| `page-cta-band`                                       | Full-width CTA banner                                                                                       |
+| `page-trust-section`                                  | Trust/expertise icon grid                                                                                   |
+| `service-card`                                        | Service card with image, icon, hover effect                                                                 |
+| `page-services-grid`                                  | Responsive grid of service cards                                                                            |
+| `page-faq-list`                                       | Accordion FAQ with category filters                                                                         |
+| `page-testimonials`                                   | Client testimonials                                                                                         |
+| `page-method-steps`                                   | Numbered steps with connecting line                                                                         |
+| `page-pricing-table`                                  | Dynamic pricing table                                                                                       |
+| `page-contact-info`                                   | Contact details + hours + Google Maps embed                                                                 |
+| [page-legal](./docs/legal-pages.md)                   | Prose layout for legal pages                                                                                |
+| `page-not-found`                                      | Themed 404: optional logo, icon pastille, badge, dual CTAs, foot line, `ctaClassName`                       |
 
 ### Plugins
 

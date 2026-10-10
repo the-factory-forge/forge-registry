@@ -60,7 +60,9 @@ See [README.md](./README.md) for installation and
   without its private providers or code, and without sibling repository imports.
 - Optional server companions require explicit host integration for authorization,
   persistence, credentials, and migrations. UI checks do not replace server guards.
-- Every new UI item needs a working demo discoverable from the showroom homepage.
+- Every new UI item needs a working demo. The homepage lists composed components,
+  page sections, layouts and plugins; basic controls and feedback helpers are
+  linked from documentation or parent examples.
   A successful preview alone does not establish that an item works in a consumer.
 
 [AGENTS.md](./AGENTS.md) and [CONTRIBUTING.md](./CONTRIBUTING.md) own the detailed

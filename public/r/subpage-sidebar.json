@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "subpage-sidebar",
+  "title": "Subpage sidebar",
+  "description": "Page-local grouped and nested navigation with a mobile drawer, using the intranet sidebar navigation.",
+  "dependencies": [
+    "@base-ui/react",
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/sidebar-navigation",
+    "@forge/cn",
+    "@forge/icon-tooltip"
+  ],
+  "files": [
+    {
+      "path": "registry/components/subpage-sidebar.tsx",
+      "content": "\"use client\";\n\nimport { Dialog } from \"@base-ui/react/dialog\";\nimport { PanelLeftIcon, XIcon } from \"lucide-react\";\nimport { useState } from \"react\";\n\nimport { IconTooltip } from \"@/components/icon-tooltip\";\nimport { SidebarNavigation, type SidebarNavigationProps } from \"@/components/sidebar-navigation\";\nimport { cn } from \"@/components/utils/cn\";\nimport { useSidebarMobile } from \"@/components/utils/use-sidebar-mobile\";\n\nexport type {\n  SidebarNavGroup,\n  SidebarNavItem,\n  SidebarLinkProps,\n} from \"@/components/sidebar-navigation\";\n\nexport interface SubpageSidebarProps extends Omit<SidebarNavigationProps, \"onNavigate\"> {\n  closeLabel?: string;\n}\n\nexport function SubpageSidebar({\n  label = \"Page navigation\",\n  closeLabel = \"Close page navigation\",\n  className,\n  ...navigation\n}: SubpageSidebarProps) {\n  const [open, setOpen] = useState(false);\n  const isMobile = useSidebarMobile();\n  return (\n    <div className={cn(\"shrink-0 md:w-48 lg:w-56 print:hidden\", className)}>\n      {!isMobile ? (\n        <div className=\"h-full border-r border-sidebar-border bg-sidebar text-sidebar-foreground\">\n          <SidebarNavigation {...navigation} label={label} />\n        </div>\n      ) : (\n        <Dialog.Root open={open} onOpenChange={setOpen}>\n          <Dialog.Trigger className=\"inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring md:hidden\">\n            <PanelLeftIcon className=\"size-4 shrink-0\" aria-hidden=\"true\" />\n            {label}\n          </Dialog.Trigger>\n          <Dialog.Portal>\n            <Dialog.Backdrop className=\"fixed inset-0 z-40 bg-foreground/40\" />\n            <Dialog.Popup\n              aria-describedby={undefined}\n              className=\"fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-2rem)] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground outline-none\"\n            >\n              <header className=\"flex min-h-14 items-center justify-between gap-2 px-4\">\n                <Dialog.Title className=\"min-w-0 font-semibold wrap-anywhere\">{label}</Dialog.Title>\n                <IconTooltip label={closeLabel}>\n                  <Dialog.Close\n                    aria-label={closeLabel}\n                    className=\"inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring\"\n                  >\n                    <XIcon className=\"size-4\" aria-hidden=\"true\" />\n                  </Dialog.Close>\n                </IconTooltip>\n              </header>\n              <SidebarNavigation {...navigation} label={label} onNavigate={() => setOpen(false)} />\n            </Dialog.Popup>\n          </Dialog.Portal>\n        </Dialog.Root>\n      )}\n    </div>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/subpage-sidebar.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

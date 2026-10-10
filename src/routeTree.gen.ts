@@ -19,6 +19,8 @@ import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
+import { Route as PageHeroRouteImport } from './routes/page-hero'
+import { Route as SubpageSidebarRouteImport } from './routes/subpage-sidebar'
 import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
@@ -87,6 +89,16 @@ const NativeSelectRoute = NativeSelectRouteImport.update({
 const NewsletterRoute = NewsletterRouteImport.update({
   id: '/newsletter',
   path: '/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PageHeroRoute = PageHeroRouteImport.update({
+  id: '/page-hero',
+  path: '/page-hero',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubpageSidebarRoute = SubpageSidebarRouteImport.update({
+  id: '/subpage-sidebar',
+  path: '/subpage-sidebar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TablePaginationRoute = TablePaginationRouteImport.update({
@@ -218,6 +230,8 @@ export interface FileRoutesByFullPath {
   '/icon-tooltip': typeof IconTooltipRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/page-hero': typeof PageHeroRoute
+  '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -249,6 +263,8 @@ export interface FileRoutesByTo {
   '/icon-tooltip': typeof IconTooltipRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/page-hero': typeof PageHeroRoute
+  '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -285,6 +301,8 @@ export interface FileRoutesById {
   '/icon-tooltip': typeof IconTooltipRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
+  '/page-hero': typeof PageHeroRoute
+  '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
@@ -318,6 +336,8 @@ export interface FileRouteTypes {
     | '/icon-tooltip'
     | '/native-select'
     | '/newsletter'
+    | '/page-hero'
+    | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
@@ -349,6 +369,8 @@ export interface FileRouteTypes {
     | '/icon-tooltip'
     | '/native-select'
     | '/newsletter'
+    | '/page-hero'
+    | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
@@ -384,6 +406,8 @@ export interface FileRouteTypes {
     | '/icon-tooltip'
     | '/native-select'
     | '/newsletter'
+    | '/page-hero'
+    | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
@@ -420,6 +444,8 @@ export interface RootRouteChildren {
   IconTooltipRoute: typeof IconTooltipRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
+  PageHeroRoute: typeof PageHeroRoute
+  SubpageSidebarRoute: typeof SubpageSidebarRoute
   TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
@@ -506,6 +532,20 @@ declare module '@tanstack/react-router' {
       path: '/newsletter'
       fullPath: '/newsletter'
       preLoaderRoute: typeof NewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/page-hero': {
+      id: '/page-hero'
+      path: '/page-hero'
+      fullPath: '/page-hero'
+      preLoaderRoute: typeof PageHeroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subpage-sidebar': {
+      id: '/subpage-sidebar'
+      path: '/subpage-sidebar'
+      fullPath: '/subpage-sidebar'
+      preLoaderRoute: typeof SubpageSidebarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/table-pagination': {
@@ -738,6 +778,8 @@ const rootRouteChildren: RootRouteChildren = {
   IconTooltipRoute: IconTooltipRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
+  PageHeroRoute: PageHeroRoute,
+  SubpageSidebarRoute: SubpageSidebarRoute,
   TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,

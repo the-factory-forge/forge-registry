@@ -22,9 +22,13 @@ is authoritative for files and dependencies.
 | `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                     | Host callbacks         | [Customers](./customers.md)                 |
 | `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                              | Host callbacks         | [Projects](./projects.md)                   |
 | `drive`        | Scoped file browser, breadcrumb navigation, host-owned space renaming, uploads/downloads and opt-in trash/restoration               | `drive-storage`        | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles, publishing, categories and confirmed post deletion                                                  | `blogs-storage`        | [Blogs](./blogs.md)                         |
+| `blogs`        | Multilingual Markdown articles, publishing, categories, automatic public search and confirmed post deletion                         | `blogs-storage`        | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing | `menus-storage`        | [Menus](./menus.md)                         |
 | `reservations` | Appointments or overnight stays, policies and calendars                                                                             | `reservations-storage` | [Reservations](./reservations.md)           |
+
+Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for All files, an
+expandable folder tree and optional Trash. The tree uses the existing scoped
+client reads; navigation does not grant access or change storage semantics.
 
 ## Shared presentation
 
@@ -36,6 +40,13 @@ settings, create, edit and delete use the shared Lucide conventions. Icon-only
 buttons and action links use [`@forge/icon-tooltip`](./icon-tooltip.md) with their
 translated accessible names, including edit/delete and close controls. Existing
 confirmations, disabled states and visible action labels remain in place.
+
+Customer, Project, Employee, Blog, Menu and Drive tables share header styling
+and right-aligned row actions with 8px gaps. Action buttons stay on one line;
+columns stay pinned on desktop and scroll with the row on mobile so they do not
+cover record names or statuses. Menus exposes `labels.actions` for its action
+column heading. The reservation year grid shares table typography and header
+spacing while retaining its date cells, sticky month labels and keyboard navigation.
 
 Paginated plugin tables share [`@forge/table-pagination`](./table-pagination.md).
 Blogs and Employees supply totals and page numbers. Drive shows the current page
@@ -99,6 +110,16 @@ mappings described in [Design tokens](../CONTRIBUTING.md#design-tokens), includi
 
 Errors retain destructive tokens. Status badges keep readable translated text,
 so meaning does not depend on color. Theme values remain host-owned.
+
+Standalone item editors (Blogs, Menus, Customers and Projects) share
+`@forge/editor-form`. Save/publish actions stick to the bottom of the viewport
+within their form, wrap on narrow screens and respect the device safe area.
+Submission scrolls and focuses the first invalid field, with destructive styling
+and an associated inline message. Editing clears that field’s message; the next
+submission checks the remaining fields. Translation errors reveal the applicable
+language. Client feedback supplements existing server validation and keeps drafts.
+Blog publication requirements appear only beside fields after a publish attempt;
+incomplete drafts remain saveable. Hosts can reuse the helper for their own editors.
 
 ## Optimistic actions
 

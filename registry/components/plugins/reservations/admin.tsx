@@ -31,6 +31,7 @@ import {
 import { BookingForm, RescheduleDialog } from "@/components/plugins/reservations/public";
 import type {
   ReservationAdminRecord,
+  ReservationFilters,
   ReservationRange,
   ReservationSlot,
   ReservationStatus,
@@ -68,6 +69,8 @@ export interface ReservationsCalendarProps {
   locale?: string;
   labels?: Partial<ReservationLabels>;
   initialDate?: string;
+  filters?: ReservationFilters;
+  onFiltersChange?: (filters: ReservationFilters) => void;
   settingsHref?: string;
   canManage?: boolean;
   className?: string;
@@ -79,6 +82,8 @@ export function ReservationsCalendar({
   locale = "en",
   labels: overrides,
   initialDate,
+  filters: controlledFilters,
+  onFiltersChange,
   settingsHref,
   canManage = true,
   className,
@@ -92,6 +97,13 @@ export function ReservationsCalendar({
   );
   const mobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
   const [view, setView] = useState("");
+  const [localFilters, setLocalFilters] = useState<ReservationFilters>({});
+  const filters = controlledFilters ?? localFilters;
+  const { resourceId, serviceId, status } = filters;
+  function changeFilters(next: ReservationFilters) {
+    setLocalFilters(next);
+    onFiltersChange?.(next);
+  }
   const [range, setRange] = useState<ReservationRange>(() => {
     const from = initialDate ? new Date(`${initialDate}T00:00:00Z`) : new Date();
     return { from: from.toISOString(), to: new Date(from.getTime() + 7 * 86400000).toISOString() };
@@ -102,7 +114,10 @@ export function ReservationsCalendar({
   const config = useReservationLoad(load);
   const labels = getReservationLabels(overrides, config.value?.mode);
   const timeZone = config.value?.settings.timeZone ?? "UTC";
-  const loadBookings = useCallback(() => loadReservationCalendar(client, range), [client, range]);
+  const loadBookings = useCallback(
+    () => loadReservationCalendar(client, { ...range, resourceId, serviceId, status }),
+    [client, range, resourceId, serviceId, status],
+  );
   const data = useReservationLoad(loadBookings);
   const optimistic = useOptimisticAction(data.value, loadBookings);
   const bookings = optimistic.value;
@@ -210,8 +225,10 @@ export function ReservationsCalendar({
             <Field label={labels.resource}>
               <NativeSelect
                 className={fieldClass}
-                value={range.resourceId ?? ""}
-                onChange={(e) => setRange({ ...range, resourceId: e.target.value || undefined })}
+                value={resourceId ?? ""}
+                onChange={(e) =>
+                  changeFilters({ ...filters, resourceId: e.target.value || undefined })
+                }
               >
                 <option value="">{labels.all}</option>
                 {config.value.resources.map((r) => (
@@ -224,8 +241,10 @@ export function ReservationsCalendar({
             <Field label={labels.service}>
               <NativeSelect
                 className={fieldClass}
-                value={range.serviceId ?? ""}
-                onChange={(e) => setRange({ ...range, serviceId: e.target.value || undefined })}
+                value={serviceId ?? ""}
+                onChange={(e) =>
+                  changeFilters({ ...filters, serviceId: e.target.value || undefined })
+                }
               >
                 <option value="">{labels.all}</option>
                 {config.value.services.map((s) => (
@@ -238,10 +257,10 @@ export function ReservationsCalendar({
             <Field label={labels.status}>
               <NativeSelect
                 className={fieldClass}
-                value={range.status ?? ""}
+                value={status ?? ""}
                 onChange={(e) =>
-                  setRange({
-                    ...range,
+                  changeFilters({
+                    ...filters,
                     status: e.target.value ? (e.target.value as ReservationStatus) : undefined,
                   })
                 }

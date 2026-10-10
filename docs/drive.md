@@ -13,6 +13,21 @@ and folder changes reset paging. No total is displayed because `DriveClient`
 returns cursors. Host paging callbacks stay compatible; translate the new
 `previous` label, which replaces the `first` label in these controls.
 
+## Folder navigation
+
+The file browser uses [`SubpageSidebar`](./subpage-sidebar.md) for All files,
+a nested folder tree and optional Trash. The breadcrumb stays above the local
+navigation and file table; search stays inside the table panel. On mobile,
+**Drive navigation** opens the drawer. The tree reads one authorized cursor page
+at a time, loads children when expanded, and offers loading and retry feedback.
+All files and folder links use `getFolderHref` and the host link adapter. Trash
+keeps the existing recovery flow and only appears with all required trash methods.
+
+Translate `navigation`, `closeNavigation`, `expandFolder`, `collapseFolder`, and
+`loadMoreFolders` through the existing labels prop. No new client method, storage
+migration or authorization rule is required. Favorites, recent changes and sharing
+from the reference application are outside this navigation change.
+
 ## Install and entrypoints
 
 Configure the `@forge` namespace as described in the root README, then run:
@@ -93,8 +108,10 @@ bottom-right toasts using the item's existing Base UI dependency. They dismiss
 after five seconds, pause while hovered or focused, and can be closed with the
 translated `close` label. Each browser provides its own toast context; hosts need
 no notification provider. Uploads share that fixed toast area, with per-file
-progress, Cancel, Retry and Dismiss controls. Loading toasts show a spinner and
-update in place to success or error when their operation settles. Downloads use
+progress, Cancel, Retry and Dismiss controls. Uploads show an orange spinner and
+progress bar while pending, then a green check and progress bar after success.
+Each file's bottom row places its status on the left and actions on the right.
+Loading toasts update in place to success or error when their operation settles. Downloads use
 the Base UI promise manager; Undo keeps its retry and conflict recovery actions.
 Active uploads and failures stay
 visible until resolved; a finished batch clears after five seconds or can be

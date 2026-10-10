@@ -622,6 +622,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   await page
     .getByRole("alert")
     .filter({ hasText: "Enter every size name in the base language." })
+    .first()
     .waitFor();
   assert.equal(
     await page.getByRole("tab", { name: "English", exact: true }).getAttribute("aria-selected"),
@@ -631,10 +632,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   await page.getByRole("textbox", { name: "Size name (en) 2", exact: true }).fill("Family · 40 cm");
   await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("28.005");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page
-    .getByRole("alert")
-    .filter({ hasText: "Could not save changes. Please try again." })
-    .waitFor();
+  await page.getByRole("alert").filter({ hasText: "Enter a valid, non-negative price" }).waitFor();
   assert.equal(
     await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
     "28.005",
