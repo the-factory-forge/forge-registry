@@ -27,7 +27,8 @@ export type BlogsErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "IN_USE"
-  | "STORAGE";
+  | "STORAGE"
+  | "STORAGE_NOT_CONFIGURED";
 export class BlogsError extends Error {
   code: BlogsErrorCode;
   constructor(code: BlogsErrorCode) {

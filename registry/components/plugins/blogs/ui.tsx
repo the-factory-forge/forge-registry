@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { Toast } from "@base-ui/react/toast";
 import { Trash2Icon } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -30,7 +31,15 @@ export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-
 export const pageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";
 export function errorMessage(error: unknown, labels: BlogsLabels) {
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
-  return ["INVALID", "CONFLICT", "FORBIDDEN", "NOT_FOUND", "IN_USE", "STORAGE"].includes(code)
+  return [
+    "INVALID",
+    "CONFLICT",
+    "FORBIDDEN",
+    "NOT_FOUND",
+    "IN_USE",
+    "STORAGE",
+    "STORAGE_NOT_CONFIGURED",
+  ].includes(code)
     ? labels[code as "INVALID"]
     : labels.error;
 }
@@ -46,6 +55,7 @@ export function Feedback({ message, error = false }: { message?: string; error?:
 }
 export function useBlogAction(labels: BlogsLabels) {
   const notify = useActionToast();
+  const { add } = Toast.useToastManager();
   const lock = useRef(false);
   const request = useRef<{ key: string; id: string } | null>(null);
   const [pending, setPending] = useState(false),
@@ -66,7 +76,17 @@ export function useBlogAction(labels: BlogsLabels) {
       if (success) notify(success);
       return result;
     } catch (error) {
-      setFeedback({ message: errorMessage(error, labels), error: true });
+      const message = errorMessage(error, labels);
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "STORAGE_NOT_CONFIGURED"
+      ) {
+        add({ title: message, type: "error" });
+      } else {
+        setFeedback({ message, error: true });
+      }
       return undefined;
     } finally {
       lock.current = false;

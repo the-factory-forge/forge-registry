@@ -17,8 +17,8 @@ export type BlogsPermission =
   | "manageCategories";
 export interface BlogsStorageOptions<Context> {
   db: BlogsDatabase;
-  s3: S3Client;
-  bucket: string;
+  s3?: S3Client;
+  bucket?: string;
   /** Required <SITE_NAME>/blogs/ prefix; never a bucket-root default. */
   keyPrefix: string;
   locales: string[];

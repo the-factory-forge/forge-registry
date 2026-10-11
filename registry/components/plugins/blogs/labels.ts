@@ -98,6 +98,7 @@ export const blogsLabels = {
   FORBIDDEN: "You do not have permission to perform this action.",
   NOT_FOUND: "This record or asset is unavailable.",
   IN_USE: "This category still has children or article assignments.",
+  STORAGE_NOT_CONFIGURED: "Image storage is not configured. Your draft is preserved.",
   STORAGE: "Storage is unavailable. Your draft is preserved; please retry.",
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,

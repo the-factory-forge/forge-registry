@@ -79,7 +79,8 @@ const asset = (row: ObjectRow): BlogAsset => ({
 });
 
 export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context>) {
-  const { db, s3, bucket } = options;
+  const { db, s3 } = options;
+  const bucket = options.bucket?.trim();
   const prefix = options.keyPrefix;
   function scopedKey(key: string) {
     assertBlog(
@@ -93,6 +94,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   const maxMarkdown = options.maxMarkdownBytes ?? MAX_MARKDOWN_BYTES;
   let bucketVerified: Promise<void> | undefined;
   function verifyBucket() {
+    assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     bucketVerified ??= s3
       .send(new GetBucketVersioningCommand({ Bucket: bucket }), {
         abortSignal: AbortSignal.timeout(30000),
@@ -106,7 +108,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       });
     return bucketVerified;
   }
-  assertBlog(bucket && /^[a-z0-9]+(?:-[a-z0-9]+)*\/blogs\/$/.test(prefix));
+  assertBlog(/^[a-z0-9]+(?:-[a-z0-9]+)*\/blogs\/$/.test(prefix));
   assertBlog(
     options.locales.length > 0 &&
       options.locales.length <= 20 &&
@@ -197,6 +199,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     size: number,
   ) {
     await access(context, permission, articleId);
+    assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     const id = randomUUID(),
       key = `${prefix}${articleId}/${id}/image`;
     await guard(() =>
@@ -217,6 +220,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     bytes: Uint8Array,
     contentType: string,
   ) {
+    assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     await verifyBucket();
     const [pending] = await rows<{ id: string }>(
       tx,
@@ -383,6 +387,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         for (const id of publication.assetIds) {
           const record = await object(tx, id, input.id);
           assertBlog(record.kind === "image");
+          assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
           const head = await s3.send(
             new HeadObjectCommand({ Bucket: bucket, Key: scopedKey(record.key) }),
             {
@@ -625,6 +630,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           assertBlog(context !== undefined, "NOT_FOUND");
           await access(context, "read", record.article_id);
         }
+        assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
         const result = await s3.send(
           new GetObjectCommand({ Bucket: bucket, Key: scopedKey(record.key) }),
           {
@@ -653,6 +659,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   /** Trusted server scheduler only. A 24-hour grace period lets authors attach new uploads. */
   async function maintenance(limit = 100) {
     assertBlog(Number.isSafeInteger(limit) && limit > 0 && limit <= 1000);
+    assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);

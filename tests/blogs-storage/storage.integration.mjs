@@ -87,6 +87,45 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
   } catch (error) {
     if (!["BucketAlreadyOwnedByYou", "BucketAlreadyExists"].includes(error.name)) throw error;
   }
+  await t.test("missing image configuration leaves text editing available", async () => {
+    const objectsBefore = await pool`select id from blogs_object`;
+    for (const missing of [
+      { s3: undefined, bucket: undefined },
+      { bucket: "" },
+      { bucket: "   " },
+    ]) {
+      const local = createBlogsStorage({ ...options, ...missing });
+      const editor = local.client("jordan");
+      let draft = await editor.create({
+        title: `Local ${randomUUID()}`,
+        locale: "en",
+        ...request(),
+      });
+      draft = await editor.save({
+        ...input(draft),
+        shared: draft.shared,
+        content: { ...draft.translations.en.draft, markdown: "Text needs only PostgreSQL" },
+      });
+      const uploadInput = {
+        id: draft.id,
+        name: "photo.png",
+        contentType: "image/png",
+        bytes: image,
+        ...request(),
+      };
+      await rejected(local.upload("stranger", uploadInput), "FORBIDDEN");
+      await rejected(local.upload("jordan", uploadInput), "STORAGE_NOT_CONFIGURED");
+      assert.deepEqual(await pool`select id from blogs_object`, objectsBefore);
+      draft = await editor.publish(input(draft));
+      const post = await local.getPublished("en", draft.translations.en.draft.slug);
+      assert.equal(post.markdown, "Text needs only PostgreSQL");
+      assert.equal((await editor.get(draft.id)).translations.en.draft.markdown, post.markdown);
+      draft = await editor.unpublish(input(draft));
+      assert.equal(await local.getPublished("en", draft.translations.en.draft.slug), null);
+      await editor.delete({ id: draft.id, version: draft.version, ...request() });
+      await rejected(local.maintenance(), "STORAGE_NOT_CONFIGURED");
+    }
+  });
   let article = await client.create({ title: "A private draft", locale: "en", ...request() });
   visibleId = article.id;
   const second = await client.create({ title: "Another article", locale: "en", ...request() });

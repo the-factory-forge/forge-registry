@@ -15,16 +15,16 @@ The shared [Plugins specification](https://github.com/the-factory-forge/forge-sp
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
-| Plugin         | Purpose                                                                                                                              | Optional server item   | Guide                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ------------------------------------------- |
-| `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                         | Host auth provider     | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                             | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                      | Host callbacks         | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                               | Host callbacks         | [Projects](./projects.md)                   |
-| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                           | `drive-storage`        | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles in PostgreSQL, S3 images, publishing, categories, automatic public search and confirmed post deletion | `blogs-storage`        | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing  | `menus-storage`        | [Menus](./menus.md)                         |
-| `reservations` | Appointments or overnight stays, policies and calendars                                                                              | `reservations-storage` | [Reservations](./reservations.md)           |
+| Plugin         | Purpose                                                                                                                                              | Optional server item   | Guide                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| `auth`         | Sign-in/out, recovery, password changes and access-denied UI                                                                                         | Host auth provider     | [Auth](./intranet-auth.md)                  |
+| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                             | `employees-server`     | [Employees](./intranet-auth.md#employee-ui) |
+| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                      | Host callbacks         | [Customers](./customers.md)                 |
+| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                               | Host callbacks         | [Projects](./projects.md)                   |
+| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                           | `drive-storage`        | [Drive](./drive.md)                         |
+| `blogs`        | Multilingual Markdown articles in PostgreSQL, optional S3 image uploads, publishing, categories, automatic public search and confirmed post deletion | `blogs-storage`        | [Blogs](./blogs.md)                         |
+| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing                  | `menus-storage`        | [Menus](./menus.md)                         |
+| `reservations` | Appointments or overnight stays, policies and calendars                                                                                              | `reservations-storage` | [Reservations](./reservations.md)           |
 
 Drive folder menus support child-folder creation and ZIP downloads alongside
 uploads, rename, duplication and trash. ZIPs use the existing authenticated reads

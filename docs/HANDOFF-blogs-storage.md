@@ -57,11 +57,17 @@ host's migration workflow. Existing installations generate only the needed
 incremental changes; never apply fresh CREATE TABLE statements over existing tables.
 Review the image-only `blogs_object.kind` constraint if reusing an empty old schema.
 
-Use `getS3StorageConfig("blogs")` with the site's stable bucket and required
+For configured image storage, use `getS3StorageConfig("blogs")` with the site's stable bucket and required
 `<SITE_NAME>/blogs/` prefix. Missing, site-only and unscoped prefixes are rejected.
 The bucket must be private and unversioned; credentials need object permissions and
 bucket versioning read permission. No browser-to-S3 upload route is required.
-Existing S3 image keys must not change.
+Existing S3 image keys must not change. Without image storage, pass `s3` and
+`bucket` as undefined while retaining the stable prefix. Do not block article
+access on S3 configuration. Preserve `STORAGE_NOT_CONFIGURED` through the host
+transport so an upload attempt shows the plugin's error toast without losing the
+draft. Adopt the updated UI labels/error mapping together with the companion.
+Older local action-toast renderers must support the error type; retain the host's
+layout while adding that support if needed.
 
 ## 3. Migrate a custom database image adapter
 

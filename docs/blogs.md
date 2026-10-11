@@ -2,7 +2,8 @@
 
 `@forge/blogs` provides administration, a Markdown editor with a live TanStack
 Markdown preview, category management, and public listing/article components.
-`@forge/blogs-storage` stores Markdown in PostgreSQL and uploaded images in private S3. Neither item
+`@forge/blogs-storage` stores Markdown in PostgreSQL and uploaded images in private S3.
+S3 configuration is optional for text editing and publishing. Neither item
 depends on customers, projects, or Drive.
 
 Table pagination uses [`@forge/table-pagination`](./table-pagination.md), included
@@ -128,7 +129,7 @@ The companion exports `createBlogsStorage`, configuration/database types, and
 tables. Review `server/migration.sql` and apply it through the host migration
 workflow. Installation does not apply migrations.
 
-Use a private, dedicated, **unversioned** S3-compatible bucket. Versioned/suspended
+For image uploads, use a private, dedicated, **unversioned** S3-compatible bucket. Versioned/suspended
 buckets are rejected because deleting current objects leaves previous versions.
 Configure credentials on the server only:
 
@@ -137,8 +138,8 @@ import { createBlogsStorage } from "@/components/plugins/blogs/server";
 
 const storage = createBlogsStorage<HostRequestContext>({
   db, // Drizzle PostgreSQL database
-  s3, // AWS SDK v3 S3Client
-  bucket: process.env.BLOGS_BUCKET!,
+  s3, // AWS SDK v3 S3Client, or undefined when image storage is not configured
+  bucket, // server configuration, or undefined; an empty value is also unconfigured
   locales: ["en", "fr"],
   keyPrefix: "my-website/blogs/", // derive from validated SITE_NAME
   authorize: async (context, permission, articleId) =>
@@ -149,6 +150,17 @@ const storage = createBlogsStorage<HostRequestContext>({
   }),
 });
 ```
+
+Leave `s3` and `bucket` unset when developing with PostgreSQL only. Do not gate the
+editor or call a host S3 configuration helper that throws before creating the
+companion. Keep the explicit site/plugin prefix, which does not require a bucket.
+Text creation, edits, categories and image-free publication remain available.
+Keep authorized upload controls available: a missing S3 client or blank bucket
+returns `STORAGE_NOT_CONFIGURED` before reserving an object. The existing action
+toast shows the translated error and retains the editor draft. Transport adapters
+must preserve this code; override its English label through `labels` as needed.
+Configured provider failures still return `STORAGE`. Image reads/publication need
+configured storage, and hosts should schedule maintenance only when it is configured.
 
 The host must implement real authorization for `read`, `create`, `edit`,
 `publish`, `delete`, `upload`, and `manageCategories`. Grant `read` with write
