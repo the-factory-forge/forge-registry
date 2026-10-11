@@ -7,7 +7,7 @@ CREATE TABLE blogs_category (id uuid PRIMARY KEY, document jsonb NOT NULL);
 -- Objects intentionally outlive deleted articles until maintenance confirms S3 removal.
 CREATE TABLE blogs_object (
   id uuid PRIMARY KEY, article_id uuid NOT NULL, key text NOT NULL UNIQUE,
-  kind text NOT NULL CHECK (kind IN ('markdown', 'image')),
+  kind text NOT NULL CHECK (kind = 'image'),
   name text NOT NULL, content_type text NOT NULL,
   size integer NOT NULL CHECK (size >= 0), state text NOT NULL CHECK (state IN ('pending', 'ready')),
   created_at timestamptz NOT NULL DEFAULT now(), checked_at timestamptz NOT NULL DEFAULT now()

@@ -2,7 +2,7 @@
 
 `@forge/blogs` provides administration, a Markdown editor with a live TanStack
 Markdown preview, category management, and public listing/article components.
-`@forge/blogs-storage` adds private S3 and PostgreSQL persistence. Neither item
+`@forge/blogs-storage` stores Markdown in PostgreSQL and uploaded images in private S3. Neither item
 depends on customers, projects, or Drive.
 
 Table pagination uses [`@forge/table-pagination`](./table-pagination.md), included
@@ -119,6 +119,10 @@ and republish affected translations before deleting a category.
 
 ## Persistence and migrations
 
+The required prefix is `<SITE_NAME>/blogs/`, derived by the host with
+`getS3StorageConfig("blogs")`. Missing, site-only and unscoped prefixes are rejected.
+All object reads and cleanup remain within that prefix.
+
 The companion exports `createBlogsStorage`, configuration/database types, and
 `blogsArticles`, `blogsCategories`, `blogsObjects`, and `blogsMutations` Drizzle
 tables. Review `server/migration.sql` and apply it through the host migration
@@ -136,7 +140,7 @@ const storage = createBlogsStorage<HostRequestContext>({
   s3, // AWS SDK v3 S3Client
   bucket: process.env.BLOGS_BUCKET!,
   locales: ["en", "fr"],
-  keyPrefix: "blogs/",
+  keyPrefix: "my-website/blogs/", // derive from validated SITE_NAME
   authorize: async (context, permission, articleId) =>
     hostCanAccessBlog(context.session, permission, articleId),
   resolveEditor: async (context) => ({
@@ -152,9 +156,9 @@ permissions so mutation responses can return the refreshed article. Administrati
 listing checks both list-level and per-article permissions. UI capabilities hide
 controls but never authorize server operations.
 
-PostgreSQL stores metadata and publication snapshots as atomic JSONB documents,
-without Markdown bodies. S3 stores immutable revision objects ending in `README.md`
-and generated image keys. Object reservations are committed before writes so a
+PostgreSQL stores complete draft and publication snapshots, including Markdown, as
+atomic JSONB documents. S3 stores uploaded images only. Saving or reading text
+does not access S3; publishing checks the images referenced by that publication. Object reservations are committed before writes so a
 failed database commit leaves cleanup metadata. Request IDs make retries safe;
 article versions reject stale writes. Preserve the request ID on uncertain
 transport retries and use a new one when changing input. Resolve version conflicts
@@ -166,6 +170,14 @@ public listing filters/paginates in SQL without fetching Markdown. These choices
 fit small editorial sites. High-throughput hosts should move to per-article locks
 and SQL-backed visibility rules. One configured database/schema represents one
 website, not a multitenant authorization boundary.
+
+## Updating consumers
+
+Follow [HANDOFF: blog storage adoption](./HANDOFF-blogs-storage.md) when adopting
+this revision. The owner confirmed no website used the former S3 Markdown flow,
+so no legacy Markdown migration is provided. New installations use the companion
+schema; existing custom database adapters preserve their article data and migrate
+image bytes through the host's incremental migration workflow.
 
 ## Authenticated host transport
 
@@ -266,10 +278,10 @@ Run `await storage.maintenance(100)` hourly from a trusted host scheduler. Log i
 Do not expose maintenance as a public HTTP action. Each bounded run rotates
 through candidates so referenced old objects cannot starve later cleanup.
 
-All unreferenced objects, including those of deleted articles, have a 24-hour grace
+Unreferenced image objects, including those of deleted articles, have a 24-hour grace
 period to outlive interrupted transfers; attach uploads to saved
 drafts within that period. All current draft/publication references protect objects.
-Article deletion immediately removes public visibility and leaves the object
+Article deletion immediately removes public visibility and leaves the image
 ledger for retryable byte deletion. Never configure an S3 expiry rule over the
 final object prefix. No external automation is created by installation. Mutation
 records remain for retry safety; there is no user-facing revision/restore history.

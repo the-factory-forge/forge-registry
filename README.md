@@ -6,6 +6,20 @@ Browse the [live showroom](https://registry.the-corner.io/) to preview the compo
 
 The UI uses Base UI primitives, props-driven content, and framework shims. The registry also includes an intranet layout for internal websites. The showroom owns its locale configuration and dictionaries.
 
+## Source releases and maintenance
+
+[Release guide](docs/releases/README.md) · [Release skill](.agents/skills/release-registry/SKILL.md).
+`VERSION` starts at `1.0.0-rc.1` as an **unpublished local candidate**. The private
+package version and legacy tags are separate; inspect remote release history
+before publication. This setup does not deploy or update customer websites.
+
+The canonical [upstream promotion skill](.agents/skills/sync-forge-registry/SKILL.md)
+is kept here. From a customer checkout, invoke `$sync-forge-registry` to promote
+only the improvement discussed in the current conversation. To make it discoverable
+across projects, link this skill directory into your agent's configured skills
+directory using the actual checkout path; keep one canonical source. The current
+installed invocation retains its upstream meaning.
+
 ## Context for contributors and AI
 
 Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
@@ -29,6 +43,11 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 ```bash
 shadcn build registry/registry.json --output public/r
 ```
+
+The namespace example below currently uses development `main`. For a published
+release, resolve its tag to the full SHA and substitute that SHA for the entire
+namespace as described in [the release guide](docs/releases/README.md). Selecting
+a download URL does not establish the revision installed in a customer site.
 
 The source manifest declares file targets and `@forge/...` dependencies. Rendered components install directly under the consumer's configured components directory, page-building sections with `page-*` names under `components/pages/`, layouts under `components/layouts/`, and non-visual utilities under `components/utils/`. Source imports mirror those targets; shadcn resolves the consumer's configured aliases.
 

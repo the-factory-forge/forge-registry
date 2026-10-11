@@ -20,7 +20,8 @@ export interface DriveStorageOptions<Context> {
   db: DriveDatabase;
   s3: S3Client;
   bucket: string;
-  keyPrefix?: string;
+  /** Required <SITE_NAME>/drive/ prefix; never a bucket-root default. */
+  keyPrefix: string;
   maxFileBytes?: number;
   /** Enable trash with a default retention of 30 days. */
   trash?: { retentionDays?: number };

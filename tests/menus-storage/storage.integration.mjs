@@ -47,6 +47,7 @@ test("menus, Better Auth-shaped authorization, and private Drive images", async 
     db,
     s3,
     bucket,
+    keyPrefix: "storage-test/drive/",
     trash: {},
     canDelete: menuImageDeleteGuard,
     resolveScope: async (actor, scope) => {

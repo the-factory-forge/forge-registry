@@ -360,6 +360,7 @@ export const storage = createDriveStorage({
   db,
   s3,
   bucket: process.env.DRIVE_BUCKET!,
+  keyPrefix: "my-website/drive/", // derive from validated SITE_NAME
   maxFileBytes: 100_000_000,
   resolveScope: async (context: Session, scope) => {
     const entity = await findAccessibleEntity(context, scope);
@@ -389,6 +390,10 @@ must return paginated results and omit inaccessible records. All entry IDs and
 parents are checked against the authorized space. Capabilities shown in the UI
 are descriptive; they never authorize a server operation.
 
+The required prefix is `<SITE_NAME>/drive/`, derived by the host with
+`getS3StorageConfig("drive")`. Missing, site-only and unscoped prefixes are rejected.
+Menus uses Drive-managed media and therefore shares this storage namespace.
+
 Keep `bucket` and `keyPrefix` stable after the first upload; changing either requires an explicit storage migration.
 
 Use a dedicated **unversioned** bucket with public access blocked, private
@@ -404,8 +409,10 @@ Object Lock/retention that prevents deletion is incompatible with this workflow.
 Review `server/cors.json`: replace the example origin with your exact website
 origins. Allow PUT with Content-Type/If-None-Match and browser-generated
 Content-Length; allow GET/HEAD as required. Review `server/lifecycle.json`:
-expire **only** `drive/staging/` objects after one day. If `keyPrefix` changes,
-change this lifecycle prefix too. Never expire the final `drive/objects/`
+expire **only** `<SITE_NAME>/drive/staging/` objects after one day. Replace the
+literal `<SITE_NAME>` placeholder in the JSON with the validated site slug before
+applying it; the provider does not expand environment variables. If `keyPrefix` changes,
+change this lifecycle prefix too. Never expire the final `<SITE_NAME>/drive/objects/`
 prefix. For AWS, apply with `aws s3api put-bucket-cors` and
 `put-bucket-lifecycle-configuration` using the respective JSON files; merge
 existing rules rather than replacing unrelated policy. Compatible providers may

@@ -19,7 +19,8 @@ export interface BlogsStorageOptions<Context> {
   db: BlogsDatabase;
   s3: S3Client;
   bucket: string;
-  keyPrefix?: string;
+  /** Required <SITE_NAME>/blogs/ prefix; never a bucket-root default. */
+  keyPrefix: string;
   locales: string[];
   maxImageBytes?: number;
   maxMarkdownBytes?: number;

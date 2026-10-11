@@ -46,18 +46,6 @@ import {
   validId,
 } from "@/components/plugins/blogs/utils";
 
-type StoredArticle = Omit<BlogArticle, "translations"> & {
-  translations: Record<
-    string,
-    {
-      draft: Omit<BlogArticle["translations"][string]["draft"], "markdown">;
-      published: Omit<
-        NonNullable<BlogArticle["translations"][string]["published"]>,
-        "markdown"
-      > | null;
-    }
-  >;
-};
 type ObjectRow = {
   id: string;
   article_id: string;
@@ -68,30 +56,16 @@ type ObjectRow = {
   size: number;
   state: string;
 };
-function stored(article: BlogArticle): StoredArticle {
-  return {
-    ...article,
-    translations: Object.fromEntries(
-      Object.entries(article.translations).map(([locale, t]) => {
-        const { markdown: _draft, ...draft } = t.draft;
-        if (!t.published) return [locale, { draft, published: null }];
-        const { markdown: _published, ...published } = t.published;
-        return [locale, { draft, published }];
-      }),
-    ),
-  };
-}
 async function rows<T>(tx: BlogsTransaction, query: ReturnType<typeof sql>) {
   return (await tx.execute(query)) as unknown as T[];
 }
-function references(article: StoredArticle) {
+function references(article: BlogArticle) {
   const refs = new Set(
     [article.shared.thumbnailId, article.shared.bannerId].filter((v): v is string => Boolean(v)),
   );
   for (const t of Object.values(article.translations))
     for (const revision of [t.draft, t.published])
       if (revision) {
-        if (revision.revisionId) refs.add(revision.revisionId);
         for (const id of revision.assetIds) refs.add(id);
       }
   return refs;
@@ -106,7 +80,15 @@ const asset = (row: ObjectRow): BlogAsset => ({
 
 export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context>) {
   const { db, s3, bucket } = options;
-  const prefix = options.keyPrefix ?? "blogs/";
+  const prefix = options.keyPrefix;
+  function scopedKey(key: string) {
+    assertBlog(
+      key.startsWith(prefix) &&
+        !key.split("/").some((part) => !part || part === "." || part === ".."),
+      "STORAGE",
+    );
+    return key;
+  }
   const maxImage = options.maxImageBytes ?? MAX_IMAGE_BYTES;
   const maxMarkdown = options.maxMarkdownBytes ?? MAX_MARKDOWN_BYTES;
   let bucketVerified: Promise<void> | undefined;
@@ -124,7 +106,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       });
     return bucketVerified;
   }
-  assertBlog(bucket && /^[\w/-]+\/$/.test(prefix) && !prefix.includes(".."));
+  assertBlog(bucket && /^[a-z0-9]+(?:-[a-z0-9]+)*\/blogs\/$/.test(prefix));
   assertBlog(
     options.locales.length > 0 &&
       options.locales.length <= 20 &&
@@ -174,7 +156,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('forge-blogs'))`);
   }
   async function metadata(tx: BlogsTransaction, id: string) {
-    const [row] = await rows<{ document: StoredArticle }>(
+    const [row] = await rows<{ document: BlogArticle }>(
       tx,
       sql`select document from blogs_article where id=${id}`,
     );
@@ -197,47 +179,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     assertBlog(row, "NOT_FOUND");
     return row;
   }
-  async function markdown(tx: BlogsTransaction, id: string | null, articleId: string) {
-    if (!id) return "";
-    const record = await object(tx, id, articleId);
-    assertBlog(record.kind === "markdown" && record.size <= maxMarkdown);
-    const result = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: record.key }), {
-      abortSignal: AbortSignal.timeout(30000),
-    });
-    assertBlog(result.ContentLength === record.size && result.Body, "STORAGE");
-    const bytes = await result.Body.transformToByteArray();
-    assertBlog(bytes.length === record.size && bytes.length <= maxMarkdown, "STORAGE");
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  }
-  async function hydrate(tx: BlogsTransaction, document: StoredArticle): Promise<BlogArticle> {
-    const sources = new Map<string, Promise<string>>();
-    function source(id: string | null) {
-      if (!id) return Promise.resolve("");
-      if (!sources.has(id)) sources.set(id, markdown(tx, id, document.id));
-      return sources.get(id)!;
-    }
-    const translations = await Promise.all(
-      Object.entries(document.translations).map(
-        async ([l, t]) =>
-          [
-            l,
-            {
-              draft: { ...t.draft, markdown: await source(t.draft.revisionId) },
-              published: t.published
-                ? { ...t.published, markdown: await source(t.published.revisionId) }
-                : null,
-            },
-          ] as const,
-      ),
-    );
-    return { ...document, translations: Object.fromEntries(translations) };
-  }
   async function get(context: Context, id: string) {
     await access(context, "read", id);
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        return hydrate(tx, await metadata(tx, id));
+        return metadata(tx, id);
       }),
     );
   }
@@ -245,21 +192,20 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     context: Context,
     permission: BlogsPermission,
     articleId: string,
-    kind: "image" | "markdown",
     name: string,
     contentType: string,
     size: number,
   ) {
     await access(context, permission, articleId);
     const id = randomUUID(),
-      key = `${prefix}${articleId}/${id}/${kind === "markdown" ? "README.md" : "image"}`;
+      key = `${prefix}${articleId}/${id}/image`;
     await guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
         await access(context, permission, articleId);
         await metadata(tx, articleId);
         await tx.execute(
-          sql`insert into blogs_object (id,article_id,key,kind,name,content_type,size,state) values (${id},${articleId},${key},${kind},${name},${contentType},${size},'pending')`,
+          sql`insert into blogs_object (id,article_id,key,kind,name,content_type,size,state) values (${id},${articleId},${key},'image',${name},${contentType},${size},'pending')`,
         );
       }),
     );
@@ -280,7 +226,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
-        Key: reserved.key,
+        Key: scopedKey(reserved.key),
         Body: bytes,
         ContentType: contentType,
         ContentLength: bytes.length,
@@ -343,11 +289,11 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     assertBlog(Number.isSafeInteger(input.version) && input.version >= 1);
     const article = await metadata(tx, input.id);
     assertBlog(article.version === input.version, "CONFLICT");
-    return hydrate(tx, article);
+    return article;
   }
   async function saveRecord(tx: BlogsTransaction, article: BlogArticle) {
     await tx.execute(
-      sql`update blogs_article set document=${JSON.stringify(stored(article))}::jsonb,version=${article.version},updated_at=${article.updatedAt} where id=${article.id}`,
+      sql`update blogs_article set document=${JSON.stringify(article)}::jsonb,version=${article.version},updated_at=${article.updatedAt} where id=${article.id}`,
     );
     return { id: article.id };
   }
@@ -381,7 +327,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         }
         await uniqueSlug(tx, id, input.locale, draft.slug);
         await tx.execute(
-          sql`insert into blogs_article (id,version,document,updated_at) values (${id},1,${JSON.stringify(stored(article))}::jsonb,${now})`,
+          sql`insert into blogs_article (id,version,document,updated_at) values (${id},1,${JSON.stringify(article)}::jsonb,${now})`,
         );
         return { id };
       },
@@ -391,17 +337,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   async function save(context: Context, input: BlogSaveInput) {
     locale(input.locale);
     assertBlog(input.content && typeof input.content.markdown === "string");
-    const bytes = new TextEncoder().encode(input.content.markdown);
-    assertBlog(bytes.length <= maxMarkdown);
-    const reserved = await reserve(
-      context,
-      "edit",
-      input.id,
-      "markdown",
-      "README.md",
-      "text/markdown; charset=utf-8",
-      bytes.length,
-    );
     const result = await write(context, "edit", input.id, input, "save", async (tx, editor) => {
       const article = await current(tx, input),
         categories = await allCategories(tx);
@@ -414,13 +349,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         input,
         categories,
         new Set(images.map((i) => i.id)),
-        reserved.id,
+        randomUUID(),
         editor,
         new Date().toISOString(),
         maxMarkdown,
       );
       await uniqueSlug(tx, input.id, input.locale, next.translations[input.locale].draft.slug);
-      await put(tx, reserved, bytes, "text/markdown; charset=utf-8");
       return saveRecord(tx, next);
     });
     return get(context, result.id);
@@ -449,9 +383,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         for (const id of publication.assetIds) {
           const record = await object(tx, id, input.id);
           assertBlog(record.kind === "image");
-          const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: record.key }), {
-            abortSignal: AbortSignal.timeout(30000),
-          });
+          const head = await s3.send(
+            new HeadObjectCommand({ Bucket: bucket, Key: scopedKey(record.key) }),
+            {
+              abortSignal: AbortSignal.timeout(30000),
+            },
+          );
           assertBlog(
             head.ContentLength === record.size && head.ContentType === record.content_type,
             "STORAGE",
@@ -478,7 +415,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       context,
       "upload",
       input.id,
-      "image",
       input.name,
       input.contentType,
       input.bytes.length,
@@ -503,32 +439,17 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       // Per-record checks prevent a list-level permission from exposing restricted articles.
       // ponytail: host authorization is an arbitrary callback, so admin pagination
       // filters matching metadata in memory; inject a SQL visibility predicate at scale.
-      const records = await rows<{ document: StoredArticle }>(
+      const records = await rows<{ document: BlogArticle }>(
         db,
         sql`select document from blogs_article where exists (select 1 from jsonb_each(document->'translations') t where position(lower(${search}) in lower(coalesce(t.value->'draft'->>'title','') || ' ' || coalesce(t.value->'draft'->>'summary',''))) > 0) order by updated_at desc,id`,
       );
-      const allowed: StoredArticle[] = [];
+      const allowed: BlogArticle[] = [];
       for (const { document } of records)
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
       const categories = await allCategories(db);
-      const items = allowed.slice((page - 1) * pageSize, page * pageSize).map((document) =>
-        articleListItem(
-          {
-            ...document,
-            translations: Object.fromEntries(
-              Object.entries(document.translations).map(([l, t]) => [
-                l,
-                {
-                  draft: { ...t.draft, markdown: "" },
-                  published: t.published ? { ...t.published, markdown: "" } : null,
-                },
-              ]),
-            ),
-          },
-          input.locale,
-          categories,
-        ),
-      );
+      const items = allowed
+        .slice((page - 1) * pageSize, page * pageSize)
+        .map((document) => articleListItem(document, input.locale, categories));
       return { items, total: allowed.length, page, pageSize };
     });
   }
@@ -541,7 +462,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       if (previous && previous.parentId !== input.parentId) {
         const used = await rows<{ id: string }>(
           tx,
-          sql`select id from blogs_article where document::text like ${`%${previous.id}%`} limit 1`,
+          sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb) limit 1`,
         );
         assertBlog(!used.length, "IN_USE");
       }
@@ -615,7 +536,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             assertBlog(!categories.some((c) => c.parentId === input.id), "IN_USE");
             const used = await rows<{ id: string }>(
               tx,
-              sql`select id from blogs_article where document::text like ${`%${input.id}%`} limit 1`,
+              sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb) limit 1`,
             );
             assertBlog(!used.length, "IN_USE");
             await tx.execute(sql`delete from blogs_category where id=${input.id}`);
@@ -640,20 +561,19 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
         const documents = await rows<{
           id: string;
-          publication: NonNullable<StoredArticle["translations"][string]["published"]>;
+          publication: NonNullable<BlogArticle["translations"][string]["published"]>;
         }>(
           tx,
-          sql`select id,${published} as publication from blogs_article where ${filtered} order by ${published}->>'publishedAt' desc,id limit ${pageSize} offset ${(page - 1) * pageSize}`,
+          sql`select id,((${published}) - 'markdown') as publication from blogs_article where ${filtered} order by ${published}->>'publishedAt' desc,id limit ${pageSize} offset ${(page - 1) * pageSize}`,
         );
         const counts = await rows<{ id: string; count: number }>(
           tx,
           sql`select category.id,count(*)::int as count from blogs_article cross join lateral jsonb_array_elements_text(${published}->'shared'->'categoryIds') as category(id) where ${visible} group by category.id`,
         );
-        const items = documents.map((row) => ({
-          ...row.publication,
-          id: row.id,
-          locale: input.locale,
-        }));
+        const items = documents.map((row) => {
+          const { markdown: _markdown, ...publication } = row.publication;
+          return { ...publication, id: row.id, locale: input.locale };
+        });
         return {
           items,
           total,
@@ -672,7 +592,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         await lock(tx);
         const [row] = await rows<{
           id: string;
-          publication: NonNullable<StoredArticle["translations"][string]["published"]>;
+          publication: NonNullable<BlogArticle["translations"][string]["published"]>;
         }>(
           tx,
           sql`select id,document->'translations'->${l}->'published' as publication from blogs_article where document->'translations'->${l}->'published'->>'slug'=${slug} limit 1`,
@@ -682,7 +602,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
               ...row.publication,
               id: row.id,
               locale: l,
-              markdown: await markdown(tx, row.publication.revisionId, row.id),
             }
           : null;
       }),
@@ -706,9 +625,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           assertBlog(context !== undefined, "NOT_FOUND");
           await access(context, "read", record.article_id);
         }
-        const result = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: record.key }), {
-          abortSignal: AbortSignal.timeout(30000),
-        });
+        const result = await s3.send(
+          new GetObjectCommand({ Bucket: bucket, Key: scopedKey(record.key) }),
+          {
+            abortSignal: AbortSignal.timeout(30000),
+          },
+        );
         assertBlog(
           result.Body && result.ContentLength === record.size && record.size <= maxImage,
           "STORAGE",
@@ -737,7 +659,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         await verifyBucket();
         const candidates = await rows<ObjectRow>(
           tx,
-          sql`select * from blogs_object where created_at < now()-interval '24 hours' order by checked_at,id limit ${limit}`,
+          sql`select * from blogs_object where kind='image' and created_at < now()-interval '24 hours' order by checked_at,id limit ${limit}`,
         );
         let removed = 0;
         const failed: string[] = [];
@@ -745,15 +667,18 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           await tx.execute(
             sql`update blogs_object set checked_at=clock_timestamp() where id=${candidate.id}`,
           );
-          const [row] = await rows<{ document: StoredArticle }>(
+          const [row] = await rows<{ document: BlogArticle }>(
             tx,
             sql`select document from blogs_article where id=${candidate.article_id}`,
           );
           if (row && references(row.document).has(candidate.id)) continue;
           try {
-            await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: candidate.key }), {
-              abortSignal: AbortSignal.timeout(30000),
-            });
+            await s3.send(
+              new DeleteObjectCommand({ Bucket: bucket, Key: scopedKey(candidate.key) }),
+              {
+                abortSignal: AbortSignal.timeout(30000),
+              },
+            );
           } catch {
             failed.push(candidate.id);
             continue;

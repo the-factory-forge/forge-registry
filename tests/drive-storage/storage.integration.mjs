@@ -51,6 +51,7 @@ const options = {
   db,
   s3,
   bucket,
+  keyPrefix: "storage-test/drive/",
   maxFileBytes: 1024,
   resolveScope: async (user, scope) =>
     allowed && user !== "stranger" && ["project", "customer", "workspace"].includes(scope.type)
@@ -167,7 +168,7 @@ test("private Drive persistence and storage recovery", async (t) => {
           {
             ID: "expire-staging",
             Status: "Enabled",
-            Filter: { Prefix: "drive/staging/" },
+            Filter: { Prefix: "storage-test/drive/staging/" },
             Expiration: { Days: 1 },
           },
         ],
@@ -341,7 +342,10 @@ test("private Drive persistence and storage recovery", async (t) => {
       );
       await remove(scope, copy);
       const objects = await s3.send(
-        new ListObjectsV2Command({ Bucket: bucket, Prefix: `drive/objects/${spaceId}/${keyId}` }),
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: `storage-test/drive/objects/${spaceId}/${keyId}`,
+        }),
       );
       assert.equal(objects.Contents?.length ?? 0, 0);
       assert.equal((await list(scope)).items.length, 0);
@@ -526,7 +530,7 @@ test("private Drive persistence and storage recovery", async (t) => {
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
-        Key: `drive/staging/${row.space_id}/${row.storage_id}`,
+        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}`,
         Body: "too long",
         ContentType: "text/plain",
       }),
@@ -548,7 +552,7 @@ test("private Drive persistence and storage recovery", async (t) => {
       s3,
       new PutObjectCommand({
         Bucket: bucket,
-        Key: `drive/staging/${row.space_id}/${row.storage_id}`,
+        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}`,
         ContentType: "text/plain",
       }),
       { expiresIn: 1, signingDate: new Date(Date.now() - 60_000) },

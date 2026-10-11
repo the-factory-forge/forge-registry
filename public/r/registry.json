@@ -1114,7 +1114,7 @@
       "name": "blogs-storage",
       "type": "registry:block",
       "title": "Blogs storage",
-      "description": "Private S3 and PostgreSQL persistence for multilingual blogs.",
+      "description": "PostgreSQL Markdown drafts/publications and private S3 image storage for multilingual blogs.",
       "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
       "registryDependencies": ["@forge/blogs"],
       "files": [

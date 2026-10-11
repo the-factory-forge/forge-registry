@@ -1,6 +1,7 @@
-import { pgTable, uuid, text, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, pgTable, uuid, text, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 
-/** Metadata snapshots are stored together so publication is a single atomic update. */
+/** Markdown and metadata snapshots are stored together so publication is a single atomic update. */
 export const blogsArticles = pgTable("blogs_article", {
   id: uuid("id").primaryKey(),
   version: integer("version").notNull(),
@@ -26,6 +27,7 @@ export const blogsObjects = pgTable(
     checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    check("blogs_object_kind_check", sql`${t.kind} = 'image'`),
     index("blogs_object_article").on(t.articleId),
     index("blogs_object_cleanup").on(t.createdAt),
   ],

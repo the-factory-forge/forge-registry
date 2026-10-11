@@ -3,7 +3,7 @@
     {
       "ID": "drive-expire-staging",
       "Status": "Enabled",
-      "Filter": { "Prefix": "drive/staging/" },
+      "Filter": { "Prefix": "<SITE_NAME>/drive/staging/" },
       "Expiration": { "Days": 1 }
     }
   ]

@@ -1,5 +1,16 @@
 # Project context for AI contributors
 
+## Releases and source maintenance
+
+For release preparation/publication, use [release-registry](.agents/skills/release-registry/SKILL.md)
+and [the release guide](docs/releases/README.md). `VERSION` is an unpublished local
+candidate until a verified tag/release exists; publication never updates customers.
+
+When a user asks to promote a discussed customer improvement upstream, use
+[sync-forge-registry](.agents/skills/sync-forge-registry/SKILL.md). Promote only that
+behavior against current registry source, preserving unrelated customer drift and
+newer registry changes. This skill is also usable from consumer checkouts.
+
 ## Git worktree workflow
 
 Use an isolated Git worktree for every task that changes files, including
@@ -49,6 +60,13 @@ When creating or changing filters, search, sorting, pagination or calendar views
 read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
 Expose controlled values and change callbacks in portable UI; bind them to URL
 parameters in showroom and consumer adapters. Verify reload and Back/Forward.
+
+## Object storage
+
+Storage companions require `<SITE_NAME>/<plugin>/` from the host; reject absent or
+unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/site-template/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
+consumer migration and lifecycle rules. Verify installed callers and fixtures when
+changing this boundary; source adoption does not imply moving deployed objects.
 
 ## Shared color contract
 
@@ -321,7 +339,9 @@ aliases. Showroom i18n and providers live in `src/lib/`
 and are not registry items. Shared components must not import from `src/lib/`
 or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
 
-Consumers configure the `@forge` namespace in `components.json` with
+After the first source release, use its verified full commit SHA for the whole
+`@forge` namespace, following `docs/releases/README.md`. Before that, the current
+development namespace in `components.json` is
 `https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json`.
 Install with `shadcn add @forge/item-name`. To test locally, run
 `pnpm registry:sync` and `PORTLESS=0 pnpm dev`, then temporarily set the consumer's `@forge`

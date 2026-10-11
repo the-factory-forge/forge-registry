@@ -7,9 +7,7 @@ import test from "node:test";
 import {
   S3Client,
   CreateBucketCommand,
-  PutObjectCommand,
   DeleteObjectCommand,
-  GetObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -36,6 +34,7 @@ const options = {
   db,
   s3,
   bucket,
+  keyPrefix: "storage-test/blogs/",
   locales: ["en", "fr"],
   authorize: async (ctx, permission, id) =>
     ctx !== "stranger" &&
@@ -160,6 +159,24 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
       "NOT_FOUND",
     );
   });
+  await t.test("foreign stored keys cannot be read or deleted by maintenance", async () => {
+    const [record] = await pool`select key from blogs_object where id=${asset.id}`;
+    await pool`update blogs_object set key=${`other-site/blogs/${article.id}/${asset.id}/image`},created_at=now()-interval '2 days' where id=${asset.id}`;
+    const send = s3.send.bind(s3);
+    const objectRequests = [];
+    s3.send = (command, ...rest) => {
+      if (command.input.Key) objectRequests.push(command.input.Key);
+      return send(command, ...rest);
+    };
+    try {
+      await rejected(storage.readImage(asset.id, "jordan"), "STORAGE");
+      assert.ok((await storage.maintenance(100)).failed.includes(asset.id));
+      assert.deepEqual(objectRequests, []);
+    } finally {
+      s3.send = send;
+      await pool`update blogs_object set key=${record.key},created_at=now() where id=${asset.id}`;
+    }
+  });
   const shared = { thumbnailId: asset.id, bannerId: asset.id, categoryIds: [child.id] };
   const draft = {
     ...input(article),
@@ -232,28 +249,16 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
       "CONFLICT",
     );
   });
-  await t.test("database rollback and storage failure keep the previous draft", async () => {
+  await t.test("database rollback preserves drafts; text survives an S3 outage", async () => {
     const before = await client.get(article.id);
-    let rollback = false;
-    const original = s3.send.bind(s3);
-    s3.send = async (command, ...rest) => {
-      // oxlint-disable-next-line typescript/await-thenable -- AWS's bound callback overload is synchronous, but this invocation returns a promise.
-      const result = await original(command, ...rest);
-      if (command instanceof PutObjectCommand) rollback = true;
-      return result;
-    };
     const failing = createBlogsStorage({
       ...options,
       db: {
         execute: db.execute.bind(db),
         transaction: (callback) =>
           db.transaction(async (tx) => {
-            const result = await callback(tx);
-            if (rollback) {
-              rollback = false;
-              throw new Error("Simulated commit failure");
-            }
-            return result;
+            await callback(tx);
+            throw new Error("Simulated commit failure");
           }),
       },
     });
@@ -265,18 +270,50 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
       }),
       "STORAGE",
     );
-    s3.send = original;
     assert.deepEqual(await client.get(article.id), before);
-    s3.send = async (command, ...rest) => {
-      if (command instanceof PutObjectCommand) throw new Error("S3 unavailable");
-      return original(command, ...rest);
+    const original = s3.send.bind(s3);
+    s3.send = async () => {
+      throw new Error("S3 unavailable");
     };
-    await rejected(
-      client.save({ ...input(before), shared: before.shared, content: draft.content }),
-      "STORAGE",
+    try {
+      article = await client.save({
+        ...input(before),
+        shared: before.shared,
+        content: draft.content,
+      });
+      assert.equal(article.translations.en.draft.markdown, draft.content.markdown);
+      let text = await client.create({ title: "Text only", locale: "en", ...request() });
+      text = await client.save({
+        ...input(text),
+        shared: text.shared,
+        content: {
+          ...emptyContent,
+          title: "Text only",
+          slug: "text-only",
+          markdown: "Database text",
+        },
+      });
+      text = await client.publish(input(text));
+      assert.equal((await storage.getPublished("en", "text-only")).markdown, "Database text");
+      assert.equal((await client.get(text.id)).translations.en.published.markdown, "Database text");
+      await rejected(storage.upload("jordan", { ...imageInput, ...request() }), "STORAGE");
+    } finally {
+      s3.send = original;
+    }
+    assert.equal(
+      Number((await pool`select count(*) from blogs_object where kind='markdown'`)[0].count),
+      0,
     );
-    s3.send = original;
-    assert.deepEqual(await client.get(article.id), before);
+    const [row] = await pool`select document from blogs_article where id=${article.id}`;
+    assert.equal(row.document.translations.en.draft.markdown, draft.content.markdown);
+    await rejected(
+      client.save({
+        ...input(article),
+        shared: article.shared,
+        content: { ...draft.content, markdown: "x".repeat(1024 * 1024 + 1) },
+      }),
+      "INVALID",
+    );
   });
   await t.test("cleanup preserves references and retries partial object deletion", async () => {
     await pool.unsafe("UPDATE blogs_object SET created_at=now()-interval '2 days'");
@@ -330,14 +367,9 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
   });
   await client.publish(input(durable));
   const objects = await s3.send(
-    new ListObjectsV2Command({ Bucket: bucket, Prefix: `blogs/${durable.id}/` }),
+    new ListObjectsV2Command({ Bucket: bucket, Prefix: `storage-test/blogs/${durable.id}/` }),
   );
-  assert.ok(objects.Contents.some((o) => o.Key.endsWith("README.md")));
-  const source = await s3.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: objects.Contents.find((o) => o.Key.endsWith("README.md")).Key,
-    }),
-  );
-  assert.equal(await source.Body.transformToString(), "Persisted Markdown");
+  assert.ok(objects.Contents.every((o) => o.Key.endsWith("/image")));
+  const [record] = await pool`select document from blogs_article where id=${durable.id}`;
+  assert.equal(record.document.translations.en.published.markdown, "Persisted Markdown");
 });

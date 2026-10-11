@@ -110,13 +110,12 @@ function offsetFor(cursor?: string) {
 
 export function createDriveStorage<Context>(options: DriveStorageOptions<Context>) {
   const { db, s3, bucket } = options;
-  const prefix = options.keyPrefix ?? "drive/";
+  const prefix = options.keyPrefix;
   const maxFileBytes = options.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
   const retentionDays = options.trash?.retentionDays ?? 30;
   if (
     !bucket ||
-    !/^[a-zA-Z0-9_/-]+\/$/.test(prefix) ||
-    prefix.includes("..") ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*\/drive\/$/.test(prefix) ||
     !Number.isSafeInteger(maxFileBytes) ||
     maxFileBytes < 1 ||
     maxFileBytes > 5_000_000_000 ||
