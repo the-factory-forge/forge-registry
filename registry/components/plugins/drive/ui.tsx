@@ -376,7 +376,7 @@ export function DriveTitle({
           {name}
         </button>
       ) : (
-        <span className="block py-1.5 wrap-anywhere">{name}</span>
+        <span className="inline-flex min-h-10 items-center wrap-anywhere md:min-h-8">{name}</span>
       )}
       {editing && (
         <input

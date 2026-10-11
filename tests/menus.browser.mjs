@@ -641,6 +641,7 @@ test("staff saves translated size prices and guests select sizes with keyboard c
   await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).fill("28.00");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("heading", { name: "Edit item", exact: true }).waitFor();
+  await actionToast(page, "Saved.");
   await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).check();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await actionToast(page, "Saved.");

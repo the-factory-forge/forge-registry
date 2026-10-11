@@ -48,7 +48,7 @@ function PaperPreview({ children, title }: { children: ReactNode; title: string 
       target.head.append(style.cloneNode(true));
     const geometry = target.createElement("style");
     geometry.textContent =
-      "html { color-scheme: light; scrollbar-gutter: auto; } body { margin: 0; min-height: 0; height: fit-content; }";
+      ":root { color-scheme: light; scrollbar-gutter: auto; } body { margin: 0; min-height: 0; height: fit-content; }";
     target.head.append(geometry);
     setBody(target.body);
     const observer = new ResizeObserver(() => {
@@ -147,7 +147,7 @@ export function MenuPrintPage({
       const printStyle = target.createElement("style");
       printStyle.textContent = `
         @page { size: ${paperSize} ${paperSize === "A4" ? "portrait" : "landscape"}; margin: ${paperSize === "A4" ? "12mm" : "10mm"}; }
-        html { color-scheme: light; scrollbar-gutter: auto; }
+        :root { color-scheme: light; scrollbar-gutter: auto; }
         body { margin: 0; background: var(--background); color: var(--foreground); }
         [data-menu-paper] { width: auto; max-width: none; min-height: 0; margin: 0; padding: 0; border: 0; box-shadow: none; }
         [data-menu-paper] h3 { break-after: avoid; }

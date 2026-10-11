@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 let browser;
 before(async () => {
@@ -165,6 +167,10 @@ test("printing isolates the paper, applies both sizes, escapes text and cleans u
       new RegExp(`size: ${size} ${size === "A4" ? "portrait" : "landscape"}`),
     );
     assert.equal(await frame.locator("html").getAttribute("class"), "light");
+    assert.equal(
+      await frame.locator("html").evaluate((element) => getComputedStyle(element).scrollbarGutter),
+      "auto",
+    );
     const paper = frame.locator("[data-menu-paper]");
     assert.equal(await paper.evaluate((element) => getComputedStyle(element).minHeight), "0px");
     assert.equal(
@@ -217,7 +223,7 @@ test("failed print preparation retains settings and can retry; no visible dishes
     await page.getByRole("link", { name: `Edit item: ${dish}`, exact: true }).click();
     await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).uncheck();
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await page.getByRole("status").filter({ hasText: "Saved." }).waitFor();
+    await actionToast(page, "Saved.");
     await page.getByRole("link", { name: "Back to items", exact: true }).click();
   }
   await page.getByRole("link", { name: "Print menu", exact: true }).click();

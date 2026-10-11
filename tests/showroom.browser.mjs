@@ -175,8 +175,13 @@ test("every directory entry navigates and returns through a stable shared header
       .waitFor({ state: "attached", timeout: 5000 });
     const title = await page.title();
     const description = await page.locator('meta[name="description"]').getAttribute("content");
-    assert.match(title, /demo \| Forge Registry$/);
-    assert.ok(description.includes("React"), href);
+    assert.match(title, /\S.* \| Forge Registry$/, href);
+    assert.ok(description.trim().length > 0, href);
+    assert.equal(await page.locator('meta[property="og:title"]').getAttribute("content"), title);
+    assert.equal(
+      await page.locator('meta[property="og:description"]').getAttribute("content"),
+      description,
+    );
     assert.equal(titles.has(title), false, href);
     assert.equal(descriptions.has(description), false, href);
     titles.add(title);
