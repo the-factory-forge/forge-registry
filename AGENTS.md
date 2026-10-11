@@ -7,7 +7,7 @@ and [the release guide](docs/releases/README.md). `VERSION` is an unpublished lo
 candidate until a verified tag/release exists; publication never updates customers.
 
 When a user asks to promote a discussed customer improvement upstream, use
-[sync-forge-registry](.agents/skills/sync-forge-registry/SKILL.md). Promote only that
+[sync-to-forge-registry](.agents/skills/sync-to-forge-registry/SKILL.md). Promote only that
 behavior against current registry source, preserving unrelated customer drift and
 newer registry changes. This skill is also usable from consumer checkouts.
 

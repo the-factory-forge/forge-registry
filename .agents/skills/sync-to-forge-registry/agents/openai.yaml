@@ -1,0 +1,4 @@
+interface:
+  display_name: "Promote to Factory Registry"
+  short_description: "Promote only the discussed site improvement upstream"
+  default_prompt: "Use $sync-to-forge-registry to promote only the improvement we just discussed into current registry source, preserving unrelated customer and registry changes."

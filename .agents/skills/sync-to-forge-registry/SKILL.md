@@ -1,15 +1,15 @@
 ---
-name: sync-forge-registry
+name: sync-to-forge-registry
 description: Promote only a customer improvement identified in the current conversation upstream into forge-registry. Use when asked to bring a discussed site change back to shared source, not to pull registry updates into a site or synchronize accumulated customer differences.
 ---
 
 # Promote a discussed site change to Factory Registry
 
 Implement the discussed improvement against current registry source and identify
-affected consumers. `$sync-forge-registry` keeps its upstream meaning; downstream
+affected consumers. `$sync-to-forge-registry` keeps its upstream meaning; downstream
 updates use the registry-owned
 [`sync-from-forge-registry`](../sync-from-forge-registry/SKILL.md) skill. The canonical source
-of this skill is `forge-registry/.agents/skills/sync-forge-registry/`.
+of this skill is `forge-registry/.agents/skills/sync-to-forge-registry/`.
 
 ## Bound the requested improvement
 

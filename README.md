@@ -13,10 +13,10 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 package version and legacy tags are separate; inspect remote release history
 before publication. This setup does not deploy or update customer websites.
 
-The canonical [upstream promotion skill](.agents/skills/sync-forge-registry/SKILL.md)
-is kept in this repository. Invoke `$sync-forge-registry` here to promote only the
+The canonical [upstream promotion skill](.agents/skills/sync-to-forge-registry/SKILL.md)
+is kept in this repository. Invoke `$sync-to-forge-registry` here to promote only the
 improvement discussed in the current conversation. From a customer checkout, ask
-the agent to read and use `forge-registry/.agents/skills/sync-forge-registry/SKILL.md`
+the agent to read and use `forge-registry/.agents/skills/sync-to-forge-registry/SKILL.md`
 at the actual local checkout path. This workflow needs no global skill installation.
 
 For selected downstream updates, use

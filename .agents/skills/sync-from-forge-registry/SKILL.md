@@ -6,7 +6,7 @@ description: Pull selected forge-registry items and companions into a customer w
 # Update a site from Factory Registry
 
 Update only the requested installed item subset and its necessary integration.
-`$sync-forge-registry` is the separate upstream-promotion skill; this skill pulls
+`$sync-to-forge-registry` is the separate upstream-promotion skill; this skill pulls
 source into a site. Its canonical source is
 `forge-registry/.agents/skills/sync-from-forge-registry/`. Read it from the actual
 registry checkout or install it from that source; customer installations do not
