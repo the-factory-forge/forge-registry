@@ -22,6 +22,30 @@ async function preview(t, path) {
   return page;
 }
 
+test("verification prefills login, confirms once and shows invalid links without success", async (t) => {
+  const page = await preview(t, "/en/login");
+  await page.getByLabel("Email verification result").selectOption("success");
+  const email = page.getByLabel("Email", { exact: true });
+  assert.equal(await email.inputValue(), "member+verified@example.test");
+  const toast = page
+    .getByRole("dialog")
+    .filter({ hasText: "Your email address has been verified." });
+  await toast.waitFor();
+  assert.equal(await toast.count(), 1);
+  await email.fill("corrected@example.test");
+  await page.getByLabel("Simulate action failures").check();
+  assert.equal(await email.inputValue(), "corrected@example.test");
+  assert.equal(await toast.count(), 1);
+  await actionToast(page, "Your email address has been verified.");
+  await page.getByLabel("Email verification result").selectOption("error");
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "This verification link is invalid or has expired." })
+    .waitFor();
+  assert.equal(await toast.count(), 0);
+  assert.equal(await email.inputValue(), "member+verified@example.test");
+});
+
 test("recovery validates email, blocks duplicates, and retains a failed draft", async (t) => {
   const page = await preview(t, "/en/forgot-password");
   const email = page.getByLabel("Email", { exact: true });

@@ -3,6 +3,9 @@ export const loginLabels = {
   welcomeBack: "Welcome back",
   welcomeSubtitle: "Sign in to your team workspace.",
   email: "Email",
+  emailVerified: "Your email address has been verified.",
+  verificationError:
+    "This verification link is invalid or has expired. Ask your administrator for a new email.",
   password: "Password",
   showPassword: "Show password",
   hidePassword: "Hide password",

@@ -34,6 +34,7 @@ function Preview({ view }: { view: View }) {
   const [strictPassword, setStrictPassword] = useState(false);
   const [calls, setCalls] = useState(0);
   const [notice, setNotice] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState<"success" | "error">();
   const signOutAction = useAuthAction();
   async function perform() {
     setCalls((value) => value + 1);
@@ -104,6 +105,25 @@ function Preview({ view }: { view: View }) {
             )}
             {view === "login" && (
               <div id="factory-auth-controls" className="grid gap-2">
+                <label className="grid gap-2 text-sm">
+                  Email verification result
+                  <select
+                    value={verificationStatus ?? ""}
+                    onChange={(event) =>
+                      setVerificationStatus(
+                        event.target.value === "success"
+                          ? "success"
+                          : event.target.value === "error"
+                            ? "error"
+                            : undefined,
+                      )
+                    }
+                  >
+                    <option value="">None</option>
+                    <option value="success">Verified</option>
+                    <option value="error">Invalid or expired link</option>
+                  </select>
+                </label>
                 <SignOutButton
                   pending={signOutAction.pending}
                   disabled={signOutAction.disabled}
@@ -144,6 +164,9 @@ function Preview({ view }: { view: View }) {
         >
           {view === "login" && (
             <LoginForm
+              key={verificationStatus ?? "login"}
+              defaultEmail={verificationStatus ? "member+verified@example.test" : undefined}
+              verificationStatus={verificationStatus}
               enabled={enabled}
               forgotPasswordHref={`/${locale}/forgot-password`}
               linkComponent={ShowroomLink}

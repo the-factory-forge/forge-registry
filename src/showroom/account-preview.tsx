@@ -38,6 +38,8 @@ export function AccountPreview() {
   const [fail, setFail] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [credential, setCredential] = useState(false);
+  const [custom, setCustom] = useState(false);
+  const [canCreate, setCanCreate] = useState(true);
   const [calls, setCalls] = useState(0);
   async function perform() {
     setCalls((value) => value + 1);
@@ -71,69 +73,103 @@ export function AccountPreview() {
             />
             Email and password account
           </label>
+          <label className="flex gap-2">
+            <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
+            Host profile content
+          </label>
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={canCreate}
+              onChange={(e) => setCanCreate(e.target.checked)}
+            />
+            Allow key creation
+          </label>
           <p>
             Actions requested: <span data-testid="callback-count">{calls}</span>
           </p>
         </div>
       }
     >
-      <AccountPage
-        user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
-        onUpdateProfile={async (values) => {
-          await perform();
-          setName(values.name);
-        }}
-        security={
-          <AccountSecurity
-            key={String(credential)}
-            email="alex@example.com"
-            locale={locale}
-            error={unavailable}
-            data={
-              unavailable
-                ? undefined
-                : {
-                    signInMethod: credential ? "credential" : "github",
-                    providers: [credential ? "credential" : "github"],
-                    sessions,
+      {custom ? (
+        <AccountPage
+          user={{ id: "custom", name, email: "alex@example.com" }}
+          header={<h1 className="text-xl font-semibold">Host profile summary</h1>}
+          content={
+            <>
+              <nav aria-label="Custom profile sections">
+                <ShowroomLink href={`/${locale}/account`}>Profile details</ShowroomLink>
+              </nav>
+              <label className="grid gap-2">
+                Company name
+                <input className="rounded border border-input p-2" defaultValue="Example company" />
+              </label>
+            </>
+          }
+        />
+      ) : (
+        <AccountPage
+          user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
+          onUpdateProfile={async (values) => {
+            await perform();
+            setName(values.name);
+          }}
+          security={
+            <AccountSecurity
+              key={String(credential)}
+              email="alex@example.com"
+              locale={locale}
+              error={unavailable}
+              data={
+                unavailable
+                  ? undefined
+                  : {
+                      signInMethod: credential ? "credential" : "github",
+                      providers: [credential ? "credential" : "github"],
+                      sessions,
+                    }
+              }
+              onRetry={() => setUnavailable(false)}
+              onRequestPasswordReset={perform}
+              onRevokeSession={async (id) => {
+                await perform();
+                setSessions((values) => values.filter((value) => value.id !== id));
+              }}
+              passwordForm={<ChangePasswordForm onChangePassword={perform} />}
+              agentKeys={
+                <AgentKeys
+                  locale={locale}
+                  keys={unavailable ? undefined : keys}
+                  error={unavailable}
+                  onRetry={() => setUnavailable(false)}
+                  onCreate={
+                    canCreate
+                      ? async (values) => {
+                          await perform();
+                          setKeys((existing) => [
+                            ...existing,
+                            {
+                              ...values,
+                              id: crypto.randomUUID(),
+                              createdAt: new Date(),
+                              lastUsedAt: null,
+                              expired: false,
+                            },
+                          ]);
+                          return { token: "forge_key_preview_only_not_a_real_credential" };
+                        }
+                      : undefined
                   }
-            }
-            onRetry={() => setUnavailable(false)}
-            onRequestPasswordReset={perform}
-            onRevokeSession={async (id) => {
-              await perform();
-              setSessions((values) => values.filter((value) => value.id !== id));
-            }}
-            passwordForm={<ChangePasswordForm onChangePassword={perform} />}
-            agentKeys={
-              <AgentKeys
-                locale={locale}
-                keys={unavailable ? undefined : keys}
-                error={unavailable}
-                onRetry={() => setUnavailable(false)}
-                onCreate={async (values) => {
-                  await perform();
-                  setKeys((existing) => [
-                    ...existing,
-                    {
-                      ...values,
-                      id: crypto.randomUUID(),
-                      createdAt: new Date(),
-                      lastUsedAt: null,
-                      expired: false,
-                    },
-                  ]);
-                  return { token: "forge_key_preview_only_not_a_real_credential" };
-                }}
-                onDelete={async (id) => {
-                  await perform();
-                  setKeys((values) => values.filter((value) => value.id !== id));
-                }}
-              />
-            }
-          />
-        }
-      />
+                  onDelete={async (id) => {
+                    await perform();
+                    setKeys((values) => values.filter((value) => value.id !== id));
+                  }}
+                />
+              }
+            />
+          }
+        />
+      )}
     </ShowroomPreview>
   );
 }

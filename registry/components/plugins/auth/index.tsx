@@ -7,8 +7,9 @@ import {
   EyeOffIcon,
   LoaderCircleIcon,
 } from "lucide-react";
-import { useId, useState, type ComponentType } from "react";
+import { useEffect, useId, useRef, useState, type ComponentType } from "react";
 
+import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { GoogleSignInButton, useAuthAction } from "@/components/plugins/auth/auth-controls";
@@ -63,6 +64,8 @@ export interface LoginCredentials {
 }
 export interface LoginFormProps {
   onSignIn: (credentials: LoginCredentials) => Promise<void>;
+  defaultEmail?: string;
+  verificationStatus?: "success" | "error";
   enabled?: boolean;
   forgotPasswordHref?: string;
   onGoogleSignIn?: () => Promise<void>;
@@ -75,8 +78,18 @@ const inputClass =
 const buttonClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 
-export function LoginForm({
+export function LoginForm(props: LoginFormProps) {
+  return (
+    <ActionToastProvider>
+      <LoginFormContent {...props} />
+    </ActionToastProvider>
+  );
+}
+
+function LoginFormContent({
   onSignIn,
+  defaultEmail,
+  verificationStatus,
   enabled = true,
   forgotPasswordHref,
   onGoogleSignIn,
@@ -85,6 +98,13 @@ export function LoginForm({
   linkComponent: LoginLink = Link,
 }: LoginFormProps) {
   const labels = { ...loginLabels, ...overrides };
+  const toast = useActionToast();
+  const verificationNotified = useRef(false);
+  useEffect(() => {
+    if (verificationStatus !== "success" || verificationNotified.current) return;
+    verificationNotified.current = true;
+    toast(labels.emailVerified);
+  }, [verificationStatus, labels.emailVerified, toast]);
   const id = `factory-login-${useId()}`;
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
@@ -112,6 +132,11 @@ export function LoginForm({
         </output>
       )}
 
+      {verificationStatus === "error" && (
+        <p role="alert" className="text-sm text-destructive">
+          {labels.verificationError}
+        </p>
+      )}
       {failed && (
         <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
           {method === "google" ? labels.googleError : labels.loginError}
@@ -143,6 +168,7 @@ export function LoginForm({
             id={`${id}-email`}
             name="email"
             type="email"
+            defaultValue={defaultEmail}
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}

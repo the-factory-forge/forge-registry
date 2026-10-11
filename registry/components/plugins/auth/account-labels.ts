@@ -30,6 +30,7 @@ export const securityLabels = {
   expires: "Expires",
   actions: "Actions",
   expired: "Expired",
+  revoked: "Revoked",
   active: "Active",
   never: "Never",
   delete: "Delete",

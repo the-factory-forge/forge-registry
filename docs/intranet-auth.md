@@ -48,6 +48,31 @@ Omit it when Google is not configured. The host performs OAuth and supplies a
 trusted callback URL. Credentials stay in the form and callback,
 not browser storage. `forgotPasswordHref` links to the host's recovery flow.
 
+## Returning from email verification
+
+`LoginForm` accepts `defaultEmail` and `verificationStatus` (`"success"` or
+`"error"`). A successful result shows the shared dismissible toast once per
+mount. An error shows recovery guidance beside the form without a success toast.
+Override `emailVerified` and `verificationError` through `labels`; a persistent
+`ActionToastProvider` supplies the translated dismissal label. The email stays
+editable, and ordinary rerenders preserve the user's draft. Key the form by the
+recipient when navigating between verification links in the same mounted route.
+
+In the host's Better Auth `sendVerificationEmail` delivery callback, retain the
+issued verification URL and token but set its `callbackURL` to the configured
+site origin's localized login route. Add the recipient's email and a success
+marker with `URL.searchParams`, including when the original callback is absent
+or `/`. Do this before rendering both HTML and plain text. Keep password-reset
+links on their existing recovery route.
+
+Validate login search values, pass the email as `defaultEmail`, and map the
+success marker to `verificationStatus="success"` only when Better Auth has not
+returned an `error`. Any verification error takes precedence and maps to
+`"error"`. These search values control presentation only; they never grant a
+session or mark an account verified. The authentication provider still validates
+the token and owns the account's verification state. Old emails retain their
+original callbacks; send a new verification email to use this return flow.
+
 ## Shared authentication controls
 
 `@forge/auth` ships `GoogleSignInButton`, `SignOutButton`, `AuthControlProps`,
@@ -283,3 +308,18 @@ No auth server companion, provider, database or import API is installed.
 The account preview uses simulated callbacks. `tests/account.browser.mjs` covers
 failed drafts, duplicate submissions, one-time key clearing, expiry validation,
 load retries, credential controls, other-session logout and narrow layouts.
+
+### Keep an existing account workflow
+
+For hosts with routed profile sections and custom fields, pass `content` (the
+host's navigation and forms) to `AccountPage` instead of `onUpdateProfile` and
+`security`. The optional `header` replaces the default title/summary, preserving
+custom verification, role and avatar-upload controls. The host retains URLs, Back/
+Forward navigation, field validation, save callbacks and access checks. Supplying
+`content` does not mount the default form or its two tabs; existing callers are
+unchanged. Compose `AccountSecurity` and `AgentKeys` inside the host Security route.
+
+Omit `AgentKeys.onCreate` when the actor cannot create keys. Listing and deletion
+remain available, with server ownership checks still required. Metadata can include
+`revoked: true`; that state takes precedence over expiry and uses the translated
+`revoked` label. These capabilities do not embed a customer's role or import rules.

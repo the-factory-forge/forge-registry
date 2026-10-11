@@ -111,3 +111,24 @@ void test("account retries loading, resets credential passwords, and revokes onl
     );
   }
 });
+
+void test("host account content replaces default panels and creation remains a host capability", async (t) => {
+  const page = await preview(t);
+  await page.getByLabel("Host profile content").check();
+  await page.getByRole("heading", { name: "Host profile summary" }).waitFor();
+  assert.equal(await page.getByRole("tab").count(), 0);
+  assert.equal(await page.getByLabel("Name", { exact: true }).count(), 0);
+  await page.getByLabel("Company name").fill("Customer-specific draft");
+  await page.getByLabel("Simulate action failures").check();
+  assert.equal(await page.getByLabel("Company name").inputValue(), "Customer-specific draft");
+  await page.getByLabel("Host profile content").uncheck();
+  await page.getByLabel("Simulate action failures").uncheck();
+  await page.getByLabel("Allow key creation").uncheck();
+  await page.getByRole("tab", { name: "Security", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Create key", exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Delete Expired integration", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("cell", { name: "Expired integration", exact: true })
+    .waitFor({ state: "hidden" });
+});

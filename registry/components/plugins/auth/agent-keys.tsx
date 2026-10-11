@@ -24,13 +24,14 @@ export interface AgentKey {
   lastUsedAt: Date | string | null;
   expiresAt: Date | string;
   expired: boolean;
+  revoked?: boolean;
 }
 export interface AgentKeysProps {
   keys?: AgentKey[];
   loading?: boolean;
   error?: boolean;
   onRetry: () => void;
-  onCreate: (input: { name: string; expiresAt: Date }) => Promise<{ token: string }>;
+  onCreate?: (input: { name: string; expiresAt: Date }) => Promise<{ token: string }>;
   onDelete: (id: string) => Promise<void>;
   labels?: Partial<SecurityLabels>;
   locale?: string;
@@ -104,22 +105,24 @@ function AgentKeysContent({
           <h2 className="font-semibold">{labels.keys}</h2>
           <p className="text-sm text-muted-foreground">{labels.keysDescription}</p>
         </div>
-        <button
-          type="button"
-          className={cn(accountButtonClass, accountPrimaryClass)}
-          disabled={!keys || error || pending}
-          onClick={() => {
-            const date = new Date(Date.now() + 30 * 86400000);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-            setExpiry(date.toISOString().slice(0, 16));
-            setName("");
-            setFailure("");
-            setCreating(true);
-          }}
-        >
-          <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.createKey}
-        </button>
+        {onCreate && (
+          <button
+            type="button"
+            className={cn(accountButtonClass, accountPrimaryClass)}
+            disabled={!keys || error || pending}
+            onClick={() => {
+              const date = new Date(Date.now() + 30 * 86400000);
+              date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+              setExpiry(date.toISOString().slice(0, 16));
+              setName("");
+              setFailure("");
+              setCreating(true);
+            }}
+          >
+            <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+            {labels.createKey}
+          </button>
+        )}
       </div>
       <div className="mt-5 min-h-24 min-w-0" aria-busy={loading}>
         {error && (
@@ -167,12 +170,16 @@ function AgentKeysContent({
                       <span
                         className={cn(
                           "rounded-full px-2 py-1 text-xs",
-                          key.expired
+                          key.expired || key.revoked
                             ? "bg-status-canceled text-status-canceled-foreground"
                             : "bg-status-success text-status-success-foreground",
                         )}
                       >
-                        {key.expired ? labels.expired : labels.active}
+                        {key.revoked
+                          ? labels.revoked
+                          : key.expired
+                            ? labels.expired
+                            : labels.active}
                       </span>
                     </td>
                     <td className="p-2 whitespace-nowrap tabular-nums">
@@ -220,7 +227,7 @@ function AgentKeysContent({
           aria-busy={pending}
           onSubmit={async (event) => {
             event.preventDefault();
-            if (lock.current || error) return;
+            if (lock.current || error || !onCreate) return;
             const expiresAt = new Date(expiry);
             const now = Date.now();
             if (
