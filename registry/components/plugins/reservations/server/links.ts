@@ -1,6 +1,14 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
 
 import { ReservationError } from "@/components/plugins/reservations/types";
+
+export function deriveManagementSecret(rootSecret: string) {
+  if (Buffer.byteLength(rootSecret) < 32) throw new ReservationError("INVALID");
+  // Separate reservation signatures from other uses of the host's root secret.
+  return Buffer.from(
+    hkdfSync("sha256", rootSecret, "", "forge/reservations-management/v1", 32),
+  ).toString("base64url");
+}
 
 export function signManagementLink(id: string, version: number, expiresAt: number, secret: string) {
   const payload = Buffer.from(JSON.stringify({ id, version, expiresAt })).toString("base64url");

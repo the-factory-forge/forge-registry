@@ -6,8 +6,8 @@ import { test } from "node:test";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-const { createReservationsService } =
-  await import("../../registry/components/plugins/reservations/server/service.server.ts");
+const { createReservationsService, deriveManagementSecret } =
+  await import("../../registry/components/plugins/reservations/server/index.ts");
 const { reservationPolicyDefaults } =
   await import("../../registry/components/plugins/reservations/model.ts");
 const { signManagementLink } =
@@ -17,7 +17,7 @@ const pool = postgres(
   { max: 8, prepare: false },
 );
 const db = drizzle(pool);
-const secret = "reservations-integration-only-secret";
+const secret = deriveManagementSecret("reservations-integration-only-secret");
 const rejected = (promise, code) => assert.rejects(promise, (e) => e.code === code);
 
 test("PostgreSQL booking integrity, authorization, private links and durable notifications", async (t) => {

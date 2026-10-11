@@ -1,3 +1,4 @@
+export { deriveManagementSecret } from "@/components/plugins/reservations/server/links";
 export {
   createReservationsService,
   type ReservationsDatabase,

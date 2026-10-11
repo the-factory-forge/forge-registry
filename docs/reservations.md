@@ -10,7 +10,8 @@ pnpm dlx shadcn@4.21.1 add @forge/reservations-storage
 ```
 
 Import browser components and types from `@/components/plugins/reservations`. Import
-`createReservationsService` and schema tables only from `@/components/plugins/reservations/server`.
+`createReservationsService`, `deriveManagementSecret` and schema tables only from
+`@/components/plugins/reservations/server`.
 The browser entrypoint never imports or exports the server companion. No framework,
 email provider, customer account system, Drive storage or Better Auth schema plugin
 is required by the item. Existing host authentication supplies staff authorization.
@@ -23,9 +24,12 @@ is required by the item. Existing host authentication supplies staff authorizati
 2. Supply a Drizzle PostgreSQL database with `execute` and `transaction`, using
    the default Read Committed transaction isolation. Use a separate database per
    business, as in Forge's existing deployment convention.
-3. Generate a server-only management secret with at least 32 random bytes. Configure
-   a canonical management URL, a fresh-session authorization callback, and an email
-   provider callback. Keep these adapters outside registry-managed files.
+3. Derive the management signing key from an existing server-only host secret with
+   `deriveManagementSecret`. Use a cryptographically random root secret of at least
+   32 bytes, such as the host's existing `BETTER_AUTH_SECRET`; no separate reservation
+   environment variable is needed. Configure a canonical management URL, a fresh-session
+   authorization callback, and an email provider callback. Keep these adapters outside
+   registry-managed files.
 4. Expose explicitly selected service methods through host routes or server functions.
    Validate HTTP shapes, impose body limits, apply CSRF/origin protection to mutations,
    and rate-limit public booking, availability and management requests. Anonymous
@@ -36,7 +40,12 @@ is required by the item. Existing host authentication supplies staff authorizati
    a network timeout below the five-minute delivery lease.
 
 ```ts
-import { createReservationsService } from "@/components/plugins/reservations/server";
+import {
+  createReservationsService,
+  deriveManagementSecret,
+} from "@/components/plugins/reservations/server";
+
+const managementSecret = deriveManagementSecret(ENV.BETTER_AUTH_SECRET);
 
 const reservations = createReservationsService<RequestContext>({
   mode: "stay", // Choose "appointment" for fixed-duration services.
@@ -47,7 +56,7 @@ const reservations = createReservationsService<RequestContext>({
     if (action === "settings") return session.user.role === "admin";
     return hostMayManageAppointments(session.user);
   },
-  managementSecret: ENV.RESERVATIONS_MANAGEMENT_SECRET,
+  managementSecret,
   getManagementUrl: (token) => `${ENV.SITE_URL}/reservations/manage#${token}`,
   sendEmail: async ({ id, to, subject, text }) => {
     await hostEmail.send({ to, subject, text, idempotencyKey: id });
@@ -61,6 +70,15 @@ The application supplies the identifiers in this example. `readFreshHostSession`
 must read the server session; no role or identity submitted by a browser is trusted.
 Authorization runs on every protected read and write. `read`, `manage`, and `settings`
 are the only actions. Hiding controls is not authorization.
+
+`deriveManagementSecret` uses HKDF-SHA256 with an empty salt, the fixed context
+`forge/reservations-management/v1`, and 32 output bytes encoded as base64url. It
+rejects root secrets shorter than 32 bytes. Pass the same derived key to the service
+and any direct `signManagementLink` calls. The helper does not read environment
+variables or depend on Better Auth; other hosts supply their own root secret.
+The existing `managementSecret` option still accepts a directly supplied key.
+Switching from a separate key to a derived key invalidates earlier links; no
+legacy-key fallback is provided. Keep the root secret stable across restarts.
 
 Bind `reservations.publicClient` to a `ReservationsPublicClient` transport.
 Bind `reservations.adminClient(serverContext)` to a `ReservationsAdminClient`

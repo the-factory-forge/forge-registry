@@ -16,7 +16,7 @@ const {
   changeStatus,
   previewReservationMove,
 } = await import("../registry/components/plugins/reservations/model.ts");
-const { signManagementLink, verifyManagementLink } =
+const { deriveManagementSecret, signManagementLink, verifyManagementLink } =
   await import("../registry/components/plugins/reservations/server/links.ts");
 
 export const resourceId = "10000000-0000-4000-8000-000000000001";
@@ -222,6 +222,21 @@ test("boundary validation rejects malformed dates, overlapping schedules and inv
       }),
     { code: "INVALID" },
   );
+});
+
+void test("derived management keys stay stable, separate signatures and reject short root secrets", () => {
+  const rootSecret = "s".repeat(32);
+  const secret = deriveManagementSecret(rootSecret);
+  assert.equal(secret, "iMxDiKto4tkwhAH5Xk7JL74c0N3lp3OZEjtGRlkfzDI");
+  const token = signManagementLink("booking", 3, 1000, secret);
+  assert.deepEqual(verifyManagementLink(token, deriveManagementSecret(rootSecret), 999), {
+    id: "booking",
+    version: 3,
+  });
+  for (const wrongKey of [rootSecret, deriveManagementSecret("x".repeat(32))])
+    assert.throws(() => verifyManagementLink(token, wrongKey, 999), { code: "INVALID_LINK" });
+  for (const shortSecret of ["", "s".repeat(31)])
+    assert.throws(() => deriveManagementSecret(shortSecret), { code: "INVALID" });
 });
 
 test("management signatures reject tampering and expire at the exact boundary", () => {
