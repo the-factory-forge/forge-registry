@@ -1271,7 +1271,7 @@
       "name": "auth",
       "type": "registry:block",
       "title": "Auth",
-      "description": "Sign-in and sign-out controls, password recovery and change forms, access-denied page, and auth layout with host-owned authentication.",
+      "description": "Sign-in and sign-out controls, password recovery and change forms, access-denied page, and auth layout with host-owned authentication. Account profile, agent keys, sign-in methods and session management with host-owned security callbacks.",
       "files": [
         {
           "path": "registry/components/plugins/auth/index.tsx",
@@ -1307,6 +1307,31 @@
           "path": "registry/components/plugins/auth/auth-controls.tsx",
           "type": "registry:component",
           "target": "@components/plugins/auth/auth-controls.tsx"
+        },
+        {
+          "path": "registry/components/plugins/auth/account-page.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/auth/account-page.tsx"
+        },
+        {
+          "path": "registry/components/plugins/auth/account-security.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/auth/account-security.tsx"
+        },
+        {
+          "path": "registry/components/plugins/auth/agent-keys.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/auth/agent-keys.tsx"
+        },
+        {
+          "path": "registry/components/plugins/auth/account-labels.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/auth/account-labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/auth/account-styles.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/auth/account-styles.ts"
         }
       ],
       "registryDependencies": [
@@ -1315,7 +1340,7 @@
         "@forge/action-toast",
         "@forge/icon-tooltip"
       ],
-      "dependencies": ["lucide-react"]
+      "dependencies": ["lucide-react", "@base-ui/react"]
     },
     {
       "name": "employees",
@@ -1509,7 +1534,7 @@
       "title": "Reservations storage",
       "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
       "dependencies": ["drizzle-orm@0.45.2", "postgres@3.4.9"],
-      "registryDependencies": ["@forge/reservations"],
+      "registryDependencies": ["@forge/reservations", "@forge/mailing"],
       "files": [
         {
           "path": "registry/components/plugins/reservations/server/index.ts",
@@ -1566,6 +1591,30 @@
           "target": "@components/utils/use-optimistic-action.ts"
         }
       ]
+    },
+    {
+      "name": "mailing",
+      "type": "registry:block",
+      "title": "Mailing",
+      "description": "Branded transactional HTML and plain-text emails, with an optional server-only Resend transport.",
+      "files": [
+        {
+          "path": "registry/components/plugins/mailing/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/mailing/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/mailing/transactional-email.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/mailing/transactional-email.tsx"
+        },
+        {
+          "path": "registry/components/plugins/mailing/resend.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/mailing/resend.server.ts"
+        }
+      ],
+      "dependencies": ["react-email@6.11.1"]
     }
   ]
 }

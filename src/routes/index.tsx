@@ -28,6 +28,16 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/mailing",
+      category: "Plugin",
+      title: "Mailing",
+      icon: pluginIcons.mailing,
+      description:
+        "Branded emails for account access and reservation updates, with a plain-text alternative.",
+      tags: ["Email templates", "Transactional email"],
+      keywords: ["mailing", "email", "notifications", "verification", "password"],
+    },
+    {
       href: "/subpage-sidebar",
       category: "Component",
       title: "Subpage sidebar",
@@ -124,7 +134,8 @@ const examples = (
       category: "Plugin",
       title: "Auth",
       icon: pluginIcons.auth,
-      description: "Sign-in, sign-out, password recovery and changes, and access-denied states.",
+      description:
+        "Sign-in, account profile and security, password recovery, and access-denied states.",
       tags: ["Sign in", "Sign out", "Password recovery", "Password changes", "Access denied"],
       keywords: [
         "login form",
@@ -136,6 +147,9 @@ const examples = (
         "change password page",
         "access denied page",
         "auth layout",
+        "account profile",
+        "agent keys",
+        "sessions",
       ],
     },
     {

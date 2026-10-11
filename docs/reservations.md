@@ -342,3 +342,11 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Notification layout
+
+The storage item installs [`@forge/mailing`](./mailing.md) for its default HTML and
+plain-text notifications. Forward `email.html` alongside `email.text` in the host
+transport, or use `sendResendEmail`. `formatEmail` can return optional `html`, synchronously or as a promise;
+existing subject/text overrides remain valid and do not receive default HTML.
+Delivery IDs, durable jobs, retries and host authorization are unchanged.

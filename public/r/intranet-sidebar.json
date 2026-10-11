@@ -23,7 +23,7 @@
     },
     {
       "path": "registry/components/utils/plugin-icons.ts",
-      "content": "import {\n  CalendarDaysIcon,\n  FolderKanbanIcon,\n  HardDriveIcon,\n  NewspaperIcon,\n  ShieldCheckIcon,\n  UserRoundIcon,\n  UsersIcon,\n  UtensilsCrossedIcon,\n} from \"lucide-react\";\n\n/** Shared plugin identities for titles and host-owned navigation. */\nexport const pluginIcons = {\n  auth: ShieldCheckIcon,\n  blogs: NewspaperIcon,\n  customers: UserRoundIcon,\n  drive: HardDriveIcon,\n  employees: UsersIcon,\n  menus: UtensilsCrossedIcon,\n  projects: FolderKanbanIcon,\n  reservations: CalendarDaysIcon,\n};\n",
+      "content": "import {\n  CalendarDaysIcon,\n  FolderKanbanIcon,\n  HardDriveIcon,\n  NewspaperIcon,\n  MailIcon,\n  ShieldCheckIcon,\n  UserRoundIcon,\n  UsersIcon,\n  UtensilsCrossedIcon,\n} from \"lucide-react\";\n\n/** Shared plugin identities for titles and host-owned navigation. */\nexport const pluginIcons = {\n  auth: ShieldCheckIcon,\n  blogs: NewspaperIcon,\n  customers: UserRoundIcon,\n  drive: HardDriveIcon,\n  employees: UsersIcon,\n  menus: UtensilsCrossedIcon,\n  mailing: MailIcon,\n  projects: FolderKanbanIcon,\n  reservations: CalendarDaysIcon,\n};\n",
       "type": "registry:lib",
       "target": "@components/utils/plugin-icons.ts"
     }

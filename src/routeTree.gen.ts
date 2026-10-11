@@ -17,6 +17,7 @@ import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
+import { Route as MailingRouteImport } from './routes/mailing'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
@@ -24,6 +25,7 @@ import { Route as SubpageSidebarRouteImport } from './routes/subpage-sidebar'
 import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
+import { Route as LocaleAccountRouteImport } from './routes/$locale.account'
 import { Route as LocaleAuthRouteImport } from './routes/$locale.auth'
 import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
@@ -81,6 +83,11 @@ const IconTooltipRoute = IconTooltipRouteImport.update({
   path: '/icon-tooltip',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MailingRoute = MailingRouteImport.update({
+  id: '/mailing',
+  path: '/mailing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NativeSelectRoute = NativeSelectRouteImport.update({
   id: '/native-select',
   path: '/native-select',
@@ -114,6 +121,11 @@ const TableSearchRoute = TableSearchRouteImport.update({
 const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
   id: '/$locale/access-denied',
   path: '/$locale/access-denied',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleAccountRoute = LocaleAccountRouteImport.update({
+  id: '/$locale/account',
+  path: '/$locale/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleAuthRoute = LocaleAuthRouteImport.update({
@@ -228,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -235,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/account': typeof LocaleAccountRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
@@ -261,6 +275,7 @@ export interface FileRoutesByTo {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -268,6 +283,7 @@ export interface FileRoutesByTo {
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/account': typeof LocaleAccountRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
@@ -299,6 +315,7 @@ export interface FileRoutesById {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -306,6 +323,7 @@ export interface FileRoutesById {
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
+  '/$locale/account': typeof LocaleAccountRoute
   '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
@@ -334,6 +352,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -341,6 +360,7 @@ export interface FileRouteTypes {
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
+    | '/$locale/account'
     | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
@@ -367,6 +387,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -374,6 +395,7 @@ export interface FileRouteTypes {
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
+    | '/$locale/account'
     | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
@@ -404,6 +426,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -411,6 +434,7 @@ export interface FileRouteTypes {
     | '/table-pagination'
     | '/table-search'
     | '/$locale/access-denied'
+    | '/$locale/account'
     | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
@@ -442,6 +466,7 @@ export interface RootRouteChildren {
   ActionToastRoute: typeof ActionToastRoute
   CookieBannerRoute: typeof CookieBannerRoute
   IconTooltipRoute: typeof IconTooltipRoute
+  MailingRoute: typeof MailingRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
@@ -449,6 +474,7 @@ export interface RootRouteChildren {
   TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
+  LocaleAccountRoute: typeof LocaleAccountRoute
   LocaleAuthRoute: typeof LocaleAuthRoute
   LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
   LocaleContactRoute: typeof LocaleContactRoute
@@ -520,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IconTooltipRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mailing': {
+      id: '/mailing'
+      path: '/mailing'
+      fullPath: '/mailing'
+      preLoaderRoute: typeof MailingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/native-select': {
       id: '/native-select'
       path: '/native-select'
@@ -567,6 +600,13 @@ declare module '@tanstack/react-router' {
       path: '/$locale/access-denied'
       fullPath: '/$locale/access-denied'
       preLoaderRoute: typeof LocaleAccessDeniedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/account': {
+      id: '/$locale/account'
+      path: '/$locale/account'
+      fullPath: '/$locale/account'
+      preLoaderRoute: typeof LocaleAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/auth': {
@@ -776,6 +816,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActionToastRoute: ActionToastRoute,
   CookieBannerRoute: CookieBannerRoute,
   IconTooltipRoute: IconTooltipRoute,
+  MailingRoute: MailingRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,
@@ -783,6 +824,7 @@ const rootRouteChildren: RootRouteChildren = {
   TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
+  LocaleAccountRoute: LocaleAccountRoute,
   LocaleAuthRoute: LocaleAuthRoute,
   LocaleChangePasswordRoute: LocaleChangePasswordRoute,
   LocaleContactRoute: LocaleContactRoute,

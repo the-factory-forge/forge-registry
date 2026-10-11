@@ -1,4 +1,5 @@
 import "../drive-storage/register.mjs";
+import "../register-mailing.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
@@ -181,11 +182,57 @@ test("PostgreSQL booking integrity, authorization, private links and durable not
   const sent = await Promise.all([service.deliverNotifications(), service.deliverNotifications()]);
   assert.ok(sent.reduce((sum, r) => sum + r.sent, 0) >= 6);
   assert.equal(emails.length, new Set(emails.map((e) => e.id)).size);
+  for (const email of emails) {
+    assert.match(email.html, /<!DOCTYPE html/i);
+    assert.ok(email.html.includes(email.managementUrl));
+    assert.ok(email.text.includes(email.managementUrl));
+  }
   assert.ok((await admin.list(range)).every((r) => !r.emailFailed));
   const newToken = new URL(
     emails.findLast((e) => e.reservation.id === first.id).managementUrl,
   ).hash.slice(1);
   assert.equal((await service.managementClient(newToken).get()).reservation.status, "cancelled");
+  const customEmails = [];
+  const customOptions = {
+    mode: "appointment",
+    db,
+    managementSecret: secret,
+    now: () => clock,
+    authorize: async () => true,
+    getManagementUrl: () => "https://example.test/calendar",
+    sendEmail: async (email) => {
+      customEmails.push(email);
+    },
+  };
+  const textOnly = createReservationsService({
+    ...customOptions,
+    formatEmail: () => ({ subject: "Host subject", text: "Host text" }),
+  });
+  const current = (await admin.list(range)).find((item) => item.id === first.id);
+  const updatedLink = await admin.revokeLink(first.id, current.version);
+  await textOnly.deliverNotifications();
+  assert.equal(customEmails.at(-1).subject, "Host subject");
+  assert.equal(customEmails.at(-1).text, "Host text");
+  assert.equal(customEmails.at(-1).html, undefined);
+  let formatFails = true;
+  const formattedIds = [];
+  const customHtml = createReservationsService({
+    ...customOptions,
+    formatEmail: async (email) => {
+      formattedIds.push(email.id);
+      if (formatFails) throw new Error("render failed");
+      return { subject: "Host subject", text: "Host text", html: "<p>Host text</p>" };
+    },
+  });
+  await admin.revokeLink(first.id, updatedLink.version);
+  const previousCount = customEmails.length;
+  assert.equal((await customHtml.deliverNotifications()).failed, 1);
+  assert.equal(customEmails.length, previousCount);
+  await admin.retryEmail(first.id);
+  formatFails = false;
+  assert.equal((await customHtml.deliverNotifications()).sent, 1);
+  assert.deepEqual(formattedIds, [customEmails.at(-1).id, customEmails.at(-1).id]);
+  assert.equal(customEmails.at(-1).html, "<p>Host text</p>");
   const publicJson = JSON.stringify(await service.publicClient.catalog());
   assert.ok(!publicJson.includes("guest@example.test"));
   assert.ok(!publicJson.includes("weeklyHours"));

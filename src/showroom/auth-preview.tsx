@@ -17,6 +17,7 @@ import { ShowroomPreview } from "@/showroom/showroom-preview";
 type View = "login" | "forgot-password" | "reset-password" | "change-password" | "access-denied";
 const destinations = [
   ["auth", "Sign in"],
+  ["account", "Account and security"],
   ["forgot-password", "Forgot password"],
   ["reset-password", "Reset password"],
   ["change-password", "Change password"],

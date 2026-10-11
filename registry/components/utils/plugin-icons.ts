@@ -3,6 +3,7 @@ import {
   FolderKanbanIcon,
   HardDriveIcon,
   NewspaperIcon,
+  MailIcon,
   ShieldCheckIcon,
   UserRoundIcon,
   UsersIcon,
@@ -17,6 +18,7 @@ export const pluginIcons = {
   drive: HardDriveIcon,
   employees: UsersIcon,
   menus: UtensilsCrossedIcon,
+  mailing: MailIcon,
   projects: FolderKanbanIcon,
   reservations: CalendarDaysIcon,
 };

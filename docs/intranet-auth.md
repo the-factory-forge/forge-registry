@@ -16,7 +16,7 @@ and validation under `components/plugins/employees`. `employees-server` adds
 `server/employees.server.ts`. The browser exports never import that server module.
 
 The showroom lists one `/en/auth` example with links to sign-in, password recovery,
-password change, and access-denied states. The old `/en/login` URL and the other
+password change, account/security (`/en/account`), and access-denied states. The old `/en/login` URL and the other
 auth example URLs remain available. `/en/employees` previews employee management.
 These examples use in-memory callbacks, never retain passwords, and do not create
 sessions or send messages.
@@ -234,3 +234,52 @@ translate its Close label. Existing callback and label props are unchanged.
 Employee directory creation, edits and deletion use the shared
 [optimistic action contract](./optimistic-actions.md). Authentication, impersonation,
 password changes and verification emails still wait for their server result.
+
+## Email templates
+
+Hosts can install [`@forge/mailing`](./mailing.md) for verification and password-reset
+messages. Call it from the existing authentication provider callback and keep
+localized destinations, token policy, credentials and neutral recovery responses
+in the host. It adds HTML and matching plain text without changing the auth UI.
+
+## Account profile and security
+
+`AccountPage` owns the profile summary, About/Security tabs and name form. Pass
+`user` (id, name, email, optional image/roleLabel), `onUpdateProfile({ name })`,
+a `security` node and translated `AccountLabels`. Email is read-only. The active
+tab underline overlays the muted divider. State resets when the account ID changes.
+
+Compose `AccountSecurity` in that slot with metadata-only `data` containing the
+recorded `signInMethod`, linked `providers`, and sessions (id, current, userAgent,
+ipAddress, createdAt, expiresAt). A linked GitHub account is not evidence of the
+current session's login method: pass null for untracked sessions. Supply `email`,
+`onRetry`, `onRevokeSession(id)` and optional `onRequestPasswordReset`; only credential
+accounts show password controls. The optional `passwordForm` slot accepts the
+host's `ChangePasswordForm` adapter. Labels, password labels, locale and className
+are overridable. Key the adapter by account ID to reset action state between users.
+
+`AgentKeys` takes metadata-only `keys` (id, name, createdAt, lastUsedAt, expiresAt,
+expired), `onRetry`, `onCreate({ name, expiresAt }): Promise<{ token }>`, and
+`onDelete(id)`. Creation validates a nonblank name of at most 100 characters and
+an expiry within 90 days; the server must repeat those checks. The returned token
+is held only in component state until the one-time dialog closes or unmounts.
+Deletion requires confirmation. Concurrent submissions are blocked; failures keep
+creation drafts or the deletion confirmation available for retry. Successful
+profile edits, deletion and copying use the shared action toast.
+
+Both security components accept `loading` and `error`. Keep loaded metadata during
+background refreshes; remove `data`/`keys` when authorization fails. The host must
+clear private caches on sign-out/account switches and resolve callbacks after
+persisting changes; refresh metadata after successful mutations. Optional nodes
+allow a host to omit keys or password changes without installing backend features.
+
+The host owns authoritative session validation, user-scoped queries, encryption,
+key verification/last-use tracking, expiry enforcement, password/email transport,
+impersonation policy and migrations. Never pass session tokens, key hashes or
+ciphertext to these components. The server must reject attempts to revoke the
+current session or another user's session/key, even when the UI hides the action.
+No auth server companion, provider, database or import API is installed.
+
+The account preview uses simulated callbacks. `tests/account.browser.mjs` covers
+failed drafts, duplicate submissions, one-time key clearing, expiry validation,
+load retries, credential controls, other-session logout and narrow layouts.

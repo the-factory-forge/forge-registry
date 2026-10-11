@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
+import { renderEmail } from "@/components/plugins/mailing/index";
 import {
   activeReservation,
   assertResourceExceptions,
@@ -61,6 +62,7 @@ export interface ReservationEmail {
   managementUrl: string;
   subject: string;
   text: string;
+  html?: string;
 }
 export interface ReservationsServiceOptions<Context> {
   mode: ReservationMode;
@@ -72,7 +74,11 @@ export interface ReservationsServiceOptions<Context> {
   managementSecret: string;
   getManagementUrl(token: string): string;
   /** Override content for host branding/translations. */
-  formatEmail?: (email: ReservationEmail) => Pick<ReservationEmail, "subject" | "text">;
+  formatEmail?: (
+    email: ReservationEmail,
+  ) =>
+    | Pick<ReservationEmail, "subject" | "text" | "html">
+    | Promise<Pick<ReservationEmail, "subject" | "text" | "html">>;
   now?: () => Date;
 }
 
@@ -515,7 +521,41 @@ export function createReservationsService<Context>(options: ReservationsServiceO
           subject,
           text: `${r.serviceName}\n${r.resourceName}\n${r.mode === "stay" ? "Arrival: " : ""}${new Intl.DateTimeFormat(r.locale, { dateStyle: "full", timeStyle: "short", timeZone: r.timeZone }).format(new Date(r.startsAt))} (${r.timeZone})${r.mode === "stay" ? `\nDeparture: ${new Intl.DateTimeFormat(r.locale, { dateStyle: "full", timeStyle: "short", timeZone: r.timeZone }).format(new Date(r.endsAt))} (${r.timeZone})\nNights: ${r.nights}` : ""}\nStatus: ${r.status}\nManage your reservation: ${managementUrl}`,
         };
-        if (options.formatEmail) email = { ...email, ...options.formatEmail(email) };
+        if (options.formatEmail) email = { ...email, ...(await options.formatEmail(email)) };
+        else
+          email = {
+            ...email,
+            ...(await renderEmail({
+              brand: { name: r.serviceName },
+              locale: r.locale,
+              preview: subject,
+              heading: subject,
+              greeting: `Hello ${r.customer.name},`,
+              paragraphs: [r.resourceName],
+              details: [
+                {
+                  label: r.mode === "stay" ? "Arrival" : "When",
+                  value: new Intl.DateTimeFormat(r.locale, {
+                    dateStyle: "full",
+                    timeStyle: "short",
+                    timeZone: r.timeZone,
+                  }).format(new Date(r.startsAt)),
+                },
+                {
+                  label: r.mode === "stay" ? "Departure" : "Until",
+                  value: new Intl.DateTimeFormat(r.locale, {
+                    dateStyle: "full",
+                    timeStyle: "short",
+                    timeZone: r.timeZone,
+                  }).format(new Date(r.endsAt)),
+                },
+                { label: "Time zone", value: r.timeZone },
+                ...(r.mode === "stay" ? [{ label: "Nights", value: String(r.nights) }] : []),
+                { label: "Status", value: r.status },
+              ],
+              action: { label: "Manage your reservation", url: managementUrl },
+            })),
+          };
         await options.sendEmail(email);
         await db.execute(
           sql`update reservations_notification set sent_at=${now()}::timestamptz,lease_id=null,lease_until=null,error=null where id=${job.id} and lease_id=${leaseId}`,

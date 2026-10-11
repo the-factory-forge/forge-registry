@@ -44,6 +44,18 @@ export {
   type AccessDeniedPageProps,
   type AccessDeniedLabels,
 } from "@/components/plugins/auth/access-denied-page";
+export { AccountPage, type AccountPageProps } from "@/components/plugins/auth/account-page";
+export {
+  AccountSecurity,
+  type AccountSecurityData,
+  type AccountSecurityProps,
+} from "@/components/plugins/auth/account-security";
+export {
+  AgentKeys,
+  type AgentKey,
+  type AgentKeysProps,
+} from "@/components/plugins/auth/agent-keys";
+export type { AccountLabels, SecurityLabels } from "@/components/plugins/auth/account-labels";
 export interface LoginCredentials {
   email: string;
   password: string;
