@@ -8,10 +8,14 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 ## Source releases and maintenance
 
-[Release guide](docs/releases/README.md) · [Shared release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release-version/SKILL.md).
-`VERSION` starts at `1.0.0-rc.1` as an **unpublished local candidate**. The private
-package version and legacy tags are separate; inspect remote release history
-before publication. This setup does not deploy or update customer websites.
+Follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+for version choice, required checks, publication and recovery.
+
+Use the shared [release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md)
+to prepare the version in `package.json`, [release notes](docs/releases/), and a local
+commit and annotated tag. Inspect remote release history before publication; verified
+tags and their full commit SHA identify published source. Releasing source does not
+deploy or update customer websites.
 
 The canonical [upstream promotion skill](.agents/skills/sync-to-forge-registry/SKILL.md)
 is kept in this repository. Invoke `$sync-to-forge-registry` here to promote only the
@@ -23,7 +27,7 @@ For selected downstream updates, use
 [$sync-from-forge-registry](.agents/skills/sync-from-forge-registry/SKILL.md).
 Both sync procedures are maintained here and can be read from this checkout or
 installed from this repository. Common maintenance lives in `forge-skills`:
-[update-dependencies](https://github.com/the-factory-forge/forge-skills/blob/main/skills/update-dependencies/SKILL.md) and [release-version](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release-version/SKILL.md).
+[update-dependencies](https://github.com/the-factory-forge/forge-skills/blob/main/skills/update-dependencies/SKILL.md) and [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md).
 
 ## Context for contributors and AI
 
@@ -51,8 +55,8 @@ shadcn build registry/registry.json --output public/r
 
 The namespace example below currently uses development `main`. For a published
 release, resolve its tag to the full SHA and substitute that SHA for the entire
-namespace as described in [the release guide](docs/releases/README.md). Selecting
-a download URL does not establish the revision installed in a customer site.
+`@forge` namespace below. Selecting a download URL does not establish the revision
+installed in a customer site.
 
 The source manifest declares file targets and `@forge/...` dependencies. Rendered components install directly under the consumer's configured components directory, page-building sections with `page-*` names under `components/pages/`, layouts under `components/layouts/`, and non-visual utilities under `components/utils/`. Source imports mirror those targets; shadcn resolves the consumer's configured aliases.
 

@@ -107,7 +107,7 @@ test("menu dialogs submit their implicit save button on narrow dark screens", as
 
 test("reservation rescheduling shortcuts respect disabled saves and submit the selected time", async (t) => {
   const page = await preview(t, "/en/reservations");
-  await page.getByRole("button", { name: /09:00.*GMT/ }).click();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Shortcut Guest");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("shortcut@example.test");
   await page.getByRole("button", { name: "Review booking", exact: true }).click();
@@ -121,7 +121,7 @@ test("reservation rescheduling shortcuts respect disabled saves and submit the s
   await page.keyboard.press("Control+Enter");
   assert.equal(await dialog.isVisible(), true);
   assert.equal(await dialog.getByRole("alert").count(), 0);
-  await dialog.getByRole("button", { name: /(?:13:00|01:00.*PM).*GMT/ }).click();
+  await dialog.getByRole("button", { name: /^(?:13:00|01:00 PM)$/ }).click();
   await page.keyboard.press("Meta+Enter");
   await dialog.waitFor({ state: "hidden" });
 });

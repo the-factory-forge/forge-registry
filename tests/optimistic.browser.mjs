@@ -160,7 +160,7 @@ void test("reservation cancellation is immediate and restores the booking on rej
   await page
     .getByRole("combobox", { name: "Practitioner or resource", exact: true })
     .selectOption("10000000-0000-4000-8000-000000000001");
-  await page.getByRole("button", { name: /09:00.*GMT/ }).click();
+  await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
   await page.getByRole("textbox", { name: "Name", exact: true }).fill("Optimistic guest");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("guest@example.test");
   await page.getByRole("button", { name: "Review booking", exact: true }).click();

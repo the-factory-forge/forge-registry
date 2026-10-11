@@ -2,9 +2,11 @@
 
 ## Releases and source maintenance
 
-For release preparation/publication, use [release-version](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release-version/SKILL.md) from `forge-skills`
-and [the release guide](docs/releases/README.md). `VERSION` is an unpublished local
-candidate until a verified tag/release exists; publication never updates customers.
+For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
+`package.json` owns the release version; keep matching notes in `docs/releases/v<version>.md`.
+Preparation creates a local commit and annotated tag. Publication requires separate
+authorization and verified remote evidence; it never updates customers.
 
 When a user asks to promote a discussed customer improvement upstream, use
 [sync-to-forge-registry](.agents/skills/sync-to-forge-registry/SKILL.md). Promote only that
@@ -345,7 +347,7 @@ and are not registry items. Shared components must not import from `src/lib/`
 or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
 
 After the first source release, use its verified full commit SHA for the whole
-`@forge` namespace, following `docs/releases/README.md`. Before that, the current
+`@forge` namespace, following [registry installation](README.md#installing-from-the-registry). Before that, the current
 development namespace in `components.json` is
 `https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json`.
 Install with `shadcn add @forge/item-name`. To test locally, run
