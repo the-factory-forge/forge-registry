@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update from Factory Registry"
+  short_description: "Reconcile selected registry updates into a website"
+  default_prompt: "Use $sync-from-forge-registry to update the selected registry items in this website while preserving its customizations and excluded features."

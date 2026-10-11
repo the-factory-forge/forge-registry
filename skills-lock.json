@@ -36,12 +36,6 @@
       "sourceType": "github",
       "skillPath": "pstack/skills/unslop/SKILL.md",
       "computedHash": "3b8676e7461f44026b4d555ff0f3369a761df6033b9b9e2cd5152693cb20fbb2"
-    },
-    "update-dependencies": {
-      "source": "the-corner-inc/harness",
-      "sourceType": "github",
-      "skillPath": "skills/update-dependencies/SKILL.md",
-      "computedHash": "f70d31550034746c416ca543ca785c6ec8d0b414e14194398f7c0d0d23506bb9"
     }
   }
 }

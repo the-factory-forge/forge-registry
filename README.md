@@ -8,7 +8,7 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 ## Source releases and maintenance
 
-[Release guide](docs/releases/README.md) · [Release skill](.agents/skills/release-registry/SKILL.md).
+[Release guide](docs/releases/README.md) · [Shared release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release-version/SKILL.md).
 `VERSION` starts at `1.0.0-rc.1` as an **unpublished local candidate**. The private
 package version and legacy tags are separate; inspect remote release history
 before publication. This setup does not deploy or update customer websites.
@@ -19,6 +19,12 @@ only the improvement discussed in the current conversation. To make it discovera
 across projects, link this skill directory into your agent's configured skills
 directory using the actual checkout path; keep one canonical source. The current
 installed invocation retains its upstream meaning.
+
+For selected downstream updates, use
+[$sync-from-forge-registry](.agents/skills/sync-from-forge-registry/SKILL.md).
+Both sync procedures are maintained here and can be read from this checkout or
+installed from this repository. Common maintenance lives in `forge-skills`:
+[update-dependencies](https://github.com/the-factory-forge/forge-skills/blob/main/skills/update-dependencies/SKILL.md) and [release-version](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release-version/SKILL.md).
 
 ## Context for contributors and AI
 

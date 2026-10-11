@@ -7,7 +7,8 @@ description: Promote only a customer improvement identified in the current conve
 
 Implement the discussed improvement against current registry source and identify
 affected consumers. `$sync-forge-registry` keeps its upstream meaning; downstream
-updates use the template's `$sync-from-forge-registry` skill. The canonical source
+updates use the registry-owned
+[`sync-from-forge-registry`](../sync-from-forge-registry/SKILL.md) skill. The canonical source
 of this skill is `forge-registry/.agents/skills/sync-forge-registry/`.
 
 ## Bound the requested improvement

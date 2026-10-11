@@ -1,4 +1,0 @@
-interface:
-  display_name: "Release Factory Registry"
-  short_description: "Prepare a reviewed registry source release"
-  default_prompt: "Use $release-registry to prepare this repository's next release locally, with version reasoning and checks."
