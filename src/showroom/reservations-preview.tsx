@@ -267,6 +267,8 @@ export function ReservationPublicPreview() {
     <ReservationManagePage
       key={segments[1]}
       client={mock.managementClient(segments[1])}
+      backHref={`/${locale}/reservations`}
+      linkComponent={Link}
       locale={locale}
       labels={labels}
       className="showroom-page"

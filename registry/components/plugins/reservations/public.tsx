@@ -1,9 +1,11 @@
 "use client";
 
-import { RefreshCwIcon } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { ArrowLeftIcon, RefreshCwIcon } from "lucide-react";
+import { useCallback, useRef, useState, type ComponentType } from "react";
 import { Temporal } from "temporal-polyfill";
 
+import { IconTooltip } from "@/components/icon-tooltip";
+import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
   getReservationLabels,
@@ -380,6 +382,8 @@ export function BookingForm({
 
 export interface ReservationManagePageProps {
   client: ReservationManagementClient;
+  backHref?: string;
+  linkComponent?: ComponentType<LinkProps>;
   locale?: string;
   labels?: Partial<ReservationLabels>;
   className?: string;
@@ -387,6 +391,8 @@ export interface ReservationManagePageProps {
 
 export function ReservationManagePage({
   client,
+  backHref,
+  linkComponent: HostLink = Link,
   locale = "en",
   labels: overrides,
   className,
@@ -428,7 +434,20 @@ export function ReservationManagePage({
     );
   return (
     <section className={cn(pageClass, "max-w-3xl", className)}>
-      <h1 className="font-serif text-3xl font-semibold">{labels.manage}</h1>
+      <div className="flex items-center gap-3">
+        {backHref && (
+          <IconTooltip label={labels.back}>
+            <HostLink
+              href={backHref}
+              className={cn(buttonClass, "size-11 shrink-0 p-0")}
+              aria-label={labels.back}
+            >
+              <ArrowLeftIcon className="size-5" aria-hidden="true" />
+            </HostLink>
+          </IconTooltip>
+        )}
+        <h1 className="font-serif text-3xl font-semibold">{labels.manage}</h1>
+      </div>
       <ErrorNotice error={data.error ?? action.error} labels={labels} />
       {data.error ? (
         <button className={buttonClass} onClick={data.reload}>

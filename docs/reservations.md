@@ -92,6 +92,13 @@ URL/referrer logs. Use `Cache-Control: private, no-store`, a `no-referrer` polic
 and no indexing or analytics on the management page. Redact tokens and customer data
 from application logs. Opening the link only reads; changes require explicit actions.
 
+Pass the host's localized booking URL as `ReservationManagePage.backHref` to show
+a back arrow beside the heading, including during loading and errors. It uses
+`labels.back` for its accessible name and tooltip. Omit `backHref` to keep the
+heading without a back control. Supply `linkComponent` for router-aware navigation
+using the existing `href` link contract; the default is the registry Link shim.
+The destination belongs to the host and must not include the private management token.
+
 Map only `ReservationError.code` to safe responses. `MODE_MISMATCH`, `INVALID`, `NOT_FOUND`,
 `FORBIDDEN`, `CONFLICT`, `CUTOFF`, `CLOSED`, `INVALID_LINK`, and `STORAGE` are the
 published error codes. Do not forward raw SQL, email-provider errors or credentials.

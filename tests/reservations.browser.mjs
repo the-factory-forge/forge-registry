@@ -154,6 +154,17 @@ test("homepage discovery, booking, calendar views, private rescheduling and canc
       .waitFor();
   }
   await page.getByRole("link", { name: "Manage latest reservation" }).click();
+  const back = page.getByRole("link", { name: "Back", exact: true });
+  assert.equal(await back.getAttribute("href"), "/en/reservations");
+  await back.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.getByRole("tooltip", { name: "Back", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  await page.getByRole("tooltip").waitFor({ state: "hidden" });
+  await page.keyboard.press("Enter");
+  await page.waitForURL(baseURL + "/en/reservations");
+  await page.getByRole("link", { name: "Manage latest reservation" }).click();
   await page.getByRole("button", { name: "Reschedule", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: /^(?:13:00|01:00.*PM)$/ }).click();
@@ -166,6 +177,20 @@ test("homepage discovery, booking, calendar views, private rescheduling and canc
     .click();
   await page.getByText("Cancelled", { exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Reschedule", exact: true }).count(), 0);
+});
+
+void test("private management back link works from an invalid direct link in each locale", async (t) => {
+  for (const [locale, label] of [
+    ["en", "Back"],
+    ["fr", "Retour"],
+  ]) {
+    const page = await preview(t, `/${locale}/reservations/manage/missing`);
+    await page.getByRole("alert").waitFor();
+    const back = page.getByRole("link", { name: label, exact: true });
+    assert.equal(await back.getAttribute("href"), `/${locale}/reservations`);
+    await back.click();
+    await page.waitForURL(baseURL + `/${locale}/reservations`);
+  }
 });
 
 test("calendar filters round-trip through URLs, reloads and browser history", async (t) => {
