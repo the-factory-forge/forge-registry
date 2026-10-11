@@ -14,11 +14,10 @@ package version and legacy tags are separate; inspect remote release history
 before publication. This setup does not deploy or update customer websites.
 
 The canonical [upstream promotion skill](.agents/skills/sync-forge-registry/SKILL.md)
-is kept here. From a customer checkout, invoke `$sync-forge-registry` to promote
-only the improvement discussed in the current conversation. To make it discoverable
-across projects, link this skill directory into your agent's configured skills
-directory using the actual checkout path; keep one canonical source. The current
-installed invocation retains its upstream meaning.
+is kept in this repository. Invoke `$sync-forge-registry` here to promote only the
+improvement discussed in the current conversation. From a customer checkout, ask
+the agent to read and use `forge-registry/.agents/skills/sync-forge-registry/SKILL.md`
+at the actual local checkout path. This workflow needs no global skill installation.
 
 For selected downstream updates, use
 [$sync-from-forge-registry](.agents/skills/sync-from-forge-registry/SKILL.md).
