@@ -20,6 +20,23 @@ async function preview(t) {
   await page.locator('[data-preview-ready="true"]').waitFor();
   return page;
 }
+void test("account keeps its intranet navigation for default and host content on desktop and mobile", async (t) => {
+  const page = await preview(t);
+  const navigation = page.getByRole("navigation", { name: "Side navigation", exact: true });
+  await navigation.waitFor();
+  const profile = navigation.getByRole("link", { name: "Profile settings", exact: true });
+  assert.equal(await profile.getAttribute("href"), "/en/account");
+  assert.equal(await profile.getAttribute("aria-current"), "page");
+  await page.getByLabel("Host profile content").check();
+  await page.getByRole("heading", { name: "Host profile summary" }).waitFor();
+  await navigation.waitFor();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.getByRole("button", { name: "Toggle side navigation", exact: true }).click();
+  await profile.waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.keyboard.press("Escape");
+  await navigation.waitFor({ state: "hidden" });
+});
 void test("account preserves failed drafts, blocks duplicate callbacks, and clears one-time keys", async (t) => {
   const page = await preview(t);
   await page.getByLabel("Simulate action failures").check();

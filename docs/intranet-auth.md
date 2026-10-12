@@ -309,6 +309,13 @@ in the host. It adds HTML and matching plain text without changing the auth UI.
 
 ## Account profile and security
 
+Render account pages inside the host's [intranet layout](./intranet.md) for every
+signed-in user, including required first-login password changes. Keep the shell
+and profile navigation visible while the host filters management links by role.
+Route and server guards still block protected operations until onboarding is
+complete. Point both the profile link and `profileHref` at the accessible account
+route, which may live outside an admin-only route tree.
+
 `AccountPage` owns the profile summary, About/Security tabs and name form. Pass
 `user` (id, name, email, optional image/roleLabel), `onUpdateProfile({ name })`,
 a `security` node and translated `AccountLabels`. Email is read-only. The active
@@ -347,7 +354,8 @@ No auth server companion, provider, database or import API is installed.
 
 The account preview uses simulated callbacks. `tests/account.browser.mjs` covers
 failed drafts, duplicate submissions, one-time key clearing, expiry validation,
-load retries, credential controls, other-session logout and narrow layouts.
+load retries, credential controls, other-session logout and account navigation
+on desktop and mobile, including host-provided content.
 
 ### Keep an existing account workflow
 

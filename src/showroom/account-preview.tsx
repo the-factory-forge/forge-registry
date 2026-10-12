@@ -1,7 +1,9 @@
 "use client";
 
+import { UserRoundIcon } from "lucide-react";
 import { useState } from "react";
 
+import { IntranetShell } from "@/components/layouts/intranet-shell";
 import {
   AccountPage,
   AccountSecurity,
@@ -91,85 +93,112 @@ export function AccountPreview() {
         </div>
       }
     >
-      {custom ? (
-        <AccountPage
-          user={{ id: "custom", name, email: "alex@example.com" }}
-          header={<h1 className="text-xl font-semibold">Host profile summary</h1>}
-          content={
-            <>
-              <nav aria-label="Custom profile sections">
-                <ShowroomLink href={`/${locale}/account`}>Profile details</ShowroomLink>
-              </nav>
-              <label className="grid gap-2">
-                Company name
-                <input className="rounded border border-input p-2" defaultValue="Example company" />
-              </label>
-            </>
-          }
-        />
-      ) : (
-        <AccountPage
-          user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
-          onUpdateProfile={async (values) => {
-            await perform();
-            setName(values.name);
-          }}
-          security={
-            <AccountSecurity
-              key={String(credential)}
-              email="alex@example.com"
-              locale={locale}
-              error={unavailable}
-              data={
-                unavailable
-                  ? undefined
-                  : {
-                      signInMethod: credential ? "credential" : "github",
-                      providers: [credential ? "credential" : "github"],
-                      sessions,
+      <IntranetShell
+        brand={{ name: "Acme workspace", href: `/${locale}/account` }}
+        user={{ name, email: "alex@example.com" }}
+        pathname={`/${locale}/account`}
+        profileHref={`/${locale}/account`}
+        linkComponent={ShowroomLink}
+        onSignOut={perform}
+        groups={[
+          {
+            id: "account",
+            items: [
+              {
+                id: "profile",
+                label: "Profile settings",
+                href: `/${locale}/account`,
+                exact: true,
+                icon: <UserRoundIcon />,
+              },
+            ],
+          },
+        ]}
+        contentClassName="showroom-inset"
+      >
+        {custom ? (
+          <AccountPage
+            user={{ id: "custom", name, email: "alex@example.com" }}
+            header={<h1 className="text-xl font-semibold">Host profile summary</h1>}
+            content={
+              <>
+                <nav aria-label="Custom profile sections">
+                  <ShowroomLink href={`/${locale}/account`}>Profile details</ShowroomLink>
+                </nav>
+                <label className="grid gap-2">
+                  Company name
+                  <input
+                    className="rounded border border-input p-2"
+                    defaultValue="Example company"
+                  />
+                </label>
+              </>
+            }
+          />
+        ) : (
+          <AccountPage
+            user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
+            onUpdateProfile={async (values) => {
+              await perform();
+              setName(values.name);
+            }}
+            security={
+              <AccountSecurity
+                key={String(credential)}
+                email="alex@example.com"
+                locale={locale}
+                error={unavailable}
+                data={
+                  unavailable
+                    ? undefined
+                    : {
+                        signInMethod: credential ? "credential" : "github",
+                        providers: [credential ? "credential" : "github"],
+                        sessions,
+                      }
+                }
+                onRetry={() => setUnavailable(false)}
+                onRequestPasswordReset={perform}
+                onRevokeSession={async (id) => {
+                  await perform();
+                  setSessions((values) => values.filter((value) => value.id !== id));
+                }}
+                passwordForm={<ChangePasswordForm onChangePassword={perform} />}
+                agentKeys={
+                  <AgentKeys
+                    locale={locale}
+                    keys={unavailable ? undefined : keys}
+                    error={unavailable}
+                    onRetry={() => setUnavailable(false)}
+                    onCreate={
+                      canCreate
+                        ? async (values) => {
+                            await perform();
+                            setKeys((existing) => [
+                              ...existing,
+                              {
+                                ...values,
+                                id: crypto.randomUUID(),
+                                createdAt: new Date(),
+                                lastUsedAt: null,
+                                expired: false,
+                              },
+                            ]);
+                            return { token: "forge_key_preview_only_not_a_real_credential" };
+                          }
+                        : undefined
                     }
-              }
-              onRetry={() => setUnavailable(false)}
-              onRequestPasswordReset={perform}
-              onRevokeSession={async (id) => {
-                await perform();
-                setSessions((values) => values.filter((value) => value.id !== id));
-              }}
-              passwordForm={<ChangePasswordForm onChangePassword={perform} />}
-              agentKeys={
-                <AgentKeys
-                  locale={locale}
-                  keys={unavailable ? undefined : keys}
-                  error={unavailable}
-                  onRetry={() => setUnavailable(false)}
-                  onCreate={
-                    canCreate
-                      ? async (values) => {
-                          await perform();
-                          setKeys((existing) => [
-                            ...existing,
-                            {
-                              ...values,
-                              id: crypto.randomUUID(),
-                              createdAt: new Date(),
-                              lastUsedAt: null,
-                              expired: false,
-                            },
-                          ]);
-                          return { token: "forge_key_preview_only_not_a_real_credential" };
-                        }
-                      : undefined
-                  }
-                  onDelete={async (id) => {
-                    await perform();
-                    setKeys((values) => values.filter((value) => value.id !== id));
-                  }}
-                />
-              }
-            />
-          }
-        />
-      )}
+                    onDelete={async (id) => {
+                      await perform();
+                      setKeys((values) => values.filter((value) => value.id !== id));
+                    }}
+                  />
+                }
+              />
+            }
+          />
+        )}
+      </IntranetShell>
     </ShowroomPreview>
   );
 }

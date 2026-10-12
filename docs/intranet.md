@@ -76,6 +76,12 @@ show its retryable error state. `user` accepts `name`, `email`, and optional
 `image`. Pass `linkComponent` for a router adapter as documented in the sidebar
 guide.
 
+Account pages, including required password changes, stay inside this layout for
+all signed-in roles. Hosts filter management links without removing the shell or
+profile access. Keep authorization and onboarding checks in routes and server
+operations; showing navigation does not grant access. See the
+[account integration guide](./intranet-auth.md#account-profile-and-security).
+
 ## Layout inputs
 
 `IntranetShellProps` accepts the sidebar's inputs except `togglePlacement` and
