@@ -88,20 +88,26 @@ test("recovery validates email, blocks duplicates, and retains a failed draft", 
 
 test("password forms validate, retain failed values, and clear successful credentials", async (t) => {
   const page = await preview(t, "/en/reset-password");
-  for (const view of ["reset-password", "change-password"]) {
+  for (const view of ["reset-password", "account"]) {
     await page.goto(`${baseURL}/en/${view}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
+    if (view === "account") {
+      await page.getByLabel("Email and password account").check();
+      await page.getByRole("tab", { name: "Security", exact: true }).click();
+    }
     const password = page.getByLabel("New password", { exact: true });
+    const current = page.getByLabel("Current password", { exact: true });
     const requestLink = page.getByRole("link", { name: "Request a new link", exact: true });
     assert.equal(await requestLink.count(), view === "reset-password" ? 1 : 0);
     if (view === "reset-password") {
       assert.equal(await requestLink.getAttribute("href"), "/en/forgot-password");
       assert.equal(await requestLink.evaluate((link) => Boolean(link.closest("form"))), true);
     }
-    assert.equal(await page.locator('input[type="password"]').count(), 1);
-    assert.deepEqual(await password.evaluate((input) => [...new FormData(input.form).keys()]), [
-      "newPassword",
-    ]);
+    assert.equal(await page.locator('input[type="password"]').count(), view === "account" ? 2 : 1);
+    assert.deepEqual(
+      await password.evaluate((input) => [...new FormData(input.form).keys()]),
+      view === "account" ? ["currentPassword", "newPassword"] : ["newPassword"],
+    );
     const button = page.getByRole("button", {
       name: view === "reset-password" ? "Save new password" : "Change password",
       exact: true,
@@ -110,13 +116,21 @@ test("password forms validate, retain failed values, and clear successful creden
     await button.click();
     assert.equal(await page.getByTestId("callback-count").textContent(), "0");
     await password.fill("new-password-123");
+    if (view === "account") {
+      await button.click();
+      assert.equal(await page.getByTestId("callback-count").textContent(), "0");
+      assert.equal(await current.evaluate((input) => input.validity.valueMissing), true);
+      assert.equal(await current.getAttribute("autocomplete"), "current-password");
+      assert.equal(await current.getAttribute("minlength"), null);
+      await current.fill("old-password");
+    }
     await page.getByLabel("Simulate action failures").check();
-    await page.getByRole("button", { name: "Show password", exact: true }).click();
-    const visibility = page.getByRole("button", { name: "Hide password", exact: true });
+    const visibility = page.locator(`button[aria-controls="${await password.getAttribute("id")}"]`);
+    await visibility.click();
     const initialPosition = await password.boundingBox();
-    await page.locator("#factory-auth-main-content form").evaluate((form) => {
-      form.requestSubmit();
-      form.requestSubmit();
+    await password.evaluate((input) => {
+      input.form.requestSubmit();
+      input.form.requestSubmit();
     });
     assert.equal(await visibility.isDisabled(), true);
     await page.getByRole("alert").filter({ hasText: "Could not" }).waitFor();
@@ -124,6 +138,7 @@ test("password forms validate, retain failed values, and clear successful creden
     assert.equal(await password.getAttribute("type"), "text");
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.equal(await password.inputValue(), "new-password-123");
+    if (view === "account") assert.equal(await current.inputValue(), "old-password");
     assert.deepEqual(await password.boundingBox(), initialPosition);
     assert.equal(
       await password.evaluate((input) =>
@@ -135,10 +150,12 @@ test("password forms validate, retain failed values, and clear successful creden
       true,
     );
     await page.getByLabel("Simulate action failures").uncheck();
-    await page.getByLabel("12–16 character password policy").check();
+    if (view === "reset-password") {
+      await page.getByLabel("12–16 character password policy").check();
+      assert.equal(await password.getAttribute("minlength"), "12");
+      assert.equal(await password.getAttribute("maxlength"), "16");
+    }
     assert.equal(await password.inputValue(), "new-password-123");
-    assert.equal(await password.getAttribute("minlength"), "12");
-    assert.equal(await password.getAttribute("maxlength"), "16");
     await button.click();
     if (view === "reset-password") {
       await page.getByRole("status").filter({ hasText: "Your password has been reset" }).waitFor();
@@ -153,6 +170,8 @@ test("password forms validate, retain failed values, and clear successful creden
     } else {
       assert.equal(await password.inputValue(), "");
       assert.equal(await password.getAttribute("type"), "password");
+      assert.equal(await current.inputValue(), "");
+      assert.equal(await current.getAttribute("type"), "password");
     }
   }
   await page.goto(baseURL + "/en/reset-password");
@@ -182,12 +201,7 @@ test("auth pages support keyboard navigation, SSR, both themes, and narrow scree
       await toggle.click();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 950 });
-      for (const path of [
-        "forgot-password",
-        "reset-password",
-        "change-password",
-        "access-denied",
-      ]) {
+      for (const path of ["forgot-password", "reset-password", "access-denied"]) {
         const response = await page.goto(`${baseURL}/en/${path}`);
         assert.equal(response.status(), 200);
         assert.match(await response.text(), /<h1/);
@@ -197,7 +211,7 @@ test("auth pages support keyboard navigation, SSR, both themes, and narrow scree
           true,
           `${path} ${theme} ${width}`,
         );
-        if (path === "reset-password" || path === "change-password")
+        if (path === "reset-password")
           await page.screenshot({
             path: `/tmp/forge-${path}-${theme}-${width}.png`,
             fullPage: true,

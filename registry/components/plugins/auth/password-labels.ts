@@ -13,6 +13,7 @@ export const passwordLabels = {
   backToLogin: "Back to sign in",
   resetTitle: "Set a new password",
   resetDescription: "Choose a new password for your team account.",
+  currentPassword: "Current password",
   newPassword: "New password",
   showPassword: "Show password",
   hidePassword: "Hide password",
@@ -28,7 +29,7 @@ export const passwordLabels = {
   changePasswordTitle: "Change your password",
   changePasswordSubtitle: "Replace your temporary password to continue.",
   passwordChanged: "Password changed successfully.",
-  changePasswordError: "Could not change the password. Please try again.",
+  changePasswordError: "Could not change the password. Check your current password and try again.",
 };
 
 export type PasswordLabels = typeof passwordLabels;

@@ -19,9 +19,9 @@ The shared [Plugins specification](https://github.com/the-factory-forge/forge-sp
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
-Auth reset and change forms take one new password. Signed-in changes rely on
-server-validated sessions, with no current-password or confirmation field. Hosts
-must migrate their callbacks and server handlers together; see the
+Auth reset and change forms take one new password without confirmation. Signed-in
+changes in account security also require the current password; hosts validate it
+and the session on the server. Sign-in links to email recovery. See the
 [password integration guide](./intranet-auth.md#password-recovery-and-changes).
 
 | Plugin         | Purpose                                                                                                                                              | Optional server item      | Guide                                       |

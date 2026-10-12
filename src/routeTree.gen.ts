@@ -26,7 +26,6 @@ import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
 import { Route as LocaleAccountRouteImport } from './routes/$locale.account'
-import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
 import { Route as LocaleFaqRouteImport } from './routes/$locale.faq'
@@ -125,11 +124,6 @@ const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
 const LocaleAccountRoute = LocaleAccountRouteImport.update({
   id: '/$locale/account',
   path: '/$locale/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LocaleChangePasswordRoute = LocaleChangePasswordRouteImport.update({
-  id: '/$locale/change-password',
-  path: '/$locale/change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleContactRoute = LocaleContactRouteImport.update({
@@ -243,7 +237,6 @@ export interface FileRoutesByFullPath {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -277,7 +270,6 @@ export interface FileRoutesByTo {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -316,7 +308,6 @@ export interface FileRoutesById {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -352,7 +343,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -386,7 +376,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -424,7 +413,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -463,7 +451,6 @@ export interface RootRouteChildren {
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
   LocaleAccountRoute: typeof LocaleAccountRoute
-  LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
   LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
   LocaleFaqRoute: typeof LocaleFaqRoute
@@ -594,13 +581,6 @@ declare module '@tanstack/react-router' {
       path: '/$locale/account'
       fullPath: '/$locale/account'
       preLoaderRoute: typeof LocaleAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$locale/change-password': {
-      id: '/$locale/change-password'
-      path: '/$locale/change-password'
-      fullPath: '/$locale/change-password'
-      preLoaderRoute: typeof LocaleChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/contact': {
@@ -805,7 +785,6 @@ const rootRouteChildren: RootRouteChildren = {
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
   LocaleAccountRoute: LocaleAccountRoute,
-  LocaleChangePasswordRoute: LocaleChangePasswordRoute,
   LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,
   LocaleFaqRoute: LocaleFaqRoute,

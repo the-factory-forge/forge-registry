@@ -88,7 +88,8 @@ void test("account retries loading, resets credential passwords, and revokes onl
   await page.getByLabel("Email and password account").check();
   await page.getByRole("tab", { name: "Security", exact: true }).click();
   const password = page.getByLabel("New password", { exact: true });
-  assert.equal(await page.locator('input[type="password"]').count(), 1);
+  assert.equal(await page.locator('input[type="password"]').count(), 2);
+  await page.getByLabel("Current password", { exact: true }).fill("old-password");
   await password.fill("new-password-123");
   await page.getByRole("button", { name: "Change password", exact: true }).click();
   await actionToast(page, "Password changed successfully");

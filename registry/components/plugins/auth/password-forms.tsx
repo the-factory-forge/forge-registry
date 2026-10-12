@@ -36,10 +36,11 @@ export interface ForgotPasswordFormProps extends RecoveryProps {
   onRequestReset: (email: string) => Promise<void>;
 }
 export interface ChangePasswordValues {
+  currentPassword: string;
   newPassword: string;
 }
 export interface ChangePasswordFormProps extends FormProps {
-  /** The host must authorize the signed-in user and validate the password on the server. */
+  /** The host must validate the session, current password and new password on the server. */
   onChangePassword: (values: ChangePasswordValues) => Promise<void>;
   minLength?: number;
   maxLength?: number;
@@ -185,7 +186,10 @@ function PasswordFormContent({
   const labels = { ...passwordLabels, ...overrides };
   const id = `factory-password-form-${useId()}`;
   const state = useSubmission();
-  const [showPassword, setShowPassword] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState({
+    currentPassword: false,
+    newPassword: false,
+  });
   const reset = mode === "reset";
   const notify = useActionToast();
   return (
@@ -200,61 +204,82 @@ function PasswordFormContent({
         <form
           className="grid gap-5"
           aria-busy={state.pending}
-          onReset={() => setShowPassword(false)}
+          onReset={() => setVisiblePasswords({ currentPassword: false, newPassword: false })}
           onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
             if (state.pending || !form.reportValidity()) return;
-            const newPassword = new FormData(form).get("newPassword");
-            if (typeof newPassword !== "string") return;
+            const data = new FormData(form);
+            const currentPassword = reset ? "" : data.get("currentPassword");
+            const newPassword = data.get("newPassword");
+            if (typeof currentPassword !== "string" || typeof newPassword !== "string") return;
             void state.submit(async () => {
-              await onChangePassword({ newPassword });
+              await onChangePassword({ currentPassword, newPassword });
               if (!reset) notify(labels.passwordChanged);
             }, form);
           }}
         >
-          <div className="grid gap-2">
-            <label htmlFor={`${id}-new`}>{labels.newPassword}</label>
-            <div className="relative">
-              <input
-                id={`${id}-new`}
-                name="newPassword"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                autoCapitalize="none"
-                spellCheck={false}
-                className={cn(inputClass, "pr-12")}
-                minLength={minLength}
-                maxLength={maxLength}
-                required
-                readOnly={state.pending}
-                aria-describedby={state.failed ? `${id}-hint ${id}-error` : `${id}-hint`}
-              />
-              <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={state.pending}
-                  aria-label={showPassword ? labels.hidePassword : labels.showPassword}
-                  aria-controls={`${id}-new`}
-                  aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="size-4" aria-hidden="true" />
-                  ) : (
-                    <EyeIcon className="size-4" aria-hidden="true" />
-                  )}
-                </button>
-              </IconTooltip>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-                {labels.passwordHint}
-              </p>
-              {requestResetLink}
-            </div>
-          </div>
+          {(["currentPassword", "newPassword"] as const).map((name) => {
+            if (reset && name === "currentPassword") return null;
+            const isNew = name === "newPassword";
+            const showPassword = visiblePasswords[name];
+            return (
+              <div key={name} className="grid gap-2">
+                <label htmlFor={`${id}-${name}`}>{labels[name]}</label>
+                <div className="relative">
+                  <input
+                    id={`${id}-${name}`}
+                    name={name}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={isNew ? "new-password" : "current-password"}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className={cn(inputClass, "pr-12")}
+                    minLength={isNew ? minLength : undefined}
+                    maxLength={isNew ? maxLength : undefined}
+                    required
+                    readOnly={state.pending}
+                    aria-describedby={
+                      isNew
+                        ? state.failed
+                          ? `${id}-hint ${id}-error`
+                          : `${id}-hint`
+                        : state.failed
+                          ? `${id}-error`
+                          : undefined
+                    }
+                  />
+                  <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisiblePasswords({ ...visiblePasswords, [name]: !showPassword })
+                      }
+                      disabled={state.pending}
+                      aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                      aria-controls={`${id}-${name}`}
+                      aria-pressed={showPassword}
+                      className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon className="size-4" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="size-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  </IconTooltip>
+                </div>
+                {isNew && (
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+                      {labels.passwordHint}
+                    </p>
+                    {requestResetLink}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <p
             id={`${id}-error`}
             role={state.failed ? "alert" : undefined}

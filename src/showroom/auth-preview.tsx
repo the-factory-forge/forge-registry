@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   AccessDeniedPage,
   AuthLayout,
-  ChangePasswordPage,
   ForgotPasswordForm,
   LoginForm,
   ResetPasswordForm,
@@ -14,12 +13,11 @@ import {
 import { ShowroomLink, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
-type View = "login" | "forgot-password" | "reset-password" | "change-password" | "access-denied";
+type View = "login" | "forgot-password" | "reset-password" | "access-denied";
 const destinations = [
   ["login", "Sign in"],
   ["forgot-password", "Forgot password"],
   ["reset-password", "Reset password"],
-  ["change-password", "Change password"],
   ["account", "Account and security"],
   ["access-denied", "Access denied"],
 ];
@@ -93,7 +91,7 @@ function Preview({ view }: { view: View }) {
                 Valid reset link
               </label>
             )}
-            {(view === "reset-password" || view === "change-password") && (
+            {view === "reset-password" && (
               <label className="flex gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -199,9 +197,6 @@ function Preview({ view }: { view: View }) {
               onResetPassword={perform}
               {...passwordProps}
             />
-          )}
-          {view === "change-password" && (
-            <ChangePasswordPage onChangePassword={perform} {...passwordProps} />
           )}
           {notice && <output className="mt-4 block text-sm">{notice}</output>}
         </AuthLayout>

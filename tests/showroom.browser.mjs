@@ -58,6 +58,8 @@ void test("auth navigation points to localized login", async (t) => {
       `https://registry.the-corner.io/${locale}/login`,
     );
   }
+  assert.equal((await fetch(`${baseURL}/en/change-password`)).status, 404);
+  assert.equal(await page.locator('a[href$="/change-password"]').count(), 0);
   for (const path of ["forgot-password", "reset-password", "access-denied", "account"]) {
     await page.goto(`${baseURL}/en/${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
@@ -253,7 +255,6 @@ test("SEO metadata is server rendered for demos, aliases, locales, and missing p
     "/en/legal/mentions",
     "/en/forgot-password",
     "/en/reset-password",
-    "/en/change-password",
     "/en/access-denied",
     ...samplePages,
     ...["fr", "en", "de", "it"].flatMap((locale) => [
