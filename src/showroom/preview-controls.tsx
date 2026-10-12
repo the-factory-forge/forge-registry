@@ -19,7 +19,7 @@ export function PreviewControls({
       {navigation && (
         <nav
           aria-label="Preview navigation"
-          className="mb-6 flex flex-col items-start gap-3 border-b border-border pb-6 [&_a]:rounded-sm [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-ring"
+          className="mb-6 flex flex-col items-start gap-3 border-b border-border pb-6 [&_a]:rounded-sm [&_a]:font-medium [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-ring [&_a[aria-current=page]]:font-bold"
         >
           {navigation}
         </nav>
