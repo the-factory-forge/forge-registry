@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@base-ui/react/input";
-import { CopyIcon, DicesIcon } from "lucide-react";
+import { CopyIcon, DicesIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
@@ -51,6 +51,7 @@ function CustomerFormContent({
   const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState(() => customerFormValues(customer));
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
   const notify = useActionToast();
   const [passwordFeedback, setPasswordFeedback] = useState<{ error: boolean; message: string }>();
@@ -93,6 +94,7 @@ function CustomerFormContent({
     if (await action.run(() => onSubmit(data), creating ? labels.created : labels.saved)) {
       setValues(normalized);
       setPassword("");
+      setShowPassword(false);
       setPasswordFeedback(undefined);
     }
   }
@@ -178,8 +180,10 @@ function CustomerFormContent({
                   <Input
                     id={`${id}-password`}
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={password}
                     minLength={passwordMinLength}
                     maxLength={passwordMaxLength}
@@ -188,11 +192,11 @@ function CustomerFormContent({
                       clear("password");
                       setPasswordFeedback(undefined);
                     }}
-                    className={cn(inputClass, "pl-20")}
+                    className={cn(inputClass, "pr-10 pl-20")}
                     aria-invalid={Boolean(errors.password)}
                     aria-describedby={`${id}-password-description${errors.password ? ` ${id}-password-error` : ""}`}
                   />
-                  <div className="absolute inset-y-0 left-1 flex items-center">
+                  <div className="absolute inset-y-0 left-1 flex items-center gap-1">
                     <IconTooltip label={labels.generatePassword}>
                       <button
                         type="button"
@@ -230,6 +234,23 @@ function CustomerFormContent({
                       </button>
                     </IconTooltip>
                   </div>
+                  <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={pending}
+                      aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                      aria-controls={`${id}-password`}
+                      aria-pressed={showPassword}
+                      className="absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon className="size-4" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="size-4" aria-hidden="true" />
+                      )}
+                    </button>
+                  </IconTooltip>
                 </div>
                 <p id={`${id}-password-description`} className="text-sm text-muted-foreground">
                   {labels.passwordDescription(passwordMinLength, passwordMaxLength)}

@@ -16,11 +16,11 @@ import { ShowroomPreview } from "@/showroom/showroom-preview";
 
 type View = "login" | "forgot-password" | "reset-password" | "change-password" | "access-denied";
 const destinations = [
-  ["auth", "Sign in"],
-  ["account", "Account and security"],
+  ["login", "Sign in"],
   ["forgot-password", "Forgot password"],
   ["reset-password", "Reset password"],
   ["change-password", "Change password"],
+  ["account", "Account and security"],
   ["access-denied", "Access denied"],
 ];
 export function AuthPreview({ view = "login" }: { view?: View }) {
@@ -54,7 +54,7 @@ function Preview({ view }: { view: View }) {
             <ShowroomLink
               key={path}
               href={`/${locale}/${path}`}
-              aria-current={path === (view === "login" ? "auth" : view) ? "page" : undefined}
+              aria-current={path === view ? "page" : undefined}
               className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             >
               {name}
@@ -151,7 +151,7 @@ function Preview({ view }: { view: View }) {
       {view === "access-denied" ? (
         <AccessDeniedPage
           className="showroom-fill"
-          homeHref={`/${locale}/auth`}
+          homeHref={`/${locale}/login`}
           linkComponent={ShowroomLink}
         />
       ) : (
@@ -183,7 +183,7 @@ function Preview({ view }: { view: View }) {
           {view === "forgot-password" && (
             <ForgotPasswordForm
               enabled={enabled}
-              loginHref={`/${locale}/auth`}
+              loginHref={`/${locale}/login`}
               linkComponent={ShowroomLink}
               onRequestReset={perform}
             />
@@ -193,7 +193,7 @@ function Preview({ view }: { view: View }) {
               key={String(validLink)}
               enabled={enabled}
               validLink={validLink}
-              loginHref={`/${locale}/auth`}
+              loginHref={`/${locale}/login`}
               requestResetHref={`/${locale}/forgot-password`}
               linkComponent={ShowroomLink}
               onResetPassword={perform}

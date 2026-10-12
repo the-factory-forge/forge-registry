@@ -50,7 +50,7 @@ export function AccountPreview() {
     <ShowroomPreview
       width="full"
       notice="Actions are simulated. No real key, account, email or session is changed."
-      navigation={<ShowroomLink href={`/${locale}/auth`}>Authentication examples</ShowroomLink>}
+      navigation={<ShowroomLink href={`/${locale}/login`}>Authentication examples</ShowroomLink>}
       controls={
         <div className="grid gap-4 text-sm">
           <label className="flex gap-2">

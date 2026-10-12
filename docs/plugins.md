@@ -19,6 +19,11 @@ The shared [Plugins specification](https://github.com/the-factory-forge/forge-sp
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
+Auth reset and change forms take one new password. Signed-in changes rely on
+server-validated sessions, with no current-password or confirmation field. Hosts
+must migrate their callbacks and server handlers together; see the
+[password integration guide](./intranet-auth.md#password-recovery-and-changes).
+
 | Plugin         | Purpose                                                                                                                                              | Optional server item      | Guide                                       |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
 | `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                               | Host auth provider        | [Auth](./intranet-auth.md)                  |
@@ -46,6 +51,9 @@ client reads; navigation does not grant access or change storage semantics.
 ## Shared presentation
 
 Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
+Every password field includes a trailing Show/Hide eye button with translated
+accessible names and icon tooltips. Auth, employee creation and customer creation
+share this behavior without changing their password values or submission rules.
 Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,

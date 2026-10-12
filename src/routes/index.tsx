@@ -130,7 +130,7 @@ const examples = (
       keywords: ["terms and conditions", "cgv", "privacy policy", "legal notice", "mentions"],
     },
     {
-      href: "/en/auth",
+      href: "/en/login",
       category: "Plugin",
       title: "Auth",
       icon: pluginIcons.auth,

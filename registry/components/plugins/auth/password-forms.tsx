@@ -1,9 +1,17 @@
 "use client";
 
-import { ArrowLeftIcon, CheckCircleIcon, LoaderCircleIcon, MailCheckIcon } from "lucide-react";
-import { useId, useRef, useState, type ComponentType } from "react";
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  EyeIcon,
+  EyeOffIcon,
+  LoaderCircleIcon,
+  MailCheckIcon,
+} from "lucide-react";
+import { useId, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
@@ -28,10 +36,10 @@ export interface ForgotPasswordFormProps extends RecoveryProps {
   onRequestReset: (email: string) => Promise<void>;
 }
 export interface ChangePasswordValues {
-  currentPassword: string;
   newPassword: string;
 }
 export interface ChangePasswordFormProps extends FormProps {
+  /** The host must authorize the signed-in user and validate the password on the server. */
   onChangePassword: (values: ChangePasswordValues) => Promise<void>;
   minLength?: number;
   maxLength?: number;
@@ -45,6 +53,12 @@ export interface ResetPasswordFormProps extends RecoveryProps {
   maxLength?: number;
 }
 export type ChangePasswordPageProps = ChangePasswordFormProps;
+
+type PasswordFormProps = ChangePasswordFormProps & {
+  mode?: "change" | "reset";
+  fullWidthSubmit?: boolean;
+  requestResetLink?: ReactNode;
+};
 
 function useSubmission() {
   const lock = useRef(false);
@@ -165,11 +179,13 @@ function PasswordFormContent({
   labels: overrides,
   className,
   mode = "change",
-}: ChangePasswordFormProps & { mode?: "change" | "reset" }) {
+  fullWidthSubmit,
+  requestResetLink,
+}: PasswordFormProps) {
   const labels = { ...passwordLabels, ...overrides };
   const id = `factory-password-form-${useId()}`;
   const state = useSubmission();
-  const [mismatch, setMismatch] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const reset = mode === "reset";
   const notify = useActionToast();
   return (
@@ -184,89 +200,72 @@ function PasswordFormContent({
         <form
           className="grid gap-5"
           aria-busy={state.pending}
+          onReset={() => setShowPassword(false)}
           onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
             if (state.pending || !form.reportValidity()) return;
-            const data = new FormData(form);
-            const currentPassword = data.get("currentPassword") ?? "";
-            const newPassword = data.get("newPassword");
-            if (typeof currentPassword !== "string" || typeof newPassword !== "string") return;
-            const matches = newPassword === data.get("confirmPassword");
-            setMismatch(!matches);
-            if (!matches) {
-              form.querySelector<HTMLInputElement>('[name="confirmPassword"]')?.focus();
-              return;
-            }
+            const newPassword = new FormData(form).get("newPassword");
+            if (typeof newPassword !== "string") return;
             void state.submit(async () => {
-              await onChangePassword({ currentPassword, newPassword });
+              await onChangePassword({ newPassword });
               if (!reset) notify(labels.passwordChanged);
             }, form);
           }}
         >
-          {!reset && (
-            <div className="grid gap-2">
-              <label htmlFor={`${id}-current`}>{labels.currentPassword}</label>
-              <input
-                id={`${id}-current`}
-                name="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                className={inputClass}
-                required
-                readOnly={state.pending}
-                aria-describedby={state.failed ? `${id}-error` : undefined}
-              />
-            </div>
-          )}
           <div className="grid gap-2">
             <label htmlFor={`${id}-new`}>{labels.newPassword}</label>
-            <input
-              id={`${id}-new`}
-              name="newPassword"
-              type="password"
-              autoComplete="new-password"
-              className={inputClass}
-              minLength={minLength}
-              maxLength={maxLength}
-              required
-              readOnly={state.pending}
-              aria-describedby={`${id}-hint`}
-              onInput={() => setMismatch(false)}
-            />
-            <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-              {labels.passwordHint}
-            </p>
+            <div className="relative">
+              <input
+                id={`${id}-new`}
+                name="newPassword"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                autoCapitalize="none"
+                spellCheck={false}
+                className={cn(inputClass, "pr-12")}
+                minLength={minLength}
+                maxLength={maxLength}
+                required
+                readOnly={state.pending}
+                aria-describedby={state.failed ? `${id}-hint ${id}-error` : `${id}-hint`}
+              />
+              <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={state.pending}
+                  aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                  aria-controls={`${id}-new`}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex w-12 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="size-4" aria-hidden="true" />
+                  )}
+                </button>
+              </IconTooltip>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+                {labels.passwordHint}
+              </p>
+              {requestResetLink}
+            </div>
           </div>
-          <div className="grid gap-2">
-            <label htmlFor={`${id}-confirm`}>{labels.confirmPassword}</label>
-            <input
-              id={`${id}-confirm`}
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              className={inputClass}
-              minLength={minLength}
-              maxLength={maxLength}
-              required
-              readOnly={state.pending}
-              aria-invalid={mismatch}
-              aria-describedby={mismatch || state.failed ? `${id}-error` : undefined}
-              onInput={() => setMismatch(false)}
-            />
-          </div>
-          {(mismatch || state.failed) && (
-            <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
-              {mismatch
-                ? labels.passwordsMismatch
-                : reset
-                  ? labels.resetError
-                  : labels.changePasswordError}
-            </p>
-          )}
+          <p
+            id={`${id}-error`}
+            role={state.failed ? "alert" : undefined}
+            aria-hidden={!state.failed}
+            className={cn("text-sm text-destructive", !state.failed && "invisible")}
+          >
+            {reset ? labels.resetError : labels.changePasswordError}
+          </p>
           <button
             type="submit"
-            className={cn(buttonClass, !reset && "justify-self-start")}
+            className={cn(buttonClass, !reset && !fullWidthSubmit && "justify-self-start")}
             disabled={state.pending}
           >
             {state.pending && (
@@ -301,6 +300,12 @@ export function ResetPasswordForm({
   maxLength,
 }: ResetPasswordFormProps) {
   const labels = { ...passwordLabels, ...overrides };
+  const requestResetLink =
+    enabled && requestResetHref ? (
+      <FormLink href={requestResetHref} className={cn(linkClass, "text-xs")}>
+        {labels.requestNewLink}
+      </FormLink>
+    ) : null;
   return (
     <div className={cn("grid gap-6", className)}>
       <div>
@@ -322,13 +327,10 @@ export function ResetPasswordForm({
           minLength={minLength}
           maxLength={maxLength}
           onChangePassword={({ newPassword }) => onResetPassword(newPassword)}
+          requestResetLink={requestResetLink}
         />
       )}
-      {enabled && requestResetHref && (
-        <FormLink href={requestResetHref} className={linkClass}>
-          {labels.requestNewLink}
-        </FormLink>
-      )}
+      {enabled && !validLink && requestResetLink}
       {loginHref && (
         <FormLink
           href={loginHref}
@@ -337,6 +339,7 @@ export function ResetPasswordForm({
             "min-h-10 justify-self-start rounded-lg px-3 hover:bg-primary/5 hover:no-underline",
           )}
         >
+          <ArrowLeftIcon className="size-4" aria-hidden="true" />
           {labels.backToLogin}
         </FormLink>
       )}
@@ -352,22 +355,19 @@ export function ChangePasswordPage({
 }: ChangePasswordPageProps) {
   const labels = { ...passwordLabels, ...overrides };
   return (
-    <section
-      className={cn(
-        "grid gap-6 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-lg sm:p-8",
-        className,
-      )}
-    >
-      <div className="grid gap-2 text-center">
-        <h1 className="text-2xl font-bold">{labels.changePasswordTitle}</h1>
-        <p className="text-sm text-muted-foreground">{labels.changePasswordSubtitle}</p>
+    <section className={cn("grid gap-6", className)}>
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">{labels.changePasswordTitle}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          {labels.changePasswordSubtitle}
+        </p>
       </div>
-      <ChangePasswordForm {...props} labels={labels} />
+      <PasswordForm {...props} labels={labels} fullWidthSubmit />
     </section>
   );
 }
 
-function PasswordForm(props: ChangePasswordFormProps & { mode?: "change" | "reset" }) {
+function PasswordForm(props: PasswordFormProps) {
   return (
     <ActionToastProvider>
       <PasswordFormContent {...props} />

@@ -44,6 +44,8 @@ export const customerLabels = {
   addressComplement: "Address complement",
   addressPlaceholder: "e.g. Apartment 4B",
   password: "Temporary password",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
   passwordDescription: (min: number, max: number) => `Optional. Use ${min}–${max} characters.`,
   generatePassword: "Generate and copy a strong password",
   copyPassword: "Copy password",

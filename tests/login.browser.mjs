@@ -91,33 +91,49 @@ test("password forms validate, retain failed values, and clear successful creden
   for (const view of ["reset-password", "change-password"]) {
     await page.goto(`${baseURL}/en/${view}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
-    if (view === "change-password")
-      await page.getByLabel("Current password", { exact: true }).fill("old-password");
     const password = page.getByLabel("New password", { exact: true });
-    const confirm = page.getByLabel("Confirm password", { exact: true });
+    const requestLink = page.getByRole("link", { name: "Request a new link", exact: true });
+    assert.equal(await requestLink.count(), view === "reset-password" ? 1 : 0);
+    if (view === "reset-password") {
+      assert.equal(await requestLink.getAttribute("href"), "/en/forgot-password");
+      assert.equal(await requestLink.evaluate((link) => Boolean(link.closest("form"))), true);
+    }
+    assert.equal(await page.locator('input[type="password"]').count(), 1);
+    assert.deepEqual(await password.evaluate((input) => [...new FormData(input.form).keys()]), [
+      "newPassword",
+    ]);
     const button = page.getByRole("button", {
       name: view === "reset-password" ? "Save new password" : "Change password",
       exact: true,
     });
     await password.fill("short");
-    await confirm.fill("short");
     await button.click();
     assert.equal(await page.getByTestId("callback-count").textContent(), "0");
     await password.fill("new-password-123");
-    await confirm.fill("different-password");
-    await button.click();
-    await page.getByRole("alert").filter({ hasText: "Passwords do not match." }).waitFor();
-    assert.equal(await confirm.getAttribute("aria-invalid"), "true");
-    assert.equal(await confirm.evaluate((element) => element === document.activeElement), true);
-    await confirm.fill("new-password-123");
     await page.getByLabel("Simulate action failures").check();
+    await page.getByRole("button", { name: "Show password", exact: true }).click();
+    const visibility = page.getByRole("button", { name: "Hide password", exact: true });
+    const initialPosition = await password.boundingBox();
     await page.locator("#factory-auth-main-content form").evaluate((form) => {
       form.requestSubmit();
       form.requestSubmit();
     });
+    assert.equal(await visibility.isDisabled(), true);
     await page.getByRole("alert").filter({ hasText: "Could not" }).waitFor();
+    assert.equal(await visibility.isDisabled(), false);
+    assert.equal(await password.getAttribute("type"), "text");
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.equal(await password.inputValue(), "new-password-123");
+    assert.deepEqual(await password.boundingBox(), initialPosition);
+    assert.equal(
+      await password.evaluate((input) =>
+        input
+          .getAttribute("aria-describedby")
+          .split(" ")
+          .some((id) => document.getElementById(id)?.getAttribute("role") === "alert"),
+      ),
+      true,
+    );
     await page.getByLabel("Simulate action failures").uncheck();
     await page.getByLabel("12–16 character password policy").check();
     assert.equal(await password.inputValue(), "new-password-123");
@@ -130,14 +146,22 @@ test("password forms validate, retain failed values, and clear successful creden
       await actionToast(page, "Password changed successfully");
     }
     assert.equal(await page.getByTestId("callback-count").textContent(), "2");
-    if (view === "reset-password") assert.equal(await password.count(), 0);
-    else {
+    if (view === "reset-password") {
+      assert.equal(await password.count(), 0);
+      assert.equal(await requestLink.count(), 0);
+      await page.getByRole("link", { name: "Back to sign in", exact: true }).waitFor();
+    } else {
       assert.equal(await password.inputValue(), "");
-      assert.equal(await confirm.inputValue(), "");
-      assert.equal(await page.getByLabel("Current password", { exact: true }).inputValue(), "");
+      assert.equal(await password.getAttribute("type"), "password");
     }
   }
   await page.goto(baseURL + "/en/reset-password");
+  await page.getByLabel("Service available").uncheck();
+  assert.equal(
+    await page.getByRole("link", { name: "Request a new link", exact: true }).count(),
+    0,
+  );
+  await page.getByLabel("Service available").check();
   await page.getByLabel("Valid reset link").uncheck();
   await page.getByRole("alert").filter({ hasText: "invalid or has expired" }).waitFor();
   assert.equal(await page.locator('input[type="password"]').count(), 0);
@@ -173,8 +197,11 @@ test("auth pages support keyboard navigation, SSR, both themes, and narrow scree
           true,
           `${path} ${theme} ${width}`,
         );
-        if (path === "reset-password")
-          await page.screenshot({ path: `/tmp/forge-login-${theme}-${width}.png`, fullPage: true });
+        if (path === "reset-password" || path === "change-password")
+          await page.screenshot({
+            path: `/tmp/forge-${path}-${theme}-${width}.png`,
+            fullPage: true,
+          });
       }
     }
   }
@@ -207,6 +234,10 @@ test("Google and password sign-in share a lock, preserve drafts on failure, and 
   await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByLabel("Service available").uncheck();
   assert.equal(await google.isDisabled(), true);
+  assert.equal(
+    await page.getByRole("button", { name: "Show password", exact: true }).isDisabled(),
+    true,
+  );
 });
 
 test("shared sign-out reports failure, prevents duplicate clicks, and retries", async (t) => {

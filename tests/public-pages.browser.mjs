@@ -122,12 +122,12 @@ test("public pages are discoverable, responsive, and retain contact links and op
   await page.locator('main a[href="/cookie-banner"]').waitFor();
   for (const keyword of ["login", "forgotten", "reset", "change password"]) {
     await search.fill(keyword);
-    await page.locator('main a[href="/en/auth"]').waitFor();
+    await page.locator('main a[href="/en/login"]').waitFor();
     await page.locator('main a[href="/cookie-banner"]').waitFor({ state: "hidden" });
   }
   await search.fill("privacy policy");
   await page.locator('main a[href="/en/legal/cgv"]').waitFor();
-  await page.locator('main a[href="/en/auth"]').waitFor({ state: "hidden" });
+  await page.locator('main a[href="/en/login"]').waitFor({ state: "hidden" });
   await search.fill("loading retries");
   await page.getByRole("status").filter({ hasText: "No examples found." }).waitFor();
   await search.fill("  CONTACT  ");

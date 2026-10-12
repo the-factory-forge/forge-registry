@@ -1,8 +1,9 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
-import { PlusIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -40,6 +41,7 @@ export function EmployeeCreateDialog({
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const lock = useRef(false);
   if (!isEmployeeAdmin(currentUserRole)) return null;
 
@@ -67,6 +69,7 @@ export function EmployeeCreateDialog({
       onOpenChange={(next) => {
         if (pending) return;
         setFailed(false);
+        setShowPassword(false);
         setOpen(next);
       }}
     >
@@ -85,6 +88,7 @@ export function EmployeeCreateDialog({
           </div>
           <form
             className="space-y-4"
+            onReset={() => setShowPassword(false)}
             onSubmit={(event) => {
               event.preventDefault();
               void submit(event.currentTarget);
@@ -116,17 +120,38 @@ export function EmployeeCreateDialog({
             </div>
             <div className="grid gap-2">
               <label htmlFor={`${id}-password`}>{labels.password}</label>
-              <input
-                className={inputClass}
-                id={`${id}-password`}
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                minLength={8}
-                maxLength={128}
-                required
-                readOnly={pending}
-              />
+              <div className="relative">
+                <input
+                  className={cn(inputClass, "pr-10")}
+                  id={`${id}-password`}
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  minLength={8}
+                  maxLength={128}
+                  required
+                  readOnly={pending}
+                />
+                <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={pending}
+                    aria-label={showPassword ? labels.hidePassword : labels.showPassword}
+                    aria-controls={`${id}-password`}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="size-4" aria-hidden="true" />
+                    ) : (
+                      <EyeIcon className="size-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </IconTooltip>
+              </div>
             </div>
             <div className="grid gap-2">
               <label htmlFor={`${id}-role`}>{labels.role}</label>

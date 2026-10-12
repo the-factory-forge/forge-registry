@@ -7,7 +7,7 @@ export const Route = createFileRoute("/$locale/change-password")({
     showroomHead({
       title: "Change password form demo",
       description:
-        "Preview a reusable React password change form with current and new password fields, confirmation, and validation using mock callbacks.",
+        "Preview a reusable React password change form for signed-in users with one new-password field and validation using mock callbacks.",
       path: match.pathname,
       noIndex: match.status !== "success",
     }),

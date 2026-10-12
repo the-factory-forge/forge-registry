@@ -7,6 +7,8 @@ export const employeeLabels = {
   name: "Name",
   email: "Email",
   password: "Temporary password",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
   role: "Role",
   save: "Create employee",
   adding: "Creating…",

@@ -119,6 +119,8 @@ test("creation validates fields, handles clipboard failures and never displays i
   await page.getByLabel("Email", { exact: true }).fill("");
   const password = page.getByLabel("Temporary password", { exact: true });
   await password.fill("short");
+  await page.getByRole("button", { name: "Show password", exact: true }).click();
+  assert.equal(await password.getAttribute("type"), "text");
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "Use 12–128 characters" }).waitFor();
   await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
@@ -149,6 +151,7 @@ test("creation validates fields, handles clipboard failures and never displays i
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
   assert.equal((await password.inputValue()).length, 20);
+  assert.equal(await password.getAttribute("type"), "text");
   await page.getByLabel("Simulate action failures").uncheck();
   await page.locator("form").evaluate((form) => {
     form.requestSubmit();
@@ -159,6 +162,7 @@ test("creation validates fields, handles clipboard failures and never displays i
     true,
   );
   await page.getByRole("heading", { name: "Taylor Casey", exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Hide password", exact: true }).count(), 0);
   assert.equal(await page.locator('input[type="password"]').count(), 0);
   assert.equal(await page.getByText(/invitation/i).count(), 0);
   assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
@@ -167,6 +171,10 @@ test("creation validates fields, handles clipboard failures and never displays i
   assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);
   await page.getByRole("link", { name: "Create customer" }).click();
   assert.equal(await page.getByLabel("Temporary password", { exact: true }).inputValue(), "");
+  assert.equal(
+    await page.getByLabel("Temporary password", { exact: true }).getAttribute("type"),
+    "password",
+  );
 });
 
 test("a customer can be created without email or credentials", async (t) => {

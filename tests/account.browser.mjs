@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
+
+import { actionToast } from "./action-toast-helpers.mjs";
 let browser;
 before(async () => {
   browser = await chromium.launch();
@@ -85,6 +87,12 @@ void test("account retries loading, resets credential passwords, and revokes onl
   const page = await preview(t);
   await page.getByLabel("Email and password account").check();
   await page.getByRole("tab", { name: "Security", exact: true }).click();
+  const password = page.getByLabel("New password", { exact: true });
+  assert.equal(await page.locator('input[type="password"]').count(), 1);
+  await password.fill("new-password-123");
+  await page.getByRole("button", { name: "Change password", exact: true }).click();
+  await actionToast(page, "Password changed successfully");
+  assert.equal(await password.inputValue(), "");
   await page.getByRole("button", { name: "Reset password", exact: true }).click();
   await page.getByRole("button", { name: "Reset email sent", exact: true }).waitFor();
   await page.getByLabel("Simulate action failures").check();

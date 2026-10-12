@@ -23,9 +23,8 @@ test("showroom route metadata keeps canonical and social URLs consistent and hon
         title: "Authentication demo",
         description: "React authentication components.",
         path: `/${locale}/login`,
-        canonicalPath: `/${locale}/auth`,
       }).links[0].href,
-      `https://registry.the-corner.io/${locale}/auth`,
+      `https://registry.the-corner.io/${locale}/login`,
     );
   }
   const head = showroomHead({

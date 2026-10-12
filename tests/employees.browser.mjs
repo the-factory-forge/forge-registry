@@ -123,8 +123,14 @@ test("employee pages show content only to administrators", async (t) => {
   await dialog.getByLabel("Name", { exact: true }).fill("Taylor Jordan");
   await dialog.getByLabel("Email", { exact: true }).fill("taylor@example.test");
   await dialog.getByLabel("Temporary password", { exact: true }).fill("temporary-password");
+  await dialog.getByRole("button", { name: "Show password", exact: true }).click();
   await dialog.getByRole("button", { name: "Create employee", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Create employee", exact: true }).click();
+  const password = dialog.getByLabel("Temporary password", { exact: true });
+  assert.equal(await password.inputValue(), "");
+  assert.equal(await password.getAttribute("type"), "password");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByText("taylor@example.test", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit employee", exact: true });

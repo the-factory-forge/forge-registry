@@ -157,6 +157,7 @@ function LoginFormContent({
               password,
               rememberMe: data.get("rememberMe") === "on",
             });
+            setShowPassword(false);
           });
         }}
         className="grid gap-5"
@@ -188,6 +189,8 @@ function LoginFormContent({
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
+              autoCapitalize="none"
+              spellCheck={false}
               className={cn(inputClass, capsLock ? "pr-20" : "pr-12")}
               onKeyDown={(event) => setCapsLock(event.getModifierState("CapsLock"))}
               onKeyUp={(event) => setCapsLock(event.getModifierState("CapsLock"))}
@@ -219,6 +222,7 @@ function LoginFormContent({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={action.disabled || !enabled}
                 aria-label={showPassword ? labels.hidePassword : labels.showPassword}
                 aria-controls={`${id}-password`}
                 aria-pressed={showPassword}

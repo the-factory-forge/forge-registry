@@ -7,7 +7,7 @@ export const Route = createFileRoute("/$locale/reset-password")({
     showroomHead({
       title: "Password reset form demo",
       description:
-        "Test a reusable React password reset form with password confirmation, validation, and success and error states using mock callbacks.",
+        "Test a reusable React password reset form with one new-password field, validation, and success and error states using mock callbacks.",
       path: match.pathname,
       noIndex: match.status !== "success",
     }),

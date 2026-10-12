@@ -41,6 +41,32 @@ test("Start serves deep links, SSR documents, locale redirects, and registry end
   assert.equal((await fetch(`${baseURL}/missing-page`)).status, 404);
 });
 
+void test("auth navigation points to localized login", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  for (const locale of ["fr", "en", "de", "it"]) {
+    await page.goto(`${baseURL}/${locale}/login`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const signIn = page
+      .getByRole("navigation", { name: "Authentication examples" })
+      .getByRole("link", { name: "Sign in", exact: true });
+    assert.equal(await signIn.getAttribute("href"), `/${locale}/login`);
+    assert.equal(await signIn.getAttribute("aria-current"), "page");
+    assert.equal(
+      await page.locator('link[rel="canonical"]').getAttribute("href"),
+      `https://registry.the-corner.io/${locale}/login`,
+    );
+  }
+  for (const path of ["forgot-password", "reset-password", "access-denied", "account"]) {
+    await page.goto(`${baseURL}/en/${path}`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const loginLink = page.locator('a[href="/en/login"]').first();
+    await loginLink.click();
+    await page.waitForURL(`${baseURL}/en/login`);
+  }
+});
+
 void test("directory filters persist in the URL across reloads and browser navigation", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
@@ -140,7 +166,7 @@ test("every directory entry navigates and returns through a stable shared header
   await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
   await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("button", { name: "Plugin", exact: true }).click();
-  assert.equal(await page.locator('main a[href="/en/auth"]').count(), 1);
+  assert.equal(await page.locator('main a[href="/en/login"]').count(), 1);
   const pluginIcons = new Map(
     await page
       .locator("main a h2")
@@ -162,7 +188,7 @@ test("every directory entry navigates and returns through a stable shared header
   assert.equal(destinations.includes("/table-search"), false);
   assert.equal(destinations.filter((href) => href === "/en/menus").length, 1);
   assert.equal(destinations.includes("/en/admin/menus"), false);
-  assert.equal(destinations.filter((href) => href === "/en/auth").length, 1);
+  assert.equal(destinations.filter((href) => href === "/en/login").length, 1);
   const header = page.getByRole("navigation", { name: "Showroom navigation" });
   const original = await header.boundingBox();
   const titles = new Set();
@@ -270,11 +296,7 @@ test("SEO metadata is server rendered for demos, aliases, locales, and missing p
       assert.equal(head.canonical, undefined, path);
     } else {
       assert.equal(response.status, 200, path);
-      assert.equal(
-        head.canonical,
-        `https://registry.the-corner.io${path.replace(/\/login$/, "/auth")}`,
-        path,
-      );
+      assert.equal(head.canonical, `https://registry.the-corner.io${path}`, path);
     }
   }
 });

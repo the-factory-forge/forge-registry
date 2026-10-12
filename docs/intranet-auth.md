@@ -15,9 +15,9 @@ must update their imports to `components/plugins/auth` when installing this item
 and validation under `components/plugins/employees`. `employees-server` adds
 `server/employees.server.ts`. The browser exports never import that server module.
 
-The showroom lists one `/en/auth` example with links to sign-in, password recovery,
-password change, account/security (`/en/account`), and access-denied states. The old `/en/login` URL and the other
-auth example URLs remain available. `/en/employees` previews employee management.
+The showroom lists one `/en/login` example with links to sign-in, password recovery,
+password change, account/security (`/en/account`), and access-denied states.
+`/en/employees` previews employee management.
 These examples use in-memory callbacks, never retain passwords, and do not create
 sessions or send messages.
 
@@ -117,11 +117,15 @@ host's authentication layout. Embed `ChangePasswordForm` directly in a profile
 security section. `AccessDeniedPage` is a standalone page with `homeHref`.
 It displays a permission message; the host still guards the route and server.
 
+`ChangePasswordPage` uses the same open layout, left-aligned heading and full-width
+submit button as `ResetPasswordForm`. The embedded `ChangePasswordForm` keeps its
+compact submit button for account security sections.
+
 | Component                                   | Host callback and state                                                                                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `enabled`, `loginHref`                                                  |
 | `ResetPasswordForm`                         | `onResetPassword(newPassword): Promise<void>`, required `validLink`, optional `enabled`, `loginHref`, `requestResetHref` |
-| `ChangePasswordForm` / `ChangePasswordPage` | `onChangePassword({ currentPassword, newPassword }): Promise<void>`                                                      |
+| `ChangePasswordForm` / `ChangePasswordPage` | `onChangePassword({ newPassword }): Promise<void>`                                                                       |
 
 Reject callbacks on failure. The components display translated generic errors,
 prevent concurrent submissions, preserve values after failures and ordinary
@@ -130,6 +134,40 @@ success. The change form remains available with empty fields and a status messag
 Password forms default to 8–128 characters; set `minLength`, `maxLength`, and the
 translated `passwordHint` to match the server's policy. All components accept
 `className` and label overrides. Components with links accept `linkComponent`.
+
+When `requestResetHref` is provided, the reset form places “Request a new link”
+beside the new-password hint, wrapping below it on narrow screens. Invalid reset
+links retain that recovery action beneath the error. It is hidden when recovery
+is unavailable or the password reset succeeds. `loginHref` still controls the
+separate “Back to sign in” link.
+
+Every password input has a trailing eye button, including login, reset/change,
+account security and employee creation. Passwords start hidden; Show/Hide toggles
+preserve the value and never submit the form. Override `showPassword` and
+`hidePassword` in the corresponding labels to translate both the accessible name
+and tooltip. Controls support keyboard activation and are disabled while pending.
+Successful submission hides the password again; reopening employee creation also
+starts hidden. Password text and visibility are never stored in browser storage.
+
+Reset and change forms ask for the new password once. Signed-in password changes,
+including the account security form, do not ask for the current password. Email
+recovery remains available through the host's reset flow if the new password is
+forgotten.
+
+When adopting this version, migrate the host change-password callback and server
+input together: `ChangePasswordValues` now contains only `newPassword`. Remove
+the obsolete `currentPassword`, `confirmPassword`, and `passwordsMismatch` label
+overrides and update any error copy that asks for the current password. Existing
+handlers requiring the old password are incompatible; passing an empty password
+to Better Auth's `changePassword` endpoint is not a migration.
+
+The host must authorize each change against a fresh server-validated session,
+derive the target account from that session, enforce password policy and preserve
+CSRF protection, session revocation and onboarding rules. Never accept a target
+user ID from the form or expose an admin password-reset operation to the browser.
+A signed-in session now authorizes the change without a second password check;
+access to that session is enough to replace the password. Registry installation
+alone does not implement this host-owned server operation.
 
 The host owns reset-token parsing and validation, expiry and single-use rules,
 email delivery, rate limiting, session revocation, and navigation. `validLink`

@@ -13,11 +13,10 @@ export const passwordLabels = {
   backToLogin: "Back to sign in",
   resetTitle: "Set a new password",
   resetDescription: "Choose a new password for your team account.",
-  currentPassword: "Current password",
   newPassword: "New password",
-  confirmPassword: "Confirm password",
+  showPassword: "Show password",
+  hidePassword: "Hide password",
   passwordHint: "Choose a strong password you do not use elsewhere.",
-  passwordsMismatch: "Passwords do not match.",
   resetSubmit: "Save new password",
   resetSuccess: "Your password has been reset. Sign in with your new password.",
   invalidResetLink: "This reset link is invalid or has expired. Request a new link to continue.",
@@ -29,7 +28,7 @@ export const passwordLabels = {
   changePasswordTitle: "Change your password",
   changePasswordSubtitle: "Replace your temporary password to continue.",
   passwordChanged: "Password changed successfully.",
-  changePasswordError: "Could not change the password. Check your current password.",
+  changePasswordError: "Could not change the password. Please try again.",
 };
 
 export type PasswordLabels = typeof passwordLabels;

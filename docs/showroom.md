@@ -149,9 +149,9 @@ Descriptions use English, matching the showroom navigation, and identify the
 content as component demos. Locale prefixes select
 demo translations; sample company details and legal text are not showroom facts.
 
-Canonical URLs omit search parameters and trailing slashes. The `/login` alias
-points to the matching `/auth` overview. Sample record details, editing flows,
-and missing pages use `noindex, follow` and omit canonical links.
+Canonical URLs omit search parameters and trailing slashes. The localized `/login`
+page is the authentication example's canonical URL. Sample record details, editing
+flows, and missing pages use `noindex, follow` and omit canonical links.
 
 This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,

@@ -1,5 +1,10 @@
 # Customers plugin
 
+Temporary-password fields include a trailing eye toggle alongside the existing
+generate/copy actions. `showPassword` and `hidePassword` translate its accessible
+name and tooltip. Passwords start hidden, retain their value while toggled, and
+return to hidden after a successful save. The control is disabled during submission.
+
 Install the complete feature UI into an initialized shadcn project:
 
 ```bash

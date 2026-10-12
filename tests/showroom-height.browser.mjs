@@ -13,7 +13,7 @@ void test("full-page previews fit below the showroom header and scroll when cont
 
   for (const theme of ["light", "dark"]) {
     await page.evaluate((theme) => localStorage.setItem("forge-showroom-theme", theme), theme);
-    for (const path of ["auth", "forgot-password", "reset-password", "change-password"]) {
+    for (const path of ["login", "forgot-password", "reset-password", "change-password"]) {
       await page.goto(`${baseURL}/en/${path}`);
       await page.locator('[data-preview-ready="true"]').waitFor();
       const preview = page.locator("#factory-showroom-preview");
@@ -31,7 +31,7 @@ void test("full-page previews fit below the showroom header and scroll when cont
     { width: 320, height: 800 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto(`${baseURL}/en/auth`);
+    await page.goto(`${baseURL}/en/login`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     const preview = page.locator("#factory-showroom-preview");
     assert.equal(

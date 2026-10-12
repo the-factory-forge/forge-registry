@@ -26,7 +26,6 @@ import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
 import { Route as LocaleAccountRouteImport } from './routes/$locale.account'
-import { Route as LocaleAuthRouteImport } from './routes/$locale.auth'
 import { Route as LocaleChangePasswordRouteImport } from './routes/$locale.change-password'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
@@ -126,11 +125,6 @@ const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
 const LocaleAccountRoute = LocaleAccountRouteImport.update({
   id: '/$locale/account',
   path: '/$locale/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LocaleAuthRoute = LocaleAuthRouteImport.update({
-  id: '/$locale/auth',
-  path: '/$locale/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleChangePasswordRoute = LocaleChangePasswordRouteImport.update({
@@ -249,7 +243,6 @@ export interface FileRoutesByFullPath {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -284,7 +277,6 @@ export interface FileRoutesByTo {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -324,7 +316,6 @@ export interface FileRoutesById {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
-  '/$locale/auth': typeof LocaleAuthRoute
   '/$locale/change-password': typeof LocaleChangePasswordRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
@@ -361,7 +352,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -396,7 +386,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -435,7 +424,6 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
-    | '/$locale/auth'
     | '/$locale/change-password'
     | '/$locale/contact'
     | '/$locale/employees'
@@ -475,7 +463,6 @@ export interface RootRouteChildren {
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
   LocaleAccountRoute: typeof LocaleAccountRoute
-  LocaleAuthRoute: typeof LocaleAuthRoute
   LocaleChangePasswordRoute: typeof LocaleChangePasswordRoute
   LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
@@ -607,13 +594,6 @@ declare module '@tanstack/react-router' {
       path: '/$locale/account'
       fullPath: '/$locale/account'
       preLoaderRoute: typeof LocaleAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$locale/auth': {
-      id: '/$locale/auth'
-      path: '/$locale/auth'
-      fullPath: '/$locale/auth'
-      preLoaderRoute: typeof LocaleAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/change-password': {
@@ -825,7 +805,6 @@ const rootRouteChildren: RootRouteChildren = {
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
   LocaleAccountRoute: LocaleAccountRoute,
-  LocaleAuthRoute: LocaleAuthRoute,
   LocaleChangePasswordRoute: LocaleChangePasswordRoute,
   LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,
