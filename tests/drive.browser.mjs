@@ -50,6 +50,40 @@ const file = (name, text = "hello") => ({
 });
 const row = (page, name) => page.getByRole("row").filter({ hasText: name });
 
+test("embedded Drive omits its redundant root heading and keeps folder navigation", async (t) => {
+  for (const colorScheme of ["light", "dark"])
+    for (const width of [390, 1440]) {
+      const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001", {
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: "reduce",
+      });
+      await page.locator('[aria-busy="false"] table').waitFor();
+      const breadcrumbs = page.getByRole("navigation", { name: "Folder navigation", exact: true });
+      assert.equal(await breadcrumbs.count(), 0);
+      await folder(page, "Photos");
+      await page.getByRole("link", { name: "Photos", exact: true }).press("Enter");
+      await breadcrumbs.getByRole("heading", { name: "Photos", exact: true }).waitFor();
+      await breadcrumbs
+        .getByRole("link", { name: "Burrata with tomatoes", exact: true })
+        .press("Enter");
+      await breadcrumbs.waitFor({ state: "hidden" });
+      await row(page, "Photos").waitFor();
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await page.getByRole("table").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `/tmp/drive-embedded-root-${width}-${colorScheme}.png` });
+      await page.close();
+    }
+  const standalone = await preview(t, "/en/drive/project/portal");
+  await standalone
+    .getByRole("navigation", { name: "Folder navigation", exact: true })
+    .getByRole("heading", { name: "Customer portal", exact: true })
+    .waitFor();
+});
+
 test("Drive confirmation stays available while its preview loads", async (t) => {
   for (const colorScheme of ["light", "dark"])
     for (const width of [390, 1440]) {

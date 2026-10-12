@@ -1,12 +1,14 @@
 export async function openDriveFolderDialog(page) {
   await page.locator('[aria-busy="false"] table').waitFor();
-  const name = await page
-    .getByRole("navigation", { name: "Folder navigation", exact: true })
-    .getByRole("heading")
-    .innerText();
   const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
   if (!(await navigation.isVisible()))
     await page.getByRole("button", { name: "Drive navigation", exact: true }).click();
+  const heading = page
+    .getByRole("navigation", { name: "Folder navigation", exact: true })
+    .getByRole("heading");
+  const name = await (
+    (await heading.count()) ? heading : navigation.getByRole("link", { current: "page" })
+  ).innerText();
   await navigation.getByRole("button", { name: `Actions: ${name}`, exact: true }).click();
   await page.getByRole("menuitem", { name: "Add", exact: true }).focus();
   await page.keyboard.press("ArrowRight");

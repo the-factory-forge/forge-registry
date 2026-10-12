@@ -279,7 +279,16 @@ verification records and acceptance endpoint. Do not use its public
 `requestPasswordReset` result as proof of delivery: background mail errors are
 intentionally masked. A recipient chooses their own password; acceptance clears
 the pending flag, revokes existing sessions and outstanding links, and preserves
-the account's role. Resending replaces earlier links. Administrator edits revoke
+the account's role. Successful use of the emailed invitation/reset token also marks
+the address verified before sign-in. Invalid or expired tokens and ordinary signed-in
+password changes do not establish email ownership. No bulk verification of existing
+accounts is implied. After acceptance, the host signs in the recipient and opens
+their localized, role-appropriate destination. Derive the recipient from the valid
+invitation token, never from a submitted email. Keep password/session operations
+behind the provider's normal validation and rate limits. If session creation fails
+after activation, offer login with the new password rather than retrying the
+consumed invitation. Clear previous-account caches before entering the app.
+Resending replaces earlier links. Administrator edits revoke
 outstanding access links. Existing temporary-password accounts retain their
 password-change guard until they complete setup; no bulk credential changes or
 migration resets are needed.

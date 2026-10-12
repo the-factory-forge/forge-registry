@@ -18,7 +18,10 @@ returns cursors. Host paging callbacks stay compatible; translate the new
 The file browser uses [`SubpageSidebar`](./subpage-sidebar.md) for the space root,
 a nested folder tree and optional Trash. The root link uses the same space name
 as the breadcrumb, including after renaming. The breadcrumb stays above the local
-navigation and file table; search stays inside the table panel. On mobile,
+navigation and file table; search stays inside the table panel. At the space root,
+embedded browsers omit this row when neither `backHref` nor `onRenameSpace`
+is supplied: the sidebar already names the space. Subfolder breadcrumbs remain
+available, and standalone navigation and inline space renaming keep their row. On mobile,
 **Drive navigation** opens the drawer. The tree reads one authorized cursor page
 at a time and loads children when expanded. While a listing loads, its parent
 folder icon becomes a spinner, with loading text available only to screen readers.

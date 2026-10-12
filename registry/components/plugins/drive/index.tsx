@@ -678,79 +678,81 @@ function Browser({
           }}
         />
       )}
-      <div className="flex min-h-10 items-start justify-between gap-3 md:min-h-8">
-        <nav aria-label={labels.breadcrumbs} className="min-w-0">
-          <ol className="flex flex-wrap items-center gap-2 text-base">
-            {backHref && (
-              <li className="flex min-w-0 items-center gap-2">
-                <HostLink
-                  href={backHref}
-                  className={cn(buttonClass, "text-base text-muted-foreground")}
-                >
-                  {labels.title}
-                </HostLink>
-                <ChevronRightIcon
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </li>
-            )}
-            {[
-              { id: null, name: data?.space.name ?? labels.title },
-              ...(data?.breadcrumbs ?? []),
-            ].map((crumb) => (
-              <li key={crumb.id ?? "root"} className="flex max-w-full min-w-0 items-center gap-2">
-                {crumb.id === parentId ? (
-                  <DriveTitle
-                    name={crumb.name}
-                    disabled={actionsDisabled}
-                    labels={labels}
-                    onRename={
-                      data && (crumb.id ? capabilities?.rename : renameSpace)
-                        ? async (name) => {
-                            if (crumb.id)
-                              await actionClient.rename({ scope, entryId: crumb.id, name });
-                            else await renameSpace!(name);
-                            refresh();
-                            setFeedback(undefined);
-                            notify(labels.saved);
-                          }
-                        : undefined
-                    }
+      {(backHref || parentId || onRenameSpace) && (
+        <div className="flex min-h-10 items-start justify-between gap-3 md:min-h-8">
+          <nav aria-label={labels.breadcrumbs} className="min-w-0">
+            <ol className="flex flex-wrap items-center gap-2 text-base">
+              {backHref && (
+                <li className="flex min-w-0 items-center gap-2">
+                  <HostLink
+                    href={backHref}
+                    className={cn(buttonClass, "text-base text-muted-foreground")}
+                  >
+                    {labels.title}
+                  </HostLink>
+                  <ChevronRightIcon
+                    className="size-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
                   />
-                ) : (
-                  <>
-                    <HostLink
-                      href={getFolderHref(crumb.id)}
-                      className={cn(
-                        buttonClass,
-                        "min-w-0 text-left text-base wrap-anywhere text-muted-foreground",
-                      )}
-                    >
-                      {crumb.name}
-                    </HostLink>
-                    <ChevronRightIcon
-                      className="size-4 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
+                </li>
+              )}
+              {[
+                { id: null, name: data?.space.name ?? labels.title },
+                ...(data?.breadcrumbs ?? []),
+              ].map((crumb) => (
+                <li key={crumb.id ?? "root"} className="flex max-w-full min-w-0 items-center gap-2">
+                  {crumb.id === parentId ? (
+                    <DriveTitle
+                      name={crumb.name}
+                      disabled={actionsDisabled}
+                      labels={labels}
+                      onRename={
+                        data && (crumb.id ? capabilities?.rename : renameSpace)
+                          ? async (name) => {
+                              if (crumb.id)
+                                await actionClient.rename({ scope, entryId: crumb.id, name });
+                              else await renameSpace!(name);
+                              refresh();
+                              setFeedback(undefined);
+                              notify(labels.saved);
+                            }
+                          : undefined
+                      }
                     />
-                  </>
-                )}
-              </li>
-            ))}
-          </ol>
-        </nav>
-        {data?.space.href && (
-          <IconTooltip label={`${labels.openRecord}: ${data.space.name}`}>
-            <HostLink
-              href={data.space.href}
-              className={iconButtonClass}
-              aria-label={`${labels.openRecord}: ${data.space.name}`}
-            >
-              <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
-            </HostLink>
-          </IconTooltip>
-        )}
-      </div>
+                  ) : (
+                    <>
+                      <HostLink
+                        href={getFolderHref(crumb.id)}
+                        className={cn(
+                          buttonClass,
+                          "min-w-0 text-left text-base wrap-anywhere text-muted-foreground",
+                        )}
+                      >
+                        {crumb.name}
+                      </HostLink>
+                      <ChevronRightIcon
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </nav>
+          {data?.space.href && (
+            <IconTooltip label={`${labels.openRecord}: ${data.space.name}`}>
+              <HostLink
+                href={data.space.href}
+                className={iconButtonClass}
+                aria-label={`${labels.openRecord}: ${data.space.name}`}
+              >
+                <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+              </HostLink>
+            </IconTooltip>
+          )}
+        </div>
+      )}
       <div className="flex min-w-0 flex-col gap-5 md:flex-row">
         <SubpageSidebar
           label={labels.navigation}
