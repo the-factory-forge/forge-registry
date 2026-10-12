@@ -47,6 +47,8 @@ export interface EmployeeServiceOptions {
   /** A freshly authenticated server session, never client input. Create per request. */
   actor: EmployeeActor | null;
   verificationEnabled: boolean;
+  /** Issue an expiring single-use link and await delivery; reject when sending fails. */
+  sendInvitation: (employee: Employee, invitationURL: string) => Promise<void>;
 }
 
 export function createEmployeeService({
@@ -54,6 +56,7 @@ export function createEmployeeService({
   headers,
   actor,
   verificationEnabled,
+  sendInvitation,
 }: EmployeeServiceOptions) {
   if (!actor || actor.banned || actor.mustChangePassword || !isEmployeeAdmin(actor.role)) {
     throw new Error("Administrator access required.");
@@ -67,13 +70,20 @@ export function createEmployeeService({
         query: { limit: EMPLOYEE_PAGE_SIZE, offset, sortBy: "name", sortDirection: "asc" },
       });
     },
-    async create(input: unknown) {
+    async create(input: unknown, invitationURL: string) {
       const data = createEmployeeSchema.parse(input);
+      if (!verificationEnabled) throw new Error("Email delivery is not configured.");
       const { user } = await api.createUser({
         headers,
         body: { ...data, data: { mustChangePassword: true } },
       });
-      return user;
+      try {
+        await sendInvitation(user, invitationURL);
+        return { user, invitationSent: true };
+      } catch {
+        // Keep the created account visible so an administrator can retry delivery.
+        return { user, invitationSent: false };
+      }
     },
     async setBan(input: unknown) {
       const { id, banned } = setEmployeeBanSchema.parse(input);
@@ -106,13 +116,22 @@ export function createEmployeeService({
       return { success: true };
     },
     /** callbackURL must be constructed by the host from its configured origin and validated locale. */
-    async sendVerification(input: unknown, callbackURL: string): Promise<VerificationResult> {
+    async sendVerification(
+      input: unknown,
+      callbackURL: string,
+      invitationURL: string,
+    ): Promise<VerificationResult> {
       const { id } = employeeIdSchema.parse(input);
       const employee = await api.getUser({ headers, query: { id } });
-      if (employee.emailVerified) return { status: "verified" };
+      if (employee.banned) throw new Error("This account is disabled.");
+      if (!employee.mustChangePassword && employee.emailVerified) return { status: "verified" };
       if (!verificationEnabled) return { status: "unavailable" };
       // Authorize the recipient above; forwarding admin cookies would target the admin instead.
-      await api.sendVerificationEmail({ body: { email: employee.email, callbackURL } });
+      if (employee.mustChangePassword) {
+        await sendInvitation(employee, invitationURL);
+      } else {
+        await api.sendVerificationEmail({ body: { email: employee.email, callbackURL } });
+      }
       return { status: "sent" };
     },
   };

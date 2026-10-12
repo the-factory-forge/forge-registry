@@ -221,8 +221,11 @@ status and refresh employee data before resolving the callback. Override
 Define the `status-success` and `status-not-started` foreground/background pairs
 and their Tailwind mappings before installing the updated item.
 
-`EmployeeCreateDialog.onCreate` receives validated values including the temporary
-password and closes after a successful mutation. `onUpdate` and `onDelete` resolve after persistence and
+`EmployeeCreateDialog.onCreate` receives only name, email and role, and returns
+`{ invitationSent: boolean }` after persistence and cache refresh. No password is
+assigned by the administrator. A successful delivery closes the dialog. If the
+account exists but delivery failed, the dialog explains how to resend from the
+list and prevents duplicate creation. `onUpdate` and `onDelete` resolve after persistence and
 host cache refresh. `onSendVerification` returns a `sent`, `verified`, or
 `unavailable` status. Errors stay visible and allow a retry.
 
@@ -252,6 +255,7 @@ const employees = createEmployeeService({
   headers: request.headers,
   actor: session.user,
   verificationEnabled: emailDeliveryConfigured,
+  sendInvitation: sendEmployeeInvitation,
 });
 const result = await employees.update(validatedInput);
 ```
@@ -263,11 +267,32 @@ password hashing, account/session deletion, and ban/session revocation to
 Better Auth. Native Better Auth endpoints also need the host's onboarding
 policy; do not expose an unprotected parallel API.
 
-Creation sets `mustChangePassword`. Updating an email resets its verification
+`create(input, invitationURL)` creates a user without credentials, sets
+`mustChangePassword` pending activation, and awaits the host's
+`sendInvitation(employee, invitationURL)` callback. It returns the created user
+and `invitationSent`; delivery failures preserve that account for a retry. With
+email unconfigured, creation fails before any account is created.
+
+The host issues a cryptographically random, single-use link with a one-hour
+expiry and awaits email delivery. Forge hosts reuse Better Auth's reset-password
+verification records and acceptance endpoint. Do not use its public
+`requestPasswordReset` result as proof of delivery: background mail errors are
+intentionally masked. A recipient chooses their own password; acceptance clears
+the pending flag, revokes existing sessions and outstanding links, and preserves
+the account's role. Resending replaces earlier links. Administrator edits revoke
+outstanding access links. Existing temporary-password accounts retain their
+password-change guard until they complete setup; no bulk credential changes or
+migration resets are needed.
+
+Updating an email resets its verification
 only when the address changes, and an administrator cannot demote themself.
 Verification first authorizes the recipient through the admin API, then sends
 without forwarding administrator cookies. Construct its callback URL from the
-configured site origin and a validated locale before calling `sendVerification`.
+configured site origin and a validated locale before calling
+`sendVerification(input, callbackURL, invitationURL)`. Pending accounts receive
+an invitation through the host callback; activated accounts retain the existing
+email-verification action. Banned accounts cannot be invited. Use the invitation
+labels on the localized reset page and preserve neutral public recovery responses.
 The host configures Better Auth's trusted origins and email delivery callbacks.
 
 The service imports no framework, environment variables, or site configuration.

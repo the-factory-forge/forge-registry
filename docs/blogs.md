@@ -234,6 +234,11 @@ unnecessary because transfers use the host endpoint.
 
 ## Public pages and images
 
+Each public article card is one link covering its image, text and padding, with
+the article title as its accessible name and a visible keyboard focus outline.
+The Read more arrow moves up and right on card hover or keyboard focus, and stays
+still when reduced motion is requested.
+
 Article language switching belongs in the host navbar. `BlogPostPage` does not
 render language links or accept a `translations` prop; remove that prop when
 updating existing integrations and keep published locale URLs in the host navigation.

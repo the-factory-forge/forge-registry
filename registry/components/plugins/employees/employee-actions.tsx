@@ -63,6 +63,7 @@ function EmployeeActionsContent({
   const notify = useActionToast();
   const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
+  const emailAction = employee.mustChangePassword ? labels.sendInvitation : labels.sendEmail;
   async function run(kind: "edit" | "remove" | "send" | "website", action: () => Promise<void>) {
     if (disabled || lock.current) return;
     lock.current = true;
@@ -86,21 +87,27 @@ function EmployeeActionsContent({
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className={tableActionsClass}>
-        {!employee.emailVerified && (
-          <IconTooltip label={`${labels.sendEmail} ${employee.name}`}>
+        {(employee.mustChangePassword || !employee.emailVerified) && (
+          <IconTooltip label={`${emailAction} ${employee.name}`}>
             <button
               type="button"
               className={iconButtonClass}
 
               disabled={disabled || pending}
-              aria-label={`${labels.sendEmail} ${employee.name}`}
+              aria-label={`${emailAction} ${employee.name}`}
               onClick={() =>
                 void run("send", async () => {
                   const { status } = await onSendVerification(employee.id);
                   if (status === "unavailable") {
                     setFeedback({ error: true, message: labels.emailUnavailable });
                   } else {
-                    notify(status === "verified" ? labels.verified : labels.emailSent);
+                    notify(
+                      status === "verified"
+                        ? labels.verified
+                        : employee.mustChangePassword
+                          ? labels.invitationSent
+                          : labels.emailSent,
+                    );
                   }
                 })
               }

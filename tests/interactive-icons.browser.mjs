@@ -141,17 +141,51 @@ void test("navigation arrows respond to intent and stay still when disabled or m
   const back = page.getByRole("link", { name: "All components", exact: true }).first();
   await back.hover();
   await translate(back.locator("svg"), "-2px");
-  await page.goto(`${baseURL}/en/blogs`);
-  await page.locator('[data-preview-ready="true"]').waitFor();
-  const more = page.getByRole("link", { name: "Read more", exact: true }).first();
-  await more.hover();
-  await translate(more.locator("svg"), "2px -2px");
-  await page.mouse.move(0, 0);
-  await page.keyboard.press("Tab");
-  await more.focus();
-  await translate(more.locator("svg"), "2px -2px");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await translate(more.locator("svg"), "none");
+});
+
+void test("whole blog cards link to articles and animate arrows on hover and keyboard focus", async (t) => {
+  for (const width of [1440, 390])
+    for (const dark of [false, true]) {
+      const page = await preview(t, "/en/blogs", { viewport: { width, height: 1000 } });
+      if (dark) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      const card = page.getByRole("link", { name: "Make room for better ideas", exact: true });
+      const article = page.locator("article").filter({ has: card });
+      const arrow = card.locator(".lucide-arrow-up-right");
+      assert.equal(await article.getByRole("link").count(), 1);
+      await card.scrollIntoViewIfNeeded();
+      const bounds = await card.boundingBox();
+      await card.locator("p").hover();
+      await translate(arrow, "2px -2px");
+      assert.deepEqual(await card.boundingBox(), bounds);
+      assert.equal(await card.evaluate((node) => getComputedStyle(node).cursor), "pointer");
+      await page.mouse.move(0, 0);
+      await translate(arrow, "none");
+      await card.focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(await card.evaluate((node) => node.matches(":focus-visible")), true);
+      await translate(arrow, "2px -2px");
+      assert.equal(await card.evaluate((node) => getComputedStyle(node).outlineWidth), "2px");
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await page.screenshot({
+        path: `/tmp/forge-blog-card-${width}-${dark ? "dark" : "light"}.png`,
+      });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await translate(arrow, "none");
+      await card.locator("p").hover();
+      await translate(arrow, "none");
+      await page.keyboard.press("Enter");
+      await page.waitForURL("**/en/blogs/make-room-for-better-ideas");
+      await page.goBack();
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      const restored = await card.boundingBox();
+      await card.click({ position: { x: restored.width / 2, y: restored.height - 10 } });
+      await page.waitForURL("**/en/blogs/make-room-for-better-ideas");
+      await page.close();
+    }
 });
 
 void test("Drive directory actions open every space, including read-only spaces", async (t) => {

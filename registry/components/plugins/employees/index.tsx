@@ -16,6 +16,7 @@ import {
   EMPLOYEE_PAGE_SIZE,
   isEmployeeAdmin,
   type CreateEmployee,
+  type InvitationResult,
   type Employee,
 } from "@/components/plugins/employees/schema";
 import { TablePagination } from "@/components/table-pagination";
@@ -37,6 +38,7 @@ export type {
   CreateEmployee,
   UpdateEmployee,
   VerificationResult,
+  InvitationResult,
 } from "@/components/plugins/employees/schema";
 export type { EmployeeLabels } from "@/components/plugins/employees/labels";
 export interface EmployeesPageProps extends EmployeeActionCallbacks {
@@ -50,7 +52,7 @@ export interface EmployeesPageProps extends EmployeeActionCallbacks {
   total: number;
   offset: number;
   onOffsetChange: (offset: number) => void;
-  onCreate: (values: CreateEmployee) => Promise<void>;
+  onCreate: (values: CreateEmployee) => Promise<InvitationResult>;
   loading?: boolean;
   error?: boolean;
   labels?: Partial<EmployeeLabels>;

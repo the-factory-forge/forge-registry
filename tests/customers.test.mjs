@@ -6,7 +6,6 @@ import {
   customerDisplayName,
   customerInitials,
   customerFormValues,
-  generateCustomerPassword,
 } from "../registry/components/plugins/customers/utils.ts";
 
 test("customer names, initials, and nullable profile fields retain TC behavior", () => {
@@ -28,27 +27,6 @@ test("customer names, initials, and nullable profile fields retain TC behavior",
     Object.keys(customerFormValues()).sort(),
     ["addressComplement", "city", "companyName", "email", "name", "phoneNumber", "street"].sort(),
   );
-});
-
-test("generated passwords respect bounds and include all four character groups", () => {
-  const generated = new Set();
-  for (let i = 0; i < 30; i++) {
-    const password = generateCustomerPassword();
-    assert.equal(password.length, 20);
-    for (const group of [/[a-z]/, /[A-Z]/, /[0-9]/, /[!@#$%^&*()\-_=+]/])
-      assert.match(password, group);
-    generated.add(password);
-  }
-  assert.equal(generated.size, 30);
-  assert.equal(generateCustomerPassword(24, 30).length, 24);
-  assert.equal(generateCustomerPassword(12, 12).length, 12);
-  for (const bounds of [
-    [0, 12],
-    [20, 12],
-    [1.5, 12],
-    [12, 1025],
-  ])
-    assert.throws(() => generateCustomerPassword(...bounds), RangeError);
 });
 
 test("customers distribution is complete and contains no website integrations", async () => {

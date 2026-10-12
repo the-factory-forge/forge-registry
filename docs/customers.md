@@ -1,9 +1,7 @@
 # Customers plugin
 
-Temporary-password fields include a trailing eye toggle alongside the existing
-generate/copy actions. `showPassword` and `hidePassword` translate its accessible
-name and tooltip. Passwords start hidden, retain their value while toggled, and
-return to hidden after a successful save. The control is disabled during submission.
+Creation collects contact details only. Hosts that grant account access issue a
+single-use invitation so the recipient chooses their own password.
 
 Install the complete feature UI into an initialized shadcn project:
 
@@ -24,7 +22,7 @@ it does not depend on the showroom CSS, providers, or framework.
 | -------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CustomersPage`      | `customers`, `search`, `onSearchChange`, `createHref`, `getCustomerHref(customer, section)` | `loading`, `error`, `onDelete(id)`, `onSetVerified(id, verified)`, `onImpersonate(id)`, `toolbar`, `syncColumn: { label, render(customer) }` |
 | `CustomerDetailPage` | `customer`, `backHref`, `sectionHrefs`, `onSave(values)`                                    | `section` (defaults to `about`), `onDelete(id)`, `emailChangeDescription`, `projectsContent`, `syncContent`                                  |
-| `CustomerNewPage`    | `backHref`, `onCreate(values)`                                                              | `passwordMinLength` (12), `passwordMaxLength` (128)                                                                                          |
+| `CustomerNewPage`    | `backHref`, `onCreate(values)`                                                              | —                                                                                                                                            |
 
 Every page accepts `className`, `labels: Partial<CustomersLabels>`, and
 `linkComponent`. All callback mutations return `Promise<void>`: resolve only
@@ -84,18 +82,12 @@ summary and directory. `city` retains TC's combined postal-code/city field.
 `CustomerFormValues` contains strings for the seven editable contact/company/
 address fields. Empty optional fields submit as empty strings; map these to
 database nulls in the host if needed. Name and email are trimmed on submission.
-`CustomerCreateValues` adds an optional password, omitted when empty. Edit
-submissions never contain a password.
-
-Name is required. Email is optional on creation unless a password is supplied;
+`CustomerCreateValues` contains the same contact fields; no creation or edit
+submission contains a password. Name is required. Email is optional on creation;
 editing requires an email, and nonempty emails must be valid. The host decides
-how to persist contacts without email; this UI never invents placeholder
-addresses. Password bounds can be overridden (positive integer bounds up to
-1024, maximum at least minimum). Generation uses Web Crypto and prefers 20
-characters within those bounds. Account provisioning and password policies must
-also be enforced on the server. Passwords are cleared after successful creation
-and are never persisted by the plugin. Clipboard failure leaves the generated
-value available for manual copying.
+how to persist contacts without email; this UI never invents placeholder addresses.
+Hosts own invitation issuance, delivery, expiry and acceptance. Customer records
+without email remain contacts until the host can invite them.
 
 The form retains failed submissions and drafts across same-customer rerenders.
 Changing the customer ID resets the form. To deliberately reload an existing
@@ -104,7 +96,7 @@ host-controlled React key. Navigating away from About discards its unsaved draft
 Only pass `emailChangeDescription` when the host implements the described
 session or verification behavior.
 
-All copy, including dynamic delete confirmation and password descriptions, can
+All copy, including dynamic delete confirmation, can
 be overridden through `labels`. The UI uses accessible native fields, Base UI
 avatars and deletion dialogs, and live status/error messages.
 
@@ -114,7 +106,7 @@ Run `pnpm dev` and visit `/en/customers`. Linked examples cover the directory,
 `/en/customers/new`, `/en/customers/acme`, and its `/projects` and `/sync` sections.
 The showroom controls demonstrate failures, loading/error states, action
 visibility, and host slots. In-memory demo customer data survives client-side
-navigation and resets on reload. Demo callbacks do not retain passwords or
+navigation and resets on reload. Demo callbacks do not retain
 change real accounts.
 
 Run `pnpm test`, and with the showroom running, `pnpm test:browser` (set

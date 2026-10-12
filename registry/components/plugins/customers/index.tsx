@@ -367,8 +367,7 @@ function CustomerDetailPageContent({
 export function CustomerNewPage({
   backHref,
   onCreate,
-  passwordMinLength,
-  passwordMaxLength,
+
   className,
   labels: overrides,
   linkComponent: CustomerLink = Link,
@@ -387,12 +386,7 @@ export function CustomerNewPage({
         <h1 className="text-base font-semibold">{labels.newTitle}</h1>
         <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
       </header>
-      <CustomerForm
-        labels={labels}
-        onSubmit={onCreate}
-        passwordMinLength={passwordMinLength}
-        passwordMaxLength={passwordMaxLength}
-      />
+      <CustomerForm labels={labels} onSubmit={onCreate} />
     </div>
   );
 }

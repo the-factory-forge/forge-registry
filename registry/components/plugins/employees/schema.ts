@@ -5,7 +5,6 @@ export const employeeRoleSchema = z.enum(["user", "admin"]);
 export const createEmployeeSchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().pipe(z.email()),
-  password: z.string().min(8).max(128),
   role: employeeRoleSchema.default("user"),
 });
 
@@ -20,7 +19,7 @@ export const setEmployeeBanSchema = z.object({
 
 export const employeeIdSchema = z.object({ id: z.string().min(1) });
 
-export const updateEmployeeSchema = createEmployeeSchema.omit({ password: true }).extend({
+export const updateEmployeeSchema = createEmployeeSchema.extend({
   id: z.string().min(1),
 });
 
@@ -36,10 +35,12 @@ export interface Employee {
   image?: string | null;
   emailVerified: boolean;
   banned?: boolean | null;
+  mustChangePassword?: boolean | null;
   /** Public-profile publication status supplied by the host, independent of account access. */
   websitePublished?: boolean;
 }
 export type VerificationResult = { status: "sent" | "verified" | "unavailable" };
+export type InvitationResult = { invitationSent: boolean };
 export function isEmployeeAdmin(role: string | null | undefined): boolean {
   return role?.split(",").includes("admin") ?? false;
 }

@@ -213,54 +213,47 @@ export function BlogIndexPage({
           ) : (
             <div className="grid gap-6 sm:grid-cols-2">
               {data.items.map((post) => (
-                <article
-                  key={post.id}
-                  className="overflow-hidden rounded-3xl border border-border bg-card"
-                >
-                  {post.shared.thumbnailId && (
-                    <BlogLink href={postHref(post)} tabIndex={-1} aria-hidden="true">
+                <article key={post.id}>
+                  <BlogLink
+                    href={postHref(post)}
+                    aria-label={post.title}
+                    className="group/post block h-full cursor-pointer overflow-hidden rounded-3xl border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {post.shared.thumbnailId && (
                       <BlogImage
                         src={safeAssetUrl(assetUrl(post.shared.thumbnailId))}
                         alt={post.thumbnailAlt}
                         className="aspect-[4/3] w-full object-cover"
                       />
-                    </BlogLink>
-                  )}
-                  <div className="space-y-4 p-5">
-                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <UserRound className="size-3" />
-                        {post.editor.name}
-                      </span>
-                      <time dateTime={post.updatedAt} className="inline-flex items-center gap-1">
-                        <CalendarDays className="size-3" />
-                        {formatDate(post.updatedAt, locale)}
-                      </time>
-                    </div>
-                    <h2 className="font-serif text-xl leading-snug font-semibold">
-                      <BlogLink
-                        href={postHref(post)}
-                        className="hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {post.title}
-                      </BlogLink>
-                    </h2>
-                    {post.summary && (
-                      <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-                        {post.summary}
-                      </p>
                     )}
-                    <BlogLink
-                      href={postHref(post)}
-                      className="group/read-more inline-flex items-center gap-2 text-sm font-medium text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {labels.readMore}
-                      <ArrowUpRight
-                        className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/read-more:translate-x-0.5 motion-safe:group-hover/read-more:-translate-y-0.5 motion-safe:group-focus-visible/read-more:translate-x-0.5 motion-safe:group-focus-visible/read-more:-translate-y-0.5"
-                        aria-hidden="true"
-                      />
-                    </BlogLink>
-                  </div>
+                    <div className="space-y-4 p-5">
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <UserRound className="size-3" />
+                          {post.editor.name}
+                        </span>
+                        <time dateTime={post.updatedAt} className="inline-flex items-center gap-1">
+                          <CalendarDays className="size-3" />
+                          {formatDate(post.updatedAt, locale)}
+                        </time>
+                      </div>
+                      <h2 className="font-serif text-xl leading-snug font-semibold">
+                        {post.title}
+                      </h2>
+                      {post.summary && (
+                        <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+                          {post.summary}
+                        </p>
+                      )}
+                      <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+                        {labels.readMore}
+                        <ArrowUpRight
+                          className="size-4 shrink-0 motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/post:translate-x-0.5 motion-safe:group-hover/post:-translate-y-0.5 motion-safe:group-focus-visible/post:translate-x-0.5 motion-safe:group-focus-visible/post:-translate-y-0.5"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </div>
+                  </BlogLink>
                 </article>
               ))}
             </div>

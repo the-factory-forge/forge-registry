@@ -28,6 +28,7 @@ export function EmployeesPreview() {
   ]);
   const [state, setState] = useState("ready");
   const [fail, setFail] = useState(false);
+  const [failDelivery, setFailDelivery] = useState(false);
   const [role, setRole] = useState("admin");
   const [offset, setOffset] = useState(0);
   const [search, setSearch] = useState("");
@@ -77,6 +78,14 @@ export function EmployeesPreview() {
             />
             Simulate action failures
           </label>
+          <label className="flex gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={failDelivery}
+              onChange={(event) => setFailDelivery(event.target.checked)}
+            />
+            Simulate invitation delivery failure
+          </label>
         </>
       }
     >
@@ -94,12 +103,19 @@ export function EmployeesPreview() {
         onOffsetChange={setOffset}
         currentUserId="admin"
         currentUserRole={role}
-        onCreate={async ({ password: _password, ...values }) => {
+        onCreate={async (values) => {
           await beforeAction();
           setEmployees((current) => [
             ...current,
-            { ...values, id: crypto.randomUUID(), emailVerified: false, websitePublished: false },
+            {
+              ...values,
+              id: crypto.randomUUID(),
+              emailVerified: false,
+              mustChangePassword: true,
+              websitePublished: false,
+            },
           ]);
+          return { invitationSent: !failDelivery };
         }}
         onUpdate={async (values) => {
           await beforeAction();

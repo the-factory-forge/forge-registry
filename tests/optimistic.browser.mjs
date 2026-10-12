@@ -139,12 +139,11 @@ void test("blog publication state changes immediately and rolls back", async (t)
 void test("employee creation appears immediately and disappears on failure without losing inputs", async (t) => {
   const page = await preview(t, "/en/employees");
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Create employee", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Create employee", exact: true });
+  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await dialog.getByLabel("Name", { exact: true }).fill("Optimistic employee");
   await dialog.getByLabel("Email", { exact: true }).fill("optimistic@example.test");
-  await dialog.getByLabel("Temporary password", { exact: true }).fill("temporary-password");
-  await dialog.getByRole("button", { name: "Create employee", exact: true }).click();
+  await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   const row = page.locator("tbody tr").filter({ hasText: "optimistic@example.test" });
   await row.waitFor({ timeout: 700 });
   await row.waitFor({ state: "hidden" });

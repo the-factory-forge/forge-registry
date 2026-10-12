@@ -15,9 +15,7 @@ export interface CustomerFormValues {
   addressComplement: string;
 }
 
-export interface CustomerCreateValues extends CustomerFormValues {
-  password?: string;
-}
+export type CustomerCreateValues = CustomerFormValues;
 
 export interface Customer extends Pick<CustomerFormValues, "name" | "email"> {
   id: string;
@@ -68,6 +66,4 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
 export interface CustomerNewPageProps extends CustomersAppearanceProps {
   backHref: string;
   onCreate: (values: CustomerCreateValues) => Promise<void>;
-  passwordMinLength?: number;
-  passwordMaxLength?: number;
 }

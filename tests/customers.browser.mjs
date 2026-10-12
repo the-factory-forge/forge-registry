@@ -104,7 +104,7 @@ test("editing retains drafts across rerenders and failures, then refreshes saved
   await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
 });
 
-test("creation validates fields, handles clipboard failures and never displays invitations", async (t) => {
+test("creation validates contact fields without collecting a password", async (t) => {
   const page = await preview(t, "/new");
   const submit = page.getByRole("button", { name: "Create customer", exact: true });
   await submit.click();
@@ -117,41 +117,12 @@ test("creation validates fields, handles clipboard failures and never displays i
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
   await page.getByLabel("Email", { exact: true }).fill("");
-  const password = page.getByLabel("Temporary password", { exact: true });
-  await password.fill("short");
-  await page.getByRole("button", { name: "Show password", exact: true }).click();
-  assert.equal(await password.getAttribute("type"), "text");
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "Use 12–128 characters" }).waitFor();
-  await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
-  await page.evaluate(() =>
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: {
-        writeText: async () => {
-          throw new Error("Clipboard unavailable");
-        },
-      },
-    }),
-  );
-  await page.getByRole("button", { name: "Generate and copy a strong password" }).click();
-  await page.getByRole("alert").filter({ hasText: "Could not copy the password" }).waitFor();
-  assert.equal((await password.inputValue()).length, 20);
-  assert.equal(await password.getAttribute("maxlength"), "128");
-  await page.evaluate(() =>
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: async () => {} },
-    }),
-  );
-  await page.getByRole("button", { name: "Copy password", exact: true }).click();
-  await actionToast(page, "Password copied.");
-  await page.getByLabel("Email *", { exact: true }).fill("taylor@example.com");
+  assert.equal(await page.locator('input[type="password"]').count(), 0);
+  await page.getByLabel("Email", { exact: true }).fill("taylor@example.com");
   await page.getByLabel("Simulate action failures").check();
   await submit.click();
   await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
-  assert.equal((await password.inputValue()).length, 20);
-  assert.equal(await password.getAttribute("type"), "text");
+  assert.equal(await page.getByLabel("Email", { exact: true }).inputValue(), "taylor@example.com");
   await page.getByLabel("Simulate action failures").uncheck();
   await page.locator("form").evaluate((form) => {
     form.requestSubmit();
@@ -170,11 +141,7 @@ test("creation validates fields, handles clipboard failures and never displays i
   await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
   assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);
   await page.getByRole("link", { name: "Create customer" }).click();
-  assert.equal(await page.getByLabel("Temporary password", { exact: true }).inputValue(), "");
-  assert.equal(
-    await page.getByLabel("Temporary password", { exact: true }).getAttribute("type"),
-    "password",
-  );
+  assert.equal(await page.locator('input[type="password"]').count(), 0);
 });
 
 test("a customer can be created without email or credentials", async (t) => {

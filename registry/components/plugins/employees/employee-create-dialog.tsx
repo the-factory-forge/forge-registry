@@ -1,15 +1,15 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
-import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
-import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   createEmployeeSchema,
   isEmployeeAdmin,
   type CreateEmployee,
+  type InvitationResult,
 } from "@/components/plugins/employees/schema";
 import {
   dialogClass,
@@ -23,7 +23,7 @@ import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 export interface EmployeeCreateDialogProps {
   /** Role from the host's authenticated session. Missing or non-admin roles render nothing. */
   currentUserRole: string | null | undefined;
-  onCreate: (values: CreateEmployee) => Promise<void>;
+  onCreate: (values: CreateEmployee) => Promise<InvitationResult>;
   labels?: Partial<EmployeeLabels>;
   className?: string;
   disabled?: boolean;
@@ -41,7 +41,7 @@ export function EmployeeCreateDialog({
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [deliveryFailed, setDeliveryFailed] = useState(false);
   const lock = useRef(false);
   if (!isEmployeeAdmin(currentUserRole)) return null;
 
@@ -52,9 +52,10 @@ export function EmployeeCreateDialog({
     setPending(true);
     setFailed(false);
     try {
-      await onCreate(createEmployeeSchema.parse(Object.fromEntries(data)));
+      const result = await onCreate(createEmployeeSchema.parse(Object.fromEntries(data)));
       form.reset();
-      setOpen(false);
+      setDeliveryFailed(!result.invitationSent);
+      if (result.invitationSent) setOpen(false);
     } catch {
       setFailed(true);
     } finally {
@@ -69,7 +70,7 @@ export function EmployeeCreateDialog({
       onOpenChange={(next) => {
         if (pending) return;
         setFailed(false);
-        setShowPassword(false);
+        setDeliveryFailed(false);
         setOpen(next);
       }}
     >
@@ -86,100 +87,71 @@ export function EmployeeCreateDialog({
               {labels.instructions}
             </Dialog.Description>
           </div>
-          <form
-            className="space-y-4"
-            onReset={() => setShowPassword(false)}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submit(event.currentTarget);
-            }}
-          >
-            <div className="grid gap-2">
-              <label htmlFor={`${id}-name`}>{labels.name}</label>
-              <input
-                className={inputClass}
-                id={`${id}-name`}
-                name="name"
-                autoComplete="name"
-                maxLength={200}
-                required
-                readOnly={pending}
-              />
+          {deliveryFailed ? (
+            <div className="space-y-4">
+              <p role="alert">{labels.invitationFailed}</p>
+              <Dialog.Close className={outlineButtonClass}>{labels.close}</Dialog.Close>
             </div>
-            <div className="grid gap-2">
-              <label htmlFor={`${id}-email`}>{labels.email}</label>
-              <input
-                className={inputClass}
-                id={`${id}-email`}
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                readOnly={pending}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor={`${id}-password`}>{labels.password}</label>
-              <div className="relative">
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit(event.currentTarget);
+              }}
+            >
+              <div className="grid gap-2">
+                <label htmlFor={`${id}-name`}>{labels.name}</label>
                 <input
-                  className={cn(inputClass, "pr-10")}
-                  id={`${id}-password`}
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  minLength={8}
-                  maxLength={128}
+                  className={inputClass}
+                  id={`${id}-name`}
+                  name="name"
+                  autoComplete="name"
+                  maxLength={200}
                   required
                   readOnly={pending}
                 />
-                <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={pending}
-                    aria-label={showPassword ? labels.hidePassword : labels.showPassword}
-                    aria-controls={`${id}-password`}
-                    aria-pressed={showPassword}
-                    className="absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="size-4" aria-hidden="true" />
-                    ) : (
-                      <EyeIcon className="size-4" aria-hidden="true" />
-                    )}
-                  </button>
-                </IconTooltip>
               </div>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor={`${id}-role`}>{labels.role}</label>
-              <NativeSelect
-                id={`${id}-role`}
-                name="role"
-                defaultValue="user"
-                disabled={pending}
-                className={inputClass}
-              >
-                <option value="user">{labels.roleUser}</option>
-                <option value="admin">{labels.roleAdmin}</option>
-              </NativeSelect>
-            </div>
-            {failed && (
-              <p role="alert" className="text-destructive">
-                {labels.createError}
-              </p>
-            )}
-            <div className="flex flex-wrap justify-end gap-3">
-              <Dialog.Close type="button" className={outlineButtonClass} disabled={pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button className={primaryButtonClass} type="submit" disabled={pending}>
-                {pending ? labels.adding : labels.save}
-              </button>
-            </div>
-          </form>
+              <div className="grid gap-2">
+                <label htmlFor={`${id}-email`}>{labels.email}</label>
+                <input
+                  className={inputClass}
+                  id={`${id}-email`}
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  readOnly={pending}
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor={`${id}-role`}>{labels.role}</label>
+                <NativeSelect
+                  id={`${id}-role`}
+                  name="role"
+                  defaultValue="user"
+                  disabled={pending}
+                  className={inputClass}
+                >
+                  <option value="user">{labels.roleUser}</option>
+                  <option value="admin">{labels.roleAdmin}</option>
+                </NativeSelect>
+              </div>
+              {failed && (
+                <p role="alert" className="text-destructive">
+                  {labels.createError}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-end gap-3">
+                <Dialog.Close type="button" className={outlineButtonClass} disabled={pending}>
+                  {labels.cancel}
+                </Dialog.Close>
+                <button className={primaryButtonClass} type="submit" disabled={pending}>
+                  {pending ? labels.adding : labels.save}
+                </button>
+              </div>
+            </form>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

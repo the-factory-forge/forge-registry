@@ -75,12 +75,11 @@ test("Drive shortcuts validate, create once, retain failed edits, and exclude de
 
 test("employee creation and editing support both platform shortcuts", async (t) => {
   const page = await preview(t, "/en/employees");
-  await page.getByRole("button", { name: "Create employee", exact: true }).click();
-  const create = page.getByRole("dialog", { name: "Create employee", exact: true });
+  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  const create = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await create.getByLabel("Name", { exact: true }).fill("Shortcut Employee");
   await create.getByLabel("Email", { exact: true }).fill("shortcut@example.test");
-  await create.getByLabel("Temporary password", { exact: true }).fill("temporary-password");
-  await create.getByLabel("Temporary password", { exact: true }).press("Control+Enter");
+  await create.getByLabel("Email", { exact: true }).press("Control+Enter");
   await create.waitFor({ state: "hidden" });
   const row = page.getByRole("row").filter({ hasText: "shortcut@example.test" });
   await row.getByRole("button", { name: /Edit.*Shortcut Employee/ }).click();

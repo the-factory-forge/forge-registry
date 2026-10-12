@@ -6,7 +6,7 @@ const { createEmployeeService } =
   await import("../registry/components/plugins/employees/server/employees.server.ts");
 
 const admin = { id: "admin", role: "admin", mustChangePassword: false };
-function fixture(options = {}) {
+function fixture({ employee: overrides, failInvitation = false, ...options } = {}) {
   let employee = {
     id: "employee",
     name: "Alex",
@@ -14,6 +14,7 @@ function fixture(options = {}) {
     role: "user",
     emailVerified: true,
     websitePublished: true,
+    ...overrides,
   };
   const calls = [];
   const api = {
@@ -60,6 +61,10 @@ function fixture(options = {}) {
       headers,
       actor: admin,
       verificationEnabled: true,
+      sendInvitation: async (employee, invitationURL) => {
+        calls.push(["invite", { email: employee.email, invitationURL }]);
+        if (failInvitation) throw new Error("Delivery failed");
+      },
       ...options,
     }),
   };
@@ -79,19 +84,31 @@ test("employee operations require a fresh eligible administrator supplied by the
   assert.doesNotThrow(() => fixture({ actor: { ...admin, role: "user,admin" } }));
 });
 
-test("creation validates credentials and requires a first-login password change", async () => {
+test("creation strips supplied passwords and invites the new account without credentials", async () => {
   const { service, calls, headers } = fixture();
   await assert.rejects(() =>
     service.create({ name: " ", email: "bad", password: "short", role: "admin" }),
   );
   assert.deepEqual(calls, []);
-  const created = await service.create({
-    name: " Alex ",
-    email: "alex@example.test",
-    password: "Temporary-password-123",
-    role: "user",
-  });
-  assert.equal(created.name, "Alex");
+  const created = await service.create(
+    {
+      name: " Alex ",
+      email: "alex@example.test",
+      password: "Temporary-password-123",
+      role: "user",
+    },
+    "https://site.example/fr/reset-password?invitation=true",
+  );
+  assert.equal(created.user.name, "Alex");
+  assert.equal(created.invitationSent, true);
+  assert.equal("password" in calls[0][1].body, false);
+  assert.deepEqual(calls[1], [
+    "invite",
+    {
+      email: "alex@example.test",
+      invitationURL: "https://site.example/fr/reset-password?invitation=true",
+    },
+  ]);
   assert.equal(calls[0][1].body.data.mustChangePassword, true);
   assert.equal(calls[0][1].headers, headers);
   assert.throws(() => service.list({ offset: -1 }));
@@ -144,9 +161,16 @@ test("editing protects the current administrator and resets verification only fo
 test("verification sends only to the authorized recipient without forwarding administrator cookies", async () => {
   const { service, calls } = fixture();
   const callbackURL = "https://site.example/fr/login";
-  assert.deepEqual(await service.sendVerification({ id: "employee" }, callbackURL), {
-    status: "verified",
-  });
+  assert.deepEqual(
+    await service.sendVerification(
+      { id: "employee" },
+      callbackURL,
+      "https://site.example/fr/reset-password?invitation=true",
+    ),
+    {
+      status: "verified",
+    },
+  );
   assert.equal(calls.filter(([name]) => name === "send").length, 0);
   await service.update({
     id: "employee",
@@ -155,7 +179,11 @@ test("verification sends only to the authorized recipient without forwarding adm
     role: "user",
   });
   assert.deepEqual(
-    await service.sendVerification({ id: "employee", email: "injected@example.test" }, callbackURL),
+    await service.sendVerification(
+      { id: "employee", email: "injected@example.test" },
+      callbackURL,
+      "https://site.example/fr/reset-password?invitation=true",
+    ),
     { status: "sent" },
   );
   assert.deepEqual(calls.at(-1), [
@@ -169,9 +197,16 @@ test("verification sends only to the authorized recipient without forwarding adm
     email: "changed@example.test",
     role: "user",
   });
-  assert.deepEqual(await unavailable.service.sendVerification({ id: "employee" }, callbackURL), {
-    status: "unavailable",
-  });
+  assert.deepEqual(
+    await unavailable.service.sendVerification(
+      { id: "employee" },
+      callbackURL,
+      "https://site.example/fr/reset-password?invitation=true",
+    ),
+    {
+      status: "unavailable",
+    },
+  );
   assert.equal(unavailable.calls.filter(([name]) => name === "send").length, 0);
 });
 
@@ -206,4 +241,51 @@ test("auth and employees ship complete independent source without host configura
       if (name !== "employees-server") assert.doesNotMatch(source, /from ["'][^"']*\/server\//);
     }
   }
+});
+
+const invitationURL = "https://site.example/fr/reset-password?invitation=true";
+test("invitation delivery failures preserve the new account and expose a retryable result", async () => {
+  const { service, calls } = fixture({ failInvitation: true });
+  const result = await service.create({ name: "Alex", email: "alex@example.test" }, invitationURL);
+  assert.equal(result.invitationSent, false);
+  assert.equal(result.user.id, "employee");
+  assert.equal(
+    calls.some(([action]) => action === "remove"),
+    false,
+  );
+  const unavailable = fixture({ verificationEnabled: false });
+  await assert.rejects(
+    () => unavailable.service.create({ name: "Alex", email: "alex@example.test" }, invitationURL),
+    /not configured/,
+  );
+  assert.deepEqual(unavailable.calls, []);
+});
+test("pending accounts receive invitations rather than verification emails", async () => {
+  const { service, calls } = fixture({ employee: { mustChangePassword: true } });
+  assert.deepEqual(
+    await service.sendVerification(
+      { id: "employee", email: "injected@example.test" },
+      "https://site.example/fr/login",
+      invitationURL,
+    ),
+    { status: "sent" },
+  );
+  assert.deepEqual(
+    calls.filter(([action]) => action !== "get"),
+    [["invite", { email: "alex@example.test", invitationURL }]],
+  );
+  const blocked = fixture({ employee: { banned: true, mustChangePassword: true } });
+  await assert.rejects(
+    () =>
+      blocked.service.sendVerification(
+        { id: "employee" },
+        "https://site.example/fr/login",
+        invitationURL,
+      ),
+    /disabled/,
+  );
+  assert.equal(
+    blocked.calls.some(([action]) => action === "invite"),
+    false,
+  );
 });

@@ -1,11 +1,9 @@
 "use client";
 
 import { Input } from "@base-ui/react/input";
-import { CopyIcon, DicesIcon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 
-import { useActionToast, ActionToastProvider } from "@/components/action-toast";
-import { IconTooltip } from "@/components/icon-tooltip";
+import { ActionToastProvider } from "@/components/action-toast";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type {
   Customer,
@@ -13,7 +11,6 @@ import type {
   CustomerFormValues,
 } from "@/components/plugins/customers/types";
 import {
-  buttonClass,
   cardClass,
   Feedback,
   DeleteCustomer,
@@ -21,7 +18,7 @@ import {
   primaryButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
-import { customerFormValues, generateCustomerPassword } from "@/components/plugins/customers/utils";
+import { customerFormValues } from "@/components/plugins/customers/utils";
 import { cn } from "@/components/utils/cn";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
@@ -32,8 +29,6 @@ export interface CustomerFormProps {
   onSubmit: (values: CustomerCreateValues) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   emailChangeDescription?: string;
-  passwordMinLength?: number;
-  passwordMaxLength?: number;
 }
 
 function CustomerFormContent({
@@ -43,30 +38,14 @@ function CustomerFormContent({
   onSubmit,
   onDelete,
   emailChangeDescription,
-  passwordMinLength = 12,
-  passwordMaxLength = 128,
 }: CustomerFormProps) {
   const id = `factory-customer-form-${useId()}`;
   const creating = !customer;
   const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState(() => customerFormValues(customer));
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
-  const notify = useActionToast();
-  const [passwordFeedback, setPasswordFeedback] = useState<{ error: boolean; message: string }>();
   const action = useCustomerAction(labels.actionError);
   const pending = disabled || action.pending || deleting;
-
-  async function copyPassword(value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setPasswordFeedback(undefined);
-      notify(labels.passwordCopied);
-    } catch {
-      setPasswordFeedback({ error: true, message: labels.passwordCopyError });
-    }
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,14 +54,8 @@ function CustomerFormContent({
     const nextErrors: typeof errors = {};
     if (!values.name.trim()) nextErrors.name = labels.nameRequired;
     const emailInput = form.elements.namedItem("email") as HTMLInputElement;
-    if (((!creating || password) && !values.email.trim()) || emailInput.validity.typeMismatch)
+    if ((!creating && !values.email.trim()) || emailInput.validity.typeMismatch)
       nextErrors.email = labels.emailRequired;
-    if (
-      creating &&
-      password &&
-      (password.length < passwordMinLength || password.length > passwordMaxLength)
-    )
-      nextErrors.password = labels.passwordInvalid(passwordMinLength, passwordMaxLength);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
     const normalized: CustomerFormValues = {
@@ -90,12 +63,8 @@ function CustomerFormContent({
       name: values.name.trim(),
       email: values.email.trim(),
     };
-    const data = creating && password ? { ...normalized, password } : normalized;
-    if (await action.run(() => onSubmit(data), creating ? labels.created : labels.saved)) {
+    if (await action.run(() => onSubmit(normalized), creating ? labels.created : labels.saved)) {
       setValues(normalized);
-      setPassword("");
-      setShowPassword(false);
-      setPasswordFeedback(undefined);
     }
   }
 
@@ -168,101 +137,9 @@ function CustomerFormContent({
             {field("email", {
               type: "email",
               autoComplete: "email",
-              required: !creating || Boolean(password),
+              required: !creating,
               description: creating ? undefined : emailChangeDescription,
             })}
-            {creating && (
-              <div className="space-y-2">
-                <label htmlFor={`${id}-password`} className="block text-sm font-semibold">
-                  {labels.password}
-                </label>
-                <div className="relative">
-                  <Input
-                    id={`${id}-password`}
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    value={password}
-                    minLength={passwordMinLength}
-                    maxLength={passwordMaxLength}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      clear("password");
-                      setPasswordFeedback(undefined);
-                    }}
-                    className={cn(inputClass, "pr-10 pl-20")}
-                    aria-invalid={Boolean(errors.password)}
-                    aria-describedby={`${id}-password-description${errors.password ? ` ${id}-password-error` : ""}`}
-                  />
-                  <div className="absolute inset-y-0 left-1 flex items-center gap-1">
-                    <IconTooltip label={labels.generatePassword}>
-                      <button
-                        type="button"
-                        className={cn(buttonClass, "px-2")}
-                        aria-label={labels.generatePassword}
-                        onClick={() => {
-                          try {
-                            const generated = generateCustomerPassword(
-                              passwordMinLength,
-                              passwordMaxLength,
-                            );
-                            setPassword(generated);
-                            clear("password");
-                            void copyPassword(generated);
-                          } catch {
-                            setPasswordFeedback({
-                              error: true,
-                              message: labels.passwordGenerateError,
-                            });
-                          }
-                        }}
-                      >
-                        <DicesIcon aria-hidden="true" />
-                      </button>
-                    </IconTooltip>
-                    <IconTooltip label={labels.copyPassword}>
-                      <button
-                        type="button"
-                        className={cn(buttonClass, "px-2")}
-                        disabled={!password}
-                        aria-label={labels.copyPassword}
-                        onClick={() => void copyPassword(password)}
-                      >
-                        <CopyIcon aria-hidden="true" />
-                      </button>
-                    </IconTooltip>
-                  </div>
-                  <IconTooltip label={showPassword ? labels.hidePassword : labels.showPassword}>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={pending}
-                      aria-label={showPassword ? labels.hidePassword : labels.showPassword}
-                      aria-controls={`${id}-password`}
-                      aria-pressed={showPassword}
-                      className="absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {showPassword ? (
-                        <EyeOffIcon className="size-4" aria-hidden="true" />
-                      ) : (
-                        <EyeIcon className="size-4" aria-hidden="true" />
-                      )}
-                    </button>
-                  </IconTooltip>
-                </div>
-                <p id={`${id}-password-description`} className="text-sm text-muted-foreground">
-                  {labels.passwordDescription(passwordMinLength, passwordMaxLength)}
-                </p>
-                {errors.password && (
-                  <p id={`${id}-password-error`} role="alert" className="text-sm text-destructive">
-                    {errors.password}
-                  </p>
-                )}
-                <Feedback feedback={passwordFeedback} />
-              </div>
-            )}
             {field("phoneNumber", {
               type: "tel",
               autoComplete: "tel",

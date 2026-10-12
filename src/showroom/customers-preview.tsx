@@ -55,10 +55,8 @@ export function CustomersPreview() {
         backHref={base}
         onCreate={async (values) => {
           await beforeAction();
-          // Only contact fields enter showroom state. Credentials are never retained.
-          const { password: _password, ...fields } = values;
           const id = crypto.randomUUID();
-          setCustomers((current) => [...current, { ...fields, id, emailVerified: false }]);
+          setCustomers((current) => [...current, { ...values, id, emailVerified: false }]);
 
           await navigate({ href: `${base}/${id}` });
         }}

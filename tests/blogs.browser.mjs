@@ -319,7 +319,7 @@ test("list deletion confirms the selected post, retains failures, and respects p
 test("showroom illustrations load without cropping in both themes", async (t) => {
   const page = await preview(t);
   const paths = await page
-    .locator("article h2 a")
+    .locator("article > a")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   const seen = new Set();
   for (const path of ["/en/blogs", ...paths]) {

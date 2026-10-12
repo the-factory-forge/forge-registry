@@ -111,25 +111,21 @@ test("employee pages show content only to administrators", async (t) => {
     await page.getByRole("table").waitFor({ state: "hidden" });
     assert.equal(await page.getByText("alex@example.test", { exact: true }).count(), 0);
     assert.equal(
-      await page.getByRole("button", { name: "Create employee", exact: true }).count(),
+      await page.getByRole("button", { name: "Invite employee", exact: true }).count(),
       0,
     );
   }
   await page.getByLabel("Preview as").selectOption("admin");
-  await page.getByRole("button", { name: "Create employee", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Create employee", exact: true });
+  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await dialog.getByLabel("Email", { exact: true }).waitFor();
   assert.equal(new URL(page.url()).hash, "");
   await dialog.getByLabel("Name", { exact: true }).fill("Taylor Jordan");
   await dialog.getByLabel("Email", { exact: true }).fill("taylor@example.test");
-  await dialog.getByLabel("Temporary password", { exact: true }).fill("temporary-password");
-  await dialog.getByRole("button", { name: "Show password", exact: true }).click();
-  await dialog.getByRole("button", { name: "Create employee", exact: true }).click();
+  assert.equal(await dialog.locator('input[type="password"]').count(), 0);
+  await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Create employee", exact: true }).click();
-  const password = dialog.getByLabel("Temporary password", { exact: true });
-  assert.equal(await password.inputValue(), "");
-  assert.equal(await password.getAttribute("type"), "password");
+  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByText("taylor@example.test", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
@@ -144,9 +140,30 @@ test("employee pages show content only to administrators", async (t) => {
     .filter({ hasText: "Taylor Lee" })
     .getByText("Hidden on website", { exact: true })
     .waitFor();
-  await page
-    .getByRole("button", { name: "Send verification email to Taylor Lee", exact: true })
-    .click();
-  await actionToast(page, "Verification email sent.");
+  await page.getByRole("button", { name: "Resend invitation to Taylor Lee", exact: true }).click();
+  await actionToast(page, "Invitation sent.");
   assert.deepEqual(errors, []);
+});
+
+test("a delivery failure keeps the account available for resend without repeating creation", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/en/employees`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  await page.getByLabel("Simulate invitation delivery failure", { exact: true }).check();
+  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
+  await dialog.getByLabel("Name", { exact: true }).fill("Pending invitee");
+  await dialog.getByLabel("Email", { exact: true }).fill("pending@example.test");
+  await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
+  await dialog.getByRole("alert").filter({ hasText: "The account was created" }).waitFor();
+  assert.equal(await dialog.locator("form").count(), 0);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  const rows = page.getByRole("row").filter({ hasText: "pending@example.test" });
+  assert.equal(await rows.count(), 1);
+  await rows
+    .getByRole("button", { name: "Resend invitation to Pending invitee", exact: true })
+    .click();
+  await actionToast(page, "Invitation sent.");
 });

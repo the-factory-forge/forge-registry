@@ -280,28 +280,30 @@ function PasswordFormContent({
               </div>
             );
           })}
-          <p
-            id={`${id}-error`}
-            role={state.failed ? "alert" : undefined}
-            aria-hidden={!state.failed}
-            className={cn("text-sm text-destructive", !state.failed && "invisible")}
-          >
-            {reset ? labels.resetError : labels.changePasswordError}
-          </p>
-          <button
-            type="submit"
-            className={cn(buttonClass, !reset && !fullWidthSubmit && "justify-self-start")}
-            disabled={state.pending}
-          >
-            {state.pending && (
-              <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
-            )}
-            {state.pending
-              ? labels.changingPassword
-              : reset
-                ? labels.resetSubmit
-                : labels.changePassword}
-          </button>
+          <div className="grid gap-2">
+            <button
+              type="submit"
+              className={cn(buttonClass, !reset && !fullWidthSubmit && "justify-self-start")}
+              disabled={state.pending}
+            >
+              {state.pending && (
+                <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
+              )}
+              {state.pending
+                ? labels.changingPassword
+                : reset
+                  ? labels.resetSubmit
+                  : labels.changePassword}
+            </button>
+            <p
+              id={`${id}-error`}
+              role={state.failed ? "alert" : undefined}
+              aria-hidden={!state.failed}
+              className={cn("text-sm text-destructive", !state.failed && "invisible")}
+            >
+              {reset ? labels.resetError : labels.changePasswordError}
+            </p>
+          </div>
         </form>
       )}
     </div>

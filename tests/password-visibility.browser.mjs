@@ -16,15 +16,13 @@ void test("every password field has a keyboard-accessible eye suffix without cha
   const captureDir = process.env.TEST_CAPTURE_DIR;
   if (captureDir) await mkdir(captureDir, { recursive: true });
 
-  for (const path of ["login", "reset-password", "account", "employees", "customers/new"]) {
+  for (const path of ["login", "reset-password", "account"]) {
     await page.goto(`${baseURL}/en/${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     if (path === "account") {
       await page.getByLabel("Email and password account").check();
       await page.getByRole("tab", { name: "Security", exact: true }).click();
     }
-    if (path === "employees")
-      await page.getByRole("button", { name: "Create employee", exact: true }).click();
     const input = page.locator('input[type="password"]');
     assert.equal(await input.count(), path === "account" ? 2 : 1, path);
     const ids = await input.evaluateAll((inputs) => inputs.map((input) => input.id));
@@ -45,7 +43,7 @@ void test("every password field has a keyboard-accessible eye suffix without cha
       await tooltip.waitFor({ state: "hidden" });
       await page.mouse.move(0, 0);
       await field.focus();
-      // Customer generation and copy controls precede the suffix in the tab order.
+      // Reach the visibility control through keyboard navigation.
       for (let tabs = 0; tabs < 3; tabs++) {
         await page.keyboard.press("Tab");
         if (await show.evaluate((node) => node === document.activeElement)) break;
@@ -86,10 +84,7 @@ void test("every password field has a keyboard-accessible eye suffix without cha
             true,
             path,
           );
-          if (
-            captureDir &&
-            ["reset-password", "account", "employees", "customers/new"].includes(path)
-          )
+          if (captureDir && ["reset-password", "account"].includes(path))
             await field.locator("../..").screenshot({
               path: `${captureDir}/${path.replace("/", "-")}-${await field.getAttribute("name")}-${theme}-${width}.png`,
             });
