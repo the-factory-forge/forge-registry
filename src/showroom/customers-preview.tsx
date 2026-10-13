@@ -65,11 +65,7 @@ export function CustomersPreview() {
 
   if (customerId) {
     const customer = customers.find((entry) => entry.id === customerId);
-    if (
-      !customer ||
-      (tab && tab !== "projects" && tab !== "sync") ||
-      (params.segments?.length ?? 0) > 2
-    )
+    if (!customer || (tab && tab !== "projects") || (params.segments?.length ?? 0) > 2)
       return (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
@@ -85,12 +81,11 @@ export function CustomersPreview() {
       <CustomerDetailPage
         className="showroom-page"
         customer={customer}
-        section={tab === "projects" || tab === "sync" ? tab : "about"}
+        section={tab === "projects" ? "projects" : "about"}
         backHref={base}
         sectionHrefs={{
           about: `${base}/${customerId}`,
           projects: `${base}/${customerId}/projects`,
-          sync: `${base}/${customerId}/sync`,
         }}
         linkComponent={Link}
         onDelete={onDelete}
@@ -108,7 +103,6 @@ export function CustomersPreview() {
             <p>Host projects content</p>
           ) : undefined
         }
-        syncContent={state.showIntegration ? <p>Host sync content</p> : undefined}
       />
     );
   }

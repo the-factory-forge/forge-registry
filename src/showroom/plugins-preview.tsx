@@ -49,7 +49,7 @@ function usePreviewState() {
       url: "/en/customers",
     },
   ]);
-  const [showProjects, setShowProjects] = useState(false);
+  const [showProjects, setShowProjects] = useState(true);
   const [failActions, setFailActions] = useState(false);
   const [showActions, setShowActions] = useState(true);
   const [showIntegration, setShowIntegration] = useState(false);

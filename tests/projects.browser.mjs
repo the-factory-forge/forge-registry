@@ -29,6 +29,7 @@ async function preview(t, path = "/en/projects", options = {}) {
   return page;
 }
 async function assertBasicFields(page) {
+  await page.getByLabel("Name *", { exact: true }).waitFor();
   assert.deepEqual(
     await page.locator("form [name]").evaluateAll((fields) => fields.map((field) => field.name)),
     ["name", "status", "description"],

@@ -19,23 +19,17 @@ export const Route = createFileRoute("/_plugins/$locale/customers/$")({
               description:
                 "Explore the React customer detail layout with a linked project list, customer-scoped project creation, and in-memory sample records.",
             }
-          : tab === "sync"
+          : id
             ? {
-                title: "Customer integration section demo",
+                title: "Customer details page demo",
                 description:
-                  "Preview the React customer detail layout's Sync section, where consuming sites supply their own integration content and callbacks.",
+                  "Preview a React customer detail page with sample contact information, editing controls, and linked projects.",
               }
-            : id
-              ? {
-                  title: "Customer details page demo",
-                  description:
-                    "Preview a React customer detail page with sample contact information, editing controls, linked projects, and a host-owned integration section.",
-                }
-              : {
-                  title: "Customer management plugin demo",
-                  description:
-                    "Try a reusable React customer directory with sample contacts, search, creation, detail pages, and linked projects using in-memory demo data.",
-                };
+            : {
+                title: "Customer management plugin demo",
+                description:
+                  "Try a reusable React customer directory with sample contacts, search, creation, detail pages, and linked projects using in-memory demo data.",
+              };
     return showroomHead({
       ...page,
       path: match.pathname,

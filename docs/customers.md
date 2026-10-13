@@ -55,15 +55,16 @@ export function CustomerScreen({
     <CustomerDetailPage
       customer={customer}
       backHref="/internal/customers"
-      sectionHrefs={{ about: base, projects: `${base}/projects`, sync: `${base}/sync` }}
+      sectionHrefs={{ about: base, projects: `${base}/projects` }}
       onSave={save}
     />
   );
 }
 ```
 
-Use `section="projects"` or `section="sync"` on those host routes. Both sections
-are empty unless their content props are supplied. To embed a customer-owned project list, see the [projects integration guide](./projects.md#customer-composition). Installing customers alone does not install projects. There is no project model,
+Use `section="projects"` or `section="sync"` on those host routes. Projects is empty unless `projectsContent` is supplied. The Sync tab is hidden
+when `sectionHrefs.sync` is omitted. Existing integrations can supply that URL and
+`syncContent`; loading the content does not change the navigation. To embed a customer-owned project list, see the [projects integration guide](./projects.md#customer-composition). Installing customers alone does not install projects. There is no project model,
 sync service, invitation UI, or Bexio dependency. The host may provide a sync
 column and toolbar independently of the detail content.
 
@@ -103,7 +104,8 @@ avatars and deletion dialogs, and live status/error messages.
 ## Preview and validation
 
 Run `pnpm dev` and visit `/en/customers`. Linked examples cover the directory,
-`/en/customers/new`, `/en/customers/acme`, and its `/projects` and `/sync` sections.
+`/en/customers/new`, `/en/customers/acme`, and its `/projects` section. Projects integration is enabled by default with
+customer-owned sample records; the unused Sync section is not shown.
 The showroom controls demonstrate failures, loading/error states, action
 visibility, and host slots. In-memory demo customer data survives client-side
 navigation and resets on reload. Demo callbacks do not retain

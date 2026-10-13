@@ -312,19 +312,23 @@ function CustomerDetailPageContent({
         </dl>
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
-        {(["about", "projects", "sync"] as const).map((tab: CustomerSection) => (
-          <CustomerLink
-            key={tab}
-            href={sectionHrefs[tab]}
-            aria-current={section === tab ? "page" : undefined}
-            className={cn(
-              "shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset",
-              section === tab && "border-primary text-primary",
-            )}
-          >
-            {labels[tab]}
-          </CustomerLink>
-        ))}
+        {(["about", "projects", "sync"] as const).map((tab: CustomerSection) => {
+          const href = sectionHrefs[tab];
+          if (!href) return null;
+          return (
+            <CustomerLink
+              key={tab}
+              href={href}
+              aria-current={section === tab ? "page" : undefined}
+              className={cn(
+                "shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset",
+                section === tab && "border-primary text-primary",
+              )}
+            >
+              {labels[tab]}
+            </CustomerLink>
+          );
+        })}
       </nav>
       {section === "about" ? (
         <>

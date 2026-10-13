@@ -179,22 +179,23 @@ test("delete confirmation restores focus on Escape and retains failures for retr
   assert.equal(await page.getByRole("row").filter({ hasText: "Sam Rivera" }).count(), 0);
 });
 
-test("Projects and Sync are empty by default and accept host content", async (t) => {
-  const page = await preview(t, "/acme");
-  for (const section of ["Projects", "Sync"]) {
-    await page.getByRole("link", { name: section, exact: true }).click();
-    await page.locator('nav a[aria-current="page"]').filter({ hasText: section }).waitFor();
-    assert.equal(
-      await page.getByRole("link", { name: section, exact: true }).getAttribute("aria-current"),
-      "page",
-    );
-    assert.equal(await page.locator("form").count(), 0);
-    assert.equal(await page.getByText(/Host (projects|sync) content/).count(), 0);
-  }
+test("customer projects show sample records by default without an unused Sync tab", async (t) => {
+  const page = await preview(t, "/acme/projects");
+  await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Sync", exact: true }).count(), 0);
+  assert.equal(
+    await page.getByRole("link", { name: "Projects", exact: true }).getAttribute("aria-current"),
+    "page",
+  );
+  await page.reload();
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
+  await page.getByLabel("Projects integration", { exact: true }).uncheck();
   await page.getByLabel("Host integration example").check();
-  await page.getByText("Host sync content", { exact: true }).waitFor();
-  await page.getByRole("link", { name: "Projects", exact: true }).click();
   await page.getByText("Host projects content", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "Sync", exact: true }).count(), 0);
+  await page.goto(`${baseURL}/en/customers/acme/sync`);
+  await page.getByRole("heading", { name: "Customer page not found" }).waitFor();
 });
 
 test("desktop and mobile pages fit in both themes", async (t) => {
@@ -211,6 +212,17 @@ test("desktop and mobile pages fit in both themes", async (t) => {
       );
       await page.screenshot({
         path: `/tmp/forge-customers-${name}-${colorScheme}.png`,
+        fullPage: true,
+      });
+      await page.getByRole("link", { name: "Projects", exact: true }).click();
+      await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
+      assert.equal(await page.getByRole("link", { name: "Sync", exact: true }).count(), 0);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await page.screenshot({
+        path: `/tmp/forge-customer-projects-${name}-${colorScheme}.png`,
         fullPage: true,
       });
       await page.getByRole("link", { name: "Back to customers" }).click();

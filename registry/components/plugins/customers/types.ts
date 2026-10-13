@@ -54,7 +54,7 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
   customer: Customer;
   section?: CustomerSection;
   backHref: string;
-  sectionHrefs: Record<CustomerSection, string>;
+  sectionHrefs: Record<Exclude<CustomerSection, "sync">, string> & { sync?: string };
   onSave: (values: CustomerFormValues) => Promise<void>;
   onDelete?: (customerId: string) => Promise<void>;
   onSetVerified?: (customerId: string, verified: boolean) => Promise<void>;

@@ -148,9 +148,9 @@ deletion requires confirmation and supports Escape/cancellation focus return.
 ## Showroom and validation
 
 Visit `/en/projects`, `/en/projects/new`, `/en/projects/website`, and
-`/en/projects/website/drive`. Enable **Projects integration** on the customer
-preview to embed a real list. It is disabled initially to demonstrate the
-independent customers plugin. Shared mock state survives client navigation
+`/en/projects/website/drive`. The customer preview enables **Projects integration** by default to show a real
+list of customer-owned sample projects. Disable it to inspect the independent
+customers plugin. Shared mock state survives client navigation
 between both directories and resets on reload; passwords are never stored.
 
 Controls simulate list loading/failures, mutation failures, action visibility,

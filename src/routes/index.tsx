@@ -251,20 +251,8 @@ const examples = (
       title: "Customers",
       icon: pluginIcons.customers,
       description: "Customer directory, contact details, and creation with host-owned actions.",
-      tags: [
-        "Customer directory",
-        "Contact details",
-        "Customer creation",
-        "Projects integration",
-        "Sync integration",
-      ],
-      keywords: [
-        "customer list",
-        "customer details",
-        "new customer",
-        "customer projects",
-        "customer sync",
-      ],
+      tags: ["Customer directory", "Contact details", "Customer creation", "Projects integration"],
+      keywords: ["customer list", "customer details", "new customer", "customer projects"],
     },
     {
       href: "/cookie-banner",
