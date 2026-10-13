@@ -223,6 +223,12 @@ const asset = await storage.upload(context, {
 });
 ```
 
+Every new image reserves a fresh UUID key under `<SITE_NAME>/blogs/<articleId>/`.
+Uploads use ordinary PUT requests so providers such as Infomaniak do not need
+conditional PUT support. Reusing a filename creates a separate image; thumbnail,
+banner and Markdown references keep their stable asset IDs. Existing-key migration
+scripts must still reject a destination whose bytes differ.
+
 Defaults are 10 MiB per image and 1 MiB per Markdown document. The companion checks
 these limits again on the server. When overriding `maxImageBytes` or
 `maxMarkdownBytes`, pass matching values to the editor/public components and

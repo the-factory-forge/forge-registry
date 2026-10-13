@@ -227,6 +227,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       sql`select id from blogs_object where id=${reserved.id} and state='pending'`,
     );
     assertBlog(pending, "CONFLICT");
+    // Each upload reserves a fresh UUID key; some S3 providers reject conditional PUTs.
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
@@ -234,7 +235,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         Body: bytes,
         ContentType: contentType,
         ContentLength: bytes.length,
-        IfNoneMatch: "*",
       }),
       { abortSignal: AbortSignal.timeout(30000) },
     );

@@ -29,6 +29,19 @@ const s3 = new S3Client({
   requestChecksumCalculation: "WHEN_REQUIRED",
   responseChecksumValidation: "WHEN_REQUIRED",
 });
+s3.middlewareStack.add(
+  (next) => async (args) => {
+    // Match providers such as Infomaniak that reject conditional object PUTs.
+    if (args.request.method === "PUT" && args.request.headers["if-none-match"]) {
+      throw Object.assign(new Error("Conditional object PUTs are not supported."), {
+        name: "NotImplemented",
+        $metadata: { httpStatusCode: 501 },
+      });
+    }
+    return next(args);
+  },
+  { step: "build", name: "rejectConditionalUploads" },
+);
 const bucket = "forge-blogs-integration";
 const options = {
   db,
@@ -160,6 +173,22 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
   };
   const asset = await storage.upload("jordan", imageInput);
   assert.deepEqual(await storage.upload("jordan", imageInput), asset);
+  const banner = await storage.upload("jordan", { ...imageInput, ...request() });
+  const inline = await storage.upload("jordan", { ...imageInput, ...request() });
+  await t.test(
+    "same-name images retain distinct scoped keys without conditional PUTs",
+    async () => {
+      const images = [asset, banner, inline];
+      assert.equal(new Set(images.map((image) => image.id)).size, 3);
+      const records =
+        await pool`select id,key from blogs_object where article_id=${article.id} and state='ready'`;
+      assert.equal(records.length, 3);
+      for (const record of records) {
+        assert.equal(record.key, `storage-test/blogs/${article.id}/${record.id}/image`);
+        assert.deepEqual(Buffer.from((await storage.readImage(record.id, "jordan")).bytes), image);
+      }
+    },
+  );
   await t.test("private media, image validation, and foreign asset IDs", async () => {
     await rejected(storage.readImage(asset.id), "NOT_FOUND");
     assert.deepEqual(Buffer.from((await storage.readImage(asset.id, "jordan")).bytes), image);
@@ -216,18 +245,22 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
       await pool`update blogs_object set key=${record.key},created_at=now() where id=${asset.id}`;
     }
   });
-  const shared = { thumbnailId: asset.id, bannerId: asset.id, categoryIds: [child.id] };
+  const shared = { thumbnailId: asset.id, bannerId: banner.id, categoryIds: [child.id] };
   const draft = {
     ...input(article),
     content: {
       ...emptyContent,
       title: "Published title",
       slug: "first-post",
-      markdown: `# Hello\n\n![Photo][image]\n\n[image]: ./assets/${asset.id}`,
+      markdown: `# Hello\n\n![Inline](./assets/${inline.id})\n\n![Photo][image]\n\n[image]: ./assets/${inline.id}`,
     },
     shared,
   };
   article = await client.save(draft);
+  assert.equal(
+    (await client.get(article.id)).translations.en.draft.markdown,
+    draft.content.markdown,
+  );
   const savedVersion = article.version;
   assert.equal((await client.save(draft)).version, savedVersion);
   await rejected(
@@ -237,7 +270,13 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
   article = await client.publish(input(article));
   const published = await storage.getPublished("en", "first-post");
   assert.equal(published.title, "Published title");
-  assert.deepEqual(Buffer.from((await storage.readImage(asset.id)).bytes), image);
+  assert.equal(published.markdown, draft.content.markdown);
+  assert.equal(published.shared.thumbnailId, asset.id);
+  assert.equal(published.shared.bannerId, banner.id);
+  assert.deepEqual(new Set(published.assetIds), new Set([asset.id, banner.id, inline.id]));
+  for (const id of published.assetIds) {
+    assert.deepEqual(Buffer.from((await storage.readImage(id)).bytes), image);
+  }
   assert.equal((await storage.listPublished({ locale: "en", categoryId: category.id })).total, 1);
   assert.equal((await storage.listPublished({ locale: "en" })).categoryCounts[category.id], 1);
   await t.test("independent translation snapshots and taxonomy labels", async () => {
@@ -370,11 +409,12 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
     s3.send = original;
     await storage.maintenance(100);
     await client.get(article.id);
-    await storage.readImage(asset.id, "jordan");
+    await storage.readImage(banner.id, "jordan");
+    await storage.readImage(inline.id, "jordan");
     const deletion = { id: article.id, version: article.version, ...request() };
     await client.delete(deletion);
     await client.delete(deletion);
-    await rejected(storage.readImage(asset.id, "jordan"), "NOT_FOUND");
+    await rejected(storage.readImage(inline.id, "jordan"), "NOT_FOUND");
     // A deleted article cannot acquire new objects through a racing save.
     await rejected(
       client.save({ ...input(article), shared: article.shared, content: draft.content }),
