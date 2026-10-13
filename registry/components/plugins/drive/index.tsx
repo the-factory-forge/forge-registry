@@ -5,10 +5,10 @@ import {
   RefreshCwIcon,
   ChevronRightIcon,
   DownloadIcon,
-  ExternalLinkIcon,
   FileIcon,
   FolderIcon,
   FolderOpenIcon,
+  Link2Icon,
   PencilIcon,
   Trash2Icon,
   UploadIcon,
@@ -245,7 +245,7 @@ export function DrivePage({
                             className={iconButtonClass}
                             aria-label={`${labels.openRecord}: ${space.name}`}
                           >
-                            <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                            <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
                           </HostLink>
                         </IconTooltip>
                       )}
@@ -747,7 +747,7 @@ function Browser({
                 className={iconButtonClass}
                 aria-label={`${labels.openRecord}: ${data.space.name}`}
               >
-                <ExternalLinkIcon className="size-4 shrink-0" aria-hidden="true" />
+                <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
               </HostLink>
             </IconTooltip>
           )}
