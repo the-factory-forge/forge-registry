@@ -3,9 +3,10 @@ export async function openDriveFolderDialog(page) {
   const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
   if (!(await navigation.isVisible()))
     await page.getByRole("button", { name: "Drive navigation", exact: true }).click();
+  // The mobile drawer makes the breadcrumb inert while its menu is open.
   const heading = page
-    .getByRole("navigation", { name: "Folder navigation", exact: true })
-    .getByRole("heading");
+    .getByRole("navigation", { name: "Folder navigation", exact: true, includeHidden: true })
+    .getByRole("heading", { includeHidden: true });
   const name = await (
     (await heading.count()) ? heading : navigation.getByRole("link", { current: "page" })
   ).innerText();

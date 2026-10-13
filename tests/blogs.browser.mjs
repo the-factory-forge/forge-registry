@@ -353,7 +353,9 @@ test("showroom illustrations load without cropping in both themes", async (t) =>
 });
 void test("public search debounces typing, clears filters, and keeps Enter submission", async (t) => {
   const page = await preview(t);
-  await page.clock.install();
+  const now = new Date();
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 1000));
   await page.getByRole("link", { name: "Ideas & practice (2)", exact: true }).click();
   const category = new URL(page.url()).searchParams.get("category");
   const search = page.getByRole("searchbox", { name: "Search posts", exact: true });
