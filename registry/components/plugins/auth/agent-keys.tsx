@@ -88,6 +88,7 @@ function AgentKeysContent({
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState("");
+  const [maxExpiry, setMaxExpiry] = useState("");
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
   const [deleting, setDeleting] = useState<AgentKey | null>(null);
@@ -111,9 +112,13 @@ function AgentKeysContent({
             className={cn(accountButtonClass, accountPrimaryClass)}
             disabled={!keys || error || pending}
             onClick={() => {
-              const date = new Date(Date.now() + 30 * 86400000);
+              const now = Date.now();
+              const date = new Date(now + 30 * 86400000);
               date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
               setExpiry(date.toISOString().slice(0, 16));
+              const maxDate = new Date(now + 90 * 86400000);
+              maxDate.setMinutes(maxDate.getMinutes() - maxDate.getTimezoneOffset());
+              setMaxExpiry(maxDate.toISOString().slice(0, 16));
               setName("");
               setFailure("");
               setCreating(true);
@@ -273,6 +278,7 @@ function AgentKeysContent({
             <input
               id={`${id}-expiry`}
               type="datetime-local"
+              max={maxExpiry}
               value={expiry}
               onChange={(e) => setExpiry(e.target.value)}
               required

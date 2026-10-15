@@ -367,7 +367,10 @@ are overridable. Key the adapter by account ID to reset action state between use
 `AgentKeys` takes metadata-only `keys` (id, name, createdAt, lastUsedAt, expiresAt,
 expired), `onRetry`, `onCreate({ name, expiresAt }): Promise<{ token }>`, and
 `onDelete(id)`. Creation validates a nonblank name of at most 100 characters and
-an expiry within 90 days; the server must repeat those checks. The returned token
+an expiry within 90 days; the server must repeat those checks. The date and time
+picker defaults to 30 days and caps selection at 90 days from opening the dialog,
+using the device's local time. Browser validation also blocks manually entered
+values beyond that maximum before calling the host. The returned token
 is held only in component state until the one-time dialog closes or unmounts.
 Deletion requires confirmation. Concurrent submissions are blocked; failures keep
 creation drafts or the deletion confirmation available for retry. Successful

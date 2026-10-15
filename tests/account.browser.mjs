@@ -60,11 +60,25 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   await page.getByRole("cell", { name: "Expired", exact: true }).waitFor();
   await page.getByRole("button", { name: "Create key", exact: true }).click();
   const dialog = page.getByRole("dialog");
+  const expiry = dialog.getByLabel("Expiry date and time");
+  const { defaultLifetime, maxLifetime, max } = await expiry.evaluate((input) => ({
+    defaultLifetime: new Date(input.value).getTime() - Date.now(),
+    maxLifetime: new Date(input.max).getTime() - Date.now(),
+    max: input.max,
+  }));
+  assert.ok(defaultLifetime > 29 * 86400000 && defaultLifetime <= 30 * 86400000);
+  assert.ok(maxLifetime > 89 * 86400000 && maxLifetime <= 90 * 86400000);
   await dialog.getByLabel("Name", { exact: true }).fill("Integration");
   await dialog.getByLabel("Expiry date and time").fill("2020-01-01T12:00");
   await dialog.getByRole("button", { name: "Create key", exact: true }).click();
   await dialog.getByRole("alert").waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  for (const offset of [60000, 86400000]) {
+    await expiry.fill(new Date(Date.parse(`${max}Z`) + offset).toISOString().slice(0, 16));
+    await dialog.getByRole("button", { name: "Create key", exact: true }).click();
+    assert.equal(await expiry.evaluate((input) => input.validity.rangeOverflow), true);
+    assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  }
   const future = new Date(Date.now() + 86400000);
   future.setMinutes(future.getMinutes() - future.getTimezoneOffset());
   await dialog.getByLabel("Expiry date and time").fill(future.toISOString().slice(0, 16));
@@ -83,6 +97,7 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Create key", exact: true }).click();
   await dialog.getByLabel("Name", { exact: true }).fill("Integration");
+  await expiry.fill(await expiry.getAttribute("max"));
   await dialog.getByRole("button", { name: "Create key", exact: true }).click();
   await page.getByRole("heading", { name: "Key created", exact: true }).waitFor();
   assert.match(await page.getByLabel("New agent key").inputValue(), /^forge_key_preview/);
