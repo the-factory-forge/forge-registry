@@ -1046,6 +1046,16 @@
           "path": "registry/components/plugins/drive/server/lifecycle.json",
           "type": "registry:file",
           "target": "@components/plugins/drive/server/lifecycle.json"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/storage-names-migration.sql",
+          "type": "registry:file",
+          "target": "@components/plugins/drive/server/storage-names-migration.sql"
         }
       ]
     },
@@ -1142,6 +1152,11 @@
           "path": "registry/components/plugins/blogs/server/types.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/server/types.ts"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/storage-filename.ts"
         }
       ]
     },

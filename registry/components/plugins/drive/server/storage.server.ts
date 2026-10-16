@@ -36,6 +36,7 @@ import {
   validScope,
   validSort,
 } from "@/components/plugins/drive/utils";
+import { storageFilename } from "@/components/utils/storage-filename";
 
 type QueryDb = Pick<DriveDatabase, "execute">;
 type Entry = {
@@ -48,6 +49,7 @@ type Entry = {
   content_type: string;
   state: "uploading" | "ready" | "deleting" | "trashed" | "purging";
   storage_id: string | null;
+  storage_name: string | null;
   updated_at: Date | string;
   depth?: number;
   trash_root_id?: string | null;
@@ -61,6 +63,7 @@ type Upload = {
   space_id: string;
   entry_id: string;
   storage_id: string;
+  storage_name: string | null;
   input: {
     parentId: string | null;
     name: string;
@@ -124,8 +127,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     retentionDays > 365
   )
     throw new DriveError("INVALID");
-  const key = (spaceId: string, storageId: string, staging = false) =>
-    `${prefix}${staging ? "staging" : "objects"}/${spaceId}/${storageId}`;
+  const key = (spaceId: string, storageId: string, storageName: string | null, staging = false) => {
+    if (storageName !== null && !/^[a-z0-9]+(?:[_-][a-z0-9]+)*\.[a-z0-9]{1,16}$/.test(storageName))
+      throw new DriveError("STORAGE");
+    return `${prefix}${staging ? "staging" : "objects"}/${spaceId}/${storageId}${storageName ? `/${storageName}` : ""}`;
+  };
   let verified: Promise<void> | undefined;
   function verifyBucket() {
     verified ??= s3
@@ -222,7 +228,13 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       folders: rows.filter((row) => row.kind === "folder").length,
     };
   }
-  async function removeObjects(tx: QueryDb, spaceId: string, storageId: string, entryId: string) {
+  async function removeObjects(
+    tx: QueryDb,
+    spaceId: string,
+    storageId: string,
+    storageName: string | null,
+    entryId: string,
+  ) {
     // Copies share immutable bytes; only the last reference may remove them.
     const [reference] = await tx.execute(
       sql`select id from drive_entry where space_id=${spaceId} and storage_id=${storageId} and id<>${entryId} limit 1`,
@@ -231,7 +243,10 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     await verifyBucket();
     for (const staging of [false, true])
       await s3.send(
-        new DeleteObjectCommand({ Bucket: bucket, Key: key(spaceId, storageId, staging) }),
+        new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: key(spaceId, storageId, storageName, staging),
+        }),
       );
   }
   async function finishDeletes(scope: DriveScope, limit = 100) {
@@ -243,7 +258,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       );
       for (const row of rows) {
         try {
-          if (row.storage_id) await removeObjects(tx, spaceId, row.storage_id, row.id);
+          if (row.storage_id)
+            await removeObjects(tx, spaceId, row.storage_id, row.storage_name, row.id);
           await tx.execute(
             sql`update drive_upload set state='cancelled' where space_id=${spaceId} and entry_id=${row.id} and state='active'`,
           );
@@ -321,13 +337,14 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           }
         }
         const entryId = randomUUID(),
-          storageId = randomUUID();
+          storageId = randomUUID(),
+          storageName = storageFilename(name, scope.type);
         const expiresAt = new Date(Date.now() + uploadLifetime);
         await tx.execute(
-          sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id) values (${entryId},${spaceId},${destination},'file',${name},${size},${contentType},'uploading',${storageId})`,
+          sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id,storage_name) values (${entryId},${spaceId},${destination},'file',${name},${size},${contentType},'uploading',${storageId},${storageName})`,
         );
         const [created] = await tx.execute<Upload>(
-          sql`insert into drive_upload (id,space_id,entry_id,storage_id,input,state,expires_at) values (${requestId},${spaceId},${entryId},${storageId},${JSON.stringify(fields)}::jsonb,'active',${expiresAt.toISOString()}) returning *`,
+          sql`insert into drive_upload (id,space_id,entry_id,storage_id,storage_name,input,state,expires_at) values (${requestId},${spaceId},${entryId},${storageId},${storageName},${JSON.stringify(fields)}::jsonb,'active',${expiresAt.toISOString()}) returning *`,
         );
         upload = created;
       }
@@ -342,7 +359,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         s3,
         new PutObjectCommand({
           Bucket: bucket,
-          Key: key(spaceId!, upload.storage_id, true),
+          Key: key(spaceId!, upload.storage_id, upload.storage_name, true),
           ContentLength: size,
           ContentType: contentType,
           IfNoneMatch: "*",
@@ -447,7 +464,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           const ids = new Map(rows.map((row) => [row.id, randomUUID()]));
           for (const row of rows.toReversed()) {
             await tx.execute(
-              sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id) values (${ids.get(row.id)},${spaceId},${row.id === entryId ? row.parent_id : ids.get(row.parent_id!)},${row.kind},${row.id === entryId ? normalized : row.name},${row.size},${row.content_type},'ready',${row.storage_id})`,
+              sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id,storage_name) values (${ids.get(row.id)},${spaceId},${row.id === entryId ? row.parent_id : ids.get(row.parent_id!)},${row.kind},${row.id === entryId ? normalized : row.name},${row.size},${row.content_type},'ready',${row.storage_id},${row.storage_name})`,
             );
           }
         });
@@ -513,7 +530,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           const row = await entry(tx, spaceId, upload.entry_id);
           if (row.state !== "uploading") throw new DriveError("CONFLICT");
           await parents(tx, spaceId, row.parent_id);
-          const stagingKey = key(spaceId!, upload.storage_id, true);
+          const stagingKey = key(spaceId!, upload.storage_id, upload.storage_name, true);
           const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: stagingKey }));
           if (
             head.ContentLength !== upload.input.size ||
@@ -525,7 +542,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           await s3.send(
             new CopyObjectCommand({
               Bucket: bucket,
-              Key: key(spaceId!, upload.storage_id),
+              Key: key(spaceId!, upload.storage_id, upload.storage_name),
               CopySource: `${encodeURIComponent(bucket)}/${stagingKey.split("/").map(encodeURIComponent).join("/")}`,
               CopySourceIfMatch: head.ETag,
               MetadataDirective: "REPLACE",
@@ -543,7 +560,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           .send(
             new DeleteObjectCommand({
               Bucket: bucket,
-              Key: key(completed.space_id, completed.storage_id, true),
+              Key: key(completed.space_id, completed.storage_id, completed.storage_name, true),
             }),
           )
           .catch(() => undefined);
@@ -576,7 +593,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             s3,
             new GetObjectCommand({
               Bucket: bucket,
-              Key: key(spaceId!, row.storage_id),
+              Key: key(spaceId!, row.storage_id, row.storage_name),
               ResponseContentDisposition: `attachment; filename="download"; filename*=UTF-8''${filename}`,
               ResponseContentType: "application/octet-stream",
             }),
@@ -697,7 +714,10 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         if (row.kind !== "file" || row.state !== "ready" || !row.storage_id)
           throw new DriveError("NOT_FOUND");
         if (Number(row.size) > maxBytes) throw new DriveError("INVALID");
-        return { key: key(spaceId!, row.storage_id), contentType: row.content_type };
+        return {
+          key: key(spaceId!, row.storage_id, row.storage_name),
+          contentType: row.content_type,
+        };
       });
       try {
         const object = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: file.key }));
@@ -789,7 +809,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
               await s3.send(
                 new DeleteObjectCommand({
                   Bucket: bucket,
-                  Key: key(spaceId!, upload.storage_id, true),
+                  Key: key(spaceId!, upload.storage_id, upload.storage_name, true),
                 }),
               );
               // Retain idempotency tombstones, but avoid revisiting cleaned reservations.

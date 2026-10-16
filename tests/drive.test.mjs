@@ -72,7 +72,8 @@ test("Drive UI ships independently; only the companion contains storage dependen
       .filter((entry) => entry.isFile())
       .map((entry) => `${directory}/${entry.name}`)
       .sort();
-    assert.deepEqual(item.files.map((file) => file.path).sort(), actual);
+    if (item === server) actual.push("registry/components/utils/storage-filename.ts");
+    assert.deepEqual(item.files.map((file) => file.path).sort(), actual.sort());
     for (const file of item.files) {
       assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
       const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");

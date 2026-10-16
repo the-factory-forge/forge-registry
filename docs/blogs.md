@@ -129,6 +129,10 @@ The companion exports `createBlogsStorage`, configuration/database types, and
 tables. Review `server/migration.sql` and apply it through the host migration
 workflow. Installation does not apply migrations.
 
+For Infomaniak, use its built-in encryption for all images; see
+[Storage encryption and access](./plugins.md#storage-encryption-and-access) for
+private bucket requirements and the separate live configuration checks.
+
 For image uploads, use a private, dedicated, **unversioned** S3-compatible bucket. Versioned/suspended
 buckets are rejected because deleting current objects leaves previous versions.
 Configure credentials on the server only:
@@ -182,6 +186,27 @@ public listing filters/paginates in SQL without fetching Markdown. These choices
 fit small editorial sites. High-throughput hosts should move to per-article locks
 and SQL-backed visibility rules. One configured database/schema represents one
 website, not a multitenant authorization boundary.
+
+## Object filenames
+
+New images use `[asset_name]-blog-[modifier].[extension]` inside the existing
+`<SITE_NAME>/blogs/<article-id>/<asset-id>/` directory, omitting absent modifiers.
+Hyphens delimit fields; underscores separate words within a field. The uploaded
+stem's first field supplies the asset name, `blog` replaces any existing type,
+and remaining modifier fields are retained. Thus `the_corner-logo_mark-white.png`
+becomes `the_corner-blog-white.png`, without stacking another type on the name.
+Use underscores for words belonging to the same asset name.
+
+Fields use lowercase letters, digits and underscores. Extensions follow validated
+PNG, JPEG (`.jpg`) or WebP bytes: `Cover.JPG` with PNG bytes becomes `cover-blog.png`.
+UUID directories keep same-name uploads distinct. The companion does not transform
+bytes or invent modifiers; a supplied `original` modifier is removed. Existing
+modifiers describe the uploaded variant, such as `thumbnail` or `white_bg`, rather
+than where the image might later be displayed.
+
+Existing object-ledger keys remain authoritative for reads, publication and
+cleanup. No schema migration or existing-object rename is required. This source
+update changes future uploads only; live consumer adoption remains separate.
 
 ## Updating consumers
 

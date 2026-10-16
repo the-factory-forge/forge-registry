@@ -45,6 +45,7 @@ import {
   MAX_MARKDOWN_BYTES,
   validId,
 } from "@/components/plugins/blogs/utils";
+import { storageFilename } from "@/components/utils/storage-filename";
 
 type ObjectRow = {
   id: string;
@@ -201,7 +202,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     await access(context, permission, articleId);
     assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     const id = randomUUID(),
-      key = `${prefix}${articleId}/${id}/image`;
+      key = `${prefix}${articleId}/${id}/${storageFilename(name, "blog", contentType === "image/jpeg" ? "jpg" : contentType.slice("image/".length))}`;
     await guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);

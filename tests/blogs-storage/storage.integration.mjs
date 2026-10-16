@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   S3Client,
   CreateBucketCommand,
+  CopyObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
@@ -184,9 +185,39 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
         await pool`select id,key from blogs_object where article_id=${article.id} and state='ready'`;
       assert.equal(records.length, 3);
       for (const record of records) {
-        assert.equal(record.key, `storage-test/blogs/${article.id}/${record.id}/image`);
+        assert.equal(record.key, `storage-test/blogs/${article.id}/${record.id}/photo-blog.png`);
         assert.deepEqual(Buffer.from((await storage.readImage(record.id, "jordan")).bytes), image);
       }
+    },
+  );
+  await t.test(
+    "image extensions follow verified bytes and legacy image keys stay readable",
+    async () => {
+      const uploaded = await storage.upload("jordan", {
+        ...imageInput,
+        name: "the_corner-logo_mark-white_bg.JPG",
+        ...request(),
+      });
+      const [record] = await pool`select key from blogs_object where id=${uploaded.id}`;
+      assert.ok(record.key.endsWith("/the_corner-blog-white_bg.png"));
+      const legacyKey = record.key.replace(/[^/]+$/, "image");
+      await s3.send(
+        new CopyObjectCommand({
+          Bucket: bucket,
+          Key: legacyKey,
+          CopySource: `${bucket}/${record.key}`,
+        }),
+      );
+      await pool`update blogs_object set key=${legacyKey} where id=${uploaded.id}`;
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: record.key }));
+      assert.deepEqual(Buffer.from((await storage.readImage(uploaded.id, "jordan")).bytes), image);
+      await pool`update blogs_object set created_at=now()-interval '2 days' where id=${uploaded.id}`;
+      await storage.maintenance();
+      assert.equal((await pool`select id from blogs_object where id=${uploaded.id}`).length, 0);
+      assert.equal(
+        (await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: legacyKey }))).KeyCount,
+        0,
+      );
     },
   );
   await t.test("private media, image validation, and foreign asset IDs", async () => {
@@ -428,6 +459,58 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
       0,
     );
   });
+  await t.test(
+    "public images follow publication snapshots, never draft replacements or bucket ACLs",
+    async () => {
+      let post = await client.create({ title: "Image privacy", locale: "en", ...request() });
+      const assets = [];
+      for (let i = 0; i < 3; i++) {
+        assets.push(await storage.upload("jordan", { ...imageInput, id: post.id, ...request() }));
+      }
+      const [original, replacement, unused] = assets;
+      const content = {
+        ...emptyContent,
+        title: "Image privacy",
+        slug: "image-privacy",
+        markdown: "Public text",
+      };
+      post = await client.save({
+        ...input(post),
+        content,
+        shared: { thumbnailId: original.id, bannerId: null, categoryIds: [] },
+      });
+      await rejected(storage.readImage(original.id), "NOT_FOUND");
+      post = await client.publish(input(post));
+      post = await client.save({
+        ...input(post),
+        content,
+        shared: { ...post.shared, thumbnailId: replacement.id },
+      });
+      assert.equal((await storage.readImage(original.id)).cacheControl, "no-store");
+      await rejected(storage.readImage(replacement.id), "NOT_FOUND");
+      await rejected(storage.readImage(unused.id), "NOT_FOUND");
+      await rejected(storage.readImage(replacement.id, "restricted"), "FORBIDDEN");
+      assert.deepEqual(
+        Buffer.from((await storage.readImage(replacement.id, "jordan")).bytes),
+        image,
+      );
+      post = await client.publish(input(post));
+      await rejected(storage.readImage(original.id), "NOT_FOUND");
+      assert.deepEqual(Buffer.from((await storage.readImage(replacement.id)).bytes), image);
+      for (const asset of assets) {
+        const [record] = await pool`select key from blogs_object where id=${asset.id}`;
+        const rawUrl = `http://127.0.0.1:19040/${bucket}/${record.key}`;
+        assert.equal((await fetch(rawUrl)).status, 403);
+        assert.equal((await fetch(rawUrl, { method: "HEAD" })).status, 403);
+      }
+      post = await client.unpublish(input(post));
+      await rejected(storage.readImage(replacement.id), "NOT_FOUND");
+      post = await client.publish(input(post));
+      await client.delete({ id: post.id, version: post.version, ...request() });
+      await rejected(storage.readImage(replacement.id), "NOT_FOUND");
+      await rejected(storage.readImage(replacement.id, "jordan"), "NOT_FOUND");
+    },
+  );
   let durable = await client.create({ title: "Restart proof", locale: "en", ...request() });
   const durableAsset = await storage.upload("jordan", {
     ...imageInput,
@@ -448,7 +531,9 @@ test("private blog persistence, publication boundaries, retries, and recovery", 
   const objects = await s3.send(
     new ListObjectsV2Command({ Bucket: bucket, Prefix: `storage-test/blogs/${durable.id}/` }),
   );
-  assert.ok(objects.Contents.every((o) => o.Key.endsWith("/image")));
+  assert.ok(
+    objects.Contents.every((o) => /\/(?:image|[a-z0-9-]+-blog\.(?:png|jpg|webp))$/.test(o.Key)),
+  );
   const [record] = await pool`select document from blogs_article where id=${durable.id}`;
   assert.equal(record.document.translations.en.published.markdown, "Persisted Markdown");
 });

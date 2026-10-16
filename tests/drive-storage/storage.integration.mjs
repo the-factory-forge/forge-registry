@@ -54,7 +54,9 @@ const options = {
   keyPrefix: "storage-test/drive/",
   maxFileBytes: 1024,
   resolveScope: async (user, scope) =>
-    allowed && user !== "stranger" && ["project", "customer", "workspace"].includes(scope.type)
+    allowed &&
+    user !== "stranger" &&
+    ["project", "customer", "workspace", "employee"].includes(scope.type)
       ? {
           scope,
           name: `${scope.type} ${scope.id}`,
@@ -152,6 +154,18 @@ test("private Drive persistence and storage recovery", async (t) => {
       "utf8",
     ),
   );
+  await pool.unsafe(
+    "ALTER TABLE drive_entry DROP COLUMN storage_name; ALTER TABLE drive_upload DROP COLUMN storage_name",
+  );
+  const namesMigration = await readFile(
+    new URL(
+      "../../registry/components/plugins/drive/server/storage-names-migration.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  await pool.unsafe(namesMigration);
+  await pool.unsafe(namesMigration);
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   } catch (error) {
@@ -209,6 +223,48 @@ test("private Drive persistence and storage recovery", async (t) => {
     },
   );
   await t.test(
+    "legacy pending uploads retain keys through completion, rename, copies and cleanup",
+    async () => {
+      const scope = { type: "workspace", id: "legacy-keys" };
+      const value = await reserve("Legacy.txt", null, scope);
+      const [row] = await pool`select * from drive_upload where id=${value.ticket.id}`;
+      await pool`update drive_upload set storage_name=null where id=${row.id}`;
+      await pool`update drive_entry set storage_name=null where id=${row.entry_id}`;
+      value.ticket = await client.prepareUpload(value.input);
+      assert.ok(new URL(value.ticket.url).pathname.endsWith(`/${row.storage_id}`));
+      await put(value);
+      await complete(value);
+      await client.rename({ scope, entryId: row.entry_id, name: "Renamed.txt" });
+      await client.duplicateEntry({ scope, entryId: row.entry_id, name: "Copy.txt" });
+      await remove(
+        scope,
+        (await list(scope)).items.find((entry) => entry.id === row.entry_id),
+      );
+      const copy = (await list(scope)).items[0];
+      const download = await client.getDownload({ scope, entryId: copy.id });
+      assert.ok(new URL(download.url).pathname.endsWith(`/${row.storage_id}`));
+      assert.equal(await (await fetch(download.url)).text(), "hello");
+      assert.equal(
+        Buffer.from((await storage.readTrustedFile(scope, copy.id, 1024)).bytes).toString(),
+        "hello",
+      );
+      await remove(scope, copy);
+      for (const folder of ["objects", "staging"]) {
+        assert.equal(
+          (
+            await s3.send(
+              new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: `storage-test/drive/${folder}/${row.space_id}/${row.storage_id}`,
+              }),
+            )
+          ).KeyCount,
+          0,
+        );
+      }
+    },
+  );
+  await t.test(
     "folder uploads preserve paths, retry safely and enforce scope and creation permissions",
     async () => {
       const scope = { type: "workspace", id: "folder-upload" };
@@ -216,17 +272,21 @@ test("private Drive persistence and storage recovery", async (t) => {
         scope,
         parentId: null,
         requestId: randomUUID(),
-        name: "receipt.txt",
+        name: "annual_report-document-redacted.txt",
         size: 5,
         contentType: "text/plain",
-        relativePath: "Bills/2026/receipt.txt",
+        relativePath: "Bills/2026/annual_report-document-redacted.txt",
       };
       const ticket = await client.prepareFolderUpload(input);
+      assert.ok(new URL(ticket.url).pathname.endsWith("/annual_report-workspace-redacted.txt"));
       await put({ ticket, body: "hello" });
       await client.completeUpload({ scope, uploadId: input.requestId });
       assert.equal((await client.prepareFolderUpload(input)).completed, true);
       await rejected(
-        client.prepareFolderUpload({ ...input, relativePath: "Other/receipt.txt" }),
+        client.prepareFolderUpload({
+          ...input,
+          relativePath: "Other/annual_report-document-redacted.txt",
+        }),
         "CONFLICT",
       );
       await rejected(client.prepareUpload(input), "CONFLICT");
@@ -235,7 +295,7 @@ test("private Drive persistence and storage recovery", async (t) => {
       const file = (await list(scope, year.id)).items[0];
       assert.equal(bills.name, "Bills");
       assert.equal(year.name, "2026");
-      assert.equal(file.name, "receipt.txt");
+      assert.equal(file.name, "annual_report-document-redacted.txt");
       assert.equal(
         await (await fetch((await client.getDownload({ scope, entryId: file.id })).url)).text(),
         "hello",
@@ -530,7 +590,7 @@ test("private Drive persistence and storage recovery", async (t) => {
     await s3.send(
       new PutObjectCommand({
         Bucket: bucket,
-        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}`,
+        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}/${row.storage_name}`,
         Body: "too long",
         ContentType: "text/plain",
       }),
@@ -552,7 +612,7 @@ test("private Drive persistence and storage recovery", async (t) => {
       s3,
       new PutObjectCommand({
         Bucket: bucket,
-        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}`,
+        Key: `storage-test/drive/staging/${row.space_id}/${row.storage_id}/${row.storage_name}`,
         ContentType: "text/plain",
       }),
       { expiresIn: 1, signingDate: new Date(Date.now() - 60_000) },
@@ -870,6 +930,44 @@ test("private Drive persistence and storage recovery", async (t) => {
             s3.send = send;
           }
         }
+      }
+    },
+  );
+  await t.test(
+    "sensitive scopes keep staging and final objects private and recheck download grants",
+    async () => {
+      for (const type of ["employee", "customer", "workspace"]) {
+        const scope = { type, id: "privacy" };
+        const value = await reserve("Sensitive.txt", null, scope);
+        await put(value);
+        assert.equal((await fetch(value.ticket.url.split("?")[0])).status, 403);
+        await complete(value);
+        const entry = (await list(scope)).items[0];
+        await rejected(
+          storage.client("stranger").getDownload({ scope, entryId: entry.id }),
+          "NOT_FOUND",
+        );
+        let checks = 0;
+        const restricted = createDriveStorage({
+          ...options,
+          resolveScope: async () => ({
+            scope,
+            name: "Sensitive files",
+            capabilities: { ...writable, download: ++checks === 1 },
+          }),
+        });
+        await rejected(
+          restricted.client("editor").getDownload({ scope, entryId: entry.id }),
+          "FORBIDDEN",
+        );
+        assert.equal(checks, 2);
+        const { url } = await client.getDownload({ scope, entryId: entry.id });
+        assert.equal(new URL(url).searchParams.get("X-Amz-Expires"), "300");
+        assert.equal(await (await fetch(url)).text(), "hello");
+        const rawUrl = url.split("?")[0];
+        assert.equal((await fetch(rawUrl)).status, 403);
+        assert.equal((await fetch(rawUrl, { method: "HEAD" })).status, 403);
+        await remove(scope, entry);
       }
     },
   );

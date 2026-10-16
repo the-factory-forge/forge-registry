@@ -14,6 +14,7 @@ CREATE TABLE drive_entry (
   size bigint NOT NULL DEFAULT 0 CHECK (size >= 0),
   content_type text NOT NULL DEFAULT 'application/octet-stream',
   storage_id uuid,
+  storage_name text,
   state text NOT NULL CONSTRAINT drive_entry_state CHECK (state IN ('uploading', 'ready', 'deleting', 'trashed', 'purging')),
   updated_at timestamptz NOT NULL DEFAULT now(),
   trash_root_id uuid,
@@ -37,6 +38,7 @@ CREATE TABLE drive_upload (
   space_id uuid NOT NULL REFERENCES drive_space(id),
   entry_id uuid NOT NULL,
   storage_id uuid NOT NULL,
+  storage_name text,
   input jsonb NOT NULL,
   state text NOT NULL CHECK (state IN ('active', 'completed', 'cancelled')),
   expires_at timestamptz NOT NULL

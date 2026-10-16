@@ -325,6 +325,34 @@ Finalization that has already started can finish; the UI disables cancellation
 during that step. Files are not persisted in browser storage. The host controls fetching accessible spaces
 and pagination; folder pages use 50 entries and current-folder substring search.
 
+## Object filenames
+
+New uploads use `[asset_name]-[type]-[modifier].[extension]`, omitting the modifier
+when none is supplied. Hyphens delimit fields; underscores separate words within
+one field. The uploaded stem's first field supplies the asset name, the host's
+Drive scope replaces any existing type field, and remaining modifier fields are
+retained. For example, `the_corner-logo_mark-white_bg.png` in a project space becomes
+`the_corner-project-white_bg.png`. `Annual Report.PDF` becomes
+`annual_report-project.pdf`; the `menu-item` scope becomes the type `menu_item`.
+Use underscores for words belonging to the same asset name.
+
+Fields use lowercase letters, digits and underscores. The original extension is
+retained in lowercase; files with no usable extension use `.bin`. The companion
+does not transform bytes or invent modifiers, and removes a supplied `original`
+modifier. Existing modifiers describe the uploaded variant, such as `thumbnail`.
+Staging and final paths retain the site/plugin prefix and unique space/storage IDs,
+with this filename appended inside the storage ID directory. Lifecycle prefixes
+remain unchanged. Display names and download filenames remain user-controlled.
+
+Existing hosts must apply the shipped `server/storage-names-migration.sql` through
+their schema workflow before adopting this version. It adds nullable `storage_name`
+columns to entries and upload reservations without moving objects. Deploy all
+writers and cleanup workers together; older code cannot locate new named objects.
+Legacy NULL names retain the existing keys, including pending uploads. Names are
+immutable after upload: rename, duplicate and trash/restore preserve their object
+paths, and shared bytes are deleted only after their last reference is removed.
+Renaming existing bucket objects is a separate verified migration.
+
 ## Database and storage setup
 
 Copy the shipped `server/migration.sql` into the host's schema workflow and
@@ -406,7 +434,9 @@ manage object versions. Restrict server IAM access to the configured prefix:
 `GetBucketVersioning` on the bucket, and `PutObject`, `GetObject`, `DeleteObject`
 on its staging/final prefixes (copy requires read on source and write on target).
 The deployment operator separately applies CORS and lifecycle policies. Configure
-server-side encryption and retention according to the host's requirements;
+server-side encryption and retention according to the host's requirements. For
+Infomaniak, use its built-in encryption for every file and verify private ACLs as
+described in [Storage encryption and access](./plugins.md#storage-encryption-and-access).
 Object Lock/retention that prevents deletion is incompatible with this workflow.
 
 Review `server/cors.json`: replace the example origin with your exact website

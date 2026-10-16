@@ -48,6 +48,45 @@ Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for the named spac
 expandable folder tree and optional Trash. The tree uses the existing scoped
 client reads; navigation does not grant access or change storage semantics.
 
+Storage companions rebuild `[asset_name]-[type]-[modifier].[extension]` object
+filenames under their existing UUID directories and site/plugin prefixes. Hyphens
+separate fields; underscores join words within a field. Blogs replaces the type
+with `blog`; Drive uses its scope type, normalized to `menu_item` for Menus media.
+Existing modifiers are retained, except `original`; absent modifiers stay absent. See
+[Drive migration and naming](./drive.md#object-filenames) and
+[Blog naming](./blogs.md#object-filenames) before adopting the server companions.
+
+## Storage encryption and access
+
+For Infomaniak storage, rely on its built-in encryption for all stored files,
+including public assets. Infomaniak documents automatic AES-256 encryption in
+[section 8.4 of its Public Cloud terms](https://welcome.infomaniak.com/api/components/cgu/latest?id=70&locale=en_GB)
+and its [Swiss Backup documentation](https://news.infomaniak.com/en/swiss-backup-en/).
+No application encryption key or AWS-specific encryption header is required for
+this provider-managed protection. It does not prevent an authorized storage
+reader from retrieving plaintext; object names should not contain sensitive details.
+
+Keep application buckets and objects private. Drive checks the host's current
+scope and download permission before issuing a five-minute signed URL; anyone
+holding that URL can use it until expiry, including after their permission is
+revoked. Employee and customer scope rules remain the host's responsibility.
+Never expose `readTrustedFile` as a browser-callable download operation.
+
+Blog image routes must call `readImage` and preserve its `no-store` response policy.
+Anonymous reads require the image in a current published snapshot of its owning
+article. New draft replacements and unused uploads stay private; unpublishing
+all referencing translations or deleting the article removes anonymous access.
+Publication never changes the underlying object's ACL. Separate public features,
+such as visible Menu images and explicitly public team/portfolio images, must
+authorize their own exact references and the owning record's current visibility.
+
+Check the deployed container/object ACLs and unsigned GET/HEAD requests separately
+from application tests. Infomaniak's [ACL documentation](https://docs.infomaniak.cloud/object_storage/acls/)
+notes that `s3.pub1` does not support S3 bucket policies; site/plugin prefixes do
+not provide access control. The companions' `verifyBucket` checks versioning,
+not public ACLs or provider encryption. Local MinIO tests prove application access
+behavior, not the live Infomaniak configuration or coverage of older objects.
+
 ## Shared presentation
 
 Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
