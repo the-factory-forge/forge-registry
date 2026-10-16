@@ -263,6 +263,22 @@ rejected. Signatures are not a full image decoder; optional transcoding/scanning
 belongs in the host pipeline. Browser-to-bucket CORS and presigned uploads are
 unnecessary because transfers use the host endpoint.
 
+## Crop new thumbnail and banner uploads
+
+`BlogEditPage` accepts optional `imageDimensions` for `thumbnail` and `banner`,
+for example `{ thumbnail: { width: 1200, height: 675 } }`. These are host choices,
+not registry defaults. For a configured field, selecting a new image opens
+[`ImageCropDialog`](./image-crop.md). Nothing reaches `client.upload` until
+the editor confirms; it receives a `.webp` File at the requested dimensions.
+Cancel preserves the current image. Upload failures retain the crop for retry.
+Use `imageCropLabels` for translated dialog labels.
+
+Unconfigured fields, inline Markdown uploads and existing asset selection retain
+their behavior. Both source and output must fit `maxImageBytes`; server validation
+and authorization remain required. The showroom enables cropping for both fields
+at 1200 × 675 by default. Disable **Crop new blog images (1200 × 675)** in its
+settings to preview uploads without known dimensions.
+
 ## Public pages and images
 
 Each public article card is one link covering its image, text and padding, with

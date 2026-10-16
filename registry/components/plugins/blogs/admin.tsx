@@ -20,6 +20,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
+import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
@@ -424,6 +425,8 @@ function BlogNewPageContent({
   );
 }
 export interface BlogEditPageProps extends BlogsAppearanceProps {
+  imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>>;
+  imageCropLabels?: Partial<ImageCropLabels>;
   client: BlogsClient;
   article: BlogArticle;
   categories: BlogCategory[];
@@ -496,6 +499,8 @@ function EditorForm({
   linkComponent,
   maxImageBytes = MAX_IMAGE_BYTES,
   maxMarkdownBytes = MAX_MARKDOWN_BYTES,
+  imageDimensions,
+  imageCropLabels,
 }: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
   const labels = { ...blogsLabels, ...overrides },
     action = useBlogAction(labels),
@@ -519,6 +524,11 @@ function EditorForm({
   );
   const { formRef, ...fields } = useEditorValidation();
   const [validation, setValidation] = useState("");
+  const [crop, setCrop] = useState<{
+    file: File;
+    target: "thumbnailId" | "bannerId";
+    dimensions: ImageCropSize;
+  } | null>(null);
   const readOnly = !capabilities.edit,
     pending = action.pending,
     status = optimistic.value;
@@ -630,13 +640,13 @@ function EditorForm({
     });
   }
   async function upload(file: File, target: "thumbnailId" | "bannerId" | "inline") {
-    if (pending) return;
+    if (pending || readOnly || !capabilities.upload) return false;
     if (
       file.size > maxImageBytes ||
       !["image/jpeg", "image/png", "image/webp"].includes(file.type)
     ) {
       setValidation(labels.INVALID);
-      return;
+      return false;
     }
     onDirty(true);
     const result = await action.run(
@@ -649,6 +659,13 @@ function EditorForm({
       if (target === "inline") insert(`![](${`./assets/${result.id}`})`);
       else sharedField(target, result.id);
     } else onDirty(dirty);
+    return !!result;
+  }
+  function selectImage(file: File, target: "thumbnailId" | "bannerId") {
+    if (pending || readOnly || !capabilities.upload) return;
+    const dimensions = imageDimensions?.[target === "thumbnailId" ? "thumbnail" : "banner"];
+    if (dimensions) setCrop({ file, target, dimensions });
+    else void upload(file, target);
   }
   function imageField(
     target: "thumbnailId" | "bannerId",
@@ -691,7 +708,7 @@ function EditorForm({
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
-                if (file) void upload(file, target);
+                if (file) selectImage(file, target);
               }}
             />
           </label>
@@ -748,6 +765,19 @@ function EditorForm({
   );
   return (
     <>
+      {crop && !readOnly && capabilities.upload && (
+        <ImageCropDialog
+          file={crop.file}
+          {...crop.dimensions}
+          maxFileBytes={maxImageBytes}
+          labels={imageCropLabels}
+          onCancel={() => setCrop(null)}
+          onConfirm={async (file) => {
+            if (!(await upload(file, crop.target))) throw new Error("Upload failed");
+            setCrop(null);
+          }}
+        />
+      )}
       <header className="space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">

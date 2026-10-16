@@ -121,6 +121,7 @@ supply their own translations and theme configuration.
 
 | Name                                           | Description                                                                         |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [image-crop](./docs/image-crop.md)             | Required crop confirmation and WebP preparation at host-supplied dimensions         |
 | [native-select](./docs/native-select.md)       | Native dropdown with consistent chevron spacing and standard form behavior          |
 | [table-pagination](./docs/table-pagination.md) | Shared table footer for numbered and cursor pagination                              |
 | [table-search](./docs/table-search.md)         | Expanding search button and accent-insensitive row matching                         |

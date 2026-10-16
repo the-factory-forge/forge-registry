@@ -17,6 +17,7 @@ import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
+import { Route as ImageCropRouteImport } from './routes/image-crop'
 import { Route as MailingRouteImport } from './routes/mailing'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
@@ -79,6 +80,11 @@ const CookieBannerRoute = CookieBannerRouteImport.update({
 const IconTooltipRoute = IconTooltipRouteImport.update({
   id: '/icon-tooltip',
   path: '/icon-tooltip',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImageCropRoute = ImageCropRouteImport.update({
+  id: '/image-crop',
+  path: '/image-crop',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MailingRoute = MailingRouteImport.update({
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/image-crop': typeof ImageCropRoute
   '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/image-crop': typeof ImageCropRoute
   '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -299,6 +307,7 @@ export interface FileRoutesById {
   '/action-toast': typeof ActionToastRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
+  '/image-crop': typeof ImageCropRoute
   '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/image-crop'
     | '/mailing'
     | '/native-select'
     | '/newsletter'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/image-crop'
     | '/mailing'
     | '/native-select'
     | '/newsletter'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/cookie-banner'
     | '/icon-tooltip'
+    | '/image-crop'
     | '/mailing'
     | '/native-select'
     | '/newsletter'
@@ -442,6 +454,7 @@ export interface RootRouteChildren {
   ActionToastRoute: typeof ActionToastRoute
   CookieBannerRoute: typeof CookieBannerRoute
   IconTooltipRoute: typeof IconTooltipRoute
+  ImageCropRoute: typeof ImageCropRoute
   MailingRoute: typeof MailingRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
@@ -518,6 +531,13 @@ declare module '@tanstack/react-router' {
       path: '/icon-tooltip'
       fullPath: '/icon-tooltip'
       preLoaderRoute: typeof IconTooltipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image-crop': {
+      id: '/image-crop'
+      path: '/image-crop'
+      fullPath: '/image-crop'
+      preLoaderRoute: typeof ImageCropRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mailing': {
@@ -776,6 +796,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActionToastRoute: ActionToastRoute,
   CookieBannerRoute: CookieBannerRoute,
   IconTooltipRoute: IconTooltipRoute,
+  ImageCropRoute: ImageCropRoute,
   MailingRoute: MailingRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,

@@ -502,6 +502,7 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
 });
 test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion focus and read-only", async (t) => {
   const page = await preview(t, `/en/admin/blogs/${existing}`);
+  await page.getByLabel("Crop new blog images (1200 × 675)", { exact: true }).uncheck();
   const upload = page.getByLabel("Upload image — Thumbnail", { exact: true }),
     file = {
       name: "upload.png",

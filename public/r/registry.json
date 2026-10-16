@@ -1075,7 +1075,8 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
-        "@forge/editor-form"
+        "@forge/editor-form",
+        "@forge/image-crop"
       ],
       "files": [
         {
@@ -1630,6 +1631,26 @@
         }
       ],
       "dependencies": ["react-email@6.11.1"]
+    },
+    {
+      "name": "image-crop",
+      "type": "registry:ui",
+      "title": "Image crop",
+      "description": "Required crop confirmation at host-supplied dimensions with local WebP preparation.",
+      "files": [
+        {
+          "path": "registry/components/image-crop.tsx",
+          "type": "registry:component",
+          "target": "@components/image-crop.tsx"
+        },
+        {
+          "path": "registry/components/utils/crop-image.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/crop-image.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react"],
+      "registryDependencies": ["@forge/cn", "@forge/dialog-submit"]
     }
   ]
 }

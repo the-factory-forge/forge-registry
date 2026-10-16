@@ -35,6 +35,7 @@ function usePreview() {
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
+    [cropImages, setCropImages] = useState(true),
     [state, setState] = useState("ready");
   const revision = useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   useEffect(() => () => mock.dispose(), [mock]);
@@ -61,6 +62,8 @@ function usePreview() {
     setFail,
     failUpload,
     setFailUpload,
+    cropImages,
+    setCropImages,
     state,
     setState,
   };
@@ -119,6 +122,14 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
             <button onClick={() => state.setFailUpload(true)} className="underline">
               Fail next upload{state.failUpload ? " (armed)" : ""}
             </button>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.cropImages}
+                onChange={(event) => state.setCropImages(event.target.checked)}
+              />
+              Crop new blog images (1200 × 675)
+            </label>
             <label htmlFor={`${selectId}-directory`} className="flex items-center gap-2">
               Directory state
               <NativeSelect
@@ -201,6 +212,11 @@ export function BlogsAdminPreview() {
     return (
       <BlogEditPage
         {...common}
+        imageDimensions={
+          state.cropImages
+            ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
+            : undefined
+        }
         article={article}
         categories={state.mock.categories()}
         assets={state.mock.assets(article.id)}
