@@ -24,6 +24,10 @@ changes in account security also require the current password; hosts validate it
 and the session on the server. Sign-in links to email recovery. See the
 [password integration guide](./intranet-auth.md#password-recovery-and-changes).
 
+Auth agent keys support row selection, select-all with a mixed state, and confirmed
+bulk deletion through the existing host callback. Failed keys remain available for
+retry; see [account security](./intranet-auth.md#account-profile-and-security).
+
 | Plugin         | Purpose                                                                                                                                                                            | Optional server item      | Guide                                       |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
 | `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                             | Host auth provider        | [Auth](./intranet-auth.md)                  |
@@ -184,12 +188,34 @@ language. Client feedback supplements existing server validation and keeps draft
 Blog publication requirements appear only beside fields after a publish attempt;
 incomplete drafts remain saveable. Hosts can reuse the helper for their own editors.
 
+## Table selection and bulk deletion
+
+Customers, Projects (including embedded lists), Employees, Blogs, Menu items,
+and Drive file/trash tables use [`@forge/table-selection`](./table-selection.md).
+Select individual rows or all eligible rows on the current filtered page. The
+header checkbox shows a mixed state for partial selection. The trash action stays
+visible, disabled with neutral pagination colors until rows are selected.
+Confirmation lists the selected names; failed
+rows remain available for retry without repeating successful deletions.
+
+Existing host authorization and deletion restrictions still apply. Employees
+exclude the current user, Menu items with linked files cannot be deleted, and
+Drive obtains server previews and tokens before confirmation. Drive preserves
+trash, permanent-delete and Undo behavior. Spaces and calendar date grids have
+no row deletion and do not offer bulk selection.
+
+Install the shared helper with each affected plugin and translate its added
+labels through the existing plugin labels prop. No new batch server API is
+required: deletion invokes the existing callback once per selected row.
+
 ## Optimistic actions
 
 Plugins use TanStack Query mutations through [`@forge/optimistic-action`](./optimistic-actions.md).
 Predictable changes appear before the request completes and revert on rejection.
 Forms retain drafts, confirmations retain recovery controls, and success toasts wait
-for server confirmation. Hosts keep their existing data and transport callbacks.
+for server confirmation. Hosts keep their existing data and transport callbacks. Bulk deletion keeps its
+confirmation open while existing callbacks settle, removes each confirmed
+success from selection and retains failed entries for retry.
 
 ## Updates
 

@@ -387,7 +387,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await actionToast(page, "Saved.");
   await page.getByRole("link", { name: "Back to items", exact: true }).click();
-  const names = () => page.locator("tbody tr td:first-child").allTextContents();
+  const names = () => page.locator("tbody tr td:nth-child(2)").allTextContents();
   const burrata = page.getByRole("button", {
     name: "Reorder item: Burrata with tomatoes",
     exact: true,
@@ -476,7 +476,7 @@ test("staff reorders rows by dragging and keyboard, with persistence and failed-
 
 test("drag preview marks exact insertion edges and clears on canceled or invalid drops", async (t) => {
   const page = await preview(t, "/en/admin/menus");
-  const names = () => page.locator("tbody tr td:first-child").allTextContents();
+  const names = () => page.locator("tbody tr td:nth-child(2)").allTextContents();
   const original = ["Burrata with tomatoes", "House pasta", "Homemade lemonade"];
   const rows = page.locator("tbody tr[data-menu-item]");
   const ghost = page.locator("[data-menu-drag-preview]");

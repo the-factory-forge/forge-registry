@@ -885,7 +885,7 @@ test("Drive loading preserves table headers, guidance and disabled actions", asy
         } else {
           assert.equal(
             await table.getByRole("cell").filter({ hasText: "Loading" }).getAttribute("colspan"),
-            "5",
+            "6",
           );
         }
         if (path.endsWith("portal")) {
@@ -978,6 +978,7 @@ test("Drive empty results retain table headers and a full-width feedback row", a
         const feedback = table.getByRole("status").filter({ hasText: message });
         await feedback.waitFor();
         assert.deepEqual(await table.getByRole("columnheader").allTextContents(), [
+          ...(path === "/en/drive/project/website" ? [""] : []),
           "Name",
           "Modified",
           "Size",
@@ -987,7 +988,7 @@ test("Drive empty results retain table headers and a full-width feedback row", a
         assert.equal(await table.getByRole("row").count(), 2);
         assert.equal(
           await table.getByRole("cell").filter({ hasText: message }).getAttribute("colspan"),
-          "5",
+          path === "/en/drive/project/website" ? "6" : "5",
         );
         assert.equal(await page.getByRole("button", { name: "Next page" }).isDisabled(), true);
         assert.equal(
@@ -1117,7 +1118,7 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   await pagination.getByRole("button", { name: "Next page", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   assert.equal(await pagination.locator("[aria-live]").innerText(), "2");
-  const secondPage = await page.locator("tbody tr td:first-child").allTextContents();
+  const secondPage = await page.locator("tbody tr td:nth-child(2)").allTextContents();
   await pagination.getByRole("button", { name: "Next page", exact: true }).click();
   await row(page, "page-9.txt").waitFor();
   assert.equal(await pagination.locator("[aria-live]").innerText(), "3");
@@ -1125,7 +1126,7 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   await pagination.getByRole("button", { name: "Previous page" }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   assert.equal(await pagination.locator("[aria-live]").innerText(), "2");
-  assert.deepEqual(await page.locator("tbody tr td:first-child").allTextContents(), secondPage);
+  assert.deepEqual(await page.locator("tbody tr td:nth-child(2)").allTextContents(), secondPage);
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
   assert.equal(
@@ -1134,7 +1135,7 @@ test("drag-and-drop rejects folders, file lists paginate, and duplicate mutation
   );
   await page.getByRole("button", { name: "Size", exact: true }).click();
   await page.locator('[aria-busy="false"] table').waitFor();
-  const names = await page.locator("tbody tr td:first-child").allTextContents();
+  const names = await page.locator("tbody tr td:nth-child(2)").allTextContents();
   assert.equal(names[0].trim(), "Valid");
   assert.equal(names[1].trim(), "page-19.txt");
   assert.equal(await row(page, "page-0.txt").count(), 0);
@@ -1187,11 +1188,11 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
   await page.getByRole("link", { name: "Customer portal", exact: true }).click();
   await row(page, "Annual report.txt").waitFor();
   assert.equal(
-    await row(page, "Annual report.txt").getByRole("cell").nth(3).innerText(),
+    await row(page, "Annual report.txt").getByRole("cell").nth(4).innerText(),
     "Acme Studio",
   );
   const files = async () =>
-    (await page.locator("tbody tr td:first-child").allTextContents()).map((name) => name.trim());
+    (await page.locator("tbody tr td:nth-child(2)").allTextContents()).map((name) => name.trim());
   await sortBy("Modified");
   assert.deepEqual(await files(), ["Design brief.txt", "Annual report.txt"]);
   await sortBy("Modified");
@@ -1206,7 +1207,7 @@ test("Drive tables expose customer ownership and sort metadata with keyboard-acc
   await page.getByRole("link", { name: "Drive", exact: true }).click();
   await row(page, "Annual report.txt").waitFor();
   assert.equal(
-    await row(page, "Annual report.txt").getByRole("cell").nth(3).innerText(),
+    await row(page, "Annual report.txt").getByRole("cell").nth(4).innerText(),
     "Acme Studio",
   );
 });

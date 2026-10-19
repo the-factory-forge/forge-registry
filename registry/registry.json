@@ -101,6 +101,31 @@
       "registryDependencies": ["@forge/cn", "@forge/table-styles", "@forge/icon-tooltip"]
     },
     {
+      "name": "table-selection",
+      "type": "registry:ui",
+      "title": "Table selection",
+      "description": "Accessible row selection, mixed select-all and confirmed bulk deletion with partial-failure retry.",
+      "files": [
+        {
+          "path": "registry/components/table-selection.tsx",
+          "type": "registry:component",
+          "target": "@components/table-selection.tsx"
+        },
+        {
+          "path": "registry/components/utils/table-selection-labels.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-selection-labels.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/icon-tooltip",
+        "@forge/action-toast",
+        "@forge/optimistic-action"
+      ]
+    },
+    {
       "name": "table-search",
       "type": "registry:ui",
       "title": "Table Search",
@@ -866,7 +891,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/dropdown-menu"
+        "@forge/dropdown-menu",
+        "@forge/table-selection"
       ]
     },
     {
@@ -917,7 +943,8 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
-        "@forge/editor-form"
+        "@forge/editor-form",
+        "@forge/table-selection"
       ]
     },
     {
@@ -939,7 +966,8 @@
         "@forge/icon-tooltip",
         "@forge/sidebar-navigation",
         "@forge/subpage-sidebar",
-        "@forge/action-toast"
+        "@forge/action-toast",
+        "@forge/table-selection"
       ],
       "files": [
         {
@@ -996,6 +1024,11 @@
           "path": "registry/components/plugins/drive/download.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/download.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/bulk-delete.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/bulk-delete.tsx"
         }
       ]
     },
@@ -1076,7 +1109,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/image-crop"
+        "@forge/image-crop",
+        "@forge/table-selection"
       ],
       "files": [
         {
@@ -1178,7 +1212,8 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
-        "@forge/editor-form"
+        "@forge/editor-form",
+        "@forge/table-selection"
       ],
       "files": [
         {
@@ -1410,7 +1445,8 @@
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/table-selection"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },

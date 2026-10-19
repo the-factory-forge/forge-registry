@@ -110,7 +110,7 @@ void test("Drive rename previews the new name and rolls back with the input reta
 void test("menu order changes before save and rolls back on failure", async (t) => {
   const page = await preview(t, "/en/admin/menus");
   await page.getByLabel("Simulate action failures").check();
-  const names = page.locator("tbody tr td:first-child");
+  const names = page.locator("tbody tr td:nth-child(2)");
   const handle = page.getByRole("button", {
     name: "Reorder item: Burrata with tomatoes",
     exact: true,
@@ -119,7 +119,7 @@ void test("menu order changes before save and rolls back on failure", async (t) 
   const original = await names.allTextContents();
   await handle.press("ArrowDown");
   await page.waitForFunction(
-    () => document.querySelector("tbody tr td")?.textContent === "House pasta",
+    () => document.querySelector("tbody tr td:nth-child(2)")?.textContent === "House pasta",
     { timeout: 700 },
   );
   assert.notDeepEqual(await names.allTextContents(), original);

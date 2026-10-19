@@ -21,6 +21,11 @@ import {
 } from "@/components/plugins/employees/schema";
 import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -82,7 +87,6 @@ function EmployeesPageContent({
   const optimistic = useOptimisticAction(suppliedEmployees, `${currentUserId}:${offset}:${search}`);
   const employees = optimistic.value;
   const visibleTotal = Math.max(0, total + employees.length - suppliedEmployees.length);
-  if (!isEmployeeAdmin(currentUserRole)) return null;
   const labels = { ...employeeLabels, ...overrides };
   // ponytail: fallback searches supplied rows; use onSearchChange for server pagination.
   const filteredEmployees = onSearchChange
@@ -97,6 +101,17 @@ function EmployeesPageContent({
           employee.emailVerified ? labels.verified : labels.unverified,
         ),
       );
+  const selectable = isEmployeeAdmin(currentUserRole)
+    ? filteredEmployees.filter(
+        (employee) => employee.id !== currentUserId && !employee.id.startsWith("pending-"),
+      )
+    : [];
+  const selection = useTableSelection(
+    selectable,
+    `${currentUserId}:${currentUserRole}:${offset}:${search}`,
+  );
+  const selectionDisabled = loading || error || optimistic.pending || selection.pending;
+  if (!isEmployeeAdmin(currentUserRole)) return null;
   return (
     <section
       className={cn(tablePanelClass, "mx-auto w-full max-w-7xl px-0", className)}
@@ -117,7 +132,7 @@ function EmployeesPageContent({
           />
           <EmployeeCreateDialog
             currentUserRole={currentUserRole}
-            disabled={loading || error || optimistic.pending}
+            disabled={selectionDisabled}
             onCreate={(values) => {
               const employee: Employee = {
                 id: `pending-${crypto.randomUUID()}`,
@@ -145,6 +160,15 @@ function EmployeesPageContent({
             )}
             <thead className="[&_tr]:border-b">
               <tr className={tableRowClass}>
+                <th scope="col" className="w-10 p-2">
+                  <TableSelectionCheckbox
+                    label={labels.selectAllRows}
+                    checked={selection.all}
+                    mixed={selection.mixed}
+                    onChange={selection.toggleAll}
+                    disabled={selectionDisabled || !selectable.length}
+                  />
+                </th>
                 <th scope="col" className={tableHeaderClass}>
                   {labels.name}
                 </th>
@@ -161,7 +185,20 @@ function EmployeesPageContent({
                   {labels.website}
                 </th>
                 <th scope="col" className={tableActionHeaderClass}>
-                  {labels.actions}
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    <TableBulkDelete
+                      selection={selection}
+                      getName={(employee) => employee.name}
+                      onDelete={(employee) => onDelete(employee.id)}
+                      labels={labels}
+                      disabled={selectionDisabled}
+                      description={labels.deleteDescription.replace(
+                        "{name}",
+                        selection.selected.map((row) => row.name).join(", "),
+                      )}
+                    />
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -170,9 +207,24 @@ function EmployeesPageContent({
                 (employee) => (
                   <tr
                     key={employee.id}
-                    hidden={!filteredEmployees.some((row) => row.id === employee.id)}
+                    hidden={
+                      selection.isDeleting(employee.id) ||
+                      !filteredEmployees.some((row) => row.id === employee.id)
+                    }
                     className={tableRowClass}
                   >
+                    <td className="w-10 p-2">
+                      <TableSelectionCheckbox
+                        label={`${labels.selectRow}: ${employee.name}`}
+                        checked={selection.selected.some((row) => row.id === employee.id)}
+                        mixed={false}
+                        onChange={(checked) => selection.toggle(employee.id, checked)}
+                        disabled={
+                          selectionDisabled ||
+                          !(employee.id !== currentUserId && !employee.id.startsWith("pending-"))
+                        }
+                      />
+                    </td>
                     <td
                       aria-label={employee.name}
                       className={cn(tableCellClass, "whitespace-nowrap")}
@@ -256,6 +308,7 @@ function EmployeesPageContent({
                           loading ||
                           error ||
                           optimistic.pending ||
+                          selection.pending ||
                           employee.id.startsWith("pending-")
                         }
                         currentUserId={currentUserId}
@@ -302,7 +355,7 @@ function EmployeesPageContent({
               )}
               {((error && !loading) || optimistic.error || filteredEmployees.length === 0) && (
                 <tr>
-                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
+                  <td colSpan={7} className={cn(tableCellClass, "py-8")}>
                     {(error && !loading) || optimistic.error ? (
                       <p role="alert" className="text-destructive">
                         {error ? labels.error : labels.updateError}
@@ -319,7 +372,7 @@ function EmployeesPageContent({
           </table>
         </div>
         <TablePagination
-          disabled={loading || error || optimistic.pending}
+          disabled={selectionDisabled}
           summary={`${visibleTotal} ${labels.total}`}
           page={Math.floor(offset / EMPLOYEE_PAGE_SIZE) + 1}
           pageCount={Math.max(1, Math.ceil(total / EMPLOYEE_PAGE_SIZE))}

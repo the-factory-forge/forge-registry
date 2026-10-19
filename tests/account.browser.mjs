@@ -173,3 +173,133 @@ void test("host account content replaces default panels and creation remains a h
     .getByRole("cell", { name: "Expired integration", exact: true })
     .waitFor({ state: "hidden" });
 });
+
+for (const width of [390, 1280]) {
+  void test(`agent keys select rows and confirm bulk deletion at ${width}px`, async (t) => {
+    const page = await preview(t);
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByRole("tab", { name: "Security", exact: true }).click();
+    const all = page.getByRole("checkbox", {
+      name: "Select all keys",
+      exact: true,
+      includeHidden: true,
+    });
+    const expired = page.getByRole("checkbox", {
+      name: "Select key Expired integration",
+      exact: true,
+      includeHidden: true,
+    });
+    const active = page.getByRole("checkbox", {
+      name: "Select key Reporting integration",
+      exact: true,
+    });
+    const bulk = page.getByRole("button", { name: /Delete selected keys \(/ });
+    const state = () => all.evaluate((input) => [input.checked, input.indeterminate]);
+    assert.deepEqual(await state(), [false, false]);
+    assert.equal(await bulk.isVisible(), true);
+    assert.equal(await bulk.isDisabled(), true);
+    const tableHeight = (await all.locator("xpath=ancestor::table").boundingBox()).height;
+    await expired.focus();
+    await page.keyboard.press("Space");
+    assert.deepEqual(await state(), [false, true]);
+    assert.equal(await bulk.getAttribute("aria-label"), "Delete selected keys (1)");
+    assert.equal((await all.locator("xpath=ancestor::table").boundingBox()).height, tableHeight);
+    await bulk.click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByText("Expired integration", { exact: true }).waitFor();
+    assert.equal(await dialog.getByText("Reporting integration", { exact: true }).count(), 0);
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.equal(await expired.isChecked(), true);
+    assert.equal(await page.getByTestId("callback-count").textContent(), "0");
+    await all.click();
+    assert.deepEqual(await state(), [true, false]);
+    assert.equal(await active.isChecked(), true);
+    await all.click();
+    assert.deepEqual(await state(), [false, false]);
+    assert.equal(await expired.isChecked(), false);
+    assert.equal(await active.isChecked(), false);
+    assert.equal(await bulk.isVisible(), true);
+    assert.equal(await bulk.isDisabled(), true);
+    await all.click();
+    await bulk.click();
+    await dialog.getByRole("heading", { name: "Delete selected keys?", exact: true }).waitFor();
+    assert.match(await dialog.textContent(), /Expired integration, Reporting integration/);
+    await dialog.getByRole("button", { name: "Delete", exact: true }).evaluate((button) => {
+      button.click();
+      button.click();
+    });
+    assert.equal(await all.isDisabled(), true);
+    assert.equal(await expired.isDisabled(), true);
+    assert.equal(
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).isDisabled(),
+      true,
+    );
+    await actionToast(page, "Keys deleted");
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+    assert.equal(await bulk.count(), 0);
+    await page
+      .getByText("No agent keys yet. Create a key when you connect an integration.")
+      .waitFor();
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+  });
+}
+
+void test("bulk key deletion preserves only failed selections and retries without repeating successes", async (t) => {
+  const page = await preview(t);
+  await page.getByLabel("Fail expired key deletion").check();
+  await page.getByRole("tab", { name: "Security", exact: true }).click();
+  const all = page.getByRole("checkbox", { name: "Select all keys", exact: true });
+  await all.check();
+  await page.getByRole("button", { name: "Delete selected keys (2)", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  assert.equal(
+    await page
+      .getByRole("cell", { name: "Reporting integration", exact: true, includeHidden: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await page
+      .getByRole("checkbox", {
+        name: "Select key Expired integration",
+        exact: true,
+        includeHidden: true,
+      })
+      .isChecked(),
+    true,
+  );
+  await dialog.getByText("Expired integration", { exact: true }).waitFor();
+  assert.doesNotMatch(await dialog.textContent(), /Reporting integration/);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByLabel("Fail expired key deletion").uncheck();
+  await page.getByRole("button", { name: "Delete selected keys (1)", exact: true }).click();
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await actionToast(page, "Key deleted");
+  assert.equal(await page.getByTestId("callback-count").textContent(), "3");
+  assert.equal(await all.count(), 0);
+});
+
+void test("key selection clears when metadata becomes unavailable", async (t) => {
+  const page = await preview(t);
+  await page.getByRole("tab", { name: "Security", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Select all keys", exact: true }).check();
+  await page.getByLabel("Simulate load failure").check();
+  await page.getByRole("button", { name: "Try again", exact: true }).first().click();
+  const all = page.getByRole("checkbox", { name: "Select all keys", exact: true });
+  await all.waitFor();
+  assert.deepEqual(await all.evaluate((input) => [input.checked, input.indeterminate]), [
+    false,
+    false,
+  ]);
+  assert.equal(
+    await page.getByRole("button", { name: /Delete selected keys \(/ }).isDisabled(),
+    true,
+  );
+});

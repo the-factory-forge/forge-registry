@@ -1,8 +1,9 @@
+import "./drive-storage/register.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { projectLabels } from "../registry/components/plugins/projects/labels.ts";
+const { projectLabels } = await import("../registry/components/plugins/projects/labels.ts");
 import {
   projectFormValues,
   safeProjectUrl,
@@ -80,6 +81,7 @@ test("projects installs customers without creating a reverse dependency or frame
     "@forge/optimistic-action",
     "@forge/icon-tooltip",
     "@forge/editor-form",
+    "@forge/table-selection",
   ]);
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");

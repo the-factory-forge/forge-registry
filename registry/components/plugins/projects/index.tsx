@@ -25,6 +25,11 @@ import type {
 import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
 import { projectFormValues, safeProjectUrl } from "@/components/plugins/projects/utils";
 import { TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -81,6 +86,9 @@ function ProjectsListContent({
     customerId === undefined
       ? projects
       : projects.filter((project) => project.ownerId === customerId);
+  const selectable = onDelete ? visibleProjects : [];
+  const selection = useTableSelection(selectable, `${customerId ?? ""}:${search ?? ""}`);
+  const selectionDisabled = loading || !!loadError || optimistic.pending || selection.pending;
   const owners = new Map(customers.map((customer) => [customer.id, customer]));
   const assigned = new Map(assignees.map((assignee) => [assignee.id, assignee]));
   return (
@@ -126,6 +134,17 @@ function ProjectsListContent({
           )}
           <thead>
             <tr className={tableRowClass}>
+              {onDelete && (
+                <th scope="col" className="w-10 p-2">
+                  <TableSelectionCheckbox
+                    label={labels.selectAllRows}
+                    checked={selection.all}
+                    mixed={selection.mixed}
+                    onChange={selection.toggleAll}
+                    disabled={selectionDisabled || !selectable.length}
+                  />
+                </th>
+              )}
               {[
                 labels.name,
                 ...(customerId === undefined ? [labels.owner] : []),
@@ -143,7 +162,28 @@ function ProjectsListContent({
                       : tableHeaderClass
                   }
                 >
-                  {label}
+                  <div
+                    className={
+                      index === (customerId === undefined ? 5 : 4)
+                        ? "flex items-center justify-end gap-2"
+                        : undefined
+                    }
+                  >
+                    {label}
+                    {index === (customerId === undefined ? 5 : 4) && (
+                      <>
+                        {onDelete && (
+                          <TableBulkDelete
+                            selection={selection}
+                            getName={(project) => project.name}
+                            onDelete={(project) => onDelete!(project.id)}
+                            labels={labels}
+                            disabled={selectionDisabled}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
                 </th>
               ))}
             </tr>
@@ -162,9 +202,23 @@ function ProjectsListContent({
               return (
                 <tr
                   key={project.id}
-                  hidden={!visibleProjects.some((row) => row.id === project.id)}
+                  hidden={
+                    selection.isDeleting(project.id) ||
+                    !visibleProjects.some((row) => row.id === project.id)
+                  }
                   className={tableRowClass}
                 >
+                  {onDelete && (
+                    <td className="w-10 p-2">
+                      <TableSelectionCheckbox
+                        label={`${labels.selectRow}: ${project.name}`}
+                        checked={selection.selected.some((row) => row.id === project.id)}
+                        mixed={false}
+                        onChange={(checked) => selection.toggle(project.id, checked)}
+                        disabled={selectionDisabled}
+                      />
+                    </td>
+                  )}
                   <td className={tableCellClass}>
                     <ProjectLink
                       href={getProjectHref(project)}
@@ -217,7 +271,7 @@ function ProjectsListContent({
                       status={project.status}
                       name={project.name}
                       labels={labels}
-                      disabled={loading || optimistic.pending || !!loadError}
+                      disabled={selectionDisabled}
                       onChange={
                         onStatusChange
                           ? (status) =>
@@ -246,7 +300,7 @@ function ProjectsListContent({
                       {onDelete && (
                         <DeleteProject
                           project={project}
-                          disabled={loading || optimistic.pending || !!loadError}
+                          disabled={selectionDisabled}
                           onDelete={(id) =>
                             optimistic.run(
                               (rows) => rows.filter((row) => row.id !== id),
@@ -265,7 +319,7 @@ function ProjectsListContent({
             {((error && !loading) || visibleProjects.length === 0) && (
               <tr className={tableRowClass}>
                 <td
-                  colSpan={customerId === undefined ? 6 : 5}
+                  colSpan={(customerId === undefined ? 6 : 5) + (onDelete ? 1 : 0)}
                   className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                 >
                   {error && !loading ? (

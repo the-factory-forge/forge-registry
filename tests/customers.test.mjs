@@ -44,6 +44,7 @@ test("customers distribution is complete and contains no website integrations", 
     "@forge/icon-tooltip",
     "@forge/editor-form",
     "@forge/dropdown-menu",
+    "@forge/table-selection",
   ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");

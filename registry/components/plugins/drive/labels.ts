@@ -1,4 +1,7 @@
+import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
+
 export const driveLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   title: "Drive",
   description: "Files and folders linked to your workspace records.",

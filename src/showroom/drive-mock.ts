@@ -430,6 +430,7 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         async previewDelete({ scope, entryId }) {
           authorize(scope, "delete");
           await delay();
+          if (failActions) throw new DriveError("STORAGE");
           const group = trash.get(entryId);
           if (group && scopeKey(group.scope) !== scopeKey(scope)) throw new DriveError("NOT_FOUND");
           const rows = group?.rows ?? descendants(scope, entryId);

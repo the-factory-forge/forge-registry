@@ -1,4 +1,7 @@
+import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
+
 export const blogsLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   blogs: "Blog posts",
   publicTitle: "Our blog",

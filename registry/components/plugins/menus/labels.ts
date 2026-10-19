@@ -1,6 +1,10 @@
 import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
+import {
+  tableSelectionLabels,
+  type TableSelectionLabels,
+} from "@/components/utils/table-selection-labels";
 
-export interface MenusLabels {
+export interface MenusLabels extends TableSelectionLabels {
   clearSearch: string;
   search: string;
   noMatches: string;
@@ -86,6 +90,7 @@ export interface MenusLabels {
 }
 
 export const menusLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   search: "Search menu items",
   noMatches: "No menu items match your search.",

@@ -1,4 +1,7 @@
+import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
+
 export const employeeLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   title: "Employees",
   search: "Search employees",

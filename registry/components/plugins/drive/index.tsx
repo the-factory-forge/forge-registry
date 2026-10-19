@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import { DriveFolderMenu } from "@/components/plugins/drive/folder-menu";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
@@ -58,6 +59,7 @@ import { sidebarNavActiveClass, sidebarNavItemClass } from "@/components/sidebar
 import { SubpageSidebar } from "@/components/subpage-sidebar";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
+import { TableSelectionCheckbox, useTableSelection } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -382,7 +384,15 @@ function Browser({
     return () => controller.abort();
   }, [request]);
   const capabilities = data?.space.capabilities;
-  const actionsDisabled = loading || !!error || optimistic.pending || !!removedFolder;
+  const selectable = capabilities?.delete
+    ? (data?.items ?? []).filter((entry) => !entry.id.startsWith("pending-"))
+    : [];
+  const selection = useTableSelection(
+    selectable,
+    JSON.stringify([scope, parentId, search, cursor, sort, trashView]),
+  );
+  const actionsDisabled =
+    loading || !!error || optimistic.pending || selection.pending || !!removedFolder;
   const canDrop = !actionsDisabled && !!capabilities?.upload && !trashView;
   const dragDepth = useRef(0);
   const [dragActive, setDragActive] = useState(false);
@@ -949,6 +959,17 @@ function Browser({
                     </caption>
                     <thead>
                       <tr className={tableRowClass}>
+                        {capabilities?.delete && (
+                          <th scope="col" className="w-10 p-2">
+                            <TableSelectionCheckbox
+                              label={labels.selectAllRows}
+                              checked={selection.all}
+                              mixed={selection.mixed}
+                              onChange={selection.toggleAll}
+                              disabled={actionsDisabled || !selectable.length}
+                            />
+                          </th>
+                        )}
                         <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
                         <SortHeading
                           field="updatedAt"
@@ -961,14 +982,30 @@ function Browser({
                           {labels.owner}
                         </th>
                         <th scope="col" className={tableActionHeaderClass}>
-                          {labels.actions}
+                          <div className="flex items-center justify-end gap-2">
+                            {labels.actions}
+                            {capabilities?.delete && (
+                              <DriveBulkDelete
+                                client={client}
+                                scope={scope}
+                                selection={selection}
+                                labels={labels}
+                                disabled={actionsDisabled}
+                                trashEnabled={trashEnabled}
+                                onDeleted={deleted}
+                              />
+                            )}
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="[&_tr:last-child]:border-0">
                       {(!!error || !data?.items.length) && (
                         <tr>
-                          <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                          <td
+                            colSpan={5 + (capabilities?.delete ? 1 : 0)}
+                            className={cn(tableCellClass, "py-8")}
+                          >
                             <div className="flex flex-wrap items-center gap-2">
                               <DriveFeedback
                                 message={
@@ -1000,9 +1037,22 @@ function Browser({
                         ).map((entry) => (
                           <tr
                             key={entry.id}
-                            hidden={!data.items.some((row) => row.id === entry.id)}
+                            hidden={
+                              selection.isDeleting(entry.id) ||
+                              !data.items.some((row) => row.id === entry.id)
+                            }
                             className={tableRowClass}
                           >
+                            {capabilities?.delete && (
+                              <td className="w-10 p-2">
+                                <TableSelectionCheckbox
+                                  label={`${labels.selectRow}: ${entry.name}`}
+                                  checked={selection.selected.some((row) => row.id === entry.id)}
+                                  onChange={(checked) => selection.toggle(entry.id, checked)}
+                                  disabled={actionsDisabled || entry.id.startsWith("pending-")}
+                                />
+                              </td>
+                            )}
                             <td className={cn(tableCellClass, "max-w-[14rem] sm:max-w-none")}>
                               <div className="flex items-center gap-2">
                                 {entry.kind === "folder" && entry.state === "ready" ? (
@@ -1145,7 +1195,7 @@ function Browser({
                   nextLabel={labels.next}
                   previousDisabled={cursors.length === 0}
                   nextDisabled={!!error || !data?.nextCursor}
-                  disabled={loading}
+                  disabled={actionsDisabled}
                   onPrevious={() => setCursors(cursors.slice(0, -1))}
                   onNext={() => {
                     if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);

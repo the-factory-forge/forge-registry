@@ -113,7 +113,7 @@ void test("table language badges toggle independently and roll back invalid or f
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Dark mode", exact: true }).click();
   await french.scrollIntoViewIfNeeded();
-  await row.getByRole("cell").nth(2).screenshot({
+  await row.getByRole("cell").nth(3).screenshot({
     path: "/tmp/forge-blog-toggle-table-mobile-dark.png",
   });
   const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
@@ -156,9 +156,9 @@ test("admin categories stay readable and long table text truncates in both theme
     has: page.locator(`a[href="/en/admin/blogs/${existing}"]`),
   });
   await page.getByRole("columnheader", { name: "Categories", exact: true }).waitFor();
-  assert.equal(await row.getByRole("cell").nth(1).textContent(), "Ideas & practice, Design");
+  assert.equal(await row.getByRole("cell").nth(2).textContent(), "Ideas & practice, Design");
   const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
-  assert.equal(await draft.getByRole("cell").nth(1).textContent(), "—");
+  assert.equal(await draft.getByRole("cell").nth(2).textContent(), "—");
   await page.getByRole("link", { name: "Manage categories", exact: true }).click();
   await page.getByRole("button", { name: "Ideas & practice", exact: true }).click();
   const categoryName = "A category with a name that is far too long to fit in a compact table cell";
@@ -183,7 +183,7 @@ test("admin categories stay readable and long table text truncates in both theme
     if (theme === "dark")
       await page.getByRole("button", { name: "Dark mode", exact: true }).click();
     const link = row.getByRole("link", { name: title, exact: true });
-    const category = row.getByRole("cell").nth(1).locator("p");
+    const category = row.getByRole("cell").nth(2).locator("p");
     assert.equal(await link.getAttribute("title"), title);
     assert.deepEqual(
       (await category.getAttribute("title")).split(", ").sort(),
@@ -213,7 +213,7 @@ test("admin categories stay readable and long table text truncates in both theme
   const frenchRow = page.getByRole("row").filter({
     has: page.locator(`a[href="/fr/admin/blogs/${existing}"]`),
   });
-  assert.deepEqual((await frenchRow.getByRole("cell").nth(1).textContent()).split(", ").sort(), [
+  assert.deepEqual((await frenchRow.getByRole("cell").nth(2).textContent()).split(", ").sort(), [
     "Design",
     "Idées et pratique",
   ]);

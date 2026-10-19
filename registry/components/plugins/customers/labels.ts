@@ -1,4 +1,7 @@
+import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
+
 export const customerLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   title: "Customers",
   description: "Manage your customers and their contact details.",

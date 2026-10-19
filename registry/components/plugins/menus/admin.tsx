@@ -34,6 +34,11 @@ import type {
   MenusClient,
 } from "@/components/plugins/menus/types";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
@@ -219,7 +224,6 @@ function MenuItemsPageContent({
   >(undefined);
   const reorderLock = useRef(false);
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
-  const reorderDisabled = loading || error || reordering || optimistic.pending || !!search.trim();
   useEffect(() => {
     let active = true;
     Promise.all([client.list(), client.categories()])
@@ -320,6 +324,11 @@ function MenuItemsPageContent({
         item.soldOut ? labels.yes : labels.no,
       ),
     ) ?? [];
+  const selectable = filteredItems;
+  const selection = useTableSelection(selectable, search);
+  const selectionDisabled =
+    loading || error || reordering || optimistic.pending || selection.pending;
+  const reorderDisabled = selectionDisabled || !!search.trim();
   return (
     <section className={cn(page, className)}>
       <div className={tablePanelClass}>
@@ -366,6 +375,15 @@ function MenuItemsPageContent({
             )}
             <thead>
               <tr className={tableRowClass}>
+                <th scope="col" className="w-10 p-2">
+                  <TableSelectionCheckbox
+                    label={labels.selectAllRows}
+                    checked={selection.all}
+                    mixed={selection.mixed}
+                    onChange={selection.toggleAll}
+                    disabled={selectionDisabled || !selectable.length}
+                  />
+                </th>
                 <th scope="col" className={tableHeaderClass}>
                   {labels.name}
                 </th>
@@ -379,7 +397,26 @@ function MenuItemsPageContent({
                   {labels.unavailable}
                 </th>
                 <th scope="col" className={tableActionHeaderClass}>
-                  {labels.actions}
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    <TableBulkDelete
+                      selection={selection}
+                      getName={(item) => item.translations[baseLocale]?.name ?? item.id}
+                      onDelete={async (item) => {
+                        await client.remove(item.id);
+                        setData(
+                          (current) =>
+                            current && {
+                              ...current,
+                              items: current.items.filter((row) => row.id !== item.id),
+                            },
+                        );
+                      }}
+                      labels={labels}
+                      disabled={selectionDisabled}
+                      errorMessage={() => labels.deleteFilesFirst}
+                    />
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -388,7 +425,10 @@ function MenuItemsPageContent({
                 (item) => (
                   <tr
                     key={item.id}
-                    hidden={!filteredItems.some((row) => row.id === item.id)}
+                    hidden={
+                      selection.isDeleting(item.id) ||
+                      !filteredItems.some((row) => row.id === item.id)
+                    }
                     data-menu-item={item.id}
                     data-menu-dragging={dragPreview?.id === item.id || undefined}
                     data-menu-drop-edge={
@@ -403,6 +443,15 @@ function MenuItemsPageContent({
                           : "[&>td]:shadow-[inset_0_-2px_0_var(--primary)]"),
                     )}
                   >
+                    <td className="w-10 p-2">
+                      <TableSelectionCheckbox
+                        label={`${labels.selectRow}: ${item.translations[baseLocale]?.name ?? item.id}`}
+                        checked={selection.selected.some((row) => row.id === item.id)}
+                        mixed={false}
+                        onChange={(checked) => selection.toggle(item.id, checked)}
+                        disabled={selectionDisabled}
+                      />
+                    </td>
                     <td className={cn(tableCellClass, "font-medium")}>
                       <div className="flex items-center gap-2">
                         {client.reorder && (
@@ -517,7 +566,7 @@ function MenuItemsPageContent({
                           </HostLink>
                         </IconTooltip>
                         <DeleteControl
-                          disabled={loading || error || reordering || optimistic.pending}
+                          disabled={selectionDisabled}
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
                           confirm={labels.confirmDelete}
                           cancel={labels.cancel}
@@ -550,7 +599,7 @@ function MenuItemsPageContent({
               )}
               {(error || filteredItems.length === 0) && (
                 <tr className={tableRowClass}>
-                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
                     <div className="flex flex-wrap items-center gap-2">
                       {error ? (
                         <>

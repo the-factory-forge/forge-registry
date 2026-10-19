@@ -372,7 +372,17 @@ picker defaults to 30 days and caps selection at 90 days from opening the dialog
 using the device's local time. Browser validation also blocks manually entered
 values beyond that maximum before calling the host. The returned token
 is held only in component state until the one-time dialog closes or unmounts.
-Deletion requires confirmation. Concurrent submissions are blocked; failures keep
+Rows have selection checkboxes and a select-all checkbox with a mixed state for
+partial selection. The bulk delete action stays visible in the table header,
+disabled with neutral pagination colors until rows are selected. Both single and
+bulk deletion require confirmation naming the affected
+keys. Bulk deletion calls the existing `onDelete(id)` sequentially for each key;
+resolve it only after refreshing host metadata, and reject failed deletions.
+Successful keys leave the selection; failures remain selected and in the dialog
+for retry without repeating successful deletions. Selection controls and deletion
+are disabled while loading or pending. Selection is cleared for removed metadata.
+The new selection, confirmation and feedback strings use `SecurityLabels` overrides.
+Concurrent submissions are blocked; failures keep
 creation drafts or the deletion confirmation available for retry. Successful
 profile edits, deletion and copying use the shared action toast.
 
@@ -391,6 +401,7 @@ No auth server companion, provider, database or import API is installed.
 
 The account preview uses simulated callbacks. `tests/account.browser.mjs` covers
 failed drafts, duplicate submissions, one-time key clearing, expiry validation,
+row/select-all selection, confirmed bulk deletion and partial-failure retry,
 load retries, credential controls, other-session logout and account navigation
 on desktop and mobile, including host-provided content.
 

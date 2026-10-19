@@ -7,6 +7,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { NativeSelect } from "@/components/native-select";
+import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
   DriveClient,
@@ -29,6 +30,7 @@ import {
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
+import { TableSelectionCheckbox, useTableSelection } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
@@ -85,7 +87,10 @@ export function TrashBrowser({
   const optimistic = useOptimisticAction(result?.data, mutationScope);
   const data = optimistic.value;
   const error = loading ? undefined : result?.error;
-  const disabled = loading || !!error || !!restoring || optimistic.pending;
+  const capabilities = data?.space.capabilities;
+  const selectable = capabilities?.delete ? (data?.items ?? []) : [];
+  const selection = useTableSelection(selectable, JSON.stringify([scope, search, cursor]));
+  const disabled = loading || !!error || !!restoring || optimistic.pending || selection.pending;
   const refresh = () => setRevision((value) => value + 1);
   const restored = () => {
     setRestoreEntry(undefined);
@@ -152,7 +157,7 @@ export function TrashBrowser({
                 setCursors([]);
               }}
             />
-            <button className={buttonClass} disabled={loading} onClick={refresh}>
+            <button className={buttonClass} disabled={disabled} onClick={refresh}>
               <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.retry}
             </button>
@@ -162,6 +167,17 @@ export function TrashBrowser({
           <table className={cn(tableClass, "min-w-[44rem]")} aria-label={labels.trash}>
             <thead>
               <tr className={tableRowClass}>
+                {capabilities?.delete && (
+                  <th scope="col" className="w-10 p-2">
+                    <TableSelectionCheckbox
+                      label={labels.selectAllRows}
+                      checked={selection.all}
+                      mixed={selection.mixed}
+                      onChange={selection.toggleAll}
+                      disabled={disabled || !selectable.length}
+                    />
+                  </th>
+                )}
                 {[
                   labels.name,
                   labels.originalLocation,
@@ -174,7 +190,25 @@ export function TrashBrowser({
                     scope="col"
                     className={index === 4 ? tableActionHeaderClass : tableHeaderClass}
                   >
-                    {label}
+                    <div
+                      className={index === 4 ? "flex items-center justify-end gap-2" : undefined}
+                    >
+                      {label}
+                      {index === 4 && capabilities?.delete && (
+                        <DriveBulkDelete
+                          client={client}
+                          scope={scope}
+                          selection={selection}
+                          labels={labels}
+                          disabled={disabled}
+                          onDeleted={() => {
+                            refresh();
+                            onChanged?.();
+                            notify(labels.deleted);
+                          }}
+                        />
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -182,7 +216,10 @@ export function TrashBrowser({
             <tbody className="[&_tr:last-child]:border-0">
               {(!!error || !data?.items.length) && (
                 <tr>
-                  <td colSpan={5} className={cn(tableCellClass, "py-8")}>
+                  <td
+                    colSpan={5 + (capabilities?.delete ? 1 : 0)}
+                    className={cn(tableCellClass, "py-8")}
+                  >
                     <DriveFeedback
                       message={
                         error
@@ -203,9 +240,22 @@ export function TrashBrowser({
                   (entry) => (
                     <tr
                       key={entry.id}
-                      hidden={!data.items.some((row) => row.id === entry.id)}
+                      hidden={
+                        selection.isDeleting(entry.id) ||
+                        !data.items.some((row) => row.id === entry.id)
+                      }
                       className={tableRowClass}
                     >
+                      {capabilities?.delete && (
+                        <td className="w-10 p-2">
+                          <TableSelectionCheckbox
+                            label={`${labels.selectRow}: ${entry.name}`}
+                            checked={selection.selected.some((row) => row.id === entry.id)}
+                            onChange={(checked) => selection.toggle(entry.id, checked)}
+                            disabled={disabled || entry.id.startsWith("pending-")}
+                          />
+                        </td>
+                      )}
                       <td className={cn(tableCellClass, "max-w-64 break-all")}>
                         {entry.name}
                         {entry.state === "deleting" && (
@@ -292,7 +342,7 @@ export function TrashBrowser({
           nextLabel={labels.next}
           previousDisabled={cursors.length === 0}
           nextDisabled={!!error || !data?.nextCursor}
-          disabled={loading}
+          disabled={disabled}
           onPrevious={() => setCursors(cursors.slice(0, -1))}
           onNext={() => {
             if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);

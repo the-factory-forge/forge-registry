@@ -62,6 +62,11 @@ import {
   slugify,
 } from "@/components/plugins/blogs/utils";
 import { TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -132,10 +137,14 @@ function BlogsPageContent({
   const data = optimistic.value;
   const error =
     loadError || (optimistic.error ? errorMessage(optimistic.error, labels) : undefined);
+  const selectable = capabilities.delete && onDelete ? data.items : [];
+  const selection = useTableSelection(selectable, `${search}:${suppliedData.page}`);
+  const selectionDisabled =
+    loading || !!loadError || optimistic.pending || selection.pending || publication.pending;
   const canPublish = capabilities.publish && !!onSetPublished;
   const StatusBadge = canPublish ? "button" : "span";
   function togglePublication(post: BlogListItem, locale: string, published: boolean) {
-    if (!canPublish || !onSetPublished || loading || optimistic.pending || loadError) return;
+    if (!canPublish || !onSetPublished || selectionDisabled) return;
     void publication.run(
       JSON.stringify([post.id, locale, published]),
       (requestId) =>
@@ -196,6 +205,17 @@ function BlogsPageContent({
             )}
             <thead>
               <tr className={tableRowClass}>
+                {capabilities.delete && onDelete && (
+                  <th scope="col" className="w-10 p-2">
+                    <TableSelectionCheckbox
+                      label={labels.selectAllRows}
+                      checked={selection.all}
+                      mixed={selection.mixed}
+                      onChange={selection.toggleAll}
+                      disabled={selectionDisabled || !selectable.length}
+                    />
+                  </th>
+                )}
                 {[
                   labels.title,
                   labels.categories,
@@ -209,7 +229,20 @@ function BlogsPageContent({
                     scope="col"
                     className={index === 5 ? tableActionHeaderClass : tableHeaderClass}
                   >
-                    {label}
+                    <div
+                      className={index === 5 ? "flex items-center justify-end gap-2" : undefined}
+                    >
+                      {label}
+                      {index === 5 && capabilities.delete && onDelete && (
+                        <TableBulkDelete
+                          selection={selection}
+                          getName={(post) => post.title}
+                          onDelete={(post, requestId) => onDelete(post.id, requestId)}
+                          labels={labels}
+                          disabled={selectionDisabled}
+                        />
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -217,7 +250,10 @@ function BlogsPageContent({
             <tbody className="[&_tr:last-child]:border-0">
               {((error && !loading) || data.items.length === 0) && (
                 <tr>
-                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
+                  <td
+                    colSpan={6 + (capabilities.delete && onDelete ? 1 : 0)}
+                    className={cn(tableCellClass, "py-8")}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <Feedback
                         message={loading ? labels.loading : error || labels.empty}
@@ -237,9 +273,22 @@ function BlogsPageContent({
                 (post) => (
                   <tr
                     key={post.id}
-                    hidden={!data.items.some((row) => row.id === post.id)}
+                    hidden={
+                      selection.isDeleting(post.id) || !data.items.some((row) => row.id === post.id)
+                    }
                     className={tableRowClass}
                   >
+                    {capabilities.delete && onDelete && (
+                      <td className="w-10 p-2">
+                        <TableSelectionCheckbox
+                          label={`${labels.selectRow}: ${post.title}`}
+                          checked={selection.selected.some((row) => row.id === post.id)}
+                          mixed={false}
+                          onChange={(checked) => selection.toggle(post.id, checked)}
+                          disabled={selectionDisabled}
+                        />
+                      </td>
+                    )}
                     <td className={cn(tableCellClass, "min-w-48 font-medium")}>
                       <BlogLink
                         href={editHref(post.id)}
@@ -271,6 +320,7 @@ function BlogsPageContent({
                               canPublish
                                 ? loading ||
                                   optimistic.pending ||
+                                  selection.pending ||
                                   publication.pending ||
                                   !!loadError
                                 : undefined
@@ -310,7 +360,7 @@ function BlogsPageContent({
                         {capabilities.delete && onDelete && (
                           <ConfirmDelete
                             labels={labels}
-                            disabled={loading || optimistic.pending || !!loadError}
+                            disabled={selectionDisabled}
                             title={`${labels.deleteTitle}: ${post.title}`}
                             label={`${labels.delete}: ${post.title}`}
                             description={labels.deleteDescription}
@@ -338,7 +388,7 @@ function BlogsPageContent({
           {...data}
           onPageChange={onPageChange}
           labels={labels}
-          disabled={loading || optimistic.pending || !!loadError}
+          disabled={selectionDisabled}
         />
       </div>
     </section>

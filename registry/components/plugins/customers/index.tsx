@@ -25,6 +25,11 @@ import {
 } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -71,6 +76,9 @@ function CustomersPageContent({
   const labels = { ...customerLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedCustomers);
   const customers = optimistic.value;
+  const selectable = onDelete ? customers : [];
+  const selection = useTableSelection(selectable, search ?? "");
+  const selectionDisabled = loading || !!loadError || optimistic.pending || selection.pending;
   const error = loadError || (optimistic.error ? labels.actionError : undefined);
   return (
     <div className={cn(pageClass, className)}>
@@ -104,6 +112,17 @@ function CustomersPageContent({
             )}
             <thead>
               <tr className={tableRowClass}>
+                {onDelete && (
+                  <th scope="col" className="w-10 p-2">
+                    <TableSelectionCheckbox
+                      label={labels.selectAllRows}
+                      checked={selection.all}
+                      mixed={selection.mixed}
+                      onChange={selection.toggleAll}
+                      disabled={selectionDisabled || !selectable.length}
+                    />
+                  </th>
+                )}
                 {[
                   labels.customer,
                   labels.email,
@@ -118,7 +137,28 @@ function CustomersPageContent({
                       index === (syncColumn ? 4 : 3) ? tableActionHeaderClass : tableHeaderClass
                     }
                   >
-                    {label}
+                    <div
+                      className={
+                        index === (syncColumn ? 4 : 3)
+                          ? "flex items-center justify-end gap-2"
+                          : undefined
+                      }
+                    >
+                      {label}
+                      {index === (syncColumn ? 4 : 3) && (
+                        <>
+                          {onDelete && (
+                            <TableBulkDelete
+                              selection={selection}
+                              getName={customerDisplayName}
+                              onDelete={(customer) => onDelete!(customer.id)}
+                              labels={labels}
+                              disabled={selectionDisabled}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -128,9 +168,23 @@ function CustomersPageContent({
                 (customer) => (
                   <tr
                     key={customer.id}
-                    hidden={!customers.some((row) => row.id === customer.id)}
+                    hidden={
+                      selection.isDeleting(customer.id) ||
+                      !customers.some((row) => row.id === customer.id)
+                    }
                     className={tableRowClass}
                   >
+                    {onDelete && (
+                      <td className="w-10 p-2">
+                        <TableSelectionCheckbox
+                          label={`${labels.selectRow}: ${customerDisplayName(customer)}`}
+                          checked={selection.selected.some((row) => row.id === customer.id)}
+                          mixed={false}
+                          onChange={(checked) => selection.toggle(customer.id, checked)}
+                          disabled={selectionDisabled}
+                        />
+                      </td>
+                    )}
                     <td className={tableCellClass}>
                       <div className="flex items-center gap-3">
                         <CustomerAvatar customer={customer} />
@@ -154,7 +208,7 @@ function CustomersPageContent({
                       <CustomerStatusBadge
                         customer={customer}
                         labels={labels}
-                        disabled={loading || optimistic.pending || !!loadError}
+                        disabled={selectionDisabled}
                         onChange={
                           onSetVerified
                             ? (verified) =>
@@ -178,7 +232,7 @@ function CustomersPageContent({
                       <div className={tableActionsClass}>
                         {onImpersonate && (
                           <CustomerActionButton
-                            disabled={loading || optimistic.pending || !!loadError}
+                            disabled={selectionDisabled}
                             label={labels.impersonate}
                             labels={labels}
                             onAction={() => onImpersonate(customer.id)}
@@ -214,7 +268,7 @@ function CustomersPageContent({
                               )
                             }
                             labels={labels}
-                            disabled={loading || optimistic.pending || !!loadError}
+                            disabled={selectionDisabled}
                           />
                         )}
                       </div>
@@ -225,7 +279,7 @@ function CustomersPageContent({
               {((error && !loading) || customers.length === 0) && (
                 <tr className={tableRowClass}>
                   <td
-                    colSpan={syncColumn ? 5 : 4}
+                    colSpan={(syncColumn ? 5 : 4) + (onDelete ? 1 : 0)}
                     className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                   >
                     {error && !loading ? (

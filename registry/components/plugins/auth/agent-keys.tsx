@@ -91,8 +91,14 @@ function AgentKeysContent({
   const [maxExpiry, setMaxExpiry] = useState("");
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
-  const [deleting, setDeleting] = useState<AgentKey | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedKeys = keys?.filter((key) => selectedIds.includes(key.id)) ?? [];
+  if (selectedKeys.length !== selectedIds.length) {
+    setSelectedIds(selectedKeys.map((key) => key.id));
+  }
+  const [deleting, setDeleting] = useState<AgentKey[]>([]);
   const [pending, setPending] = useState(false);
+  const bulkDisabled = error || loading || pending || selectedKeys.length === 0;
   const lock = useRef(false);
   const notify = useActionToast();
   const closeSecret = () => {
@@ -153,6 +159,26 @@ function AgentKeysContent({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
+                  <th scope="col" className="w-10">
+                    <label className="inline-flex size-10 items-center justify-center">
+                      <input
+                        type="checkbox"
+                        aria-label={labels.selectAllKeys}
+                        className="size-4 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                        checked={selectedKeys.length === keys.length}
+                        ref={(input) => {
+                          if (input) {
+                            input.indeterminate =
+                              selectedKeys.length > 0 && selectedKeys.length < keys.length;
+                          }
+                        }}
+                        disabled={error || loading || pending}
+                        onChange={(event) =>
+                          setSelectedIds(event.target.checked ? keys.map((key) => key.id) : [])
+                        }
+                      />
+                    </label>
+                  </th>
                   {(["name", "status", "created", "lastUsed", "expires"] as const).map((column) => (
                     <th
                       key={column}
@@ -162,14 +188,54 @@ function AgentKeysContent({
                       {labels[column]}
                     </th>
                   ))}
-                  <th scope="col">
+                  <th scope="col" className="w-14 p-2 text-right">
                     <span className="sr-only">{labels.actions}</span>
+                    <div className="h-10">
+                      <IconTooltip label={`${labels.deleteSelectedKeys} (${selectedKeys.length})`}>
+                        <button
+                          type="button"
+                          className={cn(
+                            accountButtonClass,
+                            "size-10 p-0",
+                            bulkDisabled
+                              ? "bg-background text-foreground disabled:hover:bg-background"
+                              : "border-transparent",
+                          )}
+                          aria-label={`${labels.deleteSelectedKeys} (${selectedKeys.length})`}
+                          disabled={bulkDisabled}
+                          onClick={() => {
+                            setFailure("");
+                            setDeleting(selectedKeys);
+                          }}
+                        >
+                          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                        </button>
+                      </IconTooltip>
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {keys.map((key) => (
                   <tr key={key.id} className="border-b border-border last:border-0">
+                    <td>
+                      <label className="inline-flex size-10 items-center justify-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`${labels.selectKey} ${key.name}`}
+                          className="size-4 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                          checked={selectedKeys.some((selected) => selected.id === key.id)}
+                          disabled={error || loading || pending}
+                          onChange={(event) =>
+                            setSelectedIds(
+                              event.target.checked
+                                ? [...selectedKeys.map((selected) => selected.id), key.id]
+                                : selectedIds.filter((selected) => selected !== key.id),
+                            )
+                          }
+                        />
+                      </label>
+                    </td>
                     <td className="max-w-56 truncate p-2 font-medium">{key.name}</td>
                     <td className="p-2">
                       <span
@@ -202,10 +268,10 @@ function AgentKeysContent({
                           type="button"
                           className={cn(accountButtonClass, "size-10 border-transparent p-0")}
                           aria-label={`${labels.delete} ${key.name}`}
-                          disabled={error || pending}
+                          disabled={error || loading || pending}
                           onClick={() => {
                             setFailure("");
-                            setDeleting(key);
+                            setDeleting([key]);
                           }}
                         >
                           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -348,14 +414,15 @@ function AgentKeysContent({
         </div>
       </KeyDialog>
       <KeyDialog
-        open={Boolean(deleting)}
+        open={deleting.length > 0}
         onOpenChange={(open) => {
-          if (!open && !lock.current) setDeleting(null);
+          if (!open && !lock.current) setDeleting([]);
         }}
-        title={labels.deleteKey}
+        title={deleting.length > 1 ? labels.deleteKeys : labels.deleteKey}
         description={
           <>
-            {labels.deleteDescription} <strong>{deleting?.name}</strong>
+            {deleting.length > 1 ? labels.deleteKeysDescription : labels.deleteDescription}{" "}
+            <strong>{deleting.map((key) => key.name).join(", ")}</strong>
           </>
         }
       >
@@ -367,7 +434,7 @@ function AgentKeysContent({
             type="button"
             className={accountButtonClass}
             disabled={pending}
-            onClick={() => setDeleting(null)}
+            onClick={() => setDeleting([])}
           >
             {labels.cancel}
           </button>
@@ -377,22 +444,29 @@ function AgentKeysContent({
               accountButtonClass,
               "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
             )}
-            disabled={pending || error}
+            disabled={pending || loading || error}
             onClick={async () => {
-              if (!deleting || lock.current) return;
+              if (!deleting.length || lock.current || loading || error) return;
               lock.current = true;
               setPending(true);
               setFailure("");
-              try {
-                await onDelete(deleting.id);
-                setDeleting(null);
-                notify(labels.deleted);
-              } catch {
-                setFailure(labels.deleteError);
-              } finally {
-                lock.current = false;
-                setPending(false);
+              const failed: AgentKey[] = [];
+              for (const key of deleting) {
+                try {
+                  await onDelete(key.id);
+                  setSelectedIds((ids) => ids.filter((id) => id !== key.id));
+                } catch {
+                  failed.push(key);
+                }
               }
+              setDeleting(failed);
+              if (failed.length) {
+                setFailure(deleting.length > 1 ? labels.deleteKeysError : labels.deleteError);
+              } else {
+                notify(deleting.length > 1 ? labels.keysDeleted : labels.deleted);
+              }
+              lock.current = false;
+              setPending(false);
             }}
           >
             {pending ? labels.deleting : labels.delete}

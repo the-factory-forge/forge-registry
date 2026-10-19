@@ -1,4 +1,7 @@
+import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
+
 export const projectLabels = {
+  ...tableSelectionLabels,
   clearSearch: "Clear search",
   title: "Projects",
   description: "Manage your projects, owners, and assignees.",

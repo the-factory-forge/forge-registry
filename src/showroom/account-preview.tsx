@@ -23,6 +23,14 @@ const initialKeys: AgentKey[] = [
     expiresAt: "2025-02-01T12:00:00Z",
     expired: true,
   },
+  {
+    id: "reporting",
+    name: "Reporting integration",
+    createdAt: "2026-10-01T12:00:00Z",
+    lastUsedAt: null,
+    expiresAt: "2026-11-01T12:00:00Z",
+    expired: false,
+  },
 ];
 const initialSessions = [true, false].map((current) => ({
   id: current ? "current" : "other",
@@ -38,6 +46,7 @@ export function AccountPreview() {
   const [keys, setKeys] = useState(initialKeys);
   const [sessions, setSessions] = useState(initialSessions);
   const [fail, setFail] = useState(false);
+  const [failKeyDelete, setFailKeyDelete] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [credential, setCredential] = useState(false);
   const [custom, setCustom] = useState(false);
@@ -58,6 +67,14 @@ export function AccountPreview() {
           <label className="flex gap-2">
             <input type="checkbox" checked={fail} onChange={(e) => setFail(e.target.checked)} />
             Simulate action failures
+          </label>
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={failKeyDelete}
+              onChange={(e) => setFailKeyDelete(e.target.checked)}
+            />
+            Fail expired key deletion
           </label>
           <label className="flex gap-2">
             <input
@@ -190,6 +207,8 @@ export function AccountPreview() {
                     }
                     onDelete={async (id) => {
                       await perform();
+                      if (failKeyDelete && id === "old")
+                        throw new Error("Preview deletion failure");
                       setKeys((values) => values.filter((value) => value.id !== id));
                     }}
                   />
