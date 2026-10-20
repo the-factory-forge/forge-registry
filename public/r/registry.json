@@ -1152,6 +1152,11 @@
           "path": "registry/components/plugins/blogs/utils.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/utils.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/permissions.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/permissions.ts"
         }
       ]
     },

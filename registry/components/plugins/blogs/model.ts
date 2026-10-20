@@ -27,7 +27,7 @@ export function createArticle(
   return {
     id,
     version: 1,
-    shared: { ...emptyShared, categoryIds: [] },
+    shared: { ...emptyShared, categoryIds: [], author: { ...editor } },
     editor,
     createdAt: now,
     updatedAt: now,
@@ -60,10 +60,20 @@ export function saveArticle(
   assertBlog(input.shared && typeof input.shared === "object");
   const content = validateContent(input.content, maxBytes);
   const shared = {
+    author: input.shared.author ?? article.shared.author ?? article.editor,
     thumbnailId: input.shared.thumbnailId,
     bannerId: input.shared.bannerId,
     categoryIds: normalizeCategories(input.shared.categoryIds, categories),
   };
+  assertBlog(
+    shared.author &&
+      typeof shared.author.id === "string" &&
+      shared.author.id.length > 0 &&
+      shared.author.id.length <= 250 &&
+      typeof shared.author.name === "string" &&
+      shared.author.name.trim().length > 0 &&
+      shared.author.name.length <= 250,
+  );
   for (const id of [shared.thumbnailId, shared.bannerId])
     if (id !== null) {
       validId(id);

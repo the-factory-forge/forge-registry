@@ -230,7 +230,7 @@ export function BlogIndexPage({
                       <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <UserRound className="size-3" />
-                          {post.editor.name}
+                          {(post.shared.author ?? post.editor).name}
                         </span>
                         <time dateTime={post.updatedAt} className="inline-flex items-center gap-1">
                           <CalendarDays className="size-3" />
@@ -335,7 +335,7 @@ export function BlogPostPage({
           <p className="max-w-3xl text-lg leading-8 text-muted-foreground">{post.summary}</p>
         )}
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span>{post.editor.name}</span>
+          <span>{(post.shared.author ?? post.editor).name}</span>
           <span>
             {labels.publishedDate}:{" "}
             <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, post.locale)}</time>

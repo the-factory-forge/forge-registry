@@ -480,7 +480,8 @@ test("create, retained failures, duplicate prevention, drafts, attribution, and 
   await actionToast(page, "This language is now published");
   await page.getByRole("link", { name: "Public blog", exact: true }).click();
   await page.getByRole("link", { name: "A browser-created post", exact: true }).click();
-  await page.getByText("Alex Morgan", { exact: true }).last().waitFor();
+  await page.getByText("Jordan Lee", { exact: true }).last().waitFor();
+  assert.equal(await page.locator("article").getByText("Alex Morgan", { exact: true }).count(), 0);
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await page.getByRole("heading", { name: "Blog posts", exact: true }).waitFor();
   await page.getByRole("button", { name: "Search posts", exact: true }).click();

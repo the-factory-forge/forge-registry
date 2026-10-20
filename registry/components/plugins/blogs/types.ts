@@ -19,6 +19,8 @@ export interface BlogCategory {
   translations: Record<string, { name: string; slug: string }>;
 }
 export interface BlogShared {
+  /** Optional only for documents written before separate authorship was installed. */
+  author?: BlogEditor;
   thumbnailId: string | null;
   bannerId: string | null;
   categoryIds: string[];
@@ -52,6 +54,7 @@ export interface BlogArticle {
 }
 export interface BlogListItem {
   id: string;
+  author?: BlogEditor;
   title: string;
   categoryNames?: string[];
   editor: BlogEditor;
@@ -88,6 +91,7 @@ export interface BlogPublicPage extends BlogPage<Omit<BlogPost, "markdown">> {
   categoryCounts: Record<string, number>;
 }
 export interface BlogCapabilities {
+  changeAuthor?: boolean;
   create: boolean;
   edit: boolean;
   publish: boolean;

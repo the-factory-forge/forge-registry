@@ -12,6 +12,7 @@ import {
   unpublishArticle,
   validateCategory,
 } from "@/components/plugins/blogs/model";
+import { canAccessBlog } from "@/components/plugins/blogs/permissions";
 import {
   articleListItem,
   assertBlog,
@@ -184,6 +185,7 @@ export function createBlogsMock() {
   };
   function client(config: {
     editor: BlogEditor;
+    admin?: boolean;
     readOnly: boolean;
     fail: boolean;
     failUpload: boolean;
@@ -191,10 +193,27 @@ export function createBlogsMock() {
   }): BlogsClient {
     async function mutate<T>(
       name: string,
-      input: { requestId: string },
+      input: { requestId: string; id?: string },
       run: () => T | Promise<T>,
     ): Promise<T> {
       assertBlog(!config.readOnly, "FORBIDDEN");
+      const article = input.id && !name.includes("category") ? get(input.id) : undefined;
+      const permission =
+        name === "save"
+          ? "edit"
+          : name === "unpublish"
+            ? "publish"
+            : name.includes("category")
+              ? "manageCategories"
+              : (name as "create" | "publish" | "delete" | "upload");
+      assertBlog(
+        canAccessBlog(
+          { id: config.editor.id, admin: config.admin ?? true },
+          permission,
+          article ? (article.shared.author ?? article.editor).id : undefined,
+        ),
+        "FORBIDDEN",
+      );
       await new Promise((resolve) => setTimeout(resolve, 250));
       assertBlog(!config.fail, "STORAGE");
       const fingerprint = JSON.stringify([name, config.editor.id, input]),
@@ -269,6 +288,19 @@ export function createBlogsMock() {
         }),
       save: (input) =>
         mutate("save", input, () => {
+          const previous = current(input);
+          if (
+            input.shared.author &&
+            input.shared.author.id !== (previous.shared.author ?? previous.editor).id
+          )
+            assertBlog(
+              canAccessBlog(
+                { id: config.editor.id, admin: config.admin ?? true },
+                "changeAuthor",
+                (previous.shared.author ?? previous.editor).id,
+              ),
+              "FORBIDDEN",
+            );
           const result = saveArticle(
             current(input),
             input,

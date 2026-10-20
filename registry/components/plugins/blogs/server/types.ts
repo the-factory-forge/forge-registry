@@ -14,6 +14,7 @@ export type BlogsPermission =
   | "publish"
   | "delete"
   | "upload"
+  | "changeAuthor"
   | "manageCategories";
 export interface BlogsStorageOptions<Context> {
   db: BlogsDatabase;
@@ -31,6 +32,14 @@ export interface BlogsStorageOptions<Context> {
     articleId?: string,
   ) => Promise<boolean>;
   resolveEditor: (context: Context) => Promise<BlogEditor>;
+  /** Resolve trusted account names inside the mutation transaction; null means unavailable.
+   * An unavailable current author retains their signature; a new unavailable author is rejected.
+   */
+  resolveAuthor?: (
+    context: Context,
+    id: string,
+    tx: BlogsTransaction,
+  ) => Promise<BlogEditor | null>;
 }
 export interface BlogImageInput {
   id: string;

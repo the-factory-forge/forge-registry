@@ -31,6 +31,7 @@ import type {
   BlogCapabilities,
   BlogCategory,
   BlogContent,
+  BlogEditor,
   BlogListItem,
   BlogLocale,
   BlogPage,
@@ -101,6 +102,7 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   newHref: string;
   categoriesHref: string;
   capabilities: BlogCapabilities;
+  capabilitiesForArticle?: (article: BlogListItem) => BlogCapabilities;
   onDelete?: (id: string, requestId: string) => Promise<void>;
   onSetPublished?: (
     id: string,
@@ -121,6 +123,7 @@ function BlogsPageContent({
   newHref,
   categoriesHref,
   capabilities,
+  capabilitiesForArticle,
   onDelete,
   onSetPublished,
   loading,
@@ -137,14 +140,17 @@ function BlogsPageContent({
   const data = optimistic.value;
   const error =
     loadError || (optimistic.error ? errorMessage(optimistic.error, labels) : undefined);
-  const selectable = capabilities.delete && onDelete ? data.items : [];
+  const articleCapabilities = (post: BlogListItem) =>
+    capabilitiesForArticle?.(post) ?? capabilities;
+  const showDelete = !!onDelete && (capabilities.delete || !!capabilitiesForArticle);
+  const selectable = showDelete
+    ? data.items.filter((post) => articleCapabilities(post).delete)
+    : [];
   const selection = useTableSelection(selectable, `${search}:${suppliedData.page}`);
   const selectionDisabled =
     loading || !!loadError || optimistic.pending || selection.pending || publication.pending;
-  const canPublish = capabilities.publish && !!onSetPublished;
-  const StatusBadge = canPublish ? "button" : "span";
   function togglePublication(post: BlogListItem, locale: string, published: boolean) {
-    if (!canPublish || !onSetPublished || selectionDisabled) return;
+    if (!articleCapabilities(post).publish || !onSetPublished || selectionDisabled) return;
     void publication.run(
       JSON.stringify([post.id, locale, published]),
       (requestId) =>
@@ -205,7 +211,7 @@ function BlogsPageContent({
             )}
             <thead>
               <tr className={tableRowClass}>
-                {capabilities.delete && onDelete && (
+                {showDelete && (
                   <th scope="col" className="w-10 p-2">
                     <TableSelectionCheckbox
                       label={labels.selectAllRows}
@@ -220,6 +226,7 @@ function BlogsPageContent({
                   labels.title,
                   labels.categories,
                   labels.languages,
+                  labels.author,
                   labels.editor,
                   labels.modified,
                   labels.actions,
@@ -227,17 +234,17 @@ function BlogsPageContent({
                   <th
                     key={label}
                     scope="col"
-                    className={index === 5 ? tableActionHeaderClass : tableHeaderClass}
+                    className={index === 6 ? tableActionHeaderClass : tableHeaderClass}
                   >
                     <div
-                      className={index === 5 ? "flex items-center justify-end gap-2" : undefined}
+                      className={index === 6 ? "flex items-center justify-end gap-2" : undefined}
                     >
                       {label}
-                      {index === 5 && capabilities.delete && onDelete && (
+                      {index === 6 && showDelete && (
                         <TableBulkDelete
                           selection={selection}
                           getName={(post) => post.title}
-                          onDelete={(post, requestId) => onDelete(post.id, requestId)}
+                          onDelete={(post, requestId) => onDelete!(post.id, requestId)}
                           labels={labels}
                           disabled={selectionDisabled}
                         />
@@ -250,10 +257,7 @@ function BlogsPageContent({
             <tbody className="[&_tr:last-child]:border-0">
               {((error && !loading) || data.items.length === 0) && (
                 <tr>
-                  <td
-                    colSpan={6 + (capabilities.delete && onDelete ? 1 : 0)}
-                    className={cn(tableCellClass, "py-8")}
-                  >
+                  <td colSpan={7 + (showDelete ? 1 : 0)} className={cn(tableCellClass, "py-8")}>
                     <div className="flex flex-wrap items-center gap-2">
                       <Feedback
                         message={loading ? labels.loading : error || labels.empty}
@@ -270,116 +274,122 @@ function BlogsPageContent({
                 </tr>
               )}
               {retainRemovedItems(data.items, suppliedData.items, optimistic.pending).map(
-                (post) => (
-                  <tr
-                    key={post.id}
-                    hidden={
-                      selection.isDeleting(post.id) || !data.items.some((row) => row.id === post.id)
-                    }
-                    className={tableRowClass}
-                  >
-                    {capabilities.delete && onDelete && (
-                      <td className="w-10 p-2">
-                        <TableSelectionCheckbox
-                          label={`${labels.selectRow}: ${post.title}`}
-                          checked={selection.selected.some((row) => row.id === post.id)}
-                          mixed={false}
-                          onChange={(checked) => selection.toggle(post.id, checked)}
-                          disabled={selectionDisabled}
-                        />
-                      </td>
-                    )}
-                    <td className={cn(tableCellClass, "min-w-48 font-medium")}>
-                      <BlogLink
-                        href={editHref(post.id)}
-                        className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
-                        title={post.title}
-                      >
-                        {post.title}
-                      </BlogLink>
-                    </td>
-                    <td className={tableCellClass}>
-                      <p className="max-w-48 truncate" title={post.categoryNames?.join(", ")}>
-                        {post.categoryNames?.join(", ") || "—"}
-                      </p>
-                    </td>
-                    <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
-                      <div className="flex flex-nowrap gap-2">
-                        {post.translations.map((t) => (
-                          <StatusBadge
-                            key={t.locale}
-                            type={canPublish ? "button" : undefined}
-                            title={labels[t.status]}
-                            aria-label={
-                              canPublish
-                                ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
-                                : undefined
-                            }
-                            aria-pressed={canPublish ? t.status !== "draft" : undefined}
-                            disabled={
-                              canPublish
-                                ? loading ||
-                                  optimistic.pending ||
-                                  selection.pending ||
-                                  publication.pending ||
-                                  !!loadError
-                                : undefined
-                            }
-                            onClick={
-                              canPublish
-                                ? () => togglePublication(post, t.locale, t.status === "draft")
-                                : undefined
-                            }
-                            className={cn(
-                              "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                              blogStatusClass[t.status],
-                              canPublish && publicationToggleClass,
-                            )}
-                          >
-                            {t.locale.toUpperCase()}
-                            <span className="sr-only"> · {labels[t.status]}</span>
-                          </StatusBadge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className={tableCellClass}>{post.editor.name}</td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                      <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
-                    </td>
-                    <td className={tableActionCellClass}>
-                      <div className={tableActionsClass}>
-                        <IconTooltip label={`${labels.edit}: ${post.title}`}>
-                          <BlogLink
-                            href={editHref(post.id)}
-                            className={iconButtonClass}
-                            aria-label={`${labels.edit}: ${post.title}`}
-                          >
-                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                          </BlogLink>
-                        </IconTooltip>
-                        {capabilities.delete && onDelete && (
-                          <ConfirmDelete
-                            labels={labels}
-                            disabled={selectionDisabled}
-                            title={`${labels.deleteTitle}: ${post.title}`}
-                            label={`${labels.delete}: ${post.title}`}
-                            description={labels.deleteDescription}
-                            onDelete={(requestId) =>
-                              optimistic.run(
-                                (page) => ({
-                                  ...page,
-                                  items: page.items.filter((row) => row.id !== post.id),
-                                  total: Math.max(0, suppliedData.total - 1),
-                                }),
-                                () => onDelete(post.id, requestId),
-                              )
-                            }
+                (post) => {
+                  const canPublish = articleCapabilities(post).publish && !!onSetPublished;
+                  const StatusBadge = canPublish ? "button" : "span";
+                  return (
+                    <tr
+                      key={post.id}
+                      hidden={
+                        selection.isDeleting(post.id) ||
+                        !data.items.some((row) => row.id === post.id)
+                      }
+                      className={tableRowClass}
+                    >
+                      {showDelete && (
+                        <td className="w-10 p-2">
+                          <TableSelectionCheckbox
+                            label={`${labels.selectRow}: ${post.title}`}
+                            checked={selection.selected.some((row) => row.id === post.id)}
+                            mixed={false}
+                            onChange={(checked) => selection.toggle(post.id, checked)}
+                            disabled={selectionDisabled || !articleCapabilities(post).delete}
                           />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ),
+                        </td>
+                      )}
+                      <td className={cn(tableCellClass, "min-w-48 font-medium")}>
+                        <BlogLink
+                          href={editHref(post.id)}
+                          className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
+                          title={post.title}
+                        >
+                          {post.title}
+                        </BlogLink>
+                      </td>
+                      <td className={tableCellClass}>
+                        <p className="max-w-48 truncate" title={post.categoryNames?.join(", ")}>
+                          {post.categoryNames?.join(", ") || "—"}
+                        </p>
+                      </td>
+                      <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
+                        <div className="flex flex-nowrap gap-2">
+                          {post.translations.map((t) => (
+                            <StatusBadge
+                              key={t.locale}
+                              type={canPublish ? "button" : undefined}
+                              title={labels[t.status]}
+                              aria-label={
+                                canPublish
+                                  ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
+                                  : undefined
+                              }
+                              aria-pressed={canPublish ? t.status !== "draft" : undefined}
+                              disabled={
+                                canPublish
+                                  ? loading ||
+                                    optimistic.pending ||
+                                    selection.pending ||
+                                    publication.pending ||
+                                    !!loadError
+                                  : undefined
+                              }
+                              onClick={
+                                canPublish
+                                  ? () => togglePublication(post, t.locale, t.status === "draft")
+                                  : undefined
+                              }
+                              className={cn(
+                                "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                                blogStatusClass[t.status],
+                                canPublish && publicationToggleClass,
+                              )}
+                            >
+                              {t.locale.toUpperCase()}
+                              <span className="sr-only"> · {labels[t.status]}</span>
+                            </StatusBadge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className={tableCellClass}>{(post.author ?? post.editor).name}</td>
+                      <td className={tableCellClass}>{post.editor.name}</td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                        <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
+                      </td>
+                      <td className={tableActionCellClass}>
+                        <div className={tableActionsClass}>
+                          <IconTooltip label={`${labels.edit}: ${post.title}`}>
+                            <BlogLink
+                              href={editHref(post.id)}
+                              className={iconButtonClass}
+                              aria-label={`${labels.edit}: ${post.title}`}
+                            >
+                              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                            </BlogLink>
+                          </IconTooltip>
+                          {showDelete && articleCapabilities(post).delete && (
+                            <ConfirmDelete
+                              labels={labels}
+                              disabled={selectionDisabled}
+                              title={`${labels.deleteTitle}: ${post.title}`}
+                              label={`${labels.delete}: ${post.title}`}
+                              description={labels.deleteDescription}
+                              onDelete={(requestId) =>
+                                optimistic.run(
+                                  (page) => ({
+                                    ...page,
+                                    items: page.items.filter((row) => row.id !== post.id),
+                                    total: Math.max(0, suppliedData.total - 1),
+                                  }),
+                                  () => onDelete!(post.id, requestId),
+                                )
+                              }
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                },
               )}
             </tbody>
           </table>
@@ -476,6 +486,7 @@ function BlogNewPageContent({
 }
 export interface BlogEditPageProps extends BlogsAppearanceProps {
   imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>>;
+  authors?: BlogEditor[];
   imageCropLabels?: Partial<ImageCropLabels>;
   client: BlogsClient;
   article: BlogArticle;
@@ -550,6 +561,7 @@ function EditorForm({
   maxImageBytes = MAX_IMAGE_BYTES,
   maxMarkdownBytes = MAX_MARKDOWN_BYTES,
   imageDimensions,
+  authors = [],
   imageCropLabels,
 }: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
   const labels = { ...blogsLabels, ...overrides },
@@ -911,6 +923,33 @@ function EditorForm({
             <h2 className="text-lg font-semibold">{labels.shared}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{labels.sharedHint}</p>
           </div>
+          <label className="grid gap-2 text-sm font-medium">
+            <span>{labels.author}</span>
+            <NativeSelect
+              aria-label={labels.author}
+              className={inputClass}
+              value={(shared.author ?? base.editor).id}
+              disabled={!capabilities.changeAuthor || !authors.length}
+              onChange={(event) => {
+                const author = authors.find((person) => person.id === event.target.value);
+                if (author) {
+                  setShared({ ...shared, author });
+                  changed();
+                }
+              }}
+            >
+              {!authors.some((person) => person.id === (shared.author ?? base.editor).id) && (
+                <option value={(shared.author ?? base.editor).id}>
+                  {(shared.author ?? base.editor).name}
+                </option>
+              )}
+              {authors.map((author) => (
+                <option key={author.id} value={author.id}>
+                  {author.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </label>
           <div className="grid gap-6 md:grid-cols-2">
             {imageField("thumbnailId", "thumbnailAlt", labels.thumbnail)}
             {imageField("bannerId", "bannerAlt", labels.banner)}

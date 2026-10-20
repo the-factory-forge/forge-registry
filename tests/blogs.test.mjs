@@ -18,6 +18,29 @@ const {
 const actor = { id: "author", name: "First editor" },
   other = { id: "other", name: "Last editor" },
   now = "2026-09-10T10:00:00.000Z";
+void test("collaboration grants editing to staff and management only to author/admin", async () => {
+  const { blogCapabilities, canAccessBlog } =
+    await import("../registry/components/plugins/blogs/permissions.ts");
+  for (const permission of [
+    "read",
+    "create",
+    "edit",
+    "upload",
+    "publish",
+    "delete",
+    "changeAuthor",
+    "manageCategories",
+  ])
+    assert.equal(canAccessBlog(null, permission, "author"), false);
+  const colleague = { id: "colleague", admin: false };
+  assert.equal(canAccessBlog(colleague, "read", "author"), true);
+  assert.equal(canAccessBlog(colleague, "edit", "author"), true);
+  assert.equal(canAccessBlog(colleague, "upload", "author"), true);
+  for (const permission of ["publish", "delete", "changeAuthor", "manageCategories"])
+    assert.equal(canAccessBlog(colleague, permission, "author"), false);
+  assert.equal(blogCapabilities({ id: "author", admin: false }, "author").publish, true);
+  assert.equal(blogCapabilities({ id: "admin", admin: true }, "author").changeAuthor, true);
+});
 const parent = {
   id: randomUUID(),
   version: 1,

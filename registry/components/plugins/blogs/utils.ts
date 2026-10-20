@@ -180,6 +180,7 @@ export function articleListItem(
       )
       .filter(Boolean),
     editor: article.editor,
+    author: article.shared.author ?? article.editor,
     updatedAt: article.updatedAt,
     translations: Object.entries(article.translations).map(([code, t]) => ({
       locale: code,

@@ -20,6 +20,7 @@ import {
   BlogNewPage,
   BlogPostPage,
   BlogsPage,
+  blogCapabilities,
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
@@ -32,6 +33,7 @@ const previewClassName =
 function usePreview() {
   const [mock] = useState(createBlogsMock),
     [editor, setEditor] = useState("jordan"),
+    [admin, setAdmin] = useState(true),
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
@@ -43,12 +45,13 @@ function usePreview() {
     () =>
       mock.client({
         editor: { id: editor, name: editor === "jordan" ? "Jordan Lee" : "Alex Morgan" },
+        admin,
         readOnly,
         fail,
         failUpload,
         consumeUploadFailure: () => setFailUpload(false),
       }),
-    [mock, editor, readOnly, fail, failUpload],
+    [mock, editor, admin, readOnly, fail, failUpload],
   );
   return {
     mock,
@@ -56,6 +59,8 @@ function usePreview() {
     revision,
     editor,
     setEditor,
+    admin,
+    setAdmin,
     readOnly,
     setReadOnly,
     fail,
@@ -114,6 +119,14 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
+                checked={state.admin}
+                onChange={(event) => state.setAdmin(event.target.checked)}
+              />
+              Administrator
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
                 checked={state.fail}
                 onChange={(e) => state.setFail(e.target.checked)}
               />
@@ -160,14 +173,8 @@ export function BlogsAdminPreview() {
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
-    capabilities = {
-      create: !state.readOnly,
-      edit: !state.readOnly,
-      publish: !state.readOnly,
-      delete: !state.readOnly,
-      upload: !state.readOnly,
-      manageCategories: !state.readOnly,
-    };
+    actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
+    capabilities = blogCapabilities(actor);
   const common = {
     className: previewClassName,
     assetUrl: state.mock.assetUrl,
@@ -212,6 +219,11 @@ export function BlogsAdminPreview() {
     return (
       <BlogEditPage
         {...common}
+        authors={[
+          { id: "jordan", name: "Jordan Lee" },
+          { id: "alex", name: "Alex Morgan" },
+        ]}
+        capabilities={blogCapabilities(actor, (article.shared.author ?? article.editor).id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
@@ -241,6 +253,7 @@ export function BlogsAdminPreview() {
   return (
     <BlogsPage
       {...common}
+      capabilitiesForArticle={(post) => blogCapabilities(actor, (post.author ?? post.editor).id)}
       data={{
         items: items.slice((page - 1) * 6, page * 6),
         total: items.length,
