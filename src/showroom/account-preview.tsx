@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import { UserRoundIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -42,6 +43,12 @@ const initialSessions = [true, false].map((current) => ({
 }));
 export function AccountPreview() {
   const { locale } = useShowroomParams();
+  const search = useSearch({ strict: false }) as { tab?: string };
+  const navigate = useNavigate();
+  const activeTab = ["about", "employee", "customer", "security"].includes(search.tab ?? "")
+    ? search.tab!
+    : "about";
+
   const [name, setName] = useState("Alex Morgan");
   const [keys, setKeys] = useState(initialKeys);
   const [sessions, setSessions] = useState(initialSessions);
@@ -155,6 +162,29 @@ export function AccountPreview() {
         ) : (
           <AccountPage
             user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
+            activeTab={activeTab}
+            onTabChange={(tab) =>
+              navigate({
+                href: `/${locale}/account${tab === "about" ? "" : `?tab=${tab}`}`,
+                resetScroll: false,
+              })
+            }
+            tabs={[
+              {
+                id: "employee",
+                label: "Employee",
+                content: <p>The host supplies employee account fields here.</p>,
+              },
+              {
+                id: "customer",
+                label: "Customer",
+                content: (
+                  <p className="text-sm text-muted-foreground">
+                    The host supplies customer-specific account fields here.
+                  </p>
+                ),
+              },
+            ]}
             onUpdateProfile={async (values) => {
               await perform();
               setName(values.name);
