@@ -1383,6 +1383,11 @@
           "path": "registry/components/plugins/auth/account-styles.ts",
           "type": "registry:lib",
           "target": "@components/plugins/auth/account-styles.ts"
+        },
+        {
+          "path": "registry/components/plugins/auth/account-email-change.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/auth/account-email-change.tsx"
         }
       ],
       "registryDependencies": [

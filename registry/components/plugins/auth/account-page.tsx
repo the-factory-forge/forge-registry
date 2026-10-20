@@ -6,6 +6,10 @@ import { LoaderCircleIcon } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import {
+  AccountEmailChange,
+  type AccountEmailChangeProps,
+} from "@/components/plugins/auth/account-email-change";
 import { accountLabels, type AccountLabels } from "@/components/plugins/auth/account-labels";
 import {
   accountCardClass,
@@ -25,6 +29,8 @@ interface DefaultAccountProps {
   tabs?: AccountTab[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  onChangeEmail?: (email: string) => Promise<void>;
+  emailChangeLabels?: AccountEmailChangeProps["labels"];
   onUpdateProfile: (profile: { name: string }) => Promise<void>;
   security: ReactNode;
   content?: never;
@@ -105,6 +111,8 @@ function DefaultAccountSections({
   tabs = [],
   activeTab,
   onTabChange,
+  onChangeEmail,
+  emailChangeLabels,
   labels: overrides,
 }: Omit<AccountPageProps, "content"> & DefaultAccountProps) {
   const labels = { ...accountLabels, ...overrides };
@@ -203,6 +211,13 @@ function DefaultAccountSections({
             {pending ? labels.saving : labels.save}
           </button>
         </form>
+        {onChangeEmail && (
+          <AccountEmailChange
+            email={user.email}
+            onChangeEmail={onChangeEmail}
+            labels={emailChangeLabels}
+          />
+        )}
       </Tabs.Panel>
       {tabs.map((tab) => (
         <Tabs.Panel key={tab.id} value={tab.id} keepMounted className="min-w-0 data-hidden:hidden">

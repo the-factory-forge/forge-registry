@@ -48,6 +48,7 @@ export function AccountPreview() {
   const activeTab = ["about", "employee", "customer", "security"].includes(search.tab ?? "")
     ? search.tab!
     : "about";
+  const [emailChange, setEmailChange] = useState(false);
 
   const [name, setName] = useState("Alex Morgan");
   const [keys, setKeys] = useState(initialKeys);
@@ -111,6 +112,14 @@ export function AccountPreview() {
             />
             Allow key creation
           </label>
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={emailChange}
+              onChange={(event) => setEmailChange(event.target.checked)}
+            />
+            Allow administrator email change
+          </label>
           <p>
             Actions requested: <span data-testid="callback-count">{calls}</span>
           </p>
@@ -169,6 +178,7 @@ export function AccountPreview() {
                 resetScroll: false,
               })
             }
+            onChangeEmail={emailChange ? perform : undefined}
             tabs={[
               {
                 id: "employee",
