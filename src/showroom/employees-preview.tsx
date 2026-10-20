@@ -27,6 +27,8 @@ export function EmployeesPreview() {
     },
   ]);
   const [state, setState] = useState("ready");
+  const [related, setRelated] = useState(false);
+  const [failDeletion, setFailDeletion] = useState(false);
   const [fail, setFail] = useState(false);
   const [failDelivery, setFailDelivery] = useState(false);
   const [role, setRole] = useState("admin");
@@ -73,10 +75,26 @@ export function EmployeesPreview() {
           <label className="flex gap-2 text-sm">
             <input
               type="checkbox"
+              checked={related}
+              onChange={(event) => setRelated(event.target.checked)}
+            />
+            Review related plugin data
+          </label>
+          <label className="flex gap-2 text-sm">
+            <input
+              type="checkbox"
               checked={fail}
               onChange={(event) => setFail(event.target.checked)}
             />
             Simulate action failures
+          </label>
+          <label className="flex gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={failDeletion}
+              onChange={(event) => setFailDeletion(event.target.checked)}
+            />
+            Fail deletion confirmation
           </label>
           <label className="flex gap-2 text-sm">
             <input
@@ -93,6 +111,60 @@ export function EmployeesPreview() {
         <output>The employees dashboard is available to administrators only.</output>
       )}
       <EmployeesPage
+        deletion={
+          related
+            ? {
+                preview: async (ids) => {
+                  await beforeAction();
+                  return {
+                    token: JSON.stringify(ids),
+                    groups: ids.flatMap((id) => [
+                      {
+                        id: `${id}:blogs`,
+                        label: "Blogs",
+                        items: [
+                          {
+                            id: "article",
+                            title: "Make room for better ideas",
+                            href: "/en/admin/blogs/b1000000-0000-4000-8000-000000000001",
+                            status: "Published · EN, FR",
+                          },
+                        ],
+                        choices: [
+                          { id: "keep", label: "Keep articles and their author signature" },
+                          { id: "reassign", label: "Reassign articles", requiresReplacement: true },
+                          { id: "delete", label: "Delete articles" },
+                        ],
+                        replacements: employees
+                          .filter((employee) => !ids.includes(employee.id))
+                          .map(({ id, name }) => ({ id, name })),
+                      },
+                      {
+                        id: `${id}:pages`,
+                        label: "Pages (example host plugin)",
+                        items: [{ id: "page", title: "Studio introduction", status: "Draft" }],
+                        choices: [
+                          { id: "keep", label: "Keep pages" },
+                          { id: "delete", label: "Delete pages" },
+                        ],
+                      },
+                    ]),
+                  };
+                },
+                confirm: async (ids, token, decisions) => {
+                  await beforeAction();
+                  if (failDeletion) throw new Error("Related data changed");
+                  if (
+                    token !== JSON.stringify(ids) ||
+                    ids.includes("admin") ||
+                    ids.some((id) => !decisions[`${id}:blogs`] || !decisions[`${id}:pages`])
+                  )
+                    throw new Error("Reload the preview");
+                  setEmployees((rows) => rows.filter((row) => !ids.includes(row.id)));
+                },
+              }
+            : undefined
+        }
         employees={state === "empty" ? [] : filteredEmployees.slice(offset, offset + 25)}
         loading={state === "loading"}
         error={state === "error"}

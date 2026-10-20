@@ -6,6 +6,10 @@ import { useId, useRef, useState } from "react";
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
+import {
+  EmployeeDeleteDialog,
+  type EmployeeDeletionAdapter,
+} from "@/components/plugins/employees/employee-delete-dialog";
 import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -27,6 +31,7 @@ import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableActionsClass } from "@/components/utils/table-styles";
 export interface EmployeeActionCallbacks {
+  deletion?: EmployeeDeletionAdapter;
   onUpdate: (values: UpdateEmployee) => Promise<void>;
   /** Persist public-profile visibility and refresh the host's employee data. */
   onSetWebsitePublished?: (id: string, published: boolean) => Promise<void>;
@@ -48,6 +53,7 @@ function EmployeeActionsContent({
   onUpdate,
   onSetWebsitePublished,
   onDelete,
+  deletion,
   onSendVerification,
   labels: overrides,
   className,
@@ -262,70 +268,81 @@ function EmployeeActionsContent({
             </Dialog.Popup>
           </Dialog.Portal>
         </Dialog.Root>
-        <Dialog.Root
-          open={deleting}
-          onOpenChange={(open) => {
-            if (!pending) {
-              setFailedAction(null);
-              setDeleting(open);
-            }
-          }}
-        >
-          <IconTooltip label={`${labels.delete} ${employee.name}`}>
-            <Dialog.Trigger
-              disabled={disabled || pending || isSelf}
-              className={cn(
-                iconButtonClass,
-                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-              )}
-              aria-label={`${labels.delete} ${employee.name}`}
-            >
-              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-            </Dialog.Trigger>
-          </IconTooltip>
-          <Dialog.Portal>
-            <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-            <Dialog.Popup className={dialogClass}>
-              <div className="space-y-2">
-                <Dialog.Title className="text-lg font-semibold">{labels.deleteTitle}</Dialog.Title>
-                <Dialog.Description className="text-sm text-muted-foreground">
-                  {labels.deleteDescription.replace("{name}", employee.name)}
-                </Dialog.Description>
-              </div>
-              {failedAction === "remove" && (
-                <p role="alert" className="text-destructive">
-                  {labels.deleteError}
-                </p>
-              )}
-              <div className="flex flex-wrap justify-end gap-3">
-                <button
-                  type="button"
-                  className={outlineButtonClass}
-                  disabled={pending}
-                  onClick={() => setDeleting(false)}
-                >
-                  {labels.cancel}
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    buttonClass,
-                    "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                  )}
-                  disabled={disabled || pending || isSelf}
-                  onClick={() =>
-                    void run("remove", async () => {
-                      await onDelete(employee.id);
-                      setDeleting(false);
-                    })
-                  }
-                >
-                  {pending ? labels.deleting : labels.delete}
-                </button>
-              </div>
-            </Dialog.Popup>
-          </Dialog.Portal>
-        </Dialog.Root>
+        {deletion ? (
+          <EmployeeDeleteDialog
+            employees={[employee]}
+            adapter={deletion}
+            labels={labels}
+            disabled={disabled || pending || isSelf}
+          />
+        ) : (
+          <Dialog.Root
+            open={deleting}
+            onOpenChange={(open) => {
+              if (!pending) {
+                setFailedAction(null);
+                setDeleting(open);
+              }
+            }}
+          >
+            <IconTooltip label={`${labels.delete} ${employee.name}`}>
+              <Dialog.Trigger
+                disabled={disabled || pending || isSelf}
+                className={cn(
+                  iconButtonClass,
+                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+                )}
+                aria-label={`${labels.delete} ${employee.name}`}
+              >
+                <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Trigger>
+            </IconTooltip>
+            <Dialog.Portal>
+              <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+              <Dialog.Popup className={dialogClass}>
+                <div className="space-y-2">
+                  <Dialog.Title className="text-lg font-semibold">
+                    {labels.deleteTitle}
+                  </Dialog.Title>
+                  <Dialog.Description className="text-sm text-muted-foreground">
+                    {labels.deleteDescription.replace("{name}", employee.name)}
+                  </Dialog.Description>
+                </div>
+                {failedAction === "remove" && (
+                  <p role="alert" className="text-destructive">
+                    {labels.deleteError}
+                  </p>
+                )}
+                <div className="flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    className={outlineButtonClass}
+                    disabled={pending}
+                    onClick={() => setDeleting(false)}
+                  >
+                    {labels.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      buttonClass,
+                      "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+                    )}
+                    disabled={disabled || pending || isSelf}
+                    onClick={() =>
+                      void run("remove", async () => {
+                        await onDelete(employee.id);
+                        setDeleting(false);
+                      })
+                    }
+                  >
+                    {pending ? labels.deleting : labels.delete}
+                  </button>
+                </div>
+              </Dialog.Popup>
+            </Dialog.Portal>
+          </Dialog.Root>
+        )}
       </div>
       {feedback && (
         <p

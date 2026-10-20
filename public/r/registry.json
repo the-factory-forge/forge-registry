@@ -1433,6 +1433,11 @@
           "path": "registry/components/plugins/employees/styles.ts",
           "type": "registry:lib",
           "target": "@components/plugins/employees/styles.ts"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-delete-dialog.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-delete-dialog.tsx"
         }
       ],
       "registryDependencies": [
