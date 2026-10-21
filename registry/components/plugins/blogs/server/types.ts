@@ -32,6 +32,10 @@ export interface BlogsStorageOptions<Context> {
     articleId?: string,
   ) => Promise<boolean>;
   resolveEditor: (context: Context) => Promise<BlogEditor>;
+  /** Public-safe current account names, batched once per read; omit missing accounts.
+   * Hosts must snapshot the latest name before account deletion and invalidate caches.
+   */
+  resolveAuthorNames?: (ids: string[], tx: BlogsTransaction) => Promise<BlogEditor[]>;
   /** Resolve trusted account names inside the mutation transaction; null means unavailable.
    * An unavailable current author retains their signature; a new unavailable author is rejected.
    */

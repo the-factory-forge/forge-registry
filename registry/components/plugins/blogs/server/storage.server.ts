@@ -24,6 +24,8 @@ import type {
 } from "@/components/plugins/blogs/server/types";
 import type {
   BlogArticle,
+  BlogEditor,
+  BlogShared,
   BlogAsset,
   BlogCategory,
   BlogCategoryInput,
@@ -166,6 +168,57 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     assertBlog(row, "NOT_FOUND");
     return row.document;
   }
+  function authorFields(article: BlogArticle) {
+    return [
+      article.shared,
+      ...Object.values(article.translations).flatMap((translation) =>
+        translation.published ? [translation.published.shared] : [],
+      ),
+    ];
+  }
+  async function refreshAuthorNames(tx: BlogsTransaction, fields: BlogShared[]) {
+    if (!options.resolveAuthorNames) return;
+    const ids = [...new Set(fields.flatMap((field) => (field.author ? [field.author.id] : [])))];
+    if (!ids.length) return;
+    const names = await options.resolveAuthorNames(ids, tx);
+    for (const author of names) {
+      assertBlog(
+        ids.includes(author.id) &&
+          typeof author.name === "string" &&
+          author.name.trim().length > 0 &&
+          author.name.length <= 250,
+      );
+    }
+    const byId = new Map(names.map((author) => [author.id, author.name]));
+    for (const field of fields) {
+      const name = field.author && byId.get(field.author.id);
+      if (field.author && name) field.author = { ...field.author, name };
+    }
+  }
+  /** Server-only: call inside the host's authorized account-deletion transaction. */
+  async function snapshotAuthorName(tx: BlogsTransaction, author: BlogEditor) {
+    assertBlog(
+      typeof author.id === "string" &&
+        author.id.length > 0 &&
+        author.id.length <= 250 &&
+        typeof author.name === "string" &&
+        author.name.trim().length > 0 &&
+        author.name.length <= 250,
+    );
+    await lock(tx);
+    const records = await rows<{ document: BlogArticle }>(
+      tx,
+      sql`
+      select document from blogs_article where document->'shared'->'author'->>'id'=${author.id}
+      or exists (select 1 from jsonb_each(document->'translations') t
+        where t.value->'published'->'shared'->'author'->>'id'=${author.id})`,
+    );
+    for (const { document } of records) {
+      for (const field of authorFields(document))
+        if (field.author?.id === author.id) field.author = { ...author };
+      await saveRecord(tx, document);
+    }
+  }
   async function allCategories(tx: BlogsTransaction) {
     return (
       await rows<{ document: BlogCategory }>(
@@ -187,7 +240,9 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        return metadata(tx, id);
+        const article = await metadata(tx, id);
+        await refreshAuthorNames(tx, authorFields(article));
+        return article;
       }),
     );
   }
@@ -389,6 +444,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         const article = await current(tx, input),
           now = new Date().toISOString();
         if (remove) return saveRecord(tx, unpublishArticle(article, input.locale, editor, now));
+        await refreshAuthorNames(tx, authorFields(article));
         const next = publishArticle(
           article,
           input.locale,
@@ -466,9 +522,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       for (const { document } of records)
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
       const categories = await allCategories(db);
-      const items = allowed
-        .slice((page - 1) * pageSize, page * pageSize)
-        .map((document) => articleListItem(document, input.locale, categories));
+      const visible = allowed.slice((page - 1) * pageSize, page * pageSize);
+      await refreshAuthorNames(
+        db,
+        visible.map((article) => article.shared),
+      );
+      const items = visible.map((document) => articleListItem(document, input.locale, categories));
       return { items, total: allowed.length, page, pageSize };
     });
   }
@@ -589,6 +648,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           tx,
           sql`select category.id,count(*)::int as count from blogs_article cross join lateral jsonb_array_elements_text(${published}->'shared'->'categoryIds') as category(id) where ${visible} group by category.id`,
         );
+        await refreshAuthorNames(
+          tx,
+          documents.map((row) => row.publication.shared),
+        );
         const items = documents.map((row) => {
           const { markdown: _markdown, ...publication } = row.publication;
           return { ...publication, id: row.id, locale: input.locale };
@@ -616,6 +679,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           tx,
           sql`select id,document->'translations'->${l}->'published' as publication from blogs_article where document->'translations'->${l}->'published'->>'slug'=${slug} limit 1`,
         );
+        if (row) await refreshAuthorNames(tx, [row.publication.shared]);
         return row
           ? {
               ...row.publication,
@@ -716,6 +780,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     upload,
     listPublished,
     getPublished,
+    snapshotAuthorName,
     publicCategories: () => guard(() => allCategories(db)),
     readImage,
     maintenance,
