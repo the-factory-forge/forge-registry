@@ -326,6 +326,16 @@ test("overnight stays derive checkout, retain policy and reserve the entire buff
     () => placeReservation(c, [], { ...stayInput, departureDate: "2026-09-28" }, now, "bad"),
     { code: "INVALID" },
   );
+  for (const departureDate of ["invalid", "2026-10-1", "2026-02-29", "2026-09-31"]) {
+    assert.throws(
+      () => availableSlots(c, [], { serviceId, date: "2026-09-28", departureDate }, now),
+      { code: "INVALID" },
+    );
+    assert.throws(
+      () => placeReservation(c, [], { ...stayInput, departureDate }, now, "bad", { staff: true }),
+      { code: "INVALID" },
+    );
+  }
   c.services[0].checkoutTime = "09:00";
   const moved = placeReservation(
     c,

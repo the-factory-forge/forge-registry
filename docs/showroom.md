@@ -67,11 +67,9 @@ this repository, including intentionally excluded changes.
 5. After verification, advance `.cove.jsonc` to the reviewed commit and record
    the checks and remaining limitations in the owning change.
 
-Vite+ 1.0 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
-dependency does not replace the repository's Node tests. The version-scoped
-`better-auth@1.7.2>vitest` exclusion removes an optional peer used only by Better
-Auth's test utilities, which this repository does not import. Revisit that
-exclusion when upgrading Better Auth or introducing those test utilities.
+Vite+ 1.3 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
+dependency does not replace the repository's Node tests. Better Auth 1.7.12
+supports Vitest 5, so its optional test-utilities peer no longer needs an exclusion.
 
 TypeScript 7 supplies the native `tsc` check. The Drive integration test uses
 Node's `stripTypeScriptTypes` to serve its browser modules because TypeScript 7
