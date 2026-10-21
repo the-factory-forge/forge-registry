@@ -27,7 +27,7 @@ export function createArticle(
   return {
     id,
     version: 1,
-    shared: { ...emptyShared, categoryIds: [], author: { ...editor } },
+    shared: { ...emptyShared, categoryIds: [], author: { id: editor.id, name: editor.name } },
     editor,
     createdAt: now,
     updatedAt: now,
@@ -59,8 +59,9 @@ export function saveArticle(
 ): BlogArticle {
   assertBlog(input.shared && typeof input.shared === "object");
   const content = validateContent(input.content, maxBytes);
+  const author = input.shared.author ?? article.shared.author;
   const shared = {
-    author: input.shared.author ?? article.shared.author,
+    author: author ? { id: author.id, name: author.name } : undefined,
     thumbnailId: input.shared.thumbnailId,
     bannerId: input.shared.bannerId,
     categoryIds: normalizeCategories(input.shared.categoryIds, categories),
@@ -114,7 +115,10 @@ export function publishArticle(
   const draft = { ...translation.draft, editor, updatedAt: now };
   const published = {
     ...draft,
-    shared: structuredClone(article.shared),
+    shared: {
+      ...structuredClone(article.shared),
+      author: { id: article.shared.author.id, name: article.shared.author.name },
+    },
     assetIds: [
       ...new Set(
         [...draft.assetIds, article.shared.thumbnailId, article.shared.bannerId].filter(

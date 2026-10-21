@@ -233,3 +233,32 @@ void test("legacy drafts stay unattributed until explicitly reviewed", () => {
     actor,
   );
 });
+
+void test("authorship stores only public identity fields", () => {
+  const privateAccount = { ...actor, email: "private@example.test", passwordHash: "not-public" };
+  let article = createArticle(randomUUID(), "Article", "en", privateAccount, now);
+  assert.deepEqual(article.shared.author, actor);
+  article = saveArticle(
+    article,
+    {
+      id: article.id,
+      version: 1,
+      requestId: randomUUID(),
+      locale: "en",
+      content: { ...emptyContent, title: "Article", slug: "article", markdown: "Text" },
+      shared: { ...article.shared, author: privateAccount },
+    },
+    [],
+    new Set(),
+    randomUUID(),
+    other,
+    now,
+  );
+  assert.deepEqual(article.shared.author, actor);
+  // Old/custom documents may still contain a full account object.
+  article.shared.author = privateAccount;
+  assert.deepEqual(
+    publishArticle(article, "en", [], other, now).translations.en.published.shared.author,
+    actor,
+  );
+});

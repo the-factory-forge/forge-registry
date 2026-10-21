@@ -177,6 +177,8 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     ];
   }
   async function refreshAuthorNames(tx: BlogsTransaction, fields: BlogShared[]) {
+    for (const field of fields)
+      if (field.author) field.author = { id: field.author.id, name: field.author.name };
     if (!options.resolveAuthorNames) return;
     const ids = [...new Set(fields.flatMap((field) => (field.author ? [field.author.id] : [])))];
     if (!ids.length) return;
@@ -192,7 +194,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     const byId = new Map(names.map((author) => [author.id, author.name]));
     for (const field of fields) {
       const name = field.author && byId.get(field.author.id);
-      if (field.author && name) field.author = { ...field.author, name };
+      if (field.author && name) field.author = { id: field.author.id, name };
     }
   }
   /** Server-only: call inside the host's authorized account-deletion transaction. */
@@ -215,7 +217,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     );
     for (const { document } of records) {
       for (const field of authorFields(document))
-        if (field.author?.id === author.id) field.author = { ...author };
+        if (field.author?.id === author.id) field.author = { id: author.id, name: author.name };
       await saveRecord(tx, document);
     }
   }
@@ -527,10 +529,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
       const categories = await allCategories(db);
       const visible = allowed.slice((page - 1) * pageSize, page * pageSize);
-      await refreshAuthorNames(
-        db,
-        visible.map((article) => article.shared),
-      );
+      await refreshAuthorNames(db, visible.flatMap(authorFields));
       const items = visible.map((document) => articleListItem(document, input.locale, categories));
       return { items, total: allowed.length, page, pageSize };
     });

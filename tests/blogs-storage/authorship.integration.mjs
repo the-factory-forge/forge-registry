@@ -44,7 +44,8 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
       resolveAuthorNames: async (ids) =>
         ids.flatMap((id) => (accounts.has(id) ? [{ id, name: accounts.get(id) }] : [])),
       resolveEditor: async (id) => ({ id, name: accounts.get(id) }),
-      resolveAuthor: async (_, id) => (accounts.has(id) ? { id, name: accounts.get(id) } : null),
+      resolveAuthor: async (_, id) =>
+        accounts.has(id) ? { id, name: accounts.get(id), privateNote: "not-public" } : null,
       authorize: async (id, permission, articleId) => {
         const [row] = articleId
           ? await pool`select document from blogs_article where id=${articleId}`
@@ -88,6 +89,7 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
       author: { id: "author", name: "Forged name" },
     });
     assert.equal(article.shared.author.name, "Original author");
+    assert.deepEqual(Object.keys(article.shared.author).sort(), ["id", "name"]);
     assert.equal(article.editor.id, "colleague");
     await assert.rejects(
       colleague.publish(mutation(article)),
@@ -99,6 +101,12 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
         author: { id: "colleague", name: "Takeover" },
       }),
       (error) => error.code === "FORBIDDEN",
+    );
+    article = await author.publish(mutation(article));
+    assert.ok(
+      (await colleague.list({ locale: "en" })).items[0].translations.every(
+        (translation) => translation.status === "published",
+      ),
     );
     const [beforeRename] = await pool`select document from blogs_article where id=${article.id}`;
     accounts.set("author", "Renamed author");
@@ -113,7 +121,9 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
       );
     }
     assert.equal((await colleague.get(article.id)).shared.author.name, "Renamed author");
-    assert.equal((await colleague.list({ locale: "en" })).items[0].author.name, "Renamed author");
+    const renamedList = (await colleague.list({ locale: "en" })).items[0];
+    assert.equal(renamedList.author.name, "Renamed author");
+    assert.ok(renamedList.translations.every((translation) => translation.status === "published"));
     const [afterRename] = await pool`select document from blogs_article where id=${article.id}`;
     assert.deepEqual(afterRename.document, beforeRename.document);
     article = await author.publish(mutation(article));
@@ -127,7 +137,11 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     const [beforeDeparture] = await pool`select document from blogs_article where id=${article.id}`;
     await assert.rejects(
       drizzle(pool).transaction(async (tx) => {
-        await storage.snapshotAuthorName(tx, { id: "author", name: accounts.get("author") });
+        await storage.snapshotAuthorName(tx, {
+          id: "author",
+          name: accounts.get("author"),
+          privateNote: "not-public",
+        });
         throw new Error("Rollback departure");
       }),
       /Rollback departure/,
@@ -135,10 +149,16 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     const [afterRollback] = await pool`select document from blogs_article where id=${article.id}`;
     assert.deepEqual(afterRollback.document, beforeDeparture.document);
     await drizzle(pool).transaction((tx) =>
-      storage.snapshotAuthorName(tx, { id: "author", name: accounts.get("author") }),
+      storage.snapshotAuthorName(tx, {
+        id: "author",
+        name: accounts.get("author"),
+        privateNote: "not-public",
+      }),
     );
     accounts.delete("author");
     const [retained] = await pool`select document from blogs_article where id=${article.id}`;
+    assert.deepEqual(Object.keys(retained.document.shared.author).sort(), ["id", "name"]);
+    assert.equal(JSON.stringify(retained.document).includes("not-public"), false);
     assert.equal(retained.document.version, beforeDeparture.document.version);
     assert.equal(retained.document.updatedAt, beforeDeparture.document.updatedAt);
     assert.deepEqual(retained.document.editor, beforeDeparture.document.editor);
