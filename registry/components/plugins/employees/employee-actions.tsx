@@ -87,35 +87,38 @@ function EmployeeActionsContent({
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className={tableActionsClass}>
-        {(employee.mustChangePassword || !employee.emailVerified) && (
-          <IconTooltip label={`${emailAction} ${employee.name}`}>
-            <button
-              type="button"
-              className={iconButtonClass}
+        <IconTooltip label={`${emailAction} ${employee.name}`}>
+          <button
+            type="button"
+            className={iconButtonClass}
 
-              disabled={disabled || pending}
-              aria-label={`${emailAction} ${employee.name}`}
-              onClick={() =>
-                void run("send", async () => {
-                  const { status } = await onSendVerification(employee.id);
-                  if (status === "unavailable") {
-                    setFeedback({ error: true, message: labels.emailUnavailable });
-                  } else {
-                    notify(
-                      status === "verified"
-                        ? labels.verified
-                        : employee.mustChangePassword
-                          ? labels.invitationSent
-                          : labels.emailSent,
-                    );
-                  }
-                })
-              }
-            >
-              <SendHorizontalIcon aria-hidden="true" />
-            </button>
-          </IconTooltip>
-        )}
+            disabled={
+              disabled ||
+              pending ||
+              employee.banned ||
+              (!employee.mustChangePassword && employee.emailVerified)
+            }
+            aria-label={`${emailAction} ${employee.name}`}
+            onClick={() =>
+              void run("send", async () => {
+                const { status } = await onSendVerification(employee.id);
+                if (status === "unavailable") {
+                  setFeedback({ error: true, message: labels.emailUnavailable });
+                } else {
+                  notify(
+                    status === "verified"
+                      ? labels.verified
+                      : employee.mustChangePassword
+                        ? labels.invitationSent
+                        : labels.emailSent,
+                  );
+                }
+              })
+            }
+          >
+            <SendHorizontalIcon aria-hidden="true" />
+          </button>
+        </IconTooltip>
         <Dialog.Root
           open={editing}
           onOpenChange={(open) => {
@@ -259,74 +262,70 @@ function EmployeeActionsContent({
             </Dialog.Popup>
           </Dialog.Portal>
         </Dialog.Root>
-        {!isSelf && (
-          <Dialog.Root
-            open={deleting}
-            onOpenChange={(open) => {
-              if (!pending) {
-                setFailedAction(null);
-                setDeleting(open);
-              }
-            }}
-          >
-            <IconTooltip label={`${labels.delete} ${employee.name}`}>
-              <Dialog.Trigger
-                disabled={disabled || pending}
-                className={cn(
-                  iconButtonClass,
-                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                )}
-                aria-label={`${labels.delete} ${employee.name}`}
-              >
-                <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-              </Dialog.Trigger>
-            </IconTooltip>
-            <Dialog.Portal>
-              <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-              <Dialog.Popup className={dialogClass}>
-                <div className="space-y-2">
-                  <Dialog.Title className="text-lg font-semibold">
-                    {labels.deleteTitle}
-                  </Dialog.Title>
-                  <Dialog.Description className="text-sm text-muted-foreground">
-                    {labels.deleteDescription.replace("{name}", employee.name)}
-                  </Dialog.Description>
-                </div>
-                {failedAction === "remove" && (
-                  <p role="alert" className="text-destructive">
-                    {labels.deleteError}
-                  </p>
-                )}
-                <div className="flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    className={outlineButtonClass}
-                    disabled={pending}
-                    onClick={() => setDeleting(false)}
-                  >
-                    {labels.cancel}
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      buttonClass,
-                      "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                    )}
-                    disabled={disabled || pending}
-                    onClick={() =>
-                      void run("remove", async () => {
-                        await onDelete(employee.id);
-                        setDeleting(false);
-                      })
-                    }
-                  >
-                    {pending ? labels.deleting : labels.delete}
-                  </button>
-                </div>
-              </Dialog.Popup>
-            </Dialog.Portal>
-          </Dialog.Root>
-        )}
+        <Dialog.Root
+          open={deleting}
+          onOpenChange={(open) => {
+            if (!pending) {
+              setFailedAction(null);
+              setDeleting(open);
+            }
+          }}
+        >
+          <IconTooltip label={`${labels.delete} ${employee.name}`}>
+            <Dialog.Trigger
+              disabled={disabled || pending || isSelf}
+              className={cn(
+                iconButtonClass,
+                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+              )}
+              aria-label={`${labels.delete} ${employee.name}`}
+            >
+              <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+            </Dialog.Trigger>
+          </IconTooltip>
+          <Dialog.Portal>
+            <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+            <Dialog.Popup className={dialogClass}>
+              <div className="space-y-2">
+                <Dialog.Title className="text-lg font-semibold">{labels.deleteTitle}</Dialog.Title>
+                <Dialog.Description className="text-sm text-muted-foreground">
+                  {labels.deleteDescription.replace("{name}", employee.name)}
+                </Dialog.Description>
+              </div>
+              {failedAction === "remove" && (
+                <p role="alert" className="text-destructive">
+                  {labels.deleteError}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-end gap-3">
+                <button
+                  type="button"
+                  className={outlineButtonClass}
+                  disabled={pending}
+                  onClick={() => setDeleting(false)}
+                >
+                  {labels.cancel}
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    buttonClass,
+                    "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+                  )}
+                  disabled={disabled || pending || isSelf}
+                  onClick={() =>
+                    void run("remove", async () => {
+                      await onDelete(employee.id);
+                      setDeleting(false);
+                    })
+                  }
+                >
+                  {pending ? labels.deleting : labels.delete}
+                </button>
+              </div>
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
       </div>
       {feedback && (
         <p

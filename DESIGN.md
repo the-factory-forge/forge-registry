@@ -163,6 +163,19 @@ across these transitions on desktop and mobile in both themes. New data may
 naturally change content height; temporary feedback should not move the surrounding
 interface.
 
+### Table action alignment
+
+Keep each row's actions in the same order and positions. Render an action that is
+unavailable for a particular row as a visibly disabled control, with its existing
+icon, accessible name and tooltip. Disabled actions always use the same neutral
+gray treatment as disabled pagination, including destructive actions; remove their
+red or brand-colored tint in both themes and on hover. For example, keep self-delete
+disabled and keep verification disabled for an already verified employee. Retain native disabled
+semantics, non-clickable cursors, confirmation flows and server authorization.
+Features absent from the whole table or hidden by the host's access policy may
+remain omitted. Verify mixed eligible/ineligible rows and pending states at desktop
+and mobile widths. See the shared [table action contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions).
+
 ## Elevation & Depth
 
 The interface is lightly layered, combining borders and small soft shadows.

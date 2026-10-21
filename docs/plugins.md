@@ -108,7 +108,11 @@ confirmations, disabled states and visible action labels remain in place.
 Customer, Project, Employee, Blog, Menu and Drive tables share header styling
 and right-aligned row actions with 8px gaps. Action buttons stay on one line;
 columns stay pinned on desktop and scroll with the row on mobile so they do not
-cover record names or statuses. Menus exposes `labels.actions` for its action
+cover record names or statuses. Keep row-specific unavailable actions visible and
+disabled in their usual positions; follow [table action alignment](../DESIGN.md#table-action-alignment).
+Employees always shows verification/invitation, edit and delete in that order:
+verified accounts disable verification, and the current user disables delete.
+Pending invitations retain their resend action even when email is verified. Menus exposes `labels.actions` for its action
 column heading. The reservation year grid shares table typography and header
 spacing while retaining its date cells, sticky month labels and keyboard navigation.
 

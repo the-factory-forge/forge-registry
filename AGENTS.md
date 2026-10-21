@@ -148,7 +148,7 @@ in `tc-website`; this registry contains reusable components for multiple custome
 - [GLOSSARY.md](./GLOSSARY.md): DOM ID naming and screenshot integration.
 - [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
 - [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
-  including layout stability across asynchronous states.
+  including layout stability and [table action alignment](./DESIGN.md#table-action-alignment).
 - `registry/registry.json`: authoritative list of shipped items and files.
 - `package.json`: build, validation, and formatting commands with pinned tool versions.
 - `vite.config.ts`: Vite Plus lint and format settings; TanStack Start, React, Tailwind, and Nitro plugins run the showroom.
