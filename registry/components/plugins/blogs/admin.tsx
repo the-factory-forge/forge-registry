@@ -485,7 +485,8 @@ function BlogNewPageContent({
   );
 }
 export interface BlogEditPageProps extends BlogsAppearanceProps {
-  imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>>;
+  /** Covers are cropped by default; false retains original uploads. */
+  imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>> | false;
   authors?: BlogEditor[];
   imageCropLabels?: Partial<ImageCropLabels>;
   client: BlogsClient;
@@ -560,7 +561,10 @@ function EditorForm({
   linkComponent,
   maxImageBytes = MAX_IMAGE_BYTES,
   maxMarkdownBytes = MAX_MARKDOWN_BYTES,
-  imageDimensions,
+  imageDimensions = {
+    thumbnail: { width: 1200, height: 900 },
+    banner: { width: 1600, height: 900 },
+  },
   authors = [],
   imageCropLabels,
 }: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
@@ -725,7 +729,8 @@ function EditorForm({
   }
   function selectImage(file: File, target: "thumbnailId" | "bannerId") {
     if (pending || readOnly || !capabilities.upload) return;
-    const dimensions = imageDimensions?.[target === "thumbnailId" ? "thumbnail" : "banner"];
+    const dimensions =
+      imageDimensions && imageDimensions[target === "thumbnailId" ? "thumbnail" : "banner"];
     if (dimensions) setCrop({ file, target, dimensions });
     else void upload(file, target);
   }

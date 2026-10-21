@@ -227,7 +227,7 @@ export function BlogsAdminPreview() {
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
-            : undefined
+            : false
         }
         article={article}
         categories={state.mock.categories()}
