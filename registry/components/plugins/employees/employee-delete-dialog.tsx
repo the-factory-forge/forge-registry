@@ -114,7 +114,11 @@ export function EmployeeDeleteDialog({
         <Dialog.Trigger
           aria-label={actionLabel}
           disabled={disabled || !employees.length}
-          className={cn(iconButtonClass, "text-destructive", className)}
+          className={cn(
+            iconButtonClass,
+            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            className,
+          )}
         >
           <Trash2Icon className="size-4" aria-hidden="true" />
         </Dialog.Trigger>
