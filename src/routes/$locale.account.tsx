@@ -3,12 +3,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AccountPreview } from "@/showroom/account-preview";
 import { showroomHead } from "@/showroom/seo";
 export const Route = createFileRoute("/$locale/account")({
-  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
-    tab:
-      typeof search.tab === "string" && ["employee", "customer", "security"].includes(search.tab)
-        ? search.tab
-        : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { tab?: string; employees?: true } => {
+    const employees = search.employees === true || search.employees === "true";
+    return {
+      employees: employees ? true : undefined,
+      tab:
+        search.tab === "security" || (employees && search.tab === "employee")
+          ? search.tab
+          : undefined,
+    };
+  },
   head: ({ match }) =>
     showroomHead({
       title: "Account profile and security demo",

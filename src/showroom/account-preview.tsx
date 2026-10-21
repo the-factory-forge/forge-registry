@@ -43,11 +43,9 @@ const initialSessions = [true, false].map((current) => ({
 }));
 export function AccountPreview() {
   const { locale } = useShowroomParams();
-  const search = useSearch({ strict: false }) as { tab?: string };
-  const navigate = useNavigate();
-  const activeTab = ["about", "employee", "customer", "security"].includes(search.tab ?? "")
-    ? search.tab!
-    : "about";
+  const search = useSearch({ from: "/$locale/account" });
+  const navigate = useNavigate({ from: "/$locale/account" });
+  const activeTab = search.tab ?? "about";
   const [emailChange, setEmailChange] = useState(false);
 
   const [name, setName] = useState("Alex Morgan");
@@ -72,6 +70,25 @@ export function AccountPreview() {
       navigation={<ShowroomLink href={`/${locale}/login`}>Authentication examples</ShowroomLink>}
       controls={
         <div className="grid gap-4 text-sm">
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={Boolean(search.employees)}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                void navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    employees: enabled ? true : undefined,
+                    tab: !enabled && previous.tab === "employee" ? undefined : previous.tab,
+                  }),
+                  hash: true,
+                  resetScroll: false,
+                });
+              }}
+            />
+            Simulate Employees plugin
+          </label>
           <label className="flex gap-2">
             <input type="checkbox" checked={fail} onChange={(e) => setFail(e.target.checked)} />
             Simulate action failures
@@ -174,27 +191,30 @@ export function AccountPreview() {
             activeTab={activeTab}
             onTabChange={(tab) =>
               navigate({
-                href: `/${locale}/account${tab === "about" ? "" : `?tab=${tab}`}`,
+                search: (previous) => ({
+                  ...previous,
+                  tab: tab === "about" ? undefined : tab,
+                }),
+                hash: true,
                 resetScroll: false,
               })
             }
             onChangeEmail={emailChange ? perform : undefined}
-            tabs={[
-              {
-                id: "employee",
-                label: "Employee",
-                content: <p>The host supplies employee account fields here.</p>,
-              },
-              {
-                id: "customer",
-                label: "Customer",
-                content: (
-                  <p className="text-sm text-muted-foreground">
-                    The host supplies customer-specific account fields here.
-                  </p>
-                ),
-              },
-            ]}
+            tabs={
+              search.employees
+                ? [
+                    {
+                      id: "employee",
+                      label: "Employee",
+                      content: (
+                        <p className="text-sm text-muted-foreground">
+                          The host supplies employee account fields here.
+                        </p>
+                      ),
+                    },
+                  ]
+                : []
+            }
             onUpdateProfile={async (values) => {
               await perform();
               setName(values.name);

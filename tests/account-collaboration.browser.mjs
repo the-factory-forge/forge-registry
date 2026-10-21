@@ -25,14 +25,14 @@ async function preview(t, path, options = {}) {
 }
 
 void test("account tabs restore URL state and email confirmation preserves the current address", async (t) => {
-  const page = await preview(t, "/en/account?tab=employee", {
+  const page = await preview(t, "/en/account?employees=true&tab=employee", {
     viewport: { width: 390, height: 900 },
   });
   await page
     .getByText("The host supplies employee account fields here.", { exact: true })
     .waitFor();
-  await page.getByRole("tab", { name: "Customer", exact: true }).click();
-  assert.ok(page.url().includes("tab=customer"));
+  await page.getByRole("tab", { name: "Security", exact: true }).click();
+  assert.ok(page.url().includes("tab=security"));
   await page.goBack();
   await page
     .getByText("The host supplies employee account fields here.", { exact: true })
@@ -54,7 +54,7 @@ void test("account tabs restore URL state and email confirmation preserves the c
     });
   const initialButtonOffset = await buttonOffset();
   await page.getByRole("button", { name: "Send confirmation" }).click();
-  await page.getByRole("tab", { name: "Customer", exact: true }).click();
+  await page.getByRole("tab", { name: "Security", exact: true }).click();
   await page.getByRole("tab", { name: "About you", exact: true }).click();
   assert.equal(await page.getByRole("button", { name: "Sending…" }).isDisabled(), true);
   assert.equal(await page.getByTestId("callback-count").textContent(), "1");
@@ -77,4 +77,38 @@ void test("account tabs restore URL state and email confirmation preserves the c
     path: "/private/tmp/registry-intranet-account-mobile.png",
     fullPage: true,
   });
+});
+
+void test("account plugin simulation is opt-in and follows navigation history", async (t) => {
+  const page = await preview(t, "/en/account");
+  const tabs = page.getByRole("tab");
+  assert.deepEqual(await tabs.allTextContents(), ["About you", "Security"]);
+  await page.getByLabel("Simulate Employees plugin").check();
+  await page.getByRole("tab", { name: "Employee", exact: true }).click();
+  assert.ok(page.url().includes("employees=true"));
+  await page.reload();
+  assert.equal(await page.getByLabel("Simulate Employees plugin").isChecked(), true);
+  assert.equal(
+    await page.getByRole("tab", { name: "Employee", exact: true }).getAttribute("aria-selected"),
+    "true",
+  );
+  await page.getByLabel("Simulate Employees plugin").uncheck();
+  await page.getByRole("tab", { name: "Employee", exact: true }).waitFor({ state: "hidden" });
+  assert.equal(
+    await page.getByRole("tab", { name: "About you", exact: true }).getAttribute("aria-selected"),
+    "true",
+  );
+  await page.goBack();
+  await page
+    .getByText("The host supplies employee account fields here.", { exact: true })
+    .waitFor();
+  await page.goForward();
+  assert.deepEqual(await tabs.allTextContents(), ["About you", "Security"]);
+  await page.goto(base + "/en/account?tab=employee&employees=false");
+  assert.equal(
+    await page.getByRole("tab", { name: "About you", exact: true }).getAttribute("aria-selected"),
+    "true",
+  );
+  await page.goto(base + "/en/account?tab=customer");
+  assert.deepEqual(await tabs.allTextContents(), ["About you", "Security"]);
 });

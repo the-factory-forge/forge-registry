@@ -203,6 +203,12 @@ authorized for the current account; an Employee or Customer plugin does not
 register itself or fetch data automatically. About and plugin panels retain mounted form
 state when switching tabs.
 
+The account showroom starts with About and Security only. Enable **Simulate
+Employees plugin** in Preview controls to add an example Employee tab. This
+simulation and the selected tab are stored in the URL; disabling the simulated
+plugin while its tab is selected returns to About. The example does not install
+a plugin or load employee data.
+
 Use `activeTab` and `onTabChange` for host URL state and unsaved-change guards.
 Validate unknown tab IDs and preserve unrelated search parameters. Existing
 uncontrolled usage and the complete `header`/`content` override still work.
