@@ -146,7 +146,7 @@ function DefaultAccountSections({
           ))}
         </Tabs.List>
       </div>
-      <Tabs.Panel value="about">
+      <Tabs.Panel value="about" keepMounted className="data-hidden:hidden">
         <form
           className="grid gap-4"
           aria-busy={pending}
