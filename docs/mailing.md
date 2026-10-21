@@ -6,6 +6,15 @@ screen, database, subscription list or runtime plugin loader.
 
 [Preview account and reservation emails](/mailing).
 
+Each sample has a direct showroom link:
+
+- [Verify your email](/mailing/verify-email)
+- [Reset your password](/mailing/reset-password)
+- [Your stay is confirmed](/mailing/reservation-confirmation)
+
+The preview navigation switches between these pages. `/mailing` opens the
+verification sample, and each page also offers its plain-text version.
+
 ```sh
 vpr ui add @forge/mailing
 ```

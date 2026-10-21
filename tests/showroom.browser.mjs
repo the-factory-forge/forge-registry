@@ -12,6 +12,60 @@ after(async () => {
   await browser?.close();
 });
 
+void test("mailing samples have direct links and restore their previews through navigation", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const samples = [
+    ["verify-email", "Verify your email"],
+    ["reset-password", "Reset your password"],
+    ["reservation-confirmation", "Your stay is confirmed"],
+  ];
+  const navigation = page.getByRole("navigation", { name: "Preview navigation" });
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  for (const [slug, heading] of [["", "Verify your email"], ...samples]) {
+    const response = await page.goto(`${baseURL}/mailing${slug ? `/${slug}` : ""}`);
+    assert.equal(response.status(), 200);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
+    assert.equal(await navigation.getByRole("link").count(), 3);
+    assert.equal(await page.getByRole("combobox").count(), 0);
+    assert.equal(
+      await navigation.getByRole("link", { name: heading }).getAttribute("aria-current"),
+      "page",
+    );
+    for (const [linkSlug, linkHeading] of samples) {
+      assert.equal(
+        await navigation.getByRole("link", { name: linkHeading }).getAttribute("href"),
+        `/mailing/${linkSlug}`,
+      );
+    }
+    await page.getByLabel("Plain-text version").check();
+    assert.match(await page.locator("pre").textContent(), new RegExp(heading, "i"));
+    await page.getByLabel("Plain-text version").uncheck();
+    await page.reload();
+    await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
+  }
+  await navigation.getByRole("link", { name: "Reset your password" }).press("Enter");
+  await page.waitForURL(`${baseURL}/mailing/reset-password`);
+  await preview.getByRole("heading", { name: "Reset your password", exact: true }).waitFor();
+  await navigation.getByRole("link", { name: "Verify your email" }).click();
+  await page.waitForURL(`${baseURL}/mailing/verify-email`);
+  await preview.getByRole("heading", { name: "Verify your email", exact: true }).waitFor();
+  await page.goBack();
+  await page.waitForURL(`${baseURL}/mailing/reset-password`);
+  await preview.getByRole("heading", { name: "Reset your password", exact: true }).waitFor();
+  await page.goForward();
+  await page.waitForURL(`${baseURL}/mailing/verify-email`);
+  await preview.getByRole("heading", { name: "Verify your email", exact: true }).waitFor();
+  for (const path of ["/mailing/missing", "/mailing/verify-email/extra"]) {
+    assert.equal((await fetch(baseURL + path)).status, 404);
+  }
+  assert.deepEqual(errors, []);
+});
+
 test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {
   for (const [path, heading] of [
     ["/", "Components Showcase"],

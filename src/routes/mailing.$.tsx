@@ -1,14 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 
-import { NativeSelect } from "@/components/native-select";
 import { renderEmail, type EmailContent } from "@/components/plugins/mailing/index";
+import { ShowroomLink } from "@/showroom/routing";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
-const examples: EmailContent[] = [
+const examples: (EmailContent & { slug: string })[] = [
   {
+    slug: "verify-email",
     preview: "One more step to confirm your email address.",
     heading: "Verify your email",
     greeting: "Hello Alex,",
@@ -17,6 +18,7 @@ const examples: EmailContent[] = [
     footer: "If you weren't expecting this email, you can ignore it.",
   },
   {
+    slug: "reset-password",
     preview: "Choose a new password for your account.",
     heading: "Reset your password",
     greeting: "Hello Alex,",
@@ -25,6 +27,7 @@ const examples: EmailContent[] = [
     footer: "If you didn't request this change, you can ignore this email.",
   },
   {
+    slug: "reservation-confirmation",
     preview: "Your stay is confirmed for 16–18 October.",
     heading: "Your stay is confirmed",
     greeting: "Hello Alex,",
@@ -41,44 +44,39 @@ const examples: EmailContent[] = [
 
 const getExamples = createServerFn({ method: "GET" }).handler(() =>
   Promise.all(
-    examples.map((example) => renderEmail({ brand: { name: "Maison des Alpes" }, ...example })),
+    examples.map((example) => renderEmail({ brand: { name: "The Corner Factory" }, ...example })),
   ),
 );
 
 function MailingPage() {
-  const emails = Route.useLoaderData();
-  const [selected, setSelected] = useState(0);
+  const { email, selected } = Route.useLoaderData();
   const [plainText, setPlainText] = useState(false);
-  const email = emails[selected]!;
   return (
     <ShowroomPreview
       width="narrow"
       notice="Sample emails only. No message is sent."
-      controls={
+      navigation={
         <>
-          <div className="grid gap-2">
-            <label htmlFor="factory-mailing-example">Email</label>
-            <NativeSelect
-              id="factory-mailing-example"
-              value={selected}
-              onChange={(event) => setSelected(Number(event.target.value))}
+          {examples.map((example, index) => (
+            <ShowroomLink
+              key={example.slug}
+              href={`/mailing/${example.slug}`}
+              aria-current={index === selected ? "page" : undefined}
             >
-              {examples.map((example, index) => (
-                <option key={index} value={index}>
-                  {example.heading}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={plainText}
-              onChange={(event) => setPlainText(event.target.checked)}
-            />
-            Plain-text version
-          </label>
+              {example.heading}
+            </ShowroomLink>
+          ))}
         </>
+      }
+      controls={
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={plainText}
+            onChange={(event) => setPlainText(event.target.checked)}
+          />
+          Plain-text version
+        </label>
       }
     >
       <ShowroomIntro title="Mailing">
@@ -91,6 +89,7 @@ function MailingPage() {
         </pre>
       ) : (
         <iframe
+          key={selected}
           title="Email preview"
           sandbox=""
           srcDoc={email.html}
@@ -101,8 +100,15 @@ function MailingPage() {
   );
 }
 
-export const Route = createFileRoute("/mailing")({
-  loader: () => getExamples(),
+export const Route = createFileRoute("/mailing/$")({
+  loader: async ({ params }) => {
+    const selected = examples.findIndex(
+      (example) => example.slug === (params._splat || "verify-email"),
+    );
+    if (selected === -1) throw notFound();
+    const emails = await getExamples();
+    return { email: emails[selected]!, selected };
+  },
   head: ({ match }) =>
     showroomHead({
       title: "Mailing plugin demo",

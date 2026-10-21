@@ -18,7 +18,6 @@ import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
 import { Route as ImageCropRouteImport } from './routes/image-crop'
-import { Route as MailingRouteImport } from './routes/mailing'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
@@ -35,6 +34,7 @@ import { Route as LocaleIntranetRouteImport } from './routes/$locale.intranet'
 import { Route as LocaleIntranetSidebarRouteImport } from './routes/$locale.intranet-sidebar'
 import { Route as LocaleLoginRouteImport } from './routes/$locale.login'
 import { Route as LocaleResetPasswordRouteImport } from './routes/$locale.reset-password'
+import { Route as MailingSplatRouteImport } from './routes/mailing.$'
 import { Route as LocaleLegalDocumentRouteImport } from './routes/$locale.legal.$document'
 import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$locale.blogs.$'
 import { Route as MenusLocaleMenusSplatRouteImport } from './routes/_menus.$locale.menus.$'
@@ -85,11 +85,6 @@ const IconTooltipRoute = IconTooltipRouteImport.update({
 const ImageCropRoute = ImageCropRouteImport.update({
   id: '/image-crop',
   path: '/image-crop',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MailingRoute = MailingRouteImport.update({
-  id: '/mailing',
-  path: '/mailing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NativeSelectRoute = NativeSelectRouteImport.update({
@@ -172,6 +167,11 @@ const LocaleResetPasswordRoute = LocaleResetPasswordRouteImport.update({
   path: '/$locale/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MailingSplatRoute = MailingSplatRouteImport.update({
+  id: '/mailing/$',
+  path: '/mailing/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleLegalDocumentRoute = LocaleLegalDocumentRouteImport.update({
   id: '/$locale/legal/$document',
   path: '/$locale/legal/$document',
@@ -235,7 +235,6 @@ export interface FileRoutesByFullPath {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
-  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -252,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
@@ -269,7 +269,6 @@ export interface FileRoutesByTo {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
-  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -286,6 +285,7 @@ export interface FileRoutesByTo {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
@@ -308,7 +308,6 @@ export interface FileRoutesById {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
-  '/mailing': typeof MailingRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -325,6 +324,7 @@ export interface FileRoutesById {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/_blogs/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/_menus/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
@@ -344,7 +344,6 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
-    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -361,6 +360,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/mailing/$'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
     | '/$locale/menus/$'
@@ -378,7 +378,6 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
-    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -395,6 +394,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/mailing/$'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
     | '/$locale/menus/$'
@@ -416,7 +416,6 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
-    | '/mailing'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -433,6 +432,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/mailing/$'
     | '/$locale/legal/$document'
     | '/_blogs/$locale/blogs/$'
     | '/_menus/$locale/menus/$'
@@ -455,7 +455,6 @@ export interface RootRouteChildren {
   CookieBannerRoute: typeof CookieBannerRoute
   IconTooltipRoute: typeof IconTooltipRoute
   ImageCropRoute: typeof ImageCropRoute
-  MailingRoute: typeof MailingRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
@@ -472,6 +471,7 @@ export interface RootRouteChildren {
   LocaleIntranetSidebarRoute: typeof LocaleIntranetSidebarRoute
   LocaleLoginRoute: typeof LocaleLoginRoute
   LocaleResetPasswordRoute: typeof LocaleResetPasswordRoute
+  MailingSplatRoute: typeof MailingSplatRoute
   LocaleLegalDocumentRoute: typeof LocaleLegalDocumentRoute
 }
 
@@ -538,13 +538,6 @@ declare module '@tanstack/react-router' {
       path: '/image-crop'
       fullPath: '/image-crop'
       preLoaderRoute: typeof ImageCropRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mailing': {
-      id: '/mailing'
-      path: '/mailing'
-      fullPath: '/mailing'
-      preLoaderRoute: typeof MailingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/native-select': {
@@ -657,6 +650,13 @@ declare module '@tanstack/react-router' {
       path: '/$locale/reset-password'
       fullPath: '/$locale/reset-password'
       preLoaderRoute: typeof LocaleResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mailing/$': {
+      id: '/mailing/$'
+      path: '/mailing/$'
+      fullPath: '/mailing/$'
+      preLoaderRoute: typeof MailingSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/legal/$document': {
@@ -797,7 +797,6 @@ const rootRouteChildren: RootRouteChildren = {
   CookieBannerRoute: CookieBannerRoute,
   IconTooltipRoute: IconTooltipRoute,
   ImageCropRoute: ImageCropRoute,
-  MailingRoute: MailingRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,
@@ -814,6 +813,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocaleIntranetSidebarRoute: LocaleIntranetSidebarRoute,
   LocaleLoginRoute: LocaleLoginRoute,
   LocaleResetPasswordRoute: LocaleResetPasswordRoute,
+  MailingSplatRoute: MailingSplatRoute,
   LocaleLegalDocumentRoute: LocaleLegalDocumentRoute,
 }
 export const routeTree = rootRouteImport
