@@ -158,6 +158,38 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     assert.equal((await storage.getPublished("en", "article-en")).shared.author.id, "author");
     article = await colleague.publish(mutation(article));
     assert.equal(article.translations.en.published.shared.author.id, "colleague");
+    const legacy = structuredClone(article);
+    delete legacy.shared.author;
+    delete legacy.translations.en.published.shared.author;
+    await pool`update blogs_article set document=${JSON.stringify(legacy)}::jsonb where id=${article.id}`;
+    const legacySignature = (await storage.getPublished("en", "article-en")).editor;
+    await assert.rejects(
+      admin.publish(mutation(legacy)),
+      (error) => error.code === "AUTHOR_REQUIRED",
+    );
+    article = await save(colleague, legacy);
+    assert.equal(article.shared.author, undefined);
+    assert.deepEqual((await storage.getPublished("en", "article-en")).editor, legacySignature);
+    await assert.rejects(
+      save(colleague, article, {
+        ...article.shared,
+        author: { id: "colleague", name: "Takeover" },
+      }),
+      (error) => error.code === "FORBIDDEN",
+    );
+    article = await save(admin, article);
+    assert.equal(article.shared.author, undefined);
+    await assert.rejects(
+      admin.publish(mutation(article)),
+      (error) => error.code === "AUTHOR_REQUIRED",
+    );
+    article = await save(admin, article, {
+      ...article.shared,
+      author: { id: "colleague", name: "Ignored" },
+    });
+    assert.equal(article.shared.author.name, "Draft editor");
+    article = await colleague.publish(mutation(article));
+    assert.equal((await storage.getPublished("en", "article-en")).shared.author.id, "colleague");
   } finally {
     await pool.end();
     await root`drop schema if exists ${root(schema)} cascade`;

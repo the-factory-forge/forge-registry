@@ -22,6 +22,7 @@ export const emptyContent: BlogContent = {
   bannerAlt: "",
 };
 export type BlogsErrorCode =
+  | "AUTHOR_REQUIRED"
   | "INVALID"
   | "CONFLICT"
   | "FORBIDDEN"
@@ -180,7 +181,7 @@ export function articleListItem(
       )
       .filter(Boolean),
     editor: article.editor,
-    author: article.shared.author ?? article.editor,
+    author: article.shared.author,
     updatedAt: article.updatedAt,
     translations: Object.entries(article.translations).map(([code, t]) => ({
       locale: code,

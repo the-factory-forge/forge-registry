@@ -203,3 +203,33 @@ test("blog registry files ship independently and never expose server imports thr
     }
   }
 });
+
+void test("legacy drafts stay unattributed until explicitly reviewed", () => {
+  let article = createArticle(randomUUID(), "Legacy article", "en", actor, now);
+  delete article.shared.author;
+  const input = {
+    id: article.id,
+    version: 1,
+    locale: "en",
+    requestId: randomUUID(),
+    content: { ...emptyContent, title: "Legacy", slug: "legacy", markdown: "Text" },
+    shared: article.shared,
+  };
+  article = saveArticle(article, input, [], new Set(), randomUUID(), other, now);
+  assert.equal(article.shared.author, undefined);
+  assert.equal(articleListItem(article, "en").author, undefined);
+  assert.throws(() => publishArticle(article, "en", [], other, now), { code: "AUTHOR_REQUIRED" });
+  article = saveArticle(
+    article,
+    { ...input, shared: { ...input.shared, author: actor } },
+    [],
+    new Set(),
+    randomUUID(),
+    other,
+    now,
+  );
+  assert.deepEqual(
+    publishArticle(article, "en", [], other, now).translations.en.published.shared.author,
+    actor,
+  );
+});

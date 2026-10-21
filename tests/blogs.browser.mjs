@@ -119,7 +119,10 @@ void test("table language badges toggle independently and roll back invalid or f
   const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
   const draftBadge = draft.getByRole("button", { name: "Publication status: EN", exact: true });
   await draftBadge.click();
-  await page.getByRole("alert").filter({ hasText: "Check your fields" }).waitFor();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "An administrator must select and save a confirmed author" })
+    .waitFor();
   assert.equal(await draftBadge.getAttribute("aria-pressed"), "false");
   await page.getByLabel("Read-only", { exact: true }).check();
   assert.equal(await row.getByRole("button", { name: /^Publication status:/ }).count(), 0);
@@ -585,6 +588,7 @@ test("categories, optional translations, required publication fields, directory 
   await page.getByLabel("Title", { exact: true }).fill("Une idée");
   await page.getByLabel("Slug", { exact: true }).fill("une-idee");
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Un nouveau texte.");
+  await page.getByLabel("Author", { exact: true }).selectOption("jordan");
   await saved(page);
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published");

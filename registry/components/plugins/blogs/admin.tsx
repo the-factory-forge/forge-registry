@@ -625,6 +625,7 @@ function EditorForm({
   function validate(publishing = false) {
     const issues: Record<string, string> = {};
     if (publishing) {
+      if (!shared.author) issues[`${id}-author`] = labels.AUTHOR_REQUIRED;
       for (const key of ["title", "slug", "markdown"] as const) {
         if (!content[key].trim()) issues[`${id}-${key}`] = labels.fieldRequired;
       }
@@ -933,20 +934,25 @@ function EditorForm({
             <NativeSelect
               aria-label={labels.author}
               className={inputClass}
-              value={(shared.author ?? base.editor).id}
+              {...fields.field(`${id}-author`)}
+              value={shared.author?.id ?? ""}
               disabled={!capabilities.changeAuthor || !authors.length}
               onChange={(event) => {
                 const author = authors.find((person) => person.id === event.target.value);
                 if (author) {
+                  fields.clear(`${id}-author`);
                   setShared({ ...shared, author });
                   changed();
                 }
               }}
             >
-              {!authors.some((person) => person.id === (shared.author ?? base.editor).id) && (
-                <option value={(shared.author ?? base.editor).id}>
-                  {(shared.author ?? base.editor).name}
+              {!shared.author && (
+                <option value="" disabled>
+                  {labels.selectAuthor}
                 </option>
+              )}
+              {shared.author && !authors.some((person) => person.id === shared.author?.id) && (
+                <option value={shared.author.id}>{shared.author.name}</option>
               )}
               {authors.map((author) => (
                 <option key={author.id} value={author.id}>
@@ -954,6 +960,10 @@ function EditorForm({
                 </option>
               ))}
             </NativeSelect>
+            {fields.message(`${id}-author`)}
+            {!shared.author && !fields.field(`${id}-author`)["aria-invalid"] && (
+              <span className="font-normal text-muted-foreground">{labels.AUTHOR_REQUIRED}</span>
+            )}
           </label>
           <div className="grid gap-6 md:grid-cols-2">
             {imageField("thumbnailId", "thumbnailAlt", labels.thumbnail)}

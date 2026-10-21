@@ -400,19 +400,23 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     const result = await write(context, "edit", input.id, input, "save", async (tx, editor) => {
       const article = await current(tx, input),
         categories = await allCategories(tx);
-      const currentAuthor = article.shared.author ?? article.editor;
-      const authorId = input.shared?.author?.id ?? currentAuthor.id;
-      if (authorId !== currentAuthor.id) {
+      const currentAuthor = article.shared.author;
+      const authorId = input.shared?.author?.id ?? currentAuthor?.id;
+      if (input.shared?.author !== undefined)
+        assertBlog(typeof authorId === "string" && authorId.length > 0 && authorId.length <= 250);
+      if (authorId && authorId !== currentAuthor?.id) {
         assertBlog(options.resolveAuthor, "FORBIDDEN");
         await access(context, "changeAuthor", input.id);
       }
-      const resolvedAuthor = options.resolveAuthor
-        ? await options.resolveAuthor(context, authorId, tx)
-        : authorId === editor.id
-          ? editor
-          : null;
-      const author = resolvedAuthor ?? (authorId === currentAuthor.id ? currentAuthor : null);
-      assertBlog(author && author.id === authorId, "NOT_FOUND");
+      const resolvedAuthor = authorId
+        ? options.resolveAuthor
+          ? await options.resolveAuthor(context, authorId, tx)
+          : authorId === editor.id
+            ? editor
+            : null
+        : null;
+      const author = resolvedAuthor ?? (authorId === currentAuthor?.id ? currentAuthor : undefined);
+      assertBlog(!authorId || (author && author.id === authorId), "NOT_FOUND");
       const images = await rows<{ id: string }>(
         tx,
         sql`select id from blogs_object where article_id=${input.id} and kind='image' and state='ready'`,

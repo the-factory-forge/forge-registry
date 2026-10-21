@@ -160,7 +160,9 @@ function seed() {
     date,
   );
   articles[0] = publishArticle(first, "fr", categories, initialEditor, date);
-  articles.push(createArticle(key(4), "An idea for tomorrow", "en", initialEditor, date));
+  const legacy = createArticle(key(4), "An idea for tomorrow", "en", initialEditor, date);
+  delete legacy.shared.author;
+  articles.push(legacy);
   return { articles, categories, assets };
 }
 export function createBlogsMock() {
@@ -210,7 +212,7 @@ export function createBlogsMock() {
         canAccessBlog(
           { id: config.editor.id, admin: config.admin ?? true },
           permission,
-          article ? (article.shared.author ?? article.editor).id : undefined,
+          article?.shared.author?.id,
         ),
         "FORBIDDEN",
       );
@@ -289,15 +291,12 @@ export function createBlogsMock() {
       save: (input) =>
         mutate("save", input, () => {
           const previous = current(input);
-          if (
-            input.shared.author &&
-            input.shared.author.id !== (previous.shared.author ?? previous.editor).id
-          )
+          if (input.shared.author && input.shared.author.id !== previous.shared.author?.id)
             assertBlog(
               canAccessBlog(
                 { id: config.editor.id, admin: config.admin ?? true },
                 "changeAuthor",
-                (previous.shared.author ?? previous.editor).id,
+                previous.shared.author?.id,
               ),
               "FORBIDDEN",
             );

@@ -223,7 +223,7 @@ export function BlogsAdminPreview() {
           { id: "jordan", name: "Jordan Lee" },
           { id: "alex", name: "Alex Morgan" },
         ]}
-        capabilities={blogCapabilities(actor, (article.shared.author ?? article.editor).id)}
+        capabilities={blogCapabilities(actor, article.shared.author?.id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
@@ -253,7 +253,7 @@ export function BlogsAdminPreview() {
   return (
     <BlogsPage
       {...common}
-      capabilitiesForArticle={(post) => blogCapabilities(actor, (post.author ?? post.editor).id)}
+      capabilitiesForArticle={(post) => blogCapabilities(actor, post.author?.id)}
       data={{
         items: items.slice((page - 1) * 6, page * 6),
         total: items.length,

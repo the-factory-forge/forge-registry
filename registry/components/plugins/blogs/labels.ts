@@ -25,6 +25,9 @@ export const blogsLabels = {
   language: "Language",
   languages: "Languages",
   author: "Author",
+  selectAuthor: "Select an author",
+  AUTHOR_REQUIRED:
+    "An administrator must select and save a confirmed author before publishing this older article.",
   editor: "Last modified by",
   modified: "Updated",
   publishedDate: "Published",

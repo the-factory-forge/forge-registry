@@ -60,20 +60,20 @@ export function saveArticle(
   assertBlog(input.shared && typeof input.shared === "object");
   const content = validateContent(input.content, maxBytes);
   const shared = {
-    author: input.shared.author ?? article.shared.author ?? article.editor,
+    author: input.shared.author ?? article.shared.author,
     thumbnailId: input.shared.thumbnailId,
     bannerId: input.shared.bannerId,
     categoryIds: normalizeCategories(input.shared.categoryIds, categories),
   };
-  assertBlog(
-    shared.author &&
+  if (shared.author)
+    assertBlog(
       typeof shared.author.id === "string" &&
-      shared.author.id.length > 0 &&
-      shared.author.id.length <= 250 &&
-      typeof shared.author.name === "string" &&
-      shared.author.name.trim().length > 0 &&
-      shared.author.name.length <= 250,
-  );
+        shared.author.id.length > 0 &&
+        shared.author.id.length <= 250 &&
+        typeof shared.author.name === "string" &&
+        shared.author.name.trim().length > 0 &&
+        shared.author.name.length <= 250,
+    );
   for (const id of [shared.thumbnailId, shared.bannerId])
     if (id !== null) {
       validId(id);
@@ -104,6 +104,7 @@ export function publishArticle(
   now: string,
   maxBytes?: number,
 ): BlogArticle {
+  assertBlog(article.shared.author, "AUTHOR_REQUIRED");
   const translation = article.translations[locale];
   assertBlog(translation, "NOT_FOUND");
   validateContent(translation.draft, maxBytes, true);
