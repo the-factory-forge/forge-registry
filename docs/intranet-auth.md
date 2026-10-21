@@ -195,6 +195,30 @@ Recovery confirmation is deliberately the same for known and unknown accounts.
 Keep that behavior in the endpoint too. The default copy makes no promise about
 link expiry; the host can supply its actual expiry through `checkSpam`.
 
+## Account sections and email
+
+`AccountPage` accepts `tabs: AccountTab[]`, each with a unique `id`, translated
+`label` and `content`. Reserve `about` and `security` for Auth. Supply only sections
+authorized for the current account; an Employee or Customer plugin does not
+register itself or fetch data automatically. About and plugin panels retain mounted form
+state when switching tabs.
+
+Use `activeTab` and `onTabChange` for host URL state and unsaved-change guards.
+Validate unknown tab IDs and preserve unrelated search parameters. Existing
+uncontrolled usage and the complete `header`/`content` override still work.
+
+`onChangeEmail(newEmail)` adds a separate form below About. Translate it with
+`emailChangeLabels`, or compose exported `AccountEmailChange` in a custom page.
+Only supply this callback for eligible administrators. The host derives the
+target from its fresh session, checks CSRF/rate limits and uses the authentication
+provider's old/new-address confirmation flow. The form never replaces `user.email`
+or marks it verified. It retains failed input, blocks duplicates and reports
+that confirmation is needed. Installing source does not enable a provider endpoint.
+
+`tests/account-collaboration.browser.mjs` covers URL navigation/reload, retained
+input and pending requests across tabs, duplicate prevention and stable feedback
+layout. The showroom simulates confirmation; delivery remains a host integration.
+
 ## Employee UI
 
 The employee table uses [`@forge/table-pagination`](./table-pagination.md), installed

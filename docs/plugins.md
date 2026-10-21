@@ -24,6 +24,10 @@ changes in account security also require the current password; hosts validate it
 and the session on the server. Sign-in links to email recovery. See the
 [password integration guide](./intranet-auth.md#password-recovery-and-changes).
 
+Auth account pages also support host-supplied plugin tabs and optional confirmed
+email changes. About and plugin panels preserve form state across tab switches;
+see [account sections and email](./intranet-auth.md#account-sections-and-email).
+
 Auth agent keys support row selection, select-all with a mixed state, and confirmed
 bulk deletion through the existing host callback. Failed keys remain available for
 retry; see [account security](./intranet-auth.md#account-profile-and-security).
