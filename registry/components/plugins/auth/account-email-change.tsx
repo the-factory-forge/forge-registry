@@ -80,12 +80,20 @@ export function AccountEmailChange({
           setStatus("idle");
         }}
       />
-      {status === "error" && (
-        <p role="alert" className="text-sm text-destructive">
+      <div className="grid text-sm">
+        <p aria-hidden="true" className="invisible col-start-1 row-start-1">
           {labels.error}
         </p>
-      )}
-      {status === "sent" && <output className="text-sm">{labels.sent}</output>}
+        <p aria-hidden="true" className="invisible col-start-1 row-start-1">
+          {labels.sent}
+        </p>
+        {status === "error" && (
+          <p role="alert" className="col-start-1 row-start-1 text-destructive">
+            {labels.error}
+          </p>
+        )}
+        {status === "sent" && <output className="col-start-1 row-start-1">{labels.sent}</output>}
+      </div>
       <button
         type="submit"
         disabled={

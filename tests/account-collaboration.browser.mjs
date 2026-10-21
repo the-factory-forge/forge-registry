@@ -45,19 +45,32 @@ void test("account tabs restore URL state and email confirmation preserves the c
   await page.getByLabel("Allow administrator email change").check();
   await page.getByLabel("Simulate action failures").check();
   await page.getByLabel("New email address").fill("new@example.test");
+  const buttonOffset = () =>
+    page.getByLabel("New email address").evaluate((field) => {
+      const form = field.closest("form");
+      return (
+        form.querySelector("button").getBoundingClientRect().top - form.getBoundingClientRect().top
+      );
+    });
+  const initialButtonOffset = await buttonOffset();
   await page.getByRole("button", { name: "Send confirmation" }).click();
   await page.getByRole("tab", { name: "Customer", exact: true }).click();
   await page.getByRole("tab", { name: "About you", exact: true }).click();
   assert.equal(await page.getByRole("button", { name: "Sending…" }).isDisabled(), true);
   assert.equal(await page.getByTestId("callback-count").textContent(), "1");
   await page.getByRole("alert").waitFor();
+  assert.equal(await buttonOffset(), initialButtonOffset);
   assert.equal(await page.getByLabel("New email address").inputValue(), "new@example.test");
   await page.getByLabel("Simulate action failures").uncheck();
   await page.getByRole("button", { name: "Send confirmation" }).click();
   await page.getByRole("tab", { name: "Employee", exact: true }).click();
   await page.getByRole("tab", { name: "About you", exact: true }).click();
-  await page.getByText("Check your email to confirm the change.", { exact: true }).waitFor();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Check your email to confirm the change." })
+    .waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  assert.equal(await buttonOffset(), initialButtonOffset);
   assert.equal(await page.getByLabel("Email", { exact: true }).inputValue(), "alex@example.com");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({
