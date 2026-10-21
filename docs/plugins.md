@@ -60,6 +60,11 @@ Existing modifiers are retained, except `original`; absent modifiers stay absent
 [Drive migration and naming](./drive.md#object-filenames) and
 [Blog naming](./blogs.md#object-filenames) before adopting the server companions.
 
+Blogs separates authors from editors, supplies staff collaboration permissions,
+requires review of legacy attribution and crops covers by default. Current account
+bylines and retained signatures use host name/deletion adapters; see
+[authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
+
 ## Storage encryption and access
 
 For Infomaniak storage, rely on its built-in encryption for all stored files,

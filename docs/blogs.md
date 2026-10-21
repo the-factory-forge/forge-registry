@@ -100,8 +100,10 @@ form. The host owns navigation; add its router's unsaved-change guard if protect
 against leaving the editor entirely is required.
 
 Editor IDs/names come from authenticated server context and dates from the server.
-Saving and publishing record the acting editor. Public credit comes from the
-publication, never a later unpublished draft. The original publication date stays
+Saving and publishing record the acting editor separately from `shared.author`.
+Public credit comes from the publication's author, never its last editor or a
+later unpublished draft. Legacy publications without an author retain their
+recorded editor attribution until explicitly migrated. The original publication date stays
 stable across updates; publishing after an unpublish starts a new publication date.
 
 Slugs use lowercase ASCII words separated by hyphens and are unique per language.
@@ -167,7 +169,7 @@ Configured provider failures still return `STORAGE`. Image reads/publication nee
 configured storage, and hosts should schedule maintenance only when it is configured.
 
 The host must implement real authorization for `read`, `create`, `edit`,
-`publish`, `delete`, `upload`, and `manageCategories`. Grant `read` with write
+`publish`, `delete`, `upload`, `changeAuthor`, and `manageCategories`. Grant `read` with write
 permissions so mutation responses can return the refreshed article. Administrative
 listing checks both list-level and per-article permissions. UI capabilities hide
 controls but never authorize server operations.
@@ -265,9 +267,10 @@ unnecessary because transfers use the host endpoint.
 
 ## Crop new thumbnail and banner uploads
 
-`BlogEditPage` accepts optional `imageDimensions` for `thumbnail` and `banner`,
-for example `{ thumbnail: { width: 1200, height: 675 } }`. These are host choices,
-not registry defaults. For a configured field, selecting a new image opens
+`BlogEditPage` crops thumbnail and banner images by default at 1200×900 and
+1600×900 respectively. Override `imageDimensions`, for example
+`{ thumbnail: { width: 1200, height: 675 } }`, to crop only those configured fields,
+or pass `false` to retain original uploads. Selecting a configured image opens
 [`ImageCropDialog`](./image-crop.md). Nothing reaches `client.upload` until
 the editor confirms; it receives a `.webp` File at the requested dimensions.
 Cancel preserves the current image. Upload failures retain the crop for retry.
@@ -385,3 +388,58 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Authors, collaboration and account changes
+
+Creation sets the creator as `BlogShared.author`. `BlogEditPage.authors` supplies
+eligible choices; the list shows Author and Last modified by separately. Public
+components use the publication's author, falling back to its historical editor
+only for older documents with no explicit author. Custom SEO and feeds must use
+the same attribution.
+
+Use `blogCapabilities(actor, storedAuthorId)` and `canAccessBlog` for the shared
+staff policy: staff can read/edit/upload; author or admin can publish, unpublish,
+delete or change author; only admins manage categories. A non-null actor means
+freshly authenticated, active staff, not any signed-in customer. The host owns
+eligibility and repeats permission checks on the server. Use `capabilitiesForArticle`
+for table actions and bulk selection. Never substitute the last editor's ID for a
+missing author ID when calculating permissions.
+
+`resolveAuthor(context, id, tx)` resolves eligible assignment identities and trusted
+account names inside writes. Browser-supplied names are ignored. Existing deleted
+identities retain their signature; assignment to a missing identity is rejected.
+
+Configure `resolveAuthorNames(ids, tx)` for current account names on admin and public
+reads. It returns only public-safe `{ id, name }` values for the requested IDs and
+omits missing accounts. It is batched per response and needs no viewer session.
+Renames update bylines in every language without changing published text, revisions,
+publication dates or the last editor. Draft reassignment changes management rights;
+public languages retain their own author ID until republished. Without this optional
+resolver, compatibility callers continue displaying stored signatures.
+
+Before removing an account while keeping its articles, call
+`storage.snapshotAuthorName(tx, { id, name })` with its last trusted account name
+inside the host's authorized deletion transaction. It updates only matching draft
+and published signatures, preserving versions, dates and editors. It does not
+remove the account or commit the transaction. The host must check fresh admin
+permissions, lock/recheck the account and affected records, then atomically apply
+its retention choices and account removal. Do not expose this server-only method
+directly as a browser endpoint. Reassignment/deletion still belong to the host's
+related-data adapter. Invalidate admin/public blog caches after account renames,
+reassignment and deletion; source installation does not configure cache hooks.
+
+Legacy articles remain readable, but direct publication fails with `AUTHOR_REQUIRED`
+until an administrator explicitly selects and saves an eligible author. Saving a
+colleague's draft without that selection leaves it unconfirmed. The selector starts
+empty, so saving unrelated text cannot silently confirm the previous editor.
+Use the stored optional author ID in `authorize`; only admins can assign or manage
+legacy records under the shared policy. Custom storage adapters must enforce the
+same guard. This does not recover unknown historical authors or import Seebach's
+site-specific attribution repair. Stop old writers that discard the new fields.
+
+`tests/blog-collaboration.browser.mjs` covers colleague drafts, author/admin
+controls and explicit legacy attribution. The storage integration suite verifies
+multilingual current names, unchanged publication metadata, transaction rollback,
+retained names after departure and public-safe author projections. Run it against
+a disposable database; account lookup, cache invalidation and deletion remain host
+integrations to verify when adopting the source.
