@@ -10,6 +10,10 @@ import {
   EmployeeDeleteDialog,
   type EmployeeDeletionAdapter,
 } from "@/components/plugins/employees/employee-delete-dialog";
+import {
+  EmployeePhotoField,
+  type EmployeePhotoFieldProps,
+} from "@/components/plugins/employees/employee-photo-field";
 import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -32,6 +36,8 @@ import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableActionsClass } from "@/components/utils/table-styles";
 export interface EmployeeActionCallbacks {
   deletion?: EmployeeDeletionAdapter;
+  onUploadPhoto?: (id: string, file: File) => Promise<void>;
+  photoOptions?: Pick<EmployeePhotoFieldProps, "dimensions" | "labels" | "cropLabels">;
   onUpdate: (values: UpdateEmployee) => Promise<void>;
   /** Persist public-profile visibility and refresh the host's employee data. */
   onSetWebsitePublished?: (id: string, published: boolean) => Promise<void>;
@@ -54,6 +60,8 @@ function EmployeeActionsContent({
   onSetWebsitePublished,
   onDelete,
   deletion,
+  onUploadPhoto,
+  photoOptions,
   onSendVerification,
   labels: overrides,
   className,
@@ -146,7 +154,10 @@ function EmployeeActionsContent({
           </IconTooltip>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-            <Dialog.Popup className={dialogClass} onKeyDownCapture={submitDialogOnShortcut}>
+            <Dialog.Popup
+              className={cn(dialogClass, "max-h-[90dvh] overflow-y-auto")}
+              onKeyDownCapture={submitDialogOnShortcut}
+            >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <Dialog.Title className="text-lg font-semibold">{labels.editTitle}</Dialog.Title>
@@ -187,6 +198,14 @@ function EmployeeActionsContent({
                   </p>
                 )}
               </div>
+              {onUploadPhoto && (
+                <EmployeePhotoField
+                  {...photoOptions}
+                  src={employee.image}
+                  disabled={disabled || pending}
+                  onUpload={(file) => onUploadPhoto(employee.id, file)}
+                />
+              )}
               <form
                 className="space-y-4"
                 onSubmit={(event) => {

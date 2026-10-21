@@ -111,6 +111,19 @@ export function EmployeesPreview() {
         <output>The employees dashboard is available to administrators only.</output>
       )}
       <EmployeesPage
+        onUploadPhoto={async (id, file) => {
+          await beforeAction();
+          const image = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              typeof reader.result === "string"
+                ? resolve(reader.result)
+                : reject(new Error("Invalid image"));
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          setEmployees((rows) => rows.map((row) => (row.id === id ? { ...row, image } : row)));
+        }}
         deletion={
           related
             ? {

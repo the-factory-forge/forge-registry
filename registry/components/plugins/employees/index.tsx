@@ -47,6 +47,8 @@ import {
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
+export { EmployeePhotoField } from "@/components/plugins/employees/employee-photo-field";
+export type { EmployeePhotoFieldProps } from "@/components/plugins/employees/employee-photo-field";
 export type {
   Employee,
   CreateEmployee,
@@ -88,6 +90,8 @@ function EmployeesPageContent({
   onSetWebsitePublished,
   onDelete,
   deletion,
+  onUploadPhoto,
+  photoOptions,
   onSendVerification,
   labels: overrides,
   className,
@@ -324,6 +328,8 @@ function EmployeesPageContent({
                     <td className={tableActionCellClass}>
                       <EmployeeActions
                         deletion={deletion}
+                        onUploadPhoto={onUploadPhoto}
+                        photoOptions={photoOptions}
                         employee={employee}
                         disabled={
                           loading ||

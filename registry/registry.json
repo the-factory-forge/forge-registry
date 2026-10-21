@@ -1438,6 +1438,11 @@
           "path": "registry/components/plugins/employees/employee-delete-dialog.tsx",
           "type": "registry:component",
           "target": "@components/plugins/employees/employee-delete-dialog.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-photo-field.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-photo-field.tsx"
         }
       ],
       "registryDependencies": [
@@ -1451,7 +1456,8 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/image-crop"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
