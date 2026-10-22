@@ -16,6 +16,7 @@ export function blogCapabilities(actor: BlogActor | null, authorId?: string): Bl
     publish: managesArticle,
     delete: managesArticle,
     changeAuthor: managesArticle,
+    reviewLegacyAuthor: !!actor?.admin,
     manageCategories: !!actor?.admin,
   };
 }

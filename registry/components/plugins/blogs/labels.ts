@@ -28,6 +28,8 @@ export const blogsLabels = {
   selectAuthor: "Select an author",
   AUTHOR_REQUIRED:
     "An administrator must select and save a confirmed author before publishing this older article.",
+  HISTORY_CONFIRMATION_REQUIRED:
+    "Review the versions to remove before publishing this historical state.",
   editor: "Last modified by",
   modified: "Updated",
   publishedDate: "Published",

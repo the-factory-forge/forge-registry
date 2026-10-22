@@ -89,9 +89,11 @@ deleted editor. When deleting the last row on a later page, navigate to the last
 remaining page with the current search preserved.
 
 An article groups linked translations. Each has its own title, slug, summary,
-Markdown, image alternative text, draft, and publication. Thumbnail, banner, and
-category assignments are shared. Publishing one language captures the current
-shared settings for that language only; other live translations remain unchanged.
+Markdown, image alternative text, draft, publication, thumbnail, banner and
+category assignments. Draft settings live in `translation.shared`, falling back
+to `article.shared` for older documents. The article's designated management
+author stays in `article.shared.author`; captured language signatures are separate.
+Publishing one language leaves the other drafts and live translations unchanged.
 
 Creation and editing use language tabs, matching the back-office menu editor.
 Save drafts explicitly before switching language or publishing. Failed saves and
@@ -347,11 +349,11 @@ through candidates so referenced old objects cannot starve later cleanup.
 
 Unreferenced image objects, including those of deleted articles, have a 24-hour grace
 period to outlive interrupted transfers; attach uploads to saved
-drafts within that period. All current draft/publication references protect objects.
+drafts within that period. Current states and every retained history reference protect objects.
 Article deletion immediately removes public visibility and leaves the image
 ledger for retryable byte deletion. Never configure an S3 expiry rule over the
 final object prefix. No external automation is created by installation. Mutation
-records remain for retry safety; there is no user-facing revision/restore history.
+records remain for retry safety; they are separate from editorial history.
 
 Showroom routes are `/en/blogs`, `/en/admin/blogs`, and `/fr/blogs`. A dedicated
 provider shares in-memory state across navigation; full reloads reset it. Controls
@@ -361,7 +363,7 @@ The integration harness uses dedicated Docker volumes and fixed test-only
 credentials on localhost ports 55440/19040. It never reads host credentials:
 
 ```sh
-docker compose -f tests/blogs-storage/compose.yaml up -d --wait
+docker compose -f tests/blogs-storage/compose.yaml up -d --build --wait
 pnpm test:blogs-storage
 docker compose -f tests/blogs-storage/compose.yaml restart
 docker compose -f tests/blogs-storage/compose.yaml up -d --wait
@@ -369,6 +371,9 @@ BLOGS_TEST_PHASE=restart pnpm test:blogs-storage
 # Remove disposable integration data when finished:
 docker compose -f tests/blogs-storage/compose.yaml down --volumes
 ```
+
+The fixture builds MinIO from the pinned upstream source tag rather than relying
+on the unavailable vendor image. Its credentials and volumes are local test data.
 
 Run `pnpm test`, the browser suite with `TEST_BASE_URL` set to the showroom URL,
 and repository lint/type/build checks. Generate endpoints with `pnpm registry:sync`
@@ -419,8 +424,8 @@ resolver, compatibility callers continue displaying stored signatures.
 
 Before removing an account while keeping its articles, call
 `storage.snapshotAuthorName(tx, { id, name })` with its last trusted account name
-inside the host's authorized deletion transaction. It updates only matching draft
-and published signatures, preserving versions, dates and editors. It does not
+inside the host's authorized deletion transaction. It updates matching current
+and retained history signatures, preserving versions, dates and editors. It does not
 remove the account or commit the transaction. The host must check fresh admin
 permissions, lock/recheck the account and affected records, then atomically apply
 its retention choices and account removal. Do not expose this server-only method
@@ -443,3 +448,102 @@ multilingual current names, unchanged publication metadata, transaction rollback
 retained names after departure and public-safe author projections. Run it against
 a disposable database; account lookup, cache invalidation and deletion remain host
 integrations to verify when adopting the source.
+
+## Localized history transport
+
+`BlogsClient.history` is optional. Existing custom clients keep their current
+editor until they supply its authorized `list`, `get`, `plan`, `publish` and
+`delete` methods. The storage companion supplies them through `storage.client`.
+Hosts own HTTP/action schemas, fresh session checks and query invalidation.
+Never import server code into the browser or treat a browser-supplied snapshot,
+actor name or deletion list as authoritative.
+
+Each language retains five publications and eight saved drafts across all
+reprises. Changed saves create a complete snapshot; unchanged saves preserve
+content identity and modification metadata. Publication promotes an existing
+identity and clears pending drafts for that language. Numbering never resets
+after deletion or pruning. Keep these values distinct:
+
+| Field                                              | Meaning                                                    |
+| -------------------------------------------------- | ---------------------------------------------------------- |
+| `article.version`                                  | Optimistic concurrency token for article mutations         |
+| `BlogHistoryHeader.number`                         | Visible version number within one language                 |
+| `BlogHistoryHeader.id`                             | Stable UUID used as `versionId` in history requests        |
+| `repriseId`                                        | Identity of an independent start and its subsequent drafts |
+| `sourcePublicationId` and `sourcePublicationOrder` | Return point, retained even if its snapshot is pruned      |
+
+Start from a publication by saving with
+`origin: { versionId: publication.id, repriseId: crypto.randomUUID() }`.
+Generate a fresh reprise ID for each start, including repeated starts from the
+same publication. Editing a retained draft uses `origin: { versionId: draft.id }`.
+Ordinary saves continue the current draft. Merely reading a snapshot creates
+nothing. Only the current article author or an administrator may resume,
+republish or delete history; staff may inspect it and edit the ordinary draft.
+Hosts adopting history must authorize `reviewLegacyAuthor` for administrators
+only. An unknown historical signature remains unconfirmed when resumed; assigning
+its author requires this permission even if the caller currently owns the article.
+
+`history.list({ id, locale })` returns bounded headers without bodies.
+`history.get({ id, locale, versionId })` loads one authorized snapshot. Ordinary
+article/list responses carry current states and small history cursors only.
+Keep historical bodies out of host list caches and mutation acknowledgements.
+
+Before publishing a selected history version, request a server-derived plan:
+
+```ts
+const target = { id: article.id, version: article.version, locale, versionId };
+const plan = await client.history!.plan(target);
+// Show plan.discarded and plan.missingAssetIds, then await user confirmation.
+const updated = await client.history!.publish({
+  ...plan.target,
+  requestId: crypto.randomUUID(),
+  token: plan.token,
+  omitMissingImages: false,
+});
+```
+
+A historical return discards later publications and pending drafts only inside
+the successful publication transaction. A changed article or plan returns
+`CONFLICT`; obtain and confirm a new plan. The ordinary `publish` method rejects
+historical returns with `HISTORY_CONFIRMATION_REQUIRED`, so old clients and table
+badges cannot bypass confirmation. Individual deletion uses
+`history.delete({ ...target, requestId })` after confirmation; the live version
+is protected. Deleting the selected draft falls back to the latest draft, then
+the live state, then empty unsaved input, while preserving allocation counters.
+
+Set `omitMissingImages` to true only after the user confirms the plan's missing
+illustrations. The effective publication excludes their image IDs and covers;
+the Markdown renderer only loads its permitted asset IDs. Historical payloads
+retain the original references. Timeouts, access errors and missing buckets are
+provider failures to retry, not permission to omit images. Foreign image IDs
+remain forbidden. Maintenance protects references across current states and all
+retained snapshots; pruning only makes unreferenced bytes eligible after the
+existing grace period. No image is copied for a content version.
+
+## History migration and rollback
+
+Fresh installs use `server/migration.sql`. Existing hosts review and register
+[`server/history-migration.sql`](../registry/components/plugins/blogs/server/history-migration.sql)
+through their migration flow, then call the server-only
+`storage.backfillHistory(tx)` inside that migration transaction. It seeds the
+actual current states, reuses an identity for identical draft/publication inputs,
+and preserves existing article/revision/image IDs and publication metadata.
+Repeating it is a no-op; it cannot recover earlier discarded text or unknown
+authors. Do not expose it as a browser action or run it at every startup.
+
+Stop incompatible writers before adopting the schema, companion and host
+transport together. Current projections stay in `blogs_article.document`;
+`blogs_history` stores separate JSONB headers and full payloads with an indexed
+article/language/number key. Reads load headers or a selected body, and writes
+keep small mutation results. Source/reprise references do not cascade when their
+source version is removed. Deleting an article removes its history; image
+objects retain the existing retryable cleanup flow.
+
+For rollback, disable history controls and keep the additive schema/data and a
+compatible writer. Do not downgrade to code that discards localized settings or
+history counters. Prepare backups and migration commands through the host's
+reviewed process; source installation does not run a migration or deployment.
+
+`tests/blogs-storage/history.integration.mjs` uses a disposable schema and bucket
+for retention, confirmation, authorization, rollback, image lifecycle, migration
+and fresh-process persistence. Run it with the companion's storage suite.

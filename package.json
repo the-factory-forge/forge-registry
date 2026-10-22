@@ -21,7 +21,7 @@
     "test:browser": "node --test tests/*.browser.mjs",
     "test:deployment": "node --test tests/deployment.smoke.mjs",
     "test:storage": "node --test tests/drive-storage/storage.integration.mjs",
-    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs",
+    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs tests/blogs-storage/history.integration.mjs",
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview",
     "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs"

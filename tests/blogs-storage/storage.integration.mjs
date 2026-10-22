@@ -85,10 +85,15 @@ await test("private blog persistence, publication boundaries, retries, and recov
     assert.ok(post);
     assert.equal(post.markdown, "Persisted Markdown");
     assert.deepEqual(Buffer.from((await storage.readImage(post.shared.thumbnailId)).bytes), image);
+    const history = await client.history.list({ id: post.id, locale: "en" });
+    const current = history.find((version) => version.id === post.revisionId);
+    assert.equal(current.state, "publication");
+    const snapshot = await client.history.get({ id: post.id, locale: "en", versionId: current.id });
+    assert.equal(snapshot.content.markdown, "Persisted Markdown");
     return;
   }
   await pool.unsafe(
-    "DROP TABLE IF EXISTS blogs_mutation,blogs_object,blogs_category,blogs_article CASCADE",
+    "DROP TABLE IF EXISTS blogs_mutation,blogs_object,blogs_category,blogs_history,blogs_article CASCADE",
   );
   await pool.unsafe(
     await readFile(

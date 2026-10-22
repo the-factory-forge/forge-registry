@@ -67,7 +67,13 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
       locale,
       ...request(),
     });
-    const save = (client, article, shared = article.shared, locale = "en") =>
+    const save = (
+      client,
+      article,
+      shared = article.shared,
+      locale = "en",
+      markdown = "A saved draft.",
+    ) =>
       client.save({
         ...mutation(article, locale),
         shared,
@@ -75,7 +81,7 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
           ...emptyContent,
           title: "Article",
           slug: `article-${locale}`,
-          markdown: "A saved draft.",
+          markdown,
         },
       });
     let article = await author.create({ ...request(), title: "Article", locale: "en" });
@@ -84,10 +90,16 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     article = await save(author, article, article.shared, "fr");
     article = await author.publish(mutation(article, "fr"));
     assert.equal((await colleague.list({ locale: "en" })).total, 1);
-    article = await save(colleague, article, {
-      ...article.shared,
-      author: { id: "author", name: "Forged name" },
-    });
+    article = await save(
+      colleague,
+      article,
+      {
+        ...article.shared,
+        author: { id: "author", name: "Forged name" },
+      },
+      "en",
+      "A colleague's correction.",
+    );
     assert.equal(article.shared.author.name, "Original author");
     assert.deepEqual(Object.keys(article.shared.author).sort(), ["id", "name"]);
     assert.equal(article.editor.id, "colleague");
@@ -180,7 +192,12 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     assert.equal(article.translations.en.published.shared.author.id, "colleague");
     const legacy = structuredClone(article);
     delete legacy.shared.author;
-    delete legacy.translations.en.published.shared.author;
+    for (const translation of Object.values(legacy.translations)) {
+      delete translation.shared;
+      delete translation.history;
+      if (translation.published) delete translation.published.shared.author;
+    }
+    await pool`delete from blogs_history where article_id=${article.id}`;
     await pool`update blogs_article set document=${JSON.stringify(legacy)}::jsonb where id=${article.id}`;
     const legacySignature = (await storage.getPublished("en", "article-en")).editor;
     await assert.rejects(

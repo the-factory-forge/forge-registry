@@ -36,6 +36,7 @@ export function createArticle(
     updatedAt: now,
     translations: {
       [locale]: {
+        history: { lastNumber: 0, lastPublicationOrder: 0, currentId: null, publishedId: null },
         draft: {
           ...emptyContent,
           title: title.trim(),
@@ -199,6 +200,7 @@ export function recordBlogSave(
       assertBlog(!input.origin.repriseId || input.origin.repriseId === source.repriseId);
     }
   }
+  if (input.origin && source && !input.shared.author) shared.author = source.shared.author;
   const base = source ?? {
     content: previous.translations[input.locale]?.draft ?? {
       ...emptyContent,
@@ -306,6 +308,7 @@ export function publishBlogVersion(
   const plan = blogPublicationDiscard(target, headers);
   const prepared = {
     ...article,
+    shared: { ...structuredClone(target.shared), author: article.shared.author },
     translations: {
       ...article.translations,
       [target.locale]: {
@@ -378,12 +381,18 @@ export function deleteBlogVersion(
             editor,
             updatedAt: now,
           },
-      shared: structuredClone(fallback?.shared ?? article.shared),
+      shared: structuredClone(
+        fallback?.shared ?? { ...emptyShared, categoryIds: [], author: article.shared.author },
+      ),
       history: { ...translation.history, currentId: nextId },
     };
   }
   return {
     ...article,
+    shared:
+      current === translation
+        ? article.shared
+        : { ...current.shared!, author: article.shared.author },
     version: article.version + 1,
     editor,
     updatedAt: now,

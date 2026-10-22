@@ -152,6 +152,7 @@ export interface BlogPublicPage extends BlogPage<Omit<BlogPost, "markdown">> {
 }
 export interface BlogCapabilities {
   changeAuthor?: boolean;
+  reviewLegacyAuthor?: boolean;
   create: boolean;
   edit: boolean;
   publish: boolean;

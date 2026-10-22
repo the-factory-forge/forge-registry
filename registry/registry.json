@@ -754,7 +754,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -1096,7 +1096,7 @@
       "name": "blogs",
       "type": "registry:block",
       "title": "Blogs",
-      "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
+      "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/table-pagination",
@@ -1164,7 +1164,7 @@
       "name": "blogs-storage",
       "type": "registry:block",
       "title": "Blogs storage",
-      "description": "PostgreSQL Markdown drafts/publications and private S3 image storage for multilingual blogs.",
+      "description": "PostgreSQL article/history snapshots and private S3 image storage for multilingual blogs.",
       "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
       "registryDependencies": ["@forge/blogs"],
       "files": [
@@ -1197,6 +1197,11 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/history-migration.sql",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/history-migration.sql"
         }
       ]
     },

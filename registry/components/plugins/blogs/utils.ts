@@ -22,6 +22,7 @@ export const emptyContent: BlogContent = {
   bannerAlt: "",
 };
 export type BlogsErrorCode =
+  | "HISTORY_CONFIRMATION_REQUIRED"
   | "AUTHOR_REQUIRED"
   | "INVALID"
   | "CONFLICT"

@@ -1,5 +1,15 @@
 import { sql } from "drizzle-orm";
-import { check, pgTable, uuid, text, integer, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  check,
+  pgTable,
+  uuid,
+  text,
+  integer,
+  jsonb,
+  timestamp,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 /** Markdown and metadata snapshots are stored together so publication is a single atomic update. */
 export const blogsArticles = pgTable("blogs_article", {
@@ -12,6 +22,27 @@ export const blogsCategories = pgTable("blogs_category", {
   id: uuid("id").primaryKey(),
   document: jsonb("document").notNull(),
 });
+export const blogsHistory = pgTable(
+  "blogs_history",
+  {
+    id: uuid("id").primaryKey(),
+    articleId: uuid("article_id")
+      .notNull()
+      .references(() => blogsArticles.id, { onDelete: "cascade" }),
+    locale: text("locale").notNull(),
+    number: integer("number").notNull(),
+    header: jsonb("header").notNull(),
+    payload: jsonb("payload").notNull(),
+  },
+  (table) => [
+    uniqueIndex("blogs_history_article_locale_number").on(
+      table.articleId,
+      table.locale,
+      table.number,
+    ),
+    check("blogs_history_number_check", sql`${table.number} > 0`),
+  ],
+);
 export const blogsObjects = pgTable(
   "blogs_object",
   {

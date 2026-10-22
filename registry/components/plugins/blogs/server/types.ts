@@ -15,6 +15,7 @@ export type BlogsPermission =
   | "delete"
   | "upload"
   | "changeAuthor"
+  | "reviewLegacyAuthor"
   | "manageCategories";
 export interface BlogsStorageOptions<Context> {
   db: BlogsDatabase;

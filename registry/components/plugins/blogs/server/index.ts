@@ -2,6 +2,7 @@ export { createBlogsStorage } from "@/components/plugins/blogs/server/storage.se
 export {
   blogsArticles,
   blogsCategories,
+  blogsHistory,
   blogsObjects,
   blogsMutations,
 } from "@/components/plugins/blogs/server/schema";

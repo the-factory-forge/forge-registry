@@ -37,6 +37,7 @@ void test("collaboration grants editing to staff and management only to author/a
     "publish",
     "delete",
     "changeAuthor",
+    "reviewLegacyAuthor",
     "manageCategories",
   ])
     assert.equal(canAccessBlog(null, permission, "author"), false);
@@ -44,7 +45,13 @@ void test("collaboration grants editing to staff and management only to author/a
   assert.equal(canAccessBlog(colleague, "read", "author"), true);
   assert.equal(canAccessBlog(colleague, "edit", "author"), true);
   assert.equal(canAccessBlog(colleague, "upload", "author"), true);
-  for (const permission of ["publish", "delete", "changeAuthor", "manageCategories"])
+  for (const permission of [
+    "publish",
+    "delete",
+    "changeAuthor",
+    "reviewLegacyAuthor",
+    "manageCategories",
+  ])
     assert.equal(canAccessBlog(colleague, permission, "author"), false);
   assert.equal(blogCapabilities({ id: "author", admin: false }, "author").publish, true);
   assert.equal(blogCapabilities({ id: "admin", admin: true }, "author").changeAuthor, true);
@@ -62,7 +69,7 @@ const child = {
   translations: { en: { name: "Design", slug: "design" } },
 };
 const categories = [parent, child];
-function historyFixture() {
+function historyFixture(assets = new Set()) {
   let article = createArticle(randomUUID(), "Initial", "en", actor, now);
   let versions = [];
   return {
@@ -94,7 +101,7 @@ function historyFixture() {
       };
       const sourceId = origin?.versionId ?? article.translations[locale]?.history?.currentId;
       const source = versions.find((version) => version.id === sourceId) ?? null;
-      const next = saveArticle(article, input, [], new Set(), randomUUID(), other, now);
+      const next = saveArticle(article, input, [], assets, randomUUID(), other, now);
       const result = recordBlogSave(article, next, input, versions, source);
       article = result.article;
       versions = versions.filter((version) => !result.removedIds.includes(version.id));
@@ -345,6 +352,32 @@ await test("deleting the selected draft falls back to the latest draft, live sta
   assert.equal(fixture.article.translations.en.draft.title, "Live");
   assert.throws(() => fixture.delete(published.id), { code: "IN_USE" });
 });
+await test("restoring or deleting a current state does not leave stale shared image references", () => {
+  const oldImage = randomUUID(),
+    newImage = randomUUID();
+  const fixture = historyFixture(new Set([oldImage, newImage]));
+  const first = fixture.save("Old image", undefined, "en", {
+    ...fixture.article.shared,
+    thumbnailId: oldImage,
+  }).saved;
+  fixture.publish(first.id);
+  const second = fixture.save("New image", undefined, "en", {
+    ...fixture.article.shared,
+    thumbnailId: newImage,
+  }).saved;
+  fixture.publish(second.id);
+  fixture.publish(first.id);
+  assert.equal(fixture.article.shared.thumbnailId, oldImage);
+  const empty = historyFixture(new Set([oldImage]));
+  const only = empty.save("Only image", undefined, "en", {
+    ...empty.article.shared,
+    thumbnailId: oldImage,
+  }).saved;
+  empty.delete(only.id);
+  assert.equal(empty.article.shared.thumbnailId, null);
+  assert.equal(empty.article.translations.en.shared.thumbnailId, null);
+});
+
 await test("admin list includes assigned category names with locale fallback", () => {
   const article = createArticle(randomUUID(), "Draft", "en", actor, now);
   assert.deepEqual(articleListItem(article, "en", categories).categoryNames, []);
