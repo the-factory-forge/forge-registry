@@ -1209,8 +1209,15 @@ function EditorForm({
               onClick={() =>
                 void action.run("refresh-article", async () => {
                   const latest = await client.get(base.id);
-                  if (dirty || selectedId) setBase(latest);
-                  else accept(latest);
+                  if (dirty || selectedId) {
+                    setBase(latest);
+                    if (!dirty) {
+                      setContent({ ...emptyContent, ...latest.translations[locale]?.draft });
+                      setShared(
+                        structuredClone(latest.translations[locale]?.shared ?? latest.shared),
+                      );
+                    }
+                  } else accept(latest);
                   return true;
                 })
               }

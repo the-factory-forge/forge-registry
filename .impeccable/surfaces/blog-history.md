@@ -19,3 +19,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## References
 
 The owning proposal and behavioral mockup are in sibling `forge-spec-blog-history/openspec/changes/add-blog-history/`. DESIGN.md and the existing Registry UI control production styling. No global design-system change is requested. The pre-existing sidecar drift must not be repaired as part of this extension.
+
+## Finish evidence
+
+The independent Impeccable finish reviewer returned `ship` after inspecting all
+nine final production captures and the UI code. The documenter confirmed this
+is an ordinary extension and requires no DESIGN.md or sidecar change. The one
+manual detector pass returned no findings. Existing sidecar drift remains
+untouched. Captures cover 1440/390 pixels in both themes and eight paths at
+320 pixels; they are local review output, not distributed assets.

@@ -328,3 +328,56 @@ void test("a stale removal plan refreshes and requires confirmation again", asyn
   await actionToast(page, "This language is now published");
   await counts(page, 1, 0);
 });
+
+void test("a pruned selection recovers to the actual latest draft without losing unsaved input", async (t) => {
+  const page = await preview(t);
+  await counts(page, 5, 4);
+  await select(page, 23);
+  for (let index = 0; index < 9; index++)
+    await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
+  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  await page.getByRole("alert").filter({ hasText: "This record changed" }).waitFor();
+  await page.getByRole("button", { name: "Refresh article", exact: true }).click();
+  await page
+    .getByText(
+      "This version is no longer available. Return to your draft or select another version.",
+      { exact: true },
+    )
+    .waitFor();
+  await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
+  assert.match(
+    await page.getByRole("textbox", { name: "Summary", exact: true }).inputValue(),
+    /^Concurrent correction /,
+  );
+  await counts(page, 5, 8);
+  await page.getByRole("textbox", { name: "Title", exact: true }).fill("Retain this unsaved title");
+  await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page
+    .locator("form")
+    .getByRole("alert")
+    .filter({ hasText: "This record changed" })
+    .waitFor();
+  await page.getByRole("button", { name: "Refresh article", exact: true }).click();
+  assert.equal(
+    await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
+    "Retain this unsaved title",
+  );
+});
+
+void test("history keeps loaded rows during read failure and a new article explains its empty history", async (t) => {
+  const page = await preview(t);
+  await counts(page, 5, 4);
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
+  await panel(page).getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  assert.equal(await panel(page).locator("li[data-history-id]").count(), 9);
+  await panel(page).getByRole("button", { name: "Retry", exact: true }).click();
+  await panel(page).getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
+  await counts(page, 5, 4);
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  await page.getByRole("link", { name: "New post", exact: true }).click();
+  await page.getByRole("textbox", { name: "Title *", exact: true }).fill("Empty history example");
+  await page.getByRole("button", { name: "Create draft", exact: true }).click();
+  await page.getByText("No saved versions in this language yet.", { exact: true }).waitFor();
+});
