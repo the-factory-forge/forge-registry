@@ -520,6 +520,41 @@ remain forbidden. Maintenance protects references across current states and all
 retained snapshots; pruning only makes unreferenced bytes eligible after the
 existing grace period. No image is copied for a content version.
 
+## History interface
+
+Pass the history-enabled client to both `BlogEditPage` and `BlogsPage`. The table
+still requires its existing `onSetPublished` callback for interactive badges;
+`client.history` lets publication obtain the same server plan as the editor.
+Existing hosts without the optional client retain ordinary controls. The server
+rejects a historical return sent through the old publish method until the host
+wires confirmation, so hiding history cannot bypass deletion protection.
+
+The right-hand panel reads headers and loads only the selected body. Selection
+is read-only; Save, Discard and Cancel protect dirty work before inspection,
+resumption, language changes and the editor's Back link. Reloading or leaving the
+page also uses the browser's unsaved-change guard. Host navigation outside this
+component must use its router's equivalent dirty-navigation protection, wired
+through the optional `onDirtyChange` callback.
+
+Every saved reprise has its own lane, including independent starts from the
+same live publication. Continued drafts retain their lane. Unsaved input has a
+preview without a saved number. The active 3px path paints above 1px inactive
+paths with a background gap at crossings. Mobile starts collapsed and returns
+focus to the selected content. Version deletion is disabled while unsaved work
+is present and always protects the live row.
+
+The unified comparison uses the declared `diff` dependency to compare paragraphs
+and words as React text. Changed words carry stronger semantic backgrounds and
+explicit added/removed markers. Comparison work is bounded; unusually expensive
+input falls back to complete removed/added text. Read previews replace failed
+illustrations with a placeholder. A publication with confirmed missing images
+requires the explicit omission checkbox; transient storage errors remain errors.
+
+The showroom's **Load history example** control supplies five publications and
+four distinct reprises. **History transport** demonstrates an existing custom
+client without history; **Simulate missing illustrations** exercises confirmed
+omission. All example data is in memory and resets on reload.
+
 ## History migration and rollback
 
 Fresh installs use `server/migration.sql`. Existing hosts review and register

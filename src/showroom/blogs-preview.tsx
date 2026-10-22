@@ -38,23 +38,33 @@ function usePreview() {
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
     [cropImages, setCropImages] = useState(true),
-    [state, setState] = useState("ready");
+    [state, setState] = useState("ready"),
+    [exampleRevision, setExampleRevision] = useState(0),
+    [missingImages, setMissingImages] = useState(false),
+    [historyEnabled, setHistoryEnabled] = useState(true);
   const revision = useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   useEffect(() => () => mock.dispose(), [mock]);
-  const client = useMemo(
-    () =>
-      mock.client({
-        editor: { id: editor, name: editor === "jordan" ? "Jordan Lee" : "Alex Morgan" },
-        admin,
-        readOnly,
-        fail,
-        failUpload,
-        consumeUploadFailure: () => setFailUpload(false),
-      }),
-    [mock, editor, admin, readOnly, fail, failUpload],
-  );
+  const client = useMemo(() => {
+    const client = mock.client({
+      editor: { id: editor, name: editor === "jordan" ? "Jordan Lee" : "Alex Morgan" },
+      admin,
+      readOnly,
+      fail,
+      failUpload,
+      missingImages,
+      consumeUploadFailure: () => setFailUpload(false),
+    });
+    if (!historyEnabled) delete client.history;
+    return client;
+  }, [mock, editor, admin, readOnly, fail, failUpload, missingImages, historyEnabled]);
   return {
     mock,
+    historyEnabled,
+    setHistoryEnabled,
+    exampleRevision,
+    setExampleRevision,
+    missingImages,
+    setMissingImages,
     client,
     revision,
     editor,
@@ -132,6 +142,34 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               />
               Simulate action failures
             </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.historyEnabled}
+                onChange={(event) => state.setHistoryEnabled(event.target.checked)}
+              />
+              History transport
+            </label>
+            <button
+              className="underline"
+              onClick={() => {
+                state.mock.loadHistoryExample();
+                state.setExampleRevision((value) => value + 1);
+              }}
+            >
+              Load history example
+            </button>
+            <button className="underline" onClick={() => state.mock.applyConcurrentCorrection()}>
+              Simulate concurrent correction
+            </button>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.missingImages}
+                onChange={(event) => state.setMissingImages(event.target.checked)}
+              />
+              Simulate missing illustrations
+            </label>
             <button onClick={() => state.setFailUpload(true)} className="underline">
               Fail next upload{state.failUpload ? " (armed)" : ""}
             </button>
@@ -181,6 +219,34 @@ export function BlogsAdminPreview() {
     linkComponent: Link,
     client: state.client,
     capabilities,
+    labels:
+      locale === "fr"
+        ? {
+            history: "Historique",
+            closeHistory: "Fermer l’historique",
+            read: "Lire",
+            compare: "Comparer",
+            currentDraft: "Brouillon courant",
+            returnToDraft: "Revenir au brouillon",
+            unsavedDraft: "Brouillon non enregistré",
+            historyReadOnly: "Lecture seule. Votre brouillon reste conservé.",
+            historyEmpty: "Aucune version enregistrée dans cette langue.",
+            live: "En ligne",
+            publication: "Publication",
+            signature: "Signature de l’article",
+            savedBy: "Enregistrée par",
+            newReprise: "Reprendre comme brouillon",
+            continueDraft: "Modifier ce brouillon",
+            publishVersion: "Publier cette version",
+            deleteVersion: "Supprimer la version",
+            sourceUnavailable: "Source indisponible",
+            historyCounts: (publications: number, drafts: number) =>
+              `Publications ${publications} / 5 · Brouillons ${drafts} / 8`,
+            resumedFrom: (source: string) => `Depuis ${source}`,
+            repriseLabel: (version: string) => `Reprise ${version}`,
+            compareWith: (version: string) => `Comparaison avec la publication ${version}`,
+          }
+        : undefined,
   };
   if (segments[0] === "new")
     return (
@@ -218,6 +284,7 @@ export function BlogsAdminPreview() {
       );
     return (
       <BlogEditPage
+        key={`${article.id}:${state.exampleRevision}`}
         {...common}
         authors={[
           { id: "jordan", name: "Jordan Lee" },

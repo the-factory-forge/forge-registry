@@ -11,6 +11,15 @@ before(async () => {
 after(async () => {
   await browser?.close();
 });
+async function confirmHistoryPublication(page) {
+  const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
+  await Promise.race([
+    dialog.waitFor(),
+    page.getByRole("dialog").filter({ hasText: "This language is now published" }).last().waitFor(),
+  ]);
+  if (await dialog.isVisible())
+    await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+}
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
 async function preview(t, path, options = {}) {
   const context = await browser.newContext(options);
@@ -47,6 +56,7 @@ void test("colleagues save drafts; author/admin control publication and attribut
   assert.equal(await page.getByLabel("Author", { exact: true }).isDisabled(), true);
   await page.getByLabel("Editor", { exact: true }).selectOption("alex");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await confirmHistoryPublication(page);
   await actionToast(page, "This language is now published");
   await page.screenshot({ path: "/private/tmp/registry-intranet-blog.png", fullPage: true });
 });
@@ -71,5 +81,6 @@ void test("an admin explicitly confirms a legacy author before publication", asy
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await actionToast(page, "Draft saved.");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await confirmHistoryPublication(page);
   await actionToast(page, "This language is now published");
 });

@@ -4,9 +4,17 @@ import type {
   BlogCategory,
   BlogEditor,
   BlogsClient,
+  BlogHistoryVersion,
+  BlogHistoryTarget,
+  BlogHistoryPlan,
 } from "@/components/plugins/blogs";
 import {
   createArticle,
+  sameBlogInputs,
+  recordBlogSave,
+  publishBlogVersion,
+  deleteBlogVersion,
+  blogPublicationDiscard,
   publishArticle,
   saveArticle,
   unpublishArticle,
@@ -167,6 +175,56 @@ function seed() {
 }
 export function createBlogsMock() {
   const initial = seed();
+  const versions = new Map<string, BlogHistoryVersion[]>();
+  for (const article of initial.articles) {
+    const retained: BlogHistoryVersion[] = [];
+    for (const [locale, translation] of Object.entries(article.translations)) {
+      const state = {
+        lastNumber: 0,
+        lastPublicationOrder: 0,
+        currentId: null as string | null,
+        publishedId: null as string | null,
+      };
+      const capture = (published: boolean) => {
+        const content = published ? translation.published! : translation.draft;
+        const shared = published
+          ? translation.published!.shared
+          : (translation.shared ?? article.shared);
+        const id = crypto.randomUUID();
+        retained.push({
+          id,
+          number: ++state.lastNumber,
+          locale,
+          state: published ? "publication" : "draft",
+          savedAt: content.updatedAt,
+          savedBy: content.editor,
+          author: shared.author,
+          repriseId: published ? null : id,
+          sourcePublicationId: state.publishedId,
+          sourcePublicationOrder: state.lastPublicationOrder || null,
+          publicationOrder: published ? ++state.lastPublicationOrder : null,
+          publishedAt: published ? translation.published!.publishedAt : null,
+          omittedAssetIds: [],
+          content: structuredClone(content),
+          shared: structuredClone(shared),
+        });
+        state.currentId = id;
+        if (published) state.publishedId = id;
+      };
+      if (translation.published) capture(true);
+      if (
+        !translation.published ||
+        !sameBlogInputs(
+          { content: translation.draft, shared: translation.shared ?? article.shared },
+          { content: translation.published, shared: translation.published.shared },
+        )
+      )
+        capture(false);
+      translation.history = state;
+      translation.shared ??= structuredClone(article.shared);
+    }
+    versions.set(article.id, retained);
+  }
   let articles = initial.articles,
     categories = initial.categories,
     assets = initial.assets,
@@ -192,6 +250,7 @@ export function createBlogsMock() {
     fail: boolean;
     failUpload: boolean;
     consumeUploadFailure: () => void;
+    missingImages?: boolean;
   }): BlogsClient {
     async function mutate<T>(
       name: string,
@@ -251,7 +310,134 @@ export function createBlogsMock() {
         "CONFLICT",
       );
     }
+    function historyVersion(input: { id: string; locale: string; versionId: string }) {
+      const version = versions
+        .get(input.id)
+        ?.find((value) => value.id === input.versionId && value.locale === input.locale);
+      assertBlog(version, "NOT_FOUND");
+      return version;
+    }
+    function historyHeaders(id: string, locale: string) {
+      return (versions.get(id) ?? [])
+        .filter((version) => version.locale === locale)
+        .map(({ content: _content, shared: _shared, ...header }) => structuredClone(header));
+    }
+    function plan(input: BlogHistoryTarget): BlogHistoryPlan {
+      input = {
+        id: input.id,
+        version: input.version,
+        locale: input.locale,
+        versionId: input.versionId,
+      };
+      const article = current(input);
+      const version = historyVersion(input);
+      assertBlog(version.shared.author, "AUTHOR_REQUIRED");
+      const result = blogPublicationDiscard(version, historyHeaders(input.id, input.locale));
+      const missingAssetIds = config.missingImages
+        ? [
+            ...new Set(
+              [
+                ...version.content.assetIds,
+                version.shared.thumbnailId,
+                version.shared.bannerId,
+              ].filter((id): id is string => !!id),
+            ),
+          ]
+        : [];
+      return {
+        target: input,
+        ...result,
+        missingAssetIds,
+        token: JSON.stringify([
+          article.version,
+          input,
+          result.discarded.map((header) => header.id),
+          missingAssetIds,
+        ]),
+      };
+    }
+    function publishVersion(input: BlogHistoryTarget, missingAssetIds: string[] = []) {
+      const result = publishBlogVersion(
+        current(input),
+        historyVersion(input),
+        historyHeaders(input.id, input.locale),
+        categories,
+        config.editor,
+        new Date().toISOString(),
+        missingAssetIds,
+      );
+      unique(result.article, input.locale);
+      versions.set(input.id, [
+        ...(versions.get(input.id) ?? []).filter(
+          (version) =>
+            version.id !== result.saved.id &&
+            !result.discarded.some((header) => header.id === version.id),
+        ),
+        result.saved,
+      ]);
+      return replace(result.article);
+    }
+    function readHistory(id: string) {
+      assertBlog(!config.readOnly && !config.fail, config.readOnly ? "FORBIDDEN" : "STORAGE");
+      get(id);
+    }
     return {
+      history: {
+        list: async (input) => {
+          readHistory(input.id);
+          return historyHeaders(input.id, input.locale);
+        },
+        get: async (input) => {
+          readHistory(input.id);
+          return structuredClone(historyVersion(input));
+        },
+        plan: async (input) => {
+          readHistory(input.id);
+          assertBlog(
+            canAccessBlog(
+              { id: config.editor.id, admin: config.admin ?? true },
+              "publish",
+              get(input.id).shared.author?.id,
+            ),
+            "FORBIDDEN",
+          );
+          return plan(input);
+        },
+        publish: (input) =>
+          mutate("publish", input, () => {
+            const latest = plan(input);
+            assertBlog(latest.token === input.token, "CONFLICT");
+            assertBlog(!latest.missingAssetIds.length || input.omitMissingImages, "INVALID");
+            return publishVersion(input, latest.missingAssetIds);
+          }),
+        delete: (input) =>
+          mutate("delete", input, () => {
+            const article = current(input),
+              target = historyVersion(input),
+              headers = historyHeaders(input.id, input.locale);
+            const fallbackId =
+              headers
+                .filter((header) => header.state === "draft" && header.id !== target.id)
+                .sort((a, b) => b.number - a.number)[0]?.id ??
+              article.translations[input.locale].history?.publishedId;
+            const fallback = fallbackId
+              ? historyVersion({ ...input, versionId: fallbackId })
+              : null;
+            const result = deleteBlogVersion(
+              article,
+              target,
+              headers,
+              fallback,
+              config.editor,
+              new Date().toISOString(),
+            );
+            versions.set(
+              input.id,
+              (versions.get(input.id) ?? []).filter((version) => version.id !== target.id),
+            );
+            return replace(result);
+          }),
+      },
       list: async (q) => {
         assertBlog(!config.fail, "STORAGE");
         const filtered = articles.filter((a) =>
@@ -291,7 +477,31 @@ export function createBlogsMock() {
       save: (input) =>
         mutate("save", input, () => {
           const previous = current(input);
-          if (input.shared.author && input.shared.author.id !== previous.shared.author?.id)
+          const headers = historyHeaders(input.id, input.locale);
+          const source = input.origin
+            ? historyVersion({ ...input, versionId: input.origin.versionId })
+            : previous.translations[input.locale]?.history?.currentId
+              ? historyVersion({
+                  ...input,
+                  versionId: previous.translations[input.locale].history!.currentId!,
+                })
+              : null;
+          if (input.origin)
+            assertBlog(
+              canAccessBlog(
+                { id: config.editor.id, admin: config.admin ?? true },
+                "publish",
+                previous.shared.author?.id,
+              ),
+              "FORBIDDEN",
+            );
+          if (input.origin && !source?.shared.author && input.shared.author)
+            assertBlog(config.admin ?? true, "FORBIDDEN");
+          if (
+            input.shared.author &&
+            input.shared.author.id !==
+              (source ? source.shared.author?.id : previous.shared.author?.id)
+          )
             assertBlog(
               canAccessBlog(
                 { id: config.editor.id, admin: config.admin ?? true },
@@ -309,21 +519,28 @@ export function createBlogsMock() {
             config.editor,
             new Date().toISOString(),
           );
-          unique(result, input.locale);
-          return replace(result);
+          const recorded = recordBlogSave(previous, result, input, headers, source);
+          unique(recorded.article, input.locale);
+          if (recorded.saved)
+            versions.set(input.id, [
+              ...(versions.get(input.id) ?? []).filter(
+                (version) => !recorded.removedIds.includes(version.id),
+              ),
+              recorded.saved,
+            ]);
+          return replace(recorded.article);
         }),
       publish: (input) =>
-        mutate("publish", input, () =>
-          replace(
-            publishArticle(
-              current(input),
-              input.locale,
-              categories,
-              config.editor,
-              new Date().toISOString(),
-            ),
-          ),
-        ),
+        mutate("publish", input, () => {
+          const article = current(input),
+            versionId = article.translations[input.locale]?.history?.currentId;
+          assertBlog(versionId, "NOT_FOUND");
+          const target = { ...input, versionId },
+            latest = plan(target);
+          assertBlog(!latest.historicalReturn, "HISTORY_CONFIRMATION_REQUIRED");
+          assertBlog(!latest.missingAssetIds.length, "INVALID");
+          return publishVersion(target);
+        }),
       unpublish: (input) =>
         mutate("unpublish", input, () =>
           replace(
@@ -334,6 +551,7 @@ export function createBlogsMock() {
         mutate("delete", input, () => {
           current(input);
           articles = articles.filter((a) => a.id !== input.id);
+          versions.delete(input.id);
         }),
       upload: (input) =>
         mutate(
@@ -404,6 +622,107 @@ export function createBlogsMock() {
   }
   return {
     client,
+    applyConcurrentCorrection: () => {
+      const article = get(demoBlogId),
+        locale = "en";
+      const input = {
+        id: article.id,
+        version: article.version,
+        requestId: crypto.randomUUID(),
+        locale,
+        content: {
+          ...article.translations.en.draft,
+          summary: `Concurrent correction ${article.version}`,
+        },
+        shared: article.translations.en.shared ?? article.shared,
+      };
+      const retained = versions.get(article.id) ?? [];
+      const source =
+        retained.find((version) => version.id === article.translations.en.history?.currentId) ??
+        null;
+      const saved = saveArticle(
+        article,
+        input,
+        categories,
+        new Set(assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id)),
+        crypto.randomUUID(),
+        initialEditor,
+        new Date().toISOString(),
+      );
+      const result = recordBlogSave(article, saved, input, retained, source);
+      articles = articles.map((value) => (value.id === article.id ? result.article : value));
+      if (result.saved)
+        versions.set(article.id, [
+          ...retained.filter((version) => !result.removedIds.includes(version.id)),
+          result.saved,
+        ]);
+      emit();
+    },
+    loadHistoryExample: () => {
+      let article = get(demoBlogId);
+      const locale = "en",
+        original = structuredClone(article.translations.en.draft);
+      const settings = structuredClone(article.translations.en.shared ?? article.shared);
+      const retained: BlogHistoryVersion[] = [];
+      article.translations.en.history = {
+        lastNumber: 17,
+        lastPublicationOrder: 0,
+        currentId: null,
+        publishedId: null,
+      };
+      const save = (markdown: string, source?: BlogHistoryVersion) => {
+        const input = {
+          id: article.id,
+          version: article.version,
+          requestId: crypto.randomUUID(),
+          locale,
+          content: { ...original, markdown },
+          shared: settings,
+          origin: source ? { versionId: source.id, repriseId: crypto.randomUUID() } : undefined,
+        };
+        const previous = article,
+          currentId = article.translations.en.history!.currentId;
+        const current = source ?? retained.find((version) => version.id === currentId) ?? null;
+        const result = recordBlogSave(
+          previous,
+          saveArticle(
+            previous,
+            input,
+            categories,
+            new Set(assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id)),
+            crypto.randomUUID(),
+            initialEditor,
+            new Date().toISOString(),
+          ),
+          input,
+          retained,
+          current,
+        );
+        article = result.article;
+        if (result.saved) retained.push(result.saved);
+      };
+      for (const word of ["attention", "curiosity", "care", "listening", "practice"]) {
+        save(
+          `## Begin with a question\n\nGood ideas start with **${word}**. Take a moment to describe the problem in plain language.\n\nLeave room for what comes next.`,
+        );
+        const result = publishBlogVersion(
+          article,
+          retained.at(-1)!,
+          retained,
+          categories,
+          initialEditor,
+          new Date().toISOString(),
+        );
+        article = result.article;
+        retained[retained.length - 1] = result.saved;
+      }
+      const publications = [...retained];
+      for (const source of [publications[0], publications[2], publications[4], publications[4]])
+        save(source.content.markdown.replace("moment", "quiet moment"), source);
+      versions.set(article.id, retained);
+      articles = articles.map((value) => (value.id === article.id ? article : value));
+      emit();
+    },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => {

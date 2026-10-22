@@ -208,6 +208,9 @@ importers:
       cnfast:
         specifier: 0.1.0
         version: 0.1.0
+      diff:
+        specifier: 9.0.0
+        version: 9.0.0
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(kysely@0.29.6)(postgres@3.4.9)

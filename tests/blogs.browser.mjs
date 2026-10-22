@@ -6,6 +6,19 @@ import { chromium } from "playwright";
 import { actionToast } from "./action-toast-helpers.mjs";
 
 await suite("Blogs browser", async () => {
+  async function confirmHistoryPublication(page) {
+    const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
+    await Promise.race([
+      dialog.waitFor(),
+      page
+        .getByRole("dialog")
+        .filter({ hasText: "This language is now published" })
+        .last()
+        .waitFor(),
+    ]);
+    if (await dialog.isVisible())
+      await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+  }
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
   const existing = "b1000000-0000-4000-8000-000000000001";
   let browser;
@@ -49,6 +62,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("tab", { name: "English", exact: true }).click();
     await badge.focus();
     await page.keyboard.press("Enter");
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
 
@@ -56,10 +70,15 @@ await suite("Blogs browser", async () => {
     await title.fill("A protected revision");
     assert.equal(await badge.isDisabled(), true);
     await saved(page);
+    await badge.filter({ hasText: "Unpublished changes" }).waitFor();
     assert.equal(await badge.textContent(), "Unpublished changes");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
     await badge.click();
-    await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+    await page
+      .locator("form")
+      .getByRole("alert")
+      .filter({ hasText: "Storage is unavailable" })
+      .waitFor();
     assert.equal(await badge.textContent(), "Unpublished changes");
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
     assert.equal(await title.inputValue(), "A protected revision");
@@ -68,7 +87,7 @@ await suite("Blogs browser", async () => {
     await actionToast(page, "This language is no longer public");
     assert.equal(await badge.textContent(), "Draft");
     assert.equal(await title.inputValue(), "A protected revision");
-    await page.getByRole("tabpanel").locator("header").screenshot({
+    await page.getByRole("tabpanel").locator("header").first().screenshot({
       path: "/tmp/forge-blog-toggle-editor-desktop.png",
     });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -77,7 +96,7 @@ await suite("Blogs browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("tabpanel").locator("header").screenshot({
+    await page.getByRole("tabpanel").locator("header").first().screenshot({
       path: "/tmp/forge-blog-toggle-editor-mobile-dark.png",
     });
     await page.getByLabel("Read-only", { exact: true }).check();
@@ -102,6 +121,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await french.getAttribute("aria-pressed"), "true");
     await english.focus();
     await page.keyboard.press("Enter");
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await english.getAttribute("aria-pressed"), "true");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
@@ -148,6 +168,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("tab", { name: "English", exact: true }).click();
     assert.equal(await publish.isEnabled(), true);
     await publish.click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await publish.count(), 0);
     assert.equal(await unpublish.isEnabled(), true);
@@ -491,6 +512,7 @@ await suite("Blogs browser", async () => {
     await saved(page);
     await page.getByLabel("Editor", { exact: true }).selectOption("alex");
     await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.getByRole("link", { name: "A browser-created post", exact: true }).click();
@@ -610,6 +632,7 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Author", { exact: true }).selectOption("jordan");
     await saved(page);
     await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     await page.getByRole("link", { name: "French blog", exact: true }).click();
     await page.getByRole("link", { name: "Une idée", exact: true }).waitFor();
@@ -628,11 +651,16 @@ await suite("Blogs browser", async () => {
     const title = page.getByRole("textbox", { name: "Title", exact: true });
     assert.equal(await title.inputValue(), "Faire de la place aux idées");
     await title.fill("Une traduction modifiée");
-    assert.equal(await english.isDisabled(), true);
+    assert.equal(await english.isDisabled(), false);
+    await english.click();
+    const leave = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
+    await leave.waitFor();
+    await leave.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.equal(await french.getAttribute("aria-selected"), "true");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
-    assert.equal(await english.isDisabled(), true);
+    assert.equal(await english.isDisabled(), false);
     assert.equal(await title.inputValue(), "Une traduction modifiée");
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
     await saved(page);
@@ -689,23 +717,30 @@ await suite("Blogs browser", async () => {
         await saved(page);
       } else if (label === "Draft") {
         await page.getByRole("button", { name: "Unpublish", exact: true }).click();
-        await page.getByText(label, { exact: true }).waitFor();
+        await page
+          .getByRole("button", { name: "Publication status", exact: true })
+          .filter({ hasText: label })
+          .waitFor();
       }
       for (const [index, theme] of ["Light", "Dark"].entries()) {
         const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         assert.deepEqual(
-          await page.getByText(label, { exact: true }).evaluate((node) => {
-            const style = getComputedStyle(node);
-            return [style.backgroundColor, style.color];
-          }),
+          await page
+            .getByRole("button", { name: "Publication status", exact: true })
+            .filter({ hasText: label })
+            .evaluate((node) => {
+              const style = getComputedStyle(node);
+              return [style.backgroundColor, style.color];
+            }),
           colors[index],
         );
         if (label === "Published") {
           await page
             .getByRole("tabpanel")
             .locator("header")
+            .first()
             .screenshot({
               path: `/tmp/forge-blog-published-${theme.toLowerCase()}.png`,
             });
