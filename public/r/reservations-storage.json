@@ -4,7 +4,7 @@
   "title": "Reservations storage",
   "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
   "dependencies": [
-    "drizzle-orm@0.45.2",
+    "drizzle-orm@0.45.4",
     "postgres@3.4.9"
   ],
   "registryDependencies": [

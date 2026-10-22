@@ -39,7 +39,7 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 
 - TanStack Start + Router, React 19, and Nitro showroom shell for previewing shared UI
 - TypeScript strict with `@/components/*`, `@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*` aliases for registry source files; `@/*` resolves showroom files
-- Vite Plus 1.0.0 for linting and formatting, configured in `vite.config.ts`
+- Vite Plus 1.3.0 for linting and formatting, configured in `vite.config.ts`
 - Tailwind CSS v4 global styles (`@theme inline`, `@utility`)
 - shadcn/ui initialization config (`/components.json`)
 - motion (animations)
@@ -73,7 +73,7 @@ Add this namespace to the consuming project's existing `components.json`:
 Then install an item from an initialized shadcn project:
 
 ```bash
-pnpm dlx shadcn@4.21.1 add @forge/intranet-sidebar
+pnpm dlx shadcn@4.22.1 add @forge/intranet-sidebar
 ```
 
 For local consumer installs, run `pnpm registry:sync` and `PORTLESS=0 pnpm dev` here. Temporarily set the consumer's `@forge` URL to `http://localhost:3000/r/{name}.json`, then run the same install command. The namespace routes both the requested item and its dependencies to the local server; no different build is needed. Restore the published URL before committing the consumer's configuration.
@@ -184,7 +184,7 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                 |
 | [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                                |
 
-Install with `pnpm dlx shadcn@4.21.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
+Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
@@ -200,7 +200,7 @@ Open the [Intranet demo](https://registry.the-corner.io/en/intranet) or the
 focused [Sidebar demo](https://registry.the-corner.io/en/intranet-sidebar).
 
 ```bash
-pnpm dlx shadcn@4.21.1 add @forge/intranet-shell
+pnpm dlx shadcn@4.22.1 add @forge/intranet-shell
 ```
 
 The [cookie banner guide](./docs/cookie-banner.md) covers consent controls,

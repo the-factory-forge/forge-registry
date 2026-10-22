@@ -62,9 +62,14 @@ export function useActionToast() {
 
 function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
   const { toasts } = Toast.useToastManager<ActionToastData>();
+  const totalHeight = toasts.reduce((height, toast) => height + (toast.height ?? 0), 0);
+  const expandedHeight = `calc(${totalHeight}px + ${Math.max(0, toasts.length - 1)} * 0.75rem + 2rem)`;
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed right-0 bottom-0 z-60 flex max-h-dvh w-full max-w-[26rem] flex-col gap-2 overflow-y-auto p-4 outline-none empty:p-0 sm:right-2 sm:bottom-2 sm:max-h-[calc(100dvh-1rem)]">
+      <Toast.Viewport
+        style={({ expanded }) => ({ height: expanded ? expandedHeight : undefined })}
+        className="fixed right-0 bottom-0 z-60 flex h-[calc(var(--toast-frontmost-height,0px)+4rem)] max-h-dvh w-full max-w-[26rem] flex-col-reverse p-4 outline-none empty:h-0 empty:p-0 data-expanded:overflow-x-hidden data-expanded:overflow-y-auto sm:right-2 sm:bottom-2 sm:max-h-[calc(100dvh-1rem)]"
+      >
         {toasts.map((toast) => {
           const dismissible = toast.data?.dismissible !== false;
           const label = toast.data?.closeLabel ?? closeLabel;
@@ -77,64 +82,75 @@ function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
               onKeyDownCapture={(event) => {
                 if (!dismissible && event.key === "Escape") event.stopPropagation();
               }}
-              className="flex flex-col gap-3 rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring data-ending:opacity-0 data-limited:hidden motion-safe:transition-opacity dark:border dark:border-border dark:shadow-none"
-            >
-              <div className="flex items-center gap-3">
-                {toast.type === "loading" ? (
-                  <LoaderCircleIcon
-                    className="size-5 shrink-0 text-status-pending-foreground motion-safe:animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : toast.type === "success" ? (
-                  <CircleCheckIcon
-                    className="size-5 shrink-0 text-status-success-foreground"
-                    aria-hidden="true"
-                  />
-                ) : toast.type === "error" ? (
-                  <CircleAlertIcon
-                    className="size-5 shrink-0 text-destructive"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <InfoIcon
-                    className="size-5 shrink-0 text-status-info-foreground"
-                    aria-hidden="true"
-                  />
-                )}
-                <Toast.Title className="min-w-0 flex-1 text-sm break-words" />
-                {dismissible && (
-                  <IconTooltip label={label}>
-                    <Toast.Close
-                      aria-label={label}
-                      aria-hidden={false}
-                      className={cn(actionToastButtonClass, "size-10 shrink-0 p-0 md:size-8")}
-                    >
-                      <XIcon className="size-4" aria-hidden="true" />
-                    </Toast.Close>
-                  </IconTooltip>
-                )}
-              </div>
-              {toast.data?.content}
-              {(toast.description || toast.actionProps) && (
-                <div className="ms-8">
-                  <ActionToastFooter
-                    status={
-                      <Toast.Description
-                        className={cn(
-                          "text-sm break-words",
-                          toast.type === "error" ? "text-destructive" : "text-muted-foreground",
-                        )}
-                      />
-                    }
-                    actions={
-                      <Toast.Action
-                        className={actionToastButtonClass}
-                        disabled={toast.actionProps?.disabled}
-                      />
-                    }
-                  />
-                </div>
+              className={cn(
+                "absolute inset-x-4 bottom-4 z-[calc(1000-var(--toast-index))] h-(--height) origin-bottom overflow-hidden rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border dark:border-border dark:shadow-none",
+                // Match shadcn's Base UI motion while keeping every recovery toast in the queue.
+                "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+var(--toast-index)*var(--gap)*-1+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(1-var(--stack-index)*0.1)] [--shrink:calc(1-var(--scale))] [--stack-index:min(var(--toast-index),2)]",
+                "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-var(--stack-index)*var(--peek)-var(--shrink)*var(--height)))_scale(var(--scale))] motion-safe:[transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
+                "data-expanded:h-(--toast-height) data-expanded:[transform:translateX(var(--toast-swipe-movement-x))_translateY(var(--offset-y))] data-limited:hidden data-starting-style:[transform:translateY(150%)]",
+                "data-ending-style:pointer-events-none [&[data-ending-style]:not([data-swipe-direction])]:[transform:translateY(150%)]",
+                "data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))] data-expanded:data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
+                "data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))] data-expanded:data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
               )}
+            >
+              <Toast.Content className="flex flex-col gap-3 data-behind:pointer-events-none data-behind:opacity-0 data-expanded:pointer-events-auto data-expanded:opacity-100 motion-safe:transition-opacity motion-safe:duration-250 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]">
+                <div className="flex items-center gap-3">
+                  {toast.type === "loading" ? (
+                    <LoaderCircleIcon
+                      className="size-5 shrink-0 text-status-pending-foreground motion-safe:animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : toast.type === "success" ? (
+                    <CircleCheckIcon
+                      className="size-5 shrink-0 text-status-success-foreground"
+                      aria-hidden="true"
+                    />
+                  ) : toast.type === "error" ? (
+                    <CircleAlertIcon
+                      className="size-5 shrink-0 text-destructive"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <InfoIcon
+                      className="size-5 shrink-0 text-status-info-foreground"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Toast.Title className="min-w-0 flex-1 text-sm break-words" />
+                  {dismissible && (
+                    <IconTooltip label={label}>
+                      <Toast.Close
+                        aria-label={label}
+                        aria-hidden={false}
+                        className={cn(actionToastButtonClass, "size-10 shrink-0 p-0 md:size-8")}
+                      >
+                        <XIcon className="size-4" aria-hidden="true" />
+                      </Toast.Close>
+                    </IconTooltip>
+                  )}
+                </div>
+                {toast.data?.content}
+                {(toast.description || toast.actionProps) && (
+                  <div className="ms-8">
+                    <ActionToastFooter
+                      status={
+                        <Toast.Description
+                          className={cn(
+                            "text-sm break-words",
+                            toast.type === "error" ? "text-destructive" : "text-muted-foreground",
+                          )}
+                        />
+                      }
+                      actions={
+                        <Toast.Action
+                          className={actionToastButtonClass}
+                          disabled={toast.actionProps?.disabled}
+                        />
+                      }
+                    />
+                  </div>
+                )}
+              </Toast.Content>
             </Toast.Root>
           );
         })}

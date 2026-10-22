@@ -22,8 +22,13 @@ function SaveButton() {
 
 Call `notify` after the mutation succeeds. Keep pending guards, validation and
 error recovery in the form. Pass translated messages to `notify` and translate
-`closeLabel` on the provider. Notifications stack at the bottom right, expire
-after five seconds and pause while hovered or focused. Close and Escape dismiss
+`closeLabel` on the provider. Notifications form a compact layered stack at the
+bottom right, with the newest in front. Hover, touch or keyboard focus (F6) expands
+the stack into a scrollable list so every message and recovery action is reachable.
+Toasts use [shadcn’s Base UI motion](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/bases/base/ui/toast.tsx):
+500 ms position/scale transitions, 150 ms height transitions and sliding entrance,
+exit and swipe dismissal. Reduced-motion preferences disable these transitions.
+They expire after five seconds and pause while hovered or focused. Close and Escape dismiss
 them; Base UI announces updates without moving keyboard focus.
 
 Affected plugin entrypoints include a provider, so standalone pages need no

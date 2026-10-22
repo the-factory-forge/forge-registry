@@ -75,7 +75,7 @@ const image = Buffer.from(
   "base64",
 );
 
-test("private blog persistence, publication boundaries, retries, and recovery", async (t) => {
+await test("private blog persistence, publication boundaries, retries, and recovery", async (t) => {
   t.after(async () => {
     s3.destroy();
     await pool.end();

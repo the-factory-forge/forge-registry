@@ -914,17 +914,16 @@ function Browser({
                 }}
               >
                 {canDrop && dragActive && (
-                  <div
-                    role="status"
+                  <output
                     aria-atomic="true"
                     className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary bg-background/95 p-6 text-center text-foreground"
                   >
                     <UploadIcon className="size-10 shrink-0 text-primary" aria-hidden="true" />
-                    <p className="text-lg font-semibold">{labels.dropActive}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <span className="text-lg font-semibold">{labels.dropActive}</span>
+                    <span className="text-sm text-muted-foreground">
                       {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
-                    </p>
-                  </div>
+                    </span>
+                  </output>
                 )}
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <p

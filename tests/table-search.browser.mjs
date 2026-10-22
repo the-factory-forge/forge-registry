@@ -5,7 +5,7 @@ import { chromium } from "playwright";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
-test("homepage search starts expanded and stays visible through filtering, clearing and blur", async (t) => {
+await test("homepage search starts expanded and stays visible through filtering, clearing and blur", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -81,7 +81,7 @@ test("homepage search starts expanded and stays visible through filtering, clear
   assert.deepEqual(errors, []);
 });
 
-test("table searches are independent, keyboard accessible and contained on narrow screens", async (t) => {
+await test("table searches are independent, keyboard accessible and contained on narrow screens", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();

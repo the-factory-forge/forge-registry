@@ -5,7 +5,7 @@ import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 
-test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
+await test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -47,7 +47,7 @@ test("website visibility saves immediately, preserves account drafts and rolls b
   await row.getByText("Visible on website", { exact: true }).waitFor();
 });
 
-test("employee pages show content only to administrators", async (t) => {
+await test("employee pages show content only to administrators", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -145,7 +145,7 @@ test("employee pages show content only to administrators", async (t) => {
   assert.deepEqual(errors, []);
 });
 
-test("a delivery failure keeps the account available for resend without repeating creation", async (t) => {
+await test("a delivery failure keeps the account available for resend without repeating creation", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -168,7 +168,7 @@ test("a delivery failure keeps the account available for resend without repeatin
   await actionToast(page, "Invitation sent.");
 });
 
-test("employee row actions stay aligned when verification or self-deletion is unavailable", async (t) => {
+await test("employee row actions stay aligned when verification or self-deletion is unavailable", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();

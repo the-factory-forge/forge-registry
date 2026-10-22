@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { submitDialogOnShortcut } from "../registry/components/utils/dialog-submit.ts";
 
-test("dialog submission accepts platform shortcuts and respects disabled and unrelated events", () => {
+await test("dialog submission accepts platform shortcuts and respects disabled and unrelated events", () => {
   function press(overrides = {}, { disabled = false, inside = true, hasSubmit = true } = {}) {
     let clicks = 0;
     let prevented = false;
@@ -42,7 +42,7 @@ test("dialog submission accepts platform shortcuts and respects disabled and unr
   assert.deepEqual(press({}, { hasSubmit: false }), { clicks: 0, prevented: false });
 });
 
-test("modal plugins ship the shared shortcut dependency", async () => {
+await test("modal plugins ship the shared shortcut dependency", async () => {
   const { items } = JSON.parse(await readFile("registry/registry.json", "utf8"));
   const item = items.find((item) => item.name === "dialog-submit");
   const published = JSON.parse(await readFile("public/r/dialog-submit.json", "utf8"));

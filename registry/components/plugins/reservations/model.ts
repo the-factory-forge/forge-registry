@@ -305,7 +305,7 @@ function reservationEnd(
     if (departure !== undefined) throw new ReservationError("INVALID");
     return addMinutes(start, policy.durationMinutes);
   }
-  if (!departure || !dateSchema.safeParse(departure).success) throw new ReservationError("INVALID");
+  if (!departure || !dateSchema.validate(departure)) throw new ReservationError("INVALID");
   const nights = stayNights(localDate(start, zone), departure);
   if (nights < policy.minNights || nights > policy.maxNights) throw new ReservationError("INVALID");
   return wallInstants(departure, policy.checkoutTime, zone).sort().at(-1);
@@ -366,7 +366,7 @@ export function availableSlots(
     .toString();
   if (query.date > lastDate || query.date < localDate(now, zone)) return [];
   if (policy.mode === "stay") {
-    if (!query.departureDate || !dateSchema.safeParse(query.departureDate).success)
+    if (!query.departureDate || !dateSchema.validate(query.departureDate))
       throw new ReservationError("INVALID");
     const nights = stayNights(query.date, query.departureDate);
     if (nights < policy.minNights || nights > policy.maxNights)

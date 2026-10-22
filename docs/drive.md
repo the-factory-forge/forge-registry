@@ -127,9 +127,9 @@ older cleanup code after creating copies can delete bytes still used by a copy.
 Configure the `@forge` namespace as described in the root README, then run:
 
 ```sh
-pnpm dlx shadcn@4.21.1 add @forge/drive
+pnpm dlx shadcn@4.22.1 add @forge/drive
 # Optional; also installs the browser contract transitively:
-pnpm dlx shadcn@4.21.1 add @forge/drive-storage
+pnpm dlx shadcn@4.22.1 add @forge/drive-storage
 ```
 
 Browser exports: `DrivePage`, `DriveBrowser`, their props, `DriveClient`,
@@ -365,10 +365,11 @@ relationships; active names are unique within a folder, including its root. Name
 case-sensitive. Do not write these tables directly from application features.
 
 ```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { drizzle } from "drizzle-orm/postgres-js";
 // Host-only module. Import this only from server routes and maintenance jobs.
 import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { S3Client } from "@aws-sdk/client-s3";
+
 import { createDriveStorage } from "@/components/plugins/drive/server";
 
 const db = drizzle(

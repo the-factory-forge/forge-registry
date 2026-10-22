@@ -12,7 +12,7 @@ size names and prices are highlighted inline and focused when saving.
 ## Install and integrate
 
 ```sh
-pnpm dlx shadcn@4.21.1 add @forge/menus-storage
+pnpm dlx shadcn@4.22.1 add @forge/menus-storage
 ```
 
 Import `MenuPage`, `MenuItemsPage`, `MenuItemEditorPage`, `MenuTaxonomyPage`, and

@@ -8,7 +8,7 @@ import {
   customerFormValues,
 } from "../registry/components/plugins/customers/utils.ts";
 
-test("customer names, initials, and nullable profile fields retain TC behavior", () => {
+await test("customer names, initials, and nullable profile fields retain TC behavior", () => {
   const customer = {
     id: "1",
     name: "Alex Morgan",
@@ -29,7 +29,7 @@ test("customer names, initials, and nullable profile fields retain TC behavior",
   );
 });
 
-test("customers distribution is complete and contains no website integrations", async () => {
+await test("customers distribution is complete and contains no website integrations", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );

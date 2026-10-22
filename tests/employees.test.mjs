@@ -87,7 +87,7 @@ function fixture({ employee: overrides, failInvitation = false, ...options } = {
   };
 }
 
-test("employee operations require a fresh eligible administrator supplied by the host", () => {
+await test("employee operations require a fresh eligible administrator supplied by the host", () => {
   for (const actor of [
     null,
     { id: "no-role" },
@@ -101,7 +101,7 @@ test("employee operations require a fresh eligible administrator supplied by the
   assert.doesNotThrow(() => fixture({ actor: { ...admin, role: "user,admin" } }));
 });
 
-test("creation strips supplied passwords and invites the new account without credentials", async () => {
+await test("creation strips supplied passwords and invites the new account without credentials", async () => {
   const { service, calls, headers } = fixture();
   await assert.rejects(() =>
     service.create({ name: " ", email: "bad", password: "short", role: "admin" }),
@@ -144,7 +144,7 @@ test("creation strips supplied passwords and invites the new account without cre
   });
 });
 
-test("editing protects the current administrator and resets verification only for a new address", async () => {
+await test("editing protects the current administrator and resets verification only for a new address", async () => {
   const { service, calls } = fixture();
   await assert.rejects(
     () => service.update({ id: "admin", name: "Admin", email: "admin@example.test", role: "user" }),
@@ -175,7 +175,7 @@ test("editing protects the current administrator and resets verification only fo
   assert.equal(changed.role, "user");
 });
 
-test("verification sends only to the authorized recipient without forwarding administrator cookies", async () => {
+await test("verification sends only to the authorized recipient without forwarding administrator cookies", async () => {
   const { service, calls } = fixture();
   const callbackURL = "https://site.example/fr/login";
   assert.deepEqual(
@@ -227,7 +227,7 @@ test("verification sends only to the authorized recipient without forwarding adm
   assert.equal(unavailable.calls.filter(([name]) => name === "send").length, 0);
 });
 
-test("access changes and deletion use native auth operations with the authenticated request", async () => {
+await test("access changes and deletion use native auth operations with the authenticated request", async () => {
   const { service, calls, headers } = fixture();
   assert.equal((await service.setBan({ id: "employee", banned: true })).banned, true);
   assert.equal((await service.setBan({ id: "employee", banned: false })).banned, false);
@@ -238,7 +238,7 @@ test("access changes and deletion use native auth operations with the authentica
   }
 });
 
-test("auth and employees ship complete independent source without host configuration", async () => {
+await test("auth and employees ship complete independent source without host configuration", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
@@ -261,7 +261,7 @@ test("auth and employees ship complete independent source without host configura
 });
 
 const invitationURL = "https://site.example/fr/reset-password?invitation=true";
-test("invitation delivery failures preserve the new account and expose a retryable result", async () => {
+await test("invitation delivery failures preserve the new account and expose a retryable result", async () => {
   const { service, calls } = fixture({ failInvitation: true });
   const result = await service.create({ name: "Alex", email: "alex@example.test" }, invitationURL);
   assert.equal(result.invitationSent, false);
@@ -277,7 +277,7 @@ test("invitation delivery failures preserve the new account and expose a retryab
   );
   assert.deepEqual(unavailable.calls, []);
 });
-test("pending accounts receive invitations rather than verification emails", async () => {
+await test("pending accounts receive invitations rather than verification emails", async () => {
   const { service, calls } = fixture({ employee: { mustChangePassword: true } });
   assert.deepEqual(
     await service.sendVerification(
