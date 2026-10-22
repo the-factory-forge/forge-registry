@@ -28,6 +28,13 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/lightbox",
+      category: "Component",
+      title: "Lightbox",
+      description: "Image enlargement with keyboard navigation and accessible image placeholders.",
+      keywords: ["image", "photo", "lightbox", "preview", "fallback"],
+    },
+    {
       href: "/mailing",
       category: "Plugin",
       title: "Mailing",
@@ -157,7 +164,8 @@ const examples = (
       category: "Plugin",
       title: "Employees",
       icon: pluginIcons.employees,
-      description: "Create and edit users, delete accounts, and send email verification reminders.",
+      description:
+        "Invite employees, crop optional photos and review related plugin data before deleting accounts.",
       tags: ["Employee directory", "Account management", "Email verification"],
       keywords: [
         "employee list",

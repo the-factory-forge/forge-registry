@@ -63,9 +63,10 @@ function ActionToastExample() {
       }
     >
       <ShowroomIntro title="Action toast">
-        Save to show a confirmation. It closes after five seconds, pauses while hovered or focused,
-        and can be dismissed with its Close button. Form errors stay beside the form. Background
-        actions use the same toast, with their status on the left and actions on the right.
+        Save repeatedly to stack confirmations. Hover, tap the stack or press F6 to expand it. Each
+        confirmation closes after five seconds, pauses while hovered or focused, and can be
+        dismissed with its Close button. Form errors stay beside the form. Background actions use
+        the same toast, with their status on the left and actions on the right.
       </ShowroomIntro>
       <form
         className="space-y-4"

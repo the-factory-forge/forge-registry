@@ -4,7 +4,7 @@
   "title": "Blogs",
   "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
   "dependencies": [
-    "@tanstack/markdown@0.0.15",
+    "@tanstack/markdown@0.0.16",
     "@base-ui/react",
     "lucide-react"
   ],

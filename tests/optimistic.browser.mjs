@@ -141,15 +141,15 @@ void test("employee creation appears immediately and disappears on failure witho
   await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
-  await dialog.getByLabel("Name", { exact: true }).fill("Optimistic employee");
-  await dialog.getByLabel("Email", { exact: true }).fill("optimistic@example.test");
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Optimistic employee");
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("optimistic@example.test");
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   const row = page.locator("tbody tr").filter({ hasText: "optimistic@example.test" });
   await row.waitFor({ timeout: 700 });
   await row.waitFor({ state: "hidden" });
   await dialog.getByRole("alert").waitFor();
   assert.equal(
-    await dialog.getByLabel("Email", { exact: true }).inputValue(),
+    await dialog.getByRole("textbox", { name: "Email", exact: true }).inputValue(),
     "optimistic@example.test",
   );
 });

@@ -67,11 +67,9 @@ this repository, including intentionally excluded changes.
 5. After verification, advance `.cove.jsonc` to the reviewed commit and record
    the checks and remaining limitations in the owning change.
 
-Vite+ 1.0 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
-dependency does not replace the repository's Node tests. The version-scoped
-`better-auth@1.7.2>vitest` exclusion removes an optional peer used only by Better
-Auth's test utilities, which this repository does not import. Revisit that
-exclusion when upgrading Better Auth or introducing those test utilities.
+Vite+ 1.3 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
+dependency does not replace the repository's Node tests. Better Auth 1.7.12
+supports Vitest 5, so its optional test-utilities peer no longer needs an exclusion.
 
 TypeScript 7 supplies the native `tsc` check. The Drive integration test uses
 Node's `stripTypeScriptTypes` to serve its browser modules because TypeScript 7
@@ -217,16 +215,12 @@ more room than the available viewport.
    `page-*` items reference `container-premium` or `section-padding`, currently
    defined only in the showroom stylesheet. A small registry stylesheet dependency
    would make consumer sizing reliable without copying this application's CSS.
-2. **Replace the custom lightbox modal with Base UI Dialog.** Its manual portal
-   and Escape listener do not provide focus trapping or focus restoration, and
-   its body scroll cleanup can interfere with another overlay. Use the installed
-   primitive and semantic `dark` / `dark-foreground` tokens.
-3. **Extract only the repeated plugin UI primitives.** Customers, projects,
+2. **Extract only the repeated plugin UI primitives.** Customers, projects,
    blogs, and Drive duplicate button/input/card/confirmation presentation; projects
    also imports customer UI internals. A neutral registry UI item could keep those
    consistent. Keep each plugin's mutation, retry, and permission logic separate:
    blogs and Drive have different persistence guarantees.
-4. **Expand preview coverage.** Ten homepage demonstrations cover the feature
+3. **Expand preview coverage.** Ten homepage demonstrations cover the feature
    plugins and a few layouts, while the registry ships fifty items. Add grouped
    examples for existing page sections and primitive controls so shared CSS changes
    can be checked in light/dark, narrow layouts, and keyboard flows.

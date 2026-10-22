@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-test("pre-commit requires staged registry source and current generated files", (t) => {
+await test("pre-commit requires staged registry source and current generated files", (t) => {
   const cwd = mkdtempSync(join(tmpdir(), "forge-registry-hook-"));
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
   const git = (...args) => spawnSync("git", args, { cwd, encoding: "utf8" });

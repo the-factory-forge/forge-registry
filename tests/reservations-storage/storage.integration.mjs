@@ -21,7 +21,7 @@ const db = drizzle(pool);
 const secret = deriveManagementSecret("reservations-integration-only-secret");
 const rejected = (promise, code) => assert.rejects(promise, (e) => e.code === code);
 
-test("PostgreSQL booking integrity, authorization, private links and durable notifications", async (t) => {
+await test("PostgreSQL booking integrity, authorization, private links and durable notifications", async (t) => {
   t.after(() => pool.end());
   await pool.unsafe(
     "DROP TABLE IF EXISTS reservations_notification,reservations_booking,reservations_resource,reservations_service,reservations_settings CASCADE",

@@ -10,7 +10,16 @@ import {
   type EmployeeActionCallbacks,
 } from "@/components/plugins/employees/employee-actions";
 import { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
+import { EmployeeDeleteDialog } from "@/components/plugins/employees/employee-delete-dialog";
 import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
+export { EmployeeDeleteDialog } from "@/components/plugins/employees/employee-delete-dialog";
+export type {
+  EmployeeDeletionAdapter,
+  EmployeeDeletionGroup,
+  EmployeeDeletionPreview,
+  EmployeeDeletionDecisions,
+  EmployeeDeleteDialogProps,
+} from "@/components/plugins/employees/employee-delete-dialog";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   EMPLOYEE_PAGE_SIZE,
@@ -38,6 +47,8 @@ import {
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
+export { EmployeePhotoField } from "@/components/plugins/employees/employee-photo-field";
+export type { EmployeePhotoFieldProps } from "@/components/plugins/employees/employee-photo-field";
 export type {
   Employee,
   CreateEmployee,
@@ -78,6 +89,9 @@ function EmployeesPageContent({
   onUpdate,
   onSetWebsitePublished,
   onDelete,
+  deletion,
+  onUploadPhoto,
+  photoOptions,
   onSendVerification,
   labels: overrides,
   className,
@@ -187,17 +201,27 @@ function EmployeesPageContent({
                 <th scope="col" className={tableActionHeaderClass}>
                   <div className="flex items-center justify-end gap-2">
                     {labels.actions}
-                    <TableBulkDelete
-                      selection={selection}
-                      getName={(employee) => employee.name}
-                      onDelete={(employee) => onDelete(employee.id)}
-                      labels={labels}
-                      disabled={selectionDisabled}
-                      description={labels.deleteDescription.replace(
-                        "{name}",
-                        selection.selected.map((row) => row.name).join(", "),
-                      )}
-                    />
+                    {deletion ? (
+                      <EmployeeDeleteDialog
+                        bulk
+                        employees={selection.selected}
+                        adapter={deletion}
+                        labels={labels}
+                        disabled={selectionDisabled}
+                      />
+                    ) : (
+                      <TableBulkDelete
+                        selection={selection}
+                        getName={(employee) => employee.name}
+                        onDelete={(employee) => onDelete(employee.id)}
+                        labels={labels}
+                        disabled={selectionDisabled}
+                        description={labels.deleteDescription.replace(
+                          "{name}",
+                          selection.selected.map((row) => row.name).join(", "),
+                        )}
+                      />
+                    )}
                   </div>
                 </th>
               </tr>
@@ -251,7 +275,10 @@ function EmployeesPageContent({
                         </span>
                       </div>
                     </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                    <td
+                      className={cn(tableCellClass, "whitespace-nowrap")}
+                      aria-label={employee.email}
+                    >
                       <div className="flex items-center gap-3">
                         <IconTooltip
                           label={employee.emailVerified ? labels.verified : labels.unverified}
@@ -303,6 +330,9 @@ function EmployeesPageContent({
                     </td>
                     <td className={tableActionCellClass}>
                       <EmployeeActions
+                        deletion={deletion}
+                        onUploadPhoto={onUploadPhoto}
+                        photoOptions={photoOptions}
                         employee={employee}
                         disabled={
                           loading ||

@@ -30,7 +30,7 @@ to the project's existing `components.json`:
 Then install the item:
 
 ```bash
-pnpm dlx shadcn@4.21.1 add @forge/intranet-sidebar
+pnpm dlx shadcn@4.22.1 add @forge/intranet-sidebar
 ```
 
 Files install under `src/components/`, `src/components/layouts/`, or
@@ -87,6 +87,7 @@ Use a client component when integrating into an RSC application:
 "use client";
 
 import type { ReactNode } from "react";
+
 import {
   IntranetSidebar,
   IntranetSidebarInset,
@@ -221,6 +222,7 @@ For TanStack Router, pass a stable adapter declared outside the layout component
 
 ```tsx
 import { Link as RouterLink } from "@tanstack/react-router";
+
 import type { IntranetLinkProps } from "@/components/intranet-sidebar";
 
 function SidebarLink({ href, ...props }: IntranetLinkProps) {

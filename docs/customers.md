@@ -6,7 +6,7 @@ single-use invitation so the recipient chooses their own password.
 Install the complete feature UI into an initialized shadcn project:
 
 ```bash
-pnpm dlx shadcn@4.21.1 add @forge/customers
+pnpm dlx shadcn@4.22.1 add @forge/customers
 ```
 
 All plugin files install under your components alias at `plugins/customers/`.

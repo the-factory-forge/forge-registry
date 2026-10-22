@@ -59,8 +59,8 @@ installed files. There is no Contact form or submission service in these pages.
 ## Usage
 
 ```tsx
-import { FaqPage } from "@/components/pages/page-faq";
 import { ContactPage } from "@/components/pages/page-contact";
+import { FaqPage } from "@/components/pages/page-faq";
 
 <FaqPage
   hero={{

@@ -95,6 +95,10 @@ not provide access control. The companions' `verifyBucket` checks versioning,
 not public ACLs or provider encryption. Local MinIO tests prove application access
 behavior, not the live Infomaniak configuration or coverage of older objects.
 
+Employee photos are optional and use the shared crop dialog. Deletion can review
+linked records from multiple host adapters and commit their decisions atomically;
+see [employee photos and related data](./employees.md).
+
 ## Shared presentation
 
 Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).

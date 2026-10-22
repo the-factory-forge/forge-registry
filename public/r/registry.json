@@ -315,7 +315,7 @@
           "target": "@components/lightbox.tsx"
         }
       ],
-      "dependencies": ["lucide-react"],
+      "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/icon-tooltip"]
     },
     {
@@ -1097,7 +1097,7 @@
       "type": "registry:block",
       "title": "Blogs",
       "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
-      "dependencies": ["@tanstack/markdown@0.0.15", "@base-ui/react", "lucide-react"],
+      "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/table-pagination",
         "@forge/cn",
@@ -1273,7 +1273,7 @@
       "type": "registry:block",
       "title": "Menus storage",
       "description": "Better Auth models and Drizzle service for restaurant menus with size prices, spice levels and Drive-backed images.",
-      "dependencies": ["better-auth@1.7.2", "drizzle-orm"],
+      "dependencies": ["better-auth@1.7.12", "drizzle-orm"],
       "registryDependencies": ["@forge/menus", "@forge/drive-storage"],
       "files": [
         {
@@ -1438,6 +1438,16 @@
           "path": "registry/components/plugins/employees/styles.ts",
           "type": "registry:lib",
           "target": "@components/plugins/employees/styles.ts"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-delete-dialog.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-delete-dialog.tsx"
+        },
+        {
+          "path": "registry/components/plugins/employees/employee-photo-field.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/employees/employee-photo-field.tsx"
         }
       ],
       "registryDependencies": [
@@ -1451,7 +1461,8 @@
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/image-crop"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1516,11 +1527,11 @@
       "title": "Reservations",
       "description": "Guest appointments and overnight stays, staff calendars, policies, blocked dates, and private management.",
       "dependencies": [
-        "@base-ui/react@1.8.0",
-        "@fullcalendar/react@7.1.0",
-        "temporal-polyfill@1.0.1",
-        "lucide-react@1.49.0",
-        "zod@4.5.4"
+        "@base-ui/react@1.9.0",
+        "@fullcalendar/react@7.1.3",
+        "temporal-polyfill@1.0.6",
+        "lucide-react@1.60.0",
+        "zod@4.6.7"
       ],
       "registryDependencies": [
         "@forge/cn",
@@ -1590,7 +1601,7 @@
       "type": "registry:block",
       "title": "Reservations storage",
       "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
-      "dependencies": ["drizzle-orm@0.45.2", "postgres@3.4.9"],
+      "dependencies": ["drizzle-orm@0.45.4", "postgres@3.4.9"],
       "registryDependencies": ["@forge/reservations", "@forge/mailing"],
       "files": [
         {
@@ -1640,7 +1651,7 @@
       "type": "registry:lib",
       "title": "Optimistic action",
       "description": "TanStack Query mutations with temporary UI updates and automatic rollback for callback-driven plugins.",
-      "dependencies": ["@tanstack/react-query@5.104.1"],
+      "dependencies": ["@tanstack/react-query@5.104.5"],
       "files": [
         {
           "path": "registry/components/utils/use-optimistic-action.ts",
@@ -1671,7 +1682,7 @@
           "target": "@components/plugins/mailing/resend.server.ts"
         }
       ],
-      "dependencies": ["react-email@6.11.1"]
+      "dependencies": ["react-email@6.11.3"]
     },
     {
       "name": "image-crop",

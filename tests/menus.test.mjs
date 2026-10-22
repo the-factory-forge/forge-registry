@@ -29,7 +29,7 @@ const item = {
   },
 };
 
-test("reordering validates the complete versioned list and preserves item content", () => {
+await test("reordering validates the complete versioned list and preserves item content", () => {
   const items = [
     item,
     {
@@ -74,7 +74,7 @@ test("reordering validates the complete versioned list and preserves item conten
   }
 });
 
-test("public menu orders items, omits hidden products, and falls back by entity", () => {
+await test("public menu orders items, omits hidden products, and falls back by entity", () => {
   const sections = buildMenu(
     [
       { ...item, id: "b", position: 2, visible: false },
@@ -94,7 +94,7 @@ test("public menu orders items, omits hidden products, and falls back by entity"
   assert.equal(sections[0].items[0].soldOut, true);
 });
 
-test("price parsing is exact and item validation rejects malformed input", () => {
+await test("price parsing is exact and item validation rejects malformed input", () => {
   assert.equal(parsePrice("14.50", 2), 1450);
   assert.equal(parsePrice("14.5", 2), 1450);
   assert.equal(parsePrice("14", 0), 14);
@@ -109,7 +109,7 @@ test("price parsing is exact and item validation rejects malformed input", () =>
   );
 });
 
-test("spice levels default to zero, reach the public menu, and reject invalid values", () => {
+await test("spice levels default to zero, reach the public menu, and reject invalid values", () => {
   assert.equal(validateItem(item, "en").spiceLevel, 0);
   assert.equal(buildMenu([item], [category], [label], "en", "en")[0].items[0].spiceLevel, 0);
   for (const spiceLevel of [0, 1, 2, 3]) {
@@ -124,7 +124,7 @@ test("spice levels default to zero, reach the public menu, and reject invalid va
     assert.throws(() => validateItem({ ...item, spiceLevel }, "en"), MenuError);
 });
 
-test("size prices normalize the default price and localize each size with fallback", () => {
+await test("size prices normalize the default price and localize each size with fallback", () => {
   assert.deepEqual(validateItem(item, "en").sizes, []);
   assert.deepEqual(buildMenu([item], [category], [label], "en", "en")[0].items[0].sizes, []);
   const sizes = [
@@ -146,7 +146,7 @@ test("size prices normalize the default price and localize each size with fallba
   );
 });
 
-test("size validation rejects invalid prices, IDs, translations and oversized lists", () => {
+await test("size validation rejects invalid prices, IDs, translations and oversized lists", () => {
   const size = { id: "small", priceMinor: 2200, translations: { en: "Small" } };
   for (const sizes of [
     null,
@@ -169,7 +169,7 @@ test("size validation rejects invalid prices, IDs, translations and oversized li
     assert.throws(() => validateItem({ ...item, sizes }, "en"), MenuError);
 });
 
-test("default menu labels cover all allergen groups with translated icons and semantic colors", () => {
+await test("default menu labels cover all allergen groups with translated icons and semantic colors", () => {
   assert.deepEqual(
     menuLabelPresets
       .filter((label) => label.kind === "allergen")
@@ -221,7 +221,7 @@ test("default menu labels cover all allergen groups with translated icons and se
   );
 });
 
-test("public filters contain only visible items' labels and preserve host IDs and custom labels", () => {
+await test("public filters contain only visible items' labels and preserve host IDs and custom labels", () => {
   const sections = buildMenu([item], [category], [label], "fr", "en");
   const custom = { id: "custom", kind: "dietary", name: "Paleo" };
   sections[0].items[0].labels.push(custom);
@@ -253,7 +253,7 @@ test("public filters contain only visible items' labels and preserve host IDs an
   assert.deepEqual(getMenuFilterLabels(sections, "fr"), [milk[0], custom]);
 });
 
-test("filter choices sort alphabetically by localized names without changing item labels", () => {
+await test("filter choices sort alphabetically by localized names without changing item labels", () => {
   const labels = [
     { ...label, id: "milk", translations: { en: "Milk", fr: "Lait" } },
     { ...label, id: "eggs", translations: { en: "Eggs", fr: "Œufs" } },
@@ -282,7 +282,7 @@ test("filter choices sort alphabetically by localized names without changing ite
   }
 });
 
-test("label icons validate and survive localization and public filter mapping", () => {
+await test("label icons validate and survive localization and public filter mapping", () => {
   assert.equal(validateLabel(label, "en").icon, null);
   assert.equal(validateLabel({ ...label, icon: null }, "en").icon, null);
   for (const icon of menuLabelIcons) {

@@ -227,6 +227,9 @@ layout. The showroom simulates confirmation; delivery remains a host integration
 
 ## Employee UI
 
+See [employee photos and related-data deletion](./employees.md) for the optional
+photo field and transactional deletion adapter.
+
 The employee table uses [`@forge/table-pagination`](./table-pagination.md), installed
 with the plugin. Hosts retain the existing total, offset and translated labels.
 

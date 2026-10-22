@@ -12,7 +12,7 @@ import {
   safeDownloadUrl,
 } from "../registry/components/plugins/drive/utils.ts";
 
-test("Drive rejects ambiguous names, unsafe download URLs and invalid identifiers", () => {
+await test("Drive rejects ambiguous names, unsafe download URLs and invalid identifiers", () => {
   assert.equal(validName(" My résumé.pdf "), "My résumé.pdf");
   for (const input of ["", "  ", ".", "..", "a/b", "a\\b", "a\0b", "a\nb", "x".repeat(256)])
     assert.throws(() => validName(input), { code: "INVALID" });
@@ -34,7 +34,7 @@ test("Drive rejects ambiguous names, unsafe download URLs and invalid identifier
   );
 });
 
-test("Drive UI ships independently; only the companion contains storage dependencies", async () => {
+await test("Drive UI ships independently; only the companion contains storage dependencies", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
@@ -90,7 +90,7 @@ test("Drive UI ships independently; only the companion contains storage dependen
   assert.ok(!customers.registryDependencies.includes("@forge/drive"));
 });
 
-test("Drive sorting validates fields, compares raw values and keeps unknown metadata last", () => {
+await test("Drive sorting validates fields, compares raw values and keeps unknown metadata last", () => {
   assert.deepEqual(validSort(), { field: "name", direction: "asc" });
   for (const sort of [
     null,
