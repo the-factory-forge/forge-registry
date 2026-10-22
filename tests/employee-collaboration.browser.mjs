@@ -78,9 +78,15 @@ void test("optional employee photos crop to WebP and preserve the editor on inva
   const page = await preview(t, "/en/employees");
   await page.getByRole("button", { name: "Edit Sam Rivera", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Edit employee", exact: true });
-  await editor.getByLabel("Name", { exact: true }).fill("Unsaved employee name");
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved employee name");
   const field = editor.getByLabel("Employee photo", { exact: true });
-  await field.setInputFiles({
+  const choosePhoto = editor.getByRole("button", { name: "Choose photo", exact: true });
+  await choosePhoto.focus();
+  const [chooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    choosePhoto.press("Enter"),
+  ]);
+  await chooser.setFiles({
     name: "broken.png",
     mimeType: "image/png",
     buffer: Buffer.from("not an image"),
@@ -88,8 +94,9 @@ void test("optional employee photos crop to WebP and preserve the editor on inva
   const crop = page.getByRole("dialog", { name: "Crop image", exact: true });
   await crop.getByRole("alert").waitFor();
   await crop.getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal(await choosePhoto.isEnabled(), true);
   assert.equal(
-    await editor.getByLabel("Name", { exact: true }).inputValue(),
+    await editor.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
     "Unsaved employee name",
   );
   const bytes = await page.evaluate(() => {
@@ -110,10 +117,14 @@ void test("optional employee photos crop to WebP and preserve the editor on inva
   await crop.waitFor({ state: "hidden" });
   const image = editor.getByRole("img", { name: "Employee photo", exact: true });
   await image.waitFor();
+  assert.equal(
+    await editor.getByRole("button", { name: "Change photo", exact: true }).isEnabled(),
+    true,
+  );
   assert.match(await image.getAttribute("src"), /^data:image\/webp;/);
   assert.equal(await image.evaluate((element) => element.naturalWidth), 512);
   assert.equal(
-    await editor.getByLabel("Name", { exact: true }).inputValue(),
+    await editor.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
     "Unsaved employee name",
   );
 });

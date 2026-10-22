@@ -208,6 +208,11 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   merge classes with `cn` from `@/components/utils/cn`. Reuse `SectionVariant` for themed sections.
 - Use semantic Tailwind/shadcn tokens and existing Base UI primitives. Preserve
   keyboard interaction, focus states, semantic HTML, and responsive behavior.
+- Mark required form labels with a visible `*` (`aria-hidden="true"`), retaining
+  native `required` or `aria-required` semantics. Leave optional fields unmarked.
+  Keep UI copy brief: use clear labels and show helper text only for essential
+  constraints, consequences or recovery that the control itself cannot explain.
+  Omit routine instructions and implementation details, such as how uploads are processed.
 - Use a modal or dialog for create/edit forms that remain short and easy to complete
   without navigation. When the form grows into many inputs, sections, nested data,
   or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`

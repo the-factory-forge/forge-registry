@@ -1,16 +1,20 @@
 "use client";
 
-import { UserRoundIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { UploadIcon, UserRoundIcon } from "lucide-react";
+import { useId, useRef, useState } from "react";
 
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropLabels, type ImageCropSize } from "@/components/image-crop";
+import { outlineButtonClass } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
 
 export const employeePhotoLabels = {
   label: "Employee photo",
-  hint: "Optional. Choose an image to crop and optimize before uploading.",
+  /** @deprecated The photo picker no longer displays helper text. */
+  hint: "",
   missing: "No photo",
+  choose: "Choose photo",
+  change: "Change photo",
 };
 export interface EmployeePhotoFieldProps {
   src?: string | null;
@@ -33,38 +37,47 @@ export function EmployeePhotoField({
 }: EmployeePhotoFieldProps) {
   const labels = { ...employeePhotoLabels, ...overrides };
   const id = `factory-employee-photo-${useId()}`;
+  const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   return (
     <div className={cn("grid gap-3", className)}>
       <label htmlFor={id} className="text-sm font-medium">
         {labels.label}
       </label>
-      <div className="flex size-28 items-center justify-center overflow-hidden rounded-lg bg-muted">
-        {src ? (
-          <Image
-            src={src}
-            alt={labels.label}
-            width={112}
-            height={112}
-            className="size-full object-cover"
-          />
-        ) : (
-          <>
-            <UserRoundIcon aria-hidden="true" className="size-12 text-muted-foreground" />
-            <span className="sr-only">{labels.missing}</span>
-          </>
-        )}
+      <div className="flex items-center gap-4">
+        <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+          {src ? (
+            <Image
+              src={src}
+              alt={labels.label}
+              width={80}
+              height={80}
+              className="size-full object-cover"
+            />
+          ) : (
+            <>
+              <UserRoundIcon aria-hidden="true" className="size-8 text-muted-foreground" />
+              <span className="sr-only">{labels.missing}</span>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className={cn(outlineButtonClass, "min-w-0 py-2 disabled:pointer-events-auto")}
+          disabled={disabled || !!file}
+          onClick={() => input.current?.click()}
+        >
+          <UploadIcon aria-hidden="true" className="size-4 shrink-0" />
+          {src ? labels.change : labels.choose}
+        </button>
       </div>
-      <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-        {labels.hint}
-      </p>
       <input
+        ref={input}
         id={id}
-        aria-describedby={`${id}-hint`}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         disabled={disabled || !!file}
-        className="w-full min-w-0 text-sm"
+        className="hidden"
         onChange={(event) => {
           setFile(event.target.files?.[0] ?? null);
           event.target.value = "";

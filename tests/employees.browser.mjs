@@ -17,7 +17,7 @@ await test("website visibility saves immediately, preserves account drafts and r
 
   await page.getByLabel("Simulate action failures", { exact: true }).check();
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  await edit.getByLabel("Name", { exact: true }).fill("Unsaved name");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved name");
   await toggle.press("Space");
   await edit.getByRole("button", { name: "Website", pressed: false }).waitFor();
   assert.equal(await toggle.isDisabled(), true);
@@ -26,21 +26,30 @@ await test("website visibility saves immediately, preserves account drafts and r
     .filter({ hasText: "Could not change website visibility" })
     .waitFor();
   assert.equal(await toggle.getAttribute("aria-pressed"), "true");
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Unsaved name");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Unsaved name",
+  );
   await row.getByText("Visible on website", { exact: true }).waitFor();
   await edit.getByRole("button", { name: "Cancel", exact: true }).click();
 
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  await edit.getByLabel("Name", { exact: true }).fill("Unsaved name");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved name");
   await toggle.click();
   await actionToast(page, "Website visibility updated.");
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Unsaved name");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Unsaved name",
+  );
   await row.getByText("Hidden on website", { exact: true }).waitFor();
   await edit.getByRole("button", { name: "Cancel", exact: true }).click();
 
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Alex Morgan");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Alex Morgan",
+  );
   assert.equal(await toggle.getAttribute("aria-pressed"), "false");
   await toggle.press("Enter");
   await actionToast(page, "Website visibility updated.");
@@ -118,10 +127,10 @@ await test("employee pages show content only to administrators", async (t) => {
   await page.getByLabel("Preview as").selectOption("admin");
   await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
-  await dialog.getByLabel("Email", { exact: true }).waitFor();
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).waitFor();
   assert.equal(new URL(page.url()).hash, "");
-  await dialog.getByLabel("Name", { exact: true }).fill("Taylor Jordan");
-  await dialog.getByLabel("Email", { exact: true }).fill("taylor@example.test");
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Taylor Jordan");
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("taylor@example.test");
   assert.equal(await dialog.locator('input[type="password"]').count(), 0);
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
@@ -131,7 +140,7 @@ await test("employee pages show content only to administrators", async (t) => {
   await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit employee", exact: true });
   await edit.getByText("Hidden on website", { exact: true }).waitFor();
-  await edit.getByLabel("Name", { exact: true }).fill("Taylor Lee");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Taylor Lee");
   await edit.getByRole("button", { name: "Save changes", exact: true }).click();
   await edit.waitFor({ state: "hidden" });
   await actionToast(page, "Employee updated.");
@@ -154,8 +163,8 @@ await test("a delivery failure keeps the account available for resend without re
   await page.getByLabel("Simulate invitation delivery failure", { exact: true }).check();
   await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
-  await dialog.getByLabel("Name", { exact: true }).fill("Pending invitee");
-  await dialog.getByLabel("Email", { exact: true }).fill("pending@example.test");
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Pending invitee");
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("pending@example.test");
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.getByRole("alert").filter({ hasText: "The account was created" }).waitFor();
   assert.equal(await dialog.locator("form").count(), 0);

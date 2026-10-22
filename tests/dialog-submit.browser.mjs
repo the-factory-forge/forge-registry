@@ -78,15 +78,17 @@ await suite("Dialog submit browser", async () => {
     const page = await preview(t, "/en/employees");
     await page.getByRole("button", { name: "Invite employee", exact: true }).click();
     const create = page.getByRole("dialog", { name: "Invite employee", exact: true });
-    await create.getByLabel("Name", { exact: true }).fill("Shortcut Employee");
-    await create.getByLabel("Email", { exact: true }).fill("shortcut@example.test");
-    await create.getByLabel("Email", { exact: true }).press("Control+Enter");
+    await create.getByRole("textbox", { name: "Name", exact: true }).fill("Shortcut Employee");
+    await create.getByRole("textbox", { name: "Email", exact: true }).fill("shortcut@example.test");
+    await create.getByRole("textbox", { name: "Email", exact: true }).press("Control+Enter");
     await create.waitFor({ state: "hidden" });
     const row = page.getByRole("row").filter({ hasText: "shortcut@example.test" });
     await row.getByRole("button", { name: /Edit.*Shortcut Employee/ }).click();
     const edit = page.getByRole("dialog");
-    await edit.getByLabel("Name", { exact: true }).fill("Updated Shortcut Employee");
-    await edit.getByLabel("Name", { exact: true }).press("Meta+Enter");
+    await edit
+      .getByRole("textbox", { name: "Name", exact: true })
+      .fill("Updated Shortcut Employee");
+    await edit.getByRole("textbox", { name: "Name", exact: true }).press("Meta+Enter");
     await edit.waitFor({ state: "hidden" });
     await row.getByText("Updated Shortcut Employee", { exact: true }).waitFor();
   });

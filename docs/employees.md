@@ -4,7 +4,10 @@ The admin-only employee directory remains documented in [Employee UI](./intranet
 
 ## Optional employee images
 
-`EmployeePhotoField` is an optional field with a missing-photo placeholder.
+`EmployeePhotoField` is an optional field with a compact photo preview and an
+outlined Choose photo / Change photo button. Translate these actions through
+`labels.choose` and `labels.change`; existing label overrides remain optional.
+The deprecated `labels.hint` is accepted for compatibility but is no longer displayed.
 It crops and exports WebP before invoking `onUpload(file)`; rejection keeps the
 crop open for retry/cancel. Its square 512×512 default suits an account avatar.
 Supply `dimensions`, `labels` and `cropLabels` for another use.

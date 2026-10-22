@@ -225,7 +225,9 @@ function EmployeeActionsContent({
                 }}
               >
                 <div className="grid gap-2">
-                  <label htmlFor={`${id}-name`}>{labels.name}</label>
+                  <label htmlFor={`${id}-name`}>
+                    {labels.name} <span aria-hidden="true">*</span>
+                  </label>
                   <input
                     className={inputClass}
                     id={`${id}-name`}
@@ -237,7 +239,9 @@ function EmployeeActionsContent({
                   />
                 </div>
                 <div className="grid gap-2">
-                  <label htmlFor={`${id}-email`}>{labels.email}</label>
+                  <label htmlFor={`${id}-email`}>
+                    {labels.email} <span aria-hidden="true">*</span>
+                  </label>
                   <input
                     className={inputClass}
                     id={`${id}-email`}
