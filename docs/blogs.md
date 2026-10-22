@@ -550,10 +550,14 @@ input falls back to complete removed/added text. Read previews replace failed
 illustrations with a placeholder. A publication with confirmed missing images
 requires the explicit omission checkbox; transient storage errors remain errors.
 
-The showroom's **Load history example** control supplies five publications and
-four distinct reprises. **History transport** demonstrates an existing custom
-client without history; **Simulate missing illustrations** exercises confirmed
-omission. All example data is in memory and resets on reload.
+The showroom's **Load history example** control replaces the open article's demo
+content and history in both English and French. Each language receives its own
+localized text, five publications and four distinct reprises, including articles
+without an existing French translation. Other articles stay unchanged.
+**Simulate concurrent correction** changes the open article as another writer,
+deliberately making its next save conflict. **History transport** demonstrates an
+existing custom client without history; **Simulate missing illustrations**
+exercises confirmed omission. All example data is in memory and resets on reload.
 
 ## History migration and rollback
 

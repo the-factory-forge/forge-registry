@@ -1245,11 +1245,10 @@ function EditorForm({
               type="button"
               className={outlineButtonClass}
               disabled={pending}
-              aria-pressed={compareWorking}
-              onClick={() => setCompareWorking(!compareWorking)}
+              onClick={() => setCompareWorking(true)}
             >
               <GitCompareArrowsIcon aria-hidden="true" />
-              {labels.compare}
+              {labels.compareDraft}
             </button>
           )}
           <button

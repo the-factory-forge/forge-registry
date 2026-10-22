@@ -91,8 +91,9 @@ function useBlogsPreview() {
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const selectId = `factory-showroom-blogs-${useId()}`;
-  const { locale } = useShowroomParams();
+  const { locale, segments } = useShowroomParams();
   const state = usePreview();
+  const article = state.mock.all().find((value) => value.id === segments[0]);
   return (
     <Context.Provider value={state}>
       <ShowroomPreview
@@ -150,18 +151,38 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               />
               History transport
             </label>
-            <button
-              className="underline"
-              onClick={() => {
-                state.mock.loadHistoryExample();
-                state.setExampleRevision((value) => value + 1);
-              }}
-            >
-              Load history example
-            </button>
-            <button className="underline" onClick={() => state.mock.applyConcurrentCorrection()}>
-              Simulate concurrent correction
-            </button>
+            <div className="space-y-2">
+              <button
+                className="underline disabled:text-muted-foreground disabled:no-underline"
+                disabled={!article}
+                aria-describedby={`${selectId}-history-example`}
+                onClick={() => {
+                  if (!article) return;
+                  state.mock.loadHistoryExample(article.id);
+                  state.setExampleRevision((value) => value + 1);
+                }}
+              >
+                Load history example
+              </button>
+              <p id={`${selectId}-history-example`} className="text-xs text-muted-foreground">
+                {article
+                  ? "Replaces this post’s demo content and history in English and French."
+                  : "Open a post in Manage posts to load its history example."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                className="underline disabled:text-muted-foreground disabled:no-underline"
+                disabled={!article}
+                aria-describedby={`${selectId}-concurrent-correction`}
+                onClick={() => article && state.mock.applyConcurrentCorrection(article.id)}
+              >
+                Simulate concurrent correction
+              </button>
+              <p id={`${selectId}-concurrent-correction`} className="text-xs text-muted-foreground">
+                Changes this post as another editor. The next save will conflict.
+              </p>
+            </div>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -226,6 +247,7 @@ export function BlogsAdminPreview() {
             closeHistory: "Fermer l’historique",
             read: "Lire",
             compare: "Comparer",
+            compareDraft: "Comparer le brouillon",
             currentDraft: "Brouillon courant",
             returnToDraft: "Revenir au brouillon",
             unsavedDraft: "Brouillon non enregistré",

@@ -118,6 +118,7 @@ export const blogsLabels = {
   unsavedDraft: "Unsaved draft",
   read: "Read",
   compare: "Compare",
+  compareDraft: "Compare draft",
   noLiveComparison: "Publish this language before comparing it with a live version.",
   noChanges: "No changes from the live publication.",
   live: "Live",

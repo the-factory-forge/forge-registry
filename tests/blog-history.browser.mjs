@@ -27,11 +27,12 @@ async function preview(t, example = true, viewport = { width: 1440, height: 1000
     await page.getByRole("button", { name: "Load history example", exact: true }).click();
   return page;
 }
-const panel = (page) => page.getByRole("complementary", { name: "History · EN", exact: true });
-async function select(page, number) {
-  if (!(await panel(page).isVisible()))
+const panel = (page, locale = "EN") =>
+  page.getByRole("complementary", { name: `History · ${locale}`, exact: true });
+async function select(page, number, locale = "EN") {
+  if (!(await panel(page, locale).isVisible()))
     await page.getByRole("button", { name: "History", exact: true }).click();
-  await panel(page)
+  await panel(page, locale)
     .getByRole("button", { name: new RegExp(`^v${number}\\b`) })
     .click();
   await page.getByRole("heading", { name: `v${number}`, exact: true }).waitFor();
@@ -40,12 +41,78 @@ async function save(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await actionToast(page, "Draft saved.");
 }
-async function counts(page, pubs, drafts) {
-  await panel(page).locator('ol[aria-busy="false"]').waitFor();
-  await panel(page)
+async function counts(page, pubs, drafts, locale = "EN") {
+  await panel(page, locale).locator('ol[aria-busy="false"]').waitFor();
+  await panel(page, locale)
     .getByText(`Publications ${pubs} / 5 · Drafts ${drafts} / 8`, { exact: true })
     .waitFor();
 }
+
+void test("history examples target every open post and give English and French independent content", async (t) => {
+  const page = await preview(t, false);
+  for (const number of [1, 2, 3, 4]) {
+    const id = article.slice(0, -1) + number;
+    await page.goto(`${base}/en/admin/blogs/${id}`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const title = await page.getByRole("textbox", { name: "Title", exact: true }).inputValue();
+    await page.getByRole("button", { name: "Load history example", exact: true }).click();
+    await counts(page, 5, 4);
+    assert.equal(
+      await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
+      title,
+    );
+    const english = await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue();
+    assert.match(english, /Good ideas start/);
+    await page.getByRole("tab", { name: "Français", exact: true }).click();
+    await counts(page, 5, 4, "FR");
+    assert.match(
+      await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
+      /Les bonnes idées commencent/,
+    );
+    await select(page, 18, "FR");
+    await page.getByRole("button", { name: "Compare", exact: true }).click();
+    assert.match(await page.locator('mark[data-change="removed"]').textContent(), /pratique/);
+    assert.match(await page.locator('mark[data-change="added"]').textContent(), /attention/);
+    assert.equal(await page.getByRole("button", { name: "Compare draft", exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
+    await page.getByRole("tab", { name: "English", exact: true }).click();
+    await counts(page, 5, 4);
+    assert.equal(
+      await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
+      english,
+    );
+    await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+    assert.equal(
+      await page.getByRole("button", { name: "Load history example", exact: true }).isDisabled(),
+      true,
+    );
+    const untouchedTitle =
+      number === 1 ? "A quieter kind of productivity" : "Make room for better ideas";
+    await page.getByRole("link", { name: `Edit: ${untouchedTitle}`, exact: true }).click();
+    await counts(page, 1, 0);
+  }
+});
+
+void test("concurrent correction targets the open post and preserves its unsaved draft", async (t) => {
+  const page = await preview(t, false);
+  await page.goto(`${base}/fr/admin/blogs/${article.slice(0, -1)}2`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  await page.getByRole("button", { name: "Load history example", exact: true }).click();
+  const frenchHistory = page.getByRole("complementary", { name: "Historique · FR", exact: true });
+  await frenchHistory.getByText("Publications 5 / 5 · Brouillons 4 / 8", { exact: true }).waitFor();
+  await page.getByRole("textbox", { name: "Title", exact: true }).fill("Ma correction à conserver");
+  await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page
+    .locator("form")
+    .getByRole("alert")
+    .filter({ hasText: "This record changed" })
+    .waitFor();
+  assert.equal(
+    await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
+    "Ma correction à conserver",
+  );
+});
 
 void test("inspection preserves the working draft; dirty work offers save, discard and cancel", async (t) => {
   const page = await preview(t);
@@ -146,14 +213,14 @@ void test("unified diff marks changed words, keeps insertions single and renders
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published");
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("One precise sentence.");
-  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await page.getByRole("button", { name: "Compare draft", exact: true }).click();
   assert.equal(await page.locator('mark[data-change="removed"]').textContent(), "clear");
   assert.equal(await page.locator('mark[data-change="added"]').textContent(), "precise");
   await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
   await page
     .getByRole("textbox", { name: "Markdown", exact: true })
     .fill("One clear sentence. <script>window.blogHistoryUnsafe=true</script>");
-  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await page.getByRole("button", { name: "Compare draft", exact: true }).click();
   assert.equal(await page.locator('mark[data-change="removed"]').count(), 0);
   assert.equal(await page.locator('mark[data-change="added"]').count(), 1);
   assert.equal(await page.evaluate(() => window.blogHistoryUnsafe), undefined);
@@ -188,10 +255,16 @@ void test("historical publication lists exact deletions, cancel preserves them a
     .getByText("Live", { exact: true })
     .waitFor();
   await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await counts(page, 5, 4, "FR");
   assert.equal(
     await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
     "Faire de la place aux idées",
   );
+  await page.getByRole("tab", { name: "English", exact: true }).click();
+  await page.getByRole("button", { name: "Load history example", exact: true }).click();
+  await counts(page, 5, 4);
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await counts(page, 5, 4, "FR");
 });
 
 void test("missing illustrations require explicit omission, failures remain retryable and public rendering omits them", async (t) => {
@@ -284,7 +357,7 @@ void test("ordinary clients keep editing and comparison names the absence of a l
   const page = await preview(t, false);
   await page.getByRole("button", { name: "Unpublish", exact: true }).click();
   await actionToast(page, "This language is no longer public");
-  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await page.getByRole("button", { name: "Compare draft", exact: true }).click();
   await page
     .getByText("Publish this language before comparing it with a live version.", { exact: true })
     .waitFor();

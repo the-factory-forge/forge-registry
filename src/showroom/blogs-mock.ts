@@ -36,7 +36,6 @@ export const blogLocales = [
   { code: "fr", name: "Français" },
 ];
 const key = (n: number) => `b1000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-export const demoBlogId = key(1);
 const initialEditor = { id: "jordan", name: "Jordan Lee" };
 const date = "2026-09-10T10:00:00.000Z";
 function seed() {
@@ -622,24 +621,24 @@ export function createBlogsMock() {
   }
   return {
     client,
-    applyConcurrentCorrection: () => {
-      const article = get(demoBlogId),
-        locale = "en";
+    applyConcurrentCorrection: (id: string) => {
+      const article = get(id),
+        locale = Object.keys(article.translations)[0],
+        translation = article.translations[locale];
       const input = {
         id: article.id,
         version: article.version,
         requestId: crypto.randomUUID(),
         locale,
         content: {
-          ...article.translations.en.draft,
+          ...translation.draft,
           summary: `Concurrent correction ${article.version}`,
         },
-        shared: article.translations.en.shared ?? article.shared,
+        shared: translation.shared ?? article.shared,
       };
       const retained = versions.get(article.id) ?? [];
       const source =
-        retained.find((version) => version.id === article.translations.en.history?.currentId) ??
-        null;
+        retained.find((version) => version.id === translation.history?.currentId) ?? null;
       const saved = saveArticle(
         article,
         input,
@@ -658,68 +657,107 @@ export function createBlogsMock() {
         ]);
       emit();
     },
-    loadHistoryExample: () => {
-      let article = get(demoBlogId);
-      const locale = "en",
-        original = structuredClone(article.translations.en.draft);
-      const settings = structuredClone(article.translations.en.shared ?? article.shared);
-      const retained: BlogHistoryVersion[] = [];
-      article.translations.en.history = {
-        lastNumber: 17,
-        lastPublicationOrder: 0,
-        currentId: null,
-        publishedId: null,
-      };
-      const save = (markdown: string, source?: BlogHistoryVersion) => {
-        const input = {
-          id: article.id,
-          version: article.version,
-          requestId: crypto.randomUUID(),
+    loadHistoryExample: (id: string) => {
+      let article = get(id);
+      const examples: BlogHistoryVersion[] = [];
+      for (const { code: locale } of blogLocales) {
+        const french = locale === "fr";
+        const title = french
+          ? ({
+              [key(1)]: "Faire de la place aux idées",
+              [key(2)]: "Travailler avec plus de calme",
+              [key(3)]: "Notes de notre atelier",
+              [key(4)]: "Une idée pour demain",
+            }[id] ?? "Un nouvel article")
+          : "A new article";
+        article.translations[locale] ??= createArticle(
+          id,
+          title,
           locale,
-          content: { ...original, markdown },
-          shared: settings,
-          origin: source ? { versionId: source.id, repriseId: crypto.randomUUID() } : undefined,
-        };
-        const previous = article,
-          currentId = article.translations.en.history!.currentId;
-        const current = source ?? retained.find((version) => version.id === currentId) ?? null;
-        const result = recordBlogSave(
-          previous,
-          saveArticle(
-            previous,
-            input,
-            categories,
-            new Set(assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id)),
-            crypto.randomUUID(),
-            initialEditor,
-            new Date().toISOString(),
-          ),
-          input,
-          retained,
-          current,
-        );
-        article = result.article;
-        if (result.saved) retained.push(result.saved);
-      };
-      for (const word of ["attention", "curiosity", "care", "listening", "practice"]) {
-        save(
-          `## Begin with a question\n\nGood ideas start with **${word}**. Take a moment to describe the problem in plain language.\n\nLeave room for what comes next.`,
-        );
-        const result = publishBlogVersion(
-          article,
-          retained.at(-1)!,
-          retained,
-          categories,
           initialEditor,
           new Date().toISOString(),
-        );
-        article = result.article;
-        retained[retained.length - 1] = result.saved;
+        ).translations[locale];
+        const original = structuredClone(article.translations[locale].draft);
+        const settings = structuredClone(article.translations[locale].shared ?? article.shared);
+        settings.author ??= initialEditor;
+        const retained: BlogHistoryVersion[] = [];
+        article.translations[locale].history = {
+          lastNumber: 17,
+          lastPublicationOrder: 0,
+          currentId: null,
+          publishedId: null,
+        };
+        // Reset even when the previous live text already matches the first sample.
+        article.translations[locale].draft.markdown = "";
+        const save = (markdown: string, source?: BlogHistoryVersion) => {
+          const input = {
+            id: article.id,
+            version: article.version,
+            requestId: crypto.randomUUID(),
+            locale,
+            content: { ...original, markdown },
+            shared: settings,
+            origin: source ? { versionId: source.id, repriseId: crypto.randomUUID() } : undefined,
+          };
+          const previous = article,
+            currentId = article.translations[locale].history!.currentId;
+          const current = source ?? retained.find((version) => version.id === currentId) ?? null;
+          const result = recordBlogSave(
+            previous,
+            saveArticle(
+              previous,
+              input,
+              categories,
+              new Set(
+                assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id),
+              ),
+              crypto.randomUUID(),
+              initialEditor,
+              new Date().toISOString(),
+            ),
+            input,
+            retained,
+            current,
+          );
+          article = result.article;
+          if (result.saved) retained.push(result.saved);
+        };
+        for (const word of french
+          ? ["l’attention", "la curiosité", "le soin", "l’écoute", "la pratique"]
+          : ["attention", "curiosity", "care", "listening", "practice"]) {
+          save(
+            french
+              ? `## Commencer par une question\n\nLes bonnes idées commencent par **${word}**. Prenez un instant pour décrire le problème simplement.\n\nGardez de la place pour la suite.`
+              : `## Begin with a question\n\nGood ideas start with **${word}**. Take a moment to describe the problem in plain language.\n\nLeave room for what comes next.`,
+          );
+          const result = publishBlogVersion(
+            article,
+            retained.at(-1)!,
+            retained,
+            categories,
+            initialEditor,
+            new Date().toISOString(),
+          );
+          article = result.article;
+          retained[retained.length - 1] = result.saved;
+        }
+        const publications = [...retained];
+        for (const source of [publications[0], publications[2], publications[4], publications[4]])
+          save(
+            source.content.markdown.replace(
+              french ? "un instant" : "a moment",
+              french ? "un instant au calme" : "a quiet moment",
+            ),
+            source,
+          );
+        examples.push(...retained);
       }
-      const publications = [...retained];
-      for (const source of [publications[0], publications[2], publications[4], publications[4]])
-        save(source.content.markdown.replace("moment", "quiet moment"), source);
-      versions.set(article.id, retained);
+      versions.set(article.id, [
+        ...(versions.get(article.id) ?? []).filter(
+          (version) => !blogLocales.some((locale) => locale.code === version.locale),
+        ),
+        ...examples,
+      ]);
       articles = articles.map((value) => (value.id === article.id ? article : value));
       emit();
     },
