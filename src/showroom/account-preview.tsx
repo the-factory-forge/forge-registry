@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import { UserRoundIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -42,6 +43,12 @@ const initialSessions = [true, false].map((current) => ({
 }));
 export function AccountPreview() {
   const { locale } = useShowroomParams();
+  const search = useSearch({ from: "/$locale/account" });
+  const navigate = useNavigate({ from: "/$locale/account" });
+  const activeTab = search.tab ?? "about";
+  const [emailChange, setEmailChange] = useState(false);
+  const [requestedEmail, setRequestedEmail] = useState("");
+
   const [name, setName] = useState("Alex Morgan");
   const [keys, setKeys] = useState(initialKeys);
   const [sessions, setSessions] = useState(initialSessions);
@@ -64,6 +71,25 @@ export function AccountPreview() {
       navigation={<ShowroomLink href={`/${locale}/login`}>Authentication examples</ShowroomLink>}
       controls={
         <div className="grid gap-4 text-sm">
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={Boolean(search.employees)}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                void navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    employees: enabled ? true : undefined,
+                    tab: !enabled && previous.tab === "employee" ? undefined : previous.tab,
+                  }),
+                  hash: true,
+                  resetScroll: false,
+                });
+              }}
+            />
+            Simulate Employees plugin
+          </label>
           <label className="flex gap-2">
             <input type="checkbox" checked={fail} onChange={(e) => setFail(e.target.checked)} />
             Simulate action failures
@@ -104,8 +130,20 @@ export function AccountPreview() {
             />
             Allow key creation
           </label>
+          <label className="flex gap-2">
+            <input
+              type="checkbox"
+              checked={emailChange}
+              onChange={(event) => setEmailChange(event.target.checked)}
+            />
+            Allow email change
+          </label>
           <p>
             Actions requested: <span data-testid="callback-count">{calls}</span>
+          </p>
+          <p className="break-all">
+            Last requested email:{" "}
+            <span data-testid="requested-email">{requestedEmail || "None"}</span>
           </p>
         </div>
       }
@@ -155,6 +193,40 @@ export function AccountPreview() {
         ) : (
           <AccountPage
             user={{ id: "preview", name, email: "alex@example.com", roleLabel: "Member" }}
+            activeTab={activeTab}
+            onTabChange={(tab) =>
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  tab: tab === "about" ? undefined : tab,
+                }),
+                hash: true,
+                resetScroll: false,
+              })
+            }
+            onChangeEmail={
+              emailChange
+                ? async (email) => {
+                    setRequestedEmail(email);
+                    await perform();
+                  }
+                : undefined
+            }
+            tabs={
+              search.employees
+                ? [
+                    {
+                      id: "employee",
+                      label: "Employee",
+                      content: (
+                        <p className="text-sm text-muted-foreground">
+                          The host supplies employee account fields here.
+                        </p>
+                      ),
+                    },
+                  ]
+                : []
+            }
             onUpdateProfile={async (values) => {
               await perform();
               setName(values.name);

@@ -6,6 +6,10 @@ import { LoaderCircleIcon } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import {
+  AccountEmailChange,
+  type AccountEmailChangeProps,
+} from "@/components/plugins/auth/account-email-change";
 import { accountLabels, type AccountLabels } from "@/components/plugins/auth/account-labels";
 import {
   accountCardClass,
@@ -15,7 +19,18 @@ import {
 } from "@/components/plugins/auth/account-styles";
 import { cn } from "@/components/utils/cn";
 
+export interface AccountTab {
+  id: string;
+  label: string;
+  content: ReactNode;
+}
 interface DefaultAccountProps {
+  /** Host-selected plugin sections; IDs must be unique and exclude about/security. */
+  tabs?: AccountTab[];
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  onChangeEmail?: (email: string) => Promise<void>;
+  emailChangeLabels?: AccountEmailChangeProps["labels"];
   onUpdateProfile: (profile: { name: string }) => Promise<void>;
   security: ReactNode;
   content?: never;
@@ -93,6 +108,11 @@ function DefaultAccountSections({
   user,
   onUpdateProfile,
   security,
+  tabs = [],
+  activeTab,
+  onTabChange,
+  onChangeEmail,
+  emailChangeLabels,
   labels: overrides,
 }: Omit<AccountPageProps, "content"> & DefaultAccountProps) {
   const labels = { ...accountLabels, ...overrides };
@@ -103,21 +123,30 @@ function DefaultAccountSections({
   const lock = useRef(false);
   const notify = useActionToast();
   return (
-    <Tabs.Root defaultValue="about" className="grid min-w-0 gap-6">
+    <Tabs.Root
+      defaultValue="about"
+      value={activeTab}
+      onValueChange={(value) => onTabChange?.(String(value))}
+      className="grid min-w-0 gap-6"
+    >
       <div className="border-b border-border/60">
-        <Tabs.List aria-label={labels.sections} className="-mb-px flex gap-0">
-          {(["about", "security"] as const).map((tab) => (
+        <Tabs.List aria-label={labels.sections} className="-mb-px flex gap-0 overflow-x-auto">
+          {[
+            { id: "about", label: labels.about },
+            ...tabs,
+            { id: "security", label: labels.security },
+          ].map((tab) => (
             <Tabs.Tab
-              key={tab}
-              value={tab}
+              key={tab.id}
+              value={tab.id}
               className="relative min-h-11 cursor-pointer border-b-2 border-transparent px-4 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:border-primary data-active:text-primary"
             >
-              {labels[tab]}
+              {tab.label}
             </Tabs.Tab>
           ))}
         </Tabs.List>
       </div>
-      <Tabs.Panel value="about">
+      <Tabs.Panel value="about" keepMounted className="data-hidden:hidden">
         <form
           className="grid gap-4"
           aria-busy={pending}
@@ -182,7 +211,19 @@ function DefaultAccountSections({
             {pending ? labels.saving : labels.save}
           </button>
         </form>
+        {onChangeEmail && (
+          <AccountEmailChange
+            email={user.email}
+            onChangeEmail={onChangeEmail}
+            labels={emailChangeLabels}
+          />
+        )}
       </Tabs.Panel>
+      {tabs.map((tab) => (
+        <Tabs.Panel key={tab.id} value={tab.id} keepMounted className="min-w-0 data-hidden:hidden">
+          {tab.content}
+        </Tabs.Panel>
+      ))}
       <Tabs.Panel value="security" className="min-w-0">
         {security}
       </Tabs.Panel>

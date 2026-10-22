@@ -45,7 +45,16 @@ export {
   type AccessDeniedPageProps,
   type AccessDeniedLabels,
 } from "@/components/plugins/auth/access-denied-page";
-export { AccountPage, type AccountPageProps } from "@/components/plugins/auth/account-page";
+export {
+  AccountEmailChange,
+  emailChangeLabels,
+  type AccountEmailChangeProps,
+} from "@/components/plugins/auth/account-email-change";
+export {
+  AccountPage,
+  type AccountPageProps,
+  type AccountTab,
+} from "@/components/plugins/auth/account-page";
 export {
   AccountSecurity,
   type AccountSecurityData,
