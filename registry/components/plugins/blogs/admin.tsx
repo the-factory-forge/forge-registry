@@ -577,7 +577,9 @@ function EditorForm({
       ...emptyContent,
       ...article.translations[locale]?.draft,
     })),
-    [shared, setShared] = useState<BlogShared>(() => structuredClone(article.shared)),
+    [shared, setShared] = useState<BlogShared>(() =>
+      structuredClone(article.translations[locale]?.shared ?? article.shared),
+    ),
     [assets, setAssets] = useState(initialAssets),
     [dirty, setDirty] = useState(false);
   const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
@@ -617,7 +619,7 @@ function EditorForm({
   function accept(result: BlogArticle) {
     setBase(result);
     setContent({ ...emptyContent, ...result.translations[locale]?.draft });
-    setShared(structuredClone(result.shared));
+    setShared(structuredClone(result.translations[locale]?.shared ?? result.shared));
     setDirty(false);
     onDirty(false);
     onSaved?.(result);

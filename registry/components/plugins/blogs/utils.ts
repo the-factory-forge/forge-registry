@@ -154,11 +154,18 @@ export function normalizeCategories(ids: string[], categories: BlogCategory[]) {
 }
 export function hasUnpublishedChanges(article: BlogArticle, locale: string) {
   const translation = article.translations[locale];
+  const shared = { ...draftShared(article, locale) };
+  const omitted = translation?.published?.omittedAssetIds ?? [];
+  if (shared.thumbnailId && omitted.includes(shared.thumbnailId)) shared.thumbnailId = null;
+  if (shared.bannerId && omitted.includes(shared.bannerId)) shared.bannerId = null;
   return (
     !translation?.published ||
     translation.draft.revisionId !== translation.published.revisionId ||
-    JSON.stringify(article.shared) !== JSON.stringify(translation.published.shared)
+    JSON.stringify(shared) !== JSON.stringify(translation.published.shared)
   );
+}
+export function draftShared(article: BlogArticle, locale: string): BlogShared {
+  return article.translations[locale]?.shared ?? article.shared;
 }
 export function articleListItem(
   article: BlogArticle,
@@ -172,7 +179,7 @@ export function articleListItem(
       Object.values(article.translations)[0]?.draft.title ??
       "",
     categoryNames: categories
-      .filter((category) => article.shared.categoryIds.includes(category.id))
+      .filter((category) => draftShared(article, locale).categoryIds.includes(category.id))
       .map(
         (category) =>
           category.translations[locale]?.name ??

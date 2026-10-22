@@ -67,6 +67,8 @@ function references(article: BlogArticle) {
     [article.shared.thumbnailId, article.shared.bannerId].filter((v): v is string => Boolean(v)),
   );
   for (const t of Object.values(article.translations))
+    for (const id of [t.shared?.thumbnailId, t.shared?.bannerId]) if (id) refs.add(id);
+  for (const t of Object.values(article.translations))
     for (const revision of [t.draft, t.published])
       if (revision) {
         for (const id of revision.assetIds) refs.add(id);
@@ -171,9 +173,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   function authorFields(article: BlogArticle) {
     return [
       article.shared,
-      ...Object.values(article.translations).flatMap((translation) =>
-        translation.published ? [translation.published.shared] : [],
-      ),
+      ...Object.values(article.translations).flatMap((translation) => [
+        ...(translation.shared ? [translation.shared] : []),
+        ...(translation.published ? [translation.published.shared] : []),
+      ]),
     ];
   }
   async function refreshAuthorNames(tx: BlogsTransaction, fields: BlogShared[]) {
@@ -213,7 +216,8 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       sql`
       select document from blogs_article where document->'shared'->'author'->>'id'=${author.id}
       or exists (select 1 from jsonb_each(document->'translations') t
-        where t.value->'published'->'shared'->'author'->>'id'=${author.id})`,
+        where t.value->'shared'->'author'->>'id'=${author.id}
+        or t.value->'published'->'shared'->'author'->>'id'=${author.id})`,
     );
     for (const { document } of records) {
       for (const field of authorFields(document))
@@ -402,7 +406,8 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     const result = await write(context, "edit", input.id, input, "save", async (tx, editor) => {
       const article = await current(tx, input),
         categories = await allCategories(tx);
-      const currentAuthor = article.shared.author;
+      const currentAuthor =
+        article.translations[input.locale]?.shared?.author ?? article.shared.author;
       const authorId = input.shared?.author?.id ?? currentAuthor?.id;
       if (input.shared?.author !== undefined)
         assertBlog(typeof authorId === "string" && authorId.length > 0 && authorId.length <= 250);
@@ -543,7 +548,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       if (previous && previous.parentId !== input.parentId) {
         const used = await rows<{ id: string }>(
           tx,
-          sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb) limit 1`,
+          sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where (t.value->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb)) limit 1`,
         );
         assertBlog(!used.length, "IN_USE");
       }
@@ -617,7 +622,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             assertBlog(!categories.some((c) => c.parentId === input.id), "IN_USE");
             const used = await rows<{ id: string }>(
               tx,
-              sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb) limit 1`,
+              sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where (t.value->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb)) limit 1`,
             );
             assertBlog(!used.length, "IN_USE");
             await tx.execute(sql`delete from blogs_category where id=${input.id}`);
