@@ -27,7 +27,8 @@ export function ReservationYearView({
   onSelectDate,
 }: ReservationYearViewProps) {
   const firstMonth = Temporal.PlainDate.from(start).with({ day: 1 });
-  const today = localDate(new Date().toISOString(), timeZone);
+  const [now] = useState(() => new Date().toISOString());
+  const today = localDate(now, timeZone);
   const [focused, setFocused] = useState(() =>
     today >= start && today < firstMonth.add({ years: 1 }).toString() ? today : start,
   );

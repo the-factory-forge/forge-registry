@@ -18,6 +18,7 @@ import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
 import { Route as ImageCropRouteImport } from './routes/image-crop'
+import { Route as LightboxRouteImport } from './routes/lightbox'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
@@ -85,6 +86,11 @@ const IconTooltipRoute = IconTooltipRouteImport.update({
 const ImageCropRoute = ImageCropRouteImport.update({
   id: '/image-crop',
   path: '/image-crop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LightboxRoute = LightboxRouteImport.update({
+  id: '/lightbox',
+  path: '/lightbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NativeSelectRoute = NativeSelectRouteImport.update({
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
+  '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
+  '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
+  '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
+    | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
+    | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
+    | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
@@ -455,6 +467,7 @@ export interface RootRouteChildren {
   CookieBannerRoute: typeof CookieBannerRoute
   IconTooltipRoute: typeof IconTooltipRoute
   ImageCropRoute: typeof ImageCropRoute
+  LightboxRoute: typeof LightboxRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
@@ -538,6 +551,13 @@ declare module '@tanstack/react-router' {
       path: '/image-crop'
       fullPath: '/image-crop'
       preLoaderRoute: typeof ImageCropRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lightbox': {
+      id: '/lightbox'
+      path: '/lightbox'
+      fullPath: '/lightbox'
+      preLoaderRoute: typeof LightboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/native-select': {
@@ -797,6 +817,7 @@ const rootRouteChildren: RootRouteChildren = {
   CookieBannerRoute: CookieBannerRoute,
   IconTooltipRoute: IconTooltipRoute,
   ImageCropRoute: ImageCropRoute,
+  LightboxRoute: LightboxRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,

@@ -10,7 +10,7 @@ import {
   validateProject,
 } from "../registry/components/plugins/projects/utils.ts";
 
-test("project forms submit only the basic fields and validate their limits", () => {
+await test("project forms submit only the basic fields and validate their limits", () => {
   const project = {
     id: "project",
     name: " Project ",
@@ -35,7 +35,7 @@ test("project forms submit only the basic fields and validate their limits", () 
   );
 });
 
-test("website links permit HTTP(S) and local paths without unsafe redirects", () => {
+await test("website links permit HTTP(S) and local paths without unsafe redirects", () => {
   for (const value of [
     "https://example.com",
     "http://localhost:3000/a?b=c#d",
@@ -64,7 +64,7 @@ test("website links permit HTTP(S) and local paths without unsafe redirects", ()
     assert.equal(safeProjectUrl(value), undefined, String(value));
 });
 
-test("projects installs customers without creating a reverse dependency or framework coupling", async () => {
+await test("projects installs customers without creating a reverse dependency or framework coupling", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );

@@ -22,7 +22,7 @@ function setup(loadScript = async () => {}) {
   });
 }
 
-test("SSR and missing IDs do not load scripts; defaults precede updates", async () => {
+await test("SSR and missing IDs do not load scripts; defaults precede updates", async () => {
   let loads = 0;
   const analytics = createConsentAnalytics({
     loadScript: async () => {
@@ -47,7 +47,7 @@ test("SSR and missing IDs do not load scripts; defaults precede updates", async 
   assert.throws(() => createConsentAnalytics({ measurementId: "AW-123" }), /measurement ID/);
 });
 
-test("each category configures only its destination; events are gated and routed explicitly", async () => {
+await test("each category configures only its destination; events are gated and routed explicitly", async () => {
   const urls = [];
   const analytics = setup(async (url) => {
     urls.push(url);
@@ -85,7 +85,7 @@ test("each category configures only its destination; events are gated and routed
   assert.equal(commands().filter(([name]) => name === "js").length, 1);
 });
 
-test("marketing-only acceptance does not configure analytics", async () => {
+await test("marketing-only acceptance does not configure analytics", async () => {
   const urls = [];
   const analytics = setup(async (url) => {
     urls.push(url);
@@ -102,7 +102,7 @@ test("marketing-only acceptance does not configure analytics", async () => {
   assert.equal(analytics.trackAdsConversion("phone"), false);
 });
 
-test("simultaneous callbacks share a load and withdrawal prevents late configuration", async () => {
+await test("simultaneous callbacks share a load and withdrawal prevents late configuration", async () => {
   let complete;
   let loads = 0;
   const analytics = setup(() => {
@@ -126,7 +126,7 @@ test("simultaneous callbacks share a load and withdrawal prevents late configura
   assert.equal(commands().filter(([name]) => name === "config").length, 2);
 });
 
-test("load failures propagate and retry without publishing events or duplicate initialization", async () => {
+await test("load failures propagate and retry without publishing events or duplicate initialization", async () => {
   let loads = 0;
   const analytics = setup(async () => {
     if (++loads === 1) throw new Error("Blocked");
@@ -140,7 +140,7 @@ test("load failures propagate and retry without publishing events or duplicate i
   assert.equal(commands().filter(([name]) => name === "js").length, 1);
 });
 
-test("the banner installs the standalone loader without auth, framework, or analytics packages", async () => {
+await test("the banner installs the standalone loader without auth, framework, or analytics packages", async () => {
   const manifest = JSON.parse(await readFile("registry/registry.json", "utf8"));
   const item = manifest.items.find(({ name }) => name === "consent-analytics");
   assert.deepEqual(item.dependencies ?? [], []);

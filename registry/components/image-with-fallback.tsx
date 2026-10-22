@@ -37,19 +37,18 @@ export function ImageWithFallback({
 
   if (errored || !src) {
     return (
-      <div
+      <figure
         className={cn(
           "flex flex-col items-center justify-center gap-2 bg-muted text-muted-foreground",
           fill ? "absolute inset-0 h-full w-full" : "",
           className,
         )}
         style={fill ? undefined : { width, height }}
-        role="img"
-        aria-label={alt}
+        aria-label={alt || undefined}
       >
         <ImageIcon className="h-8 w-8 opacity-50" aria-hidden="true" />
-        <span className="text-xs font-medium">{fallbackLabel}</span>
-      </div>
+        <figcaption className="text-xs font-medium">{fallbackLabel}</figcaption>
+      </figure>
     );
   }
 

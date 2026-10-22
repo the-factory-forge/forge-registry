@@ -1,8 +1,7 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
-import { createPortal } from "react-dom";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
@@ -33,30 +32,11 @@ export function Lightbox({
   closeLabel = "Close",
   children,
 }: LightboxProps) {
-  const [open, setOpen] = useState(false);
-  const openModal = useCallback(() => setOpen(true), []);
-  const closeModal = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeModal();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, closeModal]);
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={openModal}
+    <Dialog.Root>
+      <Dialog.Trigger
         className={cn(
-          "group/lightbox relative block w-full cursor-pointer overflow-hidden border-0 bg-transparent p-0 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+          "group/lightbox relative block w-full cursor-pointer overflow-hidden border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
           className,
         )}
         aria-label={alt ? `${enlargeLabel} : ${alt}` : enlargeLabel}
@@ -77,35 +57,29 @@ export function Lightbox({
             {enlargeLabel}
           </span>
         </span>
-      </button>
+      </Dialog.Trigger>
 
-      {open &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-dark/90 p-4 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            onClick={closeModal}
-          >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-[100] bg-dark/90 backdrop-blur-sm" />
+        <Dialog.Viewport className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <Dialog.Popup className="outline-none">
+            <Dialog.Title className="sr-only">{alt || enlargeLabel}</Dialog.Title>
             <IconTooltip label={closeLabel}>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-dark-foreground/10 text-dark-foreground backdrop-blur-sm transition-colors hover:bg-dark-foreground/20 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+              <Dialog.Close
+                className="fixed top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-dark-foreground/10 text-dark-foreground backdrop-blur-sm transition-colors hover:bg-dark-foreground/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
                 aria-label={closeLabel}
               >
                 <X className="h-5 w-5" aria-hidden="true" />
-              </button>
+              </Dialog.Close>
             </IconTooltip>
             <img
               src={src}
               alt={alt}
               className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
-              onClick={(e) => e.stopPropagation()}
             />
-          </div>,
-          document.body,
-        )}
-    </>
+          </Dialog.Popup>
+        </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

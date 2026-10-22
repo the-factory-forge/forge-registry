@@ -251,7 +251,10 @@ function EmployeesPageContent({
                         </span>
                       </div>
                     </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                    <td
+                      className={cn(tableCellClass, "whitespace-nowrap")}
+                      aria-label={employee.email}
+                    >
                       <div className="flex items-center gap-3">
                         <IconTooltip
                           label={employee.emailVerified ? labels.verified : labels.unverified}

@@ -315,7 +315,7 @@
           "target": "@components/lightbox.tsx"
         }
       ],
-      "dependencies": ["lucide-react"],
+      "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/ui-shims", "@forge/icon-tooltip"]
     },
     {

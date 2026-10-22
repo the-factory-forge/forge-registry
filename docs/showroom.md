@@ -215,16 +215,12 @@ more room than the available viewport.
    `page-*` items reference `container-premium` or `section-padding`, currently
    defined only in the showroom stylesheet. A small registry stylesheet dependency
    would make consumer sizing reliable without copying this application's CSS.
-2. **Replace the custom lightbox modal with Base UI Dialog.** Its manual portal
-   and Escape listener do not provide focus trapping or focus restoration, and
-   its body scroll cleanup can interfere with another overlay. Use the installed
-   primitive and semantic `dark` / `dark-foreground` tokens.
-3. **Extract only the repeated plugin UI primitives.** Customers, projects,
+2. **Extract only the repeated plugin UI primitives.** Customers, projects,
    blogs, and Drive duplicate button/input/card/confirmation presentation; projects
    also imports customer UI internals. A neutral registry UI item could keep those
    consistent. Keep each plugin's mutation, retry, and permission logic separate:
    blogs and Drive have different persistence guarantees.
-4. **Expand preview coverage.** Ten homepage demonstrations cover the feature
+3. **Expand preview coverage.** Ten homepage demonstrations cover the feature
    plugins and a few layouts, while the registry ships fifty items. Add grouped
    examples for existing page sections and primitive controls so shared CSS changes
    can be checked in light/dark, narrow layouts, and keyboard flows.

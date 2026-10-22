@@ -5,7 +5,7 @@ import test from "node:test";
 import { localeRedirect } from "../src/lib/locale-redirect.ts";
 import { showroomHead, notFoundHead } from "../src/showroom/seo.ts";
 
-test("showroom route metadata keeps canonical and social URLs consistent and honors noindex", () => {
+await test("showroom route metadata keeps canonical and social URLs consistent and honors noindex", () => {
   const meta = (head, key) =>
     head.meta.find((tag) => tag.name === key || tag.property === key)?.content;
   const contact = showroomHead({
@@ -39,7 +39,7 @@ test("showroom route metadata keeps canonical and social URLs consistent and hon
   assert.match(notFoundHead().meta[0].title, /Page not found/);
 });
 
-test("locale redirects retain queries, saved choices and language negotiation", () => {
+await test("locale redirects retain queries, saved choices and language negotiation", () => {
   for (const { headers, locale } of [
     { headers: {}, locale: "fr" },
     { headers: { "accept-language": "es, de-CH;q=0.9, en;q=0.8" }, locale: "de" },
@@ -59,7 +59,7 @@ test("locale redirects retain queries, saved choices and language negotiation", 
   }
 });
 
-test("locale middleware leaves static registry delivery and existing routes alone", () => {
+await test("locale middleware leaves static registry delivery and existing routes alone", () => {
   for (const path of [
     "/",
     "/newsletter",
@@ -76,7 +76,7 @@ test("locale middleware leaves static registry delivery and existing routes alon
   }
 });
 
-test("registry items never depend on the showroom framework or consuming templates", async () => {
+await test("registry items never depend on the showroom framework or consuming templates", async () => {
   const { items } = JSON.parse(await readFile("registry/registry.json", "utf8"));
   for (const item of items) {
     for (const dependency of [...(item.dependencies ?? []), ...(item.registryDependencies ?? [])]) {

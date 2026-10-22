@@ -6,7 +6,7 @@ const componentsUrl = new URL("../registry/components/", import.meta.url);
 const manifestUrl = new URL("../registry/registry.json", import.meta.url);
 const cookieBannerUrl = new URL("../registry/components/cookie-banner.tsx", import.meta.url);
 
-test("registry files and targets use only components, pages, layouts, plugins, or utils", async () => {
+await test("registry files and targets use only components, pages, layouts, plugins, or utils", async () => {
   const directories = (await readdir(componentsUrl, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -40,7 +40,7 @@ test("registry files and targets use only components, pages, layouts, plugins, o
   }
 });
 
-test("cookie banner exposes optional choices only during custom selection", async () => {
+await test("cookie banner exposes optional choices only during custom selection", async () => {
   const source = await readFile(cookieBannerUrl, "utf8");
 
   assert.match(source, /\{customizing && \(/);
@@ -49,7 +49,7 @@ test("cookie banner exposes optional choices only during custom selection", asyn
   assert.doesNotMatch(source, /rejectLabel/);
 });
 
-test("registry and showroom DOM IDs use the factory namespace", async () => {
+await test("registry and showroom DOM IDs use the factory namespace", async () => {
   const registry = JSON.parse(await readFile(manifestUrl, "utf8"));
   const paths = new Set(
     registry.items.flatMap((item) => item.files ?? []).map((file) => file.path),
