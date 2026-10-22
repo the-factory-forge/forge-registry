@@ -1,336 +1,341 @@
 import assert from "node:assert/strict";
-import { after, before, test } from "node:test";
+import { after, before, test, suite } from "node:test";
 
 import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 
-const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
-let browser;
-before(async () => {
-  browser = await chromium.launch();
-});
-after(async () => {
-  await browser?.close();
-});
-
-async function preview(t, path = "/en/projects", options = {}) {
-  const context = await browser.newContext(options);
-  t.after(() => context.close());
-  const page = await context.newPage();
-  page.setDefaultTimeout(10000);
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  t.after(() => assert.deepEqual(errors, []));
-  await page.goto(`${baseURL}${path}`);
-  await page.locator('[data-preview-ready="true"]').waitFor();
-  if (options.colorScheme === "dark")
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
-  return page;
-}
-async function assertBasicFields(page) {
-  await page.getByLabel("Name *", { exact: true }).waitFor();
-  assert.deepEqual(
-    await page.locator("form [name]").evaluateAll((fields) => fields.map((field) => field.name)),
-    ["name", "status", "description"],
-  );
-  assert.equal(await page.getByLabel("Website URL", { exact: true }).count(), 0);
-  assert.equal(await page.getByRole("button", { name: /Select an (owner|assignee)/ }).count(), 0);
-}
-
-test("project directory search, states, links and optional actions", async (t) => {
-  const page = await preview(t);
-  await page.getByRole("button", { name: "Search projects", exact: true }).click();
-  const search = page.getByRole("searchbox", { name: "Search projects", exact: true });
-  await search.fill("STUDIO WEBSITE");
-  await page.getByRole("row").filter({ hasText: "Customer portal" }).waitFor({ state: "hidden" });
-  assert.equal(await page.getByRole("row").count(), 2);
-  await search.fill("missing");
-  await page.getByText("No projects found.", { exact: true }).waitFor();
-  await search.fill("");
-  await page.getByLabel("Directory state").selectOption("loading");
-  await page.locator('table[aria-busy="true"]').waitFor();
-  assert.ok((await page.getByRole("row").count()) > 1);
-  await page.getByLabel("Directory state").selectOption("error");
-  await page.getByRole("alert").filter({ hasText: "Unable to load projects" }).waitFor();
-  await page.getByLabel("Directory state").selectOption("ready");
-  await page.getByLabel("Account actions", { exact: true }).uncheck();
-  assert.equal(await page.getByRole("button", { name: "Delete project", exact: true }).count(), 0);
-  assert.equal(await page.getByRole("link", { name: "Create project", exact: true }).count(), 0);
-  const row = page.getByRole("row").filter({ hasText: "Studio website" });
-  assert.equal(
-    await row.getByRole("link", { name: "Visit Studio website website" }).getAttribute("href"),
-    "https://example.com",
-  );
-  await row.getByRole("link", { name: "Acme Studio", exact: true }).click();
-  await page.getByRole("heading", { name: "Acme Studio", exact: true }).waitFor();
-});
-
-test("create validates basic inputs, host ownership, failures and duplicate submission", async (t) => {
-  const page = await preview(t, "/en/projects/new");
-  const submit = page.getByRole("button", { name: "Create project", exact: true });
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "Enter a project name" }).waitFor();
-  await page.getByLabel("Name *", { exact: true }).fill("   ");
-  await submit.click();
-  await assertBasicFields(page);
-  await page.getByLabel("Name *", { exact: true }).fill("Fresh project");
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
-  await page.getByLabel("Customer for this host example").selectOption("sam");
-  await page.getByLabel("Description", { exact: true }).fill("a".repeat(5001));
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "5,000" }).waitFor();
-  await page.getByLabel("Description", { exact: true }).fill("Draft description");
-  await page.getByLabel("Simulate action failures").check();
-  await submit.click();
-  await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
-  assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Fresh project");
-  await page.getByLabel("Simulate action failures").uncheck();
-  // Submit twice in one event turn, before React can disable the button.
-  await page.locator("form").evaluate((form) => {
-    form.requestSubmit();
-    form.requestSubmit();
+await suite("Projects browser", async () => {
+  const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
+  let browser;
+  before(async () => {
+    browser = await chromium.launch();
   });
-  await page.getByRole("heading", { name: "Fresh project", exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
-  await page.getByRole("row").filter({ hasText: "Fresh project" }).waitFor();
-  assert.equal(await page.getByRole("row").filter({ hasText: "Fresh project" }).count(), 1);
-});
+  after(async () => {
+    await browser?.close();
+  });
 
-test("editing retains drafts and host metadata without people selectors", async (t) => {
-  const page = await preview(t, "/en/projects/website");
-  await page.getByLabel("Name *", { exact: true }).fill("Updated website");
-  await page.getByLabel("Status", { exact: true }).selectOption("under-construction");
-  await assertBasicFields(page);
-  await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
-  assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Updated website");
-  await page.getByLabel("Simulate action failures").uncheck();
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await actionToast(page, "Project updated");
-  await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
-  const row = page.getByRole("row").filter({ hasText: "Updated website" });
-  await row.getByText("Acme Studio", { exact: true }).waitFor();
-  await row.getByText("Jordan Lee", { exact: true }).waitFor();
-  assert.equal(
-    await row.getByRole("link", { name: "Visit Updated website website" }).getAttribute("href"),
-    "https://example.com",
-  );
-  await page.getByRole("link", { name: "Customer portal", exact: true }).click();
-  assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Customer portal");
-});
+  async function preview(t, path = "/en/projects", options = {}) {
+    const context = await browser.newContext(options);
+    t.after(() => context.close());
+    const page = await context.newPage();
+    page.setDefaultTimeout(10000);
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    t.after(() => assert.deepEqual(errors, []));
+    await page.goto(`${baseURL}${path}`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    if (options.colorScheme === "dark")
+      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    return page;
+  }
+  async function assertBasicFields(page) {
+    await page.getByLabel("Name *", { exact: true }).waitFor();
+    assert.deepEqual(
+      await page.locator("form [name]").evaluateAll((fields) => fields.map((field) => field.name)),
+      ["name", "status", "description"],
+    );
+    assert.equal(await page.getByLabel("Website URL", { exact: true }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: /Select an (owner|assignee)/ }).count(), 0);
+  }
 
-test("customer composition supplies ownership outside the form and keeps navigation state", async (t) => {
-  const page = await preview(t, "/en/customers/sam/projects");
-  await page.getByLabel("Projects integration", { exact: true }).check();
-  await page.getByText("No projects found.", { exact: true }).waitFor();
-  assert.equal(await page.getByRole("columnheader", { name: "Owner", exact: true }).count(), 0);
-  await page.getByRole("link", { name: "Create project", exact: true }).click();
-  await assertBasicFields(page);
-  assert.equal(await page.getByLabel("Customer for this host example").count(), 0);
-  await page.getByLabel("Name *", { exact: true }).fill("Sam's project");
-  await page.getByRole("button", { name: "Create project", exact: true }).click();
-  await page.getByRole("heading", { name: "Sam's project", exact: true }).waitFor();
-  await assertBasicFields(page);
-  await page.getByLabel("Drive integration", { exact: true }).uncheck();
-  await page.getByRole("link", { name: "Drive", exact: true }).click();
-  await page.locator('nav a[aria-current="page"]').filter({ hasText: "Drive" }).waitFor();
-  assert.equal(await page.locator("form").count(), 0);
-  assert.equal(await page.getByText(/Host Drive content/).count(), 0);
-  await page.getByLabel("Host integration example").check();
-  await page.getByText(/Host Drive content for Sam's project/).waitFor();
-  await page.getByRole("link", { name: "Back to customer projects", exact: true }).click();
-  await page.getByRole("row").filter({ hasText: "Sam's project" }).waitFor();
-  await page.getByRole("link", { name: "Project directory", exact: true }).click();
-  await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
-  assert.equal(await page.getByRole("row").count(), 4);
-  // A mismatched customer context must never silently reassign or lock another owner.
-  await page.goto(`${baseURL}/en/projects/website?customerId=sam`);
-  await page.locator('[data-preview-ready="true"]').waitFor();
-  await assertBasicFields(page);
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await actionToast(page, "Project updated");
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
-  await page
-    .getByRole("row")
-    .filter({ hasText: "Studio website" })
-    .getByText("Acme Studio", { exact: true })
-    .waitFor();
-});
+  await test("project directory search, states, links and optional actions", async (t) => {
+    const page = await preview(t);
+    await page.getByRole("button", { name: "Search projects", exact: true }).click();
+    const search = page.getByRole("searchbox", { name: "Search projects", exact: true });
+    await search.fill("STUDIO WEBSITE");
+    await page.getByRole("row").filter({ hasText: "Customer portal" }).waitFor({ state: "hidden" });
+    assert.equal(await page.getByRole("row").count(), 2);
+    await search.fill("missing");
+    await page.getByText("No projects found.", { exact: true }).waitFor();
+    await search.fill("");
+    await page.getByLabel("Directory state").selectOption("loading");
+    await page.locator('table[aria-busy="true"]').waitFor();
+    assert.ok((await page.getByRole("row").count()) > 1);
+    await page.getByLabel("Directory state").selectOption("error");
+    await page.getByRole("alert").filter({ hasText: "Unable to load projects" }).waitFor();
+    await page.getByLabel("Directory state").selectOption("ready");
+    await page.getByLabel("Account actions", { exact: true }).uncheck();
+    assert.equal(
+      await page.getByRole("button", { name: "Delete project", exact: true }).count(),
+      0,
+    );
+    assert.equal(await page.getByRole("link", { name: "Create project", exact: true }).count(), 0);
+    const row = page.getByRole("row").filter({ hasText: "Studio website" });
+    assert.equal(
+      await row.getByRole("link", { name: "Visit Studio website website" }).getAttribute("href"),
+      "https://example.com",
+    );
+    await row.getByRole("link", { name: "Acme Studio", exact: true }).click();
+    await page.getByRole("heading", { name: "Acme Studio", exact: true }).waitFor();
+  });
 
-test("delete confirmation handles cancellation, failure, success and customer orphan prevention", async (t) => {
-  const page = await preview(t, "/en/customers/acme");
-  await page.getByRole("button", { name: "Delete customer", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
-  await page.getByRole("dialog").getByRole("alert").waitFor();
-  await page
-    .getByText("Reassign or delete this customer's projects before deleting the customer.", {
-      exact: true,
-    })
-    .waitFor();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("link", { name: "Project directory", exact: true }).click();
-  const row = page.getByRole("row").filter({ hasText: "Studio website" });
-  const trigger = row.getByRole("button", { name: "Delete project", exact: true });
-  await trigger.focus();
-  await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Delete project", exact: true });
-  await dialog.waitFor();
-  // The popup can become visible before Base UI finishes moving focus.
-  await dialog
-    .getByRole("button", { name: "Cancel", exact: true })
-    .and(page.locator(":focus"))
-    .waitFor();
-  assert.equal(
-    await dialog
-      .getByRole("button", { name: "Cancel" })
-      .evaluate((node) => node === document.activeElement),
-    true,
-  );
-  await page.keyboard.press("Escape");
-  await dialog.waitFor({ state: "hidden" });
-  assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
-  await page.getByLabel("Simulate action failures").check();
-  await trigger.click();
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await dialog.getByRole("alert").waitFor();
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByLabel("Simulate action failures").uncheck();
-  await trigger.click();
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await row.waitFor({ state: "hidden" });
-  await page.getByRole("link", { name: "Customer portal", exact: true }).click();
-  await page.getByRole("button", { name: "Delete project", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
-  await page.getByRole("dialog").getByRole("alert").waitFor();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  // The portal has sample Drive files; delete them before removing their project.
-  await page.getByRole("link", { name: "Drive", exact: true }).click();
-  await page.getByRole("row").filter({ hasText: "Annual report.txt" }).waitFor();
-  while (await page.getByRole("button", { name: "Delete", exact: true }).count()) {
-    await page.getByRole("button", { name: "Delete", exact: true }).first().click();
-    const driveDialog = page.getByRole("dialog", {
-      name: "Move files and folders to trash",
-      exact: true,
+  await test("create validates basic inputs, host ownership, failures and duplicate submission", async (t) => {
+    const page = await preview(t, "/en/projects/new");
+    const submit = page.getByRole("button", { name: "Create project", exact: true });
+    await submit.click();
+    await page.getByRole("alert").filter({ hasText: "Enter a project name" }).waitFor();
+    await page.getByLabel("Name *", { exact: true }).fill("   ");
+    await submit.click();
+    await assertBasicFields(page);
+    await page.getByLabel("Name *", { exact: true }).fill("Fresh project");
+    await submit.click();
+    await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+    await page.getByLabel("Customer for this host example").selectOption("sam");
+    await page.getByLabel("Description", { exact: true }).fill("a".repeat(5001));
+    await submit.click();
+    await page.getByRole("alert").filter({ hasText: "5,000" }).waitFor();
+    await page.getByLabel("Description", { exact: true }).fill("Draft description");
+    await page.getByLabel("Simulate action failures").check();
+    await submit.click();
+    await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+    assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Fresh project");
+    await page.getByLabel("Simulate action failures").uncheck();
+    // Submit twice in one event turn, before React can disable the button.
+    await page.locator("form").evaluate((form) => {
+      form.requestSubmit();
+      form.requestSubmit();
     });
-    await driveDialog.getByRole("button", { name: "Move to trash", exact: true }).click();
-    await driveDialog.waitFor({ state: "hidden" });
+    await page.getByRole("heading", { name: "Fresh project", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("row").filter({ hasText: "Fresh project" }).waitFor();
+    assert.equal(await page.getByRole("row").filter({ hasText: "Fresh project" }).count(), 1);
+  });
+
+  await test("editing retains drafts and host metadata without people selectors", async (t) => {
+    const page = await preview(t, "/en/projects/website");
+    await page.getByLabel("Name *", { exact: true }).fill("Updated website");
+    await page.getByLabel("Status", { exact: true }).selectOption("under-construction");
+    await assertBasicFields(page);
+    await page.getByLabel("Simulate action failures").check();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+    assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Updated website");
+    await page.getByLabel("Simulate action failures").uncheck();
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await actionToast(page, "Project updated");
+    await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    const row = page.getByRole("row").filter({ hasText: "Updated website" });
+    await row.getByText("Acme Studio", { exact: true }).waitFor();
+    await row.getByText("Jordan Lee", { exact: true }).waitFor();
+    assert.equal(
+      await row.getByRole("link", { name: "Visit Updated website website" }).getAttribute("href"),
+      "https://example.com",
+    );
+    await page.getByRole("link", { name: "Customer portal", exact: true }).click();
+    assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Customer portal");
+  });
+
+  await test("customer composition supplies ownership outside the form and keeps navigation state", async (t) => {
+    const page = await preview(t, "/en/customers/sam/projects");
+    await page.getByLabel("Projects integration", { exact: true }).check();
+    await page.getByText("No projects found.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("columnheader", { name: "Owner", exact: true }).count(), 0);
+    await page.getByRole("link", { name: "Create project", exact: true }).click();
+    await assertBasicFields(page);
+    assert.equal(await page.getByLabel("Customer for this host example").count(), 0);
+    await page.getByLabel("Name *", { exact: true }).fill("Sam's project");
+    await page.getByRole("button", { name: "Create project", exact: true }).click();
+    await page.getByRole("heading", { name: "Sam's project", exact: true }).waitFor();
+    await assertBasicFields(page);
+    await page.getByLabel("Drive integration", { exact: true }).uncheck();
+    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page.locator('nav a[aria-current="page"]').filter({ hasText: "Drive" }).waitFor();
+    assert.equal(await page.locator("form").count(), 0);
+    assert.equal(await page.getByText(/Host Drive content/).count(), 0);
+    await page.getByLabel("Host integration example").check();
+    await page.getByText(/Host Drive content for Sam's project/).waitFor();
+    await page.getByRole("link", { name: "Back to customer projects", exact: true }).click();
+    await page.getByRole("row").filter({ hasText: "Sam's project" }).waitFor();
+    await page.getByRole("link", { name: "Project directory", exact: true }).click();
+    await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
+    assert.equal(await page.getByRole("row").count(), 4);
+    // A mismatched customer context must never silently reassign or lock another owner.
+    await page.goto(`${baseURL}/en/projects/website?customerId=sam`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    await assertBasicFields(page);
+    await page.getByRole("button", { name: "Save changes", exact: true }).click();
+    await actionToast(page, "Project updated");
+    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
     await page
-      .locator('[aria-busy="false"]')
-      .filter({ has: page.getByRole("table") })
+      .getByRole("row")
+      .filter({ hasText: "Studio website" })
+      .getByText("Acme Studio", { exact: true })
       .waitFor();
-  }
-  await page.getByRole("link", { name: "Details", exact: true }).click();
-  await page.getByRole("button", { name: "Delete project", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
-  await page.getByRole("dialog").getByRole("alert").waitFor();
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("link", { name: "Drive", exact: true }).click();
-  await page.getByRole("button", { name: "Trash", exact: true }).click();
-  await page.locator('[aria-busy="false"] table').waitFor();
-  while (
-    await page.getByRole("table").getByRole("button", { name: "Delete", exact: true }).count()
-  ) {
+  });
+
+  await test("delete confirmation handles cancellation, failure, success and customer orphan prevention", async (t) => {
+    const page = await preview(t, "/en/customers/acme");
+    await page.getByRole("button", { name: "Delete customer", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("alert").waitFor();
     await page
-      .getByRole("table")
-      .getByRole("button", { name: "Delete", exact: true })
-      .first()
-      .click();
-    const purge = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
-    await purge.getByRole("button", { name: "Delete permanently", exact: true }).click();
-    await purge.waitFor({ state: "hidden" });
-    await page.locator('[aria-busy="false"] table').waitFor();
-  }
-  await page.getByRole("link", { name: "Details", exact: true }).click();
-  await page.getByRole("button", { name: "Delete project", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
-  await page.getByText("No projects found.", { exact: true }).waitFor();
-});
-
-test("basic project pages fit desktop/mobile in both themes", async (t) => {
-  for (const theme of ["light", "dark"])
-    for (const { name, viewport } of [
-      { name: "desktop", viewport: { width: 1440, height: 1000 } },
-      { name: "mobile", viewport: { width: 390, height: 844 } },
-    ]) {
-      const page = await preview(t, "/en/projects/website", { viewport, colorScheme: theme });
-      assert.equal(
-        await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-        theme === "dark" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)",
-      );
-      for (const [view, link] of [
-        ["detail", null],
-        ["list", "Back to projects"],
-        ["new", "Create project"],
-      ]) {
-        if (link) await page.getByRole("link", { name: link, exact: true }).click();
-        if (view === "list")
-          await page.getByRole("button", { name: "Search projects", exact: true }).waitFor();
-        else {
-          await page.getByLabel("Name *", { exact: true }).waitFor();
-          await assertBasicFields(page);
-        }
-        assert.equal(
-          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-          true,
-        );
-        await page.screenshot({
-          path: `/tmp/forge-projects-${view}-${name}-${theme}.png`,
-          fullPage: true,
-        });
-      }
-      await page.close();
+      .getByText("Reassign or delete this customer's projects before deleting the customer.", {
+        exact: true,
+      })
+      .waitFor();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("link", { name: "Project directory", exact: true }).click();
+    const row = page.getByRole("row").filter({ hasText: "Studio website" });
+    const trigger = row.getByRole("button", { name: "Delete project", exact: true });
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Delete project", exact: true });
+    await dialog.waitFor();
+    // The popup can become visible before Base UI finishes moving focus.
+    await dialog
+      .getByRole("button", { name: "Cancel", exact: true })
+      .and(page.locator(":focus"))
+      .waitFor();
+    assert.equal(
+      await dialog
+        .getByRole("button", { name: "Cancel" })
+        .evaluate((node) => node === document.activeElement),
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
+    await page.getByLabel("Simulate action failures").check();
+    await trigger.click();
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+    await dialog.getByRole("alert").waitFor();
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByLabel("Simulate action failures").uncheck();
+    await trigger.click();
+    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+    await row.waitFor({ state: "hidden" });
+    await page.getByRole("link", { name: "Customer portal", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("alert").waitFor();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    // The portal has sample Drive files; delete them before removing their project.
+    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page.getByRole("row").filter({ hasText: "Annual report.txt" }).waitFor();
+    while (await page.getByRole("button", { name: "Delete", exact: true }).count()) {
+      await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+      const driveDialog = page.getByRole("dialog", {
+        name: "Move files and folders to trash",
+        exact: true,
+      });
+      await driveDialog.getByRole("button", { name: "Move to trash", exact: true }).click();
+      await driveDialog.waitFor({ state: "hidden" });
+      await page
+        .locator('[aria-busy="false"]')
+        .filter({ has: page.getByRole("table") })
+        .waitFor();
     }
-});
+    await page.getByRole("link", { name: "Details", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("alert").waitFor();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page.getByRole("button", { name: "Trash", exact: true }).click();
+    await page.locator('[aria-busy="false"] table').waitFor();
+    while (
+      await page.getByRole("table").getByRole("button", { name: "Delete", exact: true }).count()
+    ) {
+      await page
+        .getByRole("table")
+        .getByRole("button", { name: "Delete", exact: true })
+        .first()
+        .click();
+      const purge = page.getByRole("dialog", { name: "Delete files and folders", exact: true });
+      await purge.getByRole("button", { name: "Delete permanently", exact: true }).click();
+      await purge.waitFor({ state: "hidden" });
+      await page.locator('[aria-busy="false"] table').waitFor();
+    }
+    await page.getByRole("link", { name: "Details", exact: true }).click();
+    await page.getByRole("button", { name: "Delete project", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByText("No projects found.", { exact: true }).waitFor();
+  });
 
-test("status badges update the table and detail without saving drafts", async (t) => {
-  const page = await preview(t, "/en/projects/website");
-  const name = page.getByLabel("Name *", { exact: true });
-  const status = page.getByLabel("Status", { exact: true });
-  await name.fill("Unsaved project name");
-  await status.selectOption("production");
-  const badge = page.getByRole("button", { name: /Change status of Studio website:/ });
-  await badge.focus();
-  await page.keyboard.press("Enter");
-  await page.getByRole("menuitemradio", { name: "Requested", exact: true }).waitFor();
-  await page.keyboard.press("Escape");
-  await badge.and(page.locator(":focus")).waitFor();
-  assert.equal(await badge.evaluate((node) => node === document.activeElement), true);
-  await page.getByLabel("Simulate action failures").check();
-  await badge.click();
-  await page.getByRole("menuitemradio", { name: "Production", exact: true }).click();
-  await page.getByRole("menu").getByRole("alert").waitFor();
-  assert.match(await badge.innerText(), /Requested/);
-  assert.equal(await name.inputValue(), "Unsaved project name");
-  assert.equal(await status.inputValue(), "production");
-  await page.keyboard.press("Escape");
-  await page.getByLabel("Simulate action failures").uncheck();
-  await badge.click();
-  await page.getByRole("menuitemradio", { name: "Prospect", exact: true }).click();
-  await actionToast(page, "Project updated");
-  assert.equal(await name.inputValue(), "Unsaved project name");
-  assert.equal(await status.inputValue(), "prospect");
-  await page.getByRole("heading", { name: "Studio website", exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
-  const row = page.getByRole("row").filter({ hasText: "Studio website" });
-  const tableBadge = row.getByRole("button", { name: /Change status/ });
-  assert.match(await tableBadge.innerText(), /Prospect/);
-  await tableBadge.click();
-  await page.getByRole("menuitemradio", { name: "Production", exact: true }).click();
-  await actionToast(page, "Project updated");
-  await row.getByRole("link", { name: "Studio website", exact: true }).click();
-  assert.equal(await status.inputValue(), "production");
-  await page.getByRole("link", { name: "Drive", exact: true }).click();
-  await badge.click();
-  await page.getByRole("menuitemradio", { name: "Requested", exact: true }).click();
-  await actionToast(page, "Project updated");
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
-  await page.getByLabel("Directory state").selectOption("loading");
-  assert.equal(await tableBadge.isDisabled(), true);
-  await page.getByLabel("Directory state").selectOption("ready");
-  await page.getByLabel("Account actions", { exact: true }).uncheck();
-  assert.equal(await row.getByRole("button", { name: /Change status/ }).count(), 0);
+  await test("basic project pages fit desktop/mobile in both themes", async (t) => {
+    for (const theme of ["light", "dark"])
+      for (const { name, viewport } of [
+        { name: "desktop", viewport: { width: 1440, height: 1000 } },
+        { name: "mobile", viewport: { width: 390, height: 844 } },
+      ]) {
+        const page = await preview(t, "/en/projects/website", { viewport, colorScheme: theme });
+        assert.equal(
+          await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+          theme === "dark" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)",
+        );
+        for (const [view, link] of [
+          ["detail", null],
+          ["list", "Back to projects"],
+          ["new", "Create project"],
+        ]) {
+          if (link) await page.getByRole("link", { name: link, exact: true }).click();
+          if (view === "list")
+            await page.getByRole("button", { name: "Search projects", exact: true }).waitFor();
+          else {
+            await page.getByLabel("Name *", { exact: true }).waitFor();
+            await assertBasicFields(page);
+          }
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          await page.screenshot({
+            path: `/tmp/forge-projects-${view}-${name}-${theme}.png`,
+            fullPage: true,
+          });
+        }
+        await page.close();
+      }
+  });
+
+  await test("status badges update the table and detail without saving drafts", async (t) => {
+    const page = await preview(t, "/en/projects/website");
+    const name = page.getByLabel("Name *", { exact: true });
+    const status = page.getByLabel("Status", { exact: true });
+    await name.fill("Unsaved project name");
+    await status.selectOption("production");
+    const badge = page.getByRole("button", { name: /Change status of Studio website:/ });
+    await badge.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("menuitemradio", { name: "Requested", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await badge.and(page.locator(":focus")).waitFor();
+    assert.equal(await badge.evaluate((node) => node === document.activeElement), true);
+    await page.getByLabel("Simulate action failures").check();
+    await badge.click();
+    await page.getByRole("menuitemradio", { name: "Production", exact: true }).click();
+    await page.getByRole("menu").getByRole("alert").waitFor();
+    assert.match(await badge.innerText(), /Requested/);
+    assert.equal(await name.inputValue(), "Unsaved project name");
+    assert.equal(await status.inputValue(), "production");
+    await page.keyboard.press("Escape");
+    await page.getByLabel("Simulate action failures").uncheck();
+    await badge.click();
+    await page.getByRole("menuitemradio", { name: "Prospect", exact: true }).click();
+    await actionToast(page, "Project updated");
+    assert.equal(await name.inputValue(), "Unsaved project name");
+    assert.equal(await status.inputValue(), "prospect");
+    await page.getByRole("heading", { name: "Studio website", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    const row = page.getByRole("row").filter({ hasText: "Studio website" });
+    const tableBadge = row.getByRole("button", { name: /Change status/ });
+    assert.match(await tableBadge.innerText(), /Prospect/);
+    await tableBadge.click();
+    await page.getByRole("menuitemradio", { name: "Production", exact: true }).click();
+    await actionToast(page, "Project updated");
+    await row.getByRole("link", { name: "Studio website", exact: true }).click();
+    assert.equal(await status.inputValue(), "production");
+    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await badge.click();
+    await page.getByRole("menuitemradio", { name: "Requested", exact: true }).click();
+    await actionToast(page, "Project updated");
+    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByLabel("Directory state").selectOption("loading");
+    assert.equal(await tableBadge.isDisabled(), true);
+    await page.getByLabel("Directory state").selectOption("ready");
+    await page.getByLabel("Account actions", { exact: true }).uncheck();
+    assert.equal(await row.getByRole("button", { name: /Change status/ }).count(), 0);
+  });
 });

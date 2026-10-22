@@ -49,6 +49,8 @@ export interface EmployeeServiceOptions {
   verificationEnabled: boolean;
   /** Issue an expiring single-use link and await delivery; reject when sending fails. */
   sendInvitation: (employee: Employee, invitationURL: string) => Promise<void>;
+  /** Replace provider deletion with the host's atomic retention/account transaction. */
+  removeEmployee?: (id: string, decision: unknown) => Promise<void>;
 }
 
 export function createEmployeeService({
@@ -57,6 +59,7 @@ export function createEmployeeService({
   actor,
   verificationEnabled,
   sendInvitation,
+  removeEmployee,
 }: EmployeeServiceOptions) {
   if (!actor || actor.banned || actor.mustChangePassword || !isEmployeeAdmin(actor.role)) {
     throw new Error("Administrator access required.");
@@ -110,9 +113,11 @@ export function createEmployeeService({
         },
       });
     },
-    async remove(input: unknown) {
+    async remove(input: unknown, decision?: unknown) {
       const { id } = employeeIdSchema.parse(input);
-      await api.removeUser({ headers, body: { userId: id } });
+      if (id === actorId) throw new Error("You cannot delete your own account.");
+      if (removeEmployee) await removeEmployee(id, decision);
+      else await api.removeUser({ headers, body: { userId: id } });
       return { success: true };
     },
     /** callbackURL must be constructed by the host from its configured origin and validated locale. */

@@ -38,7 +38,7 @@ const image = Buffer.from(
 );
 const rejected = (promise, code) => assert.rejects(promise, (error) => error.code === code);
 
-test("menus, Better Auth-shaped authorization, and private Drive images", async (t) => {
+await test("menus, Better Auth-shaped authorization, and private Drive images", async (t) => {
   t.after(async () => {
     s3.destroy();
     await pool.end();

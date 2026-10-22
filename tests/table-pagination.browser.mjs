@@ -30,6 +30,11 @@ void test("combined table demo supports discovery, search, pagination and stable
   const nav = page.getByRole("navigation", { name: "Blog post pages", exact: true });
   const previous = nav.getByRole("button", { name: "Previous page" });
   const next = nav.getByRole("button", { name: "Next page" });
+  const geometry = () =>
+    nav.evaluate((element) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x: x + scrollX, y: y + scrollY, width, height };
+    });
   await nav.waitFor();
   assert.equal(await previous.isDisabled(), true);
   await next.focus();
@@ -72,10 +77,22 @@ void test("combined table demo supports discovery, search, pagination and stable
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.getByLabel("Table state", { exact: true }).selectOption("ready");
-      const ready = await nav.boundingBox();
+      await nav.getByText("1/3", { exact: true }).waitFor();
+      await posts.evaluate((element) =>
+        Promise.allSettled(
+          element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+        ),
+      );
+      const ready = await geometry();
       for (const state of ["loading", "error"]) {
         await page.getByLabel("Table state", { exact: true }).selectOption(state);
-        assert.deepEqual(await nav.boundingBox(), ready);
+        await posts
+          .getByText(
+            state === "loading" ? "Loading posts…" : "Could not load posts. Select Ready to retry.",
+            { exact: true },
+          )
+          .waitFor();
+        assert.deepEqual(await geometry(), ready);
         assert.equal(await next.isDisabled(), true);
         assert.equal(await previous.isDisabled(), true);
       }

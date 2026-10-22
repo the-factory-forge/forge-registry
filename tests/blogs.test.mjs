@@ -54,7 +54,7 @@ const child = {
   translations: { en: { name: "Design", slug: "design" } },
 };
 const categories = [parent, child];
-test("admin list includes assigned category names with locale fallback", () => {
+await test("admin list includes assigned category names with locale fallback", () => {
   const article = createArticle(randomUUID(), "Draft", "en", actor, now);
   assert.deepEqual(articleListItem(article, "en", categories).categoryNames, []);
   article.shared.categoryIds = [parent.id, child.id];
@@ -62,7 +62,7 @@ test("admin list includes assigned category names with locale fallback", () => {
   assert.deepEqual(articleListItem(article, "fr", categories).categoryNames, ["Idées", "Design"]);
   assert.deepEqual(articleListItem(article, "en").categoryNames, []);
 });
-test("publication snapshots isolate languages, shared media, attribution, and category counts", () => {
+await test("publication snapshots isolate languages, shared media, attribution, and category counts", () => {
   let article = createArticle(randomUUID(), "First title", "en", actor, now);
   const image = randomUUID(),
     second = randomUUID();
@@ -105,7 +105,7 @@ test("publication snapshots isolate languages, shared media, attribution, and ca
   assert.equal(page.categoryCounts[child.id], 1);
   assert.equal(publicPosts([article], { locale: "de" }).total, 0);
 });
-test("parser tracks reference-style images and rejects unowned or non-asset image URLs", () => {
+await test("parser tracks reference-style images and rejects unowned or non-asset image URLs", () => {
   const id = randomUUID();
   assert.deepEqual(markdownAssetIds(`![alt][image]\n\n[image]: ./assets/${id}`), [id]);
   assert.deepEqual(markdownAssetIds("`![not an image](https://example.com)`"), []);
@@ -135,7 +135,7 @@ test("parser tracks reference-style images and rejects unowned or non-asset imag
     { code: "NOT_FOUND" },
   );
 });
-test("validation rejects blank publications, unsafe URLs, invalid sizes, and incomplete taxonomy translations", () => {
+await test("validation rejects blank publications, unsafe URLs, invalid sizes, and incomplete taxonomy translations", () => {
   assert.throws(
     () => validateContent({ ...emptyContent, title: " ", slug: "ok", markdown: "body" }, 100, true),
     { code: "INVALID" },
@@ -174,7 +174,7 @@ test("validation rejects blank publications, unsafe URLs, invalid sizes, and inc
     { code: "INVALID" },
   );
 });
-test("blog registry files ship independently and never expose server imports through the UI", async () => {
+await test("blog registry files ship independently and never expose server imports through the UI", async () => {
   const registry = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );

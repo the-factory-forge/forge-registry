@@ -116,7 +116,7 @@ async function remove(scope, entry) {
 }
 
 // Fixed localhost-only credentials/ports are intentionally independent of host app configuration.
-test("private Drive persistence and storage recovery", async (t) => {
+await test("private Drive persistence and storage recovery", async (t) => {
   t.after(async () => {
     s3.destroy();
     await pool.end();

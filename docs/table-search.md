@@ -5,6 +5,7 @@ The item includes the component, matching helper, Base UI/Lucide dependencies an
 
 ```tsx
 import { useState } from "react";
+
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 
 const [search, setSearch] = useState("");

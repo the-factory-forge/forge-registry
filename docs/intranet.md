@@ -15,7 +15,7 @@ Configure the `@forge` namespace in the consumer's `components.json` as describe
 in [README](../README.md#installing-from-the-registry), then install:
 
 ```bash
-pnpm dlx shadcn@4.21.1 add @forge/intranet-shell
+pnpm dlx shadcn@4.22.1 add @forge/intranet-shell
 ```
 
 With default aliases, the shell installs to
@@ -33,6 +33,7 @@ integration:
 "use client";
 
 import type { ReactNode } from "react";
+
 import { IntranetShell, type IntranetShellProps } from "@/components/layouts/intranet-shell";
 
 export function IntranetLayout({

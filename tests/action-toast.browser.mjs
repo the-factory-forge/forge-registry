@@ -85,6 +85,7 @@ void test("toast example remains available directly and failures retain inline r
   const page = await browser.newPage();
   t.after(() => page.close());
   await page.goto(`${baseURL}/action-toast`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByRole("heading", { name: "Action toast", exact: true }).waitFor();
   await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
@@ -108,6 +109,7 @@ void test("background toasts share the confirmation frame and keep footer action
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`${baseURL}/action-toast`);
+      await page.locator('[data-preview-ready="true"]').waitFor();
       if (colorScheme === "dark")
         await page.getByRole("button", { name: "Dark mode", exact: true }).click();
       await page.getByRole("button", { name: "Save changes", exact: true }).click();

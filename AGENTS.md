@@ -181,7 +181,7 @@ props unless the requested change calls for a breaking change.
 
 The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
 and Motion, hosted in TanStack Start with Nitro. Use the pnpm version pinned in `package.json`.
-Vite Plus 1.0.0 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
+Vite Plus 1.3.0 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
 `dev` and `build` use Start/Vite, and `start` runs `.output/server/index.mjs`. Lint settings enable type-aware rules and
 type checking. `pnpm typecheck` remains the separate `tsc --noEmit` check.
 Registry source imports mirror their install targets: `@/components/*`,
@@ -208,6 +208,11 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   merge classes with `cn` from `@/components/utils/cn`. Reuse `SectionVariant` for themed sections.
 - Use semantic Tailwind/shadcn tokens and existing Base UI primitives. Preserve
   keyboard interaction, focus states, semantic HTML, and responsive behavior.
+- Mark required form labels with a visible `*` (`aria-hidden="true"`), retaining
+  native `required` or `aria-required` semantics. Leave optional fields unmarked.
+  Keep UI copy brief: use clear labels and show helper text only for essential
+  constraints, consequences or recovery that the control itself cannot explain.
+  Omit routine instructions and implementation details, such as how uploads are processed.
 - Use a modal or dialog for create/edit forms that remain short and easy to complete
   without navigation. When the form grows into many inputs, sections, nested data,
   or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`

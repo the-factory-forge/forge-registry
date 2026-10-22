@@ -5,7 +5,7 @@ import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 
-test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
+await test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -17,7 +17,7 @@ test("website visibility saves immediately, preserves account drafts and rolls b
 
   await page.getByLabel("Simulate action failures", { exact: true }).check();
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  await edit.getByLabel("Name", { exact: true }).fill("Unsaved name");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved name");
   await toggle.press("Space");
   await edit.getByRole("button", { name: "Website", pressed: false }).waitFor();
   assert.equal(await toggle.isDisabled(), true);
@@ -26,28 +26,37 @@ test("website visibility saves immediately, preserves account drafts and rolls b
     .filter({ hasText: "Could not change website visibility" })
     .waitFor();
   assert.equal(await toggle.getAttribute("aria-pressed"), "true");
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Unsaved name");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Unsaved name",
+  );
   await row.getByText("Visible on website", { exact: true }).waitFor();
   await edit.getByRole("button", { name: "Cancel", exact: true }).click();
 
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  await edit.getByLabel("Name", { exact: true }).fill("Unsaved name");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved name");
   await toggle.click();
   await actionToast(page, "Website visibility updated.");
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Unsaved name");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Unsaved name",
+  );
   await row.getByText("Hidden on website", { exact: true }).waitFor();
   await edit.getByRole("button", { name: "Cancel", exact: true }).click();
 
   await row.getByRole("button", { name: "Edit Alex Morgan", exact: true }).click();
-  assert.equal(await edit.getByLabel("Name", { exact: true }).inputValue(), "Alex Morgan");
+  assert.equal(
+    await edit.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+    "Alex Morgan",
+  );
   assert.equal(await toggle.getAttribute("aria-pressed"), "false");
   await toggle.press("Enter");
   await actionToast(page, "Website visibility updated.");
   await row.getByText("Visible on website", { exact: true }).waitFor();
 });
 
-test("employee pages show content only to administrators", async (t) => {
+await test("employee pages show content only to administrators", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -118,10 +127,10 @@ test("employee pages show content only to administrators", async (t) => {
   await page.getByLabel("Preview as").selectOption("admin");
   await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
-  await dialog.getByLabel("Email", { exact: true }).waitFor();
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).waitFor();
   assert.equal(new URL(page.url()).hash, "");
-  await dialog.getByLabel("Name", { exact: true }).fill("Taylor Jordan");
-  await dialog.getByLabel("Email", { exact: true }).fill("taylor@example.test");
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Taylor Jordan");
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("taylor@example.test");
   assert.equal(await dialog.locator('input[type="password"]').count(), 0);
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
@@ -131,7 +140,7 @@ test("employee pages show content only to administrators", async (t) => {
   await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit employee", exact: true });
   await edit.getByText("Hidden on website", { exact: true }).waitFor();
-  await edit.getByLabel("Name", { exact: true }).fill("Taylor Lee");
+  await edit.getByRole("textbox", { name: "Name", exact: true }).fill("Taylor Lee");
   await edit.getByRole("button", { name: "Save changes", exact: true }).click();
   await edit.waitFor({ state: "hidden" });
   await actionToast(page, "Employee updated.");
@@ -145,7 +154,7 @@ test("employee pages show content only to administrators", async (t) => {
   assert.deepEqual(errors, []);
 });
 
-test("a delivery failure keeps the account available for resend without repeating creation", async (t) => {
+await test("a delivery failure keeps the account available for resend without repeating creation", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();
@@ -154,8 +163,8 @@ test("a delivery failure keeps the account available for resend without repeatin
   await page.getByLabel("Simulate invitation delivery failure", { exact: true }).check();
   await page.getByRole("button", { name: "Invite employee", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
-  await dialog.getByLabel("Name", { exact: true }).fill("Pending invitee");
-  await dialog.getByLabel("Email", { exact: true }).fill("pending@example.test");
+  await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Pending invitee");
+  await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("pending@example.test");
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.getByRole("alert").filter({ hasText: "The account was created" }).waitFor();
   assert.equal(await dialog.locator("form").count(), 0);
@@ -168,7 +177,7 @@ test("a delivery failure keeps the account available for resend without repeatin
   await actionToast(page, "Invitation sent.");
 });
 
-test("employee row actions stay aligned when verification or self-deletion is unavailable", async (t) => {
+await test("employee row actions stay aligned when verification or self-deletion is unavailable", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
   const page = await browser.newPage();

@@ -6,8 +6,14 @@ adds a PostgreSQL service, Drizzle tables, reviewed SQL migrations, signed manag
 links, and a durable email queue. Both distribute editable source.
 
 ```sh
-pnpm dlx shadcn@4.21.1 add @forge/reservations-storage
+pnpm dlx shadcn@4.22.1 add @forge/reservations-storage
 ```
+
+When updating several plugins, install Reservations storage last. shadcn 4.22.1
+still has the [combined-install limitation](releases/v0.0.0-rc.2.md#validation):
+it can rewrite the `renderEmail` import to another plugin. Running the command
+above separately with `--yes --overwrite` restores the Mailing import; inspect
+the diff and run the host type check after installation.
 
 Import browser components and types from `@/components/plugins/reservations`. Import
 `createReservationsService`, `deriveManagementSecret` and schema tables only from

@@ -63,5 +63,10 @@ export const employeeLabels = {
     "Delete {name}? Their account and access will be permanently removed. This cannot be undone.",
   deleteError: "Could not delete this employee. Please try again.",
   deleting: "Deleting…",
+  loadingRelatedData: "Loading related data…",
+  relatedItems: "Affected items",
+  replacement: "Replacement",
+  chooseReplacement: "Choose a replacement",
+  reloadRelatedData: "Reload related data",
 };
 export type EmployeeLabels = typeof employeeLabels;

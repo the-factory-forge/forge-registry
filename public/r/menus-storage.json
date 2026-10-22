@@ -4,7 +4,7 @@
   "title": "Menus storage",
   "description": "Better Auth models and Drizzle service for restaurant menus with size prices, spice levels and Drive-backed images.",
   "dependencies": [
-    "better-auth@1.7.2",
+    "better-auth@1.7.12",
     "drizzle-orm"
   ],
   "registryDependencies": [

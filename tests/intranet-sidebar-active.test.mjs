@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { itemIsActive } from "../registry/components/utils/intranet-sidebar-active.ts";
 
-test("linked project sections match their overview and project subpages", () => {
+await test("linked project sections match their overview and project subpages", () => {
   const projects = {
     href: "/customers/projects",
     items: [{ href: "/customers/projects/project-1/analytics" }],
@@ -15,7 +15,7 @@ test("linked project sections match their overview and project subpages", () => 
   assert.equal(itemIsActive(projects, "/customers/me"), false);
 });
 
-test("exact parent matching still includes children outside the parent path", () => {
+await test("exact parent matching still includes children outside the parent path", () => {
   const workspace = {
     href: "/workspace",
     exact: true,
@@ -27,7 +27,7 @@ test("exact parent matching still includes children outside the parent path", ()
   assert.equal(itemIsActive(workspace, "/projects/design"), true);
 });
 
-test("path matching normalizes trailing slashes and respects segment boundaries", () => {
+await test("path matching normalizes trailing slashes and respects segment boundaries", () => {
   assert.equal(itemIsActive({ href: "/projects/" }, "/projects"), true);
   assert.equal(itemIsActive({ href: "/projects", exact: true }, "/projects/"), true);
   assert.equal(itemIsActive({ href: "/projects" }, "/projects-old"), false);
@@ -35,7 +35,7 @@ test("path matching normalizes trailing slashes and respects segment boundaries"
   assert.equal(itemIsActive({ href: "/" }, "/"), true);
 });
 
-test("non-linked groups match descendants and empty linked groups retain their destination", () => {
+await test("non-linked groups match descendants and empty linked groups retain their destination", () => {
   const group = { items: [{ items: [{ href: "/policies/security" }] }] };
   assert.equal(itemIsActive(group, "/policies/security"), true);
   assert.equal(itemIsActive(group, "/projects"), false);
@@ -44,13 +44,13 @@ test("non-linked groups match descendants and empty linked groups retain their d
   assert.equal(itemIsActive({ href: "/projects", items: [] }, "/projects/design"), true);
 });
 
-test("a parent link is the current page only for its own exact destination", () => {
+await test("a parent link is the current page only for its own exact destination", () => {
   const destination = { href: "/projects/", exact: true };
   assert.equal(itemIsActive(destination, "/projects"), true);
   assert.equal(itemIsActive(destination, "/projects/design"), false);
 });
 
-test("controlled subpage selections activate their parent group without changing route matching", () => {
+await test("controlled subpage selections activate their parent group without changing route matching", () => {
   assert.equal(itemIsActive({ active: true }, "/drive"), true);
   assert.equal(itemIsActive({ active: false }, "/drive"), false);
   assert.equal(itemIsActive({ items: [{ active: true }] }, "/drive"), true);

@@ -167,14 +167,13 @@ export function Newsletter({
         ) : null}
 
         {inlineSuccess ? (
-          <p
-            className="mt-2 rounded-lg bg-status-success px-3 py-2 text-sm text-status-success-foreground"
+          <output
+            className="mt-2 block rounded-lg bg-status-success px-3 py-2 text-sm text-status-success-foreground"
             id={successId}
-            role="status"
             aria-live="polite"
           >
             {inlineSuccess}
-          </p>
+          </output>
         ) : null}
       </form>
     </section>

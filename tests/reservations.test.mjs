@@ -63,7 +63,7 @@ const input = {
 const booking = () =>
   placeReservation(config, [], input, now, "40000000-0000-4000-8000-000000000001");
 
-test("duration, buffers, breaks, adjacency, closures and resource assignment", () => {
+await test("duration, buffers, breaks, adjacency, closures and resource assignment", () => {
   const r = booking();
   assert.equal(r.endsAt, "2026-09-28T07:45:00.000Z");
   assert.equal(r.occupiedEnd, "2026-09-28T08:00:00.000Z");
@@ -95,7 +95,7 @@ test("duration, buffers, breaks, adjacency, closures and resource assignment", (
   assert.equal(placeReservation(multi, [r], input, now, "b").resourceId, id);
 });
 
-test("preparation and cleanup are additive and must fit inside working hours", () => {
+await test("preparation and cleanup are additive and must fit inside working hours", () => {
   const c = structuredClone(config);
   c.services[0].bufferBeforeMinutes = 15;
   const slots = availableSlots(c, [booking()], { serviceId, date: "2026-09-28" }, now);
@@ -106,7 +106,7 @@ test("preparation and cleanup are additive and must fit inside working hours", (
   );
 });
 
-test("notice, horizon, disabled public booking and inactive services/resources", () => {
+await test("notice, horizon, disabled public booking and inactive services/resources", () => {
   const query = { serviceId, date: "2026-09-28" };
   assert.equal(
     availableSlots(config, [], query, "2026-09-28T07:00:00.000Z")[0].startsAt,
@@ -122,7 +122,7 @@ test("notice, horizon, disabled public booking and inactive services/resources",
   assert.deepEqual(availableSlots(c, [], query, now), []);
 });
 
-test("manual requests occupy time; cancellation cutoff and policy snapshots survive changes", () => {
+await test("manual requests occupy time; cancellation cutoff and policy snapshots survive changes", () => {
   const c = structuredClone(config);
   c.services[0].approval = "manual";
   const pending = placeReservation(c, [], input, now, "a");
@@ -154,7 +154,7 @@ test("manual requests occupy time; cancellation cutoff and policy snapshots surv
   );
 });
 
-test("DST skips nonexistent starts and identifies both repeated clock times", () => {
+await test("DST skips nonexistent starts and identifies both repeated clock times", () => {
   const c = structuredClone(config);
   c.resources[0].weeklyHours = { 7: [{ start: "01:00", end: "05:00" }] };
   Object.assign(c.services[0], {
@@ -177,7 +177,7 @@ test("DST skips nonexistent starts and identifies both repeated clock times", ()
   assert.ok(autumn.some((s) => s.startsAt === "2026-10-25T01:00:00.000Z"));
 });
 
-test("business zone changes preserve bookings and apply current schedules to rescheduling", () => {
+await test("business zone changes preserve bookings and apply current schedules to rescheduling", () => {
   const original = booking();
   const changed = structuredClone(config);
   changed.settings.timeZone = "America/New_York";
@@ -198,7 +198,7 @@ test("business zone changes preserve bookings and apply current schedules to res
   assert.deepEqual(moved.policy, original.policy);
 });
 
-test("boundary validation rejects malformed dates, overlapping schedules and invalid policies", () => {
+await test("boundary validation rejects malformed dates, overlapping schedules and invalid policies", () => {
   assert.throws(() => parseReservationInput(bookingSchema, { ...input, locale: "en-123-123" }), {
     code: "INVALID",
   });
@@ -239,7 +239,7 @@ void test("derived management keys stay stable, separate signatures and reject s
     assert.throws(() => deriveManagementSecret(shortSecret), { code: "INVALID" });
 });
 
-test("management signatures reject tampering and expire at the exact boundary", () => {
+await test("management signatures reject tampering and expire at the exact boundary", () => {
   const secret = "s".repeat(32);
   const token = signManagementLink("booking", 3, 1000, secret);
   assert.deepEqual(verifyManagementLink(token, secret, 999), { id: "booking", version: 3 });
@@ -248,7 +248,7 @@ test("management signatures reject tampering and expire at the exact boundary", 
   assert.throws(() => verifyManagementLink(token, "x".repeat(32), 999), { code: "INVALID_LINK" });
 });
 
-test("year reads stay bounded, keep filters and deduplicate bookings across page boundaries", async () => {
+await test("year reads stay bounded, keep filters and deduplicate bookings across page boundaries", async () => {
   const range = {
     from: "2027-09-01T00:00:00Z",
     to: "2028-09-01T00:00:00Z",
@@ -292,7 +292,7 @@ test("year reads stay bounded, keep filters and deduplicate bookings across page
   );
 });
 
-test("overnight stays derive checkout, retain policy and reserve the entire buffered interval", () => {
+await test("overnight stays derive checkout, retain policy and reserve the entire buffered interval", () => {
   const c = structuredClone(config);
   c.mode = "stay";
   c.resources[0].weeklyHours = {};
@@ -326,6 +326,16 @@ test("overnight stays derive checkout, retain policy and reserve the entire buff
     () => placeReservation(c, [], { ...stayInput, departureDate: "2026-09-28" }, now, "bad"),
     { code: "INVALID" },
   );
+  for (const departureDate of ["invalid", "2026-10-1", "2026-02-29", "2026-09-31"]) {
+    assert.throws(
+      () => availableSlots(c, [], { serviceId, date: "2026-09-28", departureDate }, now),
+      { code: "INVALID" },
+    );
+    assert.throws(
+      () => placeReservation(c, [], { ...stayInput, departureDate }, now, "bad", { staff: true }),
+      { code: "INVALID" },
+    );
+  }
   c.services[0].checkoutTime = "09:00";
   const moved = placeReservation(
     c,
@@ -339,7 +349,7 @@ test("overnight stays derive checkout, retain policy and reserve the entire buff
   assert.equal(moved.policy.checkoutTime, "11:00");
 });
 
-test("stay closures, overnight bounds, additive buffers and single-resource assignment", () => {
+await test("stay closures, overnight bounds, additive buffers and single-resource assignment", () => {
   const c = structuredClone(config);
   c.mode = "stay";
   c.services[0] = {
@@ -406,7 +416,7 @@ test("stay closures, overnight bounds, additive buffers and single-resource assi
   );
 });
 
-test("stay nights and checkout follow local dates through DST, leap days and year boundaries", () => {
+await test("stay nights and checkout follow local dates through DST, leap days and year boundaries", () => {
   const c = structuredClone(config);
   c.mode = "stay";
   c.resources[0].weeklyHours = {};
