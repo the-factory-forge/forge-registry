@@ -6,6 +6,23 @@ const { createEmployeeService } =
   await import("../registry/components/plugins/employees/server/employees.server.ts");
 
 const admin = { id: "admin", role: "admin", mustChangePassword: false };
+void test("removal delegates the whole transaction and cannot fall back after failure", async () => {
+  const decisions = { token: "reviewed-version", choice: "keep" };
+  let received;
+  const { service, calls } = fixture({
+    removeEmployee: async (id, decision) => {
+      received = { id, decision };
+      throw new Error("Related record changed");
+    },
+  });
+  await assert.rejects(service.remove({ id: "employee" }, decisions), /Related record changed/);
+  assert.deepEqual(received, { id: "employee", decision: decisions });
+  assert.equal(
+    calls.some(([operation]) => operation === "remove"),
+    false,
+  );
+  await assert.rejects(service.remove({ id: "admin" }, decisions), /own account/);
+});
 function fixture({ employee: overrides, failInvitation = false, ...options } = {}) {
   let employee = {
     id: "employee",
