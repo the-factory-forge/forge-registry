@@ -200,14 +200,17 @@ link expiry; the host can supply its actual expiry through `checkSpam`.
 `AccountPage` accepts `tabs: AccountTab[]`, each with a unique `id`, translated
 `label` and `content`. Reserve `about` and `security` for Auth. Supply only sections
 authorized for the current account; an Employee or Customer plugin does not
-register itself or fetch data automatically. About and plugin panels retain mounted form
-state when switching tabs.
+register itself or fetch data automatically. About and every supplied plugin panel
+mount immediately and retain form state when switching tabs. Their effects and
+subscriptions can run while hidden; hosts control expensive loading. Removing a
+tab discards its local draft. Security still unmounts when inactive to clear secrets.
 
 The account showroom starts with About and Security only. Enable **Simulate
 Employees plugin** in Preview controls to add an example Employee tab. This
 simulation and the selected tab are stored in the URL; disabling the simulated
 plugin while its tab is selected returns to About. The example does not install
-a plugin or load employee data.
+a plugin or load employee data. The existing Name field in About demonstrates
+draft retention while switching between account sections.
 
 Use `activeTab` and `onTabChange` for host URL state and unsaved-change guards.
 Validate unknown tab IDs and preserve unrelated search parameters. Existing
@@ -215,15 +218,20 @@ uncontrolled usage and the complete `header`/`content` override still work.
 
 `onChangeEmail(newEmail)` adds a separate form below About. Translate it with
 `emailChangeLabels`, or compose exported `AccountEmailChange` in a custom page.
-Only supply this callback for eligible administrators. The host derives the
+Supply this callback for any account authorized by the host; Auth imposes no
+administrator restriction. The host derives the
 target from its fresh session, checks CSRF/rate limits and uses the authentication
 provider's old/new-address confirmation flow. The form never replaces `user.email`
 or marks it verified. It retains failed input, blocks duplicates and reports
 that confirmation is needed. Installing source does not enable a provider endpoint.
+After a successful request, the form accepts another address. Hosts own throttling
+and the validity of outstanding confirmations. Request feedback lasts only while
+the form is mounted and does not persist across reloads.
 
 `tests/account-collaboration.browser.mjs` covers URL navigation/reload, retained
-input and pending requests across tabs, duplicate prevention and stable feedback
-layout. The showroom simulates confirmation; delivery remains a host integration.
+name drafts, plugin panel lifetimes and pending email requests across tabs, duplicate submission attempts,
+the callback's requested address, required-field semantics and stable feedback layout.
+The showroom simulates confirmation; delivery remains a host integration.
 
 ## Employee UI
 

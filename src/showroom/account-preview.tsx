@@ -47,6 +47,7 @@ export function AccountPreview() {
   const navigate = useNavigate({ from: "/$locale/account" });
   const activeTab = search.tab ?? "about";
   const [emailChange, setEmailChange] = useState(false);
+  const [requestedEmail, setRequestedEmail] = useState("");
 
   const [name, setName] = useState("Alex Morgan");
   const [keys, setKeys] = useState(initialKeys);
@@ -135,10 +136,14 @@ export function AccountPreview() {
               checked={emailChange}
               onChange={(event) => setEmailChange(event.target.checked)}
             />
-            Allow administrator email change
+            Allow email change
           </label>
           <p>
             Actions requested: <span data-testid="callback-count">{calls}</span>
+          </p>
+          <p className="break-all">
+            Last requested email:{" "}
+            <span data-testid="requested-email">{requestedEmail || "None"}</span>
           </p>
         </div>
       }
@@ -199,7 +204,14 @@ export function AccountPreview() {
                 resetScroll: false,
               })
             }
-            onChangeEmail={emailChange ? perform : undefined}
+            onChangeEmail={
+              emailChange
+                ? async (email) => {
+                    setRequestedEmail(email);
+                    await perform();
+                  }
+                : undefined
+            }
             tabs={
               search.employees
                 ? [

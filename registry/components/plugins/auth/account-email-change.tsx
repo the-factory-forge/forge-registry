@@ -22,7 +22,7 @@ export const emailChangeLabels = {
 };
 export interface AccountEmailChangeProps {
   email: string;
-  /** Host authorizes the signed-in administrator and uses its provider's confirmation flow. */
+  /** Host authorizes the signed-in account and uses its provider's confirmation flow. */
   onChangeEmail: (email: string) => Promise<void>;
   labels?: Partial<typeof emailChangeLabels>;
   className?: string;
@@ -65,7 +65,9 @@ export function AccountEmailChange({
     >
       <h2 className="font-semibold">{labels.title}</h2>
       <p className="text-sm text-muted-foreground">{labels.description}</p>
-      <label htmlFor={id}>{labels.email}</label>
+      <label htmlFor={id}>
+        {labels.email} <span aria-hidden="true">*</span>
+      </label>
       <input
         id={id}
         type="email"
