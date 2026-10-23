@@ -1,0 +1,109 @@
+{
+  "source_base": "698590b494e510fa0ea1cac6f930cf0d63e93720",
+  "source_state": "unpublished local changes",
+  "installed_with": "shadcn add @forge/employees @forge/employees-server @forge/customers --yes --overwrite",
+  "namespace": "http://localhost:3100/r/{name}.json (disposable consumer only)",
+  "reverse_dependency_items": [
+    "projects"
+  ],
+  "files": [
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/index.tsx",
+      "source_sha256": "0b9b7fd5ffdbe905d670143c45a051a5103a8c284f6e5eb1b07a35e9189edf12",
+      "installed": "src/components/plugins/customers/index.tsx",
+      "installed_sha256": "0b9b7fd5ffdbe905d670143c45a051a5103a8c284f6e5eb1b07a35e9189edf12"
+    },
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/customer-form.tsx",
+      "source_sha256": "5dc221b2fb667d2926db0943e0e2942cbe22a666a3e3ffd95240598117c0d92c",
+      "installed": "src/components/plugins/customers/customer-form.tsx",
+      "installed_sha256": "5dc221b2fb667d2926db0943e0e2942cbe22a666a3e3ffd95240598117c0d92c"
+    },
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/types.ts",
+      "source_sha256": "2155b6255628adc0e20868888f22f8e6fd720113d60e832fb353c72e26afad54",
+      "installed": "src/components/plugins/customers/types.ts",
+      "installed_sha256": "2155b6255628adc0e20868888f22f8e6fd720113d60e832fb353c72e26afad54"
+    },
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/labels.ts",
+      "source_sha256": "93e98f1a53356d892447617470420b71f263f0a6251f9436ae300cbc4bf0bfd1",
+      "installed": "src/components/plugins/customers/labels.ts",
+      "installed_sha256": "93e98f1a53356d892447617470420b71f263f0a6251f9436ae300cbc4bf0bfd1"
+    },
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/ui.tsx",
+      "source_sha256": "37c39123aaa411f7a299e0b7ffbf19836e67e2062fcb6bc726abe4ad4b01c7c2",
+      "installed": "src/components/plugins/customers/ui.tsx",
+      "installed_sha256": "37c39123aaa411f7a299e0b7ffbf19836e67e2062fcb6bc726abe4ad4b01c7c2"
+    },
+    {
+      "item": "customers",
+      "source": "registry/components/plugins/customers/utils.ts",
+      "source_sha256": "ef1c6d3863bc9ea2926e5a3843645f77ea59e6bc2dddf98b43e69a9fe43fd458",
+      "installed": "src/components/plugins/customers/utils.ts",
+      "installed_sha256": "ef1c6d3863bc9ea2926e5a3843645f77ea59e6bc2dddf98b43e69a9fe43fd458"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/index.tsx",
+      "source_sha256": "cae5703b5fb029060a235bc1aa03bf303bcb5e2fd15e94e1281209e9aa36fa11",
+      "installed": "src/components/plugins/employees/index.tsx",
+      "installed_sha256": "cae5703b5fb029060a235bc1aa03bf303bcb5e2fd15e94e1281209e9aa36fa11"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/employee-create-dialog.tsx",
+      "source_sha256": "63ce951a32d671cc1ac4ebb0ce3a46d156ece75747a0a372c02fd13fdfade76e",
+      "installed": "src/components/plugins/employees/employee-create-dialog.tsx",
+      "installed_sha256": "63ce951a32d671cc1ac4ebb0ce3a46d156ece75747a0a372c02fd13fdfade76e"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/employee-actions.tsx",
+      "source_sha256": "3c334add8f3df90b1fe37f8892ea37b3756d08a3ee97552ee4a117e39544fa3c",
+      "installed": "src/components/plugins/employees/employee-actions.tsx",
+      "installed_sha256": "3c334add8f3df90b1fe37f8892ea37b3756d08a3ee97552ee4a117e39544fa3c"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/employee-website-status.tsx",
+      "source_sha256": "44883d3b9dc6912af9015064e5b749cf5c026a5d6c248d9b69e02a83b5b1a712",
+      "installed": "src/components/plugins/employees/employee-website-status.tsx",
+      "installed_sha256": "44883d3b9dc6912af9015064e5b749cf5c026a5d6c248d9b69e02a83b5b1a712"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/labels.ts",
+      "source_sha256": "22f6c7a6f19bb9d21e1e2274168d4933edbf6011ea48a997eaab3f374d5bfdc6",
+      "installed": "src/components/plugins/employees/labels.ts",
+      "installed_sha256": "22f6c7a6f19bb9d21e1e2274168d4933edbf6011ea48a997eaab3f374d5bfdc6"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/schema.ts",
+      "source_sha256": "4180beeb6837d63a4b5737e0e68d10c99eb163f5488e40d6f578c7f5cc73f306",
+      "installed": "src/components/plugins/employees/schema.ts",
+      "installed_sha256": "4180beeb6837d63a4b5737e0e68d10c99eb163f5488e40d6f578c7f5cc73f306"
+    },
+    {
+      "item": "employees",
+      "source": "registry/components/plugins/employees/styles.ts",
+      "source_sha256": "4dd55bb91e7b0d0955d3bb8015ee614e816940721b5d8508cb356324705869dc",
+      "installed": "src/components/plugins/employees/styles.ts",
+      "installed_sha256": "4dd55bb91e7b0d0955d3bb8015ee614e816940721b5d8508cb356324705869dc"
+    },
+    {
+      "item": "employees-server",
+      "source": "registry/components/plugins/employees/server/employees.server.ts",
+      "source_sha256": "44fd30c6543a73e0e8da21504ab00214858f7a3e0fa86b2e31e4c6dd2d308687",
+      "installed": "src/components/plugins/employees/server/employees.server.ts",
+      "installed_sha256": "44fd30c6543a73e0e8da21504ab00214858f7a3e0fa86b2e31e4c6dd2d308687"
+    }
+  ]
+}

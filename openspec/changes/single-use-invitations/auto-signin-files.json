@@ -1,0 +1,58 @@
+{
+  "forge-template": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts"
+  ],
+  "l-aspic": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "PRODUCT.md"
+  ],
+  "osthoepathie-seebach": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts"
+  ],
+  "sinigest": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts"
+  ],
+  "soleva": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts"
+  ],
+  "terminal60": [
+    "docs/registry-sync.md",
+    "src/intranet/auth/functions.ts",
+    "src/intranet/routes/_auth/$lang/reset-password.tsx",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts"
+  ],
+  "forge-registry": [
+    "docs/intranet-auth.md"
+  ],
+  "forge-spec": [
+    "consumers/sites.yaml",
+    "openspec/specs/plugins/spec.md",
+    "openspec/changes/single-use-invitations/proposal.md",
+    "openspec/changes/single-use-invitations/design.md",
+    "openspec/changes/single-use-invitations/tasks.md",
+    "openspec/changes/single-use-invitations/specs/plugins/spec.md",
+    "openspec/changes/single-use-invitations/auto-signin-validation.md",
+    "openspec/changes/single-use-invitations/auto-signin-files.json"
+  ]
+}

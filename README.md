@@ -41,6 +41,10 @@ this repository's `openspec/changes/`. Only contracts constraining both registry
 template live in `forge-spec`; consumer installation alone does not make a plugin
 spec shared.
 
+Changes that also modify a shared contract keep one root in `forge-spec` and
+name each delta's destination. Relocated archives retain their original repository
+labels and verification history; their current location determines ownership.
+
 The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared intranet sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
 
 ## What is included
