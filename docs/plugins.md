@@ -28,7 +28,7 @@ Auth account pages also support host-supplied plugin tabs and optional confirmed
 email changes. About and plugin panels preserve form state across tab switches;
 see [account sections and email](./intranet-auth.md#account-sections-and-email).
 
-Auth agent keys support row selection, select-all with a mixed state, and confirmed
+Auth agent keys use the shared [deletion session](./table-selection.md) for row selection, select-all with a mixed state, and confirmed
 bulk deletion through the existing host callback. Failed keys remain available for
 retry; see [account security](./intranet-auth.md#account-profile-and-security).
 
@@ -207,7 +207,7 @@ incomplete drafts remain saveable. Hosts can reuse the helper for their own edit
 
 ## Table selection and bulk deletion
 
-Customers, Projects (including embedded lists), Employees, Blogs, Menu items,
+Auth keys, Customers, Projects (including embedded lists), Employees, Blogs, Menu items,
 and Drive file/trash tables use [`@forge/table-selection`](./table-selection.md).
 Select individual rows or all eligible rows on the current filtered page. The
 header checkbox shows a mixed state for partial selection. The trash action stays
@@ -224,6 +224,11 @@ no row deletion and do not offer bulk selection.
 Install the shared helper with each affected plugin and translate its added
 labels through the existing plugin labels prop. No new batch server API is
 required: deletion invokes the existing callback once per selected row.
+The helper owns confirmation, pending state and retries. Scope changes cancel
+unconfirmed previews; confirmed batches may finish across host refreshes, while
+unmounting the control stops later requests. Employee retention deletion remains
+a separate transaction-backed flow. See the [source adoption handoff](./HANDOFF-bulk-deletion-session.md)
+before updating custom helper callers or installing Auth's new dependency closure.
 
 ## Optimistic actions
 

@@ -395,6 +395,9 @@ host-owned.
 - **WHEN** the user confirms
 - **THEN** each selected key is passed once to the existing deletion callback
 - **AND** selection controls and duplicate deletion remain disabled until completion
+- **AND** key rows remain visible until the host supplies updated metadata
+- **AND** the shared deletion session owns confirmation, pending state and failure-only retry
+- **AND** unmounting the key control stops later calls without claiming to cancel an already sent request
 
 #### Scenario: Retry partial deletion failure
 
@@ -1755,7 +1758,10 @@ SHALL remain available for explicit retry without resubmitting successes.
 
 - **WHEN** the filter, page, folder or resource changes
 - **THEN** the new scope starts without selected rows and unavailable rows are pruned
+- **AND** an unconfirmed deletion session is canceled, including any preview still loading
+- **AND** a late preview cannot restore confirmation or replace a newer session's Drive tokens
 - **AND** a previously confirmed batch may finish across an automatic host page reset
+- **AND** failures after that reset remain retryable using the original callback context and request IDs
 - **AND** unmounting the control stops later calls while server authorization guards each operation
 - **AND** tables without a row deletion operation do not gain a bulk action
 

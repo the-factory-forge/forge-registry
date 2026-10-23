@@ -29,6 +29,13 @@ focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-ima
 **Blog draft**: The editable state of one article translation. Readers see its
 separate published snapshot until the draft is published.
 
+## Deletion language
+
+**Deletion session**: A selected group of records awaiting deletion confirmation,
+being deleted, or awaiting retry. Successful records leave the session; only failed
+records remain for retry. Changing views cancels an unconfirmed session, while a
+confirmed group may finish across a host refresh.
+
 ## DOM IDs
 
 Every DOM ID authored by registry or showroom code must start with `factory-`.

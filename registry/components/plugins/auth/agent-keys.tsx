@@ -15,6 +15,7 @@ import {
   accountDialogClass,
   accountDate,
 } from "@/components/plugins/auth/account-styles";
+import { useTableSelection, type TableDeletionOptions } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 
 export interface AgentKey {
@@ -91,16 +92,19 @@ function AgentKeysContent({
   const [maxExpiry, setMaxExpiry] = useState("");
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const selectedKeys = keys?.filter((key) => selectedIds.includes(key.id)) ?? [];
-  if (selectedKeys.length !== selectedIds.length) {
-    setSelectedIds(selectedKeys.map((key) => key.id));
-  }
-  const [deleting, setDeleting] = useState<AgentKey[]>([]);
-  const [pending, setPending] = useState(false);
+  const selection = useTableSelection(keys ?? []);
+  const selectedKeys = selection.selected;
+  const { deletion } = selection;
+  const deleting = deletion.items;
+  const [createPending, setCreatePending] = useState(false);
+  const pending = createPending || selection.pending;
   const bulkDisabled = error || loading || pending || selectedKeys.length === 0;
   const lock = useRef(false);
   const notify = useActionToast();
+  const deletionOptions: TableDeletionOptions<AgentKey> = {
+    onDelete: (key) => onDelete(key.id),
+    onComplete: (count) => notify(count > 1 ? labels.keysDeleted : labels.deleted),
+  };
   const closeSecret = () => {
     setSecret("");
     setFailure("");
@@ -165,17 +169,14 @@ function AgentKeysContent({
                         type="checkbox"
                         aria-label={labels.selectAllKeys}
                         className="size-4 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
-                        checked={selectedKeys.length === keys.length}
+                        checked={selection.all}
                         ref={(input) => {
                           if (input) {
-                            input.indeterminate =
-                              selectedKeys.length > 0 && selectedKeys.length < keys.length;
+                            input.indeterminate = selection.mixed;
                           }
                         }}
                         disabled={error || loading || pending}
-                        onChange={(event) =>
-                          setSelectedIds(event.target.checked ? keys.map((key) => key.id) : [])
-                        }
+                        onChange={(event) => selection.toggleAll(event.target.checked)}
                       />
                     </label>
                   </th>
@@ -204,8 +205,7 @@ function AgentKeysContent({
                           aria-label={`${labels.deleteSelectedKeys} (${selectedKeys.length})`}
                           disabled={bulkDisabled}
                           onClick={() => {
-                            setFailure("");
-                            setDeleting(selectedKeys);
+                            deletion.open(deletionOptions);
                           }}
                         >
                           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -226,13 +226,7 @@ function AgentKeysContent({
                           className="size-4 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
                           checked={selectedKeys.some((selected) => selected.id === key.id)}
                           disabled={error || loading || pending}
-                          onChange={(event) =>
-                            setSelectedIds(
-                              event.target.checked
-                                ? [...selectedKeys.map((selected) => selected.id), key.id]
-                                : selectedIds.filter((selected) => selected !== key.id),
-                            )
-                          }
+                          onChange={(event) => selection.toggle(key.id, event.target.checked)}
                         />
                       </label>
                     </td>
@@ -270,8 +264,7 @@ function AgentKeysContent({
                           aria-label={`${labels.delete} ${key.name}`}
                           disabled={error || loading || pending}
                           onClick={() => {
-                            setFailure("");
-                            setDeleting([key]);
+                            deletion.open(deletionOptions, [key]);
                           }}
                         >
                           <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -312,7 +305,7 @@ function AgentKeysContent({
               return;
             }
             lock.current = true;
-            setPending(true);
+            setCreatePending(true);
             setFailure("");
             try {
               const { token } = await onCreate({ name: name.trim(), expiresAt });
@@ -322,7 +315,7 @@ function AgentKeysContent({
               setFailure(labels.createError);
             } finally {
               lock.current = false;
-              setPending(false);
+              setCreatePending(false);
             }
           }}
         >
@@ -416,7 +409,7 @@ function AgentKeysContent({
       <KeyDialog
         open={deleting.length > 0}
         onOpenChange={(open) => {
-          if (!open && !lock.current) setDeleting([]);
+          if (!open) deletion.close();
         }}
         title={deleting.length > 1 ? labels.deleteKeys : labels.deleteKey}
         description={
@@ -427,14 +420,18 @@ function AgentKeysContent({
         }
       >
         <div className="min-h-5 text-sm text-destructive">
-          {failure && <p role="alert">{failure}</p>}
+          {deletion.failure && (
+            <p role="alert">
+              {deletion.attempted > 1 ? labels.deleteKeysError : labels.deleteError}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
             className={accountButtonClass}
             disabled={pending}
-            onClick={() => setDeleting([])}
+            onClick={() => deletion.close()}
           >
             {labels.cancel}
           </button>
@@ -445,28 +442,8 @@ function AgentKeysContent({
               "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
             )}
             disabled={pending || loading || error}
-            onClick={async () => {
-              if (!deleting.length || lock.current || loading || error) return;
-              lock.current = true;
-              setPending(true);
-              setFailure("");
-              const failed: AgentKey[] = [];
-              for (const key of deleting) {
-                try {
-                  await onDelete(key.id);
-                  setSelectedIds((ids) => ids.filter((id) => id !== key.id));
-                } catch {
-                  failed.push(key);
-                }
-              }
-              setDeleting(failed);
-              if (failed.length) {
-                setFailure(deleting.length > 1 ? labels.deleteKeysError : labels.deleteError);
-              } else {
-                notify(deleting.length > 1 ? labels.keysDeleted : labels.deleted);
-              }
-              lock.current = false;
-              setPending(false);
+            onClick={() => {
+              if (!pending && !loading && !error) void deletion.confirm(deletionOptions);
             }}
           >
             {pending ? labels.deleting : labels.delete}

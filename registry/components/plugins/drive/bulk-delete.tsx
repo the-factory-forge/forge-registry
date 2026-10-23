@@ -30,6 +30,7 @@ export function DriveBulkDelete<T extends DriveEntry | DriveTrashEntry>({
   onDeleted: (entry: T) => void;
 }) {
   const tokens = useRef(new Map<string, string>());
+  const preparation = useRef(0);
   return (
     <TableBulkDelete
       selection={selection}
@@ -46,13 +47,16 @@ export function DriveBulkDelete<T extends DriveEntry | DriveTrashEntry>({
       description={trashEnabled ? labels.trashHint : labels.bulkDeleteDescription}
       errorMessage={(error) => messageFor(error, labels)}
       prepare={async (entries) => {
+        const attempt = ++preparation.current;
         const previews = await Promise.all(
           entries.map(async (entry) => ({
             entry,
             preview: await client.previewDelete({ scope, entryId: entry.id }),
           })),
         );
-        tokens.current = new Map(previews.map(({ entry, preview }) => [entry.id, preview.token]));
+        if (attempt === preparation.current) {
+          tokens.current = new Map(previews.map(({ entry, preview }) => [entry.id, preview.token]));
+        }
         return (
           <ul className="grid gap-2 text-sm text-muted-foreground">
             {previews.map(({ entry, preview }) => (

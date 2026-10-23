@@ -1402,7 +1402,8 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/action-toast",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/table-selection"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },
