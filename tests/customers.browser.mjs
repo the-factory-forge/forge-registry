@@ -114,17 +114,17 @@ await suite("Customers browser", async () => {
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a full name" }).waitFor();
     await page.getByLabel("Full name *", { exact: true }).fill("Taylor Casey");
-    await page.getByLabel("Email", { exact: true }).fill("invalid-email");
+    await page.getByLabel("Email *", { exact: true }).fill("invalid-email");
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
-    await page.getByLabel("Email", { exact: true }).fill("");
+    await page.getByLabel("Email *", { exact: true }).fill("");
     assert.equal(await page.locator('input[type="password"]').count(), 0);
-    await page.getByLabel("Email", { exact: true }).fill("taylor@example.com");
+    await page.getByLabel("Email *", { exact: true }).fill("taylor@example.com");
     await page.getByLabel("Simulate action failures").check();
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
     assert.equal(
-      await page.getByLabel("Email", { exact: true }).inputValue(),
+      await page.getByLabel("Email *", { exact: true }).inputValue(),
       "taylor@example.com",
     );
     await page.getByLabel("Simulate action failures").uncheck();
@@ -148,9 +148,14 @@ await suite("Customers browser", async () => {
     assert.equal(await page.locator('input[type="password"]').count(), 0);
   });
 
-  await test("a customer can be created without email or credentials", async (t) => {
+  await test("customer creation requires email and never collects credentials", async (t) => {
     const page = await preview(t, "/new");
     await page.getByLabel("Full name *", { exact: true }).fill("Offline Contact");
+    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
+    assert.equal(await page.getByLabel("Email *", { exact: true }).getAttribute("required"), "");
+    assert.equal(await page.locator('input[type="password"]').count(), 0);
+    await page.getByLabel("Email *", { exact: true }).fill("contact@example.test");
     await page.getByRole("button", { name: "Create customer", exact: true }).click();
     await page.getByRole("heading", { name: "Offline Contact", exact: true }).waitFor();
   });
@@ -162,6 +167,7 @@ await suite("Customers browser", async () => {
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog", { name: "Delete customer" });
     await dialog.waitFor();
+    await page.waitForFunction(() => document.activeElement?.textContent === "Cancel");
     assert.equal(
       await dialog
         .getByRole("button", { name: "Cancel" })

@@ -6,3 +6,9 @@ export type {
   DriveStorageOptions,
   DriveTransaction,
 } from "@/components/plugins/drive/server/types";
+
+export type {
+  DriveSpaceRecord,
+  DriveEntryRecord,
+  DriveUploadRecord,
+} from "@/components/plugins/drive/server/schema";

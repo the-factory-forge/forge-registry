@@ -344,8 +344,8 @@ Staging and final paths retain the site/plugin prefix and unique space/storage I
 with this filename appended inside the storage ID directory. Lifecycle prefixes
 remain unchanged. Display names and download filenames remain user-controlled.
 
-Existing hosts must apply the shipped `server/storage-names-migration.sql` through
-their schema workflow before adopting this version. It adds nullable `storage_name`
+Hosts predating storage names must generate an additive migration from the exported
+schema before adopting this version. It adds nullable `storage_name`
 columns to entries and upload reservations without moving objects. Deploy all
 writers and cleanup workers together; older code cannot locate new named objects.
 Legacy NULL names retain the existing keys, including pending uploads. Names are
@@ -355,11 +355,10 @@ Renaming existing bucket objects is a separate verified migration.
 
 ## Database and storage setup
 
-Copy the shipped `server/migration.sql` into the host's schema workflow and
-apply it once to initialize the database, including trash metadata and indexes.
-Installing source does **not** create database tables. Alternatively,
-include the exported table definitions in the host Drizzle schema and generate
-a reviewed migration. The three tables retain spaces, entries, and upload
+Include the exported table definitions and `pluginLocks` in the host Drizzle
+schema, then generate, review and apply a project migration, including trash
+metadata and indexes. Installing source does **not** create database tables.
+Follow the [shared persistence and cutover guide](./persistence.md). The three tables retain spaces, entries, and upload
 idempotency records. A composite parent foreign key prevents cross-space parent
 relationships; active names are unique within a folder, including its root. Names are
 case-sensitive. Do not write these tables directly from application features.
@@ -372,12 +371,12 @@ import postgres from "postgres";
 
 import { createDriveStorage } from "@/components/plugins/drive/server";
 
-const db = drizzle(
-  postgres(process.env.DATABASE_URL!, {
+const db = drizzle({
+  client: postgres(process.env.DATABASE_URL!, {
     max: 10,
     connection: { statement_timeout: 60000 },
   }),
-);
+});
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
   // For compatible providers, configure endpoint and forcePathStyle as required.
@@ -496,7 +495,7 @@ spaces, not unbounded concurrent ingestion.
 
 ## Trash and restoration
 
-The initial SQL and exported Drizzle schema both include trash metadata and
+The exported Drizzle schema includes trash metadata and
 partial indexes for active names. Storage configured without `trash` and adapters
 without the optional trash methods keep permanent deletion. `deleteEntry` always
 means permanent deletion. Enable trash when configuring the server:

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "database",
+  "title": "Plugin database",
+  "description": "Server-only typed Drizzle queries, bounded directory reads, persistent transaction locks and migration-journal preflight.",
+  "dependencies": [
+    "drizzle-orm@1.0.0-rc.4",
+    "postgres@3.4.9",
+    "zod"
+  ],
+  "files": [
+    {
+      "path": "registry/components/utils/database.ts",
+      "content": "import { eq } from \"drizzle-orm\";\nimport { pgTable, text } from \"drizzle-orm/pg-core\";\nimport type { PostgresJsDatabase } from \"drizzle-orm/postgres-js\";\nimport { z } from \"zod\";\n\nexport const directoryQuerySchema = z.object({\n  search: z.string().trim().max(250).default(\"\"),\n  pageSize: z.number().int().min(1).max(100).default(50),\n  cursor: z\n    .string()\n    .regex(/^(0|[1-9]\\d*)$/)\n    .max(16)\n    .transform(Number)\n    .pipe(\n      z\n        .number()\n        .int()\n        .min(0)\n        .max(Number.MAX_SAFE_INTEGER - 101),\n    )\n    .default(0),\n});\nexport type DirectoryQuery = z.input<typeof directoryQuerySchema>;\n\n/** Server-only query contract; accepts hosts with additional tables and relations. */\nexport type DatabaseTransaction = Pick<\n  PostgresJsDatabase,\n  \"select\" | \"insert\" | \"update\" | \"delete\"\n>;\nexport interface PluginDatabase extends DatabaseTransaction {\n  transaction<T>(action: (tx: DatabaseTransaction) => Promise<T>): Promise<T>;\n}\n\nexport const pluginLocks = pgTable(\"forge_plugin_lock\", {\n  key: text(\"key\").primaryKey(),\n});\n\n/** SQL LIKE metacharacters remain literal search text. */\nexport const containsPattern = (value: string) => `%${value.replace(/[\\\\%_]/g, \"\\\\$&\")}%`;\n\nexport function databaseErrorCode(error: unknown): string | undefined {\n  const cause = error instanceof Error && error.cause ? error.cause : error;\n  return cause && typeof cause === \"object\" && \"code\" in cause && typeof cause.code === \"string\"\n    ? cause.code\n    : undefined;\n}\n\n/** Keep rows permanently: deleting a lock row lets concurrent writers lock different rows. */\nexport async function lockPlugin(tx: DatabaseTransaction, key: string) {\n  await tx.insert(pluginLocks).values({ key }).onConflictDoNothing();\n  await tx\n    .select({ key: pluginLocks.key })\n    .from(pluginLocks)\n    .where(eq(pluginLocks.key, key))\n    .for(\"update\");\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/database.ts"
+    },
+    {
+      "path": "registry/components/utils/database-migrations.ts",
+      "content": "import { readMigrationFiles, type MigrationConfig } from \"drizzle-orm/migrator\";\nimport { bigint, pgSchema, pgTable, text } from \"drizzle-orm/pg-core\";\nimport type { PostgresJsDatabase } from \"drizzle-orm/postgres-js\";\n\n/** Host startup preflight; inspects the existing journal without applying migrations. */\nexport async function assertMigrationsApplied(\n  db: Pick<PostgresJsDatabase, \"select\">,\n  config: MigrationConfig,\n) {\n  const columns = {\n    hash: text(\"hash\").notNull(),\n    name: text(\"name\"),\n    createdAt: bigint(\"created_at\", { mode: \"number\" }),\n  };\n  const name = config.migrationsTable ?? \"__drizzle_migrations\";\n  const journal =\n    config.migrationsSchema === \"public\"\n      ? pgTable(name, columns)\n      : pgSchema(config.migrationsSchema ?? \"drizzle\").table(name, columns);\n  const expected = readMigrationFiles(config);\n  const applied = await db.select().from(journal);\n  if (\n    expected.length !== applied.length ||\n    expected.some(\n      (migration) =>\n        !applied.some(\n          (row) =>\n            row.name === migration.name &&\n            row.hash === migration.hash &&\n            row.createdAt === migration.folderMillis,\n        ),\n    )\n  ) {\n    throw new Error(\n      \"Project migrations are not current. Apply reviewed migrations before starting services.\",\n    );\n  }\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/database-migrations.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

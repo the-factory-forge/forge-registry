@@ -175,3 +175,25 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Optional persistence companion
+
+Install `@forge/projects-storage` for `createProjectsSchema(customers)`,
+`createProjectsService(options)`, validation/options and inferred `ProjectRecord`.
+Compose the customer profile from `customers-storage` and follow the
+[persistence guide](./persistence.md). The service offers `list(ownerId, query)`,
+`get`, `create(ownerId, input)`, `update`, `setStatus` and `remove` through
+`client(context)`. Hosts supply the authorized owner from trusted context.
+
+The `authorize(context, action, ownerId, projectId)` callback checks persisted
+ownership for reads and mutations. Ordinary edits accept only name, status and
+description; URL, poster, assignee and ownership remain intact. Foreign keys
+restrict account/profile deletion while projects remain. Map `ProjectsError.code`
+(`INVALID`, `FORBIDDEN`, `NOT_FOUND`, `IN_USE`, `STORAGE`) to safe host responses.
+Routing, invitations, assignment editors and external integrations stay host-owned.
+
+The list query is `{ search?, pageSize?, cursor? }` and returns `{ items, nextCursor }`.
+Pages default to 50 candidates, cap at 100 and authorize persisted ownership and
+each returned project. An empty authorized page can still have a next cursor.
+Compose `TablePagination` without an unfiltered total and retain URL-owned search,
+owner and page state. See the [bounded directory contract](./persistence.md#bounded-customer-and-project-directories).

@@ -51,6 +51,11 @@ export interface EmployeeServiceOptions {
   sendInvitation: (employee: Employee, invitationURL: string) => Promise<void>;
   /** Replace provider deletion with the host's atomic retention/account transaction. */
   removeEmployee?: (id: string, decision: unknown) => Promise<void>;
+  /** Required when Customers is installed: exclude profiles before pagination and mutations. */
+  directory?: {
+    list(offset: number, limit: number): Promise<{ users: Employee[]; total: number }>;
+    contains(id: string): Promise<boolean>;
+  };
 }
 
 export function createEmployeeService({
@@ -60,21 +65,30 @@ export function createEmployeeService({
   verificationEnabled,
   sendInvitation,
   removeEmployee,
+  directory,
 }: EmployeeServiceOptions) {
   if (!actor || actor.banned || actor.mustChangePassword || !isEmployeeAdmin(actor.role)) {
     throw new Error("Administrator access required.");
   }
   const actorId = actor.id;
+  async function requireEmployee(id = actorId) {
+    if (directory && (!(await directory.contains(actorId)) || !(await directory.contains(id))))
+      throw new Error("Employee access required.");
+  }
   return {
     list(input: unknown) {
       const { offset } = listEmployeesSchema.parse(input);
-      return api.listUsers({
-        headers,
-        query: { limit: EMPLOYEE_PAGE_SIZE, offset, sortBy: "name", sortDirection: "asc" },
+      return requireEmployee().then(() => {
+        if (directory) return directory.list(offset, EMPLOYEE_PAGE_SIZE);
+        return api.listUsers({
+          headers,
+          query: { limit: EMPLOYEE_PAGE_SIZE, offset, sortBy: "name", sortDirection: "asc" },
+        });
       });
     },
     async create(input: unknown, invitationURL: string) {
       const data = createEmployeeSchema.parse(input);
+      await requireEmployee();
       if (!verificationEnabled) throw new Error("Email delivery is not configured.");
       const { user } = await api.createUser({
         headers,
@@ -90,12 +104,14 @@ export function createEmployeeService({
     },
     async setBan(input: unknown) {
       const { id, banned } = setEmployeeBanSchema.parse(input);
+      await requireEmployee(id);
       const request = { headers, body: { userId: id } };
       const { user } = banned ? await api.banUser(request) : await api.unbanUser(request);
       return user;
     },
     async update(input: unknown) {
       const data: UpdateEmployee = updateEmployeeSchema.parse(input);
+      await requireEmployee(data.id);
       if (data.id === actorId && data.role !== "admin")
         throw new Error("You cannot remove your own administrator access.");
       const employee = await api.getUser({ headers, query: { id: data.id } });
@@ -115,6 +131,7 @@ export function createEmployeeService({
     },
     async remove(input: unknown, decision?: unknown) {
       const { id } = employeeIdSchema.parse(input);
+      await requireEmployee(id);
       if (id === actorId) throw new Error("You cannot delete your own account.");
       if (removeEmployee) await removeEmployee(id, decision);
       else await api.removeUser({ headers, body: { userId: id } });
@@ -127,6 +144,7 @@ export function createEmployeeService({
       invitationURL: string,
     ): Promise<VerificationResult> {
       const { id } = employeeIdSchema.parse(input);
+      await requireEmployee(id);
       const employee = await api.getUser({ headers, query: { id } });
       if (employee.banned) throw new Error("This account is disabled.");
       if (!employee.mustChangePassword && employee.emailVerified) return { status: "verified" };

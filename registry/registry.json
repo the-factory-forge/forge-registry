@@ -1038,22 +1038,17 @@
       "title": "Drive storage",
       "description": "Private S3 and PostgreSQL storage for entity-scoped Drive spaces.",
       "dependencies": [
-        "drizzle-orm",
-        "postgres",
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
         "@aws-sdk/client-s3",
         "@aws-sdk/s3-request-presigner"
       ],
-      "registryDependencies": ["@forge/drive"],
+      "registryDependencies": ["@forge/drive", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/drive/server/index.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/drive/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/drive/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/drive/server/schema.ts",
@@ -1084,11 +1079,6 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
-        },
-        {
-          "path": "registry/components/plugins/drive/server/storage-names-migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/drive/server/storage-names-migration.sql"
         }
       ]
     },
@@ -1175,18 +1165,13 @@
       "type": "registry:block",
       "title": "Blogs storage",
       "description": "PostgreSQL article/history snapshots and private S3 image storage for multilingual blogs.",
-      "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
-      "registryDependencies": ["@forge/blogs"],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9", "@aws-sdk/client-s3"],
+      "registryDependencies": ["@forge/blogs", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/blogs/server/index.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/blogs/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/blogs/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/blogs/server/schema.ts",
@@ -1209,9 +1194,14 @@
           "target": "@components/utils/storage-filename.ts"
         },
         {
-          "path": "registry/components/plugins/blogs/server/history-migration.sql",
-          "type": "registry:component",
-          "target": "@components/plugins/blogs/server/history-migration.sql"
+          "path": "registry/components/plugins/blogs/server/projections.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/projections.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/readiness.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/readiness.server.ts"
         }
       ]
     },
@@ -1292,19 +1282,14 @@
       "name": "menus-storage",
       "type": "registry:block",
       "title": "Menus storage",
-      "description": "Better Auth models and Drizzle service for restaurant menus with size prices, spice levels and Drive-backed images.",
-      "dependencies": ["better-auth@1.7.12", "drizzle-orm"],
-      "registryDependencies": ["@forge/menus", "@forge/drive-storage"],
+      "description": "Typed Drizzle service and schema for restaurant menus with size prices, spice levels and Drive-backed images.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4"],
+      "registryDependencies": ["@forge/menus", "@forge/drive-storage", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/menus/server/index.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/better-auth.ts",
-          "type": "registry:lib",
-          "target": "@components/plugins/menus/server/better-auth.ts"
         },
         {
           "path": "registry/components/plugins/menus/server/schema.ts",
@@ -1315,26 +1300,6 @@
           "path": "registry/components/plugins/menus/server/service.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/server/service.server.ts"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/migration.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/spice-level.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/spice-level.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/sizes.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/sizes.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/label-icon.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/label-icon.sql"
         }
       ]
     },
@@ -1621,8 +1586,8 @@
       "type": "registry:block",
       "title": "Reservations storage",
       "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
-      "dependencies": ["drizzle-orm@0.45.4", "postgres@3.4.9"],
-      "registryDependencies": ["@forge/reservations", "@forge/mailing"],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9"],
+      "registryDependencies": ["@forge/reservations", "@forge/mailing", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/reservations/server/index.ts",
@@ -1633,11 +1598,6 @@
           "path": "registry/components/plugins/reservations/server/links.ts",
           "type": "registry:component",
           "target": "@components/plugins/reservations/server/links.ts"
-        },
-        {
-          "path": "registry/components/plugins/reservations/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/reservations/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/reservations/server/schema.ts",
@@ -1723,6 +1683,75 @@
       ],
       "dependencies": ["@base-ui/react"],
       "registryDependencies": ["@forge/cn", "@forge/dialog-submit"]
+    },
+    {
+      "name": "database",
+      "type": "registry:lib",
+      "title": "Plugin database",
+      "description": "Server-only typed Drizzle queries, bounded directory reads, persistent transaction locks and migration-journal preflight.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9", "zod"],
+      "files": [
+        {
+          "path": "registry/components/utils/database.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/database.ts"
+        },
+        {
+          "path": "registry/components/utils/database-migrations.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/database-migrations.ts"
+        }
+      ]
+    },
+    {
+      "name": "customers-storage",
+      "type": "registry:block",
+      "title": "Customers storage",
+      "description": "Typed customer profiles linked to the host Better Auth user table with transactional identity operations.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/customers", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/customers/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/service.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "projects-storage",
+      "type": "registry:block",
+      "title": "Projects storage",
+      "description": "Typed project persistence with required customer ownership and restricted deletion.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/projects", "@forge/customers-storage", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/projects/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/service.server.ts"
+        }
+      ]
     }
   ]
 }

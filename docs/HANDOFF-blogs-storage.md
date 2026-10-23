@@ -1,3 +1,8 @@
+> Current migration workflow: [project-owned Drizzle persistence](./persistence.md).
+> This historical handoff references SQL files that have been removed. For new
+> installations, compose the current Drizzle schemas and generate host migrations
+> using the workflow above.
+
 # HANDOFF: blog Markdown in PostgreSQL, images in S3
 
 Use this handoff from a consuming website's chat, including a website that installs

@@ -24,7 +24,8 @@
     "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs tests/blogs-storage/history.integration.mjs",
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview",
-    "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs"
+    "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs",
+    "test:persistence": "node --test tests/persistence/*.integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1153.0",
@@ -38,7 +39,7 @@
     "better-auth": "1.7.12",
     "cnfast": "0.1.0",
     "diff": "9.0.0",
-    "drizzle-orm": "0.45.4",
+    "drizzle-orm": "1.0.0-rc.4",
     "fflate": "0.8.3",
     "lucide-react": "1.60.0",
     "motion": "12.43.0",
@@ -50,11 +51,13 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@better-auth/drizzle-adapter": "1.7.12",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "drizzle-kit": "1.0.0-rc.4",
     "eslint-plugin-react-hooks": "7.1.1",
     "nitro": "3.0.260903-beta",
     "playwright": "1.64.1",

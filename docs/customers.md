@@ -84,11 +84,10 @@ summary and directory. `city` retains TC's combined postal-code/city field.
 address fields. Empty optional fields submit as empty strings; map these to
 database nulls in the host if needed. Name and email are trimmed on submission.
 `CustomerCreateValues` contains the same contact fields; no creation or edit
-submission contains a password. Name is required. Email is optional on creation;
-editing requires an email, and nonempty emails must be valid. The host decides
-how to persist contacts without email; this UI never invents placeholder addresses.
-Hosts own invitation issuance, delivery, expiry and acceptance. Customer records
-without email remain contacts until the host can invite them.
+submission contains a password. Name and a valid email are required on creation and editing. Hosts own invitation
+issuance, delivery, expiry and acceptance. Existing email-less website records
+remain untouched pending a separate adoption decision; never invent placeholder
+addresses or silently attach existing accounts.
 
 The form retains failed submissions and drafts across same-customer rerenders.
 Changing the customer ID resets the form. To deliberately reload an existing
@@ -146,3 +145,30 @@ the existing toast. Unsaved contact fields remain intact. Hosts must authorize
 verification writes and reject failed requests. The `verification(name)` label
 provides the translated accessible name. The dropdown dependency installs with
 Customers and is also used by Projects.
+
+## Optional persistence companion
+
+Install `@forge/customers-storage` for `createCustomersSchema(user)`,
+`createCustomersService(options)`, validation/options and inferred profile types.
+Compose the actual host user table and follow the [persistence guide](./persistence.md).
+The service offers `list`, `get`, `create`, `update`, `setVerified`, `remove` and
+`resendInvitation` through `client(context)`. It normalizes optional contact fields
+to null and maps failures to `INVALID`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`,
+`IN_USE` or `STORAGE`. Return only these safe codes from the host transport.
+
+Identity/profile writes share the supplied transaction-bound Better Auth adapter.
+Creation returns `{ customer, invitationSent }`; failed delivery retains the
+account for retry. Roles stay admin/user; profile membership determines customer
+access and must exclude the account from employee adapters. Invitations,
+impersonation and external integrations remain host-owned.
+
+`list({ search?, pageSize?, cursor? })` returns `{ items, nextCursor }`; it defaults
+to 50 candidates, caps pages at 100 and authorizes each returned customer. Keep
+Next available for an empty page with a cursor. Use the host URL for search/page
+state and compose the shared `TablePagination` around the directory. See the
+[bounded directory contract](./persistence.md#bounded-customer-and-project-directories).
+
+When creation's response is lost or invitation delivery fails, find the saved
+customer by email and use `resendInvitation`. Manual recovery is the default;
+guaranteed eventual delivery needs a host-owned outbox. Profile-only edits preserve
+pending invitations because they do not invoke identity mutation hooks.

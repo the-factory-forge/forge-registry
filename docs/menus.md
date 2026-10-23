@@ -2,7 +2,7 @@
 
 `@forge/menus` provides a public restaurant menu and staff pages for items,
 categories, and reusable allergen and dietary labels. `@forge/menus-storage`
-adds Better Auth schema registration, Drizzle tables, and server operations. It
+adds Drizzle tables and typed server operations. It
 also installs Drive storage for private image uploads. No restaurant routes,
 sessions, database migration, or bucket configuration are installed automatically.
 
@@ -17,20 +17,13 @@ pnpm dlx shadcn@4.22.1 add @forge/menus-storage
 
 Import `MenuPage`, `MenuItemsPage`, `MenuItemEditorPage`, `MenuTaxonomyPage`, and
 their types from `@/components/plugins/menus`. Import `createMenusService`,
-`menusPlugin`, the Drizzle tables, and `menuImageDeleteGuard` only from
-`@/components/plugins/menus/server`. Register `menusPlugin()` in the host's
-Better Auth configuration and include the exported Drizzle tables in its schema.
-Review `server/migration.sql`, `server/spice-level.sql`, `server/sizes.sql` and
-`server/label-icon.sql` and apply them in that order through the host migration
-workflow. Existing
-installations only need the upgrades they have not yet applied after updating
-their source. The upgrades add a constrained spice level defaulting to zero and
-a sizes array defaulting to empty, plus a nullable label icon, preserving existing
-dishes and labels. Reapplying them retains saved heat, sizes and icons. The initial
-migration creates three menu tables;
-Drive storage has its own migration.
-Do not run both a manual SQL migration and generated Drizzle migration for the
-same tables.
+the Drizzle tables, and `menuImageDeleteGuard` only from
+`@/components/plugins/menus/server`. Compose those tables, Drive tables and
+`pluginLocks` into the host schema; generate and review one project migration.
+Remove the former `menusPlugin()` registration and obsolete installed file. Menus
+business tables no longer register with Better Auth. Follow the
+[persistence and cutover guide](./persistence.md), preserving saved dishes, spice
+levels, sizes and icons. Historical SQL remains an upgrade fixture only.
 
 The host configures `createDriveStorage` for a `menu-item` scope. Its
 `resolveScope` callback must verify that the item exists and that the current
@@ -104,7 +97,7 @@ use the same saved choice. Choose Automatic to restore the preset or generic ico
 `MenuLabel.icon` and `MenuViewLabel.icon` accept a `MenuLabelIcon` value from
 `menuLabelIcons`. An omitted icon on update preserves the saved choice; explicit
 `null` clears it. The storage service validates and persists icons. Apply the
-incremental `server/label-icon.sql` migration before using the updated storage
+generated incremental label-icon migration before using the updated storage
 companion. Override `icon`, `automaticIcon` and `iconNames` through `labels` to
 translate the selector. Partial `iconNames` overrides retain English fallbacks.
 

@@ -57,10 +57,10 @@ await test("Drive UI ships independently; only the companion contains storage de
     "@forge/table-selection",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react", "fflate@0.8.3"]);
-  assert.deepEqual(server.registryDependencies, ["@forge/drive"]);
+  assert.deepEqual(server.registryDependencies, ["@forge/drive", "@forge/database"]);
   assert.deepEqual(server.dependencies, [
-    "drizzle-orm",
-    "postgres",
+    "drizzle-orm@1.0.0-rc.4",
+    "postgres@3.4.9",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
   ]);

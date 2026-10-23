@@ -16,6 +16,11 @@ const resolved = code.replace(/"(react|react-email|react\/jsx-runtime)"/g, (_, n
 const compiled = `data:text/javascript;base64,${Buffer.from(resolved).toString("base64")}`;
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === "@/components/plugins/mailing")
+      return {
+        url: new URL("../registry/components/plugins/mailing/index.ts", import.meta.url).href,
+        shortCircuit: true,
+      };
     if (
       specifier === "./transactional-email" &&
       context.parentURL?.endsWith("/plugins/mailing/index.ts")

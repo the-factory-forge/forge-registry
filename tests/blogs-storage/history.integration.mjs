@@ -1,8 +1,8 @@
-import "../drive-storage/register.mjs";
 import assert from "node:assert/strict";
+
+import "../drive-storage/register.mjs";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { promisify } from "node:util";
 
@@ -16,6 +16,8 @@ import {
 } from "@aws-sdk/client-s3";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
+import { initializeStorage } from "../persistence/migrations.mjs";
 
 const { createBlogsStorage } =
   await import("../../registry/components/plugins/blogs/server/storage.server.ts");
@@ -37,7 +39,7 @@ await test("localized history uses transactional PostgreSQL and private image re
     connection: { search_path: schema },
     onnotice: () => {},
   });
-  const db = drizzle(pool);
+  const db = drizzle({ client: pool });
   const s3 = new S3Client({
     endpoint: "http://127.0.0.1:19040",
     region: "us-east-1",
@@ -110,12 +112,7 @@ await test("localized history uses transactional PostgreSQL and private image re
 
   try {
     await root`create schema ${root(schema)}`;
-    await pool.unsafe(
-      await readFile(
-        new URL("../../registry/components/plugins/blogs/server/migration.sql", import.meta.url),
-        "utf8",
-      ),
-    );
+    await initializeStorage(pool, ["blogs"]);
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
 
     await t.test("saves persist complete snapshots and suppress unchanged inputs", async () => {
@@ -539,7 +536,7 @@ await test("localized history uses transactional PostgreSQL and private image re
     });
 
     await t.test(
-      "migration preserves current states and repeats without allocating content",
+      "history backfill preserves current states and repeats without allocating content",
       async () => {
         let article = await save(alice, await create("Migration"), "Legacy publication");
         article = await publish(alice, article);
@@ -547,14 +544,6 @@ await test("localized history uses transactional PostgreSQL and private image re
         const version = article.version;
         await pool`delete from blogs_history where article_id=${article.id}`;
         await pool`update blogs_article set document=document #- '{translations,en,history}' #- '{translations,en,shared}' where id=${article.id}`;
-        const incremental = await readFile(
-          new URL(
-            "../../registry/components/plugins/blogs/server/history-migration.sql",
-            import.meta.url,
-          ),
-          "utf8",
-        );
-        await pool.unsafe(incremental);
         const first = await db.transaction((tx) => storage.backfillHistory(tx));
         assert.equal(first.updated, 1);
         article = await alice.get(article.id);
@@ -563,14 +552,13 @@ await test("localized history uses transactional PostgreSQL and private image re
         assert.equal(seeded[0].state, "publication");
         assert.equal(article.version, version);
         assert.deepEqual(article.translations.en.published, publication);
-        await pool.unsafe(incremental);
         assert.equal((await db.transaction((tx) => storage.backfillHistory(tx))).updated, 0);
         assert.deepEqual(await headers(alice, article), seeded);
       },
     );
 
     await t.test(
-      "migration captures distinct drafts and publications in each language",
+      "history backfill captures distinct drafts and publications in each language",
       async () => {
         let article = await save(alice, await create("Localized migration"), "Published English");
         article = await publish(alice, article);
@@ -647,7 +635,7 @@ await test("localized history uses transactional PostgreSQL and private image re
         const { createBlogsStorage } = await import(${JSON.stringify(source)});
         const pool = postgres(${JSON.stringify(connection)}, { max: 2, connection: { search_path: ${JSON.stringify(schema)} } });
         try {
-          const client = createBlogsStorage({ db: drizzle(pool), keyPrefix: 'history-test/blogs/', locales: ['en','fr'], authorize: async () => true, resolveEditor: async () => ({id:'alice',name:'Alice'}) }).client('alice');
+          const client = createBlogsStorage({ db: drizzle({ client: pool }), keyPrefix: 'history-test/blogs/', locales: ['en','fr'], authorize: async () => true, resolveEditor: async () => ({id:'alice',name:'Alice'}) }).client('alice');
           const headers = await client.history.list({id:${JSON.stringify(article.id)},locale:'en'});
           assert.equal(headers.length,1);
           const saved = await client.history.get({id:${JSON.stringify(article.id)},locale:'en',versionId:headers[0].id});

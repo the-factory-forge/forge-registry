@@ -39,6 +39,9 @@ export const reservations = pgTable(
   {
     id: text("id").primaryKey(),
     document: jsonb("document").$type<Reservation>().notNull(),
+    status: text("status")
+      .$type<Reservation["status"]>()
+      .generatedAlwaysAs(sql`document->>'status'`),
     requestId: text("request_id").notNull().unique(),
     requestHash: text("request_hash").notNull(),
     tokenVersion: integer("token_version").notNull().default(1),
@@ -66,7 +69,9 @@ export const reservationNotifications = pgTable(
       .notNull()
       .references(() => reservations.id),
     version: integer("version").notNull(),
-    kind: text("kind").notNull(),
+    kind: text("kind")
+      .$type<"booked" | "rescheduled" | "confirmed" | "rejected" | "cancelled" | "link">()
+      .notNull(),
     document: jsonb("document").$type<Reservation>().notNull(),
     attempts: integer("attempts").notNull().default(0),
     nextAttempt: timestamp("next_attempt", { withTimezone: true }).notNull().defaultNow(),
@@ -80,3 +85,9 @@ export const reservationNotifications = pgTable(
     index("reservations_notification_due").on(t.sentAt, t.nextAttempt),
   ],
 );
+
+export type ReservationRecord = typeof reservations.$inferSelect;
+export type ReservationNotificationRecord = typeof reservationNotifications.$inferSelect;
+export type ReservationSettingsRecord = typeof reservationSettings.$inferSelect;
+export type ReservationResourceRecord = typeof reservationResources.$inferSelect;
+export type ReservationServiceRecord = typeof reservationServices.$inferSelect;

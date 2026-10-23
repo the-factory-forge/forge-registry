@@ -1,11 +1,13 @@
-import "../drive-storage/register.mjs";
 import assert from "node:assert/strict";
+
+import "../drive-storage/register.mjs";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
+import { initializeStorage } from "../persistence/migrations.mjs";
 
 const { createBlogsStorage } =
   await import("../../registry/components/plugins/blogs/server/storage.server.ts");
@@ -26,19 +28,14 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
   });
   try {
     await root`create schema ${root(schema)}`;
-    await pool.unsafe(
-      await readFile(
-        new URL("../../registry/components/plugins/blogs/server/migration.sql", import.meta.url),
-        "utf8",
-      ),
-    );
     const accounts = new Map([
       ["author", "Original author"],
       ["colleague", "Draft editor"],
       ["admin", "Administrator"],
     ]);
+    await initializeStorage(pool, ["blogs"]);
     const storage = createBlogsStorage({
-      db: drizzle(pool),
+      db: drizzle({ client: pool }),
       keyPrefix: "author-tests/blogs/",
       locales: ["en", "fr"],
       resolveAuthorNames: async (ids) =>
@@ -148,7 +145,7 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     accounts.set("author", "Final name before departure");
     const [beforeDeparture] = await pool`select document from blogs_article where id=${article.id}`;
     await assert.rejects(
-      drizzle(pool).transaction(async (tx) => {
+      drizzle({ client: pool }).transaction(async (tx) => {
         await storage.snapshotAuthorName(tx, {
           id: "author",
           name: accounts.get("author"),
@@ -160,7 +157,7 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
     );
     const [afterRollback] = await pool`select document from blogs_article where id=${article.id}`;
     assert.deepEqual(afterRollback.document, beforeDeparture.document);
-    await drizzle(pool).transaction((tx) =>
+    await drizzle({ client: pool }).transaction((tx) =>
       storage.snapshotAuthorName(tx, {
         id: "author",
         name: accounts.get("author"),

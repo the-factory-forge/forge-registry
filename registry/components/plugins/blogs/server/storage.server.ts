@@ -7,7 +7,19 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { sql } from "drizzle-orm";
+import {
+  and,
+  arrayContains,
+  count,
+  desc,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNotNull,
+  lt,
+  ne,
+} from "drizzle-orm";
 
 import {
   createArticle,
@@ -22,6 +34,20 @@ import {
   BLOG_DRAFT_LIMIT,
   BLOG_PUBLICATION_LIMIT,
 } from "@/components/plugins/blogs/model";
+import {
+  historyAssetIds,
+  updateBlogProjections,
+} from "@/components/plugins/blogs/server/projections.server";
+import { assertBlogStorageReady } from "@/components/plugins/blogs/server/readiness.server";
+import {
+  blogsArticles as articles,
+  blogsCategories as categoriesTable,
+  blogsHistory as historyTable,
+  blogsObjects as objects,
+  blogsMutations as mutations,
+  blogsTranslations as translations,
+  blogsPublicationCategories as publicationCategories,
+} from "@/components/plugins/blogs/server/schema";
 import type {
   BlogImageInput,
   BlogsPermission,
@@ -43,7 +69,6 @@ import type {
   BlogPublicQuery,
   BlogSaveInput,
   BlogsClient,
-  BlogHistoryHeader,
   BlogHistoryVersion,
   BlogHistoryTarget,
   BlogHistoryPlan,
@@ -60,21 +85,11 @@ import {
   draftShared,
   validateContent,
 } from "@/components/plugins/blogs/utils";
+import { databaseErrorCode } from "@/components/utils/database";
+import { lockPlugin, containsPattern } from "@/components/utils/database";
 import { storageFilename } from "@/components/utils/storage-filename";
 
-type ObjectRow = {
-  id: string;
-  article_id: string;
-  key: string;
-  kind: string;
-  name: string;
-  content_type: string;
-  size: number;
-  state: string;
-};
-async function rows<T>(tx: BlogsTransaction, query: ReturnType<typeof sql>) {
-  return (await tx.execute(query)) as unknown as T[];
-}
+type ObjectRow = typeof objects.$inferSelect;
 function references(article: BlogArticle) {
   const refs = new Set(
     [article.shared.thumbnailId, article.shared.bannerId].filter((v): v is string => Boolean(v)),
@@ -90,14 +105,22 @@ function references(article: BlogArticle) {
 }
 const asset = (row: ObjectRow): BlogAsset => ({
   id: row.id,
-  postId: row.article_id,
+  postId: row.articleId,
   name: row.name,
   size: row.size,
-  contentType: row.content_type,
+  contentType: row.contentType,
 });
 
 export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context>) {
   const { db, s3 } = options;
+  let readiness: ReturnType<typeof assertBlogStorageReady> | undefined;
+  function preflight() {
+    readiness ??= assertBlogStorageReady(db).catch((error: unknown) => {
+      readiness = undefined;
+      throw error;
+    });
+    return readiness;
+  }
   const bucket = options.bucket?.trim();
   const prefix = options.keyPrefix;
   function scopedKey(key: string) {
@@ -162,24 +185,24 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   }
   async function guard<T>(action: () => Promise<T>): Promise<T> {
     try {
+      await preflight();
       return await action();
     } catch (error) {
       if (error instanceof BlogsError) throw error;
-      if (error && typeof error === "object" && "code" in error && error.code === "23505")
-        throw new BlogsError("CONFLICT");
+      if (databaseErrorCode(error) === "23505") throw new BlogsError("CONFLICT");
       throw new BlogsError("STORAGE");
     }
   }
-  // ponytail: serialize blog writes and maintenance per database; use per-article locks
+  // shortcut: serialize blog writes and maintenance per database; use per-article locks
   // plus transactional taxonomy/slug indexes if a host needs high write throughput.
   async function lock(tx: BlogsTransaction) {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('forge-blogs'))`);
+    await lockPlugin(tx, "forge-blogs");
   }
   async function metadata(tx: BlogsTransaction, id: string) {
-    const [row] = await rows<{ document: BlogArticle }>(
-      tx,
-      sql`select document from blogs_article where id=${id}`,
-    );
+    const [row] = await tx
+      .select({ document: articles.document })
+      .from(articles)
+      .where(eq(articles.id, id));
     assertBlog(row, "NOT_FOUND");
     return row.document;
   }
@@ -224,40 +247,49 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         author.name.length <= 250,
     );
     await lock(tx);
-    const records = await rows<{ document: BlogArticle }>(
-      tx,
-      sql`
-      select document from blogs_article where document->'shared'->'author'->>'id'=${author.id}
-      or exists (select 1 from jsonb_each(document->'translations') t
-        where t.value->'shared'->'author'->>'id'=${author.id}
-        or t.value->'published'->'shared'->'author'->>'id'=${author.id})`,
-    );
+    const records = await tx
+      .select({ document: articles.document })
+      .from(articles)
+      .where(arrayContains(articles.authorIds, [author.id]));
     for (const { document } of records) {
       for (const field of authorFields(document))
         if (field.author?.id === author.id) field.author = { id: author.id, name: author.name };
       await saveRecord(tx, document);
     }
-    const signature = JSON.stringify({ id: author.id, name: author.name });
-    await tx.execute(sql`update blogs_history
-      set header=jsonb_set(header,'{author}',${signature}::jsonb),
-          payload=jsonb_set(payload,'{shared,author}',${signature}::jsonb)
-      where header->'author'->>'id'=${author.id}`);
+    const versions = await tx
+      .select()
+      .from(historyTable)
+      .where(eq(historyTable.authorId, author.id));
+    for (const version of versions) {
+      await tx
+        .update(historyTable)
+        .set({
+          header: { ...version.header, author: { ...author } },
+          payload: {
+            ...version.payload,
+            shared: { ...version.payload.shared, author: { ...author } },
+          },
+        })
+        .where(eq(historyTable.id, version.id));
+    }
   }
   async function allCategories(tx: BlogsTransaction) {
     return (
-      await rows<{ document: BlogCategory }>(
-        tx,
-        sql`select document from blogs_category order by id`,
-      )
+      await tx
+        .select({ document: categoriesTable.document })
+        .from(categoriesTable)
+        .orderBy(categoriesTable.id)
     ).map((r) => r.document);
   }
 
   async function historyHeaders(tx: BlogsTransaction, id: string, language: string) {
     return (
-      await rows<{ header: BlogHistoryHeader }>(
-        tx,
-        sql`select header from blogs_history where article_id=${id} and locale=${language} order by number desc limit ${BLOG_DRAFT_LIMIT + BLOG_PUBLICATION_LIMIT}`,
-      )
+      await tx
+        .select({ header: historyTable.header })
+        .from(historyTable)
+        .where(and(eq(historyTable.articleId, id), eq(historyTable.locale, language)))
+        .orderBy(desc(historyTable.number))
+        .limit(BLOG_DRAFT_LIMIT + BLOG_PUBLICATION_LIMIT)
     ).map((row) => row.header);
   }
   async function historyVersion(
@@ -267,13 +299,16 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     versionId: string,
   ) {
     validId(versionId);
-    const [row] = await rows<{
-      header: BlogHistoryHeader;
-      payload: Pick<BlogHistoryVersion, "content" | "shared">;
-    }>(
-      tx,
-      sql`select header,payload from blogs_history where article_id=${id} and locale=${language} and id=${versionId}`,
-    );
+    const [row] = await tx
+      .select({ header: historyTable.header, payload: historyTable.payload })
+      .from(historyTable)
+      .where(
+        and(
+          eq(historyTable.articleId, id),
+          eq(historyTable.locale, language),
+          eq(historyTable.id, versionId),
+        ),
+      );
     assertBlog(row, "NOT_FOUND");
     return { ...row.header, ...row.payload };
   }
@@ -283,25 +318,40 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     version: BlogHistoryVersion,
   ) {
     const { content, shared, ...header } = version;
-    const saved = await rows<{ id: string }>(
-      tx,
-      sql`
-      insert into blogs_history (id,article_id,locale,number,header,payload)
-      values (${version.id},${articleId},${version.locale},${version.number},${JSON.stringify(header)}::jsonb,${JSON.stringify({ content, shared })}::jsonb)
-      on conflict(id) do update set header=excluded.header
-      where blogs_history.article_id=excluded.article_id and blogs_history.locale=excluded.locale and blogs_history.number=excluded.number
-      returning id`,
-    );
+    const saved = await tx
+      .insert(historyTable)
+      .values({
+        id: version.id,
+        articleId,
+        locale: version.locale,
+        number: version.number,
+        header,
+        payload: { content, shared },
+        assetIds: historyAssetIds({ content, shared }),
+      })
+      .onConflictDoUpdate({
+        target: historyTable.id,
+        set: { header },
+        setWhere: and(
+          eq(historyTable.articleId, articleId),
+          eq(historyTable.locale, version.locale),
+          eq(historyTable.number, version.number),
+        ),
+      })
+      .returning({ id: historyTable.id });
     assertBlog(saved.length === 1, "CONFLICT");
   }
   async function removeHistory(tx: BlogsTransaction, id: string, language: string, ids: string[]) {
     if (ids.length)
-      await tx.execute(
-        sql`delete from blogs_history where article_id=${id} and locale=${language} and id in (${sql.join(
-          ids.map((versionId) => sql`${versionId}::uuid`),
-          sql`, `,
-        )})`,
-      );
+      await tx
+        .delete(historyTable)
+        .where(
+          and(
+            eq(historyTable.articleId, id),
+            eq(historyTable.locale, language),
+            inArray(historyTable.id, ids),
+          ),
+        );
   }
   async function seedHistory(tx: BlogsTransaction, article: BlogArticle, language: string) {
     const translation = article.translations[language];
@@ -381,12 +431,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   /** Server-only migration hook. Call inside the host's reviewed migration transaction. */
   async function backfillHistory(tx: BlogsTransaction) {
     await lock(tx);
-    const articles = await rows<{ document: BlogArticle }>(
-      tx,
-      sql`select document from blogs_article order by id`,
-    );
+    const records = await tx
+      .select({ document: articles.document })
+      .from(articles)
+      .orderBy(articles.id);
     let updated = 0;
-    for (const { document } of articles) {
+    for (const { document } of records) {
       let changed = false;
       for (const language of Object.keys(document.translations))
         changed = (await seedHistory(tx, document, language)) || changed;
@@ -398,10 +448,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return { updated };
   }
   async function object(tx: BlogsTransaction, id: string, articleId: string) {
-    const [row] = await rows<ObjectRow>(
-      tx,
-      sql`select * from blogs_object where id=${id} and article_id=${articleId} and state='ready'`,
-    );
+    const [row] = await tx
+      .select()
+      .from(objects)
+      .where(and(eq(objects.id, id), eq(objects.articleId, articleId), eq(objects.state, "ready")));
     assertBlog(row, "NOT_FOUND");
     return row;
   }
@@ -433,9 +483,9 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         await lock(tx);
         await access(context, permission, articleId);
         await metadata(tx, articleId);
-        await tx.execute(
-          sql`insert into blogs_object (id,article_id,key,kind,name,content_type,size,state) values (${id},${articleId},${key},'image',${name},${contentType},${size},'pending')`,
-        );
+        await tx
+          .insert(objects)
+          .values({ id, articleId, key, kind: "image", name, contentType, size, state: "pending" });
       }),
     );
     return { id, key };
@@ -448,10 +498,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   ) {
     assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     await verifyBucket();
-    const [pending] = await rows<{ id: string }>(
-      tx,
-      sql`select id from blogs_object where id=${reserved.id} and state='pending'`,
-    );
+    const [pending] = await tx
+      .select({ id: objects.id })
+      .from(objects)
+      .where(and(eq(objects.id, reserved.id), eq(objects.state, "pending")));
     assertBlog(pending, "CONFLICT");
     // Each upload reserves a fresh UUID key; some S3 providers reject conditional PUTs.
     await s3.send(
@@ -464,7 +514,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       }),
       { abortSignal: AbortSignal.timeout(30000) },
     );
-    await tx.execute(sql`update blogs_object set state='ready' where id=${reserved.id}`);
+    await tx.update(objects).set({ state: "ready" }).where(eq(objects.id, reserved.id));
   }
   async function write<T>(
     context: Context,
@@ -496,21 +546,22 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             editor.name.trim() &&
             editor.name.length <= 250,
         );
-        const [previous] = await rows<{ actor_id: string; fingerprint: string; result: T }>(
-          tx,
-          sql`select * from blogs_mutation where id=${input.requestId}`,
-        );
+        const [previous] = await tx
+          .select()
+          .from(mutations)
+          .where(eq(mutations.id, input.requestId));
         if (previous) {
           assertBlog(
-            previous.actor_id === editor.id && previous.fingerprint === fingerprint,
+            previous.actorId === editor.id && previous.fingerprint === fingerprint,
             "CONFLICT",
           );
-          return previous.result;
+          // The actor, operation and exact input fingerprint identify this server-written result.
+          return previous.result as T;
         }
         const result = await action(tx, { id: editor.id, name: editor.name });
-        await tx.execute(
-          sql`insert into blogs_mutation (id,actor_id,fingerprint,result) values (${input.requestId},${editor.id},${fingerprint},${JSON.stringify(result)}::jsonb)`,
-        );
+        await tx
+          .insert(mutations)
+          .values({ id: input.requestId, actorId: editor.id, fingerprint, result });
         return result;
       }),
     );
@@ -522,17 +573,26 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return article;
   }
   async function saveRecord(tx: BlogsTransaction, article: BlogArticle) {
-    await tx.execute(
-      sql`update blogs_article set document=${JSON.stringify(article)}::jsonb,version=${article.version},updated_at=${article.updatedAt} where id=${article.id}`,
-    );
+    await tx
+      .update(articles)
+      .set({ document: article, version: article.version, updatedAt: new Date(article.updatedAt) })
+      .where(eq(articles.id, article.id));
+    await updateBlogProjections(tx, article);
     return { id: article.id };
   }
   async function uniqueSlug(tx: BlogsTransaction, id: string, l: string, slug: string) {
     if (!slug) return;
-    const existing = await rows<{ id: string }>(
-      tx,
-      sql`select id from blogs_article where id<>${id} and (document->'translations'->${l}->'draft'->>'slug'=${slug} or document->'translations'->${l}->'published'->>'slug'=${slug}) limit 1`,
-    );
+    const existing = await tx
+      .select({ id: translations.articleId })
+      .from(translations)
+      .where(
+        and(
+          ne(translations.articleId, id),
+          eq(translations.locale, l),
+          eq(translations.slug, slug),
+        ),
+      )
+      .limit(1);
     assertBlog(!existing.length, "CONFLICT");
   }
   async function create(context: Context, input: BlogMutation & { title: string; locale: string }) {
@@ -556,9 +616,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           draft.slug = `${draft.slug.slice(0, 100)}-${id.slice(0, 8)}`;
         }
         await uniqueSlug(tx, id, input.locale, draft.slug);
-        await tx.execute(
-          sql`insert into blogs_article (id,version,document,updated_at) values (${id},1,${JSON.stringify(article)}::jsonb,${now})`,
-        );
+        await tx
+          .insert(articles)
+          .values({ id, version: 1, document: article, updatedAt: new Date(now) });
+        await updateBlogProjections(tx, article);
         return { id };
       },
     );
@@ -601,10 +662,16 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         : null;
       const author = resolvedAuthor ?? (authorId === currentAuthor?.id ? currentAuthor : undefined);
       assertBlog(!authorId || (author && author.id === authorId), "NOT_FOUND");
-      const images = await rows<{ id: string }>(
-        tx,
-        sql`select id from blogs_object where article_id=${input.id} and kind='image' and state='ready'`,
-      );
+      const images = await tx
+        .select({ id: objects.id })
+        .from(objects)
+        .where(
+          and(
+            eq(objects.articleId, input.id),
+            eq(objects.kind, "image"),
+            eq(objects.state, "ready"),
+          ),
+        );
       const next = saveArticle(
         article,
         { ...input, shared: { ...input.shared, author } },
@@ -702,12 +769,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     const records: ObjectRow[] = [];
     for (const id of ids) {
       validId(id);
-      const [record] = await rows<ObjectRow>(tx, sql`select * from blogs_object where id=${id}`);
+      const [record] = await tx.select().from(objects).where(eq(objects.id, id));
       if (!record) {
         missing.push(id);
         continue;
       }
-      assertBlog(record.article_id === articleId && record.kind === "image", "FORBIDDEN");
+      assertBlog(record.articleId === articleId && record.kind === "image", "FORBIDDEN");
       assertBlog(record.state === "ready", "INVALID");
       records.push(record);
     }
@@ -719,7 +786,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           { abortSignal: AbortSignal.timeout(30000) },
         );
         assertBlog(
-          head.ContentLength === record.size && head.ContentType === record.content_type,
+          head.ContentLength === record.size && head.ContentType === record.contentType,
           "STORAGE",
         );
       } catch (error) {
@@ -929,12 +996,26 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     const { page, pageSize, search } = query(input);
     return guard(async () => {
       // Per-record checks prevent a list-level permission from exposing restricted articles.
-      // ponytail: host authorization is an arbitrary callback, so admin pagination
-      // filters matching metadata in memory; inject a SQL visibility predicate at scale.
-      const records = await rows<{ document: BlogArticle }>(
-        db,
-        sql`select document from blogs_article where exists (select 1 from jsonb_each(document->'translations') t where position(lower(${search}) in lower(coalesce(t.value->'draft'->>'title','') || ' ' || coalesce(t.value->'draft'->>'summary',''))) > 0) order by updated_at desc,id`,
-      );
+      // shortcut: host authorization is an arbitrary callback, so admin pagination
+      // filters matching metadata in memory; add a typed host visibility predicate when this outgrows memory.
+      const records = await db
+        .select({ document: articles.document })
+        .from(articles)
+        .where(
+          exists(
+            db
+              .select({ id: translations.articleId })
+              .from(translations)
+              .where(
+                and(
+                  eq(translations.articleId, articles.id),
+                  eq(translations.kind, "draft"),
+                  ilike(translations.searchText, containsPattern(search)),
+                ),
+              ),
+          ),
+        )
+        .orderBy(desc(articles.updatedAt), articles.id);
       const allowed: BlogArticle[] = [];
       for (const { document } of records)
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
@@ -952,10 +1033,11 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         previous = categories.find((c) => c.id === input.id);
       if (input.id) assertBlog(previous && previous.version === input.version, "CONFLICT");
       if (previous && previous.parentId !== input.parentId) {
-        const used = await rows<{ id: string }>(
-          tx,
-          sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where (t.value->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb or t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([previous.id])}::jsonb)) limit 1`,
-        );
+        const used = await tx
+          .select({ id: articles.id })
+          .from(articles)
+          .where(arrayContains(articles.categoryIds, [previous.id]))
+          .limit(1);
         assertBlog(!used.length, "IN_USE");
       }
       const category: BlogCategory = {
@@ -964,9 +1046,10 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         parentId: input.parentId,
         translations: validateCategory(input, categories, options.locales),
       };
-      await tx.execute(
-        sql`insert into blogs_category (id,document) values (${category.id},${JSON.stringify(category)}::jsonb) on conflict(id) do update set document=excluded.document`,
-      );
+      await tx
+        .insert(categoriesTable)
+        .values({ id: category.id, document: category })
+        .onConflictDoUpdate({ target: categoriesTable.id, set: { document: category } });
       return category;
     });
   }
@@ -984,10 +1067,17 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         return guard(async () => {
           await metadata(db, id);
           return (
-            await rows<ObjectRow>(
-              db,
-              sql`select * from blogs_object where article_id=${id} and kind='image' and state='ready' order by created_at desc`,
-            )
+            await db
+              .select()
+              .from(objects)
+              .where(
+                and(
+                  eq(objects.articleId, id),
+                  eq(objects.kind, "image"),
+                  eq(objects.state, "ready"),
+                ),
+              )
+              .orderBy(desc(objects.createdAt))
           ).map(asset);
         });
       },
@@ -998,7 +1088,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       delete: async (input) => {
         await write(context, "delete", input.id, input, "delete", async (tx) => {
           await current(tx, input);
-          await tx.execute(sql`delete from blogs_article where id=${input.id}`);
+          await tx.delete(articles).where(eq(articles.id, input.id));
           return { id: input.id };
         });
       },
@@ -1027,12 +1117,13 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             assertBlog(category, "NOT_FOUND");
             assertBlog(category.version === input.version, "CONFLICT");
             assertBlog(!categories.some((c) => c.parentId === input.id), "IN_USE");
-            const used = await rows<{ id: string }>(
-              tx,
-              sql`select id from blogs_article where document->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or exists (select 1 from jsonb_each(document->'translations') t where (t.value->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb or t.value->'published'->'shared'->'categoryIds' @> ${JSON.stringify([input.id])}::jsonb)) limit 1`,
-            );
+            const used = await tx
+              .select({ id: articles.id })
+              .from(articles)
+              .where(arrayContains(articles.categoryIds, [input.id]))
+              .limit(1);
             assertBlog(!used.length, "IN_USE");
-            await tx.execute(sql`delete from blogs_category where id=${input.id}`);
+            await tx.delete(categoriesTable).where(eq(categoriesTable.id, input.id));
             return { id: input.id };
           },
         );
@@ -1045,24 +1136,35 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        const published = sql`document->'translations'->${input.locale}->'published'`;
-        const visible = sql`${published} is not null and ${published}<>'null'::jsonb`;
-        const filtered = sql`${visible} and position(lower(${search}) in lower((${published}->>'title') || ' ' || (${published}->>'summary'))) > 0 ${input.categoryId ? sql`and ${published}->'shared'->'categoryIds' @> ${JSON.stringify([input.categoryId])}::jsonb` : sql``}`;
-        const [{ total }] = await rows<{ total: number }>(
-          tx,
-          sql`select count(*)::int as total from blogs_article where ${filtered}`,
+        const visible = and(
+          eq(translations.locale, input.locale),
+          eq(translations.kind, "publication"),
+          isNotNull(translations.publication),
         );
-        const documents = await rows<{
-          id: string;
-          publication: NonNullable<BlogArticle["translations"][string]["published"]>;
-        }>(
-          tx,
-          sql`select id,((${published}) - 'markdown') as publication from blogs_article where ${filtered} order by ${published}->>'publishedAt' desc,id limit ${pageSize} offset ${(page - 1) * pageSize}`,
+        const filtered = and(
+          visible,
+          ilike(translations.searchText, containsPattern(search)),
+          input.categoryId
+            ? arrayContains(translations.categoryIds, [input.categoryId])
+            : undefined,
         );
-        const counts = await rows<{ id: string; count: number }>(
-          tx,
-          sql`select category.id,count(*)::int as count from blogs_article cross join lateral jsonb_array_elements_text(${published}->'shared'->'categoryIds') as category(id) where ${visible} group by category.id`,
-        );
+        const [{ total }] = await tx.select({ total: count() }).from(translations).where(filtered);
+        const selected = await tx
+          .select({ id: translations.articleId, publication: translations.publication })
+          .from(translations)
+          .where(filtered)
+          .orderBy(desc(translations.publishedAt), translations.articleId)
+          .limit(pageSize)
+          .offset((page - 1) * pageSize);
+        const documents = selected.map((row) => {
+          assertBlog(row.publication, "STORAGE");
+          return { ...row, publication: row.publication };
+        });
+        const counts = await tx
+          .select({ id: publicationCategories.categoryId, count: count() })
+          .from(publicationCategories)
+          .where(eq(publicationCategories.locale, input.locale))
+          .groupBy(publicationCategories.categoryId);
         await refreshAuthorNames(
           tx,
           documents.map((row) => row.publication.shared),
@@ -1087,15 +1189,22 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        const [row] = await rows<{
-          id: string;
-          publication: NonNullable<BlogArticle["translations"][string]["published"]>;
-        }>(
-          tx,
-          sql`select id,document->'translations'->${l}->'published' as publication from blogs_article where document->'translations'->${l}->'published'->>'slug'=${slug} limit 1`,
-        );
-        if (row) await refreshAuthorNames(tx, [row.publication.shared]);
-        return row
+        const [row] = await tx
+          .select({ id: translations.articleId, publication: translations.publication })
+          .from(translations)
+          .where(
+            and(
+              eq(translations.locale, l),
+              eq(translations.kind, "publication"),
+              eq(translations.slug, slug),
+            ),
+          )
+          .limit(1);
+        if (row) {
+          assertBlog(row.publication, "STORAGE");
+          await refreshAuthorNames(tx, [row.publication.shared]);
+        }
+        return row?.publication
           ? {
               ...row.publication,
               id: row.id,
@@ -1110,18 +1219,18 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        const [record] = await rows<ObjectRow>(
-          tx,
-          sql`select * from blogs_object where id=${id} and kind='image' and state='ready'`,
-        );
+        const [record] = await tx
+          .select()
+          .from(objects)
+          .where(and(eq(objects.id, id), eq(objects.kind, "image"), eq(objects.state, "ready")));
         assertBlog(record, "NOT_FOUND");
-        const document = await metadata(tx, record.article_id);
+        const document = await metadata(tx, record.articleId);
         const visible = Object.values(document.translations).some((t) =>
           t.published?.assetIds.includes(id),
         );
         if (!visible) {
           assertBlog(context !== undefined, "NOT_FOUND");
-          await access(context, "read", record.article_id);
+          await access(context, "read", record.articleId);
         }
         assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
         const result = await s3.send(
@@ -1136,12 +1245,12 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
         const bytes = await result.Body.transformToByteArray();
         assertBlog(
-          bytes.length === record.size && imageType(bytes) === record.content_type,
+          bytes.length === record.size && imageType(bytes) === record.contentType,
           "STORAGE",
         );
         return {
           bytes,
-          contentType: record.content_type,
+          contentType: record.contentType,
           cacheControl: "no-store",
           contentDisposition: "inline",
           nosniff: true,
@@ -1157,29 +1266,36 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       db.transaction(async (tx) => {
         await lock(tx);
         await verifyBucket();
-        const candidates = await rows<ObjectRow>(
-          tx,
-          sql`select * from blogs_object where kind='image' and created_at < now()-interval '24 hours' order by checked_at,id limit ${limit}`,
-        );
+        const candidates = await tx
+          .select()
+          .from(objects)
+          .where(
+            and(eq(objects.kind, "image"), lt(objects.createdAt, new Date(Date.now() - 86400000))),
+          )
+          .orderBy(objects.checkedAt, objects.id)
+          .limit(limit);
         let removed = 0;
         const failed: string[] = [];
         for (const candidate of candidates) {
-          await tx.execute(
-            sql`update blogs_object set checked_at=clock_timestamp() where id=${candidate.id}`,
-          );
-          const [row] = await rows<{ document: BlogArticle }>(
-            tx,
-            sql`select document from blogs_article where id=${candidate.article_id}`,
-          );
+          await tx
+            .update(objects)
+            .set({ checkedAt: new Date() })
+            .where(eq(objects.id, candidate.id));
+          const [row] = await tx
+            .select({ document: articles.document })
+            .from(articles)
+            .where(eq(articles.id, candidate.articleId));
           if (row && references(row.document).has(candidate.id)) continue;
-          const retained = await rows<{ id: string }>(
-            tx,
-            sql`select id from blogs_history
-            where article_id=${candidate.article_id} and (
-              payload->'content'->'assetIds' @> ${JSON.stringify([candidate.id])}::jsonb
-              or payload->'shared'->>'thumbnailId'=${candidate.id}
-              or payload->'shared'->>'bannerId'=${candidate.id}) limit 1`,
-          );
+          const retained = await tx
+            .select({ id: historyTable.id })
+            .from(historyTable)
+            .where(
+              and(
+                eq(historyTable.articleId, candidate.articleId),
+                arrayContains(historyTable.assetIds, [candidate.id]),
+              ),
+            )
+            .limit(1);
           if (retained.length) continue;
           try {
             await s3.send(
@@ -1192,7 +1308,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             failed.push(candidate.id);
             continue;
           }
-          await tx.execute(sql`delete from blogs_object where id=${candidate.id}`);
+          await tx.delete(objects).where(eq(objects.id, candidate.id));
           removed++;
         }
         return { examined: candidates.length, removed, failed };
@@ -1201,6 +1317,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   }
   return {
     client,
+    preflight,
     upload,
     listPublished,
     getPublished,

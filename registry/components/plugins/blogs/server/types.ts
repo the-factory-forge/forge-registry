@@ -1,12 +1,10 @@
 import type { S3Client } from "@aws-sdk/client-s3";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type { BlogEditor } from "@/components/plugins/blogs/types";
+import type { DatabaseTransaction, PluginDatabase } from "@/components/utils/database";
 
-export type BlogsTransaction = Pick<PostgresJsDatabase, "execute">;
-export interface BlogsDatabase extends BlogsTransaction {
-  transaction<T>(action: (tx: BlogsTransaction) => Promise<T>): Promise<T>;
-}
+export type BlogsTransaction = DatabaseTransaction;
+export type BlogsDatabase = PluginDatabase;
 export type BlogsPermission =
   | "read"
   | "create"

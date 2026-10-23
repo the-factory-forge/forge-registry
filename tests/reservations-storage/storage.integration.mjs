@@ -1,11 +1,13 @@
+import assert from "node:assert/strict";
+
 import "../drive-storage/register.mjs";
 import "../register-mailing.mjs";
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
+import { initializeStorage } from "../persistence/migrations.mjs";
 
 const { createReservationsService, deriveManagementSecret } =
   await import("../../registry/components/plugins/reservations/server/index.ts");
@@ -17,7 +19,7 @@ const pool = postgres(
   "postgres://reservations_test:local_reservations_test_only@127.0.0.1:55451/reservations_test",
   { max: 8, prepare: false },
 );
-const db = drizzle(pool);
+const db = drizzle({ client: pool });
 const secret = deriveManagementSecret("reservations-integration-only-secret");
 const rejected = (promise, code) => assert.rejects(promise, (e) => e.code === code);
 
@@ -26,15 +28,7 @@ await test("PostgreSQL booking integrity, authorization, private links and durab
   await pool.unsafe(
     "DROP TABLE IF EXISTS reservations_notification,reservations_booking,reservations_resource,reservations_service,reservations_settings CASCADE",
   );
-  await pool.unsafe(
-    await readFile(
-      new URL(
-        "../../registry/components/plugins/reservations/server/migration.sql",
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-  );
+  await initializeStorage(pool, ["reservations"]);
   let clock = new Date("2026-09-27T06:00:00Z");
   let mailFails = false;
   let staffAuthorized = true;

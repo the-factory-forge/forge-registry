@@ -1,6 +1,6 @@
-import "../drive-storage/register.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+
+import "../drive-storage/register.mjs";
 import { test } from "node:test";
 
 import {
@@ -12,6 +12,8 @@ import {
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { initializeStorage } from "../persistence/migrations.mjs";
+
 const { createDriveStorage } =
   await import("../../registry/components/plugins/drive/server/storage.server.ts");
 const { createMenusService, menuImageDeleteGuard } =
@@ -21,7 +23,7 @@ const pool = postgres("postgres://menus_test:local_menus_test_only@127.0.0.1:554
   prepare: false,
   max: 6,
 });
-const db = drizzle(pool);
+const db = drizzle({ client: pool });
 const s3 = new S3Client({
   endpoint: "http://127.0.0.1:19041",
   region: "us-east-1",
@@ -85,75 +87,46 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
   await pool.unsafe(
     "DROP TABLE IF EXISTS menu_item, menu_label, menu_category, drive_upload, drive_entry, drive_space CASCADE",
   );
-  await pool.unsafe(
-    await readFile(
-      new URL("../../registry/components/plugins/drive/server/migration.sql", import.meta.url),
-      "utf8",
-    ),
-  );
-  await pool.unsafe(
-    await readFile(
-      new URL("../../registry/components/plugins/menus/server/migration.sql", import.meta.url),
-      "utf8",
-    ),
-  );
-  const upgrade = await readFile(
-    new URL("../../registry/components/plugins/menus/server/spice-level.sql", import.meta.url),
-    "utf8",
-  );
-  await pool`insert into menu_category (id,position,translations) values ('legacy-category',0,'{"en":"Legacy"}'::jsonb)`;
-  await pool`insert into menu_item (id,version,category_id,price_minor,position,translations)
-    values ('legacy-item',1,'legacy-category',0,0,'{"en":{"name":"Legacy","description":""}}'::jsonb)`;
-  await pool.unsafe(upgrade);
+  await initializeStorage(pool, ["drive", "menus"]);
+  await pool`insert into menu_category (id,position,translations) values ('schema-category',0,'{"en":"Schema"}'::jsonb)`;
+  await pool`insert into menu_item (id,version,category_id,price_minor,position,visible,sold_out,label_ids,translations)
+    values ('schema-item',1,'schema-category',0,0,false,false,'[]'::jsonb,'{"en":{"name":"Schema","description":""}}'::jsonb)`;
   assert.equal(
-    (await pool`select spice_level from menu_item where id='legacy-item'`)[0].spice_level,
+    (await pool`select spice_level from menu_item where id='schema-item'`)[0].spice_level,
     0,
   );
-  await pool`update menu_item set spice_level=3 where id='legacy-item'`;
-  await pool.unsafe(upgrade);
+  await pool`update menu_item set spice_level=3 where id='schema-item'`;
   assert.equal(
-    (await pool`select spice_level from menu_item where id='legacy-item'`)[0].spice_level,
+    (await pool`select spice_level from menu_item where id='schema-item'`)[0].spice_level,
     3,
   );
   await assert.rejects(
-    pool`update menu_item set spice_level=4 where id='legacy-item'`,
+    pool`update menu_item set spice_level=4 where id='schema-item'`,
     (error) => error.code === "23514",
   );
-  const sizesUpgrade = await readFile(
-    new URL("../../registry/components/plugins/menus/server/sizes.sql", import.meta.url),
-    "utf8",
-  );
-  await pool.unsafe(sizesUpgrade);
-  assert.deepEqual((await pool`select sizes from menu_item where id='legacy-item'`)[0].sizes, []);
-  const legacySizes = [{ id: "small", priceMinor: 900, translations: { en: "Small" } }];
-  await pool`update menu_item set sizes=${JSON.stringify(legacySizes)}::jsonb where id='legacy-item'`;
-  await pool.unsafe(sizesUpgrade);
+  assert.deepEqual((await pool`select sizes from menu_item where id='schema-item'`)[0].sizes, []);
+  const savedSizes = [{ id: "small", priceMinor: 900, translations: { en: "Small" } }];
+  await pool`update menu_item set sizes=${JSON.stringify(savedSizes)}::jsonb where id='schema-item'`;
   assert.deepEqual(
-    (await pool`select sizes from menu_item where id='legacy-item'`)[0].sizes,
-    legacySizes,
+    (await pool`select sizes from menu_item where id='schema-item'`)[0].sizes,
+    savedSizes,
   );
   await assert.rejects(
-    pool`update menu_item set sizes='{}'::jsonb where id='legacy-item'`,
+    pool`update menu_item set sizes='{}'::jsonb where id='schema-item'`,
     (error) => error.code === "23514",
   );
   await pool`insert into menu_label (id,kind,position,translations)
-    values ('legacy-label','allergen',0,'{"en":"Milk"}'::jsonb)`;
-  const iconUpgrade = await readFile(
-    new URL("../../registry/components/plugins/menus/server/label-icon.sql", import.meta.url),
-    "utf8",
-  );
-  await pool.unsafe(iconUpgrade);
-  assert.equal((await pool`select icon from menu_label where id='legacy-label'`)[0].icon, null);
-  await pool`update menu_label set icon='bean' where id='legacy-label'`;
-  await pool.unsafe(iconUpgrade);
-  assert.equal((await pool`select icon from menu_label where id='legacy-label'`)[0].icon, "bean");
+    values ('schema-label','allergen',0,'{"en":"Milk"}'::jsonb)`;
+  assert.equal((await pool`select icon from menu_label where id='schema-label'`)[0].icon, null);
+  await pool`update menu_label set icon='bean' where id='schema-label'`;
+  assert.equal((await pool`select icon from menu_label where id='schema-label'`)[0].icon, "bean");
   await assert.rejects(
-    pool`update menu_label set icon='unknown' where id='legacy-label'`,
+    pool`update menu_label set icon='unknown' where id='schema-label'`,
     (error) => error.code === "23514",
   );
-  await pool`delete from menu_label where id='legacy-label'`;
-  await pool`delete from menu_item where id='legacy-item'`;
-  await pool`delete from menu_category where id='legacy-category'`;
+  await pool`delete from menu_label where id='schema-label'`;
+  await pool`delete from menu_item where id='schema-item'`;
+  await pool`delete from menu_category where id='schema-category'`;
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   } catch (error) {

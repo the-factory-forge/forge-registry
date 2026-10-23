@@ -54,7 +54,7 @@ function CustomerFormContent({
     const nextErrors: typeof errors = {};
     if (!values.name.trim()) nextErrors.name = labels.nameRequired;
     const emailInput = form.elements.namedItem("email") as HTMLInputElement;
-    if ((!creating && !values.email.trim()) || emailInput.validity.typeMismatch)
+    if (!values.email.trim() || emailInput.validity.typeMismatch)
       nextErrors.email = labels.emailRequired;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -137,7 +137,7 @@ function CustomerFormContent({
             {field("email", {
               type: "email",
               autoComplete: "email",
-              required: !creating,
+              required: true,
               description: creating ? undefined : emailChangeDescription,
             })}
             {field("phoneNumber", {

@@ -460,3 +460,15 @@ Omit `AgentKeys.onCreate` when the actor cannot create keys. Listing and deletio
 remain available, with server ownership checks still required. Metadata can include
 `revoked: true`; that state takes precedence over expiry and uses the translated
 `revoked` label. These capabilities do not embed a customer's role or import rules.
+
+## Drizzle schema ownership
+
+Keep Better Auth on the host's Relations v2 Drizzle adapter. Generate an auth schema
+candidate, reconcile host additions and relations, then generate/review/apply the
+project migration. Preserve existing credentials, sessions and migration history.
+Business tables, including Menus, belong only to the composed Drizzle schema.
+
+When Customers is installed, configure the employee service's `directory` adapter
+and host guards to exclude customer-profile members, even with role `user` or
+`admin`. Customers and Projects remain optional. See [plugin persistence](./persistence.md)
+for transaction-bound auth, membership filtering and the cutover workflow.

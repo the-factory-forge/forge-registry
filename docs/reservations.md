@@ -2,7 +2,7 @@
 
 `@forge/reservations` provides guest appointment and overnight stay booking, private booking management,
 staff year/month/week/day/agenda calendars, and settings editors. `@forge/reservations-storage`
-adds a PostgreSQL service, Drizzle tables, reviewed SQL migrations, signed management
+adds a PostgreSQL service, Drizzle tables, signed management
 links, and a durable email queue. Both distribute editable source.
 
 ```sh
@@ -24,10 +24,10 @@ is required by the item. Existing host authentication supplies staff authorizati
 
 ## Set up the host
 
-1. Include the companion's exported Drizzle tables in the host schema. Review
-   `server/migration.sql` and apply it through the host's migration workflow.
-   Do not apply both this SQL and a generated migration for the same tables.
-2. Supply a Drizzle PostgreSQL database with `execute` and `transaction`, using
+1. Include the companion's exported Drizzle tables and `pluginLocks` in the host
+   schema. Generate, review and apply its migration following the
+   [persistence guide](./persistence.md).
+2. Supply a typed Drizzle PostgreSQL database with query builders and `transaction`, using
    the default Read Committed transaction isolation. Use a separate database per
    business, as in Forge's existing deployment convention.
 3. Derive the management signing key from an existing server-only host secret with

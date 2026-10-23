@@ -1,5 +1,10 @@
 # Blogs
 
+Hosts must await the [migration and blog readiness checks](./persistence.md#required-startup-checks)
+before enabling updated blog services or cleanup workers. The storage companion
+exports `assertBlogStorageReady(db)` and exposes `storage.preflight()`; missing or
+stale projections block operations until the reviewed backfill is complete.
+
 `@forge/blogs` provides administration, a Markdown editor with a live TanStack
 Markdown preview, category management, and public listing/article components.
 `@forge/blogs-storage` stores Markdown in PostgreSQL and uploaded images in private S3.
@@ -130,8 +135,10 @@ All object reads and cleanup remain within that prefix.
 
 The companion exports `createBlogsStorage`, configuration/database types, and
 `blogsArticles`, `blogsCategories`, `blogsObjects`, and `blogsMutations` Drizzle
-tables. Review `server/migration.sql` and apply it through the host migration
-workflow. Installation does not apply migrations.
+tables, plus `blogsHistory`, `blogsTranslations` and `blogsPublicationCategories`.
+Compose them with `pluginLocks` in the host schema, then generate and review a
+project migration. Follow the [persistence guide](./persistence.md), including
+projection backfill and stopped-writer cutover. Installation does not migrate.
 
 For Infomaniak, use its built-in encryption for all images; see
 [Storage encryption and access](./plugins.md#storage-encryption-and-access) for
@@ -561,10 +568,10 @@ exercises confirmed omission. All example data is in memory and resets on reload
 
 ## History migration and rollback
 
-Fresh installs use `server/migration.sql`. Existing hosts review and register
-[`server/history-migration.sql`](../registry/components/plugins/blogs/server/history-migration.sql)
-through their migration flow, then call the server-only
-`storage.backfillHistory(tx)` inside that migration transaction. It seeds the
+Generate and review the host migration from the exported schema. Hosts adopting
+history from older schemas then call the server-only
+`storage.backfillHistory(tx)` followed by `backfillBlogProjections(tx)` inside a
+reviewed migration transaction with writers stopped. History backfill seeds the
 actual current states, reuses an identity for identical draft/publication inputs,
 and preserves existing article/revision/image IDs and publication metadata.
 Repeating it is a no-op; it cannot recover earlier discarded text or unknown

@@ -1,9 +1,21 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { sql } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import {
+  and,
+  eq,
+  exists,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  notExists,
+  or,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
-import { renderEmail } from "@/components/plugins/mailing/index";
+import { renderEmail } from "@/components/plugins/mailing";
 import {
   activeReservation,
   assertResourceExceptions,
@@ -29,23 +41,30 @@ import {
   verifyManagementLink,
 } from "@/components/plugins/reservations/server/links";
 import {
+  reservations as bookings,
+  reservationNotifications as notifications,
+  reservationSettings as settingsTable,
+  reservationResources as resourceTable,
+  reservationServices as serviceTable,
+} from "@/components/plugins/reservations/server/schema";
+import {
   ReservationError,
   type Reservation,
   type ReservationBookingInput,
   type ReservationConfiguration,
   type ReservationManagementClient,
-  type ReservationResource,
-  type ReservationService,
-  type ReservationSettings,
   type ReservationMode,
   type ReservationsAdminClient,
   type ReservationsPublicClient,
 } from "@/components/plugins/reservations/types";
+import {
+  lockPlugin,
+  type PluginDatabase,
+  type DatabaseTransaction,
+} from "@/components/utils/database";
 
-export type ReservationsTransaction = Pick<PostgresJsDatabase, "execute">;
-export interface ReservationsDatabase extends ReservationsTransaction {
-  transaction<T>(action: (tx: ReservationsTransaction) => Promise<T>): Promise<T>;
-}
+export type ReservationsTransaction = DatabaseTransaction;
+export type ReservationsDatabase = PluginDatabase;
 export type ReservationEmailKind =
   | "booked"
   | "rescheduled"
@@ -82,15 +101,8 @@ export interface ReservationsServiceOptions<Context> {
   now?: () => Date;
 }
 
-type BookingRow = { document: Reservation; token_version: number };
-type Job = {
-  id: string;
-  reservation_id: string;
-  version: number;
-  kind: ReservationEmailKind;
-  document: Reservation;
-  attempts: number;
-};
+type BookingRow = Pick<typeof bookings.$inferSelect, "document" | "tokenVersion">;
+const older = alias(notifications, "older");
 
 export function createReservationsService<Context>(options: ReservationsServiceOptions<Context>) {
   const { db, managementSecret, mode } = options;
@@ -111,50 +123,53 @@ export function createReservationsService<Context>(options: ReservationsServiceO
   function mutate<T>(action: (tx: ReservationsTransaction) => Promise<T>) {
     return safe(() =>
       db.transaction(async (tx) => {
-        // ponytail: one scheduling writer per business/database; switch to ordered resource
+        // shortcut: one scheduling writer per business/database; switch to ordered resource
         // locks when measured write throughput warrants the additional locking protocol.
-        await tx.execute(sql`select pg_advisory_xact_lock(hashtext('forge-reservations'))`);
+        await lockPlugin(tx, "forge-reservations");
         await installationMode(tx, true);
         return action(tx);
       }),
     );
   }
   async function installationMode(tx: ReservationsTransaction, initialize = false) {
-    const [row] = await tx.execute<{ document: ReservationSettings & { mode?: ReservationMode } }>(
-      sql`select document from reservations_settings where id='business'`,
-    );
-    const [legacy] = row
-      ? []
-      : await tx.execute<{ exists: boolean }>(
-          sql`select exists(select 1 from reservations_resource union all select 1 from reservations_service union all select 1 from reservations_booking)`,
+    const [row] = await tx
+      .select({ document: settingsTable.document })
+      .from(settingsTable)
+      .where(eq(settingsTable.id, "business"));
+    const legacy = row
+      ? false
+      : Boolean(
+          (await tx.select({ id: resourceTable.id }).from(resourceTable).limit(1)).length ||
+          (await tx.select({ id: serviceTable.id }).from(serviceTable).limit(1)).length ||
+          (await tx.select({ id: bookings.id }).from(bookings).limit(1)).length,
         );
-    const saved = row
-      ? (row.document.mode ?? "appointment")
-      : legacy?.exists
-        ? "appointment"
-        : undefined;
+    const saved = row ? (row.document.mode ?? "appointment") : legacy ? "appointment" : undefined;
     if (saved && saved !== mode) throw new ReservationError("MODE_MISMATCH");
     if (initialize && !row?.document.mode) {
       const document = {
         ...(row?.document ?? { version: 0, timeZone: "UTC", publicBookingEnabled: false }),
         mode,
       };
-      await tx.execute(
-        sql`insert into reservations_settings (id,document) values ('business',${JSON.stringify(document)}::jsonb) on conflict (id) do update set document=excluded.document`,
-      );
+      await tx
+        .insert(settingsTable)
+        .values({ id: "business", document: document })
+        .onConflictDoUpdate({ target: settingsTable.id, set: { document: document } });
     }
   }
   async function configuration(tx: ReservationsTransaction): Promise<ReservationConfiguration> {
     await installationMode(tx);
-    const [settings] = await tx.execute<{ document: ReservationSettings }>(
-      sql`select document from reservations_settings where id='business'`,
-    );
-    const services = await tx.execute<{ document: ReservationService }>(
-      sql`select document from reservations_service order by id`,
-    );
-    const resources = await tx.execute<{ document: ReservationResource }>(
-      sql`select document from reservations_resource order by id`,
-    );
+    const [settings] = await tx
+      .select({ document: settingsTable.document })
+      .from(settingsTable)
+      .where(eq(settingsTable.id, "business"));
+    const services = await tx
+      .select({ document: serviceTable.document })
+      .from(serviceTable)
+      .orderBy(serviceTable.id);
+    const resources = await tx
+      .select({ document: resourceTable.document })
+      .from(resourceTable)
+      .orderBy(resourceTable.id);
     return {
       mode,
       settings: parseReservationInput(
@@ -169,25 +184,33 @@ export function createReservationsService<Context>(options: ReservationsServiceO
     // A new appointment's preparation can overlap an appointment that just ended.
     // One day covers the maximum allowed preparation buffer.
     return (
-      await tx.execute<{ document: Reservation }>(
-        sql`select document from reservations_booking where occupied_end > ${at}::timestamptz - interval '1 day' and document->>'status' in ('pending','confirmed')`,
-      )
+      await tx
+        .select({ document: bookings.document })
+        .from(bookings)
+        .where(
+          and(
+            gt(bookings.occupiedEnd, new Date(Date.parse(at) - 86400000)),
+            inArray(bookings.status, ["pending", "confirmed"]),
+          ),
+        )
     ).map((r) => r.document);
   }
   async function booking(tx: ReservationsTransaction, id: string): Promise<BookingRow> {
     parseReservationId(id);
-    const [row] = await tx.execute<BookingRow>(
-      sql`select document,token_version from reservations_booking where id=${id}`,
-    );
+    const [row] = await tx
+      .select({ document: bookings.document, tokenVersion: bookings.tokenVersion })
+      .from(bookings)
+      .where(eq(bookings.id, id));
     if (!row) throw new ReservationError("NOT_FOUND");
     return { ...row, document: { ...row.document, mode: row.document.mode ?? "appointment" } };
   }
   async function linked(tx: ReservationsTransaction, token: string): Promise<BookingRow> {
     const claim = verifyManagementLink(token, managementSecret, Date.parse(now()));
-    const rows = await tx.execute<BookingRow>(
-      sql`select document,token_version from reservations_booking where id=${claim.id}`,
-    );
-    if (!rows[0] || rows[0].token_version !== claim.version)
+    const rows = await tx
+      .select({ document: bookings.document, tokenVersion: bookings.tokenVersion })
+      .from(bookings)
+      .where(eq(bookings.id, claim.id));
+    if (!rows[0] || rows[0].tokenVersion !== claim.version)
       throw new ReservationError("INVALID_LINK");
     return {
       ...rows[0],
@@ -199,18 +222,29 @@ export function createReservationsService<Context>(options: ReservationsServiceO
     reservation: Reservation,
     kind: ReservationEmailKind,
   ) {
-    await tx.execute(
-      sql`insert into reservations_notification (id,reservation_id,version,kind,document,next_attempt) values (${randomUUID()},${reservation.id},${reservation.version},${kind},${JSON.stringify(reservation)}::jsonb,${now()}::timestamptz)`,
-    );
+    await tx.insert(notifications).values({
+      id: randomUUID(),
+      reservationId: reservation.id,
+      version: reservation.version,
+      kind,
+      document: reservation,
+      nextAttempt: new Date(now()),
+    });
   }
   async function update(
     tx: ReservationsTransaction,
     reservation: Reservation,
     kind: ReservationEmailKind,
   ) {
-    await tx.execute(
-      sql`update reservations_booking set document=${JSON.stringify(reservation)}::jsonb,resource_id=${reservation.resourceId},starts_at=${reservation.startsAt}::timestamptz,occupied_end=${reservation.occupiedEnd}::timestamptz where id=${reservation.id}`,
-    );
+    await tx
+      .update(bookings)
+      .set({
+        document: reservation,
+        resourceId: reservation.resourceId,
+        startsAt: new Date(reservation.startsAt),
+        occupiedEnd: new Date(reservation.occupiedEnd),
+      })
+      .where(eq(bookings.id, reservation.id));
     await enqueue(tx, reservation, kind);
     return reservation;
   }
@@ -219,11 +253,12 @@ export function createReservationsService<Context>(options: ReservationsServiceO
     const requestId = `${staff ? "staff" : "public"}:${value.requestId}`;
     const hash = createHash("sha256").update(JSON.stringify(value)).digest("hex");
     return mutate(async (tx) => {
-      const [existing] = await tx.execute<{ document: Reservation; request_hash: string }>(
-        sql`select document,request_hash from reservations_booking where request_id=${requestId}`,
-      );
+      const [existing] = await tx
+        .select({ document: bookings.document, requestHash: bookings.requestHash })
+        .from(bookings)
+        .where(eq(bookings.requestId, requestId));
       if (existing) {
-        if (existing.request_hash !== hash) throw new ReservationError("CONFLICT");
+        if (existing.requestHash !== hash) throw new ReservationError("CONFLICT");
         return { ...existing.document, mode: existing.document.mode ?? "appointment" };
       }
       const at = now();
@@ -235,9 +270,16 @@ export function createReservationsService<Context>(options: ReservationsServiceO
         randomUUID(),
         { staff },
       );
-      await tx.execute(
-        sql`insert into reservations_booking (id,document,request_id,request_hash,resource_id,service_id,starts_at,occupied_end) values (${reservation.id},${JSON.stringify(reservation)}::jsonb,${requestId},${hash},${reservation.resourceId},${reservation.serviceId},${reservation.startsAt}::timestamptz,${reservation.occupiedEnd}::timestamptz)`,
-      );
+      await tx.insert(bookings).values({
+        id: reservation.id,
+        document: reservation,
+        requestId,
+        requestHash: hash,
+        resourceId: reservation.resourceId,
+        serviceId: reservation.serviceId,
+        startsAt: new Date(reservation.startsAt),
+        occupiedEnd: new Date(reservation.occupiedEnd),
+      });
       await enqueue(tx, reservation, "booked");
       return reservation;
     });
@@ -342,9 +384,30 @@ export function createReservationsService<Context>(options: ReservationsServiceO
         read(async () => {
           const range = parseReservationInput(rangeSchema, input);
           const config = await configuration(db);
-          const rows = await db.execute<{ document: Reservation; email_failed: boolean }>(
-            sql`select b.document,exists(select 1 from reservations_notification n where n.reservation_id=b.id and n.sent_at is null and n.error is not null) as email_failed from reservations_booking b where b.starts_at < ${range.to}::timestamptz and b.occupied_end > ${range.from}::timestamptz order by b.starts_at,b.id`,
-          );
+          const rows = await db
+            .select({
+              document: bookings.document,
+              emailFailed: exists(
+                db
+                  .select({ id: notifications.id })
+                  .from(notifications)
+                  .where(
+                    and(
+                      eq(notifications.reservationId, bookings.id),
+                      isNull(notifications.sentAt),
+                      isNotNull(notifications.error),
+                    ),
+                  ),
+              ).mapWith(Boolean),
+            })
+            .from(bookings)
+            .where(
+              and(
+                lt(bookings.startsAt, new Date(range.to)),
+                gt(bookings.occupiedEnd, new Date(range.from)),
+              ),
+            )
+            .orderBy(bookings.startsAt, bookings.id);
           return rows
             .filter(
               ({ document: r }) =>
@@ -352,12 +415,12 @@ export function createReservationsService<Context>(options: ReservationsServiceO
                 (!range.serviceId || r.serviceId === range.serviceId) &&
                 (!range.status || r.status === range.status),
             )
-            .map(({ document: r, email_failed }) => {
+            .map(({ document: r, emailFailed }) => {
               const resource = config.resources.find((value) => value.id === r.resourceId);
               return {
                 ...r,
                 mode: r.mode ?? "appointment",
-                emailFailed: email_failed,
+                emailFailed: emailFailed,
                 outsideHours:
                   activeReservation(r) &&
                   (!resource ||
@@ -408,9 +471,10 @@ export function createReservationsService<Context>(options: ReservationsServiceO
           const value = parseReservationInput(settingsSchema, input);
           assertVersion((await configuration(tx)).settings.version, value.version);
           const next = { ...value, mode, version: value.version + 1 };
-          await tx.execute(
-            sql`insert into reservations_settings (id,document) values ('business',${JSON.stringify(next)}::jsonb) on conflict (id) do update set document=excluded.document`,
-          );
+          await tx
+            .insert(settingsTable)
+            .values({ id: "business", document: next })
+            .onConflictDoUpdate({ target: settingsTable.id, set: { document: next } });
           return next;
         }),
       saveService: (input) =>
@@ -429,9 +493,10 @@ export function createReservationsService<Context>(options: ReservationsServiceO
             version: value.version + 1,
             active: value.archived ? false : value.active,
           };
-          await tx.execute(
-            sql`insert into reservations_service (id,document) values (${next.id},${JSON.stringify(next)}::jsonb) on conflict (id) do update set document=excluded.document`,
-          );
+          await tx
+            .insert(serviceTable)
+            .values({ id: next.id, document: next })
+            .onConflictDoUpdate({ target: serviceTable.id, set: { document: next } });
           return next;
         }),
       saveResource: (input) =>
@@ -458,25 +523,28 @@ export function createReservationsService<Context>(options: ReservationsServiceO
             version: value.version + 1,
             active: value.archived ? false : value.active,
           };
-          await tx.execute(
-            sql`insert into reservations_resource (id,document) values (${next.id},${JSON.stringify(next)}::jsonb) on conflict (id) do update set document=excluded.document`,
-          );
+          await tx
+            .insert(resourceTable)
+            .values({ id: next.id, document: next })
+            .onConflictDoUpdate({ target: resourceTable.id, set: { document: next } });
           return next;
         }),
       retryEmail: (id) =>
         write("manage", async (tx) => {
           await booking(tx, id);
-          await tx.execute(
-            sql`update reservations_notification set next_attempt=${now()}::timestamptz where reservation_id=${id} and sent_at is null`,
-          );
+          await tx
+            .update(notifications)
+            .set({ nextAttempt: new Date(now()) })
+            .where(and(eq(notifications.reservationId, id), isNull(notifications.sentAt)));
         }),
       revokeLink: (id, version) =>
         write("manage", async (tx) => {
-          const { document: current } = await booking(tx, id);
+          const { document: current, tokenVersion } = await booking(tx, id);
           assertVersion(current.version, version);
-          await tx.execute(
-            sql`update reservations_booking set token_version=token_version+1 where id=${id}`,
-          );
+          await tx
+            .update(bookings)
+            .set({ tokenVersion: tokenVersion + 1 })
+            .where(eq(bookings.id, id));
           return update(tx, { ...current, version: current.version + 1, updatedAt: now() }, "link");
         }),
     };
@@ -490,22 +558,48 @@ export function createReservationsService<Context>(options: ReservationsServiceO
     for (let i = 0; i < limit; i++) {
       const leaseId = randomUUID();
       const job = await mutate(async (tx) => {
-        const [next] = await tx.execute<Job>(
-          sql`select n.id,n.reservation_id,n.version,n.kind,n.document,n.attempts from reservations_notification n where n.sent_at is null and n.next_attempt <= ${now()}::timestamptz and (n.lease_until is null or n.lease_until <= ${now()}::timestamptz) and not exists (select 1 from reservations_notification older where older.reservation_id=n.reservation_id and older.version<n.version and older.sent_at is null) order by n.next_attempt,n.id limit 1`,
-        );
+        const [next] = await tx
+          .select()
+          .from(notifications)
+          .where(
+            and(
+              isNull(notifications.sentAt),
+              lte(notifications.nextAttempt, new Date(now())),
+              or(isNull(notifications.leaseUntil), lte(notifications.leaseUntil, new Date(now()))),
+              notExists(
+                tx
+                  .select({ id: older.id })
+                  .from(older)
+                  .where(
+                    and(
+                      eq(older.reservationId, notifications.reservationId),
+                      lt(older.version, notifications.version),
+                      isNull(older.sentAt),
+                    ),
+                  ),
+              ),
+            ),
+          )
+          .orderBy(notifications.nextAttempt, notifications.id)
+          .limit(1);
         if (!next) return undefined;
-        await tx.execute(
-          sql`update reservations_notification set lease_id=${leaseId},lease_until=${now()}::timestamptz+interval '5 minutes',attempts=attempts+1 where id=${next.id}`,
-        );
+        await tx
+          .update(notifications)
+          .set({
+            leaseId,
+            leaseUntil: new Date(Date.parse(now()) + 300000),
+            attempts: next.attempts + 1,
+          })
+          .where(eq(notifications.id, next.id));
         return next;
       });
       if (!job) break;
       try {
-        const current = await booking(db, job.reservation_id);
+        const current = await booking(db, job.reservationId);
         const expiry =
           Math.max(Date.parse(now()), Date.parse(current.document.endsAt)) + 30 * 86400000;
         const managementUrl = options.getManagementUrl(
-          signManagementLink(job.reservation_id, current.token_version, expiry, managementSecret),
+          signManagementLink(job.reservationId, current.tokenVersion, expiry, managementSecret),
         );
         const url = new URL(managementUrl);
         if (!["https:", "http:"].includes(url.protocol)) throw new Error("Invalid management URL");
@@ -557,15 +651,22 @@ export function createReservationsService<Context>(options: ReservationsServiceO
             })),
           };
         await options.sendEmail(email);
-        await db.execute(
-          sql`update reservations_notification set sent_at=${now()}::timestamptz,lease_id=null,lease_until=null,error=null where id=${job.id} and lease_id=${leaseId}`,
-        );
+        await db
+          .update(notifications)
+          .set({ sentAt: new Date(now()), leaseId: null, leaseUntil: null, error: null })
+          .where(and(eq(notifications.id, job.id), eq(notifications.leaseId, leaseId)));
         sent++;
       } catch {
         const delay = Math.min(1440, 2 ** Math.min(job.attempts, 11));
-        await db.execute(
-          sql`update reservations_notification set error='DELIVERY_FAILED',next_attempt=${now()}::timestamptz+${delay}*interval '1 minute',lease_id=null,lease_until=null where id=${job.id} and lease_id=${leaseId}`,
-        );
+        await db
+          .update(notifications)
+          .set({
+            error: "DELIVERY_FAILED",
+            nextAttempt: new Date(Date.parse(now()) + delay * 60000),
+            leaseId: null,
+            leaseUntil: null,
+          })
+          .where(and(eq(notifications.id, job.id), eq(notifications.leaseId, leaseId)));
         failed++;
       }
     }

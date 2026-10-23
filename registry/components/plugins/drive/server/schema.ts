@@ -29,13 +29,15 @@ export const driveEntries = pgTable(
       .notNull()
       .references(() => driveSpaces.id),
     parentId: uuid("parent_id"),
-    kind: text("kind").notNull(),
+    kind: text("kind").$type<"file" | "folder">().notNull(),
     name: text("name").notNull(),
     size: bigint("size", { mode: "number" }).notNull().default(0),
     contentType: text("content_type").notNull().default("application/octet-stream"),
     storageId: uuid("storage_id"),
     storageName: text("storage_name"),
-    state: text("state").notNull(),
+    state: text("state")
+      .$type<"uploading" | "ready" | "deleting" | "trashed" | "purging">()
+      .notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     trashRootId: uuid("trash_root_id"),
     originalParentId: uuid("original_parent_id"),
@@ -79,12 +81,24 @@ export const driveUploads = pgTable(
     entryId: uuid("entry_id").notNull(),
     storageId: uuid("storage_id").notNull(),
     storageName: text("storage_name"),
-    input: jsonb("input").notNull(),
-    state: text("state").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    input: jsonb("input")
+      .$type<{
+        parentId: string | null;
+        name: string;
+        size: number;
+        contentType: string;
+        relativePath?: string;
+      }>()
+      .notNull(),
+    state: text("state").$type<"active" | "completed" | "cancelled">().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (t) => [
     check("drive_upload_state", sql`${t.state} in ('active', 'completed', 'cancelled')`),
     index("drive_upload_cleanup").on(t.state, t.expiresAt),
   ],
 );
+
+export type DriveSpaceRecord = typeof driveSpaces.$inferSelect;
+export type DriveEntryRecord = typeof driveEntries.$inferSelect;
+export type DriveUploadRecord = typeof driveUploads.$inferSelect;

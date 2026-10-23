@@ -36,8 +36,8 @@ retry; see [account security](./intranet-auth.md#account-profile-and-security).
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------- |
 | `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                     | Host auth provider        | [Auth](./intranet-auth.md)                  |
 | `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                   | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                            | Host callbacks            | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                     | Host callbacks            | [Projects](./projects.md)                   |
+| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                            | `customers-storage`       | [Customers](./customers.md)                 |
+| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                     | `projects-storage`        | [Projects](./projects.md)                   |
 | `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                 | `drive-storage`           | [Drive](./drive.md)                         |
 | `blogs`        | Multilingual Markdown articles and localized history in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`           | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing        | `menus-storage`           | [Menus](./menus.md)                         |
@@ -241,3 +241,11 @@ the generated source diff. A companion may install its parent's UI and declared
 feature dependencies; it still needs explicit server setup. Each guide describes
 those dependencies and any migrations. Validate the host's themes, permissions,
 locale routing and workflows before deploying an updated consumer.
+
+## Persistence ownership
+
+Persistent companions use typed Drizzle queries and server-only schema exports.
+Each host composes authentication and installed plugins into one schema and owns
+its migration history. Customers and Projects now offer `customers-storage` and
+`projects-storage`; Mailing remains stateless. Read [plugin persistence](./persistence.md)
+for schema composition, migration generation/review, backfills and cutover.

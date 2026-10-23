@@ -9,10 +9,30 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  notExists,
+  or,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
+import {
+  driveEntries as entries,
+  driveSpaces as spaces,
+  driveUploads as uploads,
+} from "@/components/plugins/drive/server/schema";
 import type {
-  DriveDatabase,
   DrivePermission,
   DriveStorageOptions,
   DriveTransaction,
@@ -36,55 +56,27 @@ import {
   validScope,
   validSort,
 } from "@/components/plugins/drive/utils";
+import { lockPlugin, containsPattern } from "@/components/utils/database";
 import { storageFilename } from "@/components/utils/storage-filename";
 
-type QueryDb = Pick<DriveDatabase, "execute">;
-type Entry = {
-  id: string;
-  space_id: string;
-  parent_id: string | null;
-  kind: "file" | "folder";
-  name: string;
-  size: number | string;
-  content_type: string;
-  state: "uploading" | "ready" | "deleting" | "trashed" | "purging";
-  storage_id: string | null;
-  storage_name: string | null;
-  updated_at: Date | string;
-  depth?: number;
-  trash_root_id?: string | null;
-  original_parent_id?: string | null;
-  original_path?: string;
-  deleted_at?: Date | string;
-  expires_at?: Date | string;
-};
-type Upload = {
-  id: string;
-  space_id: string;
-  entry_id: string;
-  storage_id: string;
-  storage_name: string | null;
-  input: {
-    parentId: string | null;
-    name: string;
-    size: number;
-    contentType: string;
-    relativePath?: string;
-  };
-  state: "active" | "completed" | "cancelled";
-  expires_at: Date | string;
-};
+type QueryDb = DriveTransaction;
+type Entry = typeof entries.$inferSelect;
+const child = alias(entries, "child");
+const missingSpace = "00000000-0000-0000-0000-000000000000";
+const inSpace = (spaceId: string | undefined) => eq(entries.spaceId, spaceId ?? missingSpace);
+const atParent = (id: string | null) =>
+  id === null ? isNull(entries.parentId) : eq(entries.parentId, id);
 const pageSize = 50;
 const uploadLifetime = 15 * 60_000;
 function publicEntry(row: Entry): DriveEntry {
   return {
     id: row.id,
-    parentId: row.parent_id,
+    parentId: row.parentId,
     kind: row.kind,
     name: row.name,
     size: Number(row.size),
-    contentType: row.content_type,
-    updatedAt: new Date(row.updated_at).toISOString(),
+    contentType: row.contentType,
+    updatedAt: new Date(row.updatedAt).toISOString(),
     state: row.state === "deleting" ? "deleting" : "ready",
   };
 }
@@ -161,16 +153,16 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     try {
       return await db.transaction(async (tx) => {
         // Serialize mutations and finalization within one space, including deletion races.
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(hashtextextended(${scopeKey(scope)}, 0))`,
-        );
+        await lockPlugin(tx, `drive:${scopeKey(scope)}`);
         if (create)
-          await tx.execute(
-            sql`insert into drive_space (id, entity_type, entity_id) values (${randomUUID()}, ${scope.type}, ${scope.id}) on conflict (entity_type, entity_id) do nothing`,
-          );
-        const [space] = await tx.execute<{ id: string }>(
-          sql`select id from drive_space where entity_type=${scope.type} and entity_id=${scope.id}`,
-        );
+          await tx
+            .insert(spaces)
+            .values({ id: randomUUID(), entityType: scope.type, entityId: scope.id })
+            .onConflictDoNothing();
+        const [space] = await tx
+          .select({ id: spaces.id })
+          .from(spaces)
+          .where(and(eq(spaces.entityType, scope.type), eq(spaces.entityId, scope.id)));
         return action(tx, space?.id);
       });
     } catch (error) {
@@ -192,9 +184,10 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
   }
   async function entry(tx: QueryDb, spaceId: string | undefined, id: string) {
     validId(id);
-    const [row] = await tx.execute<Entry>(
-      sql`select * from drive_entry where space_id=${spaceId ?? null} and id=${id}`,
-    );
+    const [row] = await tx
+      .select()
+      .from(entries)
+      .where(and(inSpace(spaceId), eq(entries.id, id)));
     if (!row) throw new DriveError("NOT_FOUND");
     return row;
   }
@@ -209,20 +202,53 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       const row = await entry(tx, spaceId, current);
       if (row.kind !== "folder" || row.state !== "ready") throw new DriveError("CONFLICT");
       result.unshift(row);
-      current = row.parent_id;
+      current = row.parentId;
     }
     return result;
   }
   async function subtree(tx: QueryDb, spaceId: string, id: string) {
-    return tx.execute<Entry>(sql`with recursive tree as (
-      select e.*, 0 as depth from drive_entry e where space_id=${spaceId} and id=${id}
-      union all select e.*, tree.depth+1 from drive_entry e join tree on e.parent_id=tree.id and e.space_id=tree.space_id
-    ) select * from tree order by depth desc, id`);
+    let level = await tx
+      .select()
+      .from(entries)
+      .where(and(inSpace(spaceId), eq(entries.id, id)));
+    const result: (Entry & { depth: number })[] = [];
+    const seen = new Set<string>();
+    for (let depth = 0; level.length; depth++) {
+      if (depth > 100 || level.some((row) => seen.has(row.id))) throw new DriveError("INVALID");
+      for (const row of level) {
+        seen.add(row.id);
+        result.push({ ...row, depth });
+      }
+      const next: Entry[] = [];
+      for (let offset = 0; offset < level.length; offset += 1000) {
+        const parentIds = level.slice(offset, offset + 1000).map((row) => row.id);
+        let after: string | undefined;
+        for (;;) {
+          const children: Entry[] = await tx
+            .select()
+            .from(entries)
+            .where(
+              and(
+                inSpace(spaceId),
+                inArray(entries.parentId, parentIds),
+                after ? gt(entries.id, after) : undefined,
+              ),
+            )
+            .orderBy(entries.id)
+            .limit(1000);
+          next.push(...children);
+          if (children.length < 1000) break;
+          after = children.at(-1)!.id;
+        }
+      }
+      level = next;
+    }
+    return result.sort((a, b) => b.depth - a.depth || a.id.localeCompare(b.id));
   }
   function preview(rows: readonly Entry[]): DriveDeletePreview {
     return {
       token: createHash("sha256")
-        .update(JSON.stringify(rows.map((row) => [row.id, row.name, row.state, row.updated_at])))
+        .update(JSON.stringify(rows.map((row) => [row.id, row.name, row.state, row.updatedAt])))
         .digest("hex"),
       files: rows.filter((row) => row.kind === "file").length,
       folders: rows.filter((row) => row.kind === "folder").length,
@@ -236,9 +262,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     entryId: string,
   ) {
     // Copies share immutable bytes; only the last reference may remove them.
-    const [reference] = await tx.execute(
-      sql`select id from drive_entry where space_id=${spaceId} and storage_id=${storageId} and id<>${entryId} limit 1`,
-    );
+    const [reference] = await tx
+      .select({ id: entries.id })
+      .from(entries)
+      .where(and(inSpace(spaceId), eq(entries.storageId, storageId), ne(entries.id, entryId)))
+      .limit(1);
     if (reference) return;
     await verifyBucket();
     for (const staging of [false, true])
@@ -253,32 +281,55 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     return locked(scope, false, async (tx, spaceId) => {
       if (!spaceId) return { remaining: 0, failures: 0, processed: 0 };
       let failures = 0;
-      const rows = await tx.execute<Entry>(
-        sql`select e.* from drive_entry e where e.space_id=${spaceId} and e.state in ('deleting','purging') and not exists(select 1 from drive_entry child where child.space_id=e.space_id and child.parent_id=e.id) order by e.id limit ${limit}`,
-      );
+      const rows = await tx
+        .select()
+        .from(entries)
+        .where(
+          and(
+            inSpace(spaceId),
+            inArray(entries.state, ["deleting", "purging"]),
+            notExists(
+              tx
+                .select({ id: child.id })
+                .from(child)
+                .where(and(eq(child.spaceId, entries.spaceId), eq(child.parentId, entries.id))),
+            ),
+          ),
+        )
+        .orderBy(entries.id)
+        .limit(limit);
       for (const row of rows) {
         try {
-          if (row.storage_id)
-            await removeObjects(tx, spaceId, row.storage_id, row.storage_name, row.id);
-          await tx.execute(
-            sql`update drive_upload set state='cancelled' where space_id=${spaceId} and entry_id=${row.id} and state='active'`,
-          );
-          await tx.execute(sql`delete from drive_entry where id=${row.id} and space_id=${spaceId}`);
+          if (row.storageId)
+            await removeObjects(tx, spaceId, row.storageId, row.storageName, row.id);
+          await tx
+            .update(uploads)
+            .set({ state: "cancelled" })
+            .where(
+              and(
+                eq(uploads.spaceId, spaceId),
+                eq(uploads.entryId, row.id),
+                eq(uploads.state, "active"),
+              ),
+            );
+          await tx.delete(entries).where(and(eq(entries.id, row.id), inSpace(spaceId)));
         } catch {
           failures++;
         }
       }
-      const [count] = await tx.execute<{ count: string }>(
-        sql`select count(*)::text as count from drive_entry where space_id=${spaceId} and state in ('deleting','purging')`,
-      );
-      return { remaining: Number(count.count), failures, processed: rows.length };
+      const [remaining] = await tx
+        .select({ count: count() })
+        .from(entries)
+        .where(and(inSpace(spaceId), inArray(entries.state, ["deleting", "purging"])));
+      return { remaining: remaining.count, failures, processed: rows.length };
     });
   }
   async function reservation(tx: QueryDb, spaceId: string | undefined, id: string) {
     validId(id);
-    const [upload] = await tx.execute<Upload>(
-      sql`select * from drive_upload where space_id=${spaceId ?? null} and id=${id}`,
-    );
+    const [upload] = await tx
+      .select()
+      .from(uploads)
+      .where(and(eq(uploads.spaceId, spaceId ?? missingSpace), eq(uploads.id, id)));
     if (!upload) throw new DriveError("NOT_FOUND");
     return upload;
   }
@@ -300,13 +351,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     await verifyBucket();
     return authorized(context, scope, true, "upload", async (tx, spaceId) => {
       if (path) await access(context, scope, "createFolder");
-      const [existing] = await tx.execute<Upload>(
-        sql`select * from drive_upload where id=${requestId}`,
-      );
+      const [existing] = await tx.select().from(uploads).where(eq(uploads.id, requestId));
       const fields = { parentId, name, size, contentType, relativePath: normalizedPath };
       let upload = existing;
       if (upload) {
-        if (upload.space_id !== spaceId) throw new DriveError("NOT_FOUND");
+        if (upload.spaceId !== spaceId) throw new DriveError("NOT_FOUND");
         if (
           Object.entries(fields).some(
             ([field, value]) => upload.input[field as keyof typeof fields] !== value,
@@ -314,25 +363,38 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         )
           throw new DriveError("CONFLICT");
         if (upload.state === "completed") return { id: requestId, completed: true };
-        if (upload.state !== "active" || new Date(upload.expires_at).getTime() <= Date.now())
+        if (upload.state !== "active" || new Date(upload.expiresAt).getTime() <= Date.now())
           throw new DriveError("EXPIRED");
       } else {
         const ancestors = await parents(tx, spaceId, parentId);
         if (ancestors.length + (path?.length ?? 1) - 1 > 100) throw new DriveError("INVALID");
         let destination = parentId;
         for (const folderName of path?.slice(0, -1) ?? []) {
-          const [folder] = await tx.execute<Entry>(
-            sql`select * from drive_entry where space_id=${spaceId} and parent_id is not distinct from ${destination}::uuid and name=${folderName} and trash_root_id is null`,
-          );
+          const [folder] = await tx
+            .select()
+            .from(entries)
+            .where(
+              and(
+                inSpace(spaceId),
+                atParent(destination),
+                eq(entries.name, folderName),
+                isNull(entries.trashRootId),
+              ),
+            );
           if (folder) {
             if (folder.kind !== "folder" || folder.state !== "ready")
               throw new DriveError("CONFLICT");
             destination = folder.id;
           } else {
             const id = randomUUID();
-            await tx.execute(
-              sql`insert into drive_entry (id,space_id,parent_id,kind,name,state) values (${id},${spaceId},${destination},'folder',${folderName},'ready')`,
-            );
+            await tx.insert(entries).values({
+              id,
+              spaceId: spaceId!,
+              parentId: destination,
+              kind: "folder",
+              name: folderName,
+              state: "ready",
+            });
             destination = id;
           }
         }
@@ -340,26 +402,45 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           storageId = randomUUID(),
           storageName = storageFilename(name, scope.type);
         const expiresAt = new Date(Date.now() + uploadLifetime);
-        await tx.execute(
-          sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id,storage_name) values (${entryId},${spaceId},${destination},'file',${name},${size},${contentType},'uploading',${storageId},${storageName})`,
-        );
-        const [created] = await tx.execute<Upload>(
-          sql`insert into drive_upload (id,space_id,entry_id,storage_id,storage_name,input,state,expires_at) values (${requestId},${spaceId},${entryId},${storageId},${storageName},${JSON.stringify(fields)}::jsonb,'active',${expiresAt.toISOString()}) returning *`,
-        );
+        await tx.insert(entries).values({
+          id: entryId,
+          spaceId: spaceId!,
+          parentId: destination,
+          kind: "file",
+          name,
+          size,
+          contentType,
+          state: "uploading",
+          storageId,
+          storageName,
+        });
+        const [created] = await tx
+          .insert(uploads)
+          .values({
+            id: requestId,
+            spaceId: spaceId!,
+            entryId,
+            storageId,
+            storageName,
+            input: fields,
+            state: "active",
+            expiresAt: expiresAt.toISOString(),
+          })
+          .returning();
         upload = created;
       }
-      const row = await entry(tx, spaceId, upload.entry_id);
-      await parents(tx, spaceId, row.parent_id);
+      const row = await entry(tx, spaceId, upload.entryId);
+      await parents(tx, spaceId, row.parentId);
       if (row.state !== "uploading") throw new DriveError("CONFLICT");
       const expiresIn = Math.max(
         1,
-        Math.min(600, Math.floor((new Date(upload.expires_at).getTime() - Date.now()) / 1000)),
+        Math.min(600, Math.floor((new Date(upload.expiresAt).getTime() - Date.now()) / 1000)),
       );
       const url = await getSignedUrl(
         s3,
         new PutObjectCommand({
           Bucket: bucket,
-          Key: key(spaceId!, upload.storage_id, upload.storage_name, true),
+          Key: key(spaceId!, upload.storageId, upload.storageName, true),
           ContentLength: size,
           ContentType: contentType,
           IfNoneMatch: "*",
@@ -402,14 +483,13 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       async listEntries({ scope, parentId, search = "", cursor, sort: inputSort }) {
         const sort = validSort(inputSort);
         const column = {
-          name: sql`name`,
-          updatedAt: sql`updated_at`,
-          size: sql`size`,
-          owner: sql`name`,
+          name: entries.name,
+          updatedAt: entries.updatedAt,
+          size: entries.size,
+          owner: entries.name,
         }[sort.field];
         // Every entry in a space belongs to the same customer.
-        const direction =
-          sort.direction === "desc" && sort.field !== "owner" ? sql`desc` : sql`asc`;
+        const direction = sort.direction === "desc" && sort.field !== "owner" ? desc : asc;
         const space = await access(context, scope);
         const offset = offsetFor(cursor);
         return authorized(context, scope, false, undefined, async (tx, spaceId) => {
@@ -417,9 +497,20 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             id,
             name,
           }));
-          const rows = await tx.execute<Entry>(
-            sql`select * from drive_entry where space_id=${spaceId ?? null} and parent_id is not distinct from ${parentId}::uuid and state in ('ready','deleting') and strpos(lower(name), lower(${search.slice(0, 255)})) > 0 order by kind desc, ${column} ${direction} nulls last, name, id limit ${pageSize + 1} offset ${offset}`,
-          );
+          const rows = await tx
+            .select()
+            .from(entries)
+            .where(
+              and(
+                inSpace(spaceId),
+                atParent(parentId),
+                inArray(entries.state, ["ready", "deleting"]),
+                ilike(entries.name, containsPattern(search.slice(0, 255))),
+              ),
+            )
+            .orderBy(desc(entries.kind), direction(column), entries.name, entries.id)
+            .limit(pageSize + 1)
+            .offset(offset);
           return {
             space,
             breadcrumbs,
@@ -434,9 +525,14 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         const normalized = validName(name);
         await authorized(context, scope, true, "createFolder", async (tx, spaceId) => {
           await parents(tx, spaceId, parentId);
-          await tx.execute(
-            sql`insert into drive_entry (id,space_id,parent_id,kind,name,state) values (${randomUUID()},${spaceId},${parentId},'folder',${normalized},'ready')`,
-          );
+          await tx.insert(entries).values({
+            id: randomUUID(),
+            spaceId: spaceId!,
+            parentId,
+            kind: "folder",
+            name: normalized,
+            state: "ready",
+          });
         });
       },
       async rename({ scope, entryId, name }) {
@@ -445,10 +541,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         await authorized(context, scope, false, "rename", async (tx, spaceId) => {
           const row = await entry(tx, spaceId, entryId);
           if (row.state !== "ready") throw new DriveError("CONFLICT");
-          await parents(tx, spaceId, row.parent_id);
-          await tx.execute(
-            sql`update drive_entry set name=${normalized},updated_at=now() where id=${row.id}`,
-          );
+          await parents(tx, spaceId, row.parentId);
+          await tx
+            .update(entries)
+            .set({ name: normalized, updatedAt: new Date() })
+            .where(eq(entries.id, row.id));
         });
       },
       async duplicateEntry({ scope, entryId, name }) {
@@ -458,14 +555,23 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           await access(context, scope, "download");
           await access(context, scope, "createFolder");
           const source = await entry(tx, spaceId, entryId);
-          await parents(tx, spaceId, source.parent_id);
+          await parents(tx, spaceId, source.parentId);
           const rows = await subtree(tx, spaceId!, source.id);
           if (rows.some((row) => row.state !== "ready")) throw new DriveError("CONFLICT");
           const ids = new Map(rows.map((row) => [row.id, randomUUID()]));
           for (const row of rows.toReversed()) {
-            await tx.execute(
-              sql`insert into drive_entry (id,space_id,parent_id,kind,name,size,content_type,state,storage_id,storage_name) values (${ids.get(row.id)},${spaceId},${row.id === entryId ? row.parent_id : ids.get(row.parent_id!)},${row.kind},${row.id === entryId ? normalized : row.name},${row.size},${row.content_type},'ready',${row.storage_id},${row.storage_name})`,
-            );
+            await tx.insert(entries).values({
+              id: ids.get(row.id)!,
+              spaceId: spaceId!,
+              parentId: row.id === entryId ? row.parentId : ids.get(row.parentId!)!,
+              kind: row.kind,
+              name: row.id === entryId ? normalized : row.name,
+              size: row.size,
+              contentType: row.contentType,
+              state: "ready",
+              storageId: row.storageId,
+              storageName: row.storageName,
+            });
           }
         });
       },
@@ -473,7 +579,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         await access(context, scope, "delete");
         return authorized(context, scope, false, "delete", async (tx, spaceId) => {
           const row = await entry(tx, spaceId, entryId);
-          if (row.trash_root_id && row.trash_root_id !== entryId) throw new DriveError("NOT_FOUND");
+          if (row.trashRootId && row.trashRootId !== entryId) throw new DriveError("NOT_FOUND");
           return preview(await subtree(tx, spaceId!, entryId));
         });
       },
@@ -485,8 +591,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           const rows = await subtree(tx, spaceId, entryId);
           if (!rows.length) return; // Repeating a confirmed deletion is harmless.
           const root = rows.find((row) => row.id === entryId)!;
-          if (root.trash_root_id && root.trash_root_id !== entryId)
-            throw new DriveError("NOT_FOUND");
+          if (root.trashRootId && root.trashRootId !== entryId) throw new DriveError("NOT_FOUND");
           if (!["deleting", "purging"].includes(root.state) && preview(rows).token !== token)
             throw new DriveError("CONFLICT");
           if (
@@ -499,12 +604,21 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             ))
           )
             throw new DriveError("CONFLICT");
-          await tx.execute(
-            sql`update drive_entry set state=${root.trash_root_id ? "purging" : "deleting"},updated_at=now() where space_id=${spaceId} and id in (${sql.join(
-              rows.map((row) => sql`${row.id}::uuid`),
-              sql`,`,
-            )})`,
-          );
+          const updatedAt = new Date();
+          for (let offset = 0; offset < rows.length; offset += 1000) {
+            await tx
+              .update(entries)
+              .set({ state: root.trashRootId ? "purging" : "deleting", updatedAt })
+              .where(
+                and(
+                  inSpace(spaceId),
+                  inArray(
+                    entries.id,
+                    rows.slice(offset, offset + 1000).map((row) => row.id),
+                  ),
+                ),
+              );
+          }
         });
         // Bounded request work; maintenance and explicit retries finish larger trees.
         for (let pass = 0; pass < 10; pass++) {
@@ -525,12 +639,12 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         const completed = await authorized(context, scope, false, "upload", async (tx, spaceId) => {
           const upload = await reservation(tx, spaceId, uploadId);
           if (upload.state === "completed") return upload;
-          if (upload.state !== "active" || new Date(upload.expires_at).getTime() <= Date.now())
+          if (upload.state !== "active" || new Date(upload.expiresAt).getTime() <= Date.now())
             throw new DriveError("EXPIRED");
-          const row = await entry(tx, spaceId, upload.entry_id);
+          const row = await entry(tx, spaceId, upload.entryId);
           if (row.state !== "uploading") throw new DriveError("CONFLICT");
-          await parents(tx, spaceId, row.parent_id);
-          const stagingKey = key(spaceId!, upload.storage_id, upload.storage_name, true);
+          await parents(tx, spaceId, row.parentId);
+          const stagingKey = key(spaceId!, upload.storageId, upload.storageName, true);
           const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: stagingKey }));
           if (
             head.ContentLength !== upload.input.size ||
@@ -542,17 +656,18 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           await s3.send(
             new CopyObjectCommand({
               Bucket: bucket,
-              Key: key(spaceId!, upload.storage_id, upload.storage_name),
+              Key: key(spaceId!, upload.storageId, upload.storageName),
               CopySource: `${encodeURIComponent(bucket)}/${stagingKey.split("/").map(encodeURIComponent).join("/")}`,
               CopySourceIfMatch: head.ETag,
               MetadataDirective: "REPLACE",
               ContentType: upload.input.contentType,
             }),
           );
-          await tx.execute(
-            sql`update drive_entry set state='ready',updated_at=now() where id=${row.id}`,
-          );
-          await tx.execute(sql`update drive_upload set state='completed' where id=${upload.id}`);
+          await tx
+            .update(entries)
+            .set({ state: "ready", updatedAt: new Date() })
+            .where(eq(entries.id, row.id));
+          await tx.update(uploads).set({ state: "completed" }).where(eq(uploads.id, upload.id));
           return upload;
         });
         // Completion is committed before staging cleanup; lifecycle handles late URL replays.
@@ -560,7 +675,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           .send(
             new DeleteObjectCommand({
               Bucket: bucket,
-              Key: key(completed.space_id, completed.storage_id, completed.storage_name, true),
+              Key: key(completed.spaceId, completed.storageId, completed.storageName, true),
             }),
           )
           .catch(() => undefined);
@@ -570,10 +685,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         await authorized(context, scope, false, "upload", async (tx, spaceId) => {
           const upload = await reservation(tx, spaceId, uploadId);
           if (upload.state === "completed") return;
-          await tx.execute(sql`update drive_upload set state='cancelled' where id=${upload.id}`);
-          await tx.execute(
-            sql`update drive_entry set state='deleting' where id=${upload.entry_id} and state='uploading'`,
-          );
+          await tx.update(uploads).set({ state: "cancelled" }).where(eq(uploads.id, upload.id));
+          await tx
+            .update(entries)
+            .set({ state: "deleting" })
+            .where(and(eq(entries.id, upload.entryId), eq(entries.state, "uploading")));
         });
         const result = await finishDeletes(scope);
         if (result.failures || result.remaining) throw new DriveError("DELETE_PENDING");
@@ -582,9 +698,9 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         await access(context, scope, "download");
         return authorized(context, scope, false, "download", async (tx, spaceId) => {
           const row = await entry(tx, spaceId, entryId);
-          if (row.kind !== "file" || row.state !== "ready" || !row.storage_id)
+          if (row.kind !== "file" || row.state !== "ready" || !row.storageId)
             throw new DriveError("NOT_FOUND");
-          await parents(tx, spaceId, row.parent_id);
+          await parents(tx, spaceId, row.parentId);
           const filename = encodeURIComponent(row.name).replace(
             /[!'()*]/g,
             (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
@@ -593,7 +709,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             s3,
             new GetObjectCommand({
               Bucket: bucket,
-              Key: key(spaceId!, row.storage_id, row.storage_name),
+              Key: key(spaceId!, row.storageId, row.storageName),
               ResponseContentDisposition: `attachment; filename="download"; filename*=UTF-8''${filename}`,
               ResponseContentType: "application/octet-stream",
             }),
@@ -613,18 +729,29 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         const space = await access(context, scope);
         const offset = offsetFor(cursor);
         return authorized(context, scope, false, undefined, async (tx, spaceId) => {
-          const rows = await tx.execute<Entry>(
-            sql`select * from drive_entry where space_id=${spaceId ?? null} and id=trash_root_id and state in ('trashed','purging') and strpos(lower(name),lower(${search.slice(0, 255)})) > 0 order by deleted_at desc, id limit ${pageSize + 1} offset ${offset}`,
-          );
+          const rows = await tx
+            .select()
+            .from(entries)
+            .where(
+              and(
+                inSpace(spaceId),
+                eq(entries.id, entries.trashRootId),
+                inArray(entries.state, ["trashed", "purging"]),
+                ilike(entries.name, containsPattern(search.slice(0, 255))),
+              ),
+            )
+            .orderBy(desc(entries.deletedAt), entries.id)
+            .limit(pageSize + 1)
+            .offset(offset);
           return {
             space,
             items: rows.slice(0, pageSize).map((row): DriveTrashEntry => ({
               ...publicEntry(row),
               state: row.state === "purging" ? "deleting" : "trashed",
-              originalParentId: row.original_parent_id ?? null,
-              originalPath: row.original_path!,
-              deletedAt: new Date(row.deleted_at!).toISOString(),
-              expiresAt: new Date(row.expires_at!).toISOString(),
+              originalParentId: row.originalParentId ?? null,
+              originalPath: row.originalPath!,
+              deletedAt: new Date(row.deletedAt!).toISOString(),
+              expiresAt: new Date(row.expiresAt!).toISOString(),
             })),
             nextCursor: rows.length > pageSize ? String(offset + pageSize) : undefined,
           };
@@ -634,11 +761,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         await access(context, scope, "delete");
         await authorized(context, scope, false, "delete", async (tx, spaceId) => {
           const root = await entry(tx, spaceId, entryId);
-          if (root.state === "trashed" && root.trash_root_id === root.id) return;
+          if (root.state === "trashed" && root.trashRootId === root.id) return;
           const rows = await subtree(tx, spaceId!, entryId);
           if (rows.some((row) => row.state !== "ready") || preview(rows).token !== token)
             throw new DriveError("CONFLICT");
-          const ancestors = await parents(tx, spaceId, root.parent_id);
+          const ancestors = await parents(tx, spaceId, root.parentId);
           if (
             options.canDelete &&
             !(await options.canDelete(
@@ -650,24 +777,46 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           )
             throw new DriveError("CONFLICT");
           // Detach only the root. Descendant IDs, relationships and immutable bytes survive.
-          await tx.execute(
-            sql`update drive_entry set state='trashed',trash_root_id=${entryId},original_parent_id=parent_id,original_path=${ancestors.map((row) => row.name).join("/")},deleted_at=now(),expires_at=now()+${retentionDays}*interval '1 day',parent_id=case when id=${entryId} then null else parent_id end,updated_at=now() where space_id=${spaceId} and id in (${sql.join(
-              rows.map((row) => sql`${row.id}::uuid`),
-              sql`,`,
-            )})`,
-          );
+          const deletedAt = new Date();
+          const expiresAt = new Date(deletedAt.getTime() + retentionDays * 86400000);
+          for (let offset = 0; offset < rows.length; offset += 1000) {
+            await tx
+              .update(entries)
+              .set({
+                state: "trashed",
+                trashRootId: entryId,
+                originalParentId: entries.parentId,
+                originalPath: ancestors.map((row) => row.name).join("/"),
+                deletedAt,
+                expiresAt,
+                updatedAt: deletedAt,
+              })
+              .where(
+                and(
+                  inSpace(spaceId),
+                  inArray(
+                    entries.id,
+                    rows.slice(offset, offset + 1000).map((row) => row.id),
+                  ),
+                ),
+              );
+          }
+          await tx
+            .update(entries)
+            .set({ parentId: null })
+            .where(and(inSpace(spaceId), eq(entries.id, entryId)));
         });
       },
       async restoreEntry({ scope, entryId, parentId, name }) {
         await access(context, scope, "restore");
         await authorized(context, scope, false, "restore", async (tx, spaceId) => {
           const root = await entry(tx, spaceId, entryId);
-          if (root.state !== "trashed" || root.trash_root_id !== root.id)
+          if (root.state !== "trashed" || root.trashRootId !== root.id)
             throw new DriveError("NOT_FOUND");
-          if (new Date(root.expires_at!).getTime() <= Date.now()) throw new DriveError("NOT_FOUND");
+          if (new Date(root.expiresAt!).getTime() <= Date.now()) throw new DriveError("NOT_FOUND");
           const normalized = name === undefined ? root.name : validName(name);
           if (normalized !== root.name) await access(context, scope, "rename");
-          const destination = parentId === undefined ? (root.original_parent_id ?? null) : parentId;
+          const destination = parentId === undefined ? (root.originalParentId ?? null) : parentId;
           let ancestors: Entry[];
           try {
             ancestors = await parents(tx, spaceId, destination);
@@ -677,7 +826,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             throw error;
           }
           const rows = await subtree(tx, spaceId!, entryId);
-          if (rows.some((row) => row.state !== "trashed" || row.trash_root_id !== entryId))
+          if (rows.some((row) => row.state !== "trashed" || row.trashRootId !== entryId))
             throw new DriveError("CONFLICT");
           if (
             ancestors.length +
@@ -688,13 +837,35 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             100
           )
             throw new DriveError("INVALID");
-          const conflicts = await tx.execute(
-            sql`select id from drive_entry where space_id=${spaceId} and parent_id is not distinct from ${destination}::uuid and name=${normalized} and trash_root_id is null limit 1`,
-          );
+          const conflicts = await tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(
+              and(
+                inSpace(spaceId),
+                atParent(destination),
+                eq(entries.name, normalized),
+                isNull(entries.trashRootId),
+              ),
+            )
+            .limit(1);
           if (conflicts.length) throw new DriveError("RESTORE_CONFLICT");
-          await tx.execute(
-            sql`update drive_entry set state='ready',parent_id=case when id=${entryId} then ${destination}::uuid else parent_id end,name=case when id=${entryId} then ${normalized} else name end,trash_root_id=null,original_parent_id=null,original_path=null,deleted_at=null,expires_at=null,updated_at=now() where space_id=${spaceId} and trash_root_id=${entryId}`,
-          );
+          await tx
+            .update(entries)
+            .set({ parentId: destination, name: normalized })
+            .where(and(inSpace(spaceId), eq(entries.id, entryId)));
+          await tx
+            .update(entries)
+            .set({
+              state: "ready",
+              trashRootId: null,
+              originalParentId: null,
+              originalPath: null,
+              deletedAt: null,
+              expiresAt: null,
+              updatedAt: new Date(),
+            })
+            .where(and(inSpace(spaceId), eq(entries.trashRootId, entryId)));
         });
       },
     };
@@ -711,12 +882,12 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         throw new DriveError("INVALID");
       const file = await locked(scope, false, async (tx, spaceId) => {
         const row = await entry(tx, spaceId, entryId);
-        if (row.kind !== "file" || row.state !== "ready" || !row.storage_id)
+        if (row.kind !== "file" || row.state !== "ready" || !row.storageId)
           throw new DriveError("NOT_FOUND");
         if (Number(row.size) > maxBytes) throw new DriveError("INVALID");
         return {
-          key: key(spaceId!, row.storage_id, row.storage_name),
-          contentType: row.content_type,
+          key: key(spaceId!, row.storageId, row.storageName),
+          contentType: row.contentType,
         };
       });
       try {
@@ -733,9 +904,11 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     async assertSpaceEmpty(context: Context, scope: DriveScope) {
       await access(context, scope, "delete");
       await locked(scope, false, async (tx, spaceId) => {
-        const rows = await tx.execute(
-          sql`select id from drive_entry where space_id=${spaceId ?? null} limit 1`,
-        );
+        const rows = await tx
+          .select({ id: entries.id })
+          .from(entries)
+          .where(inSpace(spaceId))
+          .limit(1);
         if (rows.length) throw new DriveError("CONFLICT");
       });
     },
@@ -747,75 +920,146 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       await access(context, scope, "delete");
       await db
         .transaction(async (tx) => {
-          await tx.execute(
-            sql`select pg_advisory_xact_lock(hashtextextended(${scopeKey(scope)}, 0))`,
-          );
+          await lockPlugin(tx, `drive:${scopeKey(scope)}`);
           await access(context, scope, "delete");
-          const [space] = await tx.execute<{ id: string }>(
-            sql`select id from drive_space where entity_type=${scope.type} and entity_id=${scope.id}`,
-          );
+          const [space] = await tx
+            .select({ id: spaces.id })
+            .from(spaces)
+            .where(and(eq(spaces.entityType, scope.type), eq(spaces.entityId, scope.id)));
           const spaceId = space?.id;
-          const rows = await tx.execute(
-            sql`select id from drive_entry where space_id=${spaceId ?? null} limit 1`,
-          );
+          const rows = await tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(inSpace(spaceId))
+            .limit(1);
           if (rows.length) throw new DriveError("CONFLICT");
           // Expired staging keys are covered by the mandatory bucket lifecycle policy.
-          await tx.execute(sql`delete from drive_upload where space_id=${spaceId ?? null}`);
-          await tx.execute(sql`delete from drive_space where id=${spaceId ?? null}`);
+          await tx.delete(uploads).where(eq(uploads.spaceId, spaceId ?? missingSpace));
+          await tx.delete(spaces).where(eq(spaces.id, spaceId ?? missingSpace));
           await removeEntity?.(tx);
         })
         .catch(storageError);
     },
     async maintenance({ limit = 100 }: { limit?: number } = {}) {
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new DriveError("INVALID");
-      const spaces = await db.execute<{ entity_type: string; entity_id: string }>(
-        sql`select s.entity_type,s.entity_id from drive_space s where exists(select 1 from drive_entry e where e.space_id=s.id and e.state in ('deleting','purging')) or ${options.trash ? sql`exists(select 1 from drive_entry e where e.space_id=s.id and e.state='trashed' and e.expires_at <= now())` : sql`false`} or exists(select 1 from drive_upload u where u.space_id=s.id and u.expires_at <= now()) order by s.id limit ${limit}`,
-      );
+      const pendingSpaces = await db
+        .select({ entityType: spaces.entityType, entityId: spaces.entityId })
+        .from(spaces)
+        .where(
+          or(
+            exists(
+              db
+                .select({ id: entries.id })
+                .from(entries)
+                .where(
+                  and(
+                    eq(entries.spaceId, spaces.id),
+                    inArray(entries.state, ["deleting", "purging"]),
+                  ),
+                ),
+            ),
+            options.trash
+              ? exists(
+                  db
+                    .select({ id: entries.id })
+                    .from(entries)
+                    .where(
+                      and(
+                        eq(entries.spaceId, spaces.id),
+                        eq(entries.state, "trashed"),
+                        lte(entries.expiresAt, new Date()),
+                      ),
+                    ),
+                )
+              : undefined,
+            exists(
+              db
+                .select({ id: uploads.id })
+                .from(uploads)
+                .where(
+                  and(
+                    eq(uploads.spaceId, spaces.id),
+                    lte(uploads.expiresAt, new Date().toISOString()),
+                  ),
+                ),
+            ),
+          ),
+        )
+        .orderBy(spaces.id)
+        .limit(limit);
       let failures = 0;
       let remaining = limit;
       let spacesProcessed = 0;
-      for (const space of spaces) {
+      for (const space of pendingSpaces) {
         if (!remaining) break;
         spacesProcessed++;
-        const scope = { type: space.entity_type, id: space.entity_id };
+        const scope = { type: space.entityType, id: space.entityId };
         try {
           await locked(scope, false, async (tx, spaceId) => {
             if (options.trash) {
-              const expired = await tx.execute<{ id: string }>(
-                sql`select id from drive_entry where space_id=${spaceId} and id=trash_root_id and state='trashed' and expires_at <= now() order by expires_at,id limit ${remaining}`,
-              );
+              const expired = await tx
+                .select({ id: entries.id })
+                .from(entries)
+                .where(
+                  and(
+                    inSpace(spaceId),
+                    eq(entries.id, entries.trashRootId),
+                    eq(entries.state, "trashed"),
+                    lte(entries.expiresAt, new Date()),
+                  ),
+                )
+                .orderBy(entries.expiresAt, entries.id)
+                .limit(remaining);
               for (const root of expired) {
                 remaining--;
-                await tx.execute(
-                  sql`update drive_entry set state='purging',updated_at=now() where space_id=${spaceId} and trash_root_id=${root.id} and state='trashed'`,
-                );
+                await tx
+                  .update(entries)
+                  .set({ state: "purging", updatedAt: new Date() })
+                  .where(
+                    and(
+                      inSpace(spaceId),
+                      eq(entries.trashRootId, root.id),
+                      eq(entries.state, "trashed"),
+                    ),
+                  );
               }
             }
             if (!remaining) return;
-            const uploads = await tx.execute<Upload>(
-              sql`select * from drive_upload where space_id=${spaceId} and expires_at <= now() order by expires_at limit ${remaining}`,
-            );
-            for (const upload of uploads) {
+            const expiredUploads = await tx
+              .select()
+              .from(uploads)
+              .where(
+                and(
+                  eq(uploads.spaceId, spaceId ?? missingSpace),
+                  lte(uploads.expiresAt, new Date().toISOString()),
+                ),
+              )
+              .orderBy(uploads.expiresAt)
+              .limit(remaining);
+            for (const upload of expiredUploads) {
               remaining--;
               if (upload.state === "active") {
-                await tx.execute(
-                  sql`update drive_entry set state='deleting' where id=${upload.entry_id} and state='uploading'`,
-                );
-                await tx.execute(
-                  sql`update drive_upload set state='cancelled' where id=${upload.id}`,
-                );
+                await tx
+                  .update(entries)
+                  .set({ state: "deleting" })
+                  .where(and(eq(entries.id, upload.entryId), eq(entries.state, "uploading")));
+                await tx
+                  .update(uploads)
+                  .set({ state: "cancelled" })
+                  .where(eq(uploads.id, upload.id));
               }
               await verifyBucket();
               await s3.send(
                 new DeleteObjectCommand({
                   Bucket: bucket,
-                  Key: key(spaceId!, upload.storage_id, upload.storage_name, true),
+                  Key: key(spaceId!, upload.storageId, upload.storageName, true),
                 }),
               );
               // Retain idempotency tombstones, but avoid revisiting cleaned reservations.
-              await tx.execute(
-                sql`update drive_upload set expires_at='infinity' where id=${upload.id}`,
-              );
+              await tx
+                .update(uploads)
+                .set({ expiresAt: "infinity" })
+                .where(eq(uploads.id, upload.id));
             }
           });
           if (remaining) {
