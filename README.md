@@ -33,6 +33,14 @@ installed from this repository. Common maintenance lives in `forge-skills`:
 
 Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
 
+Registry-owned specs cover [Plugins](openspec/specs/plugins/spec.md),
+[Reservations](openspec/specs/reservations/spec.md),
+[showroom discovery](openspec/specs/registry-showroom/spec.md) and
+[registry releases](openspec/specs/registry-releases/spec.md). Their changes live in
+this repository's `openspec/changes/`. Only contracts constraining both registry and
+template live in `forge-spec`; consumer installation alone does not make a plugin
+spec shared.
+
 The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared intranet sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
 
 ## What is included

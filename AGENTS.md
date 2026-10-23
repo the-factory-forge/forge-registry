@@ -46,20 +46,30 @@ dedicated to the task.
 
 Before implementation, read `../forge-spec/AGENTS.md` and the shared
 `the-forge`, `registry-distribution` and, for UI/CSS/Tailwind work, `shared-ui` specs under
-`../forge-spec/openspec/specs/`. Read `site-template` when consumer integration
-is affected. If that checkout is elsewhere, use its supplied location or the
+`../forge-spec/openspec/specs/`. Read `host-integration` when consumer integration
+is affected. Template application details live in
+`forge-template/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
+use its supplied location or the
 [canonical forge-spec repository](https://github.com/the-factory-forge/forge-spec).
 Report inaccessible context rather than assuming it was loaded.
 
 `openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
-Keep implementation-only changes here and shared contract changes in forge-spec,
-with one owning change root. These specs complement the repository procedures
+Keep registry-specific specs and changes here, including plugin definitions,
+plugin behavior, showroom rules and registry release checks. Only contracts that
+constrain both registry and template belong in forge-spec. Installing a plugin in
+a host does not by itself make its spec shared. Keep one owning change root.
+These specs complement the repository procedures
 below; inspect current source and report material conflicts. A sibling reference
 does not expand the task to unrelated changes in that repository.
 
-For plugin work, also read the shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+For plugin work, also read the local [Plugins specification](openspec/specs/plugins/spec.md)
 and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
 module requirement when adding or materially changing a feature.
+
+Local main specs live under `openspec/specs/`: `plugins`, `reservations`,
+`registry-showroom` and `registry-releases`. The [Blogs storage decision](concepts/adr/0009-blog-content-and-image-storage.md)
+is registry-owned. Use forge-spec's installed OpenSpec CLI with this repository
+as the working directory; generated OpenSpec skills remain central.
 
 ## Filter and view state
 
@@ -71,7 +81,7 @@ parameters in showroom and consumer adapters. Verify reload and Back/Forward.
 ## Object storage
 
 Storage companions require `<SITE_NAME>/<plugin>/` from the host; reject absent or
-unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/site-template/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
+unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
 consumer migration and lifecycle rules. Verify installed callers and fixtures when
 changing this boundary; source adoption does not imply moving deployed objects.
 

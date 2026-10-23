@@ -263,7 +263,7 @@ Storage companions use a separate `plugins/{name}/server` entrypoint and registr
 
 ## Plugin contracts
 
-Use the [plugin guide](./docs/plugins.md) and shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+Use the [plugin guide](./docs/plugins.md) and registry-owned [Plugins specification](openspec/specs/plugins/spec.md)
 for the feature definition, module capabilities and host boundaries. Keep them
 aligned with exported contracts, the manifest and each integration guide when
 adding or changing a plugin.

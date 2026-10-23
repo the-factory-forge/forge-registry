@@ -15,7 +15,7 @@ A server companion implements persistence or server operations for the same
 feature. Hosts own routing, authorization, data, branding,
 translations and transport; installation does not enable routes or apply migrations.
 
-The shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+The registry-owned [Plugins specification](../openspec/specs/plugins/spec.md)
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
