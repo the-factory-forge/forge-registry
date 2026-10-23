@@ -13,12 +13,12 @@ import type {
 import {
   cardClass,
   Feedback,
-  DeleteCustomer,
   inputClass,
   primaryButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
-import { customerFormValues } from "@/components/plugins/customers/utils";
+import { customerDisplayName, customerFormValues } from "@/components/plugins/customers/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
@@ -41,11 +41,21 @@ function CustomerFormContent({
 }: CustomerFormProps) {
   const id = `factory-customer-form-${useId()}`;
   const creating = !customer;
-  const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState(() => customerFormValues(customer));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
   const action = useCustomerAction(labels.actionError);
-  const pending = disabled || action.pending || deleting;
+  const deletion = useRecordDeletion({
+    items: customer ? [customer] : [],
+    scope: customer?.id,
+    getName: customerDisplayName,
+    onDelete,
+    label: labels.deleteCustomer,
+    labels,
+    disabled: disabled || action.pending,
+    returnFocus: formRef,
+    className: "max-w-md",
+  });
+  const pending = disabled || action.pending || deletion.pending;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,7 +133,14 @@ function CustomerFormContent({
   }
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} aria-busy={pending} className="space-y-6">
+    <form
+      ref={formRef}
+      tabIndex={-1}
+      noValidate
+      onSubmit={submit}
+      aria-busy={pending}
+      className="space-y-6 focus-visible:ring-2 focus-visible:ring-ring"
+    >
       <fieldset disabled={pending} className="min-w-0 space-y-6">
         <section aria-labelledby={`${id}-contact`} className={cn(cardClass, "space-y-5")}>
           <div className="space-y-1.5">
@@ -176,18 +193,10 @@ function CustomerFormContent({
       </fieldset>
       <div className={editorActionsClass}>
         {customer && onDelete && (
-          <DeleteCustomer
-            customer={customer}
-            labels={labels}
+          <RecordDeleteButton
+            label={labels.deleteCustomer}
             disabled={pending}
-            onDelete={async (id) => {
-              setDeleting(true);
-              try {
-                await onDelete(id);
-              } finally {
-                setDeleting(false);
-              }
-            }}
+            onClick={(event) => deletion.open(customer.id, event.currentTarget)}
           />
         )}
         <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
@@ -195,6 +204,7 @@ function CustomerFormContent({
         </button>
       </div>
       <Feedback feedback={action.feedback} />
+      {deletion.dialog}
     </form>
   );
 }

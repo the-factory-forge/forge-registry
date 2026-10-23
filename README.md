@@ -105,17 +105,18 @@ supply their own translations and theme configuration.
 
 ### Libs
 
-| Name                                              | Description                                                              |
-| ------------------------------------------------- | ------------------------------------------------------------------------ |
-| `consent-analytics`                               | Consent-driven Google Analytics and Ads loading, event gating, and retry |
-| `cn`                                              | Class-name utility (re-exports `cnfast`)                                 |
-| [optimistic-action](./docs/optimistic-actions.md) | TanStack Query mutations with temporary UI updates and rollback          |
-| `table-styles`                                    | Shared layout classes for plugin tables                                  |
-| `section-variants`                                | Shared SectionVariant type and color map for themeable sections          |
-| `build-metadata`                                  | Canonical, hreflang, Open Graph, Twitter cards                           |
-| `json-ld`                                         | Organization, Breadcrumb, FAQ, Service schemas                           |
-| `privacy-content`                                 | Reference privacy-policy content in fr/en/de/it for site adaptation      |
-| `footer-helpers`                                  | Builds footer props from site data, including attribution defaults       |
+| Name                                                                            | Description                                                                   |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `consent-analytics`                                                             | Consent-driven Google Analytics and Ads loading, event gating, and retry      |
+| `cn`                                                                            | Class-name utility (re-exports `cnfast`)                                      |
+| [optimistic-action](./docs/optimistic-actions.md)                               | TanStack Query mutations with temporary UI updates and rollback               |
+| [record-deletion](./docs/optimistic-actions.md#customers-and-projects-deletion) | Shared Customers/Projects confirmation, optimistic removal and focus recovery |
+| `table-styles`                                                                  | Shared layout classes for plugin tables                                       |
+| `section-variants`                                                              | Shared SectionVariant type and color map for themeable sections               |
+| `build-metadata`                                                                | Canonical, hreflang, Open Graph, Twitter cards                                |
+| `json-ld`                                                                       | Organization, Breadcrumb, FAQ, Service schemas                                |
+| `privacy-content`                                                               | Reference privacy-policy content in fr/en/de/it for site adaptation           |
+| `footer-helpers`                                                                | Builds footer props from site data, including attribution defaults            |
 
 ### UI Primitives
 

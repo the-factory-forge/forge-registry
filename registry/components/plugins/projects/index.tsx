@@ -22,8 +22,9 @@ import type {
   ProjectsListProps,
   ProjectsPageProps,
 } from "@/components/plugins/projects/types";
-import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
+import { ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
 import { projectFormValues, safeProjectUrl } from "@/components/plugins/projects/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -41,7 +42,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
-import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type {
   Project,
@@ -86,9 +87,20 @@ function ProjectsListContent({
     customerId === undefined
       ? projects
       : projects.filter((project) => project.ownerId === customerId);
-  const selectable = onDelete ? visibleProjects : [];
+  const deletion = useRecordDeletion({
+    items: visibleProjects,
+    scope: JSON.stringify([customerId, search]),
+    getName: (project) => project.name,
+    onDelete,
+    label: labels.deleteProject,
+    labels,
+    disabled: loading || !!loadError || optimistic.pending,
+    returnFocus: root,
+  });
+  const selectable = onDelete ? deletion.items : [];
   const selection = useTableSelection(selectable, `${customerId ?? ""}:${search ?? ""}`);
-  const selectionDisabled = loading || !!loadError || optimistic.pending || selection.pending;
+  const selectionDisabled =
+    loading || !!loadError || optimistic.pending || deletion.pending || selection.pending;
   const owners = new Map(customers.map((customer) => [customer.id, customer]));
   const assigned = new Map(assignees.map((assignee) => [assignee.id, assignee]));
   return (
@@ -127,7 +139,7 @@ function ProjectsListContent({
       </header>
       <div className="overflow-x-auto">
         <table className={tableClass} aria-busy={loading}>
-          {loading && visibleProjects.length > 0 && (
+          {loading && deletion.items.length > 0 && (
             <caption className="sr-only">
               <output>{labels.loading}</output>
             </caption>
@@ -189,23 +201,14 @@ function ProjectsListContent({
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {retainRemovedItems(
-              visibleProjects,
-              suppliedProjects.filter(
-                (row) => customerId === undefined || row.ownerId === customerId,
-              ),
-              optimistic.pending,
-            ).map((project) => {
+            {deletion.items.map((project) => {
               const owner = owners.get(project.ownerId);
               const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
               const website = safeProjectUrl(project.url);
               return (
                 <tr
                   key={project.id}
-                  hidden={
-                    selection.isDeleting(project.id) ||
-                    !visibleProjects.some((row) => row.id === project.id)
-                  }
+                  hidden={selection.isDeleting(project.id)}
                   className={tableRowClass}
                 >
                   {onDelete && (
@@ -298,17 +301,10 @@ function ProjectsListContent({
                         </ProjectLink>
                       </IconTooltip>
                       {onDelete && (
-                        <DeleteProject
-                          project={project}
+                        <RecordDeleteButton
+                          label={labels.deleteProject}
                           disabled={selectionDisabled}
-                          onDelete={(id) =>
-                            optimistic.run(
-                              (rows) => rows.filter((row) => row.id !== id),
-                              () => onDelete(id),
-                            )
-                          }
-                          labels={labels}
-                          returnFocus={root}
+                          onClick={(event) => deletion.open(project.id, event.currentTarget)}
                         />
                       )}
                     </div>
@@ -316,7 +312,7 @@ function ProjectsListContent({
                 </tr>
               );
             })}
-            {((error && !loading) || visibleProjects.length === 0) && (
+            {((error && !loading) || deletion.items.length === 0) && (
               <tr className={tableRowClass}>
                 <td
                   colSpan={(customerId === undefined ? 6 : 5) + (onDelete ? 1 : 0)}
@@ -335,6 +331,7 @@ function ProjectsListContent({
           </tbody>
         </table>
       </div>
+      {deletion.dialog}
     </section>
   );
 }

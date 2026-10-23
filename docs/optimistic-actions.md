@@ -55,6 +55,32 @@ New bookings retain the confirmation flow because availability can change before
 submission. Authentication, impersonation and email delivery cannot be inferred
 from a local UI update.
 
+## Customers and Projects deletion
+
+Customers and Projects install `@forge/record-deletion`. Their lists and forms
+own one single-record confirmation outside the removable row or trigger. Bulk
+deletion continues to use `@forge/table-selection`.
+
+An open confirmation follows the current display name but retains the selected
+ID. Before submission, removing the record or changing the search, customer
+scope or form record closes it. Once submitted, the original callback and ID
+finish even if host data or the view changes. Host updates can remove the row
+before resolving the callback without losing the confirmation.
+
+Failure removes only the temporary deletion and displays the current host data.
+The confirmation retains its error; retry is available only while the original
+record remains in the same view and deletion is enabled. Closing returns focus
+to the original trigger when available, otherwise to the owning list or form.
+Unmounted views do not receive completion feedback or focus.
+
+To reuse the module, call `useRecordDeletion` with current `items`, `getName`,
+`onDelete`, translated `label` and `labels`, and a `returnFocus` ref to a container
+with `tabIndex={-1}`. Pass the view identity as `scope`. Render its `items` and
+`dialog` from that stable owner; use `RecordDeleteButton` to call
+`open(id, event.currentTarget)` and disable competing actions while `pending`.
+The existing [Customers](./customers.md) and [Projects](./projects.md) showroom
+examples demonstrate the module without a separate helper homepage card.
+
 ## Verification
 
 The existing plugin showroom routes demonstrate these changes. Their failure
@@ -62,6 +88,8 @@ controls reject mutations; Employees and Menus include a short request delay.
 `tests/optimistic.browser.mjs` stretches the mock delay and asserts the immediate
 state, failure rollback, retained drafts and retry behavior. The existing plugin
 browser suites cover successful reconciliation, navigation and permissions.
+`tests/record-deletion.browser.mjs` exercises controlled host refreshes, renames,
+view changes, rejection, retry and focus recovery for both lists and forms.
 
 Rebuild with `pnpm registry:sync` and install updated plugin items in each consumer.
 Installing the helper alone does not update an already copied plugin. No storage

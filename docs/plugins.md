@@ -227,6 +227,10 @@ required: deletion invokes the existing callback once per selected row.
 
 ## Optimistic actions
 
+Customers and Projects share list/form-owned single-record confirmations through
+`@forge/record-deletion`. See [their deletion lifecycle](./optimistic-actions.md#customers-and-projects-deletion)
+for view changes, host refreshes, retry and focus recovery.
+
 Plugins use TanStack Query mutations through [`@forge/optimistic-action`](./optimistic-actions.md).
 Predictable changes appear before the request completes and revert on rejection.
 Forms retain drafts, confirmations retain recovery controls, and success toasts wait

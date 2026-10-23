@@ -1,9 +1,8 @@
 "use client";
 
 import { Avatar } from "@base-ui/react/avatar";
-import { Dialog } from "@base-ui/react/dialog";
-import { ChevronDownIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import { useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import {
@@ -17,6 +16,7 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
 
@@ -136,70 +136,34 @@ export function DeleteCustomer({
   onDelete,
   labels,
   disabled = false,
+  returnFocus,
 }: {
   customer: Customer;
   onDelete: (id: string) => Promise<void>;
   labels: CustomersLabels;
   disabled?: boolean;
+  returnFocus?: RefObject<HTMLElement | null>;
 }) {
-  const [open, setOpen] = useState(false);
-  const action = useCustomerAction(labels.actionError);
+  const deletion = useRecordDeletion({
+    items: [customer],
+    scope: customer.id,
+    getName: customerDisplayName,
+    onDelete,
+    label: labels.deleteCustomer,
+    labels,
+    disabled,
+    returnFocus,
+    className: "max-w-md",
+  });
   return (
-    <div>
-      <Dialog.Root
-        open={open}
-        onOpenChange={(next) => {
-          if (!action.pending) setOpen(next);
-        }}
-      >
-        <IconTooltip label={labels.deleteCustomer}>
-          <Dialog.Trigger
-            className={cn(
-              iconButtonClass,
-              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-            )}
-            aria-label={labels.deleteCustomer}
-            disabled={disabled || action.pending}
-          >
-            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-          </Dialog.Trigger>
-        </IconTooltip>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup
-            className={cn(
-              cardClass,
-              "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
-            )}
-          >
-            <Dialog.Title className="text-lg font-semibold">{labels.deleteCustomer}</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {labels.deleteDescription(customerDisplayName(customer))}
-            </Dialog.Description>
-            <Feedback feedback={action.feedback} />
-            <div className="flex flex-wrap justify-end gap-2">
-              <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button
-                type="button"
-                disabled={disabled || action.pending}
-                className={cn(
-                  buttonClass,
-                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                )}
-                onClick={async () => {
-                  if (await action.run(() => onDelete(customer.id), labels.deleted)) setOpen(false);
-                }}
-              >
-                {action.pending ? labels.pending : labels.confirmDelete}
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-      {!open && <Feedback feedback={action.feedback} />}
-    </div>
+    <>
+      <RecordDeleteButton
+        label={labels.deleteCustomer}
+        disabled={disabled || deletion.pending}
+        onClick={(event) => deletion.open(customer.id, event.currentTarget)}
+      />
+      {deletion.dialog}
+    </>
   );
 }
 

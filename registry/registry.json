@@ -126,6 +126,26 @@
       ]
     },
     {
+      "name": "record-deletion",
+      "type": "registry:ui",
+      "title": "Record Deletion",
+      "description": "Single-record confirmation with optimistic removal, retry and focus recovery; demonstrated by Customers and Projects.",
+      "files": [
+        {
+          "path": "registry/components/record-deletion.tsx",
+          "type": "registry:component",
+          "target": "@components/record-deletion.tsx"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/action-toast",
+        "@forge/icon-tooltip",
+        "@forge/optimistic-action"
+      ]
+    },
+    {
       "name": "table-search",
       "type": "registry:ui",
       "title": "Table Search",
@@ -892,7 +912,8 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/dropdown-menu",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/record-deletion"
       ]
     },
     {
@@ -944,7 +965,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/record-deletion"
       ]
     },
     {

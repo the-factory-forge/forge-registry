@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
+import { useRef } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -19,11 +20,11 @@ import {
   CustomerActionButton,
   CustomerAvatar,
   CustomerStatusBadge,
-  DeleteCustomer,
   iconButtonClass,
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -41,7 +42,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
-import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type {
   Customer,
@@ -75,14 +76,32 @@ function CustomersPageContent({
 }: CustomersPageProps) {
   const labels = { ...customerLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedCustomers);
-  const customers = optimistic.value;
+  const root = useRef<HTMLElement>(null);
+  const deletion = useRecordDeletion({
+    items: optimistic.value,
+    scope: search,
+    getName: customerDisplayName,
+    onDelete,
+    label: labels.deleteCustomer,
+    labels,
+    disabled: loading || !!loadError || optimistic.pending,
+    returnFocus: root,
+    className: "max-w-md",
+  });
+  const customers = deletion.items;
   const selectable = onDelete ? customers : [];
   const selection = useTableSelection(selectable, search ?? "");
-  const selectionDisabled = loading || !!loadError || optimistic.pending || selection.pending;
+  const selectionDisabled =
+    loading || !!loadError || optimistic.pending || deletion.pending || selection.pending;
   const error = loadError || (optimistic.error ? labels.actionError : undefined);
   return (
     <div className={cn(pageClass, className)}>
-      <section className={cn(tablePanelClass, "space-y-5")} aria-label={labels.title}>
+      <section
+        ref={root}
+        tabIndex={-1}
+        className={cn(tablePanelClass, "space-y-5 focus-visible:ring-2 focus-visible:ring-ring")}
+        aria-label={labels.title}
+      >
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1.5">
             <h1 className="text-base font-semibold">{labels.title}</h1>
@@ -164,118 +183,105 @@ function CustomersPageContent({
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
-              {retainRemovedItems(customers, suppliedCustomers, optimistic.pending).map(
-                (customer) => (
-                  <tr
-                    key={customer.id}
-                    hidden={
-                      selection.isDeleting(customer.id) ||
-                      !customers.some((row) => row.id === customer.id)
-                    }
-                    className={tableRowClass}
-                  >
-                    {onDelete && (
-                      <td className="w-10 p-2">
-                        <TableSelectionCheckbox
-                          label={`${labels.selectRow}: ${customerDisplayName(customer)}`}
-                          checked={selection.selected.some((row) => row.id === customer.id)}
-                          mixed={false}
-                          onChange={(checked) => selection.toggle(customer.id, checked)}
-                          disabled={selectionDisabled}
-                        />
-                      </td>
-                    )}
-                    <td className={tableCellClass}>
-                      <div className="flex items-center gap-3">
-                        <CustomerAvatar customer={customer} />
-                        <div className="space-y-0.5">
-                          <CustomerLink
-                            href={getCustomerHref(customer, "about")}
-                            className="font-medium whitespace-nowrap hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            {customerDisplayName(customer)}
-                          </CustomerLink>
-                          {customer.companyName?.trim() && (
-                            <p className="text-xs text-muted-foreground">{customer.name}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className={tableCellClass}>
-                      <span className="whitespace-nowrap">{customer.email}</span>
-                    </td>
-                    <td className={tableCellClass}>
-                      <CustomerStatusBadge
-                        customer={customer}
-                        labels={labels}
+              {customers.map((customer) => (
+                <tr
+                  key={customer.id}
+                  hidden={selection.isDeleting(customer.id)}
+                  className={tableRowClass}
+                >
+                  {onDelete && (
+                    <td className="w-10 p-2">
+                      <TableSelectionCheckbox
+                        label={`${labels.selectRow}: ${customerDisplayName(customer)}`}
+                        checked={selection.selected.some((row) => row.id === customer.id)}
+                        mixed={false}
+                        onChange={(checked) => selection.toggle(customer.id, checked)}
                         disabled={selectionDisabled}
-                        onChange={
-                          onSetVerified
-                            ? (verified) =>
-                                optimistic.run(
-                                  (rows) =>
-                                    rows.map((row) =>
-                                      row.id === customer.id
-                                        ? { ...row, emailVerified: verified }
-                                        : row,
-                                    ),
-                                  () => onSetVerified(customer.id, verified),
-                                )
-                            : undefined
-                        }
                       />
                     </td>
-                    {syncColumn && (
-                      <td className={tableCellClass}>{syncColumn.render(customer)}</td>
-                    )}
-                    <td className={tableActionCellClass}>
-                      <div className={tableActionsClass}>
-                        {onImpersonate && (
-                          <CustomerActionButton
-                            disabled={selectionDisabled}
-                            label={labels.impersonate}
-                            labels={labels}
-                            onAction={() => onImpersonate(customer.id)}
-                          >
-                            <UserRoundIcon aria-hidden="true" />
-                          </CustomerActionButton>
-                        )}
-                        <IconTooltip label={labels.viewProjects}>
-                          <CustomerLink
-                            href={getCustomerHref(customer, "projects")}
-                            className={iconButtonClass}
-                            aria-label={labels.viewProjects}
-                          >
-                            <FolderKanbanIcon aria-hidden="true" />
-                          </CustomerLink>
-                        </IconTooltip>
-                        <IconTooltip label={labels.edit}>
-                          <CustomerLink
-                            href={getCustomerHref(customer, "about")}
-                            className={iconButtonClass}
-                            aria-label={labels.edit}
-                          >
-                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                          </CustomerLink>
-                        </IconTooltip>
-                        {onDelete && (
-                          <DeleteCustomer
-                            customer={customer}
-                            onDelete={(id) =>
-                              optimistic.run(
-                                (rows) => rows.filter((row) => row.id !== id),
-                                () => onDelete(id),
-                              )
-                            }
-                            labels={labels}
-                            disabled={selectionDisabled}
-                          />
+                  )}
+                  <td className={tableCellClass}>
+                    <div className="flex items-center gap-3">
+                      <CustomerAvatar customer={customer} />
+                      <div className="space-y-0.5">
+                        <CustomerLink
+                          href={getCustomerHref(customer, "about")}
+                          className="font-medium whitespace-nowrap hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {customerDisplayName(customer)}
+                        </CustomerLink>
+                        {customer.companyName?.trim() && (
+                          <p className="text-xs text-muted-foreground">{customer.name}</p>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                ),
-              )}
+                    </div>
+                  </td>
+                  <td className={tableCellClass}>
+                    <span className="whitespace-nowrap">{customer.email}</span>
+                  </td>
+                  <td className={tableCellClass}>
+                    <CustomerStatusBadge
+                      customer={customer}
+                      labels={labels}
+                      disabled={selectionDisabled}
+                      onChange={
+                        onSetVerified
+                          ? (verified) =>
+                              optimistic.run(
+                                (rows) =>
+                                  rows.map((row) =>
+                                    row.id === customer.id
+                                      ? { ...row, emailVerified: verified }
+                                      : row,
+                                  ),
+                                () => onSetVerified(customer.id, verified),
+                              )
+                          : undefined
+                      }
+                    />
+                  </td>
+                  {syncColumn && <td className={tableCellClass}>{syncColumn.render(customer)}</td>}
+                  <td className={tableActionCellClass}>
+                    <div className={tableActionsClass}>
+                      {onImpersonate && (
+                        <CustomerActionButton
+                          disabled={selectionDisabled}
+                          label={labels.impersonate}
+                          labels={labels}
+                          onAction={() => onImpersonate(customer.id)}
+                        >
+                          <UserRoundIcon aria-hidden="true" />
+                        </CustomerActionButton>
+                      )}
+                      <IconTooltip label={labels.viewProjects}>
+                        <CustomerLink
+                          href={getCustomerHref(customer, "projects")}
+                          className={iconButtonClass}
+                          aria-label={labels.viewProjects}
+                        >
+                          <FolderKanbanIcon aria-hidden="true" />
+                        </CustomerLink>
+                      </IconTooltip>
+                      <IconTooltip label={labels.edit}>
+                        <CustomerLink
+                          href={getCustomerHref(customer, "about")}
+                          className={iconButtonClass}
+                          aria-label={labels.edit}
+                        >
+                          <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                        </CustomerLink>
+                      </IconTooltip>
+                      {onDelete && (
+                        <RecordDeleteButton
+                          label={labels.deleteCustomer}
+                          disabled={selectionDisabled}
+                          onClick={(event) => deletion.open(customer.id, event.currentTarget)}
+                        />
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
               {((error && !loading) || customers.length === 0) && (
                 <tr className={tableRowClass}>
                   <td
@@ -296,6 +302,7 @@ function CustomersPageContent({
           </table>
         </div>
       </section>
+      {deletion.dialog}
     </div>
   );
 }

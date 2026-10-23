@@ -45,6 +45,7 @@ await test("customers distribution is complete and contains no website integrati
     "@forge/editor-form",
     "@forge/dropdown-menu",
     "@forge/table-selection",
+    "@forge/record-deletion",
   ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
