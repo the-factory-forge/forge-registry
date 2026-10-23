@@ -29,6 +29,14 @@ async function preview(t, example = true, viewport = { width: 1440, height: 1000
 }
 const panel = (page, locale = "EN") =>
   page.getByRole("complementary", { name: `History · ${locale}`, exact: true });
+async function actions(page, number, locale = "EN") {
+  if (!(await panel(page, locale).isVisible()))
+    await page.getByRole("button", { name: "History", exact: true }).click();
+  await panel(page, locale)
+    .getByRole("button", { name: `Actions: v${number}`, exact: true })
+    .click();
+  return page.getByRole("menu");
+}
 async function select(page, number, locale = "EN") {
   if (!(await panel(page, locale).isVisible()))
     await page.getByRole("button", { name: "History", exact: true }).click();
@@ -46,6 +54,140 @@ async function counts(page, pubs, drafts, locale = "EN") {
   await panel(page, locale)
     .getByText(`Publications ${pubs} / 5 · Drafts ${drafts} / 8`, { exact: true })
     .waitFor();
+}
+
+void test("history trigger distinguishes open and closed states in both themes and layouts", async (t) => {
+  for (const width of [1440, 390]) {
+    for (const theme of ["light", "dark"]) {
+      await t.test(`${width}px ${theme}`, async (t) => {
+        const page = await preview(t, true, { width, height: 1000 });
+        if (theme === "dark")
+          await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        const trigger = page.getByRole("button", { name: "History", exact: true });
+        const appearance = () =>
+          trigger.evaluate(async (element) => {
+            await Promise.all(element.getAnimations().map((animation) => animation.finished));
+            const style = getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              color: style.color,
+              width: element.offsetWidth,
+              height: element.offsetHeight,
+            };
+          });
+        assert.equal(await trigger.getAttribute("aria-expanded"), String(width >= 1024));
+        if (width >= 1024) await trigger.click();
+        await page.mouse.move(0, 0);
+        const closed = await appearance();
+        await trigger.focus();
+        await page.keyboard.press("Enter");
+        await panel(page).waitFor();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "true");
+        await page.getByRole("textbox", { name: "Title", exact: true }).focus();
+        const open = await appearance();
+        assert.notEqual(open.background, closed.background);
+        assert.notEqual(open.color, closed.color);
+        assert.equal(open.width, closed.width);
+        assert.equal(open.height, closed.height);
+        await trigger.screenshot({ path: `/tmp/forge-history-active-${width}-${theme}.png` });
+        await trigger.hover();
+        const hovered = await appearance();
+        assert.equal(hovered.color, open.color);
+        assert.notEqual(hovered.background, closed.background);
+        await panel(page).getByRole("button", { name: "Close history", exact: true }).click();
+        assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+        assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+        await page.mouse.move(0, 0);
+        assert.deepEqual(await appearance(), closed);
+        await page.keyboard.press("Space");
+        await panel(page).waitFor();
+        assert.deepEqual(await appearance(), open);
+        if (width < 1024) {
+          await select(page, 26);
+          assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+          assert.deepEqual(await appearance(), closed);
+        }
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+      });
+    }
+  }
+});
+
+for (const width of [1440, 390]) {
+  for (const theme of ["light", "dark"]) {
+    void test(`history actions compare and confirm deletion at ${width}px in ${theme} mode`, async (t) => {
+      const page = await preview(t, true, { width, height: 1000 });
+      await page.evaluate((mode) => {
+        localStorage.setItem("forge-showroom-theme", mode);
+      }, theme);
+      await page.reload();
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      await page.getByRole("button", { name: "Load history example", exact: true }).click();
+      await actions(page, 18);
+      await page.keyboard.press("Escape");
+      const trigger = panel(page).getByRole("button", { name: "Actions: v18", exact: true });
+      await trigger.focus();
+      await page.keyboard.press("Shift+Tab");
+      await page.keyboard.press("Tab");
+      await page.getByRole("tooltip", { name: "Actions: v18", exact: true }).waitFor();
+      await page.keyboard.press("ArrowDown");
+      const compare = page.getByRole("menuitem", { name: "Compare", exact: true });
+      await compare.waitFor();
+      assert.equal(await compare.evaluate((node) => node === document.activeElement), true);
+      const bounds = await page.getByRole("menu").boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+      await page.keyboard.press("Enter");
+      await page.getByRole("heading", { name: "v18", exact: true }).waitFor();
+      await page.locator('mark[data-change="added"]').waitFor();
+      assert.equal(await page.getByRole("button", { name: "Compare", exact: true }).count(), 0);
+      if (width < 1024) assert.equal(await panel(page).isVisible(), false);
+      await page.getByRole("button", { name: "Read", exact: true }).click();
+      assert.equal(await page.locator('mark[data-change="added"]').count(), 0);
+      await (
+        await actions(page, 18)
+      )
+        .getByRole("menuitem", { name: "Compare", exact: true })
+        .click();
+      await page.locator('mark[data-change="added"]').waitFor();
+      await (
+        await actions(page, 22)
+      )
+        .getByRole("menuitem", { name: "Compare", exact: true })
+        .click();
+      await page.getByText("No changes from the live publication.", { exact: true }).waitFor();
+      await select(page, 18);
+      assert.equal(
+        await page.getByRole("button", { name: "Read", exact: true }).getAttribute("aria-pressed"),
+        "true",
+      );
+      await (
+        await actions(page, 18)
+      )
+        .getByRole("menuitem", { name: "Delete version", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog", { name: "Delete version v18", exact: true });
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
+      await counts(page, 5, 4);
+      await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
+      await page.getByRole("textbox", { name: "Title", exact: true }).fill("Unsaved title");
+      const menu = await actions(page, 18);
+      assert.equal(
+        await menu.getByRole("menuitem", { name: "Delete version", exact: true }).isDisabled(),
+        true,
+      );
+      await menu.getByRole("menuitem", { name: "Compare", exact: true }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel", exact: true }).click();
+      assert.equal(
+        await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
+        "Unsaved title",
+      );
+    });
+  }
 }
 
 void test("history examples target every open post and give English and French independent content", async (t) => {
@@ -70,7 +212,11 @@ void test("history examples target every open post and give English and French i
       /Les bonnes idées commencent/,
     );
     await select(page, 18, "FR");
-    await page.getByRole("button", { name: "Compare", exact: true }).click();
+    await (
+      await actions(page, 18, "FR")
+    )
+      .getByRole("menuitem", { name: "Compare", exact: true })
+      .click();
     assert.match(await page.locator('mark[data-change="removed"]').textContent(), /pratique/);
     assert.match(await page.locator('mark[data-change="added"]').textContent(), /attention/);
     assert.equal(await page.getByRole("button", { name: "Compare draft", exact: true }).count(), 0);
@@ -305,20 +451,29 @@ void test("staff inspect history but current author and admin retain management"
     await page.getByRole("button", { name: "Publish this version", exact: true }).count(),
     0,
   );
+  const staffMenu = await actions(page, 18);
   assert.equal(
-    await panel(page)
-      .getByRole("button", { name: /^Delete version/ })
-      .count(),
+    await staffMenu.getByRole("menuitem", { name: "Delete version", exact: true }).count(),
     0,
   );
+  await staffMenu.getByRole("menuitem", { name: "Compare", exact: true }).click();
+  await page.locator('mark[data-change="added"]').waitFor();
   await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Colleague correction");
   await save(page);
   await counts(page, 5, 5);
   await page.getByLabel("Editor", { exact: true }).selectOption("jordan");
-  const live = panel(page).getByRole("button", { name: "Delete version v22", exact: true });
+  const live = (await actions(page, 22)).getByRole("menuitem", {
+    name: "Delete version",
+    exact: true,
+  });
   assert.equal(await live.isDisabled(), true);
-  await panel(page).getByRole("button", { name: "Delete version v27", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await (
+    await actions(page, 27)
+  )
+    .getByRole("menuitem", { name: "Delete version", exact: true })
+    .click();
   const dialog = page.getByRole("dialog", { name: "Delete version v27", exact: true });
   await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });

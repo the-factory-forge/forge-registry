@@ -547,7 +547,10 @@ Every saved reprise has its own lane, including independent starts from the
 same live publication. Continued drafts retain their lane. Unsaved input has a
 preview without a saved number. The active 3px path paints above 1px inactive
 paths with a background gap at crossings. Mobile starts collapsed and returns
-focus to the selected content. Version deletion is disabled while unsaved work
+focus to the selected content. Each saved version has a right-aligned actions menu
+with Compare and, when permitted, Delete. Selecting the row opens its read preview;
+Compare opens that version against the live publication. Deletion still requires
+confirmation. Version deletion is disabled while unsaved work
 is present and always protects the live row.
 
 The unified comparison uses the declared `diff` dependency to compare paragraphs

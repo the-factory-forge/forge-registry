@@ -157,6 +157,13 @@ join controls with touching borders or negative margins.
 
 ### Interaction requirements
 
+Follow the shared [active-state contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-persistent-active-control-states).
+Selected, pressed, current and expanded controls need a persistent visual state
+distinct from inactive, including after hover/focus leaves. Reuse semantic tokens
+and existing variants; keep focus visible, dimensions stable and the appropriate
+native/ARIA state synchronized with the actual selection or panel visibility.
+Ship this styling with the component and verify both themes and every reset/close path.
+
 Place the primary status badge at the top right of a card or detail summary,
 opposite its title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
 Allow long titles and translated labels to wrap without overlap. Table statuses

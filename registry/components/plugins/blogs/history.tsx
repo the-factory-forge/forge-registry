@@ -1,9 +1,23 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { FileTextIcon, GitCompareArrowsIcon, HistoryIcon, PencilIcon, XIcon } from "lucide-react";
+import {
+  EllipsisIcon,
+  FileTextIcon,
+  GitCompareArrowsIcon,
+  HistoryIcon,
+  PencilIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/dropdown-menu";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image, type ImageProps } from "@/components/image";
 import { blogTextDiff } from "@/components/plugins/blogs/history-diff";
@@ -32,6 +46,7 @@ import {
 } from "@/components/plugins/blogs/ui";
 import { safeAssetUrl } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
+import { editorActionsClass } from "@/components/utils/editor-form";
 
 export function useHistoryPublication(
   client: BlogsClient | undefined,
@@ -183,6 +198,7 @@ export function BlogHistoryPanel({
   error,
   labels,
   onSelect,
+  onCompare,
   onRetry,
   onClose,
   onDelete,
@@ -199,6 +215,7 @@ export function BlogHistoryPanel({
   error?: string;
   labels: BlogsLabels;
   onSelect: (header: BlogHistoryHeader) => void;
+  onCompare: (header: BlogHistoryHeader) => void;
   onRetry: () => void;
   onClose: () => void;
   onDelete?: (version: BlogHistoryHeader, requestId: string) => Promise<void>;
@@ -208,6 +225,8 @@ export function BlogHistoryPanel({
   working?: { origin?: BlogHistoryOrigin; header?: BlogHistoryHeader };
 }) {
   const list = useRef<HTMLOListElement>(null);
+  const actionTrigger = useRef<HTMLButtonElement>(null);
+  const [deleting, setDeleting] = useState<BlogHistoryHeader | null>(null);
   const [geometry, setGeometry] = useState<{
     height: number;
     width: number;
@@ -378,7 +397,7 @@ export function BlogHistoryPanel({
             <li
               key={row.id}
               data-history-id={row.id}
-              className="relative mb-2 flex min-w-0 items-start"
+              className="relative mb-2 flex min-w-0 items-start gap-2"
               style={{ paddingInlineStart: gutter }}
             >
               <span
@@ -399,7 +418,7 @@ export function BlogHistoryPanel({
                 onClick={() => onSelect(row)}
                 className={cn(
                   "min-w-0 flex-1 cursor-pointer space-y-1 rounded-lg px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed",
-                  chosen ? "bg-primary/10" : "hover:bg-muted",
+                  chosen ? "bg-primary/5 dark:bg-primary/10" : "hover:bg-muted",
                 )}
               >
                 <span className="flex flex-wrap items-start justify-between gap-2">
@@ -447,22 +466,68 @@ export function BlogHistoryPanel({
                   </span>
                 )}
               </button>
-              {onDelete && !isWorking && (
-                <div className="pt-2">
-                  <ConfirmDelete
-                    labels={labels}
-                    title={`${labels.deleteVersion} ${labels.versionLabel(row.number)}`}
-                    description={labels.historyDeleteDescription}
-                    label={`${labels.deleteVersion} ${labels.versionLabel(row.number)}`}
-                    disabled={disabled || deleteDisabled || isLive}
-                    onDelete={(requestId) => onDelete(row, requestId)}
-                  />
+              {!isWorking && (
+                <div className="shrink-0 pt-2">
+                  <DropdownMenu>
+                    <IconTooltip label={`${labels.actions}: ${labels.versionLabel(row.number)}`}>
+                      <DropdownMenuTrigger
+                        className={iconButtonClass}
+                        aria-label={`${labels.actions}: ${labels.versionLabel(row.number)}`}
+                        disabled={disabled}
+                        onFocus={(event) => {
+                          actionTrigger.current = event.currentTarget;
+                        }}
+                      >
+                        <EllipsisIcon className="size-4 shrink-0" aria-hidden="true" />
+                      </DropdownMenuTrigger>
+                    </IconTooltip>
+                    <DropdownMenuContent
+                      align="end"
+                      className="min-w-40 rounded-xl motion-reduce:animate-none"
+                    >
+                      <DropdownMenuItem
+                        className="min-h-10 rounded-md md:min-h-8"
+                        disabled={disabled}
+                        onClick={() => onCompare(row)}
+                      >
+                        <GitCompareArrowsIcon aria-hidden="true" />
+                        {labels.compare}
+                      </DropdownMenuItem>
+                      {onDelete && (
+                        <DropdownMenuItem
+                          className="min-h-10 rounded-md md:min-h-8"
+                          variant={disabled || deleteDisabled || isLive ? "default" : "destructive"}
+                          disabled={disabled || deleteDisabled || isLive}
+                          onClick={() => setDeleting(row)}
+                        >
+                          <Trash2Icon aria-hidden="true" />
+                          {labels.deleteVersion}
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </li>
           );
         })}
       </ol>
+      {deleting && onDelete && (
+        <ConfirmDelete
+          labels={labels}
+          title={`${labels.deleteVersion} ${labels.versionLabel(deleting.number)}`}
+          description={labels.historyDeleteDescription}
+          label={`${labels.deleteVersion} ${labels.versionLabel(deleting.number)}`}
+          disabled={disabled || deleteDisabled || deleting.id === publishedId}
+          onDelete={(requestId) => onDelete(deleting, requestId)}
+          onClose={() => setDeleting(null)}
+          finalFocus={() =>
+            actionTrigger.current?.isConnected
+              ? actionTrigger.current
+              : (list.current?.querySelector("button") ?? false)
+          }
+        />
+      )}
     </aside>
   );
 }
@@ -497,7 +562,8 @@ export function BlogHistoryReader({
   linkComponent,
   formatDate = (iso) => new Date(iso).toLocaleString(),
   working = false,
-  compareOnly = false,
+  mode,
+  onModeChange,
 }: BlogsAppearanceProps & {
   version: BlogHistoryVersion;
   publication?: BlogPublication | null;
@@ -508,9 +574,9 @@ export function BlogHistoryReader({
   onPublish?: () => void;
   disabled: boolean;
   working?: boolean;
-  compareOnly?: boolean;
+  mode: "read" | "compare";
+  onModeChange: (mode: "read" | "compare") => void;
 }) {
-  const [mode, setMode] = useState<"read" | "compare">(compareOnly ? "compare" : "read");
   const labelsId = `factory-blog-history-view-${useId()}`;
   const diff = useMemo(
     () => blogTextDiff(publication?.markdown ?? "", version.content.markdown),
@@ -577,7 +643,7 @@ export function BlogHistoryReader({
     );
   return (
     <HistoryImageContext.Provider value={{ imageComponent, unavailable: labels.imageUnavailable }}>
-      <section aria-labelledby={labelsId} className="min-w-0 space-y-6">
+      <section aria-labelledby={labelsId} className="flex min-w-0 flex-1 flex-col gap-6">
         <header className="space-y-3">
           <h2 id={labelsId} className="flex items-center gap-2 font-semibold">
             <HistoryIcon className="size-4" aria-hidden="true" />
@@ -591,19 +657,10 @@ export function BlogHistoryReader({
             type="button"
             aria-pressed={mode === "read"}
             className={mode === "read" ? primaryClass : outlineButtonClass}
-            onClick={() => setMode("read")}
+            onClick={() => onModeChange("read")}
           >
             <FileTextIcon aria-hidden="true" />
             {labels.read}
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "compare"}
-            className={mode === "compare" ? primaryClass : outlineButtonClass}
-            onClick={() => setMode("compare")}
-          >
-            <GitCompareArrowsIcon aria-hidden="true" />
-            {labels.compare}
           </button>
           {mode === "compare" && publication && (
             <span className="text-sm text-muted-foreground">{labels.compareWith(liveLabel)}</span>
@@ -740,7 +797,7 @@ export function BlogHistoryReader({
             />
           </article>
         )}
-        <div className="flex flex-wrap gap-2 border-t border-border pt-5">
+        <div className={cn(editorActionsClass, "mt-auto justify-start gap-2")}>
           {onPublish && (
             <button type="button" className={primaryClass} disabled={disabled} onClick={onPublish}>
               {labels.publishVersion}

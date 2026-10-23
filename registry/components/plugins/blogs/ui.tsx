@@ -13,7 +13,7 @@ import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
 
 export const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:bg-background disabled:text-foreground disabled:hover:bg-background disabled:hover:text-foreground dark:disabled:bg-background dark:disabled:hover:bg-background [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -21,7 +21,7 @@ export const primaryClass = cn(
 export const outlineButtonClass = cn(buttonClass, "border border-border");
 export const iconButtonClass = cn(
   buttonClass,
-  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 md:size-8 md:min-h-8",
+  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 disabled:pointer-events-auto md:size-8 md:min-h-8",
 );
 export const inputClass = cn(
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
@@ -104,6 +104,8 @@ export function ConfirmDelete({
   onDelete,
   disabled = false,
   label,
+  onClose,
+  finalFocus,
 }: {
   labels: BlogsLabels;
   title: string;
@@ -111,31 +113,39 @@ export function ConfirmDelete({
   onDelete: (requestId: string) => Promise<void>;
   disabled?: boolean;
   label: string;
+  onClose?: () => void;
+  finalFocus?: Dialog.Popup.Props["finalFocus"];
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!onClose);
   const action = useBlogAction(labels);
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (!action.pending) setOpen(next);
+        if (!action.pending) {
+          setOpen(next);
+          if (!next) onClose?.();
+        }
       }}
     >
-      <IconTooltip label={label}>
-        <Dialog.Trigger
-          className={cn(
-            iconButtonClass,
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          aria-label={label}
-          disabled={disabled}
-        >
-          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-        </Dialog.Trigger>
-      </IconTooltip>
+      {!onClose && (
+        <IconTooltip label={label}>
+          <Dialog.Trigger
+            className={cn(
+              iconButtonClass,
+              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            )}
+            aria-label={label}
+            disabled={disabled}
+          >
+            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+          </Dialog.Trigger>
+        </IconTooltip>
+      )}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          finalFocus={finalFocus}
           className={cn(
             cardClass,
             "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
@@ -162,6 +172,7 @@ export function ConfirmDelete({
                 void action.run("delete", async (requestId) => {
                   await onDelete(requestId);
                   setOpen(false);
+                  onClose?.();
                   return true;
                 })
               }

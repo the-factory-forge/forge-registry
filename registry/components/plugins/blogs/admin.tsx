@@ -704,6 +704,7 @@ function EditorForm({
     }>(),
     [origin, setOrigin] = useState<BlogHistoryOrigin>(),
     [compareWorking, setCompareWorking] = useState(false),
+    [historyMode, setHistoryMode] = useState<"read" | "compare">("read"),
     [leave, setLeave] = useState<(() => void) | null>(null);
   const contentArea = useRef<HTMLDivElement>(null);
   const historyTrigger = useRef<HTMLButtonElement>(null);
@@ -1082,9 +1083,10 @@ function EditorForm({
       </span>
     </label>
   );
-  function inspect(header: BlogHistoryHeader) {
+  function inspect(header: BlogHistoryHeader, mode: "read" | "compare" = "read") {
     navigationRef.current(() => {
       setSelectedId(header.id);
+      setHistoryMode(mode);
       setCompareWorking(false);
       if (!window.matchMedia("(min-width: 1024px)").matches) setHistoryOpen(false);
       requestAnimationFrame(() => contentArea.current?.focus());
@@ -1245,7 +1247,10 @@ function EditorForm({
               type="button"
               className={outlineButtonClass}
               disabled={pending}
-              onClick={() => setCompareWorking(true)}
+              onClick={() => {
+                setHistoryMode("compare");
+                setCompareWorking(true);
+              }}
             >
               <GitCompareArrowsIcon aria-hidden="true" />
               {labels.compareDraft}
@@ -1253,7 +1258,11 @@ function EditorForm({
           )}
           <button
             type="button"
-            className={outlineButtonClass}
+            className={cn(
+              outlineButtonClass,
+              historyOpen && primaryClass,
+              historyOpen && "border-primary",
+            )}
             ref={historyTrigger}
             aria-expanded={historyOpen}
             onClick={() => setHistoryOpen(!historyOpen)}
@@ -1272,10 +1281,10 @@ function EditorForm({
         <div
           ref={contentArea}
           tabIndex={-1}
-          className="min-w-0 space-y-6 focus-visible:outline-2 focus-visible:outline-ring"
+          className="flex min-w-0 flex-col gap-6 focus-visible:outline-2 focus-visible:outline-ring"
         >
           {(selectedId || compareWorking) && (
-            <div className="min-h-80" aria-busy={bodyLoading}>
+            <div className="flex min-h-80 flex-1 flex-col" aria-busy={bodyLoading}>
               {bodyLoading && <Feedback message={labels.loading} />}
               {bodyError && (
                 <div className="space-y-3">
@@ -1295,7 +1304,8 @@ function EditorForm({
                   key={selected?.id ?? "working"}
                   version={selected ?? workingVersion}
                   working={compareWorking && (dirty || !currentHeader)}
-                  compareOnly={compareWorking}
+                  mode={historyMode}
+                  onModeChange={setHistoryMode}
                   publication={base.translations[locale]?.published}
                   liveLabel={liveHeader ? labels.versionLabel(liveHeader.number) : labels.live}
                   labels={labels}
@@ -1665,6 +1675,7 @@ function EditorForm({
             error={historyError}
             labels={labels}
             onSelect={inspect}
+            onCompare={(header) => inspect(header, "compare")}
             onRetry={() => setHistoryRefresh((value) => value + 1)}
             onClose={() => {
               setHistoryOpen(false);

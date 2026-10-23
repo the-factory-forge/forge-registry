@@ -203,6 +203,17 @@ retain their disabled semantics. Destructive controls use red text on a subtle
 tinted surface, including confirmation dialogs. The implemented registry components
 are the visual reference for controls, status indicators, layout, and navigation.
 
+### Active controls
+
+Controls that stay selected, pressed, current or expanded must visibly differ
+from their inactive state after hover and focus leave. Follow the shared
+[active-state contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-persistent-active-control-states).
+Reuse semantic tokens and existing variants; panel toggles such as Blog History
+use the primary background/foreground pair while open and an outline when closed.
+Keep the active treatment recognizable on hover, preserve a separate focus ring,
+and expose the corresponding native or ARIA state. State changes must not resize
+the control. Verify opening and every closing path in both themes and at narrow widths.
+
 ### Inputs
 
 Administrative plugin inputs use a 40px minimum height, lg corners, semantic borders,

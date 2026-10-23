@@ -1089,6 +1089,7 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/dropdown-menu",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
