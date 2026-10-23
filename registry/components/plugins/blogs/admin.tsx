@@ -1,7 +1,10 @@
 "use client";
 
+import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import {
+  HistoryIcon,
+  GitCompareArrowsIcon,
   PlusIcon,
   RefreshCwIcon,
   SettingsIcon,
@@ -15,7 +18,15 @@ import {
   PencilIcon,
   Quote,
 } from "lucide-react";
-import { useId, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -23,6 +34,11 @@ import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
+import {
+  BlogHistoryPanel,
+  BlogHistoryReader,
+  useHistoryPublication,
+} from "@/components/plugins/blogs/history";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
 import { BlogMarkdown } from "@/components/plugins/blogs/public";
 import type {
@@ -31,6 +47,10 @@ import type {
   BlogCapabilities,
   BlogCategory,
   BlogContent,
+  BlogEditor,
+  BlogHistoryHeader,
+  BlogHistoryOrigin,
+  BlogHistoryVersion,
   BlogListItem,
   BlogLocale,
   BlogPage,
@@ -80,6 +100,13 @@ import {
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
+function subscribeHistoryDesktop(callback: () => void) {
+  const query = window.matchMedia("(min-width: 1024px)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+const historyDesktopSnapshot = () => window.matchMedia("(min-width: 1024px)").matches;
+
 const languageTabClass =
   "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
@@ -101,7 +128,9 @@ export interface BlogsPageProps extends BlogsAppearanceProps {
   newHref: string;
   categoriesHref: string;
   capabilities: BlogCapabilities;
+  capabilitiesForArticle?: (article: BlogListItem) => BlogCapabilities;
   onDelete?: (id: string, requestId: string) => Promise<void>;
+  client?: BlogsClient;
   onSetPublished?: (
     id: string,
     locale: string,
@@ -121,8 +150,10 @@ function BlogsPageContent({
   newHref,
   categoriesHref,
   capabilities,
+  capabilitiesForArticle,
   onDelete,
   onSetPublished,
+  client,
   loading,
   error: loadError,
   onRetry,
@@ -133,19 +164,66 @@ function BlogsPageContent({
 }: BlogsPageProps) {
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, `${search}:${suppliedData.page}`);
-  const publication = useBlogAction(labels);
+  const toggleAction = useBlogAction(labels);
+  const historyPublication = useHistoryPublication(client, labels, (result) => {
+    void optimistic.run(
+      (page) => ({
+        ...page,
+        items: page.items.map((post) =>
+          post.id === result.id
+            ? {
+                ...post,
+                translations: post.translations.map((translation) => ({
+                  ...translation,
+                  status: !result.translations[translation.locale]?.published
+                    ? "draft"
+                    : hasUnpublishedChanges(result, translation.locale)
+                      ? "changed"
+                      : "published",
+                })),
+              }
+            : post,
+        ),
+      }),
+      async () => {},
+    );
+  });
   const data = optimistic.value;
   const error =
     loadError || (optimistic.error ? errorMessage(optimistic.error, labels) : undefined);
-  const selectable = capabilities.delete && onDelete ? data.items : [];
+  const articleCapabilities = (post: BlogListItem) =>
+    capabilitiesForArticle?.(post) ?? capabilities;
+  const showDelete = !!onDelete && (capabilities.delete || !!capabilitiesForArticle);
+  const selectable = showDelete
+    ? data.items.filter((post) => articleCapabilities(post).delete)
+    : [];
   const selection = useTableSelection(selectable, `${search}:${suppliedData.page}`);
   const selectionDisabled =
-    loading || !!loadError || optimistic.pending || selection.pending || publication.pending;
-  const canPublish = capabilities.publish && !!onSetPublished;
-  const StatusBadge = canPublish ? "button" : "span";
+    loading ||
+    !!loadError ||
+    optimistic.pending ||
+    selection.pending ||
+    toggleAction.pending ||
+    historyPublication.pending;
   function togglePublication(post: BlogListItem, locale: string, published: boolean) {
-    if (!canPublish || !onSetPublished || selectionDisabled) return;
-    void publication.run(
+    if (!articleCapabilities(post).publish || !onSetPublished || selectionDisabled) return;
+    if (published && client?.history) {
+      void toggleAction.run(JSON.stringify(["history-target", post.id, locale]), async () => {
+        const article = await client.get(post.id),
+          versionId = article.translations[locale]?.history?.currentId;
+        if (versionId)
+          await historyPublication.prepare({
+            id: post.id,
+            version: article.version,
+            locale,
+            versionId,
+          });
+        else await onSetPublished(post.id, locale, published, crypto.randomUUID());
+        return true;
+      });
+      return;
+    }
+    void toggleAction.run(
       JSON.stringify([post.id, locale, published]),
       (requestId) =>
         optimistic.run(
@@ -171,6 +249,8 @@ function BlogsPageContent({
   }
   return (
     <section className={cn(pageClass, className)}>
+      {historyPublication.dialog}
+      <Feedback {...historyPublication.feedback} />
       <div className={cn(tablePanelClass, "space-y-5")}>
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="font-sans text-base font-semibold">{labels.blogs}</h1>
@@ -205,7 +285,7 @@ function BlogsPageContent({
             )}
             <thead>
               <tr className={tableRowClass}>
-                {capabilities.delete && onDelete && (
+                {showDelete && (
                   <th scope="col" className="w-10 p-2">
                     <TableSelectionCheckbox
                       label={labels.selectAllRows}
@@ -220,6 +300,7 @@ function BlogsPageContent({
                   labels.title,
                   labels.categories,
                   labels.languages,
+                  labels.author,
                   labels.editor,
                   labels.modified,
                   labels.actions,
@@ -227,17 +308,17 @@ function BlogsPageContent({
                   <th
                     key={label}
                     scope="col"
-                    className={index === 5 ? tableActionHeaderClass : tableHeaderClass}
+                    className={index === 6 ? tableActionHeaderClass : tableHeaderClass}
                   >
                     <div
-                      className={index === 5 ? "flex items-center justify-end gap-2" : undefined}
+                      className={index === 6 ? "flex items-center justify-end gap-2" : undefined}
                     >
                       {label}
-                      {index === 5 && capabilities.delete && onDelete && (
+                      {index === 6 && showDelete && (
                         <TableBulkDelete
                           selection={selection}
                           getName={(post) => post.title}
-                          onDelete={(post, requestId) => onDelete(post.id, requestId)}
+                          onDelete={(post, requestId) => onDelete!(post.id, requestId)}
                           labels={labels}
                           disabled={selectionDisabled}
                         />
@@ -250,10 +331,7 @@ function BlogsPageContent({
             <tbody className="[&_tr:last-child]:border-0">
               {((error && !loading) || data.items.length === 0) && (
                 <tr>
-                  <td
-                    colSpan={6 + (capabilities.delete && onDelete ? 1 : 0)}
-                    className={cn(tableCellClass, "py-8")}
-                  >
+                  <td colSpan={7 + (showDelete ? 1 : 0)} className={cn(tableCellClass, "py-8")}>
                     <div className="flex flex-wrap items-center gap-2">
                       <Feedback
                         message={loading ? labels.loading : error || labels.empty}
@@ -270,116 +348,122 @@ function BlogsPageContent({
                 </tr>
               )}
               {retainRemovedItems(data.items, suppliedData.items, optimistic.pending).map(
-                (post) => (
-                  <tr
-                    key={post.id}
-                    hidden={
-                      selection.isDeleting(post.id) || !data.items.some((row) => row.id === post.id)
-                    }
-                    className={tableRowClass}
-                  >
-                    {capabilities.delete && onDelete && (
-                      <td className="w-10 p-2">
-                        <TableSelectionCheckbox
-                          label={`${labels.selectRow}: ${post.title}`}
-                          checked={selection.selected.some((row) => row.id === post.id)}
-                          mixed={false}
-                          onChange={(checked) => selection.toggle(post.id, checked)}
-                          disabled={selectionDisabled}
-                        />
-                      </td>
-                    )}
-                    <td className={cn(tableCellClass, "min-w-48 font-medium")}>
-                      <BlogLink
-                        href={editHref(post.id)}
-                        className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
-                        title={post.title}
-                      >
-                        {post.title}
-                      </BlogLink>
-                    </td>
-                    <td className={tableCellClass}>
-                      <p className="max-w-48 truncate" title={post.categoryNames?.join(", ")}>
-                        {post.categoryNames?.join(", ") || "—"}
-                      </p>
-                    </td>
-                    <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
-                      <div className="flex flex-nowrap gap-2">
-                        {post.translations.map((t) => (
-                          <StatusBadge
-                            key={t.locale}
-                            type={canPublish ? "button" : undefined}
-                            title={labels[t.status]}
-                            aria-label={
-                              canPublish
-                                ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
-                                : undefined
-                            }
-                            aria-pressed={canPublish ? t.status !== "draft" : undefined}
-                            disabled={
-                              canPublish
-                                ? loading ||
-                                  optimistic.pending ||
-                                  selection.pending ||
-                                  publication.pending ||
-                                  !!loadError
-                                : undefined
-                            }
-                            onClick={
-                              canPublish
-                                ? () => togglePublication(post, t.locale, t.status === "draft")
-                                : undefined
-                            }
-                            className={cn(
-                              "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                              blogStatusClass[t.status],
-                              canPublish && publicationToggleClass,
-                            )}
-                          >
-                            {t.locale.toUpperCase()}
-                            <span className="sr-only"> · {labels[t.status]}</span>
-                          </StatusBadge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className={tableCellClass}>{post.editor.name}</td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                      <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
-                    </td>
-                    <td className={tableActionCellClass}>
-                      <div className={tableActionsClass}>
-                        <IconTooltip label={`${labels.edit}: ${post.title}`}>
-                          <BlogLink
-                            href={editHref(post.id)}
-                            className={iconButtonClass}
-                            aria-label={`${labels.edit}: ${post.title}`}
-                          >
-                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                          </BlogLink>
-                        </IconTooltip>
-                        {capabilities.delete && onDelete && (
-                          <ConfirmDelete
-                            labels={labels}
-                            disabled={selectionDisabled}
-                            title={`${labels.deleteTitle}: ${post.title}`}
-                            label={`${labels.delete}: ${post.title}`}
-                            description={labels.deleteDescription}
-                            onDelete={(requestId) =>
-                              optimistic.run(
-                                (page) => ({
-                                  ...page,
-                                  items: page.items.filter((row) => row.id !== post.id),
-                                  total: Math.max(0, suppliedData.total - 1),
-                                }),
-                                () => onDelete(post.id, requestId),
-                              )
-                            }
+                (post) => {
+                  const canPublish = articleCapabilities(post).publish && !!onSetPublished;
+                  const StatusBadge = canPublish ? "button" : "span";
+                  return (
+                    <tr
+                      key={post.id}
+                      hidden={
+                        selection.isDeleting(post.id) ||
+                        !data.items.some((row) => row.id === post.id)
+                      }
+                      className={tableRowClass}
+                    >
+                      {showDelete && (
+                        <td className="w-10 p-2">
+                          <TableSelectionCheckbox
+                            label={`${labels.selectRow}: ${post.title}`}
+                            checked={selection.selected.some((row) => row.id === post.id)}
+                            mixed={false}
+                            onChange={(checked) => selection.toggle(post.id, checked)}
+                            disabled={selectionDisabled || !articleCapabilities(post).delete}
                           />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ),
+                        </td>
+                      )}
+                      <td className={cn(tableCellClass, "min-w-48 font-medium")}>
+                        <BlogLink
+                          href={editHref(post.id)}
+                          className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
+                          title={post.title}
+                        >
+                          {post.title}
+                        </BlogLink>
+                      </td>
+                      <td className={tableCellClass}>
+                        <p className="max-w-48 truncate" title={post.categoryNames?.join(", ")}>
+                          {post.categoryNames?.join(", ") || "—"}
+                        </p>
+                      </td>
+                      <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
+                        <div className="flex flex-nowrap gap-2">
+                          {post.translations.map((t) => (
+                            <StatusBadge
+                              key={t.locale}
+                              type={canPublish ? "button" : undefined}
+                              title={labels[t.status]}
+                              aria-label={
+                                canPublish
+                                  ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
+                                  : undefined
+                              }
+                              aria-pressed={canPublish ? t.status !== "draft" : undefined}
+                              disabled={
+                                canPublish
+                                  ? loading ||
+                                    optimistic.pending ||
+                                    selection.pending ||
+                                    toggleAction.pending ||
+                                    !!loadError
+                                  : undefined
+                              }
+                              onClick={
+                                canPublish
+                                  ? () => togglePublication(post, t.locale, t.status === "draft")
+                                  : undefined
+                              }
+                              className={cn(
+                                "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                                blogStatusClass[t.status],
+                                canPublish && publicationToggleClass,
+                              )}
+                            >
+                              {t.locale.toUpperCase()}
+                              <span className="sr-only"> · {labels[t.status]}</span>
+                            </StatusBadge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className={tableCellClass}>{(post.author ?? post.editor).name}</td>
+                      <td className={tableCellClass}>{post.editor.name}</td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                        <time dateTime={post.updatedAt}>{formatDate(post.updatedAt, "")}</time>
+                      </td>
+                      <td className={tableActionCellClass}>
+                        <div className={tableActionsClass}>
+                          <IconTooltip label={`${labels.edit}: ${post.title}`}>
+                            <BlogLink
+                              href={editHref(post.id)}
+                              className={iconButtonClass}
+                              aria-label={`${labels.edit}: ${post.title}`}
+                            >
+                              <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                            </BlogLink>
+                          </IconTooltip>
+                          {showDelete && articleCapabilities(post).delete && (
+                            <ConfirmDelete
+                              labels={labels}
+                              disabled={selectionDisabled}
+                              title={`${labels.deleteTitle}: ${post.title}`}
+                              label={`${labels.delete}: ${post.title}`}
+                              description={labels.deleteDescription}
+                              onDelete={(requestId) =>
+                                optimistic.run(
+                                  (page) => ({
+                                    ...page,
+                                    items: page.items.filter((row) => row.id !== post.id),
+                                    total: Math.max(0, suppliedData.total - 1),
+                                  }),
+                                  () => onDelete!(post.id, requestId),
+                                )
+                              }
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                },
               )}
             </tbody>
           </table>
@@ -475,7 +559,9 @@ function BlogNewPageContent({
   );
 }
 export interface BlogEditPageProps extends BlogsAppearanceProps {
-  imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>>;
+  /** Covers are cropped by default; false retains original uploads. */
+  imageDimensions?: Partial<Record<"thumbnail" | "banner", ImageCropSize>> | false;
+  authors?: BlogEditor[];
   imageCropLabels?: Partial<ImageCropLabels>;
   client: BlogsClient;
   article: BlogArticle;
@@ -486,37 +572,36 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   backHref: string;
   capabilities: BlogCapabilities;
   onSaved?: (article: BlogArticle) => void;
+  /** Let the host guard navigation outside this portable editor. */
+  onDirtyChange?: (dirty: boolean) => void;
   onDeleted: () => void;
 }
 function BlogEditPageContent(props: BlogEditPageProps) {
   return <Editor key={props.article.id} {...props} />;
 }
 function Editor(props: BlogEditPageProps) {
-  const [locale, setLocale] = useState(props.defaultLocale),
-    [dirty, setDirty] = useState(false);
+  const [locale, setLocale] = useState(props.defaultLocale);
   const labels = { ...blogsLabels, ...props.labels };
+  const navigationRef = useRef<(next: () => void) => void>((next) => next());
   return (
     <section className={cn(pageClass, props.className)}>
-      <BackLink {...props} />
-      <Tabs.Root value={locale} onValueChange={(value) => setLocale(value as string)}>
+      <BackLink {...props} onLeave={(next) => navigationRef.current(next)} />
+      <Tabs.Root
+        value={locale}
+        onValueChange={(value) => navigationRef.current(() => setLocale(value as string))}
+      >
         <Tabs.List
           aria-label={labels.language}
           className="flex gap-1 overflow-x-auto border-b border-border"
         >
           {props.locales.map((l) => (
-            <Tabs.Tab
-              key={l.code}
-              type="button"
-              value={l.code}
-              disabled={dirty && l.code !== locale}
-              className={languageTabClass}
-            >
+            <Tabs.Tab key={l.code} type="button" value={l.code} className={languageTabClass}>
               {l.name}
             </Tabs.Tab>
           ))}
         </Tabs.List>
         <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
-          <EditorForm {...props} locale={locale} onDirty={setDirty} />
+          <EditorForm {...props} locale={locale} navigationRef={navigationRef} />
         </Tabs.Panel>
       </Tabs.Root>
     </section>
@@ -526,9 +611,32 @@ function BackLink({
   linkComponent: BlogLink = Link,
   backHref,
   labels: overrides,
-}: Pick<BlogEditPageProps, "linkComponent" | "backHref" | "labels">) {
+  onLeave,
+}: Pick<BlogEditPageProps, "linkComponent" | "backHref" | "labels"> & {
+  onLeave?: (next: () => void) => void;
+}) {
   return (
-    <BlogLink href={backHref} className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}>
+    <BlogLink
+      href={backHref}
+      onClick={
+        onLeave
+          ? (event) => {
+              if (
+                event.defaultPrevented ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey ||
+                event.button !== 0
+              )
+                return;
+              event.preventDefault();
+              onLeave(() => window.location.assign(backHref));
+            }
+          : undefined
+      }
+      className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
+    >
       ← {{ ...blogsLabels, ...overrides }.back}
     </BlogLink>
   );
@@ -541,17 +649,26 @@ function EditorForm({
   locale,
   capabilities,
   onSaved,
+  onDirtyChange,
   onDeleted,
-  onDirty,
+  navigationRef,
+  formatDate = (iso: string) => new Date(iso).toLocaleString(),
   labels: overrides,
   assetUrl,
   imageComponent: BlogImage = Image,
   linkComponent,
   maxImageBytes = MAX_IMAGE_BYTES,
   maxMarkdownBytes = MAX_MARKDOWN_BYTES,
-  imageDimensions,
+  imageDimensions = {
+    thumbnail: { width: 1200, height: 900 },
+    banner: { width: 1600, height: 900 },
+  },
+  authors = [],
   imageCropLabels,
-}: BlogEditPageProps & { locale: string; onDirty: (dirty: boolean) => void }) {
+}: BlogEditPageProps & {
+  locale: string;
+  navigationRef: RefObject<(next: () => void) => void>;
+}) {
   const labels = { ...blogsLabels, ...overrides },
     action = useBlogAction(labels),
     id = `factory-blog-form-${useId()}`,
@@ -561,16 +678,149 @@ function EditorForm({
       ...emptyContent,
       ...article.translations[locale]?.draft,
     })),
-    [shared, setShared] = useState<BlogShared>(() => structuredClone(article.shared)),
+    [shared, setShared] = useState<BlogShared>(() =>
+      structuredClone(article.translations[locale]?.shared ?? article.shared),
+    ),
     [assets, setAssets] = useState(initialAssets),
     [dirty, setDirty] = useState(false);
+  const [historyChoice, setHistoryOpen] = useState<boolean>(),
+    [historyResult, setHistoryResult] = useState<{
+      client?: BlogsClient;
+      version?: number;
+      locale?: string;
+      refresh?: number;
+      headers: BlogHistoryHeader[];
+      error?: unknown;
+    }>({ headers: [] }),
+    [historyRefresh, setHistoryRefresh] = useState(0),
+    [selectedId, setSelectedId] = useState<string | null>(null),
+    [bodyResult, setBodyResult] = useState<{
+      client: BlogsClient;
+      version: number;
+      id: string;
+      refresh: number;
+      value?: BlogHistoryVersion;
+      error?: unknown;
+    }>(),
+    [origin, setOrigin] = useState<BlogHistoryOrigin>(),
+    [compareWorking, setCompareWorking] = useState(false),
+    [leave, setLeave] = useState<(() => void) | null>(null);
+  const contentArea = useRef<HTMLDivElement>(null);
+  const historyTrigger = useRef<HTMLButtonElement>(null);
+  const publication = useHistoryPublication(client, labels, accept);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+  const desktop = useSyncExternalStore(
+    subscribeHistoryDesktop,
+    historyDesktopSnapshot,
+    () => false,
+  );
+  const historyOpen = historyChoice ?? desktop;
+  const headers = historyResult.headers;
+  const historyLoading =
+    !!client.history &&
+    (historyResult.client !== client ||
+      historyResult.version !== base.version ||
+      historyResult.locale !== locale ||
+      historyResult.refresh !== historyRefresh);
+  const historyError =
+    !historyLoading && historyResult.error ? errorMessage(historyResult.error, labels) : undefined;
+  const bodyLoading =
+    !!selectedId &&
+    (bodyResult?.id !== selectedId ||
+      bodyResult.client !== client ||
+      bodyResult.version !== base.version ||
+      bodyResult.refresh !== historyRefresh);
+  const selected =
+    !bodyLoading && bodyResult?.id === selectedId ? (bodyResult.value ?? null) : null;
+  const bodyError =
+    !bodyLoading && bodyResult?.error ? errorMessage(bodyResult.error, labels) : undefined;
+  useEffect(() => {
+    if (!client.history) return;
+    let active = true;
+    void client.history
+      .list({ id: base.id, locale })
+      .then((headers) => {
+        if (active)
+          setHistoryResult({
+            client,
+            version: base.version,
+            locale,
+            refresh: historyRefresh,
+            headers,
+          });
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setHistoryResult((previous) => ({
+            ...previous,
+            client,
+            version: base.version,
+            locale,
+            refresh: historyRefresh,
+            error,
+          }));
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, base.id, base.version, locale, historyRefresh]);
+  useEffect(() => {
+    if (!selectedId || !client.history) return;
+    let active = true;
+    void client.history
+      .get({ id: base.id, locale, versionId: selectedId })
+      .then((value) => {
+        if (active)
+          setBodyResult({
+            client,
+            version: base.version,
+            id: selectedId,
+            refresh: historyRefresh,
+            value,
+          });
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setBodyResult({
+            client,
+            version: base.version,
+            id: selectedId,
+            refresh: historyRefresh,
+            error,
+          });
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, base.id, base.version, locale, selectedId, historyRefresh]);
+  useEffect(() => {
+    navigationRef.current = (next) => {
+      if (action.pending || publication.pending) return;
+      if (dirty) setLeave(() => next);
+      else next();
+    };
+    const unload = (event: BeforeUnloadEvent) => {
+      if (dirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    return () => {
+      navigationRef.current = (next) => next();
+      window.removeEventListener("beforeunload", unload);
+    };
+  }, [dirty, navigationRef, action.pending, publication.pending]);
   const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
     !base.translations[locale]?.published
       ? "draft"
       : hasUnpublishedChanges(base, locale)
         ? "changed"
         : "published",
-    `${base.id}:${locale}`,
+    `${base.id}:${locale}:${base.version}`,
   );
   const { formRef, ...fields } = useEditorValidation();
   const [validation, setValidation] = useState("");
@@ -580,12 +830,12 @@ function EditorForm({
     dimensions: ImageCropSize;
   } | null>(null);
   const readOnly = !capabilities.edit,
-    pending = action.pending,
+    pending = action.pending || publication.pending,
     status = optimistic.value;
   const StatusBadge = capabilities.publish ? "button" : "span";
   function changed() {
     setDirty(true);
-    onDirty(true);
+
     setValidation("");
   }
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
@@ -599,16 +849,21 @@ function EditorForm({
     setShared((s) => ({ ...s, [key]: value }));
   }
   function accept(result: BlogArticle) {
+    setOrigin(undefined);
+    setSelectedId(null);
+    setBodyResult(undefined);
+    setCompareWorking(false);
     setBase(result);
     setContent({ ...emptyContent, ...result.translations[locale]?.draft });
-    setShared(structuredClone(result.shared));
+    setShared(structuredClone(result.translations[locale]?.shared ?? result.shared));
     setDirty(false);
-    onDirty(false);
+
     onSaved?.(result);
   }
   function validate(publishing = false) {
     const issues: Record<string, string> = {};
     if (publishing) {
+      if (!shared.author) issues[`${id}-author`] = labels.AUTHOR_REQUIRED;
       for (const key of ["title", "slug", "markdown"] as const) {
         if (!content[key].trim()) issues[`${id}-${key}`] = labels.fieldRequired;
       }
@@ -629,22 +884,31 @@ function EditorForm({
     }
     return fields.validate(issues);
   }
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (pending || !validate()) return;
-    onDirty(true);
+  async function save(event?: FormEvent) {
+    event?.preventDefault();
+    if (pending || !validate()) return false;
+
     const result = await action.run(
-      JSON.stringify(["save", base.version, locale, content, shared]),
+      JSON.stringify(["save", base.version, locale, content, shared, origin]),
       (requestId) =>
         optimistic.run(
           () => (base.translations[locale]?.published ? "changed" : "draft"),
           () =>
-            client.save({ id: base.id, version: base.version, locale, content, shared, requestId }),
+            client.save({
+              id: base.id,
+              version: base.version,
+              locale,
+              content,
+              shared,
+              origin,
+              requestId,
+            }),
         ),
       labels.saved,
     );
     if (result) accept(result);
-    else onDirty(dirty);
+
+    return !!result;
   }
   async function publish(remove = false) {
     if (pending) return;
@@ -653,7 +917,12 @@ function EditorForm({
       return;
     }
     if (!remove && !validate(true)) return;
-    onDirty(true);
+    const versionId = base.translations[locale]?.history?.currentId;
+    if (!remove && client.history && versionId) {
+      await publication.prepare({ id: base.id, version: base.version, locale, versionId });
+      return;
+    }
+
     const result = await action.run(
       JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
       (requestId) =>
@@ -670,7 +939,6 @@ function EditorForm({
       remove ? labels.unpublishedSuccess : labels.publishedSuccess,
     );
     if (result) accept(result);
-    else onDirty(dirty);
   }
   function insert(prefix: string, suffix = "") {
     const target = textarea.current,
@@ -698,7 +966,7 @@ function EditorForm({
       setValidation(labels.INVALID);
       return false;
     }
-    onDirty(true);
+
     const result = await action.run(
       JSON.stringify(["upload", file.name, file.size, file.lastModified, target]),
       (requestId) => client.upload({ id: base.id, file, requestId }),
@@ -708,12 +976,13 @@ function EditorForm({
       setAssets((previous) => [...previous.filter((a) => a.id !== result.id), result]);
       if (target === "inline") insert(`![](${`./assets/${result.id}`})`);
       else sharedField(target, result.id);
-    } else onDirty(dirty);
+    }
     return !!result;
   }
   function selectImage(file: File, target: "thumbnailId" | "bannerId") {
     if (pending || readOnly || !capabilities.upload) return;
-    const dimensions = imageDimensions?.[target === "thumbnailId" ? "thumbnail" : "banner"];
+    const dimensions =
+      imageDimensions && imageDimensions[target === "thumbnailId" ? "thumbnail" : "banner"];
     if (dimensions) setCrop({ file, target, dimensions });
     else void upload(file, target);
   }
@@ -813,267 +1082,615 @@ function EditorForm({
       </span>
     </label>
   );
+  function inspect(header: BlogHistoryHeader) {
+    navigationRef.current(() => {
+      setSelectedId(header.id);
+      setCompareWorking(false);
+      if (!window.matchMedia("(min-width: 1024px)").matches) setHistoryOpen(false);
+      requestAnimationFrame(() => contentArea.current?.focus());
+    });
+  }
+  function resume(version: BlogHistoryVersion) {
+    navigationRef.current(() => {
+      setContent({ ...version.content });
+      setShared(structuredClone(version.shared));
+      setOrigin(
+        version.state === "publication"
+          ? { versionId: version.id, repriseId: crypto.randomUUID() }
+          : { versionId: version.id },
+      );
+      setSelectedId(null);
+      setBodyResult(undefined);
+      setCompareWorking(false);
+      changed();
+      requestAnimationFrame(() => contentArea.current?.focus());
+    });
+  }
+  const currentHeader = headers.find(
+    (header) => header.id === base.translations[locale]?.history?.currentId,
+  );
+  const liveHeader = headers.find(
+    (header) => header.id === base.translations[locale]?.history?.publishedId,
+  );
+  const workingPreview = dirty ? { origin, header: currentHeader } : undefined;
+  const workingVersion: BlogHistoryVersion = {
+    ...(currentHeader ?? {
+      id: "working",
+      number: 0,
+      state: "draft",
+      locale,
+      savedAt: base.updatedAt,
+      savedBy: base.editor,
+      author: shared.author,
+      repriseId: null,
+      sourcePublicationId: null,
+      sourcePublicationOrder: null,
+      publicationOrder: null,
+      publishedAt: null,
+      omittedAssetIds: [],
+    }),
+    content: {
+      ...base.translations[locale]?.draft,
+      ...content,
+      revisionId: null,
+      assetIds: assets.map((asset) => asset.id),
+      editor: base.editor,
+      updatedAt: base.updatedAt,
+    },
+    shared,
+    author: shared.author,
+  };
   return (
     <>
-      {crop && !readOnly && capabilities.upload && (
-        <ImageCropDialog
-          file={crop.file}
-          {...crop.dimensions}
-          maxFileBytes={maxImageBytes}
-          labels={imageCropLabels}
-          onCancel={() => setCrop(null)}
-          onConfirm={async (file) => {
-            if (!(await upload(file, crop.target))) throw new Error("Upload failed");
-            setCrop(null);
-          }}
-        />
-      )}
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
-            {content.title || labels.newPost}
-          </h1>
-          <StatusBadge
-            type={capabilities.publish ? "button" : undefined}
-            aria-label={capabilities.publish ? labels.publicationStatus : undefined}
-            aria-pressed={capabilities.publish ? status !== "draft" : undefined}
-            disabled={
-              capabilities.publish ? pending || dirty || !base.translations[locale] : undefined
-            }
-            onClick={capabilities.publish ? () => void publish(status !== "draft") : undefined}
+      {publication.dialog}
+      <Dialog.Root
+        open={!!leave}
+        onOpenChange={(open) => {
+          if (!open && !pending) setLeave(null);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+          <Dialog.Popup
             className={cn(
-              "ml-auto inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-              blogStatusClass[status],
-              capabilities.publish && publicationToggleClass,
+              cardClass,
+              "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
             )}
           >
-            {labels[status]}
-          </StatusBadge>
-        </div>
-        {!base.translations[locale] && (
-          <p className="text-sm text-muted-foreground">{labels.translationHint}</p>
-        )}
-        {readOnly && <Feedback message={labels.readOnly} />}
-      </header>
-      <form
-        ref={formRef}
-        noValidate
-        onSubmit={(e) => void save(e)}
-        className="space-y-6"
-        aria-busy={pending}
-      >
-        <fieldset
-          disabled={pending || readOnly}
-          className={cn(cardClass, "grid min-w-0 gap-5 md:grid-cols-2")}
-        >
-          <label className="space-y-2 text-sm font-medium">
-            <span>{labels.title}</span>
-            <input
-              maxLength={250}
-              className={inputClass}
-              {...fields.field(`${id}-title`)}
-              aria-label={labels.title}
-              value={content.title}
-              onChange={(e) => field("title", e.target.value)}
-            />
-            {fields.message(`${id}-title`)}
-          </label>
-          <label className="space-y-2 text-sm font-medium">
-            <span>{labels.slug}</span>
-            <input
-              maxLength={120}
-              className={inputClass}
-              {...fields.field(`${id}-slug`)}
-              aria-label={labels.slug}
-              value={content.slug}
-              onChange={(e) => field("slug", e.target.value)}
-              pattern="[a-z0-9]+(-[a-z0-9]+)*"
-            />
-            {fields.message(`${id}-slug`)}
-          </label>
-          <label className="space-y-2 text-sm font-medium md:col-span-2">
-            <span>{labels.summary}</span>
-            <textarea
-              rows={3}
-              maxLength={2000}
-              className={cn(inputClass, "h-auto py-3")}
-              {...fields.field(`${id}-summary`)}
-              aria-label={labels.summary}
-              value={content.summary}
-              onChange={(e) => field("summary", e.target.value)}
-            />
-            {fields.message(`${id}-summary`)}
-          </label>
-        </fieldset>
-        <fieldset disabled={pending || readOnly} className={cn(cardClass, "space-y-5")}>
-          <legend className="sr-only">{labels.shared}</legend>
-          <div>
-            <h2 className="text-lg font-semibold">{labels.shared}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{labels.sharedHint}</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            {imageField("thumbnailId", "thumbnailAlt", labels.thumbnail)}
-            {imageField("bannerId", "bannerAlt", labels.banner)}
-          </div>
-          <p className="text-xs text-muted-foreground">{labels.imageHint}</p>
-          <fieldset className="space-y-3">
-            <legend className="mb-3 text-sm font-medium">{labels.categories}</legend>
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {categories
-                .filter((category) => !category.parentId)
-                .map((parent) => {
-                  const children = categories.filter((category) => category.parentId === parent.id);
-                  return (
-                    <li key={parent.id} className="min-w-0">
-                      {categoryCheckbox(parent)}
-                      {children.length > 0 && (
-                        <ul className="mt-2 ml-2 space-y-2 border-l border-border pl-4">
-                          {children.map((child) => (
-                            <li key={child.id}>{categoryCheckbox(child)}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-            </ul>
-          </fieldset>
-        </fieldset>
-        <div className={cn(cardClass, "space-y-4")}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <label htmlFor={`${id}-markdown`} className="text-lg font-semibold">
-              {labels.markdown}
-            </label>
-            <fieldset aria-label={labels.markdown} className="flex flex-wrap gap-1">
-              {[
-                { label: labels.bold, icon: Bold, prefix: "**", suffix: "**" },
-                { label: labels.italic, icon: Italic, prefix: "*", suffix: "*" },
-                { label: labels.heading, icon: Heading2, prefix: "\n## ", suffix: "" },
-                { label: labels.link, icon: Link2, prefix: "[", suffix: "](https://)" },
-                { label: labels.list, icon: List, prefix: "\n- ", suffix: "" },
-                { label: labels.quote, icon: Quote, prefix: "\n> ", suffix: "" },
-                { label: labels.code, icon: Code, prefix: "`", suffix: "`" },
-              ].map((tool) => (
-                <IconTooltip key={tool.label} label={tool.label}>
-                  <button
-                    type="button"
-                    className={buttonClass}
-                    disabled={pending || readOnly}
-                    aria-label={tool.label}
-                    onClick={() => insert(tool.prefix, tool.suffix)}
-                  >
-                    <tool.icon aria-hidden="true" />
-                  </button>
-                </IconTooltip>
-              ))}
-              {capabilities.upload && !readOnly && (
-                <label
-                  className={cn(buttonClass, "relative focus-within:ring-2 focus-within:ring-ring")}
-                >
-                  <ImagePlus aria-hidden="true" />
-                  <span className="sr-only">{labels.insertImage}</span>
-                  <IconTooltip label={labels.insertImage}>
-                    <input
-                      aria-label={labels.insertImage}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={pending}
-                      className="absolute inset-0 w-full cursor-pointer opacity-0"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (file) void upload(file, "inline");
-                      }}
-                    />
-                  </IconTooltip>
-                </label>
-              )}
-            </fieldset>
-          </div>
-          <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-            <div className="min-w-0 space-y-2">
-              <textarea
-                ref={textarea}
-                {...fields.field(`${id}-markdown`)}
-                className={cn(
-                  inputClass,
-                  "h-auto min-h-96 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
-                )}
-                value={content.markdown}
-                disabled={pending || readOnly}
-                spellCheck={false}
-                onChange={(e) => field("markdown", e.target.value)}
-              />
-              {fields.message(`${id}-markdown`)}
-            </div>
-            <section
-              aria-label={labels.preview}
-              className="min-w-0 rounded-2xl border border-border p-4"
-            >
-              <h2 className="mb-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                {labels.preview}
-              </h2>
-              <BlogMarkdown
-                maxMarkdownBytes={maxMarkdownBytes}
-                markdown={content.markdown}
-                assetIds={assets.map((a) => a.id)}
-                assetUrl={assetUrl}
-                imageComponent={BlogImage}
-                linkComponent={linkComponent}
-              />
-            </section>
-          </div>
-        </div>
-        <Feedback message={validation} error />
-        <Feedback {...action.feedback} />
-        {dirty && <Feedback message={labels.unsaved} />}
-        <div className={editorActionsClass}>
-          {capabilities.delete && (
-            <ConfirmDelete
-              labels={labels}
-              title={labels.deleteTitle}
-              label={labels.delete}
-              description={labels.deleteDescription}
-              disabled={pending}
-              onDelete={async (requestId) => {
-                await client.delete({ id: base.id, version: base.version, requestId });
-                onDeleted();
-              }}
-            />
-          )}
-          <div className="ml-auto flex flex-wrap justify-end gap-2">
-            {capabilities.publish && (
-              <>
-                {status !== "published" && (
-                  <button
-                    type="button"
-                    className={buttonClass}
-                    disabled={pending || dirty || !base.translations[locale]}
-                    onClick={() => void publish()}
-                  >
-                    {labels.publish}
-                  </button>
-                )}
-                {base.translations[locale]?.published && (
-                  <button
-                    type="button"
-                    className={buttonClass}
-                    disabled={pending || dirty}
-                    onClick={() => void publish(true)}
-                  >
-                    {labels.unpublish}
-                  </button>
-                )}
-              </>
-            )}
-            {capabilities.edit && (
-              <button type="submit" disabled={pending} className={primaryClass}>
+            <Dialog.Title className="font-semibold">{labels.unsavedTitle}</Dialog.Title>
+            <Dialog.Description className="text-sm text-muted-foreground">
+              {labels.unsavedDescription}
+            </Dialog.Description>
+            <Feedback {...action.feedback} />
+            <div className="flex flex-wrap justify-end gap-2">
+              <Dialog.Close className={outlineButtonClass} disabled={pending}>
+                {labels.cancel}
+              </Dialog.Close>
+              <button
+                type="button"
+                className={outlineButtonClass}
+                disabled={pending}
+                onClick={() => {
+                  const next = leave;
+                  accept(base);
+                  setLeave(null);
+                  next?.();
+                }}
+              >
+                {labels.discardChanges}
+              </button>
+              <button
+                type="button"
+                className={primaryClass}
+                disabled={pending}
+                onClick={() =>
+                  void (async () => {
+                    const next = leave;
+                    if (await save()) {
+                      setLeave(null);
+                      next?.();
+                    }
+                  })()
+                }
+              >
                 {pending ? labels.pending : labels.save}
               </button>
-            )}
-          </div>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+      {client.history && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {(action.feedback?.error || publication.feedback?.error) && (
+            <button
+              type="button"
+              className={outlineButtonClass}
+              disabled={pending}
+              onClick={() =>
+                void action.run("refresh-article", async () => {
+                  const latest = await client.get(base.id);
+                  if (dirty || selectedId) {
+                    setBase(latest);
+                    if (!dirty) {
+                      setContent({ ...emptyContent, ...latest.translations[locale]?.draft });
+                      setShared(
+                        structuredClone(latest.translations[locale]?.shared ?? latest.shared),
+                      );
+                    }
+                  } else accept(latest);
+                  return true;
+                })
+              }
+            >
+              <RefreshCwIcon aria-hidden="true" />
+              {labels.refreshArticle}
+            </button>
+          )}
+          {(selectedId || compareWorking) && (
+            <button
+              type="button"
+              className={outlineButtonClass}
+              disabled={pending}
+              onClick={() => {
+                setSelectedId(null);
+                setBodyResult(undefined);
+                setCompareWorking(false);
+              }}
+            >
+              {labels.returnToDraft}
+            </button>
+          )}
+          {!selectedId && !compareWorking && (
+            <button
+              type="button"
+              className={outlineButtonClass}
+              disabled={pending}
+              onClick={() => setCompareWorking(true)}
+            >
+              <GitCompareArrowsIcon aria-hidden="true" />
+              {labels.compareDraft}
+            </button>
+          )}
+          <button
+            type="button"
+            className={outlineButtonClass}
+            ref={historyTrigger}
+            aria-expanded={historyOpen}
+            onClick={() => setHistoryOpen(!historyOpen)}
+          >
+            <HistoryIcon aria-hidden="true" />
+            {labels.history}
+          </button>
         </div>
-      </form>
+      )}
+      <div
+        className={cn(
+          "grid min-w-0 gap-6",
+          client.history && historyOpen && "lg:grid-cols-[minmax(0,1fr)_22rem]",
+        )}
+      >
+        <div
+          ref={contentArea}
+          tabIndex={-1}
+          className="min-w-0 space-y-6 focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          {(selectedId || compareWorking) && (
+            <div className="min-h-80" aria-busy={bodyLoading}>
+              {bodyLoading && <Feedback message={labels.loading} />}
+              {bodyError && (
+                <div className="space-y-3">
+                  <Feedback message={bodyError} error />
+                  <p className="text-sm">{labels.versionMissing}</p>
+                  <button
+                    type="button"
+                    className={outlineButtonClass}
+                    onClick={() => setHistoryRefresh((value) => value + 1)}
+                  >
+                    {labels.retry}
+                  </button>
+                </div>
+              )}
+              {(selected || compareWorking) && (
+                <BlogHistoryReader
+                  key={selected?.id ?? "working"}
+                  version={selected ?? workingVersion}
+                  working={compareWorking && (dirty || !currentHeader)}
+                  compareOnly={compareWorking}
+                  publication={base.translations[locale]?.published}
+                  liveLabel={liveHeader ? labels.versionLabel(liveHeader.number) : labels.live}
+                  labels={labels}
+                  categories={categories}
+                  assetUrl={assetUrl}
+                  imageComponent={BlogImage}
+                  linkComponent={linkComponent}
+                  formatDate={formatDate}
+                  disabled={pending}
+                  onResume={selected && capabilities.publish ? () => resume(selected) : undefined}
+                  onPublish={
+                    selected &&
+                    capabilities.publish &&
+                    selected.id !== base.translations[locale]?.history?.publishedId
+                      ? () =>
+                          void publication.prepare({
+                            id: base.id,
+                            version: base.version,
+                            locale,
+                            versionId: selected.id,
+                          })
+                      : undefined
+                  }
+                />
+              )}
+            </div>
+          )}
+          <div hidden={!!selectedId || compareWorking} className="space-y-6">
+            {dirty && origin && (
+              <p className="rounded-lg bg-primary/10 p-3 text-sm text-foreground">
+                {labels.unsavedDraft} ·{" "}
+                {labels.resumedFrom(
+                  headers.find((header) => header.id === origin.versionId)
+                    ? labels.versionLabel(
+                        headers.find((header) => header.id === origin.versionId)!.number,
+                      )
+                    : labels.sourceUnavailable,
+                )}
+              </p>
+            )}
+            {currentHeader && !dirty && (
+              <p className="text-sm text-muted-foreground">
+                {labels.currentDraft} · {labels.versionLabel(currentHeader.number)}
+              </p>
+            )}
+            {crop && !readOnly && capabilities.upload && (
+              <ImageCropDialog
+                file={crop.file}
+                {...crop.dimensions}
+                maxFileBytes={maxImageBytes}
+                labels={imageCropLabels}
+                onCancel={() => setCrop(null)}
+                onConfirm={async (file) => {
+                  if (!(await upload(file, crop.target))) throw new Error("Upload failed");
+                  setCrop(null);
+                }}
+              />
+            )}
+            <header className="space-y-2">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
+                  {content.title || labels.newPost}
+                </h1>
+                <StatusBadge
+                  type={capabilities.publish ? "button" : undefined}
+                  aria-label={capabilities.publish ? labels.publicationStatus : undefined}
+                  aria-pressed={capabilities.publish ? status !== "draft" : undefined}
+                  disabled={
+                    capabilities.publish
+                      ? pending || dirty || !base.translations[locale]
+                      : undefined
+                  }
+                  onClick={
+                    capabilities.publish ? () => void publish(status !== "draft") : undefined
+                  }
+                  className={cn(
+                    "ml-auto inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                    blogStatusClass[status],
+                    capabilities.publish && publicationToggleClass,
+                  )}
+                >
+                  {labels[status]}
+                </StatusBadge>
+              </div>
+              {!base.translations[locale] && (
+                <p className="text-sm text-muted-foreground">{labels.translationHint}</p>
+              )}
+              {readOnly && <Feedback message={labels.readOnly} />}
+            </header>
+            <form
+              ref={formRef}
+              noValidate
+              onSubmit={(e) => void save(e)}
+              className="space-y-6"
+              aria-busy={pending}
+            >
+              <fieldset
+                disabled={pending || readOnly}
+                className={cn(cardClass, "grid min-w-0 gap-5 md:grid-cols-2")}
+              >
+                <label className="space-y-2 text-sm font-medium">
+                  <span>{labels.title}</span>
+                  <input
+                    maxLength={250}
+                    className={inputClass}
+                    {...fields.field(`${id}-title`)}
+                    aria-label={labels.title}
+                    value={content.title}
+                    onChange={(e) => field("title", e.target.value)}
+                  />
+                  {fields.message(`${id}-title`)}
+                </label>
+                <label className="space-y-2 text-sm font-medium">
+                  <span>{labels.slug}</span>
+                  <input
+                    maxLength={120}
+                    className={inputClass}
+                    {...fields.field(`${id}-slug`)}
+                    aria-label={labels.slug}
+                    value={content.slug}
+                    onChange={(e) => field("slug", e.target.value)}
+                    pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                  />
+                  {fields.message(`${id}-slug`)}
+                </label>
+                <label className="space-y-2 text-sm font-medium md:col-span-2">
+                  <span>{labels.summary}</span>
+                  <textarea
+                    rows={3}
+                    maxLength={2000}
+                    className={cn(inputClass, "h-auto py-3")}
+                    {...fields.field(`${id}-summary`)}
+                    aria-label={labels.summary}
+                    value={content.summary}
+                    onChange={(e) => field("summary", e.target.value)}
+                  />
+                  {fields.message(`${id}-summary`)}
+                </label>
+              </fieldset>
+              <fieldset disabled={pending || readOnly} className={cn(cardClass, "space-y-5")}>
+                <legend className="sr-only">{labels.shared}</legend>
+                <div>
+                  <h2 className="text-lg font-semibold">{labels.shared}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{labels.sharedHint}</p>
+                </div>
+                <label className="grid gap-2 text-sm font-medium">
+                  <span>{labels.author}</span>
+                  <NativeSelect
+                    aria-label={labels.author}
+                    className={inputClass}
+                    {...fields.field(`${id}-author`)}
+                    value={shared.author?.id ?? ""}
+                    disabled={
+                      !capabilities.changeAuthor ||
+                      !authors.length ||
+                      (!!origin && !shared.author && !capabilities.reviewLegacyAuthor)
+                    }
+                    onChange={(event) => {
+                      const author = authors.find((person) => person.id === event.target.value);
+                      if (author) {
+                        fields.clear(`${id}-author`);
+                        setShared({ ...shared, author });
+                        changed();
+                      }
+                    }}
+                  >
+                    {!shared.author && (
+                      <option value="" disabled>
+                        {labels.selectAuthor}
+                      </option>
+                    )}
+                    {shared.author &&
+                      !authors.some((person) => person.id === shared.author?.id) && (
+                        <option value={shared.author.id}>{shared.author.name}</option>
+                      )}
+                    {authors.map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                  {fields.message(`${id}-author`)}
+                  {!shared.author && !fields.field(`${id}-author`)["aria-invalid"] && (
+                    <span className="font-normal text-muted-foreground">
+                      {labels.AUTHOR_REQUIRED}
+                    </span>
+                  )}
+                </label>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {imageField("thumbnailId", "thumbnailAlt", labels.thumbnail)}
+                  {imageField("bannerId", "bannerAlt", labels.banner)}
+                </div>
+                <p className="text-xs text-muted-foreground">{labels.imageHint}</p>
+                <fieldset className="space-y-3">
+                  <legend className="mb-3 text-sm font-medium">{labels.categories}</legend>
+                  <ul className="grid gap-4 sm:grid-cols-2">
+                    {categories
+                      .filter((category) => !category.parentId)
+                      .map((parent) => {
+                        const children = categories.filter(
+                          (category) => category.parentId === parent.id,
+                        );
+                        return (
+                          <li key={parent.id} className="min-w-0">
+                            {categoryCheckbox(parent)}
+                            {children.length > 0 && (
+                              <ul className="mt-2 ml-2 space-y-2 border-l border-border pl-4">
+                                {children.map((child) => (
+                                  <li key={child.id}>{categoryCheckbox(child)}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </fieldset>
+              </fieldset>
+              <div className={cn(cardClass, "space-y-4")}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label htmlFor={`${id}-markdown`} className="text-lg font-semibold">
+                    {labels.markdown}
+                  </label>
+                  <fieldset aria-label={labels.markdown} className="flex flex-wrap gap-1">
+                    {[
+                      { label: labels.bold, icon: Bold, prefix: "**", suffix: "**" },
+                      { label: labels.italic, icon: Italic, prefix: "*", suffix: "*" },
+                      { label: labels.heading, icon: Heading2, prefix: "\n## ", suffix: "" },
+                      { label: labels.link, icon: Link2, prefix: "[", suffix: "](https://)" },
+                      { label: labels.list, icon: List, prefix: "\n- ", suffix: "" },
+                      { label: labels.quote, icon: Quote, prefix: "\n> ", suffix: "" },
+                      { label: labels.code, icon: Code, prefix: "`", suffix: "`" },
+                    ].map((tool) => (
+                      <IconTooltip key={tool.label} label={tool.label}>
+                        <button
+                          type="button"
+                          className={buttonClass}
+                          disabled={pending || readOnly}
+                          aria-label={tool.label}
+                          onClick={() => insert(tool.prefix, tool.suffix)}
+                        >
+                          <tool.icon aria-hidden="true" />
+                        </button>
+                      </IconTooltip>
+                    ))}
+                    {capabilities.upload && !readOnly && (
+                      <label
+                        className={cn(
+                          buttonClass,
+                          "relative focus-within:ring-2 focus-within:ring-ring",
+                        )}
+                      >
+                        <ImagePlus aria-hidden="true" />
+                        <span className="sr-only">{labels.insertImage}</span>
+                        <IconTooltip label={labels.insertImage}>
+                          <input
+                            aria-label={labels.insertImage}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            disabled={pending}
+                            className="absolute inset-0 w-full cursor-pointer opacity-0"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (file) void upload(file, "inline");
+                            }}
+                          />
+                        </IconTooltip>
+                      </label>
+                    )}
+                  </fieldset>
+                </div>
+                <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+                  <div className="min-w-0 space-y-2">
+                    <textarea
+                      ref={textarea}
+                      {...fields.field(`${id}-markdown`)}
+                      className={cn(
+                        inputClass,
+                        "h-auto min-h-96 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
+                      )}
+                      value={content.markdown}
+                      disabled={pending || readOnly}
+                      spellCheck={false}
+                      onChange={(e) => field("markdown", e.target.value)}
+                    />
+                    {fields.message(`${id}-markdown`)}
+                  </div>
+                  <section
+                    aria-label={labels.preview}
+                    className="min-w-0 rounded-2xl border border-border p-4"
+                  >
+                    <h2 className="mb-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      {labels.preview}
+                    </h2>
+                    <BlogMarkdown
+                      maxMarkdownBytes={maxMarkdownBytes}
+                      markdown={content.markdown}
+                      assetIds={assets.map((a) => a.id)}
+                      assetUrl={assetUrl}
+                      imageComponent={BlogImage}
+                      linkComponent={linkComponent}
+                    />
+                  </section>
+                </div>
+              </div>
+              <Feedback message={validation} error />
+              <Feedback {...action.feedback} />
+              {dirty && <Feedback message={labels.unsaved} />}
+              <div className={editorActionsClass}>
+                {capabilities.delete && (
+                  <ConfirmDelete
+                    labels={labels}
+                    title={labels.deleteTitle}
+                    label={labels.delete}
+                    description={labels.deleteDescription}
+                    disabled={pending}
+                    onDelete={async (requestId) => {
+                      await client.delete({ id: base.id, version: base.version, requestId });
+                      onDeleted();
+                    }}
+                  />
+                )}
+                <div className="ml-auto flex flex-wrap justify-end gap-2">
+                  {capabilities.publish && (
+                    <>
+                      {status !== "published" && (
+                        <button
+                          type="button"
+                          className={buttonClass}
+                          disabled={pending || dirty || !base.translations[locale]}
+                          onClick={() => void publish()}
+                        >
+                          {labels.publish}
+                        </button>
+                      )}
+                      {base.translations[locale]?.published && (
+                        <button
+                          type="button"
+                          className={buttonClass}
+                          disabled={pending || dirty}
+                          onClick={() => void publish(true)}
+                        >
+                          {labels.unpublish}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {capabilities.edit && (
+                    <button type="submit" disabled={pending} className={primaryClass}>
+                      {pending ? labels.pending : labels.save}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </div>
+          <Feedback {...publication.feedback} />
+        </div>
+        {client.history && historyOpen && (
+          <BlogHistoryPanel
+            headers={headers}
+            selectedId={selectedId}
+            currentId={base.translations[locale]?.history?.currentId ?? null}
+            publishedId={base.translations[locale]?.history?.publishedId ?? null}
+            loading={historyLoading}
+            error={historyError}
+            labels={labels}
+            onSelect={inspect}
+            onRetry={() => setHistoryRefresh((value) => value + 1)}
+            onClose={() => {
+              setHistoryOpen(false);
+              historyTrigger.current?.focus();
+            }}
+            disabled={pending}
+            deleteDisabled={dirty}
+            formatDate={(iso) => formatDate(iso, locale)}
+            working={workingPreview}
+            onDelete={
+              capabilities.delete
+                ? async (version, requestId) => {
+                    const result = await client.history!.delete({
+                      id: base.id,
+                      version: base.version,
+                      locale,
+                      versionId: version.id,
+                      requestId,
+                    });
+                    accept(result);
+                  }
+                : undefined
+            }
+          />
+        )}
+      </div>
     </>
   );
 }

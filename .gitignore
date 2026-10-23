@@ -42,3 +42,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Local Impeccable review output
+/.impeccable/hook.cache.json
+/.impeccable/review/

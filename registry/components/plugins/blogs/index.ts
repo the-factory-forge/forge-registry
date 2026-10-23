@@ -19,3 +19,5 @@ export type {
 export type * from "@/components/plugins/blogs/types";
 export { blogsLabels, type BlogsLabels } from "@/components/plugins/blogs/labels";
 export { BlogsError, type BlogsErrorCode } from "@/components/plugins/blogs/utils";
+export { blogCapabilities, canAccessBlog } from "@/components/plugins/blogs/permissions";
+export type { BlogActor } from "@/components/plugins/blogs/permissions";

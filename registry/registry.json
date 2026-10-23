@@ -1096,8 +1096,8 @@
       "name": "blogs",
       "type": "registry:block",
       "title": "Blogs",
-      "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
-      "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react"],
+      "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
+      "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
         "@forge/table-pagination",
         "@forge/cn",
@@ -1152,6 +1152,21 @@
           "path": "registry/components/plugins/blogs/utils.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/utils.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/permissions.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/permissions.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/history.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/history.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/history-diff.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/history-diff.ts"
         }
       ]
     },
@@ -1159,7 +1174,7 @@
       "name": "blogs-storage",
       "type": "registry:block",
       "title": "Blogs storage",
-      "description": "PostgreSQL Markdown drafts/publications and private S3 image storage for multilingual blogs.",
+      "description": "PostgreSQL article/history snapshots and private S3 image storage for multilingual blogs.",
       "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
       "registryDependencies": ["@forge/blogs"],
       "files": [
@@ -1192,6 +1207,11 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/history-migration.sql",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/server/history-migration.sql"
         }
       ]
     },

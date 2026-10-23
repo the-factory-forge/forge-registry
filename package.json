@@ -21,7 +21,7 @@
     "test:browser": "node --test tests/*.browser.mjs",
     "test:deployment": "node --test tests/deployment.smoke.mjs",
     "test:storage": "node --test tests/drive-storage/storage.integration.mjs",
-    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs",
+    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs tests/blogs-storage/history.integration.mjs",
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview",
     "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs"
@@ -37,6 +37,7 @@
     "@tanstack/react-start": "1.169.3",
     "better-auth": "1.7.12",
     "cnfast": "0.1.0",
+    "diff": "9.0.0",
     "drizzle-orm": "0.45.4",
     "fflate": "0.8.3",
     "lucide-react": "1.60.0",

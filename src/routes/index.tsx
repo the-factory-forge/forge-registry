@@ -182,7 +182,7 @@ const examples = (
       title: "Blogs",
       icon: pluginIcons.blogs,
       description:
-        "Multilingual Markdown articles, shared images, categories, and draft publishing.",
+        "Multilingual drafts, separate authors and editors, collaborative permissions and cropped cover images.",
       tags: ["Public blog", "Post editor", "Categories", "Publishing"],
       keywords: [
         "blog index",

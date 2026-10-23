@@ -47,7 +47,10 @@ preparation or the host callback is pending, controls and dismissal are disabled
 Cmd/Ctrl+Enter confirms through the shared dialog shortcut. The item ships its
 helpers, Base UI dependency and semantic Tailwind classes; the host owns theme values.
 
-Existing consumers are unchanged until they install the item and supply dimensions.
-Blogs exposes `imageDimensions` and `imageCropLabels`; see [integration](./blogs.md#crop-new-thumbnail-and-banner-uploads).
-The recorded Blogs consumers are L'Aspic and Osthoepathie Seebach; their source
-adoption and dimensions remain separate follow-ups. No live site was updated.
+Installed copies remain unchanged until the consumer adopts new source.
+Blogs crops covers by default; `imageDimensions` overrides output sizes or disables
+cropping explicitly. Translate with `imageCropLabels`; see [integration](./blogs.md#crop-new-thumbnail-and-banner-uploads).
+Review each site's recorded integration in the
+[consumer inventory](https://github.com/the-factory-forge/forge-spec/blob/main/consumers/sites.yaml)
+before updating it. Source adoption, output dimensions and deployment remain
+separate consumer decisions.

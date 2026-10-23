@@ -32,6 +32,8 @@ export const pageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";
 export function errorMessage(error: unknown, labels: BlogsLabels) {
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
   return [
+    "HISTORY_CONFIRMATION_REQUIRED",
+    "AUTHOR_REQUIRED",
     "INVALID",
     "CONFLICT",
     "FORBIDDEN",

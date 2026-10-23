@@ -32,17 +32,17 @@ Auth agent keys support row selection, select-all with a mixed state, and confir
 bulk deletion through the existing host callback. Failed keys remain available for
 retry; see [account security](./intranet-auth.md#account-profile-and-security).
 
-| Plugin         | Purpose                                                                                                                                                                            | Optional server item      | Guide                                       |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
-| `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                             | Host auth provider        | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                                           | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                                    | Host callbacks            | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                             | Host callbacks            | [Projects](./projects.md)                   |
-| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                                                         | `drive-storage`           | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles in PostgreSQL, optional S3 image uploads with host-configured cropping, publishing, categories, automatic public search and confirmed post deletion | `blogs-storage`           | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing                                                | `menus-storage`           | [Menus](./menus.md)                         |
-| `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                                                                 | Server transport included | [Mailing](./mailing.md)                     |
-| `reservations` | Appointments or overnight stays, policies and calendars                                                                                                                            | `reservations-storage`    | [Reservations](./reservations.md)           |
+| Plugin         | Purpose                                                                                                                                    | Optional server item      | Guide                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------- |
+| `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                     | Host auth provider        | [Auth](./intranet-auth.md)                  |
+| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                   | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
+| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                            | Host callbacks            | [Customers](./customers.md)                 |
+| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                     | Host callbacks            | [Projects](./projects.md)                   |
+| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                 | `drive-storage`           | [Drive](./drive.md)                         |
+| `blogs`        | Multilingual Markdown articles and localized history in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`           | [Blogs](./blogs.md)                         |
+| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing        | `menus-storage`           | [Menus](./menus.md)                         |
+| `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                         | Server transport included | [Mailing](./mailing.md)                     |
+| `reservations` | Appointments or overnight stays, policies and calendars                                                                                    | `reservations-storage`    | [Reservations](./reservations.md)           |
 
 Drive folder menus support child-folder creation and ZIP downloads alongside
 uploads, rename, duplication and trash. ZIPs use the existing authenticated reads
@@ -63,6 +63,11 @@ with `blog`; Drive uses its scope type, normalized to `menu_item` for Menus medi
 Existing modifiers are retained, except `original`; absent modifiers stay absent. See
 [Drive migration and naming](./drive.md#object-filenames) and
 [Blog naming](./blogs.md#object-filenames) before adopting the server companions.
+
+Blogs separates authors from editors, supplies staff collaboration permissions,
+requires review of legacy attribution and crops covers by default. Current account
+bylines and retained signatures use host name/deletion adapters; see
+[authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
 
 ## Storage encryption and access
 
