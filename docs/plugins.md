@@ -139,6 +139,9 @@ Table headers and their surrounding panels stay visible during loading, empty
 results and errors. Feedback belongs in a spanning table row; background loading
 retains supplied rows, announces progress and disables mutations and pagination.
 Hosts using controlled lists must keep their last loaded rows while fetching.
+Drive also retains its four listings after read failures, with mutations and
+pagination disabled until recovery; denied or missing listings clear their rows.
+See the [Drive guide](./drive.md) for cancellation and authenticated-session resets.
 Employee tables still render nothing without an authenticated admin role.
 
 Customer verification and project lifecycle badges open an accessible status menu

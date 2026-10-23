@@ -29,6 +29,11 @@ focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-ima
 **Blog draft**: The editable state of one article translation. Readers see its
 separate published snapshot until the draft is published.
 
+## Drive language
+
+**Drive listing**: One page of spaces, folder contents, trashed entries or possible
+restore destinations. It reflects the current location, search and ordering.
+
 ## Deletion language
 
 **Deletion session**: A selected group of records awaiting deletion confirmation,

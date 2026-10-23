@@ -13,7 +13,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -27,9 +27,7 @@ import type {
   DriveBrowserProps,
   DriveClient,
   DriveEntry,
-  DriveFolderResult,
   DrivePageProps,
-  DrivePageResult,
   DriveSpace,
   DriveSort,
 } from "@/components/plugins/drive/types";
@@ -47,6 +45,7 @@ import {
   iconButtonClass,
   messageFor,
 } from "@/components/plugins/drive/ui";
+import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
 import {
   DEFAULT_MAX_FILE_BYTES,
@@ -97,35 +96,11 @@ export function DrivePage({
     setCursors([]);
   };
   const [revision, setRevision] = useState(0);
-  const request = useMemo(
-    () => ({ client, search, cursor, sort, revision }),
-    [client, search, cursor, sort, revision],
+  const load = useCallback(
+    (signal: AbortSignal) => client.listSpaces({ search, cursor, sort, signal }),
+    [client, search, cursor, sort],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DrivePageResult<DriveSpace>;
-    error?: unknown;
-  }>();
-  const loading = result?.request !== request;
-  const data = result?.data;
-  const error = loading ? undefined : result?.error;
-  useEffect(() => {
-    const controller = new AbortController();
-    void request.client
-      .listSpaces({
-        search: request.search,
-        cursor: request.cursor,
-        sort: request.sort,
-        signal: controller.signal,
-      })
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ request, data });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setResult({ request, error });
-      });
-    return () => controller.abort();
-  }, [request]);
+  const { data, loading, error } = useDriveListing(load, revision);
   return (
     <section
       className={cn("space-y-6 p-4 text-foreground md:p-8", className)}
@@ -265,7 +240,7 @@ export function DrivePage({
           nextLabel={labels.next}
           previousDisabled={cursors.length === 0}
           nextDisabled={!!error || !data?.nextCursor}
-          disabled={loading}
+          disabled={loading || !!error}
           onPrevious={() => setCursors(cursors.slice(0, -1))}
           onNext={() => {
             if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
@@ -316,23 +291,18 @@ function Browser({
   const [trashView, setTrashView] = useState(false);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
-  const request = useMemo(
-    () => ({ client, scope, parentId, search, cursor, sort, revision }),
-    [client, scope, parentId, search, cursor, sort, revision],
+  const load = useCallback(
+    (signal: AbortSignal) => client.listEntries({ scope, parentId, search, cursor, sort, signal }),
+    [client, scope, parentId, search, cursor, sort],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DriveFolderResult;
-    error?: unknown;
-  }>();
-  const loading = result?.request !== request;
+  const listing = useDriveListing(load, revision);
+  const { loading, error } = listing;
   const mutationScope = useMemo(
     () => ({ client, scope, parentId, search, cursor, sort }),
     [client, scope, parentId, search, cursor, sort],
   );
-  const optimistic = useOptimisticAction(result?.data, mutationScope);
+  const optimistic = useOptimisticAction(listing.data, mutationScope);
   const data = optimistic.value;
-  const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
   const notify = useActionToast();
@@ -364,25 +334,6 @@ function Browser({
     setRevision((value) => value + 1);
   };
   const queue = useUploads(client, scope, parentId, refresh, transferUpload);
-  useEffect(() => {
-    const controller = new AbortController();
-    void request.client
-      .listEntries({
-        scope: request.scope,
-        parentId: request.parentId,
-        search: request.search,
-        cursor: request.cursor,
-        sort: request.sort,
-        signal: controller.signal,
-      })
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ request, data });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setResult({ request, error });
-      });
-    return () => controller.abort();
-  }, [request]);
   const capabilities = data?.space.capabilities;
   const selectable = capabilities?.delete
     ? (data?.items ?? []).filter((entry) => !entry.id.startsWith("pending-"))
@@ -1031,7 +982,7 @@ function Browser({
                       {data &&
                         retainRemovedItems(
                           data.items,
-                          result?.data?.items ?? [],
+                          listing.data?.items ?? [],
                           optimistic.pending,
                         ).map((entry) => (
                           <tr

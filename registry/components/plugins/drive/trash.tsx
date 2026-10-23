@@ -3,19 +3,13 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import { RefreshCwIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
-import type {
-  DriveClient,
-  DriveFolderResult,
-  DriveScope,
-  DriveTrashEntry,
-  DriveTrashResult,
-} from "@/components/plugins/drive/types";
+import type { DriveClient, DriveScope, DriveTrashEntry } from "@/components/plugins/drive/types";
 import {
   buttonClass,
   cardClass,
@@ -27,6 +21,7 @@ import {
   outlineButtonClass,
   primaryClass,
 } from "@/components/plugins/drive/ui";
+import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
@@ -64,29 +59,23 @@ export function TrashBrowser({
   const [cursors, setCursors] = useState<string[]>([]);
   const cursor = cursors.at(-1);
   const [revision, setRevision] = useState(0);
-  const request = useMemo(
-    () => ({ client, scope, search, cursor, revision, refreshKey }),
-    [client, scope, search, cursor, revision, refreshKey],
+  const load = useCallback(
+    (signal: AbortSignal) => client.listTrash!({ scope, search, cursor, signal }),
+    [client, scope, search, cursor],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DriveTrashResult;
-    error?: unknown;
-    now?: number;
-  }>();
+  const listing = useDriveListing(load, `${revision}:${refreshKey}`);
+  const { loading, error } = listing;
   const [restoring, setRestoring] = useState<string>();
   const [restoreEntry, setRestoreEntry] = useState<DriveTrashEntry>();
   const lock = useRef(false);
   const manager = Toast.useToastManager();
   const notify = useActionToast();
-  const loading = result?.request !== request;
   const mutationScope = useMemo(
     () => ({ client, scope, search, cursor }),
     [client, scope, search, cursor],
   );
-  const optimistic = useOptimisticAction(result?.data, mutationScope);
+  const optimistic = useOptimisticAction(listing.data, mutationScope);
   const data = optimistic.value;
-  const error = loading ? undefined : result?.error;
   const capabilities = data?.space.capabilities;
   const selectable = capabilities?.delete ? (data?.items ?? []) : [];
   const selection = useTableSelection(selectable, JSON.stringify([scope, search, cursor]));
@@ -98,22 +87,6 @@ export function TrashBrowser({
     onChanged?.();
     notify(labels.restored);
   };
-  useEffect(() => {
-    const controller = new AbortController();
-    void client.listTrash!({
-      scope: request.scope,
-      search: request.search,
-      cursor: request.cursor,
-      signal: controller.signal,
-    })
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ request, data, now: Date.now() });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setResult({ request, error });
-      });
-    return () => controller.abort();
-  }, [client, request]);
   async function restore(entry: DriveTrashEntry) {
     if (disabled || lock.current) return;
     lock.current = true;
@@ -157,7 +130,11 @@ export function TrashBrowser({
                 setCursors([]);
               }}
             />
-            <button className={buttonClass} disabled={disabled} onClick={refresh}>
+            <button
+              className={buttonClass}
+              disabled={loading || !!restoring || optimistic.pending || selection.pending}
+              onClick={refresh}
+            >
               <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.retry}
             </button>
@@ -236,7 +213,7 @@ export function TrashBrowser({
                 </tr>
               )}
               {data &&
-                retainRemovedItems(data.items, result?.data?.items ?? [], optimistic.pending).map(
+                retainRemovedItems(data.items, listing.data?.items ?? [], optimistic.pending).map(
                   (entry) => (
                     <tr
                       key={entry.id}
@@ -289,7 +266,7 @@ export function TrashBrowser({
                             <button
                               className={buttonClass}
                               disabled={
-                                disabled || Date.parse(entry.expiresAt) <= (result?.now ?? 0)
+                                disabled || Date.parse(entry.expiresAt) <= (listing.loadedAt ?? 0)
                               }
                               onClick={() => void restore(entry)}
                             >
@@ -403,36 +380,15 @@ function RestoreDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>(labels.RESTORE_CONFLICT);
   const [revision, setRevision] = useState(0);
-  const request = useMemo(
-    () => ({ client, scope, destination, cursor, revision }),
-    [client, scope, destination, cursor, revision],
+  const load = useCallback(
+    (signal: AbortSignal) =>
+      client.listEntries({ scope, parentId: destination ?? null, cursor, signal }),
+    [client, scope, destination, cursor],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DriveFolderResult;
-    error?: string;
-  }>();
-  const folder = result?.data;
-  const loading = result?.request !== request;
-  const folderError = loading ? undefined : result?.error;
+  const { data: folder, loading, error: failure } = useDriveListing(load, revision);
+  const folderError = failure ? messageFor(failure, labels) : undefined;
   const lock = useRef(false);
   const fieldId = `factory-drive-restore-${useId()}`;
-  useEffect(() => {
-    const controller = new AbortController();
-    void client
-      .listEntries({ scope, parentId: destination ?? null, cursor, signal: controller.signal })
-      .then((data) => {
-        if (!controller.signal.aborted) {
-          setResult({ request, data });
-        }
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted) {
-          setResult({ request, error: messageFor(reason, labels) });
-        }
-      });
-    return () => controller.abort();
-  }, [client, scope, destination, cursor, request, labels]);
   async function submit() {
     if (disabled || lock.current) return;
     lock.current = true;
@@ -502,7 +458,7 @@ function RestoreDialog({
                 id={`${fieldId}-folder`}
                 className={inputClass}
                 value={destination === undefined ? "original" : (destination ?? "root")}
-                disabled={pending || disabled || loading}
+                disabled={pending || disabled || loading || !!folderError}
                 onChange={(event) => {
                   setDestination(
                     event.target.value === "original"
@@ -546,7 +502,7 @@ function RestoreDialog({
                   nextLabel={labels.next}
                   previousDisabled={cursors.length === 0}
                   nextDisabled={!folder?.nextCursor || !!folderError}
-                  disabled={loading || pending}
+                  disabled={loading || pending || !!folderError}
                   onPrevious={() => setCursors(cursors.slice(0, -1))}
                   onNext={() => {
                     if (folder?.nextCursor) setCursors([...cursors, folder.nextCursor]);

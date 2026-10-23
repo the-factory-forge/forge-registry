@@ -846,6 +846,19 @@ the optimistic mutation isolation requirement.
 - **THEN** its toast shows loading feedback and updates in place when the operation settles
 - **AND** errors remain recoverable, reduced motion is respected, and file-table content does not shift
 
+#### Scenario: Recovering a Drive listing
+
+- **WHEN** spaces, folder contents, trash or restore destinations are reloaded
+- **THEN** Drive SHALL retain the last successful listing while pending and disable its mutations and pagination
+- **AND** superseded or unmounted reads SHALL NOT update the listing, even if the adapter ignores cancellation
+- **WHEN** a read fails
+- **THEN** the previous rows or destination options SHALL remain visible with mutations and pagination disabled and Retry available
+- **AND** `FORBIDDEN` or `NOT_FOUND` SHALL instead clear the affected listing
+- **WHEN** a retry succeeds
+- **THEN** Drive SHALL replace the snapshot and resume permitted actions
+- **AND** only accepted successful reads SHALL update the timestamp used to evaluate trash expiry
+- **AND** a listing refresh SHALL NOT reset an optimistic mutation that is still pending
+
 ### Requirement: Drive folder action menu
 
 Drive folder-tree rows SHALL offer a keyboard- and touch-accessible three-dot menu

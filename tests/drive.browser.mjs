@@ -972,6 +972,7 @@ await suite("Drive browser", async () => {
             .evaluate((element) => element.getBoundingClientRect().top + scrollY),
           top,
         );
+        const loadedHeadings = await table.getByRole("columnheader").allTextContents();
         await row(page, "Annual report.txt")
           .getByRole("button", { name: "Rename", exact: true })
           .click();
@@ -984,7 +985,8 @@ await suite("Drive browser", async () => {
         await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
         await page.getByLabel("Directory state").selectOption("error");
         await table.getByRole("alert").waitFor();
-        assert.equal(await table.getByRole("columnheader").count(), 5);
+        assert.deepEqual(await table.getByRole("columnheader").allTextContents(), loadedHeadings);
+        assert.equal(await row(page, "Annual report.txt").isVisible(), true);
         await page.close();
       }
   });
