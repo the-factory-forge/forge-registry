@@ -181,6 +181,26 @@ for reconnect or persist callbacks or private records to browser storage.
 - **THEN** its declared dependencies include the optimistic mutation utility
 - **AND** existing data callbacks remain usable without adopting showroom infrastructure
 
+#### Scenario: Refreshing an unsubmitted customer or project deletion
+
+- **WHEN** a Customer or Project confirmation is open before submission
+- **THEN** its target ID stays fixed while its displayed name follows current host data
+- **AND** removing that record or changing the view closes the confirmation
+
+#### Scenario: Refreshing a submitted customer or project deletion
+
+- **WHEN** host data removes a Customer or Project, or its view changes during deletion
+- **THEN** the submitted callback finishes against its original ID
+- **AND** row or trigger removal does not discard the confirmation while its owner remains mounted
+- **AND** rejection retains current host data and shows an error without restoring stale records
+- **AND** retry requires the original record in the same view with deletion still enabled
+
+#### Scenario: Returning from customer or project deletion
+
+- **WHEN** a Customer or Project confirmation closes
+- **THEN** focus returns to its original trigger if available, otherwise to the owning list or form
+- **AND** completion does not move focus or show feedback after the owner unmounts
+
 ### Requirement: Server-confirmed operation results
 
 Authentication, impersonation, file transfer, email delivery, management-link
@@ -643,6 +663,8 @@ uploads SHALL preserve other edits and allow retry or cancellation.
 
 `@forge/customers` SHALL provide a searchable directory, a creation page and an
 About editor for customer contact, company and address fields.
+Single-record deletion SHALL follow the target, refresh and focus behavior in
+the optimistic mutation isolation requirement.
 
 #### Scenario: Integrating customer records and access
 
@@ -687,6 +709,8 @@ About editor for customer contact, company and address fields.
 
 `@forge/projects` SHALL provide `ProjectsPage`, embeddable `ProjectsList`, creation
 and detail pages.
+Single-record deletion SHALL follow the target, refresh and focus behavior in
+the optimistic mutation isolation requirement.
 
 #### Scenario: Integrating project forms and ownership
 
