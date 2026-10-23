@@ -1098,6 +1098,14 @@ editing/preview, categories and public list/article components.
 - **THEN** its status becomes unpublished changes
 - **AND** the public page retains its previous publication until staff publish again
 
+#### Scenario: Computing a draft save
+
+- **WHEN** a storage or showroom adapter saves a blog draft
+- **THEN** one pure model operation validates content and computes the article, retained history snapshot and removed history IDs together
+- **AND** unchanged content and settings preserve the prior article version, editor and history
+- **AND** the operation leaves its caller-owned inputs unchanged
+- **AND** the storage adapter retains authorization, locking and atomic persistence of the article, history, projections and retry result
+
 ### Requirement: Blog content and image persistence
 
 `@forge/blogs-storage` SHALL store complete draft and published Markdown with

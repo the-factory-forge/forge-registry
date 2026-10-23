@@ -6,9 +6,8 @@ import test from "node:test";
 const {
   createArticle,
   publishArticle,
-  saveArticle,
+  saveBlogDraft,
   validateCategory,
-  recordBlogSave,
   publishBlogVersion,
   deleteBlogVersion,
 } = await import("../registry/components/plugins/blogs/model.ts");
@@ -101,8 +100,15 @@ function historyFixture(assets = new Set()) {
       };
       const sourceId = origin?.versionId ?? article.translations[locale]?.history?.currentId;
       const source = versions.find((version) => version.id === sourceId) ?? null;
-      const next = saveArticle(article, input, [], assets, randomUUID(), other, now);
-      const result = recordBlogSave(article, next, input, versions, source);
+      const result = saveBlogDraft(article, input, {
+        categories: [],
+        assets,
+        revisionId: randomUUID(),
+        editor: other,
+        now,
+        headers: versions,
+        source,
+      });
       article = result.article;
       versions = versions.filter((version) => !result.removedIds.includes(version.id));
       if (result.saved) versions.push(result.saved);
@@ -145,7 +151,7 @@ function historyFixture(assets = new Set()) {
 
 await test("language settings freeze legacy fallback before another language changes", () => {
   let article = createArticle(randomUUID(), "English", "en", actor, now);
-  article = saveArticle(
+  article = saveBlogDraft(
     article,
     {
       id: article.id,
@@ -155,16 +161,20 @@ await test("language settings freeze legacy fallback before another language cha
       content: { ...emptyContent, title: "English", slug: "english", markdown: "Text" },
       shared: article.shared,
     },
-    [],
-    new Set(),
-    randomUUID(),
-    actor,
-    now,
-  );
+    {
+      categories: [],
+      assets: new Set(),
+      revisionId: randomUUID(),
+      editor: actor,
+      now,
+      headers: [],
+      source: null,
+    },
+  ).article;
   article = publishArticle(article, "en", [], actor, now);
   delete article.translations.en.shared;
   const frenchAuthor = { id: "french-author", name: "French author" };
-  article = saveArticle(
+  article = saveBlogDraft(
     article,
     {
       id: article.id,
@@ -174,17 +184,61 @@ await test("language settings freeze legacy fallback before another language cha
       content: { ...emptyContent, title: "Français", slug: "francais", markdown: "Texte" },
       shared: { ...article.shared, author: frenchAuthor },
     },
-    [],
-    new Set(),
-    randomUUID(),
-    other,
-    now,
-  );
+    {
+      categories: [],
+      assets: new Set(),
+      revisionId: randomUUID(),
+      editor: other,
+      now,
+      headers: [],
+      source: null,
+    },
+  ).article;
   assert.equal(article.shared.author.id, frenchAuthor.id);
   assert.equal(article.translations.en.shared.author.id, actor.id);
   assert.equal(hasUnpublishedChanges(article, "en"), false);
   article = publishArticle(article, "en", [], other, now);
   assert.equal(article.translations.en.published.shared.author.id, actor.id);
+});
+
+await test("saving a draft leaves caller-owned article, history and input unchanged", () => {
+  const fixture = historyFixture();
+  const source = fixture.save("Original").saved;
+  const article = fixture.article;
+  const input = {
+    id: article.id,
+    version: article.version,
+    requestId: randomUUID(),
+    locale: "en",
+    content: { ...source.content, markdown: "Changed content" },
+    shared: source.shared,
+    origin: { versionId: source.id },
+  };
+  const context = {
+    categories: [],
+    assets: new Set(),
+    revisionId: randomUUID(),
+    editor: other,
+    now,
+    headers: fixture.versions,
+    source,
+  };
+  const before = structuredClone({ article, input, context });
+  const result = saveBlogDraft(article, input, context);
+  assert.equal(result.article.translations.en.draft.markdown, "Changed content");
+  assert.equal(result.saved.content.markdown, "Changed content");
+  assert.equal(result.saved.number, source.number + 1);
+  assert.deepEqual({ article, input, context }, before);
+  result.saved.content.markdown = "Changed snapshot";
+  assert.equal(result.article.translations.en.draft.markdown, "Changed content");
+  assert.deepEqual({ article, input, context }, before);
+  assert.throws(() => saveBlogDraft(article, input, { ...context, maxBytes: 1 }), {
+    code: "INVALID",
+  });
+  assert.throws(() => saveBlogDraft(article, input, { ...context, source: null }), {
+    code: "NOT_FOUND",
+  });
+  assert.deepEqual({ article, input, context }, before);
 });
 
 await test("changed saves allocate stable history numbers and unchanged saves keep concurrency state", () => {
@@ -391,7 +445,7 @@ await test("publication snapshots isolate languages, shared media, attribution, 
   const image = randomUUID(),
     second = randomUUID();
   const save = (locale, title, shared) => {
-    article = saveArticle(
+    article = saveBlogDraft(
       article,
       {
         id: article.id,
@@ -406,12 +460,16 @@ await test("publication snapshots isolate languages, shared media, attribution, 
         },
         shared,
       },
-      categories,
-      new Set([image, second]),
-      randomUUID(),
-      other,
-      now,
-    );
+      {
+        categories,
+        assets: new Set([image, second]),
+        revisionId: randomUUID(),
+        editor: other,
+        now,
+        headers: [],
+        source: null,
+      },
+    ).article;
   };
   save("en", "English", { thumbnailId: image, bannerId: image, categoryIds: [child.id] });
   article = publishArticle(article, "en", categories, other, now);
@@ -440,7 +498,7 @@ await test("parser tracks reference-style images and rejects unowned or non-asse
   const article = createArticle(randomUUID(), "Draft", "en", actor, now);
   assert.throws(
     () =>
-      saveArticle(
+      saveBlogDraft(
         article,
         {
           id: article.id,
@@ -450,11 +508,15 @@ await test("parser tracks reference-style images and rejects unowned or non-asse
           content: { ...emptyContent, markdown: `![alt](./assets/${id})` },
           shared: article.shared,
         },
-        [],
-        new Set(),
-        randomUUID(),
-        actor,
-        now,
+        {
+          categories: [],
+          assets: new Set(),
+          revisionId: randomUUID(),
+          editor: actor,
+          now,
+          headers: [],
+          source: null,
+        },
       ),
     { code: "NOT_FOUND" },
   );
@@ -539,19 +601,31 @@ void test("legacy drafts stay unattributed until explicitly reviewed", () => {
     content: { ...emptyContent, title: "Legacy", slug: "legacy", markdown: "Text" },
     shared: article.shared,
   };
-  article = saveArticle(article, input, [], new Set(), randomUUID(), other, now);
+  article = saveBlogDraft(article, input, {
+    categories: [],
+    assets: new Set(),
+    revisionId: randomUUID(),
+    editor: other,
+    now,
+    headers: [],
+    source: null,
+  }).article;
   assert.equal(article.shared.author, undefined);
   assert.equal(articleListItem(article, "en").author, undefined);
   assert.throws(() => publishArticle(article, "en", [], other, now), { code: "AUTHOR_REQUIRED" });
-  article = saveArticle(
+  article = saveBlogDraft(
     article,
     { ...input, shared: { ...input.shared, author: actor } },
-    [],
-    new Set(),
-    randomUUID(),
-    other,
-    now,
-  );
+    {
+      categories: [],
+      assets: new Set(),
+      revisionId: randomUUID(),
+      editor: other,
+      now,
+      headers: [],
+      source: null,
+    },
+  ).article;
   assert.deepEqual(
     publishArticle(article, "en", [], other, now).translations.en.published.shared.author,
     actor,
@@ -562,7 +636,7 @@ void test("authorship stores only public identity fields", () => {
   const privateAccount = { ...actor, email: "private@example.test", passwordHash: "not-public" };
   let article = createArticle(randomUUID(), "Article", "en", privateAccount, now);
   assert.deepEqual(article.shared.author, actor);
-  article = saveArticle(
+  article = saveBlogDraft(
     article,
     {
       id: article.id,
@@ -572,12 +646,16 @@ void test("authorship stores only public identity fields", () => {
       content: { ...emptyContent, title: "Article", slug: "article", markdown: "Text" },
       shared: { ...article.shared, author: privateAccount },
     },
-    [],
-    new Set(),
-    randomUUID(),
-    other,
-    now,
-  );
+    {
+      categories: [],
+      assets: new Set(),
+      revisionId: randomUUID(),
+      editor: other,
+      now,
+      headers: [],
+      source: null,
+    },
+  ).article;
   assert.deepEqual(article.shared.author, actor);
   // Old/custom documents may still contain a full account object.
   article.shared.author = privateAccount;

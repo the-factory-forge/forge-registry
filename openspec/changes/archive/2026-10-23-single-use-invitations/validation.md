@@ -32,14 +32,14 @@ roles, failed delivery, resending without duplicate creation, invalid/expired/re
 links, concurrent use of one token, administrator edits invalidating links, neutral
 public recovery, authorization, session revocation and legacy profile/password guards.
 
-| Application | Final affected browser coverage |
-| --- | --- |
-| forge-template | 9 passed; Google case skipped without provider credentials |
-| l-aspic | 11 passed across employee, recovery, invitation and profile runs; Google skipped |
-| osthoepathie-seebach | 10 passed after updating the changed button selector; Google skipped |
-| sinigest | 9 passed; Google skipped |
-| soleva | 10 passed after adapting the test to its retained confirmation field; Google skipped |
-| terminal60 | 11 passed; Google skipped |
+| Application          | Final affected browser coverage                                                      |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| forge-template       | 9 passed; Google case skipped without provider credentials                           |
+| l-aspic              | 11 passed across employee, recovery, invitation and profile runs; Google skipped     |
+| osthoepathie-seebach | 10 passed after updating the changed button selector; Google skipped                 |
+| sinigest             | 9 passed; Google skipped                                                             |
+| soleva               | 10 passed after adapting the test to its retained confirmation field; Google skipped |
+| terminal60           | 11 passed; Google skipped                                                            |
 
 Per-site `docs/registry-sync/2026-10-12-invitations.json` records the partial source
 reconciliation and installed paths. No whole-plugin or full-template revision is claimed.

@@ -42,9 +42,7 @@
     "src/intranet/e2e/employees.spec.ts",
     "src/intranet/e2e/invitations.spec.ts"
   ],
-  "forge-registry": [
-    "docs/intranet-auth.md"
-  ],
+  "forge-registry": ["docs/intranet-auth.md"],
   "forge-spec": [
     "consumers/sites.yaml",
     "openspec/specs/plugins/spec.md",

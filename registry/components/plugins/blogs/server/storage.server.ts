@@ -23,11 +23,10 @@ import {
 
 import {
   createArticle,
-  saveArticle,
+  saveBlogDraft,
   unpublishArticle,
   validateCategory,
   sameBlogInputs,
-  recordBlogSave,
   blogPublicationDiscard,
   publishBlogVersion,
   deleteBlogVersion,
@@ -672,22 +671,19 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
             eq(objects.state, "ready"),
           ),
         );
-      const next = saveArticle(
+      const recorded = saveBlogDraft(
         article,
         { ...input, shared: { ...input.shared, author } },
-        categories,
-        new Set(images.map((i) => i.id)),
-        randomUUID(),
-        editor,
-        new Date().toISOString(),
-        maxMarkdown,
-      );
-      const recorded = recordBlogSave(
-        article,
-        next,
-        { ...input, shared: { ...input.shared, author } },
-        await historyHeaders(tx, input.id, input.locale),
-        source,
+        {
+          categories,
+          assets: new Set(images.map((i) => i.id)),
+          revisionId: randomUUID(),
+          editor,
+          now: new Date().toISOString(),
+          maxBytes: maxMarkdown,
+          headers: await historyHeaders(tx, input.id, input.locale),
+          source,
+        },
       );
       await uniqueSlug(
         tx,

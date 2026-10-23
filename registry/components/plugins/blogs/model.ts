@@ -51,7 +51,7 @@ export function createArticle(
     },
   };
 }
-export function saveArticle(
+function applyDraft(
   article: BlogArticle,
   input: BlogSaveInput,
   categories: BlogCategory[],
@@ -176,14 +176,31 @@ export function sameBlogInputs(
   return JSON.stringify(inputs(left)) === JSON.stringify(inputs(right));
 }
 
-/** Headers are sufficient for retention; only the selected body needs to be loaded. */
-export function recordBlogSave(
+/** Compute one save; the adapter persists the article, snapshot and removals together. */
+export function saveBlogDraft(
   previous: BlogArticle,
-  next: BlogArticle,
   input: BlogSaveInput,
-  headers: BlogHistoryHeader[],
-  source: BlogHistoryVersion | null,
+  {
+    categories,
+    assets,
+    revisionId,
+    editor,
+    now,
+    maxBytes,
+    headers,
+    source,
+  }: {
+    categories: BlogCategory[];
+    assets: Set<string>;
+    revisionId: string;
+    editor: BlogEditor;
+    now: string;
+    maxBytes?: number;
+    headers: BlogHistoryHeader[];
+    source: BlogHistoryVersion | null;
+  },
 ) {
+  const next = applyDraft(previous, input, categories, assets, revisionId, editor, now, maxBytes);
   const translation = next.translations[input.locale];
   const content = translation.draft;
   const shared = draftShared(next, input.locale);

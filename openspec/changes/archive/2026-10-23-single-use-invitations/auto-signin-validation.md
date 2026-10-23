@@ -34,14 +34,14 @@ HTTP and network sign-in failures, manual-login fallback, invalid/expired/banned
 already-activated recipient lookup, concurrent token use, locale, session revocation
 and ordinary recovery. No changes to credentials or data in real site databases occurred.
 
-| Host | Affected browser results |
-| --- | --- |
-| l-aspic | 10 passed across initial/focused runs; final employee/invitation rerun 6 passed with concurrent permission edits |
-| forge-template | 9 passed |
-| osthoepathie-seebach | 10 passed |
-| sinigest | 9 passed |
-| soleva | 10 passed |
-| terminal60 | 11 passed |
+| Host                 | Affected browser results                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| l-aspic              | 10 passed across initial/focused runs; final employee/invitation rerun 6 passed with concurrent permission edits |
+| forge-template       | 9 passed                                                                                                         |
+| osthoepathie-seebach | 10 passed                                                                                                        |
+| sinigest             | 9 passed                                                                                                         |
+| soleva               | 10 passed                                                                                                        |
+| terminal60           | 11 passed                                                                                                        |
 
 Each host skips its Google-provider case without provider credentials. L'Aspic's new
 invalid-link test initially expected the wrong translated error; its shared form uses

@@ -3,9 +3,7 @@
   "source_state": "unpublished local changes",
   "installed_with": "shadcn add @forge/employees @forge/employees-server @forge/customers --yes --overwrite",
   "namespace": "http://localhost:3100/r/{name}.json (disposable consumer only)",
-  "reverse_dependency_items": [
-    "projects"
-  ],
+  "reverse_dependency_items": ["projects"],
   "files": [
     {
       "item": "customers",

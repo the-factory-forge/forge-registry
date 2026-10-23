@@ -11,12 +11,11 @@ import type {
 import {
   createArticle,
   sameBlogInputs,
-  recordBlogSave,
   publishBlogVersion,
   deleteBlogVersion,
   blogPublicationDiscard,
   publishArticle,
-  saveArticle,
+  saveBlogDraft,
   unpublishArticle,
   validateCategory,
 } from "@/components/plugins/blogs/model";
@@ -114,7 +113,7 @@ function seed() {
       image = key(100 + n),
       banner = key(103 + n);
     let article = createArticle(id, content.title, "en", initialEditor, date);
-    article = saveArticle(
+    article = saveBlogDraft(
       article,
       {
         id,
@@ -132,16 +131,20 @@ function seed() {
           categoryIds: [index === 2 ? key(12) : key(11)],
         },
       },
-      categories,
-      new Set([image, banner]),
-      key(300 + n),
-      initialEditor,
-      date,
-    );
+      {
+        categories,
+        assets: new Set([image, banner]),
+        revisionId: key(300 + n),
+        editor: initialEditor,
+        now: date,
+        headers: [],
+        source: null,
+      },
+    ).article;
     return publishArticle(article, "en", categories, initialEditor, date);
   });
   let first = articles[0];
-  first = saveArticle(
+  first = saveBlogDraft(
     first,
     {
       id: first.id,
@@ -160,12 +163,16 @@ function seed() {
         bannerAlt: "Un pot contenant quatre crayons dessinés à la main",
       },
     },
-    categories,
-    new Set([key(101), key(104)]),
-    key(401),
-    initialEditor,
-    date,
-  );
+    {
+      categories,
+      assets: new Set([key(101), key(104)]),
+      revisionId: key(401),
+      editor: initialEditor,
+      now: date,
+      headers: [],
+      source: null,
+    },
+  ).article;
   articles[0] = publishArticle(first, "fr", categories, initialEditor, date);
   const legacy = createArticle(key(4), "An idea for tomorrow", "en", initialEditor, date);
   delete legacy.shared.author;
@@ -509,16 +516,15 @@ export function createBlogsMock() {
               ),
               "FORBIDDEN",
             );
-          const result = saveArticle(
-            current(input),
-            input,
+          const recorded = saveBlogDraft(previous, input, {
             categories,
-            new Set(assets.filter((a) => a.postId === input.id).map((a) => a.id)),
-            crypto.randomUUID(),
-            config.editor,
-            new Date().toISOString(),
-          );
-          const recorded = recordBlogSave(previous, result, input, headers, source);
+            assets: new Set(assets.filter((a) => a.postId === input.id).map((a) => a.id)),
+            revisionId: crypto.randomUUID(),
+            editor: config.editor,
+            now: new Date().toISOString(),
+            headers,
+            source,
+          });
           unique(recorded.article, input.locale);
           if (recorded.saved)
             versions.set(input.id, [
@@ -639,16 +645,17 @@ export function createBlogsMock() {
       const retained = versions.get(article.id) ?? [];
       const source =
         retained.find((version) => version.id === translation.history?.currentId) ?? null;
-      const saved = saveArticle(
-        article,
-        input,
+      const result = saveBlogDraft(article, input, {
         categories,
-        new Set(assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id)),
-        crypto.randomUUID(),
-        initialEditor,
-        new Date().toISOString(),
-      );
-      const result = recordBlogSave(article, saved, input, retained, source);
+        assets: new Set(
+          assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id),
+        ),
+        revisionId: crypto.randomUUID(),
+        editor: initialEditor,
+        now: new Date().toISOString(),
+        headers: retained,
+        source,
+      });
       articles = articles.map((value) => (value.id === article.id ? result.article : value));
       if (result.saved)
         versions.set(article.id, [
@@ -702,23 +709,17 @@ export function createBlogsMock() {
           const previous = article,
             currentId = article.translations[locale].history!.currentId;
           const current = source ?? retained.find((version) => version.id === currentId) ?? null;
-          const result = recordBlogSave(
-            previous,
-            saveArticle(
-              previous,
-              input,
-              categories,
-              new Set(
-                assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id),
-              ),
-              crypto.randomUUID(),
-              initialEditor,
-              new Date().toISOString(),
+          const result = saveBlogDraft(previous, input, {
+            categories,
+            assets: new Set(
+              assets.filter((asset) => asset.postId === article.id).map((asset) => asset.id),
             ),
-            input,
-            retained,
-            current,
-          );
+            revisionId: crypto.randomUUID(),
+            editor: initialEditor,
+            now: new Date().toISOString(),
+            headers: retained,
+            source: current,
+          });
           article = result.article;
           if (result.saved) retained.push(result.saved);
         };

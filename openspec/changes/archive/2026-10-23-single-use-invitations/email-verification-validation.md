@@ -27,14 +27,14 @@ invitations and rejected passwords retain an unverified address. Verification re
 available after automatic sign-in fails, and ordinary emailed recovery also persists it.
 Existing verification, email-edit, access-policy and session-revocation cases pass.
 
-| Host | Production browser checks |
-| --- | --- |
-| l-aspic | 10 passed; Google-provider case skipped |
-| forge-template | 9 passed; Google-provider case skipped |
+| Host                 | Production browser checks               |
+| -------------------- | --------------------------------------- |
+| l-aspic              | 10 passed; Google-provider case skipped |
+| forge-template       | 9 passed; Google-provider case skipped  |
 | osthoepathie-seebach | 10 passed; Google-provider case skipped |
-| sinigest | 9 passed; Google-provider case skipped |
-| soleva | 10 passed; Google-provider case skipped |
-| terminal60 | 11 passed; Google-provider case skipped |
+| sinigest             | 9 passed; Google-provider case skipped  |
+| soleva               | 10 passed; Google-provider case skipped |
+| terminal60           | 11 passed; Google-provider case skipped |
 
 All six hosts pass scoped formatting and lint/type checks. Each test run uses the
 host's migration history, an isolated local database, intercepted mail and port 3100.

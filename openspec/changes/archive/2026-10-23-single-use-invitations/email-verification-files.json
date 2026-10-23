@@ -42,9 +42,7 @@
     "src/intranet/e2e/login.spec.ts",
     "docs/registry-sync.md"
   ],
-  "forge-registry": [
-    "docs/intranet-auth.md"
-  ],
+  "forge-registry": ["docs/intranet-auth.md"],
   "forge-spec": [
     "consumers/sites.yaml",
     "openspec/specs/plugins/spec.md",

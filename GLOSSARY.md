@@ -24,6 +24,11 @@ selected category with the primary color at either level, including the child's
 guide. Preserve translated labels, post counts, filtering, and visible keyboard
 focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-images).
 
+## Blog language
+
+**Blog draft**: The editable state of one article translation. Readers see its
+separate published snapshot until the draft is published.
+
 ## DOM IDs
 
 Every DOM ID authored by registry or showroom code must start with `factory-`.

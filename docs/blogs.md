@@ -221,6 +221,11 @@ update changes future uploads only; live consumer adoption remains separate.
 
 ## Updating consumers
 
+The pure draft-save module now exposes `saveBlogDraft` in `model.ts` instead of
+`saveArticle` and `recordBlogSave`. Update Blogs and its storage adapter together;
+see the [draft-save adoption handoff](./HANDOFF-blog-save-module.md) for direct
+callers and the pending L’Aspic/Seebach upgrades. `BlogsClient.save` is unchanged.
+
 Follow [HANDOFF: blog storage adoption](./HANDOFF-blogs-storage.md) when adopting
 this revision. The owner confirmed no website used the former S3 Markdown flow,
 so no legacy Markdown migration is provided. New installations use the companion
