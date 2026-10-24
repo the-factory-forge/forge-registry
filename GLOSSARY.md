@@ -34,6 +34,11 @@ separate published snapshot until the draft is published.
 **Drive listing**: One page of spaces, folder contents, trashed entries or possible
 restore destinations. It reflects the current location, search and ordering.
 
+## Menu language
+
+**Menu taxonomy**: The categories that organize dishes and the reusable allergen
+and dietary labels assigned to them. Names can be translated for each language.
+
 ## Deletion language
 
 **Deletion session**: A selected group of records awaiting deletion confirmation,

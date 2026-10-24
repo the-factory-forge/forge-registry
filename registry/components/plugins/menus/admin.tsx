@@ -33,6 +33,7 @@ import type {
   MenuLabel,
   MenusClient,
 } from "@/components/plugins/menus/types";
+import { useMenuCategoriesAndLabels } from "@/components/plugins/menus/use-categories-and-labels";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -101,7 +102,7 @@ function DeleteControl({
   cancel: string;
   errorMessage: string;
   onDelete: () => Promise<void>;
-  onDone: () => void;
+  onDone?: () => void;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -149,7 +150,7 @@ function DeleteControl({
                 void onDelete()
                   .then(() => {
                     setOpen(false);
-                    onDone();
+                    onDone?.();
                   })
                   .catch(() => setError(true))
                   .finally(() => {
@@ -1122,6 +1123,7 @@ function MenuItemEditorPageContent({
 }
 
 export interface MenuTaxonomyPageProps {
+  /** Keep stable while editing; replacing the client starts a new taxonomy session. */
   client: MenusClient;
   locales: readonly { code: string; name: string }[];
   baseLocale: string;
@@ -1307,8 +1309,8 @@ function TaxonomyDialog({
   );
 }
 
-export function MenuTaxonomyPage({
-  client: suppliedClient,
+function MenuTaxonomyPageContent({
+  client,
   locales,
   baseLocale,
   backHref,
@@ -1317,113 +1319,9 @@ export function MenuTaxonomyPage({
   className,
 }: MenuTaxonomyPageProps) {
   const labels = { ...menusLabels, ...overrides };
-  const [revision, setRevision] = useState(0);
-  const [savedData, setData] = useState<{ categories: MenuCategory[]; labelsData: MenuLabel[] }>();
-  const optimistic = useOptimisticAction(savedData, suppliedClient);
-  const data = optimistic.value;
-  const client: MenusClient = {
-    ...suppliedClient,
-    saveCategory: (input) => {
-      const id = input.id ?? `pending-${crypto.randomUUID()}`;
-      return optimistic.run(
-        (current) =>
-          current && {
-            ...current,
-            categories: input.id
-              ? current.categories.map((row) => (row.id === id ? { ...row, ...input, id } : row))
-              : [...current.categories, { ...input, id }],
-          },
-        async () => {
-          const result = await suppliedClient.saveCategory(input);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                categories: [
-                  ...current.categories.filter((row) => row.id !== result.id),
-                  result,
-                ].sort((a, b) => a.position - b.position),
-              },
-          );
-          return result;
-        },
-      );
-    },
-    saveLabel: (input) => {
-      const id = input.id ?? `pending-${crypto.randomUUID()}`;
-      return optimistic.run(
-        (current) =>
-          current && {
-            ...current,
-            labelsData: input.id
-              ? current.labelsData.map((row) => (row.id === id ? { ...row, ...input, id } : row))
-              : [...current.labelsData, { ...input, id }],
-          },
-        async () => {
-          const result = await suppliedClient.saveLabel(input);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                labelsData: [
-                  ...current.labelsData.filter((row) => row.id !== result.id),
-                  result,
-                ].sort((a, b) => a.position - b.position),
-              },
-          );
-          return result;
-        },
-      );
-    },
-    removeCategory: (id) =>
-      optimistic.run(
-        (current) =>
-          current && { ...current, categories: current.categories.filter((row) => row.id !== id) },
-        async () => {
-          await suppliedClient.removeCategory(id);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                categories: current.categories.filter((row) => row.id !== id),
-              },
-          );
-        },
-      ),
-    removeLabel: (id) =>
-      optimistic.run(
-        (current) =>
-          current && { ...current, labelsData: current.labelsData.filter((row) => row.id !== id) },
-        async () => {
-          await suppliedClient.removeLabel(id);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                labelsData: current.labelsData.filter((row) => row.id !== id),
-              },
-          );
-        },
-      ),
-  };
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    let active = true;
-    Promise.all([suppliedClient.categories(), suppliedClient.labels()])
-      .then(([categories, labelsData]) => {
-        if (active) {
-          setData({ categories, labelsData });
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (active) setError(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [suppliedClient, revision]);
-  const refresh = () => setRevision((n) => n + 1);
+  const taxonomy = useMenuCategoriesAndLabels(client);
+  const { data, source: savedData, error, refresh } = taxonomy;
+  const disabled = taxonomy.loading || taxonomy.pending;
   return (
     <section className={cn(page, className)}>
       <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
@@ -1433,11 +1331,15 @@ export function MenuTaxonomyPage({
       <h1 className="text-2xl font-semibold">
         {labels.categories} / {labels.labels}
       </h1>
-      <ErrorMessage message={optimistic.error ? labels.error : undefined} />
+      <ErrorMessage message={taxonomy.mutationError ? labels.error : undefined} />
       {error ? (
         <div>
           <ErrorMessage message={labels.error} />
-          <button className={button} onClick={refresh}>
+          <button
+            className={button}
+            onClick={refresh}
+            disabled={taxonomy.pending || taxonomy.loading}
+          >
             <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.retry}
           </button>
@@ -1450,18 +1352,17 @@ export function MenuTaxonomyPage({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.categories}</h2>
               <TaxonomyDialog
-                disabled={optimistic.pending}
+                disabled={disabled}
                 key="new-category"
                 kind="category"
                 locales={locales}
                 baseLocale={baseLocale}
                 labels={labels}
                 onSave={async (input) => {
-                  await client.saveCategory({
+                  await taxonomy.saveCategory({
                     position: input.position,
                     translations: input.translations,
                   });
-                  refresh();
                 }}
               />
             </div>
@@ -1469,7 +1370,7 @@ export function MenuTaxonomyPage({
               {retainRemovedItems(
                 data.categories,
                 savedData?.categories ?? [],
-                optimistic.pending,
+                taxonomy.pending,
               ).map((category) => (
                 <li
                   key={category.id}
@@ -1479,7 +1380,7 @@ export function MenuTaxonomyPage({
                   <span>{category.translations[baseLocale]}</span>
                   <div className="flex gap-2">
                     <TaxonomyDialog
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       key={category.id}
                       kind="category"
                       existing={category}
@@ -1487,22 +1388,20 @@ export function MenuTaxonomyPage({
                       baseLocale={baseLocale}
                       labels={labels}
                       onSave={async (input) => {
-                        await client.saveCategory({
+                        await taxonomy.saveCategory({
                           id: category.id,
                           position: input.position,
                           translations: input.translations,
                         });
-                        refresh();
                       }}
                     />
                     <DeleteControl
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
                       errorMessage={labels.error}
-                      onDelete={() => client.removeCategory(category.id)}
-                      onDone={refresh}
+                      onDelete={() => taxonomy.removeCategory(category.id)}
                     />
                   </div>
                 </li>
@@ -1513,20 +1412,19 @@ export function MenuTaxonomyPage({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.labels}</h2>
               <TaxonomyDialog
-                disabled={optimistic.pending}
+                disabled={disabled}
                 key="new-label"
                 kind="label"
                 locales={locales}
                 baseLocale={baseLocale}
                 labels={labels}
                 onSave={async (input) => {
-                  await client.saveLabel({
+                  await taxonomy.saveLabel({
                     kind: input.kind ?? "allergen",
                     icon: input.icon,
                     position: input.position,
                     translations: input.translations,
                   });
-                  refresh();
                 }}
               />
             </div>
@@ -1534,7 +1432,7 @@ export function MenuTaxonomyPage({
               {retainRemovedItems(
                 data.labelsData,
                 savedData?.labelsData ?? [],
-                optimistic.pending,
+                taxonomy.pending,
               ).map((label) => (
                 <li
                   key={label.id}
@@ -1550,7 +1448,7 @@ export function MenuTaxonomyPage({
                   </span>
                   <div className="flex shrink-0 gap-2">
                     <TaxonomyDialog
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       key={label.id}
                       kind="label"
                       existing={label}
@@ -1558,24 +1456,22 @@ export function MenuTaxonomyPage({
                       baseLocale={baseLocale}
                       labels={labels}
                       onSave={async (input) => {
-                        await client.saveLabel({
+                        await taxonomy.saveLabel({
                           id: label.id,
                           kind: input.kind ?? label.kind,
                           icon: input.icon,
                           position: input.position,
                           translations: input.translations,
                         });
-                        refresh();
                       }}
                     />
                     <DeleteControl
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
                       errorMessage={labels.error}
-                      onDelete={() => client.removeLabel(label.id)}
-                      onDone={refresh}
+                      onDelete={() => taxonomy.removeLabel(label.id)}
                     />
                   </div>
                 </li>
@@ -1586,6 +1482,12 @@ export function MenuTaxonomyPage({
       ) : null}
     </section>
   );
+}
+
+export function MenuTaxonomyPage(props: MenuTaxonomyPageProps) {
+  const [session, setSession] = useState({ client: props.client, key: 0 });
+  if (session.client !== props.client) setSession({ client: props.client, key: session.key + 1 });
+  return <MenuTaxonomyPageContent key={session.key} {...props} />;
 }
 
 export function MenuItemsPage(props: MenuItemsPageProps) {

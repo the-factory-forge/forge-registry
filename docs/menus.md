@@ -202,6 +202,24 @@ and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
 
+## Category and label lifecycle
+
+The private `use-categories-and-labels.ts` module owns category and label reads, optimistic
+changes, canonical save results and refresh. Loaded rows remain visible during
+refresh; writes wait for that read to finish. Failed writes retain dialog drafts
+and deletion confirmations for retry. Replacing the client starts a fresh taxonomy
+session, so earlier reads and writes cannot update or refresh the new client's data.
+Its pending operations also cannot block the new session. Hosts should keep the
+client reference stable while editing; replacing it resets the session's dialogs.
+The public `MenuTaxonomyPage` props and `MenusClient` interface are unchanged.
+Install the complete `@forge/menus` item so the private module is included.
+
+Terminal60 is the recorded Menus consumer. Its adapter and category route were
+reviewed at `487436539604f77f449cf9e2808d85e57b6a6605`: the route memoizes the
+client, and writes invalidate host queries before returning. Adoption remains
+pending; preserve its localized menus, Drive integration and authorization.
+The template does not install Menus. Other installations remain uninspected.
+
 ## Reordering items
 
 The item editor omits the display-order field. Staff reorder items with the grip

@@ -1337,6 +1337,14 @@ items SHALL remain visible with a pending-colored status at the top right.
   the same alphabetical order rather than their supplied or catalog positions.
   The catalog SHALL NOT infer dish ingredients or dietary claims.
 
+#### Scenario: Refreshing menu categories and labels after a write
+
+- **WHEN** a category or label save or deletion succeeds
+- **THEN** one taxonomy lifecycle accepts the canonical result and refreshes both collections
+- **AND** loaded rows remain visible and further writes wait for refresh to settle
+- **AND** failed reads retain accepted rows with retry, while failed writes retain dialog drafts and confirmations
+- **AND** responses from an earlier client session cannot change or refresh the current client's taxonomy
+
 #### Scenario: Editing label icons
 
 - **WHEN** staff create or edit a menu label icon
