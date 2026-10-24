@@ -19,7 +19,6 @@ import {
   Quote,
 } from "lucide-react";
 import {
-  useEffect,
   useId,
   useRef,
   useState,
@@ -49,7 +48,6 @@ import type {
   BlogContent,
   BlogEditor,
   BlogHistoryHeader,
-  BlogHistoryOrigin,
   BlogHistoryVersion,
   BlogListItem,
   BlogLocale,
@@ -72,8 +70,8 @@ import {
   primaryClass,
   useBlogAction,
 } from "@/components/plugins/blogs/ui";
+import { useBlogDraft } from "@/components/plugins/blogs/use-draft";
 import {
-  emptyContent,
   hasUnpublishedChanges,
   MAX_IMAGE_BYTES,
   MAX_MARKDOWN_BYTES,
@@ -670,159 +668,39 @@ function EditorForm({
   navigationRef: RefObject<(next: () => void) => void>;
 }) {
   const labels = { ...blogsLabels, ...overrides },
-    action = useBlogAction(labels),
     id = `factory-blog-form-${useId()}`,
     textarea = useRef<HTMLTextAreaElement>(null);
-  const [base, setBase] = useState(article),
-    [content, setContent] = useState<BlogContent>(() => ({
-      ...emptyContent,
-      ...article.translations[locale]?.draft,
-    })),
-    [shared, setShared] = useState<BlogShared>(() =>
-      structuredClone(article.translations[locale]?.shared ?? article.shared),
-    ),
-    [assets, setAssets] = useState(initialAssets),
-    [dirty, setDirty] = useState(false);
-  const [historyChoice, setHistoryOpen] = useState<boolean>(),
-    [historyResult, setHistoryResult] = useState<{
-      client?: BlogsClient;
-      version?: number;
-      locale?: string;
-      refresh?: number;
-      headers: BlogHistoryHeader[];
-      error?: unknown;
-    }>({ headers: [] }),
-    [historyRefresh, setHistoryRefresh] = useState(0),
-    [selectedId, setSelectedId] = useState<string | null>(null),
-    [bodyResult, setBodyResult] = useState<{
-      client: BlogsClient;
-      version: number;
-      id: string;
-      refresh: number;
-      value?: BlogHistoryVersion;
-      error?: unknown;
-    }>(),
-    [origin, setOrigin] = useState<BlogHistoryOrigin>(),
-    [compareWorking, setCompareWorking] = useState(false),
-    [historyMode, setHistoryMode] = useState<"read" | "compare">("read"),
-    [leave, setLeave] = useState<(() => void) | null>(null);
+  const draft = useBlogDraft({
+    client,
+    article,
+    locale,
+    labels,
+    navigationRef,
+    onSaved,
+    onDirtyChange,
+  });
+  const { base, content, shared, dirty, origin, pending, status, publication, history } = draft;
+  const {
+    headers,
+    selectedId,
+    selected,
+    bodyLoading,
+    bodyError,
+    compareWorking,
+    mode: historyMode,
+    loading: historyLoading,
+    error: historyError,
+  } = history;
+  const [assets, setAssets] = useState(initialAssets);
+  const [historyChoice, setHistoryOpen] = useState<boolean>();
   const contentArea = useRef<HTMLDivElement>(null);
   const historyTrigger = useRef<HTMLButtonElement>(null);
-  const publication = useHistoryPublication(client, labels, accept);
-  useEffect(() => {
-    onDirtyChange?.(dirty);
-    return () => onDirtyChange?.(false);
-  }, [dirty, onDirtyChange]);
   const desktop = useSyncExternalStore(
     subscribeHistoryDesktop,
     historyDesktopSnapshot,
     () => false,
   );
   const historyOpen = historyChoice ?? desktop;
-  const headers = historyResult.headers;
-  const historyLoading =
-    !!client.history &&
-    (historyResult.client !== client ||
-      historyResult.version !== base.version ||
-      historyResult.locale !== locale ||
-      historyResult.refresh !== historyRefresh);
-  const historyError =
-    !historyLoading && historyResult.error ? errorMessage(historyResult.error, labels) : undefined;
-  const bodyLoading =
-    !!selectedId &&
-    (bodyResult?.id !== selectedId ||
-      bodyResult.client !== client ||
-      bodyResult.version !== base.version ||
-      bodyResult.refresh !== historyRefresh);
-  const selected =
-    !bodyLoading && bodyResult?.id === selectedId ? (bodyResult.value ?? null) : null;
-  const bodyError =
-    !bodyLoading && bodyResult?.error ? errorMessage(bodyResult.error, labels) : undefined;
-  useEffect(() => {
-    if (!client.history) return;
-    let active = true;
-    void client.history
-      .list({ id: base.id, locale })
-      .then((headers) => {
-        if (active)
-          setHistoryResult({
-            client,
-            version: base.version,
-            locale,
-            refresh: historyRefresh,
-            headers,
-          });
-      })
-      .catch((error: unknown) => {
-        if (active)
-          setHistoryResult((previous) => ({
-            ...previous,
-            client,
-            version: base.version,
-            locale,
-            refresh: historyRefresh,
-            error,
-          }));
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, base.id, base.version, locale, historyRefresh]);
-  useEffect(() => {
-    if (!selectedId || !client.history) return;
-    let active = true;
-    void client.history
-      .get({ id: base.id, locale, versionId: selectedId })
-      .then((value) => {
-        if (active)
-          setBodyResult({
-            client,
-            version: base.version,
-            id: selectedId,
-            refresh: historyRefresh,
-            value,
-          });
-      })
-      .catch((error: unknown) => {
-        if (active)
-          setBodyResult({
-            client,
-            version: base.version,
-            id: selectedId,
-            refresh: historyRefresh,
-            error,
-          });
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, base.id, base.version, locale, selectedId, historyRefresh]);
-  useEffect(() => {
-    navigationRef.current = (next) => {
-      if (action.pending || publication.pending) return;
-      if (dirty) setLeave(() => next);
-      else next();
-    };
-    const unload = (event: BeforeUnloadEvent) => {
-      if (dirty) {
-        event.preventDefault();
-        event.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", unload);
-    return () => {
-      navigationRef.current = (next) => next();
-      window.removeEventListener("beforeunload", unload);
-    };
-  }, [dirty, navigationRef, action.pending, publication.pending]);
-  const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
-    !base.translations[locale]?.published
-      ? "draft"
-      : hasUnpublishedChanges(base, locale)
-        ? "changed"
-        : "published",
-    `${base.id}:${locale}:${base.version}`,
-  );
   const { formRef, ...fields } = useEditorValidation();
   const [validation, setValidation] = useState("");
   const [crop, setCrop] = useState<{
@@ -830,36 +708,17 @@ function EditorForm({
     target: "thumbnailId" | "bannerId";
     dimensions: ImageCropSize;
   } | null>(null);
-  const readOnly = !capabilities.edit,
-    pending = action.pending || publication.pending,
-    status = optimistic.value;
+  const readOnly = !capabilities.edit;
   const StatusBadge = capabilities.publish ? "button" : "span";
-  function changed() {
-    setDirty(true);
-
-    setValidation("");
-  }
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
-    changed();
+    setValidation("");
     fields.clear(`${id}-${key}`);
-    setContent((c) => ({ ...c, [key]: value }));
+    draft.editContent(key, value);
   }
   function sharedField<K extends keyof BlogShared>(key: K, value: BlogShared[K]) {
-    changed();
+    setValidation("");
     if (key === "categoryIds") fields.clear(`${id}-category`);
-    setShared((s) => ({ ...s, [key]: value }));
-  }
-  function accept(result: BlogArticle) {
-    setOrigin(undefined);
-    setSelectedId(null);
-    setBodyResult(undefined);
-    setCompareWorking(false);
-    setBase(result);
-    setContent({ ...emptyContent, ...result.translations[locale]?.draft });
-    setShared(structuredClone(result.translations[locale]?.shared ?? result.shared));
-    setDirty(false);
-
-    onSaved?.(result);
+    draft.editShared(key, value);
   }
   function validate(publishing = false) {
     const issues: Record<string, string> = {};
@@ -885,31 +744,10 @@ function EditorForm({
     }
     return fields.validate(issues);
   }
-  async function save(event?: FormEvent) {
+  async function save(event?: FormEvent, continueNavigation = false) {
     event?.preventDefault();
     if (pending || !validate()) return false;
-
-    const result = await action.run(
-      JSON.stringify(["save", base.version, locale, content, shared, origin]),
-      (requestId) =>
-        optimistic.run(
-          () => (base.translations[locale]?.published ? "changed" : "draft"),
-          () =>
-            client.save({
-              id: base.id,
-              version: base.version,
-              locale,
-              content,
-              shared,
-              origin,
-              requestId,
-            }),
-        ),
-      labels.saved,
-    );
-    if (result) accept(result);
-
-    return !!result;
+    return draft.save(continueNavigation);
   }
   async function publish(remove = false) {
     if (pending) return;
@@ -918,28 +756,7 @@ function EditorForm({
       return;
     }
     if (!remove && !validate(true)) return;
-    const versionId = base.translations[locale]?.history?.currentId;
-    if (!remove && client.history && versionId) {
-      await publication.prepare({ id: base.id, version: base.version, locale, versionId });
-      return;
-    }
-
-    const result = await action.run(
-      JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
-      (requestId) =>
-        optimistic.run(
-          () => (remove ? "draft" : "published"),
-          () =>
-            client[remove ? "unpublish" : "publish"]({
-              id: base.id,
-              version: base.version,
-              locale,
-              requestId,
-            }),
-        ),
-      remove ? labels.unpublishedSuccess : labels.publishedSuccess,
-    );
-    if (result) accept(result);
+    await draft.publish(remove);
   }
   function insert(prefix: string, suffix = "") {
     const target = textarea.current,
@@ -968,11 +785,7 @@ function EditorForm({
       return false;
     }
 
-    const result = await action.run(
-      JSON.stringify(["upload", file.name, file.size, file.lastModified, target]),
-      (requestId) => client.upload({ id: base.id, file, requestId }),
-      labels.uploaded,
-    );
+    const result = await draft.upload(file, target);
     if (result) {
       setAssets((previous) => [...previous.filter((a) => a.id !== result.id), result]);
       if (target === "inline") insert(`![](${`./assets/${result.id}`})`);
@@ -1084,27 +897,14 @@ function EditorForm({
     </label>
   );
   function inspect(header: BlogHistoryHeader, mode: "read" | "compare" = "read") {
-    navigationRef.current(() => {
-      setSelectedId(header.id);
-      setHistoryMode(mode);
-      setCompareWorking(false);
+    history.inspect(header, mode, () => {
       if (!window.matchMedia("(min-width: 1024px)").matches) setHistoryOpen(false);
       requestAnimationFrame(() => contentArea.current?.focus());
     });
   }
   function resume(version: BlogHistoryVersion) {
-    navigationRef.current(() => {
-      setContent({ ...version.content });
-      setShared(structuredClone(version.shared));
-      setOrigin(
-        version.state === "publication"
-          ? { versionId: version.id, repriseId: crypto.randomUUID() }
-          : { versionId: version.id },
-      );
-      setSelectedId(null);
-      setBodyResult(undefined);
-      setCompareWorking(false);
-      changed();
+    history.resume(version, () => {
+      setValidation("");
       requestAnimationFrame(() => contentArea.current?.focus());
     });
   }
@@ -1146,9 +946,9 @@ function EditorForm({
     <>
       {publication.dialog}
       <Dialog.Root
-        open={!!leave}
+        open={draft.leave.requested}
         onOpenChange={(open) => {
-          if (!open && !pending) setLeave(null);
+          if (!open) draft.leave.cancel();
         }}
       >
         <Dialog.Portal>
@@ -1163,7 +963,7 @@ function EditorForm({
             <Dialog.Description className="text-sm text-muted-foreground">
               {labels.unsavedDescription}
             </Dialog.Description>
-            <Feedback {...action.feedback} />
+            <Feedback {...draft.feedback} />
             <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
@@ -1172,12 +972,7 @@ function EditorForm({
                 type="button"
                 className={outlineButtonClass}
                 disabled={pending}
-                onClick={() => {
-                  const next = leave;
-                  accept(base);
-                  setLeave(null);
-                  next?.();
-                }}
+                onClick={draft.leave.discard}
               >
                 {labels.discardChanges}
               </button>
@@ -1185,15 +980,7 @@ function EditorForm({
                 type="button"
                 className={primaryClass}
                 disabled={pending}
-                onClick={() =>
-                  void (async () => {
-                    const next = leave;
-                    if (await save()) {
-                      setLeave(null);
-                      next?.();
-                    }
-                  })()
-                }
+                onClick={() => void save(undefined, true)}
               >
                 {pending ? labels.pending : labels.save}
               </button>
@@ -1203,26 +990,12 @@ function EditorForm({
       </Dialog.Root>
       {client.history && (
         <div className="flex flex-wrap justify-end gap-2">
-          {(action.feedback?.error || publication.feedback?.error) && (
+          {(draft.feedback?.error || publication.feedback?.error) && (
             <button
               type="button"
               className={outlineButtonClass}
               disabled={pending}
-              onClick={() =>
-                void action.run("refresh-article", async () => {
-                  const latest = await client.get(base.id);
-                  if (dirty || selectedId) {
-                    setBase(latest);
-                    if (!dirty) {
-                      setContent({ ...emptyContent, ...latest.translations[locale]?.draft });
-                      setShared(
-                        structuredClone(latest.translations[locale]?.shared ?? latest.shared),
-                      );
-                    }
-                  } else accept(latest);
-                  return true;
-                })
-              }
+              onClick={() => void draft.refresh()}
             >
               <RefreshCwIcon aria-hidden="true" />
               {labels.refreshArticle}
@@ -1233,11 +1006,7 @@ function EditorForm({
               type="button"
               className={outlineButtonClass}
               disabled={pending}
-              onClick={() => {
-                setSelectedId(null);
-                setBodyResult(undefined);
-                setCompareWorking(false);
-              }}
+              onClick={history.returnToDraft}
             >
               {labels.returnToDraft}
             </button>
@@ -1247,10 +1016,7 @@ function EditorForm({
               type="button"
               className={outlineButtonClass}
               disabled={pending}
-              onClick={() => {
-                setHistoryMode("compare");
-                setCompareWorking(true);
-              }}
+              onClick={history.compareDraft}
             >
               <GitCompareArrowsIcon aria-hidden="true" />
               {labels.compareDraft}
@@ -1290,11 +1056,7 @@ function EditorForm({
                 <div className="space-y-3">
                   <Feedback message={bodyError} error />
                   <p className="text-sm">{labels.versionMissing}</p>
-                  <button
-                    type="button"
-                    className={outlineButtonClass}
-                    onClick={() => setHistoryRefresh((value) => value + 1)}
-                  >
+                  <button type="button" className={outlineButtonClass} onClick={history.retry}>
                     {labels.retry}
                   </button>
                 </div>
@@ -1305,7 +1067,7 @@ function EditorForm({
                   version={selected ?? workingVersion}
                   working={compareWorking && (dirty || !currentHeader)}
                   mode={historyMode}
-                  onModeChange={setHistoryMode}
+                  onModeChange={history.changeMode}
                   publication={base.translations[locale]?.published}
                   liveLabel={liveHeader ? labels.versionLabel(liveHeader.number) : labels.live}
                   labels={labels}
@@ -1467,8 +1229,7 @@ function EditorForm({
                       const author = authors.find((person) => person.id === event.target.value);
                       if (author) {
                         fields.clear(`${id}-author`);
-                        setShared({ ...shared, author });
-                        changed();
+                        sharedField("author", author);
                       }
                     }}
                   >
@@ -1613,7 +1374,7 @@ function EditorForm({
                 </div>
               </div>
               <Feedback message={validation} error />
-              <Feedback {...action.feedback} />
+              <Feedback {...draft.feedback} />
               {dirty && <Feedback message={labels.unsaved} />}
               <div className={editorActionsClass}>
                 {capabilities.delete && (
@@ -1676,7 +1437,7 @@ function EditorForm({
             labels={labels}
             onSelect={inspect}
             onCompare={(header) => inspect(header, "compare")}
-            onRetry={() => setHistoryRefresh((value) => value + 1)}
+            onRetry={history.retry}
             onClose={() => {
               setHistoryOpen(false);
               historyTrigger.current?.focus();
@@ -1685,20 +1446,7 @@ function EditorForm({
             deleteDisabled={dirty}
             formatDate={(iso) => formatDate(iso, locale)}
             working={workingPreview}
-            onDelete={
-              capabilities.delete
-                ? async (version, requestId) => {
-                    const result = await client.history!.delete({
-                      id: base.id,
-                      version: base.version,
-                      locale,
-                      versionId: version.id,
-                      requestId,
-                    });
-                    accept(result);
-                  }
-                : undefined
-            }
+            onDelete={capabilities.delete ? history.delete : undefined}
           />
         )}
       </div>

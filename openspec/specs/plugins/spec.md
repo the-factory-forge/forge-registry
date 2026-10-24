@@ -1122,6 +1122,15 @@ editing/preview, categories and public list/article components.
 - **AND** the operation leaves its caller-owned inputs unchanged
 - **AND** the storage adapter retains authorization, locking and atomic persistence of the article, history, projections and retry result
 
+#### Scenario: Keeping an editor draft safe during navigation and refresh
+
+- **WHEN** staff leave an unsaved draft for another language or history version
+- **THEN** the editor offers save, discard and cancel; a failed save retains the draft and pending navigation
+- **AND** retrying unchanged input retains its request ID and navigation continues only after a successful save
+- **AND** explicit article refresh adopts the latest version while retaining dirty content, settings and history origin
+- **AND** obsolete history responses cannot replace the current client's headers or selected version
+- **AND** clients without history retain direct publication through the existing client interface
+
 ### Requirement: Blog content and image persistence
 
 `@forge/blogs-storage` SHALL store complete draft and published Markdown with

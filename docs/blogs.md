@@ -190,6 +190,8 @@ failed database commit leaves cleanup metadata. Request IDs make retries safe;
 article versions reject stale writes. Preserve the request ID on uncertain
 transport retries and use a new one when changing input. Resolve version conflicts
 explicitly without silently overwriting a local draft or advancing its version.
+The editor's **Refresh article** action explicitly adopts the latest version for
+the next save while retaining unsaved content, settings and history origin.
 
 Writes, consistent reads, and maintenance use a shared PostgreSQL advisory lock.
 Administrative permission filtering examines matching metadata before pagination;
@@ -220,6 +222,14 @@ cleanup. No schema migration or existing-object rename is required. This source
 update changes future uploads only; live consumer adoption remains separate.
 
 ## Updating consumers
+
+The editor's private `use-draft.ts` module owns the draft session, history reads,
+save acceptance and guarded navigation. Install the complete `@forge/blogs` item
+when updating; `BlogEditPage` props and `BlogsClient` remain unchanged. The module
+reuses the existing action/retry and publication helpers; validation, focus and
+image selection stay in the view. Same-article prop updates preserve the active
+session; changing article or language starts a new one. Clients without
+`BlogsClient.history` retain direct publication.
 
 The pure draft-save module now exposes `saveBlogDraft` in `model.ts` instead of
 `saveArticle` and `recordBlogSave`. Update Blogs and its storage adapter together;

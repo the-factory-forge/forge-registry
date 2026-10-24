@@ -1137,6 +1137,11 @@
           "target": "@components/plugins/blogs/admin.tsx"
         },
         {
+          "path": "registry/components/plugins/blogs/use-draft.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/use-draft.ts"
+        },
+        {
           "path": "registry/components/plugins/blogs/index.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/index.ts"
