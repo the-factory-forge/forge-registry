@@ -22,7 +22,14 @@ await suite("Showroom browser", async () => {
     const samples = [
       ["verify-email", "Verify your email"],
       ["reset-password", "Reset your password"],
+      ["invitation", "Accept your invitation"],
+      ["email-change", "Confirm your new email address"],
+      ["reservation-booked", "Your request is received"],
       ["reservation-confirmation", "Your stay is confirmed"],
+      ["reservation-rescheduled", "Your stay has been rescheduled"],
+      ["reservation-rejected", "Your request was not approved"],
+      ["reservation-cancelled", "Your stay has been cancelled"],
+      ["reservation-link", "Your reservation management link"],
     ];
     const navigation = page.getByRole("navigation", { name: "Preview navigation" });
     const preview = page.frameLocator('iframe[title="Email preview"]');
@@ -31,15 +38,17 @@ await suite("Showroom browser", async () => {
       assert.equal(response.status(), 200);
       await page.locator('[data-preview-ready="true"]').waitFor();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
-      assert.equal(await navigation.getByRole("link").count(), 3);
-      assert.equal(await page.getByRole("combobox").count(), 0);
+      assert.equal(await navigation.getByRole("link", { includeHidden: true }).count(), 10);
+      assert.equal(await page.getByRole("combobox", { name: "Brand" }).count(), 1);
       assert.equal(
         await navigation.getByRole("link", { name: heading }).getAttribute("aria-current"),
         "page",
       );
       for (const [linkSlug, linkHeading] of samples) {
         assert.equal(
-          await navigation.getByRole("link", { name: linkHeading }).getAttribute("href"),
+          await navigation
+            .getByRole("link", { name: linkHeading, includeHidden: true })
+            .getAttribute("href"),
           `/mailing/${linkSlug}`,
         );
       }
@@ -49,6 +58,7 @@ await suite("Showroom browser", async () => {
       await page.reload();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
     }
+    await navigation.getByRole("button", { name: "Account", exact: true }).click();
     await navigation.getByRole("link", { name: "Reset your password" }).press("Enter");
     await page.waitForURL(`${baseURL}/mailing/reset-password`);
     await preview.getByRole("heading", { name: "Reset your password", exact: true }).waitFor();
@@ -65,6 +75,161 @@ await suite("Showroom browser", async () => {
       assert.equal((await fetch(baseURL + path)).status, 404);
     }
     assert.deepEqual(errors, []);
+  });
+
+  await test("mailing brand and format survive reload, links and browser history", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const preview = page.frameLocator('iframe[title="Email preview"]');
+    const navigation = page.getByRole("navigation", { name: "Preview navigation" });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    await page.goto(`${baseURL}/mailing/invitation?category=Plugin#factory-showroom-preview`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
+    const image = preview.locator("img");
+    await image.evaluate((element) => element.decode());
+    assert.ok(await image.evaluate((element) => element.naturalWidth > 0));
+    assert.equal(await page.locator("iframe").getAttribute("sandbox"), "");
+
+    await page.getByRole("combobox", { name: "Brand" }).selectOption("lodge");
+    await page.waitForURL((url) => url.searchParams.get("brand") === "lodge");
+    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
+    const lodgeHTML = await page.locator("iframe").getAttribute("srcdoc");
+    assert.match(lodgeHTML, /#87452d/);
+    assert.match(lodgeHTML, /Georgia/);
+    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
+    assert.equal(new URL(page.url()).hash, "#factory-showroom-preview");
+
+    await page.getByLabel("Plain-text version").check();
+    await page.waitForURL((url) => url.searchParams.get("format") === "text");
+    await page.reload();
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "lodge");
+    assert.equal(await page.getByLabel("Plain-text version").isChecked(), true);
+    assert.match(await page.locator("pre").textContent(), /Pinewood Lodge/);
+    await navigation.getByRole("link", { name: "Confirm your new email address" }).click();
+    await page.waitForURL((url) => url.pathname === "/mailing/email-change");
+    assert.equal(new URL(page.url()).searchParams.get("brand"), "lodge");
+    assert.equal(new URL(page.url()).searchParams.get("format"), "text");
+    assert.equal(new URL(page.url()).hash, "#factory-showroom-preview");
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    assert.match(await page.locator("pre").textContent(), /Confirm your new email address/);
+
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === "/mailing/invitation");
+    await page.goBack();
+    await page.waitForURL((url) => !url.searchParams.has("format"));
+    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
+    await page.goBack();
+    await page.waitForURL((url) => !url.searchParams.has("brand"));
+    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
+    await page.goForward();
+    await page.waitForURL((url) => url.searchParams.get("brand") === "lodge");
+    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
+    await page.getByRole("combobox", { name: "Brand" }).selectOption("studio");
+    await page.waitForURL((url) => !url.searchParams.has("brand"));
+    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
+
+    await page.goto(`${baseURL}/mailing?brand=unknown&format=invalid`);
+    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "studio");
+    assert.equal(await page.getByLabel("Plain-text version").isChecked(), false);
+    assert.deepEqual(errors, []);
+  });
+
+  await test("mailing remains readable in both themes on narrow screens without images", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    await context.route(/\/(?:showroom\/mailing\/[^/]+|icon)\.png$/, (route) => route.abort());
+    const page = await context.newPage();
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const brand of ["studio", "lodge", "corner"]) {
+        await page.goto(`${baseURL}/mailing/reservation-rescheduled?brand=${brand}`);
+        await page.locator('[data-preview-ready="true"]').waitFor();
+        const preview = page.frameLocator('iframe[title="Email preview"]');
+        await preview.getByRole("heading", { name: "Your stay has been rescheduled" }).waitFor();
+        for (const dark of [false, true]) {
+          const theme = page.getByRole("button", { name: "Dark mode", exact: true });
+          if ((await theme.getAttribute("aria-pressed")) !== String(dark)) await theme.click();
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          assert.equal(
+            await preview
+              .locator("body")
+              .evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          assert.equal(await preview.locator("img").evaluate((image) => image.naturalWidth), 0);
+          assert.ok(
+            await preview
+              .getByText(
+                brand === "lodge"
+                  ? "Pinewood Lodge"
+                  : brand === "corner"
+                    ? "The Corner"
+                    : "Northstar Studio",
+                { exact: true },
+              )
+              .isVisible(),
+          );
+          assert.ok(
+            await preview
+              .getByRole("link", { name: "Manage my reservation", exact: true })
+              .isVisible(),
+          );
+          assert.match(await preview.locator("body").innerText(), /23 October 2026/);
+        }
+      }
+    }
+  });
+
+  await test("mailing sections support keyboard navigation and The Corner branding", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    await page.goto(`${baseURL}/mailing/reservation-link?brand=corner`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const navigation = page.getByRole("navigation", { name: "Preview navigation" });
+    const account = navigation.getByRole("button", { name: "Account", exact: true });
+    const reservations = navigation.getByRole("button", { name: "Reservations", exact: true });
+    assert.equal(await account.getAttribute("aria-expanded"), "false");
+    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
+    assert.equal(await navigation.getByRole("link").count(), 6);
+    const preview = page.frameLocator('iframe[title="Email preview"]');
+    await preview.getByText("The Corner", { exact: true }).waitFor();
+    await preview.locator("img").evaluate((image) => image.decode());
+    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "corner");
+    const html = await page.locator("iframe").getAttribute("srcdoc");
+    assert.match(html, /#13343a/);
+    assert.match(html, /Work Sans/);
+    await account.press("Enter");
+    assert.equal(await account.getAttribute("aria-expanded"), "true");
+    await reservations.press("Space");
+    assert.equal(await reservations.getAttribute("aria-expanded"), "false");
+    const verify = navigation.getByRole("link", { name: "Verify your email", exact: true });
+    await verify.press("Enter");
+    await page.waitForURL((url) => url.pathname === "/mailing/verify-email");
+    await preview.getByRole("heading", { name: "Verify your email", exact: true }).waitFor();
+    assert.equal(await verify.evaluate((link) => document.activeElement === link), true);
+    await page.goBack();
+    await page.waitForURL((url) => url.pathname === "/mailing/reservation-link");
+    await preview
+      .getByRole("heading", { name: "Your reservation management link", exact: true })
+      .waitFor();
+    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
+    assert.equal(await account.getAttribute("aria-expanded"), "false");
+    await page.reload();
+    await preview.getByText("The Corner", { exact: true }).waitFor();
+    await page.getByLabel("Plain-text version").check();
+    assert.match(await page.locator("pre").textContent(), /The Corner/);
   });
 
   await test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {
