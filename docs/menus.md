@@ -202,6 +202,21 @@ and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
 
+## Item list lifecycle
+
+The private `use-menu-items.ts` module owns item and category reads, saved order
+and versions, optimistic moves, deletion results and refresh. Loaded rows remain
+visible during refresh or a failed read. Reordering failures restore the accepted
+order and reload current data; writes wait while reads or earlier writes finish.
+
+Keep the `MenusClient` reference stable while using the list. Replacing it starts
+a fresh list session and clears unconfirmed selections, single-delete dialogs and
+drag gestures. Earlier responses cannot change or reload the replacement list,
+even when item IDs are reused. A confirmed bulk deletion continues through its
+original client and retains only failed items for retry. Single deletions refresh
+the list after success; bulk deletions accept each removed row without interrupting
+the remaining batch with a read. The public page and client interfaces are unchanged.
+
 ## Category and label lifecycle
 
 The private `use-categories-and-labels.ts` module owns category and label reads, optimistic
@@ -215,7 +230,7 @@ The public `MenuTaxonomyPage` props and `MenusClient` interface are unchanged.
 Install the complete `@forge/menus` item so the private module is included.
 
 Terminal60 is the recorded Menus consumer. Its adapter and category route were
-reviewed at `487436539604f77f449cf9e2808d85e57b6a6605`: the route memoizes the
+reviewed alongside the item-list route at `487436539604f77f449cf9e2808d85e57b6a6605`: both routes memoize the
 client, and writes invalidate host queries before returning. Adoption remains
 pending; preserve its localized menus, Drive integration and authorization.
 The template does not install Menus. Other installations remain uninspected.

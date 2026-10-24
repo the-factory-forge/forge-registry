@@ -34,6 +34,7 @@ import type {
   MenusClient,
 } from "@/components/plugins/menus/types";
 import { useMenuCategoriesAndLabels } from "@/components/plugins/menus/use-categories-and-labels";
+import { useMenuItems } from "@/components/plugins/menus/use-menu-items";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -57,7 +58,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
-import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { retainRemovedItems } from "@/components/utils/use-optimistic-action";
 
 const field = cn(
   "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
@@ -169,6 +170,7 @@ function DeleteControl({
 }
 
 export interface MenuItemsPageProps {
+  /** Keep stable while editing; replacing the client starts a fresh item list. */
   client: MenusClient;
   baseLocale: string;
   newHref: string;
@@ -193,18 +195,11 @@ function MenuItemsPageContent({
 }: MenuItemsPageProps) {
   const labels = { ...menusLabels, ...overrides };
   const [search, setSearch] = useState("");
-  const [revision, setRevision] = useState(0);
-  const [savedData, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
-  const optimistic = useOptimisticAction(savedData, client);
-  const data = optimistic.value;
-  const [failed, setError] = useState(false);
-  const [settled, setSettled] = useState<{ client: MenusClient; revision: number }>();
-  const loading = settled?.client !== client || settled?.revision !== revision;
-  const error = !loading && failed;
-  const [reordering, setReordering] = useState(false);
+  const items = useMenuItems(client);
+  const { data, source: savedData, loading, error, reordering } = items;
   const notify = useActionToast();
-  const [orderFeedback, setOrderFeedback] = useState<"error">();
-  const [dragPreview, setDragPreview] = useState<{
+  const [preview, setDragPreview] = useState<{
+    scope: number;
     id: string;
     x: number;
     y: number;
@@ -212,8 +207,10 @@ function MenuItemsPageContent({
     edge?: "before" | "after";
     container: HTMLElement;
   }>();
+  const dragPreview = preview?.scope === items.scope ? preview : undefined;
   const drag = useRef<
     | {
+        scope: number;
         id: string;
         pointerId: number;
         startX: number;
@@ -223,30 +220,10 @@ function MenuItemsPageContent({
       }
     | undefined
   >(undefined);
-  const reorderLock = useRef(false);
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
   useEffect(() => {
-    let active = true;
-    Promise.all([client.list(), client.categories()])
-      .then(([items, categories]) => {
-        if (active) {
-          setData({
-            items: [...items].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)),
-            categories,
-          });
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (active) setError(true);
-      })
-      .finally(() => {
-        if (active) setSettled({ client, revision });
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, revision]);
+    drag.current = undefined;
+  }, [items.scope]);
   function clearDrag() {
     drag.current = undefined;
     setDragPreview(undefined);
@@ -254,6 +231,10 @@ function MenuItemsPageContent({
   function updateDrag(event: PointerEvent<HTMLButtonElement>) {
     const current = drag.current;
     if (!current || !data) return;
+    if (current.scope !== items.scope) {
+      clearDrag();
+      return;
+    }
     if (
       !current.active &&
       Math.hypot(event.clientX - current.startX, event.clientY - current.startY) < 6
@@ -279,6 +260,7 @@ function MenuItemsPageContent({
       }
     }
     setDragPreview({
+      scope: items.scope,
       id: current.id,
       x: Math.max(16, Math.min(event.clientX + 16, window.innerWidth - 304)),
       y: Math.max(16, Math.min(event.clientY - 80, window.innerHeight - 96)),
@@ -288,28 +270,7 @@ function MenuItemsPageContent({
     });
   }
   async function moveItem(id: string, to: number) {
-    if (!data || !client.reorder || reorderLock.current || reorderDisabled) return;
-    const from = data.items.findIndex((item) => item.id === id);
-    if (from < 0 || to < 0 || to >= data.items.length || from === to) return;
-    const ordered = [...data.items];
-    ordered.splice(to, 0, ...ordered.splice(from, 1));
-    reorderLock.current = true;
-    setReordering(true);
-    setOrderFeedback(undefined);
-    try {
-      const items = await optimistic.run(
-        (current) => current && { ...current, items: ordered },
-        () => client.reorder!(ordered.map(({ id, version }) => ({ id, version }))),
-      );
-      setData((current) => (current ? { ...current, items } : current));
-      notify(labels.saved);
-    } catch {
-      setOrderFeedback("error");
-      setRevision((value) => value + 1);
-    } finally {
-      reorderLock.current = false;
-      setReordering(false);
-    }
+    if (!reorderDisabled && (await items.move(id, to))) notify(labels.saved);
   }
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
@@ -326,9 +287,8 @@ function MenuItemsPageContent({
       ),
     ) ?? [];
   const selectable = filteredItems;
-  const selection = useTableSelection(selectable, search);
-  const selectionDisabled =
-    loading || error || reordering || optimistic.pending || selection.pending;
+  const selection = useTableSelection(selectable, JSON.stringify([items.scope, search]));
+  const selectionDisabled = loading || error || reordering || items.pending || selection.pending;
   const reorderDisabled = selectionDisabled || !!search.trim();
   return (
     <section className={cn(page, className)}>
@@ -364,9 +324,7 @@ function MenuItemsPageContent({
           </p>
         )}
         {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
-        {orderFeedback === "error" || optimistic.error ? (
-          <ErrorMessage message={labels.error} />
-        ) : null}
+        {items.mutationError ? <ErrorMessage message={labels.error} /> : null}
         <div className="mt-5 overflow-x-auto">
           <table className={tableClass} aria-busy={loading || reordering}>
             {loading && filteredItems.length > 0 && (
@@ -403,16 +361,7 @@ function MenuItemsPageContent({
                     <TableBulkDelete
                       selection={selection}
                       getName={(item) => item.translations[baseLocale]?.name ?? item.id}
-                      onDelete={async (item) => {
-                        await client.remove(item.id);
-                        setData(
-                          (current) =>
-                            current && {
-                              ...current,
-                              items: current.items.filter((row) => row.id !== item.id),
-                            },
-                        );
-                      }}
+                      onDelete={(item) => items.removeSelected(item.id)}
                       labels={labels}
                       disabled={selectionDisabled}
                       errorMessage={() => labels.deleteFilesFirst}
@@ -422,10 +371,10 @@ function MenuItemsPageContent({
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
-              {retainRemovedItems(filteredItems, savedData?.items ?? [], optimistic.pending).map(
+              {retainRemovedItems(filteredItems, savedData?.items ?? [], items.pending).map(
                 (item) => (
                   <tr
-                    key={item.id}
+                    key={`${items.scope}:${item.id}`}
                     hidden={
                       selection.isDeleting(item.id) ||
                       !filteredItems.some((row) => row.id === item.id)
@@ -466,16 +415,12 @@ function MenuItemsPageContent({
                               aria-describedby={reorderHelpId}
                               aria-disabled={reorderDisabled}
                               onPointerDown={(event) => {
-                                if (
-                                  reorderDisabled ||
-                                  reorderLock.current ||
-                                  event.button !== 0 ||
-                                  !event.isPrimary
-                                )
+                                if (reorderDisabled || event.button !== 0 || !event.isPrimary)
                                   return;
                                 event.currentTarget.setPointerCapture(event.pointerId);
                                 event.currentTarget.focus({ preventScroll: true });
                                 drag.current = {
+                                  scope: items.scope,
                                   id: item.id,
                                   pointerId: event.pointerId,
                                   startX: event.clientX,
@@ -572,26 +517,7 @@ function MenuItemsPageContent({
                           confirm={labels.confirmDelete}
                           cancel={labels.cancel}
                           errorMessage={labels.deleteFilesFirst}
-                          onDelete={() =>
-                            optimistic.run(
-                              (current) =>
-                                current && {
-                                  ...current,
-                                  items: current.items.filter((row) => row.id !== item.id),
-                                },
-                              async () => {
-                                await client.remove(item.id);
-                                setData(
-                                  (current) =>
-                                    current && {
-                                      ...current,
-                                      items: current.items.filter((row) => row.id !== item.id),
-                                    },
-                                );
-                              },
-                            )
-                          }
-                          onDone={() => setRevision((n) => n + 1)}
+                          onDelete={() => items.remove(item.id)}
                         />
                       </div>
                     </td>
@@ -608,7 +534,8 @@ function MenuItemsPageContent({
                           <button
                             type="button"
                             className={button}
-                            onClick={() => setRevision((n) => n + 1)}
+                            onClick={items.refresh}
+                            disabled={items.pending || selection.pending}
                           >
                             <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
                             {labels.retry}

@@ -36,6 +36,9 @@ restore destinations. It reflects the current location, search and ordering.
 
 ## Menu language
 
+**Menu item**: A dish or drink with translated content, prices, a category and
+optional labels. Staff control its visibility, availability and position in the menu.
+
 **Menu taxonomy**: The categories that organize dishes and the reusable allergen
 and dietary labels assigned to them. Names can be translated for each language.
 

@@ -1295,6 +1295,14 @@ items SHALL remain visible with a pending-colored status at the top right.
   SHALL retain category ordering and apply the saved item order within each category.
   Hosts without the optional method SHALL retain a usable table without handles.
 
+#### Scenario: Replacing a staff menu item list client
+
+- **WHEN** the host replaces the client supplying the staff item list
+- **THEN** previous reads and writes SHALL NOT replace, refresh or report reorder feedback in the new list
+- **AND** unconfirmed selections, single-delete dialogs and drag gestures SHALL reset, even when item IDs are reused
+- **AND** a confirmed bulk deletion SHALL continue through its original client and retain only failed entries for retry without altering the replacement list
+- **AND** loaded rows SHALL remain visible during same-client refresh and failed reads, with further writes disabled until the read succeeds
+
 #### Scenario: Filtering visible dishes
 
 - **WHEN** a visitor filters a supplied public menu

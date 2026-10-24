@@ -1300,6 +1300,11 @@
           "target": "@components/plugins/menus/use-categories-and-labels.ts"
         },
         {
+          "path": "registry/components/plugins/menus/use-menu-items.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/use-menu-items.ts"
+        },
+        {
           "path": "registry/components/plugins/menus/label-presets.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/label-presets.ts"
