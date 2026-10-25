@@ -473,6 +473,25 @@ await suite("Reservations browser", async () => {
     );
   });
 
+  await test("staff creation retains one-step Back and Forward after reload", async (t) => {
+    for (const suffix of ["", "?view=listWeek&status=pending&ref=shared#factory-preview"]) {
+      const page = await preview(t, `/en/admin/reservations${suffix}`);
+      const calendarUrl = page.url();
+      await page.getByRole("link", { name: "New reservation", exact: true }).click();
+      await page.waitForURL((url) => url.pathname.endsWith("/new"));
+      const creationUrl = page.url();
+      await page.getByLabel("Date", { exact: true }).waitFor();
+      await page.reload();
+      await page.goBack();
+      await page.waitForURL(calendarUrl);
+      await page.getByRole("link", { name: "New reservation", exact: true }).waitFor();
+      await page.goForward();
+      await page.waitForURL(creationUrl);
+      await page.getByRole("heading", { name: "New reservation", exact: true }).waitFor();
+      await page.close();
+    }
+  });
+
   await test("staff creation page preserves calendar state, reloads and handles failed saves", async (t) => {
     const page = await preview(
       t,
