@@ -580,6 +580,9 @@ await suite("Reservations browser", async () => {
     const table = page.getByRole("table", { name: "Year", exact: true });
     await table.waitFor();
     assert.equal(await table.getByRole("row").count(), 12);
+    const monthLabels = await table.getByRole("rowheader").allTextContents();
+    assert.ok(monthLabels.some((label) => /^Oct\. \d{4}$/.test(label)));
+    assert.ok(monthLabels.some((label) => /^Nov\. \d{4}$/.test(label)));
     assert.equal(
       await table.locator("button[data-date]").first().getAttribute("data-date"),
       date.slice(0, 7) + "-01",
@@ -638,6 +641,12 @@ await suite("Reservations browser", async () => {
     const table = page.getByRole("table", { name: "Année", exact: true });
     await table.waitFor();
     assert.equal(await table.getByRole("row").count(), 12);
+    assert.ok(
+      (await table.getByRole("rowheader").allTextContents()).some((label) =>
+        /^oct\. \d{4}$/.test(label),
+      ),
+    );
+    assert.ok((await table.getByRole("rowheader").first().boundingBox()).width <= 112);
     for (const theme of ["Dark", "Light"]) {
       const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
