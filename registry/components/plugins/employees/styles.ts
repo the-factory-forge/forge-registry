@@ -11,4 +11,4 @@ export const iconButtonClass = cn(
   "size-10 min-h-10 shrink-0 border border-border bg-background p-0 hover:bg-accent hover:text-accent-foreground disabled:pointer-events-auto md:size-8 md:min-h-8",
 );
 export const dialogClass =
-  "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border border-border bg-background p-6 text-foreground shadow-lg";
+  "fixed max-h-[calc(100dvh-2rem)] scroll-pt-56 scroll-pb-32 overflow-y-auto top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border border-border bg-background px-6 text-foreground shadow-lg";

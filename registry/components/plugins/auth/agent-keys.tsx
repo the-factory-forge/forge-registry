@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { CopyIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
+import { XIcon, CopyIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import { useId, useRef, useState, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
@@ -52,22 +52,45 @@ function KeyDialog({
   title,
   description,
   children,
+  closeLabel,
+  busy = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description: ReactNode;
   children: ReactNode;
+  closeLabel: string;
+  busy?: boolean;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-dark/50" />
         <Dialog.Popup className={accountDialogClass}>
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="text-sm text-muted-foreground">
-            {description}
-          </Dialog.Description>
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 space-y-2 bg-popover px-6 pt-5 pb-0"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                {title}
+              </Dialog.Title>
+              <IconTooltip label={closeLabel}>
+                <Dialog.Close
+                  type="button"
+                  aria-label={closeLabel}
+                  disabled={busy}
+                  className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8"
+                >
+                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                </Dialog.Close>
+              </IconTooltip>
+            </div>
+            <Dialog.Description className="text-sm text-muted-foreground">
+              {description}
+            </Dialog.Description>
+          </div>
           {children}
         </Dialog.Popup>
       </Dialog.Portal>
@@ -281,6 +304,8 @@ function AgentKeysContent({
         )}
       </div>
       <KeyDialog
+        closeLabel={labels.close ?? labels.cancel}
+        busy={pending}
         open={creating}
         onOpenChange={(open) => {
           if (!lock.current) setCreating(open);
@@ -289,7 +314,7 @@ function AgentKeysContent({
         description={labels.createDescription}
       >
         <form
-          className="grid gap-4"
+          className="contents"
           aria-busy={pending}
           onSubmit={async (event) => {
             event.preventDefault();
@@ -350,7 +375,10 @@ function AgentKeysContent({
           <div className="min-h-5 text-sm text-destructive">
             {failure && <p role="alert">{failure}</p>}
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             <button
               type="button"
               className={accountButtonClass}
@@ -370,6 +398,7 @@ function AgentKeysContent({
         </form>
       </KeyDialog>
       <KeyDialog
+        closeLabel={labels.close ?? labels.cancel}
         open={Boolean(secret)}
         onOpenChange={(open) => {
           if (!open) closeSecret();
@@ -387,7 +416,10 @@ function AgentKeysContent({
         <div className="min-h-5 text-sm text-destructive">
           {failure && <p role="alert">{failure}</p>}
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div
+          data-dialog-footer
+          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+        >
           <button type="button" className={accountButtonClass} onClick={closeSecret}>
             {labels.done}
           </button>
@@ -409,6 +441,8 @@ function AgentKeysContent({
         </div>
       </KeyDialog>
       <KeyDialog
+        closeLabel={labels.close ?? labels.cancel}
+        busy={pending}
         open={deleting.length > 0}
         onOpenChange={(open) => {
           if (!open) deletion.close();
@@ -428,7 +462,10 @@ function AgentKeysContent({
             </p>
           )}
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div
+          data-dialog-footer
+          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+        >
           <button
             type="button"
             className={accountButtonClass}

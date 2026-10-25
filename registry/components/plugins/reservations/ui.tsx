@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
+import { XIcon, ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Temporal } from "temporal-polyfill";
 
@@ -119,12 +119,14 @@ export function Modal({
   children,
   onClose,
   busy = false,
+  closeLabel = "Close",
 }: {
   title: string;
   description: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  closeLabel?: string;
 }) {
   return (
     <Dialog.Root
@@ -137,9 +139,26 @@ export function Modal({
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
           onKeyDownCapture={submitDialogOnShortcut}
-          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl"
         >
-          <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-xl font-semibold break-words">
+              {title}
+            </Dialog.Title>
+            <IconTooltip label={closeLabel}>
+              <Dialog.Close
+                type="button"
+                aria-label={closeLabel}
+                disabled={busy}
+                className={iconButtonClass}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
           <Dialog.Description className="text-sm text-muted-foreground">
             {description}
           </Dialog.Description>

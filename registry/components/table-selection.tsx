@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Trash2Icon } from "lucide-react";
+import { XIcon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { useActionToast } from "@/components/action-toast";
@@ -281,11 +281,30 @@ export function TableBulkDelete<T extends { id: string }>({
       >
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
-            <Dialog.Title className="text-lg font-semibold">{labels.bulkDeleteTitle}</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {description ?? labels.bulkDeleteDescription}
-            </Dialog.Description>
+          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 scroll-py-32 gap-4 overflow-y-auto rounded-xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
+            <div
+              data-dialog-header
+              className="sticky top-0 z-20 -mx-6 space-y-2 bg-popover px-6 pt-5 pb-0"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                  {labels.bulkDeleteTitle}
+                </Dialog.Title>
+                <IconTooltip label={labels.bulkClose ?? labels.bulkCancel}>
+                  <Dialog.Close
+                    type="button"
+                    aria-label={labels.bulkClose ?? labels.bulkCancel}
+                    disabled={selection.pending}
+                    className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+                  >
+                    <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </Dialog.Close>
+                </IconTooltip>
+              </div>
+              <Dialog.Description className="text-sm text-muted-foreground">
+                {description ?? labels.bulkDeleteDescription}
+              </Dialog.Description>
+            </div>
             <ul className="max-h-48 list-inside list-disc overflow-y-auto text-sm">
               {deletion.items.map((item) => (
                 <li key={item.id} className="break-words">
@@ -306,10 +325,13 @@ export function TableBulkDelete<T extends { id: string }>({
                   ))}
               </div>
             )}
-            <div className="h-12 overflow-y-auto text-sm text-destructive">
+            <div className="h-10 overflow-y-auto text-sm text-destructive">
               {failure && <p role="alert">{failure}</p>}
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            >
               <Dialog.Close className={buttonClass} disabled={selection.pending}>
                 {labels.bulkCancel}
               </Dialog.Close>

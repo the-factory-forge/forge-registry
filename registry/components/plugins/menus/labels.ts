@@ -50,6 +50,7 @@ export interface MenusLabels extends TableSelectionLabels {
   confirmDelete: string;
   deleteFilesFirst: string;
   cancel: string;
+  close?: string;
   save: string;
   saving: string;
   saved: string;
@@ -143,6 +144,7 @@ export const menusLabels = {
   confirmDelete: "Delete permanently",
   deleteFilesFirst: "Remove this item's Drive files before deleting it.",
   cancel: "Cancel",
+  close: "Close",
   save: "Save",
   saving: "Saving…",
   saved: "Saved.",

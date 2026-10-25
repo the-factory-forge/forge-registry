@@ -1,6 +1,6 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
-import { PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
+import { XIcon, PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
@@ -155,39 +155,56 @@ function EmployeeActionsContent({
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
             <Dialog.Popup
-              className={cn(dialogClass, "max-h-[90dvh] overflow-y-auto")}
+              className={cn(dialogClass, "max-h-[90dvh]")}
               onKeyDownCapture={submitDialogOnShortcut}
             >
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <Dialog.Title className="text-lg font-semibold">{labels.editTitle}</Dialog.Title>
-                  {employee.websitePublished !== undefined &&
-                    (onSetWebsitePublished ? (
-                      <button
-                        type="button"
-                        aria-label={labels.website}
-                        aria-pressed={employee.websitePublished}
-                        disabled={disabled || pending}
-                        className="ml-auto inline-flex min-h-10 cursor-pointer items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8"
-                        onClick={() =>
-                          void run("website", async () => {
-                            await onSetWebsitePublished(employee.id, !employee.websitePublished);
-                            notify(labels.websiteUpdated);
-                          })
-                        }
-                      >
+              <div
+                data-dialog-header
+                className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
+                    <Dialog.Title className="text-lg font-semibold">
+                      {labels.editTitle}
+                    </Dialog.Title>
+                    {employee.websitePublished !== undefined &&
+                      (onSetWebsitePublished ? (
+                        <button
+                          type="button"
+                          aria-label={labels.website}
+                          aria-pressed={employee.websitePublished}
+                          disabled={disabled || pending}
+                          className="ml-auto inline-flex min-h-10 cursor-pointer items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8"
+                          onClick={() =>
+                            void run("website", async () => {
+                              await onSetWebsitePublished(employee.id, !employee.websitePublished);
+                              notify(labels.websiteUpdated);
+                            })
+                          }
+                        >
+                          <EmployeeWebsiteStatus
+                            published={employee.websitePublished}
+                            labels={labels}
+                          />
+                        </button>
+                      ) : (
                         <EmployeeWebsiteStatus
                           published={employee.websitePublished}
                           labels={labels}
+                          className="ml-auto"
                         />
-                      </button>
-                    ) : (
-                      <EmployeeWebsiteStatus
-                        published={employee.websitePublished}
-                        labels={labels}
-                        className="ml-auto"
-                      />
-                    ))}
+                      ))}
+                  </div>
+                  <IconTooltip label={labels.close}>
+                    <Dialog.Close
+                      type="button"
+                      aria-label={labels.close}
+                      disabled={pending}
+                      className={iconButtonClass}
+                    >
+                      <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                    </Dialog.Close>
+                  </IconTooltip>
                 </div>
                 <Dialog.Description className="text-sm text-muted-foreground">
                   {labels.editDescription}
@@ -198,16 +215,8 @@ function EmployeeActionsContent({
                   </p>
                 )}
               </div>
-              {onUploadPhoto && (
-                <EmployeePhotoField
-                  {...photoOptions}
-                  src={employee.image}
-                  disabled={disabled || pending}
-                  onUpload={(file) => onUploadPhoto(employee.id, file)}
-                />
-              )}
               <form
-                className="space-y-4"
+                className="contents space-y-4"
                 onSubmit={(event) => {
                   event.preventDefault();
                   const data = new FormData(event.currentTarget);
@@ -224,6 +233,14 @@ function EmployeeActionsContent({
                   });
                 }}
               >
+                {onUploadPhoto && (
+                  <EmployeePhotoField
+                    {...photoOptions}
+                    src={employee.image}
+                    disabled={disabled || pending}
+                    onUpload={(file) => onUploadPhoto(employee.id, file)}
+                  />
+                )}
                 <div className="grid gap-2">
                   <label htmlFor={`${id}-name`}>
                     {labels.name} <span aria-hidden="true">*</span>
@@ -270,7 +287,10 @@ function EmployeeActionsContent({
                     {labels.editError}
                   </p>
                 )}
-                <div className="flex flex-wrap justify-end gap-3">
+                <div
+                  data-dialog-footer
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5"
+                >
                   <button
                     type="button"
                     className={outlineButtonClass}
@@ -323,10 +343,25 @@ function EmployeeActionsContent({
             <Dialog.Portal>
               <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
               <Dialog.Popup className={dialogClass}>
-                <div className="space-y-2">
-                  <Dialog.Title className="text-lg font-semibold">
-                    {labels.deleteTitle}
-                  </Dialog.Title>
+                <div
+                  data-dialog-header
+                  className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                      {labels.deleteTitle}
+                    </Dialog.Title>
+                    <IconTooltip label={labels.close}>
+                      <Dialog.Close
+                        type="button"
+                        aria-label={labels.close}
+                        disabled={pending}
+                        className={iconButtonClass}
+                      >
+                        <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                      </Dialog.Close>
+                    </IconTooltip>
+                  </div>
                   <Dialog.Description className="text-sm text-muted-foreground">
                     {labels.deleteDescription.replace("{name}", employee.name)}
                   </Dialog.Description>
@@ -336,7 +371,10 @@ function EmployeeActionsContent({
                     {labels.deleteError}
                   </p>
                 )}
-                <div className="flex flex-wrap justify-end gap-3">
+                <div
+                  data-dialog-footer
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5"
+                >
                   <button
                     type="button"
                     className={outlineButtonClass}

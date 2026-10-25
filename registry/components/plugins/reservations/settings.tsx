@@ -825,13 +825,17 @@ function ArchiveDialog({
 }) {
   return (
     <Modal
+      closeLabel={labels.close}
       title={labels.archive}
       description={labels.archiveConfirm}
       onClose={onClose}
       busy={action.busy}
     >
       <ErrorNotice error={action.error} labels={labels} />
-      <div className="flex gap-3">
+      <div
+        data-dialog-footer
+        className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
+      >
         <button
           type="button"
           className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}

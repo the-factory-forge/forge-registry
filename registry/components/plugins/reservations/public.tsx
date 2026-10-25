@@ -483,13 +483,17 @@ export function ReservationManagePage({
           )}
           {dialog === "cancel" && (
             <Modal
+              closeLabel={labels.close}
               title={labels.cancel}
               description={labels.cancelConfirm}
               onClose={() => setDialog(undefined)}
               busy={action.busy}
             >
               <ErrorNotice error={action.error} labels={labels} />
-              <div className="flex flex-wrap gap-3">
+              <div
+                data-dialog-footer
+                className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
+              >
                 <button
                   className={buttonClass}
                   disabled={action.busy}
@@ -598,6 +602,7 @@ export function RescheduleDialog({
   const action = useReservationAction();
   return (
     <Modal
+      closeLabel={labels.close}
       title={labels.reschedule}
       description={
         reservation.policy.approval === "manual" ? labels.moveWarning : labels.automaticApproval
@@ -606,7 +611,7 @@ export function RescheduleDialog({
       busy={action.busy}
     >
       <form
-        className="space-y-4"
+        className="contents space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
           void action.run(async () => {
@@ -700,7 +705,10 @@ export function RescheduleDialog({
             {labels.refresh}
           </button>
         )}
-        <div className="flex flex-wrap gap-3">
+        <div
+          data-dialog-footer
+          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
+        >
           <button type="button" className={buttonClass} disabled={action.busy} onClick={onClose}>
             {labels.close}
           </button>

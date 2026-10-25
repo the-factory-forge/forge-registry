@@ -9,7 +9,10 @@ export const tableSelectionLabels = {
   bulkDeleted: "Selected items deleted",
   bulkPending: "Please wait…",
   bulkCancel: "Cancel",
+  bulkClose: "Close",
   bulkConfirm: "Delete",
   bulkRetry: "Try again",
 };
-export type TableSelectionLabels = typeof tableSelectionLabels;
+export type TableSelectionLabels = Omit<typeof tableSelectionLabels, "bulkClose"> & {
+  bulkClose?: string;
+};

@@ -49,6 +49,7 @@ export const blogsLabels = {
   delete: "Delete post",
   deleteCategory: "Delete category",
   cancel: "Cancel",
+  close: "Close",
   deleteTitle: "Delete post",
   deleteDescription:
     "This removes every translation and publication. Its images and Markdown will be cleaned up. This cannot be undone.",
@@ -165,4 +166,4 @@ export const blogsLabels = {
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
-export type BlogsLabels = typeof blogsLabels;
+export type BlogsLabels = Omit<typeof blogsLabels, "close"> & { close?: string };

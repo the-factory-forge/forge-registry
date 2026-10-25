@@ -102,6 +102,7 @@ function DeleteControl({
   label,
   confirm,
   cancel,
+  closeLabel,
   errorMessage,
   onDelete,
   onDone,
@@ -110,6 +111,7 @@ function DeleteControl({
   label: string;
   confirm: string;
   cancel: string;
+  closeLabel?: string;
   errorMessage: string;
   onDelete: () => Promise<void>;
   onDone?: () => void;
@@ -135,13 +137,33 @@ function DeleteControl({
       </IconTooltip>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
-          <Dialog.Title className="text-lg font-semibold">{label}</Dialog.Title>
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {label}
+            </Dialog.Title>
+            <IconTooltip label={closeLabel ?? cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={closeLabel ?? cancel}
+                disabled={pending}
+                className={iconButton}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
           <Dialog.Description className="text-sm text-muted-foreground">
             {confirm}?
           </Dialog.Description>
           {error ? <ErrorMessage message={errorMessage} /> : null}
-          <div className="flex flex-wrap justify-end gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             <Dialog.Close className={outlineButton} disabled={pending}>
               {cancel}
             </Dialog.Close>
@@ -525,6 +547,7 @@ function MenuItemsPageContent({
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
                           confirm={labels.confirmDelete}
                           cancel={labels.cancel}
+                          closeLabel={labels.close}
                           errorMessage={labels.deleteFilesFirst}
                           onDelete={() => items.remove(item.id)}
                         />
@@ -1051,6 +1074,7 @@ function MenuItemEditorPageContent({
                 label={`${labels.removeSize}: ${size.translations[baseLocale] || index + 1}`}
                 confirm={labels.confirmDelete}
                 cancel={labels.cancel}
+                closeLabel={labels.close}
                 errorMessage={labels.error}
                 onDelete={async () => {}}
                 onDone={() =>
@@ -1289,11 +1313,28 @@ function TaxonomyDialog({
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
           onKeyDownCapture={submitDialogOnShortcut}
-          className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl"
         >
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {title}
+            </Dialog.Title>
+            <IconTooltip label={labels.close ?? labels.cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.close ?? labels.cancel}
+                disabled={pending}
+                className={iconButton}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
           <form
-            className="mt-5 space-y-4"
+            className="contents space-y-4 [&>:first-child]:mt-2"
             onSubmit={(event) => {
               event.preventDefault();
               if (pending || disabled) return;
@@ -1383,7 +1424,10 @@ function TaxonomyDialog({
               </>
             ) : null}
             {error ? <ErrorMessage message={labels.error} /> : null}
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            >
               <Dialog.Close className={outlineButton} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>
@@ -1489,6 +1533,7 @@ function MenuTaxonomyPageContent({
                       label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
+                      closeLabel={labels.close}
                       errorMessage={labels.error}
                       onDelete={() => taxonomy.removeCategory(category.id)}
                     />
@@ -1559,6 +1604,7 @@ function MenuTaxonomyPageContent({
                       label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
+                      closeLabel={labels.close}
                       errorMessage={labels.error}
                       onDelete={() => taxonomy.removeLabel(label.id)}
                     />

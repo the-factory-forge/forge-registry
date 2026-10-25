@@ -1787,8 +1787,8 @@
           "target": "@components/utils/crop-image.ts"
         }
       ],
-      "dependencies": ["@base-ui/react"],
-      "registryDependencies": ["@forge/cn", "@forge/dialog-submit"]
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/dialog-submit", "@forge/icon-tooltip"]
     },
     {
       "name": "database",

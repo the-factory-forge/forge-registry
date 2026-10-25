@@ -403,6 +403,7 @@ export function ReservationsCalendar({
       )}
       {selected && !dialog && (
         <Modal
+          closeLabel={labels.close}
           title={selected.customer.name}
           description={
             selected.customer.email +
@@ -419,7 +420,10 @@ export function ReservationsCalendar({
           {selected.emailFailed && (
             <output className="block text-sm text-destructive">{labels.emailFailed}</output>
           )}
-          <div className="flex flex-wrap gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             {canManage && (
               <>
                 {selected.status === "pending" && (
@@ -498,6 +502,7 @@ export function ReservationsCalendar({
       )}
       {selected && (dialog === "cancelled" || dialog === "rejected" || dialog === "link") && (
         <Modal
+          closeLabel={labels.close}
           title={
             dialog === "link"
               ? labels.revokeLink
@@ -516,7 +521,10 @@ export function ReservationsCalendar({
           busy={action.busy}
         >
           <ErrorNotice error={action.error} labels={labels} />
-          <div className="flex gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             <button
               className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
               disabled={action.busy || optimistic.pending}

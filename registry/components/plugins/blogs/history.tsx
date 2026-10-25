@@ -102,10 +102,27 @@ export function useHistoryPublication(
           <Dialog.Popup
             className={cn(
               cardClass,
-              "fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto shadow-xl",
+              "fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",
             )}
           >
-            <Dialog.Title className="text-lg font-semibold">{labels.publishReview}</Dialog.Title>
+            <div
+              data-dialog-header
+              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+            >
+              <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                {labels.publishReview}
+              </Dialog.Title>
+              <IconTooltip label={labels.close ?? labels.cancel}>
+                <Dialog.Close
+                  type="button"
+                  aria-label={labels.close ?? labels.cancel}
+                  disabled={action.pending}
+                  className={iconButtonClass}
+                >
+                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                </Dialog.Close>
+              </IconTooltip>
+            </div>
             <Dialog.Description className="text-sm text-muted-foreground">
               {labels.publishReviewDescription}
             </Dialog.Description>
@@ -145,7 +162,10 @@ export function useHistoryPublication(
                   <Feedback {...action.feedback} />
                   {refreshed && <Feedback message={labels.refreshedPlan} />}
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
+                <div
+                  data-dialog-footer
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+                >
                   <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
                     {labels.cancel}
                   </Dialog.Close>

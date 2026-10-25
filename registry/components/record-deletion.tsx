@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Trash2Icon } from "lucide-react";
+import { XIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEventHandler, type RefObject } from "react";
 
 import { useActionToast } from "@/components/action-toast";
@@ -17,6 +17,7 @@ const destructiveClass =
 export interface RecordDeletionLabels {
   deleteDescription: (name: string) => string;
   cancel: string;
+  close?: string;
   confirmDelete: string;
   pending: string;
   deleted: string;
@@ -52,6 +53,7 @@ export function useRecordDeletion<T extends { id: string }>({
   const optimistic = useOptimisticAction(items, scope);
   const notify = useActionToast();
   const lock = useRef(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const mounted = useRef(true);
   const trigger = useRef<{ element: HTMLElement; id: string; scope: string } | null>(null);
   const [session, setSession] = useState<{
@@ -119,8 +121,9 @@ export function useRecordDeletion<T extends { id: string }>({
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
           <Dialog.Popup
+            initialFocus={cancelRef}
             className={cn(
-              "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl",
+              "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-xl border border-border bg-card px-6 text-card-foreground shadow-xl",
               className,
             )}
             finalFocus={() => {
@@ -142,15 +145,36 @@ export function useRecordDeletion<T extends { id: string }>({
               return false;
             }}
           >
-            <Dialog.Title className="text-lg font-semibold">{label}</Dialog.Title>
-            <Dialog.Description className="text-sm break-words text-muted-foreground">
+            <div
+              data-dialog-header
+              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+            >
+              <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                {label}
+              </Dialog.Title>
+              <IconTooltip label={labels.close ?? labels.cancel}>
+                <Dialog.Close
+                  type="button"
+                  aria-label={labels.close ?? labels.cancel}
+                  disabled={optimistic.pending}
+                  className={cn(buttonClass, "size-10 p-0 md:size-8")}
+                >
+                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                </Dialog.Close>
+              </IconTooltip>
+            </div>
+            <Dialog.Description className="mb-0 text-sm break-words text-muted-foreground">
               {session && labels.deleteDescription(current ? getName(current) : session.name)}
             </Dialog.Description>
             <div className="min-h-5 text-sm text-destructive">
               {session?.error && <p role="alert">{session.error}</p>}
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+            >
               <Dialog.Close
+                ref={cancelRef}
                 className={cn(buttonClass, "border border-border")}
                 disabled={optimistic.pending}
               >

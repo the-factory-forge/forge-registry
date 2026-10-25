@@ -1,8 +1,10 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { XIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 import {
   exportImageCrop,
@@ -22,6 +24,7 @@ const defaultLabels = {
   horizontal: "Horizontal position",
   vertical: "Vertical position",
   cancel: "Cancel",
+  close: "Close",
   confirm: "Use image",
   loading: "Loading image…",
   pending: "Preparing image…",
@@ -30,7 +33,7 @@ const defaultLabels = {
   decodeError: "This image could not be opened or is too large. Choose another image.",
   saveError: "The image could not be prepared or uploaded. Try again, or choose another image.",
 };
-export type ImageCropLabels = typeof defaultLabels;
+export type ImageCropLabels = Omit<typeof defaultLabels, "close"> & { close?: string };
 
 export interface ImageCropDialogProps extends ImageCropSize {
   file: File | null;
@@ -199,13 +202,30 @@ function CropSession({
         <Dialog.Backdrop className="fixed inset-0 z-70 bg-foreground/30" />
         <Dialog.Popup
           className={cn(
-            "fixed top-1/2 left-1/2 z-70 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-card p-5 text-card-foreground shadow-xl sm:p-6",
+            "fixed top-1/2 left-1/2 z-70 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 scroll-py-32 overflow-y-auto rounded-xl bg-card px-5 text-card-foreground shadow-xl sm:px-6",
             className,
           )}
           onKeyDown={submitDialogOnShortcut}
         >
-          <Dialog.Title className="text-lg font-semibold">{labels.title}</Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-muted-foreground">
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-5 mb-0 flex items-start justify-between gap-3 bg-card px-5 pt-5 pb-2 sm:-mx-6 sm:px-6"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {labels.title}
+            </Dialog.Title>
+            <IconTooltip label={labels.close ?? labels.cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.close ?? labels.cancel}
+                disabled={pending}
+                className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8"
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
+          <Dialog.Description className="text-sm text-muted-foreground">
             {labels.description}
           </Dialog.Description>
           <form
@@ -214,7 +234,7 @@ function CropSession({
               event.stopPropagation();
               void confirm();
             }}
-            className="mt-5 space-y-4"
+            className="contents space-y-4 [&>:first-child]:mt-5"
           >
             <div className="flex h-64 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted sm:h-72">
               <canvas
@@ -333,7 +353,10 @@ function CropSession({
                 </output>
               )}
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-end gap-2 bg-card px-5 pt-0 pb-5 sm:-mx-6 sm:px-6"
+            >
               <Dialog.Close
                 type="button"
                 disabled={pending}
