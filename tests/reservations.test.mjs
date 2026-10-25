@@ -12,6 +12,7 @@ const {
   resourceSchema,
   bookingSchema,
   loadReservationCalendar,
+  reservationDayCounts,
   rangeSchema,
   serviceSchema,
   reservationPolicyDefaults,
@@ -611,4 +612,72 @@ void test("optimistic moves use the supplied slot and preserve authority and the
   assert.equal(movedStay.nights, 2);
   assert.equal(movedStay.resourceId, "room");
   assert.equal(movedStay.departureDate, "2026-10-26");
+});
+
+await test("month and year counts share local stay boundaries, leap days and midnight checkout", () => {
+  const stay = {
+    ...booking(),
+    mode: "stay",
+    startsAt: "2028-02-28T23:30:00Z",
+    endsAt: "2028-03-01T10:00:00Z",
+    occupiedEnd: "2028-03-02T10:00:00Z",
+  };
+  assert.deepEqual(
+    [...reservationDayCounts([stay], "Europe/Zurich")],
+    [
+      ["2028-02-29", 1],
+      ["2028-03-01", 1],
+    ],
+  );
+  assert.deepEqual(
+    [...reservationDayCounts([{ ...stay, endsAt: "2028-02-29T23:00:00Z" }], "Europe/Zurich")],
+    [["2028-02-29", 1]],
+  );
+  assert.deepEqual(
+    [...reservationDayCounts([{ ...stay, mode: "appointment" }], "Europe/Zurich")],
+    [["2028-02-29", 1]],
+  );
+  assert.deepEqual([...reservationDayCounts([], "Europe/Zurich")], []);
+});
+
+await test("all-date list pages validate input, retain all statuses and filter before paging", async () => {
+  const { createReservationsMock } = await import("../src/showroom/reservations-mock.ts");
+  const mock = createReservationsMock();
+  mock.populateList();
+  const first = await mock.adminClient.listPage({ page: 1 });
+  const second = await mock.adminClient.listPage({ page: 2 });
+  assert.equal(first.items.length, 20);
+  assert.equal(first.hasMore, true);
+  assert.equal(second.items.length, 5);
+  assert.equal(second.hasMore, false);
+  const all = [...first.items, ...second.items];
+  assert.equal(new Set(all.map((row) => row.id)).size, 25);
+  assert.equal(new Set(all.map((row) => row.status)).size, 4);
+  assert.ok(all[0].startsAt < new Date().toISOString());
+  assert.ok(all.at(-1).startsAt > new Date().toISOString());
+  assert.deepEqual(
+    all.map((row) => row.startsAt),
+    all.map((row) => row.startsAt).sort((a, b) => a.localeCompare(b)),
+  );
+  const filtered = await mock.adminClient.listPage({
+    page: 1,
+    status: "pending",
+    resourceId,
+    serviceId,
+  });
+  assert.equal(filtered.items.length, 6);
+  assert.ok(filtered.items.every((row) => row.status === "pending"));
+  assert.deepEqual(await mock.adminClient.listPage({ page: 3 }), { items: [], hasMore: false });
+  for (const query of [
+    {},
+    { page: 0 },
+    { page: -1 },
+    { page: 1.5 },
+    { page: 1_000_001 },
+    { page: "1" },
+    { page: 1, status: "invalid" },
+    { page: 1, resourceId: "invalid" },
+  ]) {
+    await assert.rejects(mock.adminClient.listPage(query), { code: "INVALID" });
+  }
 });

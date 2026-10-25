@@ -188,6 +188,14 @@ export const rangeSchema = z
       Date.parse(v.to) - Date.parse(v.from) <= 43 * 86400000,
   );
 
+export const reservationPageSize = 20;
+export const reservationListQuerySchema = z.object({
+  page: z.number().int().min(1).max(1_000_000),
+  resourceId: rangeSchema.shape.resourceId,
+  serviceId: rangeSchema.shape.serviceId,
+  status: rangeSchema.shape.status,
+});
+
 /** Keep the server's bounded list contract when displaying a whole year. */
 export async function loadReservationCalendar(
   client: Pick<ReservationsAdminClient, "list">,
@@ -573,4 +581,21 @@ export function previewReservationMove(
         }
       : {}),
   };
+}
+
+export function reservationDayCounts(reservations: Reservation[], timeZone: string) {
+  const days = new Map<string, number>();
+  for (const reservation of reservations) {
+    let date = Temporal.PlainDate.from(localDate(reservation.startsAt, timeZone));
+    const last =
+      reservation.mode === "stay"
+        ? localDate(new Date(Date.parse(reservation.endsAt) - 1).toISOString(), timeZone)
+        : date.toString();
+    while (date.toString() <= last) {
+      const key = date.toString();
+      days.set(key, (days.get(key) ?? 0) + 1);
+      date = date.add({ days: 1 });
+    }
+  }
+  return days;
 }

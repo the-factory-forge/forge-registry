@@ -27,6 +27,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  iconButtonClass,
   primaryClass,
   fieldClass,
   pageClass,
@@ -125,10 +126,16 @@ function ReservationSettingsPageContent({
       </h1>
       <ErrorNotice error={data.error} labels={labels} />
       {data.error ? (
-        <button className={buttonClass} onClick={data.reload}>
-          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.refresh}
-        </button>
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={data.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       ) : !config ? (
         <output className="block">{labels.loading}</output>
       ) : editor ? (

@@ -42,6 +42,104 @@ await suite("Reservations browser", async () => {
     await page.getByText("Your reservation has been saved.", { exact: false }).waitFor();
   }
 
+  await test("List is the default and explicit views survive URL navigation", async (t) => {
+    const page = await preview(t, "/en/admin/reservations");
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.reload();
+      const list = page.getByRole("tab", { name: "List", exact: true });
+      await page.getByRole("region", { name: "List", exact: true }).waitFor();
+      assert.equal(await list.getAttribute("aria-selected"), "true");
+      assert.equal(new URL(page.url()).searchParams.has("view"), false);
+      await page.getByRole("tab", { name: "Month", exact: true }).click();
+      await page.waitForURL((url) => url.searchParams.get("view") === "reservationsMonth");
+      await page.reload();
+      await page.locator("[data-reservation-month]").waitFor();
+      await list.click();
+      await page.waitForURL((url) => !url.searchParams.has("view"));
+      await page.goBack();
+      await page.locator("[data-reservation-month]").waitFor();
+      await page.goForward();
+      await page.getByRole("region", { name: "List", exact: true }).waitFor();
+      assert.equal(await list.getAttribute("aria-selected"), "true");
+    }
+  });
+
+  await test("all-date list pagination, filters, details and URL restoration", async (t) => {
+    const page = await preview(
+      t,
+      "/en/admin/reservations?view=listWeek&date=2020-01-01#reservations",
+    );
+    await page.getByRole("button", { name: "Many reservations", exact: true }).click();
+    const list = page.getByRole("region", { name: "List", exact: true });
+    const next = page.getByRole("button", { name: "Next page", exact: true });
+    const previous = page.getByRole("button", { name: "Previous page", exact: true });
+    await list.getByText(/Guest 20 ·/).waitFor();
+    assert.equal(await list.getByRole("listitem").count(), 20);
+    assert.equal(await previous.isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "Today", exact: true }).count(), 0);
+    assert.equal(await page.locator(".fc-toolbar-title").count(), 0);
+    await page.getByLabel("Slow responses").check();
+    await next.scrollIntoViewIfNeeded();
+    const position = await next.boundingBox();
+    await next.click();
+    await page.waitForURL(/reservationPage=2/);
+    assert.equal(await next.isDisabled(), true);
+    assert.deepEqual(await next.boundingBox(), position);
+    await list.getByText(/Guest 25 ·/).waitFor();
+    assert.equal(await list.getByRole("listitem").count(), 5);
+    assert.equal(await next.isDisabled(), true);
+    assert.equal(await previous.isEnabled(), true);
+    await list.getByRole("button", { name: /Guest 25 ·/ }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Close", exact: true }).last().click();
+    await page.goBack();
+    await list.getByText(/Guest 01 ·/).waitFor();
+    await page.goForward();
+    await list.getByText(/Guest 25 ·/).waitFor();
+    await page.getByRole("combobox", { name: "Status", exact: true }).selectOption("pending");
+    await page.waitForURL(
+      (url) =>
+        url.searchParams.get("status") === "pending" && !url.searchParams.has("reservationPage"),
+    );
+    await list.locator("li").first().waitFor();
+    await page.waitForFunction(
+      () =>
+        document.querySelector('section[aria-label="List"]')?.getAttribute("aria-busy") === "false",
+    );
+    assert.equal(await list.getByRole("listitem").count(), 6);
+    assert.equal(new URL(page.url()).hash, "#reservations");
+    await page.goBack();
+    await list.getByText(/Guest 25 ·/).waitFor();
+    await page.reload();
+    await openPreviewControls(page);
+    await page.getByRole("button", { name: "Many reservations", exact: true }).click();
+    await list.getByText(/Guest 25 ·/).waitFor();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((value) => {
+          document.documentElement.classList.remove("light", "dark");
+          document.documentElement.classList.add(value);
+        }, theme);
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+        await page.screenshot({
+          path: `/tmp/reservation-list-${width}-${theme}.png`,
+          fullPage: true,
+        });
+      }
+    }
+    await page.goto(baseURL + "/en/admin/reservations?view=listWeek&reservationPage=-3");
+    await page
+      .getByRole("navigation", { name: "Reservation pages" })
+      .getByText("1", { exact: true })
+      .waitFor();
+    await page.getByText(/Jamie Taylor ·/).waitFor();
+  });
+
   await test("booking calendar disables dates without available slots", async (t) => {
     const page = await preview(t);
     await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).waitFor();
@@ -157,7 +255,7 @@ await suite("Reservations browser", async () => {
       .getByText(/Robin Example ·/)
       .first()
       .waitFor();
-    for (const name of ["Month", "Day", "Agenda", "Week"]) {
+    for (const name of ["Month", "Day", "List", "Week"]) {
       await page.getByRole("tab", { name, exact: true }).click();
       await page
         .getByText(/Robin Example ·/)
@@ -269,6 +367,85 @@ await suite("Reservations browser", async () => {
     await page.waitForURL((url) => url.search === "?status=confirmed");
   });
 
+  await test("shared month grid restores view and date from URLs and history", async (t) => {
+    const page = await preview(
+      t,
+      "/en/admin/reservations?view=reservationsMonth&ref=shared#factory-preview",
+    );
+    const grid = page.locator("[data-reservation-month]");
+    await grid.waitFor();
+    assert.equal(
+      await page.getByRole("tab", { name: "Month", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    const original = await grid.locator('[aria-pressed="true"]').getAttribute("data-date");
+    const nextDay = new Date(`${original}T12:00:00Z`);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    const date = nextDay.toISOString().slice(0, 10);
+    await grid.locator(`[data-date="${date}"]`).focus();
+    await page.keyboard.press("Enter");
+    await page.waitForURL((url) => url.searchParams.get("date") === date);
+    assert.equal(await page.locator(":focus").getAttribute("data-date"), date);
+    await page.goBack();
+    await grid.locator(`[data-date="${original}"][aria-pressed="true"]`).waitFor();
+    await page.goForward();
+    await page.waitForURL((url) => url.searchParams.get("date") === date);
+    await page.reload();
+    await grid.locator(`[data-date="${date}"][aria-pressed="true"]`).waitFor();
+    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByLabel("Date", { exact: true }).waitFor();
+    assert.equal(await page.getByLabel("Date", { exact: true }).inputValue(), date);
+    await page.goBack();
+    await grid.locator(`[data-date="${date}"][aria-pressed="true"]`).waitFor();
+    await page.getByRole("tab", { name: "Week", exact: true }).click();
+    await page.waitForURL((url) => url.searchParams.get("view") === "timeGridWeek");
+    await page.goBack();
+    await grid.locator(`[data-date="${date}"][aria-pressed="true"]`).waitFor();
+    await page.goForward();
+    await page
+      .locator('[role="tab"][aria-selected="true"]')
+      .filter({ hasText: /^Week$/ })
+      .waitFor();
+    assert.equal(
+      await page.getByRole("tab", { name: "Week", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    await page.getByRole("tab", { name: "Month", exact: true }).click();
+    await grid.getByRole("button", { name: "Next", exact: true }).click();
+    const navigated = await grid.locator('[aria-pressed="true"]').getAttribute("data-date");
+    assert.notEqual(navigated.slice(0, 7), date.slice(0, 7));
+    await page.reload();
+    await grid.locator(`[data-date="${navigated}"][aria-pressed="true"]`).waitFor();
+    assert.equal(new URL(page.url()).searchParams.get("ref"), "shared");
+    assert.equal(new URL(page.url()).hash, "#factory-preview");
+    await page.goto(baseURL + "/en/admin/reservations?view=invalid&date=2028-02-30");
+    await page.getByRole("tab", { name: "List", exact: true }).waitFor();
+    assert.equal(
+      await page.getByRole("tab", { name: "List", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    await page.getByRole("tab", { name: "Month", exact: true }).click();
+    await grid.locator(`[data-date="${original}"][aria-pressed="true"]`).waitFor();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        if (theme === "dark")
+          await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.locator(".reservations-calendar").scrollIntoViewIfNeeded();
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+        await page.screenshot({
+          path: `/tmp/reservations-shared-month-${width}-${theme}.png`,
+          fullPage: true,
+          animations: "disabled",
+        });
+      }
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
+    }
+  });
+
   await test("manual approval, retained fields on failure, mobile and French", async (t) => {
     const page = await preview(t, "/en/reservations", {
       viewport: { width: 390, height: 844 },
@@ -359,8 +536,8 @@ await suite("Reservations browser", async () => {
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
     await page.getByRole("status").filter({ hasText: "Loading" }).waitFor();
     await page.getByRole("button", { name: "Empty calendar", exact: true }).click();
-    await page.getByRole("tab", { name: "Agenda", exact: true }).click();
-    await page.getByText("No reservations in this period.").waitFor();
+    await page.getByRole("tab", { name: "List", exact: true }).click();
+    await page.getByText("No reservations found.").waitFor();
     await page.screenshot({ path: "/tmp/reservations-calendar.png", fullPage: true });
     await page.getByRole("link", { name: "Public booking", exact: true }).click();
     const selected = page.locator('button[aria-pressed="true"]').first();
@@ -722,7 +899,7 @@ await suite("Reservations browser", async () => {
     await page.getByText("Your reservation has been saved.", { exact: false }).waitFor();
     await page.getByText(/Nights: 3/).waitFor();
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
-    for (const view of ["Month", "Week", "Day", "Agenda"]) {
+    for (const view of ["Month", "Week", "Day", "List"]) {
       await page.getByRole("tab", { name: view, exact: true }).click();
       await page
         .getByText(/Stay Guest ·/)

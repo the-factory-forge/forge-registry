@@ -282,12 +282,46 @@ and `newHref`; the calendar no longer opens a creation dialog. Guard the new rou
 with the same staff authorization as the calendar; the server still authorizes each
 request. Staff booking remains available when public booking is disabled.
 
-`ReservationsCalendar` opens in Agenda on desktop and mobile. Staff can switch to
-Year, Month, Week or Day using the calendar toolbar.
+`ReservationsCalendar` opens in List on desktop and mobile. Its Month view uses the
+same exported `DatePicker` used in public booking, staff creation and stay forms.
+Staff see filtered reservation counts and select a date to open its reservation
+list beside the grid (below it on mobile). Selecting a reservation opens the existing
+details and actions. Year, Month, Week, Day and List remain available in the toolbar.
 
-`DatePicker` accepts optional `monthAvailability(month)` for date booleans. The
-month callback takes precedence over daily availability when supplied. It retains
-the Monday-first 42-day grid and existing loading, retry and disabled-date behavior.
+Pass optional `calendarState={{ view, date }}` and `onCalendarStateChange` to bind
+navigation to host URLs. `ReservationCalendarState` uses an ISO local date and
+`reservationsMonth`, `reservationsYear`, `timeGridWeek`, `timeGridDay` or `listWeek`.
+The showroom validates `view` and `date`, defaults to List and the example date,
+removes default values, and restores navigation on reload and Back/Forward.
+Existing hosts may omit these props for local navigation. To use Month as a
+host default, supply `reservationsMonth`. No customer site is updated by this registry change.
+
+List replaces the date-limited Agenda. It shows all reservations across all dates
+and statuses, ordered by start time then ID, with the existing filters and detail
+actions. Date arrows, Today and the period heading are hidden in List; reservation
+rows still show their start/end dates. The footer uses shared pagination, with
+20 reservations per page and disabled controls at the first/last page.
+
+Hosts must expose the new authenticated `ReservationsAdminClient.listPage` method:
+`listPage({ page, resourceId?, serviceId?, status? })` returns `{ items, hasMore }`.
+Pages are positive integers up to 1,000,000. The service validates inputs and applies
+filters, ordering, limit and offset in PostgreSQL before returning rows. Calendar
+`list` reads keep their existing 43-day maximum. Update the UI, storage companion
+and host transport together; no database migration is required.
+
+Pass optional `page` and `onPageChange` props for controlled pagination. Hosts reset
+`page` to 1 when filters change. Uncontrolled usage resets locally. The showroom
+validates `reservationPage`, omits page 1, resets it when filters change, and restores
+it on reload and Back/Forward. `listWeek` and the `agenda` label key remain compatible;
+the English label now defaults to List. Translate `pagination`, `previousPage`,
+`nextPage` and `emptyList` through the existing label overrides.
+
+`DatePicker` accepts controlled `month` / `onMonthChange`, optional reservation
+`counts`, optional `monthAvailability(month)` for date booleans, and the existing
+date/range/availability props. The month callback takes precedence over daily
+availability when supplied. It owns the Monday-first
+42-day grid, translated navigation, range highlighting and disabled-date behavior.
+Stay endpoint rules and server availability checks remain unchanged.
 
 `ReservationsCalendar` accepts optional controlled `filters` and `onFiltersChange`
 props using the exported `ReservationFilters` type. It contains `resourceId`,
@@ -310,7 +344,7 @@ reservations that cross request boundaries. Hosts keep the existing `list` contr
 and 43-day maximum. A failed request reports an error instead of displaying partial
 counts. Dates and counts use the business time zone, including leap days.
 
-FullCalendar uses its free standard views and a custom React year table. There are no premium resource columns,
+FullCalendar uses its free standard views, the shared month picker and a custom React year table. There are no premium resource columns,
 dragging, recurring rules or calendar integrations. Resources are selected with filters.
 The calendar's stylesheet imports its required package CSS and maps colors to the
 host's semantic variables. Supply the shared `status-success`, `status-pending` and
@@ -342,7 +376,8 @@ diagnoses or patient records.
 
 Open `/en/reservations`, `/fr/reservations`, or `/en/admin/reservations`.
 The provider shares in-memory state across pages; reloading resets it. Choose
-Hairdresser, Clinic or Apartment, simulate failed mutations and slow responses, and inspect
+Hairdresser, Clinic or Apartment, use Many reservations to test pagination across past and future bookings,
+simulate failed mutations and slow responses, and inspect
 the latest booking through the demo inbox. The inbox uses mock IDs, sends no email,
 and must never be used as a production authorization adapter.
 

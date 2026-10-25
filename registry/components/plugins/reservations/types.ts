@@ -150,6 +150,15 @@ export interface ReservationRange {
 
 export type ReservationFilters = Pick<ReservationRange, "resourceId" | "serviceId" | "status">;
 
+export interface ReservationListQuery extends ReservationFilters {
+  page: number;
+}
+
+export interface ReservationListPage {
+  items: ReservationAdminRecord[];
+  hasMore: boolean;
+}
+
 export interface ReservationAdminRecord extends Reservation {
   outsideHours: boolean;
   emailFailed: boolean;
@@ -193,6 +202,7 @@ export interface ReservationManagementClient {
 export interface ReservationsAdminClient {
   configuration(): Promise<ReservationConfiguration>;
   list(range: ReservationRange): Promise<ReservationAdminRecord[]>;
+  listPage(query: ReservationListQuery): Promise<ReservationListPage>;
   availability(
     query: ReservationAvailabilityQuery & { reservationId?: string },
   ): Promise<ReservationSlot[]>;
@@ -226,4 +236,15 @@ export class ReservationError extends Error {
     this.name = "ReservationError";
     this.code = code;
   }
+}
+
+export type ReservationCalendarView =
+  | "reservationsMonth"
+  | "reservationsYear"
+  | "timeGridWeek"
+  | "timeGridDay"
+  | "listWeek";
+export interface ReservationCalendarState {
+  view: ReservationCalendarView;
+  date: string;
 }

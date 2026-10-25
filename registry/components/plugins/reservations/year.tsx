@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Temporal } from "temporal-polyfill";
 
 import type { ReservationLabels } from "@/components/plugins/reservations/labels";
-import { localDate } from "@/components/plugins/reservations/model";
+import { localDate, reservationDayCounts } from "@/components/plugins/reservations/model";
 import type { ReservationAdminRecord } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
 import { tableClass, tableHeaderClass } from "@/components/utils/table-styles";
@@ -33,20 +33,7 @@ export function ReservationYearView({
     today >= start && today < firstMonth.add({ years: 1 }).toString() ? today : start,
   );
   const counts = useMemo(() => {
-    const days = new Map<string, number>();
-    for (const reservation of reservations) {
-      let date = Temporal.PlainDate.from(localDate(reservation.startsAt, timeZone));
-      const last =
-        reservation.mode === "stay"
-          ? localDate(new Date(Date.parse(reservation.endsAt) - 1).toISOString(), timeZone)
-          : date.toString();
-      while (date.toString() <= last) {
-        const key = date.toString();
-        days.set(key, (days.get(key) ?? 0) + 1);
-        date = date.add({ days: 1 });
-      }
-    }
-    return days;
+    return reservationDayCounts(reservations, timeZone);
   }, [reservations, timeZone]);
   const monthFormat = new Intl.DateTimeFormat(locale, {
     month: "short",

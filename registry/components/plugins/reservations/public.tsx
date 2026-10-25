@@ -26,6 +26,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  iconButtonClass,
   primaryClass,
   fieldClass,
   pageClass,
@@ -70,10 +71,16 @@ export function ReservationBookingPage({
       <h1 className="font-serif text-3xl font-semibold">{labels.booking}</h1>
       <ErrorNotice error={data.error} labels={labels} />
       {data.error ? (
-        <button className={buttonClass} onClick={data.reload}>
-          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.refresh}
-        </button>
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={data.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       ) : !data.value ? (
         <output className="block">{labels.loading}</output>
       ) : receipt ? (
@@ -278,10 +285,16 @@ export function BookingForm({
             <div className={cn(panelClass, "space-y-4")}>
               <ErrorNotice error={slots.error} labels={labels} />
               {slots.error ? (
-                <button type="button" className={buttonClass} onClick={slots.reload}>
-                  <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                  {labels.refresh}
-                </button>
+                <IconTooltip label={labels.refresh}>
+                  <button
+                    aria-label={labels.refresh}
+                    type="button"
+                    className={iconButtonClass}
+                    onClick={slots.reload}
+                  >
+                    <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </button>
+                </IconTooltip>
               ) : !slots.value ? (
                 <output className="block">{labels.loading}</output>
               ) : (
@@ -445,10 +458,16 @@ export function ReservationManagePage({
       </div>
       <ErrorNotice error={data.error ?? action.error} labels={labels} />
       {data.error ? (
-        <button className={buttonClass} onClick={data.reload}>
-          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.refresh}
-        </button>
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={data.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       ) : !r ? (
         <output className="block">{labels.loading}</output>
       ) : (
@@ -695,10 +714,16 @@ export function RescheduleDialog({
           !slots.error && <output className="block">{labels.loading}</output>
         )}
         {!!slots.error && (
-          <button type="button" className={buttonClass} onClick={slots.reload}>
-            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.refresh}
-          </button>
+          <IconTooltip label={labels.refresh}>
+            <button
+              aria-label={labels.refresh}
+              type="button"
+              className={iconButtonClass}
+              onClick={slots.reload}
+            >
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          </IconTooltip>
         )}
         <div
           data-dialog-footer

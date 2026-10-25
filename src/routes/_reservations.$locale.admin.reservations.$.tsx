@@ -1,11 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
-import type { ReservationFilters } from "@/components/plugins/reservations";
-import { dateSchema, rangeSchema } from "@/components/plugins/reservations/model";
+import type {
+  ReservationFilters,
+  ReservationCalendarState,
+} from "@/components/plugins/reservations";
+import {
+  dateSchema,
+  rangeSchema,
+  reservationListQuerySchema,
+} from "@/components/plugins/reservations/model";
 import { ReservationAdminPreview } from "@/showroom/reservations-preview";
 import { showroomHead } from "@/showroom/seo";
 export const Route = createFileRoute("/_reservations/$locale/admin/reservations/$")({
-  validateSearch: (search): ReservationFilters & { date?: string } => ({
+  validateSearch: (
+    search,
+  ): ReservationFilters & Partial<ReservationCalendarState> & { reservationPage?: number } => ({
+    view: z
+      .enum(["reservationsMonth", "reservationsYear", "timeGridWeek", "timeGridDay", "listWeek"])
+      .optional()
+      .catch(undefined)
+      .parse(search.view),
+    reservationPage: z.coerce
+      .number()
+      .pipe(reservationListQuerySchema.shape.page)
+      .optional()
+      .catch(undefined)
+      .parse(search.reservationPage),
     date: dateSchema.optional().catch(undefined).parse(search.date),
     resourceId: rangeSchema.shape.resourceId.catch(undefined).parse(search.resourceId),
     serviceId: rangeSchema.shape.serviceId.catch(undefined).parse(search.serviceId),

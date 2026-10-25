@@ -144,7 +144,7 @@ Booking changes SHALL persist their notification job atomically. Mail failures S
 
 ### Requirement: Accessible discoverable calendars
 
-The plugin SHALL provide public booking, private guest management, staff year/month/week/day/agenda views and settings. The showroom SHALL link the working example from All and Plugin filters and demonstrate English/French, errors, empty/loading states, mobile layouts and both themes.
+The plugin SHALL provide public booking, private guest management, staff year/month/week/day views and an all-date list and settings. The showroom SHALL link the working example from All and Plugin filters and demonstrate English/French, errors, empty/loading states, mobile layouts and both themes.
 
 #### Scenario: Keyboard booking
 
@@ -162,13 +162,45 @@ The plugin SHALL provide public booking, private guest management, staff year/mo
 
 ### Requirement: Default staff calendar view
 
-The staff calendar SHALL open in Agenda on desktop and mobile unless the host supplies a selected view.
+The staff calendar SHALL open in List on desktop and mobile unless the host supplies a selected view.
 
 #### Scenario: Opening the staff calendar
 
 - **WHEN** staff open the reservation calendar without a host-selected view
-- **THEN** Agenda is selected on desktop and mobile
+- **THEN** List is selected on desktop and mobile
 - **AND** Year, Month, Week and Day remain available from the toolbar
+
+### Requirement: Paginated all-date staff list
+
+List SHALL replace Agenda and show all reservations regardless of calendar date,
+subject to the resource, service and status filters. It SHALL retain start/end
+information and existing detail actions, ordered by start time then ID. The List
+toolbar SHALL omit date navigation, Today and the period heading. Shared pagination
+SHALL replace date navigation with 20 records per page.
+
+#### Scenario: Browse all reservations
+
+- **WHEN** staff select List
+- **THEN** past and future reservations of all statuses are reachable through pagination
+- **AND** filters are applied before pagination on the server
+- **AND** Previous is disabled on page 1 and Next on the last page
+- **AND** loading retains existing rows with their actions and pagination disabled
+
+#### Scenario: Restore list state
+
+- **WHEN** staff reload or traverse Back/Forward
+- **THEN** the showroom restores the list view, filters and `reservationPage`
+- **AND** missing or malformed pages default to 1
+- **AND** changing filters resets to page 1 and removes its query parameter
+- **AND** other query parameters and the fragment remain intact
+
+#### Scenario: Authenticated bounded list reads
+
+- **WHEN** a host calls `listPage` with a page and optional filters
+- **THEN** the service validates the request, checks fresh read authorization and returns `{ items, hasMore }`
+- **AND** the database applies filters, stable ordering, offset and a bounded limit
+- **AND** invalid inputs fail with INVALID and unauthorized reads fail with FORBIDDEN
+- **AND** existing date-bounded `list` reads retain their 43-day limit
 
 ### Requirement: URL-synchronized staff filters
 
@@ -328,6 +360,29 @@ during loading and errors. Hosts SHALL retain routing and private-token ownershi
 
 - **WHEN** a host omits the destination
 - **THEN** the page shows no back link and its existing management actions remain available
+
+### Requirement: Shared reservation month calendar
+
+Public booking and staff Month view SHALL reuse the same month picker and navigation.
+Staff appointment and stay creation SHALL use the same date-selection controls as
+public booking. Existing stay endpoint and availability rules SHALL remain intact.
+
+#### Scenario: Inspect a date in staff Month view
+
+- **WHEN** staff open Month and select a date
+- **THEN** the shared Monday-first calendar shows filtered reservation counts
+- **AND** matching reservations appear beside the grid, or below it on small screens
+- **AND** selecting a reservation opens its existing details and authorized actions
+- **AND** stays count each intersecting local date, including checkout after midnight
+- **AND** failed loads do not display false zero counts or an empty result
+
+#### Scenario: Restore calendar navigation
+
+- **WHEN** a host supplies controlled calendar view and date state
+- **THEN** changes are reported without embedding routing in shared UI
+- **AND** the showroom restores its validated view/date query parameters on reload and Back/Forward
+- **AND** invalid values fall back to List and the example date, and defaults are omitted on navigation
+- **AND** filters, unrelated query parameters and the fragment are preserved
 
 ### Requirement: Dedicated staff reservation creation page
 

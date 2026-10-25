@@ -347,6 +347,70 @@ await test("PostgreSQL booking integrity, authorization, private links and durab
   assert.equal((await admin.list(range)).length, 4);
   assert.ok(!(await service.publicClient.catalog()).services.some((s) => s.id === automatic.id));
   await t.test(
+    "all-date pages filter in SQL, stay bounded and enforce fresh authority",
+    async () => {
+      const { reservations: table } =
+        await import("../../registry/components/plugins/reservations/server/schema.ts");
+      const inserted = Array.from({ length: 25 }, (_, index) => {
+        const startsAt = new Date(Date.UTC(2020 + index, 0, 1, 10)).toISOString();
+        const endsAt = new Date(Date.parse(startsAt) + 3600000).toISOString();
+        const id = crypto.randomUUID();
+        const document = {
+          ...first,
+          id,
+          startsAt,
+          endsAt,
+          occupiedStart: startsAt,
+          occupiedEnd: endsAt,
+          status: index % 2 ? "pending" : "rejected",
+        };
+        return {
+          id,
+          document,
+          requestId: crypto.randomUUID(),
+          requestHash: "list-fixture",
+          resourceId: first.resourceId,
+          serviceId: first.serviceId,
+          startsAt: new Date(startsAt),
+          occupiedEnd: new Date(endsAt),
+        };
+      });
+      await db.insert(table).values(inserted);
+      const a = await admin.listPage({ page: 1 });
+      const b = await admin.listPage({ page: 2 });
+      assert.equal(a.items.length, 20);
+      assert.equal(a.hasMore, true);
+      assert.equal(b.items.length, 9);
+      assert.equal(b.hasMore, false);
+      assert.equal(new Set([...a.items, ...b.items].map((r) => r.id)).size, 29);
+      assert.ok(a.items.some((r) => r.startsAt.startsWith("2020")));
+      assert.ok(b.items.some((r) => r.startsAt.startsWith("2044")));
+      const filtered = await admin.listPage({
+        page: 1,
+        status: "rejected",
+        resourceId: first.resourceId,
+        serviceId: first.serviceId,
+      });
+      assert.ok(filtered.items.length >= 13);
+      assert.ok(
+        filtered.items.every(
+          (r) =>
+            r.status === "rejected" &&
+            r.resourceId === first.resourceId &&
+            r.serviceId === first.serviceId,
+        ),
+      );
+      assert.deepEqual(await admin.listPage({ page: 1, resourceId: crypto.randomUUID() }), {
+        items: [],
+        hasMore: false,
+      });
+      await rejected(admin.listPage({ page: 0 }), "INVALID");
+      await rejected(admin.listPage({ page: 1, status: "invalid" }), "INVALID");
+      await rejected(service.adminClient("guest").listPage({ page: 1 }), "FORBIDDEN");
+      await rejected(staff.listPage({ page: 1 }), "FORBIDDEN");
+    },
+  );
+  await t.test(
     "stay transactions, policy snapshots, closures, private moves and delivery retries",
     async () => {
       await pool.unsafe(

@@ -24,3 +24,5 @@ export {
 } from "@/components/plugins/reservations/model";
 export { ReservationError } from "@/components/plugins/reservations/types";
 export type * from "@/components/plugins/reservations/types";
+
+export { DatePicker, type DatePickerProps } from "@/components/plugins/reservations/ui";

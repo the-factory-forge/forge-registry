@@ -52,6 +52,7 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
     load: () => Promise<T>;
     revision: number;
     value?: T;
+    previousValue?: T;
     error?: unknown;
   }>();
   useEffect(() => {
@@ -61,7 +62,13 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
         if (current) setResult({ load, revision, value });
       },
       (error: unknown) => {
-        if (current) setResult({ load, revision, error });
+        if (current)
+          setResult((previous) => ({
+            load,
+            revision,
+            error,
+            previousValue: previous?.value ?? previous?.previousValue,
+          }));
       },
     );
     return () => {
@@ -72,6 +79,8 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
   useLoadingActivity(!current);
   return {
     value: result?.load === load ? result.value : undefined,
+    previousValue: result?.value ?? result?.previousValue,
+    loading: !current,
     error: current?.error,
     reload: () => setRevision((v) => v + 1),
     setValue: (update: (value: T) => T) =>
@@ -248,6 +257,22 @@ export function ReservationSummary({
   );
 }
 
+export interface DatePickerProps {
+  date: string;
+  onChange: (date: string) => void;
+  locale: string;
+  labels: ReservationLabels;
+  minDate?: string;
+  range?: { from: string; to: string };
+  showInput?: boolean;
+  availability?: (date: string) => Promise<ReservationSlot[]>;
+  monthAvailability?: (month: string) => Promise<Record<string, boolean>>;
+  month?: string;
+  onMonthChange?: (month: string) => void;
+  counts?: ReadonlyMap<string, number>;
+  className?: string;
+}
+
 export function DatePicker({
   date,
   onChange,
@@ -258,19 +283,18 @@ export function DatePicker({
   showInput = true,
   availability,
   monthAvailability,
-}: {
-  date: string;
-  onChange: (date: string) => void;
-  locale: string;
-  labels: ReservationLabels;
-  minDate?: string;
-  range?: { from: string; to: string };
-  showInput?: boolean;
-  availability?: (date: string) => Promise<ReservationSlot[]>;
-  monthAvailability?: (month: string) => Promise<Record<string, boolean>>;
-}) {
+  month: controlledMonth,
+  onMonthChange,
+  counts,
+  className,
+}: DatePickerProps) {
   const selected = Temporal.PlainDate.from(date);
-  const [month, setMonth] = useState(() => selected.with({ day: 1 }).toString());
+  const [localMonth, setLocalMonth] = useState(() => selected.with({ day: 1 }).toString());
+  const month = controlledMonth ?? localMonth;
+  const setMonth = (value: string) => {
+    setLocalMonth(value);
+    onMonthChange?.(value);
+  };
   const start = Temporal.PlainDate.from(month);
   const gridStart = start.subtract({ days: start.dayOfWeek - 1 });
   const checksAvailability = !!(availability || monthAvailability);
@@ -295,7 +319,7 @@ export function DatePicker({
     timeZone: "UTC",
   }).format(new Date(`${month}T12:00:00Z`));
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", className)} data-reservation-month>
       <div className="flex items-center justify-between gap-2">
         <IconTooltip label={labels.previous}>
           <button
@@ -339,15 +363,21 @@ export function DatePicker({
             <button
               type="button"
               key={value}
+              data-date={value}
               disabled={
                 (!!minDate && value < minDate && (!range || value >= range.from)) ||
                 (checksAvailability && !dates.value?.[value])
               }
               aria-pressed={range ? value >= range.from && value <= range.to : date === value}
-              aria-label={new Intl.DateTimeFormat(locale, {
-                dateStyle: "full",
-                timeZone: "UTC",
-              }).format(new Date(`${value}T12:00:00Z`))}
+              aria-label={
+                new Intl.DateTimeFormat(locale, {
+                  dateStyle: "full",
+                  timeZone: "UTC",
+                }).format(new Date(`${value}T12:00:00Z`)) +
+                (counts
+                  ? ` · ${labels.calendar}: ${new Intl.NumberFormat(locale).format(counts.get(value) ?? 0)}`
+                  : "")
+              }
               className={cn(
                 "min-h-10 cursor-pointer rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-30 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                 day.month !== start.month && "text-muted-foreground",
@@ -360,6 +390,14 @@ export function DatePicker({
               onClick={() => onChange(value)}
             >
               {day.day}
+              {counts && (
+                <span
+                  aria-hidden="true"
+                  className="block min-h-4 text-xs font-semibold tabular-nums"
+                >
+                  {counts.get(value) || ""}
+                </span>
+              )}
             </button>
           );
         })}
@@ -384,10 +422,16 @@ export function DatePicker({
         <div className="flex min-h-10 flex-wrap items-center gap-2">
           <ErrorNotice error={dates.error} labels={labels} />
           {dates.error ? (
-            <button type="button" className={buttonClass} onClick={dates.reload}>
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.refresh}
-            </button>
+            <IconTooltip label={labels.refresh}>
+              <button
+                aria-label={labels.refresh}
+                type="button"
+                className={iconButtonClass}
+                onClick={dates.reload}
+              >
+                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+              </button>
+            </IconTooltip>
           ) : !dates.value ? (
             <output className="text-sm text-muted-foreground">{labels.loading}</output>
           ) : null}
@@ -424,28 +468,6 @@ export function StayDatePicker({
   };
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(["arrival", "departure"] as const).map((part) => (
-          <Field key={part} label={part === "arrival" ? labels.arrivalDate : labels.departureDate}>
-            <input
-              type="date"
-              required
-              className={fieldClass}
-              ref={part === "departure" ? departureInput : arrivalInput}
-              value={part === "arrival" ? arrival : departure}
-              min={
-                part === "departure"
-                  ? Temporal.PlainDate.from(arrival).add({ days: minNights }).toString()
-                  : undefined
-              }
-              onFocus={() => setEndpoint(part)}
-              onChange={(event) => {
-                if (event.target.value) choose(event.target.value, part);
-              }}
-            />
-          </Field>
-        ))}
-      </div>
       <DatePicker
         key={endpoint + (endpoint === "arrival" ? arrival.slice(0, 7) : departure.slice(0, 7))}
         date={endpoint === "arrival" ? arrival : departure}
@@ -469,6 +491,28 @@ export function StayDatePicker({
         range={{ from: arrival, to: departure }}
         showInput={false}
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(["arrival", "departure"] as const).map((part) => (
+          <Field key={part} label={part === "arrival" ? labels.arrivalDate : labels.departureDate}>
+            <input
+              type="date"
+              required
+              className={fieldClass}
+              ref={part === "departure" ? departureInput : arrivalInput}
+              value={part === "arrival" ? arrival : departure}
+              min={
+                part === "departure"
+                  ? Temporal.PlainDate.from(arrival).add({ days: minNights }).toString()
+                  : undefined
+              }
+              onFocus={() => setEndpoint(part)}
+              onChange={(event) => {
+                if (event.target.value) choose(event.target.value, part);
+              }}
+            />
+          </Field>
+        ))}
+      </div>
     </div>
   );
 }

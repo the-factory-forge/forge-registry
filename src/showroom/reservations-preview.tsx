@@ -66,6 +66,10 @@ const french: ReservationLabels = {
   week: "Semaine",
   day: "Jour",
   agenda: "Liste",
+  pagination: "Pages de réservations",
+  previousPage: "Page précédente",
+  nextPage: "Page suivante",
+  emptyList: "Aucune réservation trouvée.",
   name: "Nom",
   email: "E-mail",
   phone: "Téléphone (facultatif)",
@@ -228,6 +232,12 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
             </label>
             <div className="flex flex-wrap gap-2">
               <button
+                className="cursor-pointer rounded-md border border-border px-3 py-2"
+                onClick={() => mock.populateList()}
+              >
+                Many reservations
+              </button>
+              <button
                 className="rounded-md border border-border px-3 py-2"
                 onClick={() => mock.reset(mock.scenario, true)}
               >
@@ -291,7 +301,7 @@ export function ReservationAdminPreview() {
   const { locale, segments } = useShowroomParams();
   const navigate = adminRoute.useNavigate();
   const location = useLocation();
-  const { resourceId, serviceId, status, date } = adminRoute.useSearch();
+  const { resourceId, serviceId, status, view, date, reservationPage } = adminRoute.useSearch();
   const labels = locale === "fr" ? french : undefined;
   const base = `/${locale}/admin/reservations`;
   const calendarHref = `${base}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
@@ -345,10 +355,30 @@ export function ReservationAdminPreview() {
       initialDate={mock.initialDate}
       newHref={`${base}/new${location.searchStr}${location.hash ? `#${location.hash}` : ""}`}
       settingsHref={`${base}/settings`}
+      calendarState={{ view: view ?? "listWeek", date: date ?? mock.initialDate }}
+      onCalendarStateChange={(state) => {
+        void navigate({
+          search: (previous) => ({
+            ...previous,
+            view: state.view === "listWeek" ? undefined : state.view,
+            date: state.date === mock.initialDate ? undefined : state.date,
+          }),
+          hash: true,
+          resetScroll: false,
+        });
+      }}
+      page={reservationPage ?? 1}
+      onPageChange={(next) => {
+        void navigate({
+          search: (previous) => ({ ...previous, reservationPage: next === 1 ? undefined : next }),
+          hash: true,
+          resetScroll: false,
+        });
+      }}
       filters={{ resourceId, serviceId, status }}
       onFiltersChange={(filters) => {
         void navigate({
-          search: (previous) => ({ ...previous, ...filters }),
+          search: (previous) => ({ ...previous, ...filters, reservationPage: undefined }),
           hash: true,
           resetScroll: false,
         });

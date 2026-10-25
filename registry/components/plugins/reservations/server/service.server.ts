@@ -34,6 +34,8 @@ import {
   parseReservationInput,
   placeReservation,
   rangeSchema,
+  reservationListQuerySchema,
+  reservationPageSize,
   resourceSchema,
   serviceSchema,
   settingsSchema,
@@ -57,6 +59,8 @@ import {
   type ReservationManagementClient,
   type ReservationMode,
   type ReservationMonthAvailabilityQuery,
+  type ReservationRange,
+  type ReservationListQuery,
   type ReservationsAdminClient,
   type ReservationsPublicClient,
 } from "@/components/plugins/reservations/types";
@@ -388,61 +392,72 @@ export function createReservationsService<Context>(options: ReservationsServiceO
         await permit(context, action);
         return mutate(fn);
       });
+    async function readRows(range: ReservationRange | ReservationListQuery) {
+      const config = await configuration(db);
+      const query = db
+        .select({
+          document: bookings.document,
+          emailFailed: exists(
+            db
+              .select({ id: notifications.id })
+              .from(notifications)
+              .where(
+                and(
+                  eq(notifications.reservationId, bookings.id),
+                  isNull(notifications.sentAt),
+                  isNotNull(notifications.error),
+                ),
+              ),
+          ).mapWith(Boolean),
+        })
+        .from(bookings)
+        .where(
+          and(
+            "from" in range ? lt(bookings.startsAt, new Date(range.to)) : undefined,
+            "from" in range ? gt(bookings.occupiedEnd, new Date(range.from)) : undefined,
+            range.resourceId ? eq(bookings.resourceId, range.resourceId) : undefined,
+            range.serviceId ? eq(bookings.serviceId, range.serviceId) : undefined,
+            range.status ? eq(bookings.status, range.status) : undefined,
+          ),
+        )
+        .orderBy(bookings.startsAt, bookings.id);
+      const rows = await ("page" in range
+        ? query.limit(reservationPageSize + 1).offset((range.page - 1) * reservationPageSize)
+        : query);
+      return rows.map(({ document: r, emailFailed }) => {
+        const resource = config.resources.find((value) => value.id === r.resourceId);
+        return {
+          ...r,
+          mode: r.mode ?? "appointment",
+          emailFailed: emailFailed,
+          outsideHours:
+            activeReservation(r) &&
+            (!resource ||
+              !fitsResource(
+                resource,
+                r.occupiedStart,
+                r.occupiedEnd,
+                config.settings.timeZone,
+                r.mode,
+              )),
+        };
+      });
+    }
     return {
       configuration: () => read(() => configuration(db)),
       list: (input) =>
         read(async () => {
           const range = parseReservationInput(rangeSchema, input);
-          const config = await configuration(db);
-          const rows = await db
-            .select({
-              document: bookings.document,
-              emailFailed: exists(
-                db
-                  .select({ id: notifications.id })
-                  .from(notifications)
-                  .where(
-                    and(
-                      eq(notifications.reservationId, bookings.id),
-                      isNull(notifications.sentAt),
-                      isNotNull(notifications.error),
-                    ),
-                  ),
-              ).mapWith(Boolean),
-            })
-            .from(bookings)
-            .where(
-              and(
-                lt(bookings.startsAt, new Date(range.to)),
-                gt(bookings.occupiedEnd, new Date(range.from)),
-              ),
-            )
-            .orderBy(bookings.startsAt, bookings.id);
-          return rows
-            .filter(
-              ({ document: r }) =>
-                (!range.resourceId || r.resourceId === range.resourceId) &&
-                (!range.serviceId || r.serviceId === range.serviceId) &&
-                (!range.status || r.status === range.status),
-            )
-            .map(({ document: r, emailFailed }) => {
-              const resource = config.resources.find((value) => value.id === r.resourceId);
-              return {
-                ...r,
-                mode: r.mode ?? "appointment",
-                emailFailed: emailFailed,
-                outsideHours:
-                  activeReservation(r) &&
-                  (!resource ||
-                    !fitsResource(
-                      resource,
-                      r.occupiedStart,
-                      r.occupiedEnd,
-                      config.settings.timeZone,
-                      r.mode,
-                    )),
-              };
-            });
+          return readRows(range);
+        }),
+      listPage: (input) =>
+        read(async () => {
+          const query = parseReservationInput(reservationListQuerySchema, input);
+          const rows = await readRows(query);
+          return {
+            items: rows.slice(0, reservationPageSize),
+            hasMore: rows.length > reservationPageSize,
+          };
         }),
       availability: (input) =>
         read(async () => {
