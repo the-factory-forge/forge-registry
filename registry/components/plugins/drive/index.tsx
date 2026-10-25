@@ -13,7 +13,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -252,12 +252,11 @@ export function DrivePage({
 }
 
 export function DriveBrowser(props: DriveBrowserProps) {
+  const { type, id } = props.scope;
+  const scope = useMemo(() => ({ type, id }), [type, id]);
   return (
-    <ActionToastProvider
-      key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`}
-      closeLabel={props.labels?.close}
-    >
-      <Browser {...props} />
+    <ActionToastProvider key={scopeKey(scope)} closeLabel={props.labels?.close}>
+      <Browser {...props} scope={scope} />
     </ActionToastProvider>
   );
 }
@@ -292,7 +291,10 @@ function Browser({
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
   const load = useCallback(
-    (signal: AbortSignal) => client.listEntries({ scope, parentId, search, cursor, sort, signal }),
+    async (signal: AbortSignal) => ({
+      ...(await client.listEntries({ scope, parentId, search, cursor, sort, signal })),
+      parentId,
+    }),
     [client, scope, parentId, search, cursor, sort],
   );
   const listing = useDriveListing(load, revision);
@@ -301,35 +303,60 @@ function Browser({
     () => ({ client, scope, parentId, search, cursor, sort }),
     [client, scope, parentId, search, cursor, sort],
   );
-  const optimistic = useOptimisticAction(listing.data, mutationScope);
+  const folderData = useMemo(
+    () =>
+      listing.data && listing.data.parentId !== parentId
+        ? { ...listing.data, items: [], breadcrumbs: [] }
+        : listing.data,
+    [listing.data, parentId],
+  );
+  const optimistic = useOptimisticAction(folderData, mutationScope);
   const data = optimistic.value;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
   const notify = useActionToast();
   const undoToasts = useRef(new Set<string>());
+  const folderSession = useMemo(() => ({ parentId }), [parentId]);
+  const active = useRef<typeof folderSession | null>(null);
   const { close: closeToast } = toastManager;
-  useEffect(() => {
+  useLayoutEffect(() => {
+    active.current = folderSession;
     const ids = undoToasts.current;
     return () => {
+      active.current = null;
       for (const id of ids) closeToast(id);
     };
-  }, [closeToast]);
+  }, [folderSession, closeToast]);
   const currentClient = useRef(client);
-  useEffect(() => {
+  useLayoutEffect(() => {
     currentClient.current = client;
   }, [client]);
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const downloadController = useRef<AbortController | null>(null);
-  useEffect(() => () => downloadController.current?.abort(), []);
+  useEffect(() => () => downloadController.current?.abort(), [parentId]);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadDestination = useRef(parentId);
+  useLayoutEffect(() => {
+    uploadDestination.current = parentId;
+  }, [parentId]);
   const menuTrigger = useRef<HTMLElement | null>(null);
   const [folderAction, setFolderAction] = useState<{
     entry: DriveEntry | DriveSpace;
     action: "create" | "rename" | "duplicate" | "trash";
   }>();
   const [removedFolder, setRemovedFolder] = useState<DriveEntry>();
+  const [previousParentId, setPreviousParentId] = useState(parentId);
+  if (previousParentId !== parentId) {
+    setPreviousParentId(parentId);
+    setSearch("");
+    setCursors([]);
+    setSort({ field: "name", direction: "asc" });
+    setTrashView(false);
+    setFeedback(undefined);
+    setFolderAction(undefined);
+    setRemovedFolder(undefined);
+  }
   const refresh = () => {
     setRevision((value) => value + 1);
   };
@@ -429,6 +456,7 @@ function Browser({
         () => onRenameSpace(name),
       ));
   function deleted(entry: DriveEntry) {
+    if (active.current !== folderSession) return;
     if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
     refresh();
     setFeedback(undefined);
@@ -446,7 +474,7 @@ function Browser({
     });
     if (trashed && capabilities?.restore) undoToasts.current.add(id);
     async function undo() {
-      if (pending) return;
+      if (pending || active.current !== folderSession) return;
       pending = true;
       toastManager.update(id, {
         title: labels.restoring,
@@ -467,6 +495,7 @@ function Browser({
             },
           () => currentClient.current.restoreEntry!({ scope, entryId: entry.id }),
         );
+        if (active.current !== folderSession) return;
         setRemovedFolder(undefined);
         refresh();
         toastManager.update(id, {
@@ -477,6 +506,7 @@ function Browser({
           timeout: 5000,
         });
       } catch (reason) {
+        if (active.current !== folderSession) return;
         const conflict = errorCode(reason) === "RESTORE_CONFLICT";
         toastManager.update(id, {
           title: labels.trashed,
@@ -745,7 +775,7 @@ function Browser({
                           !event.altKey
                         ) {
                           setTrashView(false);
-                          refresh();
+                          if (parentId === null) refresh();
                           closeNavigation();
                         }
                       }}
@@ -939,6 +969,7 @@ function Browser({
                             {labels.actions}
                             {capabilities?.delete && (
                               <DriveBulkDelete
+                                key={parentId ?? "root"}
                                 client={client}
                                 scope={scope}
                                 selection={selection}
@@ -985,7 +1016,7 @@ function Browser({
                       {data &&
                         retainRemovedItems(
                           data.items,
-                          listing.data?.items ?? [],
+                          folderData?.items ?? [],
                           optimistic.pending,
                         ).map((entry) => (
                           <tr

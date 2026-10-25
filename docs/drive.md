@@ -27,7 +27,13 @@ at a time and loads children when expanded. While a listing loads, its parent
 folder icon becomes a spinner, with loading text available only to screen readers.
 The icon keeps its size and stops spinning for reduced-motion users. Listing
 errors keep their visible retry feedback.
-The root and folder links use `getFolderHref` and the host link adapter. Trash
+The root and folder links use `getFolderHref` and the host link adapter. Within a
+space, changing folders keeps the browser and sidebar mounted, preserving expanded
+branches and loaded tree pages. Only the destination listing loads; mutations and
+client replacement still refresh the tree. Supply a router link adapter for client-side
+navigation and keep the host browser instance mounted across folder URLs. Folder
+changes reset folder-specific controls, cancel pending uploads and close folder-bound
+Undo controls. Trash
 keeps the existing recovery flow and only appears with all required trash methods.
 
 Folder links show an open folder on hover or keyboard focus. Expanded and active

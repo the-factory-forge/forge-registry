@@ -39,7 +39,10 @@ await suite("Drive browser", async () => {
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
     await closeDriveNavigation(page);
-    await page.getByRole("link", { name, exact: true }).waitFor();
+    await page
+      .getByRole("link", { name, exact: true })
+      .and(page.locator('[aria-disabled="false"]'))
+      .waitFor();
   }
   async function driveNavigation(page, name) {
     const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
@@ -53,6 +56,44 @@ await suite("Drive browser", async () => {
     buffer: Buffer.from(text),
   });
   const row = (page, name) => page.getByRole("row").filter({ hasText: name });
+
+  await test("child folder navigation retains the page and expanded sidebar", async (t) => {
+    const page = await preview(t, "/en/drive/project/portal", {
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: "reduce",
+    });
+    await folder(page, "Sibling");
+    await folder(page, "Child");
+    const sidebar = page.getByRole("navigation", { name: "Drive navigation", exact: true });
+    await sidebar.getByRole("button", { name: "Expand folder: Sibling", exact: true }).click();
+    await sidebar.locator('[aria-busy="true"]').first().waitFor({ state: "hidden" });
+    const node = await sidebar.elementHandle();
+    await page.evaluate(() => {
+      window.driveNavigationDocument = true;
+    });
+    await row(page, "Child").getByRole("link", { name: "Child", exact: true }).click();
+    await page.getByText("This folder is empty.", { exact: true }).waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    assert.equal(await page.evaluate(() => window.driveNavigationDocument), true);
+    assert.equal(
+      await sidebar.getByRole("button", { name: "Collapse folder: Sibling", exact: true }).count(),
+      1,
+    );
+    await sidebar.getByRole("link", { name: "Customer portal", exact: true }).click();
+    await row(page, "Child").waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    assert.equal(
+      await sidebar.getByRole("button", { name: "Collapse folder: Sibling", exact: true }).count(),
+      1,
+    );
+    await page.goBack();
+    await page.getByText("This folder is empty.", { exact: true }).waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    await page.goForward();
+    await row(page, "Child").waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    await page.screenshot({ path: "/tmp/drive-stable-navigation.png" });
+  });
 
   await test("embedded Drive keeps folder navigation separate from its panel heading", async (t) => {
     for (const colorScheme of ["light", "dark"])
@@ -1387,7 +1428,10 @@ await suite("Drive browser", async () => {
         await driveNavigation(page, "Customer portal");
         await row(page, "Annual report.txt").waitFor();
         await page.getByRole("link", { name: "Destination", exact: true }).click();
-        await page.getByRole("link", { name: "Nested", exact: true }).click();
+        await page
+          .getByRole("link", { name: "Nested", exact: true })
+          .and(page.locator('[aria-disabled="false"]'))
+          .click();
         await row(page, "Recovered report.txt").waitFor();
         await page.close();
       }
@@ -1701,8 +1745,8 @@ await suite("Drive browser", async () => {
 
   async function folderMenu(page, name) {
     const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
-    if (!(await navigation.isVisible()))
-      await page.getByRole("button", { name: "Drive navigation", exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
+    if ((await toggle.isVisible()) && !(await navigation.isVisible())) await toggle.click();
     const trigger = navigation.getByRole("button", { name: `Actions: ${name}`, exact: true });
     await trigger.click();
     return trigger;
@@ -1722,7 +1766,10 @@ await suite("Drive browser", async () => {
     await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Nested");
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
-    await page.getByRole("link", { name: "Nested", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Nested", exact: true })
+      .and(page.locator('[aria-disabled="false"]'))
+      .click();
     await page.getByText("This folder is empty.", { exact: true }).waitFor();
     await folderMenu(page, "Customer portal");
     await page.getByRole("menuitem", { name: "Add", exact: true }).click();

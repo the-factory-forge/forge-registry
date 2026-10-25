@@ -825,6 +825,15 @@ the optimistic mutation isolation requirement.
 - **THEN** the host resolves that scope and checks access before listing or mutating files
 - **AND** capabilities shown by the browser do not grant server permission
 
+#### Scenario: Navigating within a Drive space
+
+- **WHEN** the host changes the selected folder within the same space
+- **THEN** the browser and sidebar SHALL remain mounted, retaining expanded branches and loaded tree pages
+- **AND** navigation SHALL load the destination listing without rereading unchanged tree branches
+- **AND** mutations and client replacement SHALL still refresh affected listings
+- **AND** folder-specific controls SHALL reset, pending uploads SHALL be cancelled, and folder-bound Undo callbacks SHALL remain silent after navigation
+- **AND** the host SHALL use its router link adapter and preserve the browser instance for client-side folder navigation
+
 #### Scenario: Embedded root without duplicate context
 
 - **WHEN** a host embeds Drive at its root without a directory return link or space rename callback
