@@ -241,6 +241,24 @@ and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
 
+## Item editor lifetime
+
+Keep the `MenusClient` reference stable while editing. `MenuItemEditorPage` starts
+a fresh editor when the client or item ID changes, including creation/edit
+transitions; hosts do not need to key the page themselves. Earlier saves may
+finish on the server, but cannot update the replacement editor, show feedback or
+call `onSaved` after replacement or unmount.
+
+Refreshing the same item or navigating its photo folders preserves the local
+draft and version. Only a successful save advances that version; concurrent
+server changes still produce the existing conflict error. Fields remain editable
+during save, while duplicate submissions wait. Saving submits a snapshot and
+retains later typing on both success and failure. Hosts still navigate from
+creation to the saved item's edit route in `onSaved`.
+
+Terminal60 is the recorded Menus consumer and needs a separate reviewed adoption.
+Its installed editor was not changed or verified for these lifetime rules.
+
 ## Item list lifecycle
 
 The private `use-menu-items.ts` module owns item and category reads, saved order

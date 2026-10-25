@@ -469,7 +469,6 @@ export function MenuAdminPreview() {
   if (id === "new" || item)
     return (
       <MenuItemEditorPage
-        key={id}
         onNavigationStateChange={onNavigationStateChange}
         blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
         client={mock.client}

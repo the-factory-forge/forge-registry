@@ -16,6 +16,7 @@ import {
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentType,
@@ -619,6 +620,7 @@ function MenuItemsPageContent({
 }
 
 export interface MenuItemEditorPageProps {
+  /** Keep stable while editing; changing the client or item ID starts a fresh editor. */
   client: MenusClient;
   item?: MenuItem;
   categories: readonly MenuCategory[];
@@ -704,6 +706,13 @@ function MenuItemEditorPageContent({
   const [photoName, setPhotoName] = useState("");
   const [savedVersion, setSavedVersion] = useState(item?.version);
   const lock = useRef(false);
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const formatter = new Intl.NumberFormat(baseLocale, { style: "currency", currency });
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
   const [price, setPrice] = useState((draft.priceMinor / 10 ** digits).toFixed(digits));
@@ -816,6 +825,7 @@ function MenuItemEditorPageContent({
       const saved = item
         ? await client.save(item.id, savedVersion ?? item.version, input)
         : await client.create(input);
+      if (!active.current) return;
       const href = continueNavigation ? navigation.current : null;
       const proceed =
         continueNavigation && navigationActive.current ? blockedNavigation?.proceed : undefined;
@@ -831,10 +841,10 @@ function MenuItemEditorPageContent({
       if (proceed) proceed();
       else if (href) window.location.assign(href);
     } catch {
-      setFeedback({ error: true, text: labels.error });
+      if (active.current) setFeedback({ error: true, text: labels.error });
     } finally {
       lock.current = false;
-      setPending(false);
+      if (active.current) setPending(false);
     }
   }
   return (
@@ -1218,7 +1228,7 @@ function MenuLeaveDialog({
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 flex items-start justify-between gap-3 bg-popover px-6 py-5"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {labels.unsavedTitle}
@@ -1240,7 +1250,7 @@ function MenuLeaveDialog({
           <ErrorMessage message={error} />
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 py-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
           >
             <Dialog.Close className={outlineButton} disabled={pending}>
               {labels.cancel}
@@ -1746,8 +1756,11 @@ export function MenuItemsPage(props: MenuItemsPageProps) {
 }
 
 export function MenuItemEditorPage(props: MenuItemEditorPageProps) {
+  const [session, setSession] = useState({ client: props.client, id: props.item?.id, key: 0 });
+  if (session.client !== props.client || session.id !== props.item?.id)
+    setSession({ client: props.client, id: props.item?.id, key: session.key + 1 });
   return (
-    <ActionToastProvider>
+    <ActionToastProvider key={session.key}>
       <MenuItemEditorPageContent {...props} />
     </ActionToastProvider>
   );
