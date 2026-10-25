@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { useHistoryPublication } from "@/components/plugins/blogs/history";
@@ -27,6 +27,8 @@ export function useBlogDraft({
   navigationRef,
   onSaved,
   onDirtyChange,
+  blockedNavigation,
+  onNavigationStateChange,
 }: {
   client: BlogsClient;
   article: BlogArticle;
@@ -35,6 +37,8 @@ export function useBlogDraft({
   navigationRef: RefObject<(next: () => void) => void>;
   onSaved?: (article: BlogArticle) => void;
   onDirtyChange?: (dirty: boolean) => void;
+  blockedNavigation?: { proceed: () => void; reset: () => void };
+  onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
 }) {
   const action = useBlogAction(labels);
   const [base, setBase] = useState(article);
@@ -70,6 +74,8 @@ export function useBlogDraft({
   const [historyMode, setHistoryMode] = useState<"read" | "compare">("read");
   const publication = useHistoryPublication(client, labels, accept);
   const pending = action.pending || publication.pending;
+  const active = useRef(false);
+  const navigationState = useRef({ dirty: false, pending: false });
   const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
     !base.translations[locale]?.published
       ? "draft"
@@ -85,23 +91,43 @@ export function useBlogDraft({
   }, [dirty, onDirtyChange]);
 
   useEffect(() => {
+    navigationState.current = { dirty, pending };
+    onNavigationStateChange?.(navigationState.current);
+    return () => onNavigationStateChange?.({ dirty: false, pending: false });
+  }, [dirty, pending, onNavigationStateChange]);
+
+  useEffect(() => {
     navigationRef.current = (next) => {
       if (pending) return;
       if (dirty) setLeave(() => next);
       else next();
     };
+    return () => {
+      navigationRef.current = (next) => next();
+    };
+  }, [dirty, navigationRef, pending]);
+
+  useEffect(() => {
+    active.current = true;
     const unload = (event: BeforeUnloadEvent) => {
-      if (dirty) {
+      if (navigationState.current.dirty || navigationState.current.pending) {
         event.preventDefault();
         event.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", unload);
     return () => {
-      navigationRef.current = (next) => next();
+      active.current = false;
       window.removeEventListener("beforeunload", unload);
     };
-  }, [dirty, navigationRef, pending]);
+  }, []);
+
+  function resumeNavigation(next: () => void) {
+    // Confirmed departures must not trigger a second native leave-page warning.
+    navigationState.current = { dirty: false, pending: false };
+    onNavigationStateChange?.(navigationState.current);
+    next();
+  }
 
   const historyLoading =
     !!client.history &&
@@ -196,7 +222,7 @@ export function useBlogDraft({
   }
   async function save(continueNavigation = false) {
     if (pending) return false;
-    const next = continueNavigation ? leave : null;
+    const next = continueNavigation ? (blockedNavigation?.proceed ?? leave) : null;
     const result = await action.run(
       JSON.stringify(["save", base.version, locale, content, shared, origin]),
       (requestId) =>
@@ -215,11 +241,11 @@ export function useBlogDraft({
         ),
       labels.saved,
     );
-    if (!result) return false;
+    if (!result || !active.current) return false;
     accept(result);
     if (continueNavigation) {
       setLeave(null);
-      next?.();
+      if (next) resumeNavigation(next);
     }
     return true;
   }
@@ -290,16 +316,18 @@ export function useBlogDraft({
       );
     },
     leave: {
-      requested: !!leave,
+      requested: !!leave || !!blockedNavigation,
       cancel: () => {
-        if (!pending) setLeave(null);
+        if (pending) return;
+        setLeave(null);
+        blockedNavigation?.reset();
       },
       discard: () => {
         if (pending) return;
-        const next = leave;
+        const next = blockedNavigation?.proceed ?? leave;
         accept(base);
         setLeave(null);
-        next?.();
+        if (next) resumeNavigation(next);
       },
     },
     history: {

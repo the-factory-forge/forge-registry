@@ -578,6 +578,10 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   onSaved?: (article: BlogArticle) => void;
   /** Let the host guard navigation outside this portable editor. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Host router reports a blocked transition for the existing leave dialog to resolve. */
+  blockedNavigation?: { proceed: () => void; reset: () => void };
+  /** Host routers use this state to guard history and other route changes. */
+  onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
   onDeleted: () => void;
 }
 function BlogEditPageContent(props: BlogEditPageProps) {
@@ -655,6 +659,8 @@ function EditorForm({
   capabilities,
   onSaved,
   onDirtyChange,
+  blockedNavigation,
+  onNavigationStateChange,
   onDeleted,
   navigationRef,
   formatDate = (iso: string) => new Date(iso).toLocaleString(),
@@ -685,6 +691,8 @@ function EditorForm({
     navigationRef,
     onSaved,
     onDirtyChange,
+    blockedNavigation,
+    onNavigationStateChange,
   });
   const { base, content, shared, dirty, origin, pending, status, publication, history } = draft;
   const {
@@ -753,7 +761,11 @@ function EditorForm({
   }
   async function save(event?: FormEvent, continueNavigation = false) {
     event?.preventDefault();
-    if (pending || !validate()) return false;
+    if (pending) return false;
+    if (!validate()) {
+      draft.leave.cancel();
+      return false;
+    }
     return draft.save(continueNavigation);
   }
   async function publish(remove = false) {

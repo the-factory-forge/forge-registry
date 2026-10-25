@@ -203,3 +203,25 @@ void test("category navigation protects drafts and preserves keyboard access", a
     "Keep this category draft",
   );
 });
+
+void test("replacing an editor during save cannot resume its previous navigation", async (t) => {
+  const page = await fixture(t, true);
+  await page.evaluate(() => window.draftTest.hold("save", true));
+  await title(page).fill("Old session");
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await leave(page).getByRole("button", { name: "Save draft", exact: true }).click();
+  await calls(page, "save", 1);
+  await page.evaluate(() => window.draftTest.switchArticle());
+  await title(page).waitFor();
+  const replacement = await title(page).inputValue();
+  await resolve(page, "save", 0);
+  await page.waitForFunction(
+    () => window.draftTest.current().translations.en.draft.title === "Old session",
+  );
+  assert.equal(await title(page).inputValue(), replacement);
+  assert.equal(
+    await page.getByRole("tab", { name: "English", exact: true }).getAttribute("aria-selected"),
+    "true",
+  );
+  assert.equal(await leave(page).count(), 0);
+});

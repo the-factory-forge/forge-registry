@@ -276,7 +276,8 @@ await suite("Blogs browser", async () => {
     const page = await preview(t, `/en/admin/blogs/${existing}`, {
       viewport: { width: 1440, height: 1000 },
     });
-    const group = page.getByRole("group", { name: "Categories", exact: true });
+    const group = page.getByRole("group", { name: /^Categories(?: Manage categories)?$/ });
+    await group.waitFor();
     const parent = group.getByRole("checkbox", { name: "Ideas & practice", exact: true });
     const child = group.getByRole("checkbox", { name: "Design", exact: true });
     const parentItem = group.locator(":scope > ul > li").filter({
@@ -742,6 +743,8 @@ await suite("Blogs browser", async () => {
         await saved(page);
       } else if (label === "Draft") {
         await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+        // The badge changes optimistically; navigation waits for persistence.
+        await actionToast(page, "This language is no longer public");
         await page
           .getByRole("button", { name: "Publication status", exact: true })
           .filter({ hasText: label })

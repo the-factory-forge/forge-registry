@@ -103,8 +103,8 @@ Publishing one language leaves the other drafts and live translations unchanged.
 Creation and editing use language tabs, matching the back-office menu editor.
 Save drafts explicitly before switching language or publishing. Failed saves and
 ordinary prop rerenders preserve local values. Switching articles resets the
-form. The host owns navigation; add its router's unsaved-change guard if protection
-against leaving the editor entirely is required.
+form. Connect the host router to the editor’s navigation guard as described below
+for browser Back/Forward and other route changes.
 
 Editor IDs/names come from authenticated server context and dates from the server.
 Saving and publishing record the acting editor separately from `shared.author`.
@@ -563,9 +563,23 @@ inside the panel. On mobile, the controls and expanded history stay in page flow
 The right-hand panel reads headers and loads only the selected body. Selection
 is read-only; Save, Discard and Cancel protect dirty work before inspection,
 resumption, language changes and the editor's Back link. Reloading or leaving the
-page also uses the browser's unsaved-change guard. Host navigation outside this
-component must use its router's equivalent dirty-navigation protection, wired
-through the optional `onDirtyChange` callback.
+page also uses the browser's native warning while a draft is dirty or an operation
+is pending. Confirmed Save or Discard departures clear that warning synchronously.
+
+For browser Back/Forward and other SPA navigation, pass a stable
+`onNavigationStateChange` callback receiving `{ dirty, pending }` to the host router.
+Reject route changes while pending; for dirty drafts, block before unmounting and
+pass `blockedNavigation: { proceed, reset }` to the editor. Its existing dialog
+resumes the original transition after successful Save or Discard, and resets it
+on Cancel or validation failure. Storage errors keep the draft and dialog for retry.
+The optional `onDirtyChange` callback remains supported for existing integrations.
+
+`src/showroom/blogs-preview.tsx` demonstrates TanStack Router's `useBlocker` adapter,
+matching the menu editor. It guards pathname changes without adding history entries.
+The editor owns native unload protection, so the adapter disables the router's
+additional `beforeunload` handler. A successful, explicitly confirmed deletion
+bypasses blocking when returning to the list. Other hosts must wire their router;
+installing the component alone cannot intercept SPA history transitions.
 
 Every saved reprise has its own lane, including independent starts from the
 same live publication. Continued drafts retain their lane. Unsaved input has a

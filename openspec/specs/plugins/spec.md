@@ -1167,6 +1167,16 @@ editing/preview, categories and public list/article components.
 - **AND** obsolete history responses cannot replace the current client's headers or selected version
 - **AND** clients without history retain direct publication through the existing client interface
 
+#### Scenario: Browser history leaves an unsaved blog draft
+
+- **WHEN** a host router blocks Back or Forward away from a dirty blog editor
+- **THEN** the existing save, discard and cancel dialog resolves the original transition
+- **AND** cancel preserves the current language, URL and draft; discard leaves without saving
+- **AND** save persists the current language and shared settings before leaving; invalid fields cancel navigation and failures retain the draft for retry
+- **AND** pending operations reject new route changes, and replaced editors cannot resume an earlier save's navigation
+- **AND** clean navigation and confirmed deletion return normally, without synthetic history entries
+- **AND** document exits use the native browser warning while dirty or pending, without repeating it after confirmed Save or Discard
+
 ### Requirement: Blog content and image persistence
 
 `@forge/blogs-storage` SHALL store complete draft and published Markdown with

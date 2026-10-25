@@ -1,8 +1,10 @@
 "use client";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
+  useCallback,
+  useRef,
   useContext,
   useEffect,
   useMemo,
@@ -229,6 +231,22 @@ export function BlogsAdminPreview() {
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
     navigate = useNavigate();
+  const editorState = useRef({ dirty: false, pending: false });
+  const onNavigationStateChange = useCallback((value: { dirty: boolean; pending: boolean }) => {
+    editorState.current = value;
+  }, []);
+  // Reject navigation during saves before offering the dirty-draft dialog.
+  useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      current.pathname !== next.pathname && editorState.current.pending,
+    enableBeforeUnload: false,
+  });
+  const blocker = useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      current.pathname !== next.pathname && editorState.current.dirty,
+    enableBeforeUnload: false,
+    withResolver: true,
+  });
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
@@ -307,6 +325,8 @@ export function BlogsAdminPreview() {
     return (
       <BlogEditPage
         key={`${article.id}:${state.exampleRevision}`}
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
         {...common}
         authors={[
           { id: "jordan", name: "Jordan Lee" },
@@ -325,7 +345,7 @@ export function BlogsAdminPreview() {
         defaultLocale={locale}
         backHref={root}
         categoriesHref={`${root}/categories`}
-        onDeleted={() => navigate({ href: root })}
+        onDeleted={() => navigate({ href: root, ignoreBlocker: true })}
       />
     );
   }
