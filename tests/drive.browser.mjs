@@ -383,7 +383,10 @@ await suite("Drive browser", async () => {
     await page
       .getByRole("link", { name: "Open linked record: Studio website", exact: true })
       .click();
-    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Project sections", exact: true })
+      .getByRole("link", { name: "Drive", exact: true })
+      .click();
     await page.getByRole("link", { name: "Assets", exact: true }).click();
     await page.getByRole("link", { name: "Nested", exact: true }).waitFor();
     await page.getByLabel("Directory state").selectOption("error");
@@ -617,6 +620,7 @@ await suite("Drive browser", async () => {
     const page = await preview(t, "/en/drive/project/website");
     await folder(page, "Documents");
     await page.getByRole("link", { name: "Documents", exact: true }).click();
+    await page.locator('input[type="file"]:enabled').waitFor({ state: "attached" });
     await page.locator('input[type="file"]').setInputFiles(file("nested.txt"));
     await row(page, "nested.txt").waitFor();
     await page
@@ -632,6 +636,11 @@ await suite("Drive browser", async () => {
       exact: true,
     });
     await dialog.getByText(/including 1 file\(s\) and 1 folder\(s\)/).waitFor();
+    const closeTooltip = page.getByRole("tooltip", { name: "Close", exact: true });
+    await closeTooltip.waitFor();
+    await page.keyboard.press("Escape");
+    await closeTooltip.waitFor({ state: "hidden" });
+    assert.equal(await dialog.isVisible(), true, "Escape dismisses the Close tooltip first");
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
     assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
@@ -1331,7 +1340,10 @@ await suite("Drive browser", async () => {
     await page
       .getByRole("link", { name: "Open linked record: Customer portal", exact: true })
       .click();
-    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Project sections", exact: true })
+      .getByRole("link", { name: "Drive", exact: true })
+      .click();
     await row(page, "Annual report.txt").waitFor();
     assert.equal(
       await row(page, "Annual report.txt").getByRole("cell").nth(4).innerText(),
@@ -1364,6 +1376,7 @@ await suite("Drive browser", async () => {
           .getByRole("link")
           .nth(1)
           .click();
+        await row(page, "Design brief.txt").waitFor();
         await page
           .locator('input[type="file"]')
           .setInputFiles(file("Annual report.txt", "new bytes"));
@@ -1711,6 +1724,7 @@ await suite("Drive browser", async () => {
     await panel.dispatchEvent("dragenter", { dataTransfer: text });
     await panel.dispatchEvent("dragover", { dataTransfer: text });
     assert.equal(await overlay.count(), 0);
+    await page.locator("#factory-showroom-preview").focus();
     for (const event of ["escape", "dragend", "blur", "drop"]) {
       await panel.dispatchEvent("dragenter", { dataTransfer: files });
       await overlay.waitFor();

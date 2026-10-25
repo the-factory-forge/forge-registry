@@ -20,7 +20,12 @@ const plugins = [
   },
   { route: "/en/customers", control: "Directory state", search: "Search customers" },
   { route: "/en/projects", control: "Directory state", search: "Search projects" },
-  { route: "/en/admin/menus", control: "Directory state", search: "Search menu items" },
+  {
+    route: "/en/admin/menus",
+    control: "Directory state",
+    search: "Search menu items",
+    replacesClient: true,
+  },
 ];
 
 void test("plugin tables retain headers, loaded rows and paging through loading, empty and error states", async (t) => {
@@ -52,7 +57,13 @@ void test("plugin tables retain headers, loaded rows and paging through loading,
         const headerY = (await table.locator("thead").boundingBox()).y;
         await state.selectOption("loading");
         await page.locator('main table[aria-busy="true"]').waitFor();
-        assert.deepEqual(await table.locator("tbody tr").allTextContents(), rows, plugin.route);
+        if (plugin.replacesClient) {
+          // A new client is a new data scope; its predecessor's rows must not leak.
+          assert.equal(await table.locator("tbody td[colspan]").count(), 1);
+          assert.match(await table.locator("tbody").innerText(), /Loading/);
+        } else {
+          assert.deepEqual(await table.locator("tbody tr").allTextContents(), rows, plugin.route);
+        }
         assert.equal((await table.locator("thead").boundingBox()).y, headerY);
         const mutations = table.getByRole("button", {
           name: /Delete|Remove|Send verification|Reorder/,

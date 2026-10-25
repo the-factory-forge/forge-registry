@@ -1,11 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 import { chromium } from "playwright";
-
-const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+import { createServer } from "vite";
 
 await test("single-input dialogs focus the name on every opening and restore trigger focus", async (t) => {
+  const server = await createServer({
+    configFile: false,
+    plugins: [react(), tailwindcss()],
+    resolve: { tsconfigPaths: true },
+    server: { host: "127.0.0.1", port: 0 },
+  });
+  t.after(() => server.close());
+  await server.listen();
+  const baseURL = server.resolvedUrls.local[0];
   const browser = await chromium.launch();
   t.after(() => browser.close());
   for (const touch of [false, true]) {
@@ -19,7 +29,7 @@ await test("single-input dialogs focus the name on every opening and restore tri
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${baseURL}/tests/fixtures/dialog-focus.html`);
+    await page.goto(`${baseURL}tests/fixtures/dialog-focus.html`);
     for (const mode of ["create", "rename", "duplicate", "delete"]) {
       const trigger = page.locator("button").filter({ hasText: new RegExp(`^${mode}$`) });
       for (let opening = 0; opening < 2; opening++) {

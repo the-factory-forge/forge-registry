@@ -65,7 +65,13 @@ for (const width of [1440, 390]) {
         assert.ok(metrics.bottom <= 884);
         assert.ok(metrics.scrollHeight > metrics.height);
         await panel.getByRole("checkbox").last().focus();
-        const last = await panel.getByRole("checkbox").last().boundingBox();
+        const last = await panel
+          .getByRole("checkbox")
+          .last()
+          .evaluate((element) => {
+            const { y, height } = element.getBoundingClientRect();
+            return { y, height };
+          });
         assert.ok(last.y >= metrics.top && last.y + last.height <= metrics.bottom);
         assert.equal((await trigger.boundingBox()).y, 72);
       } else {
@@ -105,7 +111,9 @@ void test("layout can stick without the host header offset", async (t) => {
   });
   await scroll(page, 700);
   assert.equal(
-    (await page.getByRole("button", { name: "Details", exact: true }).boundingBox()).y,
+    await page
+      .getByRole("button", { name: "Details", exact: true })
+      .evaluate((element) => element.getBoundingClientRect().top),
     16,
   );
 });

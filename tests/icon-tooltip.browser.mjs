@@ -9,7 +9,7 @@ async function hint(page, control, label) {
   await control.hover();
   const tooltip = page.getByRole("tooltip", { name: label, exact: true });
   await tooltip.waitFor();
-  await page.keyboard.press("Escape");
+  await control.press("Escape");
   await tooltip.waitFor({ state: "hidden" });
   await page.mouse.move(0, 0);
   await control.focus();
@@ -17,7 +17,7 @@ async function hint(page, control, label) {
   await page.keyboard.press("Shift+Tab");
   await tooltip.waitFor();
   assert.equal(await control.evaluate((el) => el === document.activeElement), true);
-  await page.keyboard.press("Escape");
+  await control.press("Escape");
   await tooltip.waitFor({ state: "hidden" });
 }
 
@@ -67,7 +67,8 @@ void test("icon tooltips preserve actions, links, disabled states, dialog focus 
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
       );
-      await page.keyboard.press("Escape");
+      await edit.press("Escape");
+      await page.mouse.move(0, 0);
     }
   }
   await link.click();
@@ -99,9 +100,9 @@ void test("plugin icon tooltips use translated names and calendar navigation sti
     const label = await control.getAttribute("aria-label");
     await control.hover();
     await page.getByRole("tooltip", { name: label, exact: true }).waitFor();
-    await page.keyboard.press("Escape");
+    await control.press("Escape");
   }
-  await page.goto(`${baseURL}/en/admin/reservations`);
+  await page.goto(`${baseURL}/en/admin/reservations?view=reservationsMonth`);
   const next = page
     .locator(".reservations-calendar")
     .getByRole("button", { name: "Next", exact: true });

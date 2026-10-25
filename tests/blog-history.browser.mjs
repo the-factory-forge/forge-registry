@@ -38,7 +38,7 @@ async function actions(page, number, locale = "EN") {
   await panel(page, locale)
     .getByRole("button", { name: `Actions: v${number}`, exact: true })
     .click();
-  return page.getByRole("menu");
+  return page.getByRole("menu", { name: `Actions: v${number}`, exact: true });
 }
 async function select(page, number, locale = "EN") {
   if (!(await panel(page, locale).isVisible()))
@@ -167,8 +167,10 @@ for (const width of [1440, 390]) {
       await page.reload();
       await page.locator('[data-preview-ready="true"]').waitFor();
       await loadExample(page);
-      await actions(page, 18);
-      await page.keyboard.press("Escape");
+      const initialMenu = await actions(page, 18);
+      await initialMenu.getByRole("menuitem", { name: "Compare", exact: true }).press("Escape");
+      await initialMenu.waitFor({ state: "hidden" });
+      await page.mouse.move(0, 0);
       const trigger = panel(page).getByRole("button", { name: "Actions: v18", exact: true });
       await trigger.focus();
       await page.keyboard.press("Shift+Tab");
@@ -176,7 +178,7 @@ for (const width of [1440, 390]) {
       await page.getByRole("tooltip", { name: "Actions: v18", exact: true }).waitFor();
       await page.keyboard.press("ArrowDown");
       const compare = page.getByRole("menuitem", { name: "Compare", exact: true });
-      await compare.waitFor();
+      await compare.and(page.locator(":focus")).waitFor();
       assert.equal(await compare.evaluate((node) => node === document.activeElement), true);
       const bounds = await page.getByRole("menu").boundingBox();
       assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
@@ -212,6 +214,7 @@ for (const width of [1440, 390]) {
       const dialog = page.getByRole("dialog", { name: "Delete version v18", exact: true });
       await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
+      await trigger.and(page.locator(":focus")).waitFor();
       assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
       await counts(page, 5, 4);
       await page.getByRole("button", { name: "Return to working draft", exact: true }).click();

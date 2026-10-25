@@ -48,8 +48,9 @@ export const projectLabels = {
   deleteProject: "Delete project",
   deleteDescription: (name: string) => `Delete ${name}? This action cannot be undone.`,
   cancel: "Cancel",
+  close: "Close",
   confirmDelete: "Delete",
   deleted: "Project deleted.",
 };
 
-export type ProjectsLabels = typeof projectLabels;
+export type ProjectsLabels = Omit<typeof projectLabels, "close"> & { close?: string };

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
@@ -39,7 +40,8 @@ void test("select arrows keep their inset across previews, themes and narrow scr
       ]) {
         await page.goto(`${baseURL}${path}`);
         await page.locator('[data-preview-ready="true"]').waitFor();
-        await page.locator("select").first().waitFor();
+        await openPreviewControls(page);
+        await page.locator("select:visible").first().waitFor();
         const selects = await page.locator("select:visible").evaluateAll((controls) =>
           controls.map((select) => {
             const icon = select.nextElementSibling;

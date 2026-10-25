@@ -105,7 +105,9 @@ void test("the loader grows from a fixed left edge and fills before hiding", asy
     assert.ok(motion.middle.width > motion.start.width);
     assert.ok(motion.end.width < width);
     await page.screenshot({ path: `/tmp/forge-loading-fill-${width}.png` });
-    await page.clock.install();
+    const time = new Date();
+    await page.clock.install({ time });
+    await page.clock.pauseAt(time);
     await page.getByRole("button", { name: "Toggle loading", exact: true }).click();
     assert.equal(await bar.locator("..").getAttribute("data-state"), "complete");
     const completion = await bar.evaluate((el) => {

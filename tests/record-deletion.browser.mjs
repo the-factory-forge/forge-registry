@@ -82,6 +82,10 @@ for (const kind of ["customers", "projects"]) {
       await dialog(page).getByRole("button", { name: "Cancel", exact: true }).isDisabled(),
       true,
     );
+    assert.equal(
+      await dialog(page).getByRole("button", { name: "Close", exact: true }).isDisabled(),
+      true,
+    );
     await page.keyboard.press("Escape");
     assert.equal(await dialog(page).isVisible(), true);
     await page.evaluate(() => window.deletionTest.resolve());

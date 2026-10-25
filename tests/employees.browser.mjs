@@ -167,7 +167,11 @@ await test("a delivery failure keeps the account available for resend without re
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.getByRole("alert").filter({ hasText: "The account was created" }).waitFor();
   assert.equal(await dialog.locator("form").count(), 0);
-  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await dialog
+    .locator("[data-dialog-footer]")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
   const rows = page.getByRole("row").filter({ hasText: "pending@example.test" });
   assert.equal(await rows.count(), 1);
   await rows
@@ -236,7 +240,7 @@ await test("employee row actions stay aligned when verification or self-deletion
       await self.getByRole("button", { name: "Edit Alex Morgan", exact: true }).hover();
       const tooltip = page.getByRole("tooltip", { name: "Edit Alex Morgan", exact: true });
       await tooltip.waitFor();
-      await page.keyboard.press("Escape");
+      await self.getByRole("button", { name: "Edit Alex Morgan", exact: true }).press("Escape");
       await tooltip.waitFor({ state: "hidden" });
       await self.locator("td:last-child").scrollIntoViewIfNeeded();
       if (process.env.TEST_CAPTURE_DIR) {

@@ -42,6 +42,7 @@ void test("browser Back cancel retains the route and draft; discard and Forward 
   await dialog(page).waitFor();
   await cancel(page).click();
   await dialog(page).waitFor({ state: "hidden" });
+  await page.waitForURL(base + editPath);
   assert.equal(await name(page).inputValue(), "Unsaved history draft");
   assert.equal(new URL(page.url()).pathname, editPath);
   await page.shell.evaluate(() => history.back());
@@ -74,11 +75,16 @@ void test("browser Back saves existing and new items before resuming the origina
 
 void test("browser Back validation and server errors keep the draft available", async (t) => {
   const page = await editor(t);
-  const price = page.getByRole("textbox", { name: "Price (CHF)", exact: true });
+  const price = page.getByRole("textbox", {
+    name: "Price (CHF)",
+    exact: true,
+    includeHidden: true,
+  });
   await price.fill("invalid");
   await page.shell.evaluate(() => history.back());
   await dialog(page).getByRole("button", { name: "Save", exact: true }).click();
   await dialog(page).waitFor({ state: "hidden" });
+  await page.waitForURL(base + editPath);
   assert.equal(await price.getAttribute("aria-invalid"), "true");
   assert.equal(new URL(page.url()).pathname, editPath);
   await price.fill("19.50");
@@ -86,9 +92,10 @@ void test("browser Back validation and server errors keep the draft available", 
   await page.shell.evaluate(() => history.back());
   await dialog(page).getByRole("button", { name: "Save", exact: true }).click();
   await dialog(page).getByRole("alert").waitFor();
-  assert.equal(new URL(page.url()).pathname, editPath);
+  assert.equal(await price.inputValue(), "19.50");
   await cancel(page).click();
   await dialog(page).waitFor({ state: "hidden" });
+  await page.waitForURL(base + editPath);
   assert.equal(await price.inputValue(), "19.50");
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await page.shell.evaluate(() => history.back());
