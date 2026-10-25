@@ -215,7 +215,7 @@ export function DrivePage({
                           <FolderOpenIcon className="size-4 shrink-0" aria-hidden="true" />
                         </HostLink>
                       </IconTooltip>
-                      {space.href && (
+                      {space.href ? (
                         <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
                           <HostLink
                             href={space.href}
@@ -224,6 +224,17 @@ export function DrivePage({
                           >
                             <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
                           </HostLink>
+                        </IconTooltip>
+                      ) : (
+                        <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
+                          <button
+                            type="button"
+                            disabled
+                            className={iconButtonClass}
+                            aria-label={`${labels.openRecord}: ${space.name}`}
+                          >
+                            <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
+                          </button>
                         </IconTooltip>
                       )}
                     </div>
@@ -288,6 +299,8 @@ function Browser({
   };
   const [revision, setRevision] = useState(0);
   const [trashView, setTrashView] = useState(false);
+  const [visitedTrash, setVisitedTrash] = useState(false);
+  if (trashView && !visitedTrash) setVisitedTrash(true);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
   const load = useCallback(
@@ -353,6 +366,7 @@ function Browser({
     setCursors([]);
     setSort({ field: "name", direction: "asc" });
     setTrashView(false);
+    setVisitedTrash(false);
     setFeedback(undefined);
     setFolderAction(undefined);
     setRemovedFolder(undefined);
@@ -830,7 +844,7 @@ function Browser({
           ]}
         />
         <div className="min-w-0 flex-1 space-y-5">
-          {trashView && trashEnabled ? (
+          {visitedTrash && trashEnabled && (
             <TrashBrowser
               client={client}
               scope={scope}
@@ -838,8 +852,10 @@ function Browser({
               locale={locale}
               refreshKey={revision}
               onChanged={refresh}
+              visible={trashView}
             />
-          ) : removedFolder ? (
+          )}
+          {trashView && trashEnabled ? null : removedFolder ? (
             <div className={tablePanelClass}>
               <p className="mb-3 text-sm">{labels.trashed}</p>
               <HostLink href={getFolderHref(removedFolder.parentId)} className={buttonClass}>

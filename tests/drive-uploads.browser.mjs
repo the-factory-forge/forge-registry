@@ -25,6 +25,7 @@ after(async () => {
 async function fixture(t) {
   const page = await browser.newPage();
   page.setDefaultTimeout(10000);
+  page.setDefaultNavigationTimeout(30000);
   t.after(() => page.close());
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

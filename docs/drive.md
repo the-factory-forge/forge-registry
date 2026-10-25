@@ -226,6 +226,22 @@ also close when their browser unmounts; ordinary confirmations can remain in the
 host queue across navigation.
 Form loading, validation and listing errors remain inline with the affected controls.
 
+Recovery belongs to the current folder browser. Once visited, Trash keeps its
+pending recovery state across Files/Trash switches; its listing is rendered only
+while selected. Search, sorting and view changes do not cancel submitted recovery.
+Conflicts still offer the destination/name dialog, even after switching to Files,
+and failed attempts retain their recovery choices for retry. Unconfirmed bulk
+selections clear on view changes; confirmed batches retain the shared Deletion
+session behavior.
+
+Changing folders/spaces or leaving Drive closes Undo controls. Submitted writes
+may finish on the server, but their late completions cannot refresh the departed
+view, create notifications or reopen recovery. Replacing a client within the same
+browser preserves recovery: future Undo and restore retries use the latest client,
+while each submitted write finishes through its original client. Hosts must still
+reset Drive when authenticated identity changes. No storage migration is required;
+installed consumers need a separate reviewed source update.
+
 Dragging files over the upload-enabled table shows an overlay with the translated
 `dropActive` instruction and file-size limit. The overlay covers only the drop
 area, keeps the table in place and clears on leave, drop, cancellation or loss of

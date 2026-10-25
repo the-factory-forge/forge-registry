@@ -1176,6 +1176,17 @@ await suite("Drive browser", async () => {
           name: "Open linked record: Customer portal",
           exact: true,
         });
+        const unavailableRecord = page.getByRole("button", {
+          name: "Open linked record: Team handbook",
+          exact: true,
+        });
+        assert.equal(await unavailableRecord.isVisible(), true);
+        assert.equal(await unavailableRecord.isDisabled(), true);
+        const folderActions = await page
+          .getByRole("link", { name: /^Open folder: / })
+          .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().x));
+        assert.equal(folderActions.length, 3);
+        assert.ok(folderActions.every((x) => x === folderActions[0]));
         assert.equal(await openRecord.innerText(), "");
         const target = await openRecord.boundingBox();
         assert.ok(target.width >= (width < 768 ? 40 : 32));

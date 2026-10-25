@@ -3,7 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import { XIcon, RefreshCwIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -49,6 +49,7 @@ export function TrashBrowser({
   locale,
   refreshKey = 0,
   onChanged,
+  visible = true,
 }: {
   client: DriveClient;
   scope: DriveScope;
@@ -56,6 +57,7 @@ export function TrashBrowser({
   locale?: string;
   refreshKey?: number;
   onChanged?: () => void;
+  visible?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [cursors, setCursors] = useState<string[]>([]);
@@ -70,6 +72,13 @@ export function TrashBrowser({
   const [restoring, setRestoring] = useState<string>();
   const [restoreEntry, setRestoreEntry] = useState<DriveTrashEntry>();
   const lock = useRef(false);
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
   const manager = Toast.useToastManager();
   const notify = useActionToast();
   const mutationScope = useMemo(
@@ -80,14 +89,21 @@ export function TrashBrowser({
   const data = optimistic.value;
   const capabilities = data?.space.capabilities;
   const selectable = capabilities?.delete ? (data?.items ?? []) : [];
-  const selection = useTableSelection(selectable, JSON.stringify([scope, search, cursor]));
+  const selection = useTableSelection(selectable, JSON.stringify([scope, search, cursor, visible]));
   const disabled = loading || !!error || !!restoring || optimistic.pending || selection.pending;
   const refresh = () => setRevision((value) => value + 1);
   const restored = () => {
+    if (!active.current) return;
     setRestoreEntry(undefined);
     refresh();
     onChanged?.();
     notify(labels.restored);
+  };
+  const deleted = () => {
+    if (!active.current) return;
+    refresh();
+    onChanged?.();
+    notify(labels.deleted);
   };
   async function restore(entry: DriveTrashEntry) {
     if (disabled || lock.current) return;
@@ -101,6 +117,7 @@ export function TrashBrowser({
       );
       restored();
     } catch (reason) {
+      if (!active.current) return;
       if (errorCode(reason) === "RESTORE_CONFLICT") setRestoreEntry(entry);
       else
         manager.add({
@@ -110,10 +127,10 @@ export function TrashBrowser({
         });
     } finally {
       lock.current = false;
-      setRestoring(undefined);
+      if (active.current) setRestoring(undefined);
     }
   }
-  return (
+  const table = (
     <>
       <DriveFeedback
         message={optimistic.error ? messageFor(optimistic.error, labels) : undefined}
@@ -135,14 +152,17 @@ export function TrashBrowser({
                 setCursors([]);
               }}
             />
-            <button
-              className={buttonClass}
-              disabled={loading || !!restoring || optimistic.pending || selection.pending}
-              onClick={refresh}
-            >
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.retry}
-            </button>
+            <IconTooltip label={labels.retry}>
+              <button
+                type="button"
+                aria-label={labels.retry}
+                className={iconButtonClass}
+                disabled={loading || !!restoring || optimistic.pending || selection.pending}
+                onClick={refresh}
+              >
+                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+              </button>
+            </IconTooltip>
           </div>
         </header>
         <div className="overflow-x-auto">
@@ -183,11 +203,7 @@ export function TrashBrowser({
                           selection={selection}
                           labels={labels}
                           disabled={disabled}
-                          onDeleted={() => {
-                            refresh();
-                            onChanged?.();
-                            notify(labels.deleted);
-                          }}
+                          onDeleted={deleted}
                         />
                       )}
                     </div>
@@ -301,10 +317,7 @@ export function TrashBrowser({
                               deleting
                               disabled={disabled}
                               labels={labels}
-                              refresh={() => {
-                                refresh();
-                                notify(labels.deleted);
-                              }}
+                              refresh={deleted}
                             >
                               <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
                             </EntryDialog>
@@ -331,6 +344,11 @@ export function TrashBrowser({
           }}
         />
       </div>
+    </>
+  );
+  return (
+    <>
+      {visible && table}
       {restoreEntry && (
         <RestoreDialog
           client={client}
