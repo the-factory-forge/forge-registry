@@ -201,6 +201,8 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
 
   const published = await staff.save(item.id, 1, {
     ...input,
+    id: crypto.randomUUID(),
+    version: 999,
     visible: true,
     soldOut: true,
     spiceLevel: 3,
@@ -210,6 +212,8 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
     ],
     imageEntryId: entry.id,
   });
+  assert.equal(published.id, item.id);
+  assert.equal(published.version, 2);
   await rejected(staff.save(item.id, 1, input), "CONFLICT");
   const publicMenu = await menus.publicMenu("fr");
   assert.equal(publicMenu[0].name, "Entrées");

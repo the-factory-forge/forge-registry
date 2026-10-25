@@ -64,6 +64,7 @@ await test("Drive UI ships independently; only the companion contains storage de
     "postgres@3.4.9",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
+    "zod@4.6.7",
   ]);
   for (const item of [ui, server]) {
     assert.equal(item.type, "registry:block");

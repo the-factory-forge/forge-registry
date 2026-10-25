@@ -20,6 +20,7 @@ import {
   lt,
   ne,
 } from "drizzle-orm";
+import { z } from "zod";
 
 import {
   createArticle,
@@ -33,6 +34,7 @@ import {
   BLOG_DRAFT_LIMIT,
   BLOG_PUBLICATION_LIMIT,
 } from "@/components/plugins/blogs/model";
+import { blogInputs, blogIdSchema, parseBlogInput } from "@/components/plugins/blogs/server/input";
 import {
   historyAssetIds,
   updateBlogProjections,
@@ -456,6 +458,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return row;
   }
   async function get(context: Context, id: string) {
+    id = parseBlogInput(blogIdSchema, id);
     await access(context, "read", id);
     return guard(() =>
       db.transaction(async (tx) => {
@@ -596,6 +599,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     assertBlog(!existing.length, "CONFLICT");
   }
   async function create(context: Context, input: BlogMutation & { title: string; locale: string }) {
+    input = parseBlogInput(blogInputs.create, input);
     locale(input.locale);
     const result = await write(
       context,
@@ -626,8 +630,9 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return get(context, result.id);
   }
   async function save(context: Context, input: BlogSaveInput) {
+    input = parseBlogInput(blogInputs.save, input);
     locale(input.locale);
-    assertBlog(input.content && typeof input.content.markdown === "string");
+    validateContent(input.content, maxMarkdown);
     const result = await write(context, "edit", input.id, input, "save", async (tx, editor) => {
       const article = await current(tx, input),
         categories = await allCategories(tx);
@@ -734,6 +739,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     return saveRecord(tx, result.article);
   }
   async function publish(context: Context, input: BlogPublishInput, remove = false) {
+    input = parseBlogInput(blogInputs.publish, input);
     locale(input.locale);
     const result = await write(
       context,
@@ -851,6 +857,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   function historyClient(context: Context): NonNullable<BlogsClient["history"]> {
     return {
       list: async (input) => {
+        input = parseBlogInput(blogInputs.historyList, input);
         locale(input.locale);
         await access(context, "read", input.id);
         return guard(() =>
@@ -865,6 +872,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
       },
       get: async (input) => {
+        input = parseBlogInput(blogInputs.historyGet, input);
         locale(input.locale);
         await access(context, "read", input.id);
         return guard(() =>
@@ -879,6 +887,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
       },
       plan: async (input) => {
+        input = parseBlogInput(blogInputs.historyTarget, input);
         await access(context, "publish", input.id);
         return guard(() =>
           db.transaction(async (tx) => {
@@ -889,6 +898,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
       },
       publish: async (input) => {
+        input = parseBlogInput(blogInputs.historyPublish, input);
         assertBlog(typeof input.token === "string" && typeof input.omitMissingImages === "boolean");
         const result = await write(
           context,
@@ -917,6 +927,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         return get(context, result.id);
       },
       delete: async (input) => {
+        input = parseBlogInput(blogInputs.historyMutation, input);
         locale(input.locale);
         const result = await write(
           context,
@@ -952,6 +963,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     };
   }
   async function upload(context: Context, input: BlogImageInput): Promise<BlogAsset> {
+    input = parseBlogInput(blogInputs.image, input);
     assertBlog(
       input.bytes instanceof Uint8Array && input.bytes.length > 0 && input.bytes.length <= maxImage,
     );
@@ -984,6 +996,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     });
   }
   async function list(context: Context, input: BlogQuery) {
+    input = parseBlogInput(blogInputs.query, input);
     await access(context, "read");
     const { page, pageSize, search } = query(input);
     return guard(async () => {
@@ -1019,6 +1032,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     });
   }
   async function saveCategory(context: Context, input: BlogCategoryInput) {
+    input = parseBlogInput(blogInputs.category, input);
     if (input.id) validId(input.id);
     return write(context, "manageCategories", undefined, input, "category", async (tx) => {
       const categories = await allCategories(tx),
@@ -1055,6 +1069,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         return guard(() => allCategories(db));
       },
       assets: async (id) => {
+        id = parseBlogInput(blogIdSchema, id);
         await access(context, "read", id);
         return guard(async () => {
           await metadata(db, id);
@@ -1078,6 +1093,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       publish: (input) => publish(context, input),
       unpublish: (input) => publish(context, input, true),
       delete: async (input) => {
+        input = parseBlogInput(blogInputs.post, input);
         await write(context, "delete", input.id, input, "delete", async (tx) => {
           await current(tx, input);
           await tx.delete(articles).where(eq(articles.id, input.id));
@@ -1085,6 +1101,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         });
       },
       upload: async (input) => {
+        input = parseBlogInput(blogInputs.file, input);
         assertBlog(input.file.size > 0 && input.file.size <= maxImage);
         return upload(context, {
           id: input.id,
@@ -1096,6 +1113,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       },
       saveCategory: (input) => saveCategory(context, input),
       deleteCategory: async (input) => {
+        input = parseBlogInput(blogInputs.post, input);
         validId(input.id);
         await write(
           context,
@@ -1123,6 +1141,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     };
   }
   async function listPublished(input: BlogPublicQuery) {
+    input = parseBlogInput(blogInputs.publicQuery, input);
     const { page, pageSize, search } = query(input);
     if (input.categoryId) validId(input.categoryId);
     return guard(() =>
@@ -1176,6 +1195,8 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     );
   }
   async function getPublished(l: string, slug: string): Promise<BlogPost | null> {
+    l = parseBlogInput(z.string(), l);
+    slug = parseBlogInput(z.string().max(120), slug);
     locale(l);
     assertBlog(typeof slug === "string" && slug.length <= 120);
     return guard(() =>
@@ -1207,7 +1228,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     );
   }
   async function readImage(id: string, context?: Context) {
-    validId(id);
+    id = parseBlogInput(blogIdSchema, id);
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
@@ -1252,7 +1273,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
   }
   /** Trusted server scheduler only. A 24-hour grace period lets authors attach new uploads. */
   async function maintenance(limit = 100) {
-    assertBlog(Number.isSafeInteger(limit) && limit > 0 && limit <= 1000);
+    limit = parseBlogInput(z.number().int().min(1).max(1000), limit);
     assertBlog(s3 && bucket, "STORAGE_NOT_CONFIGURED");
     return guard(() =>
       db.transaction(async (tx) => {

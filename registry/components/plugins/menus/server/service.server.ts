@@ -1,14 +1,19 @@
 import { randomUUID } from "node:crypto";
 
 import { and, arrayContains, eq, inArray, notExists } from "drizzle-orm";
+import { z } from "zod";
 
 import { driveEntries, driveSpaces } from "@/components/plugins/drive/server/schema";
 import type { DriveDatabase, DriveTransaction } from "@/components/plugins/drive/server/types";
 import type { DriveScope } from "@/components/plugins/drive/types";
-import { scopeKey, validId } from "@/components/plugins/drive/utils";
+import { scopeKey } from "@/components/plugins/drive/utils";
 import {
   buildMenu,
   MenuError,
+  menuCategoryInputSchema,
+  menuLabelInputSchema,
+  menuOrderSchema,
+  parseMenuInput,
   reorderMenuItems,
   validateCategory,
   validateItem,
@@ -46,6 +51,13 @@ export interface MenusServiceOptions<Context> {
   /** Recheck authorization using the host's fresh server session for each call. */
   authorize: (context: Context, action: MenuAction) => Promise<boolean>;
 }
+
+const idSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+const categorySchema = menuCategoryInputSchema.extend({ id: idSchema.optional() });
+const labelSchema = menuLabelInputSchema.extend({ id: idSchema.optional() });
+const validId = (id: unknown) => parseMenuInput(idSchema, id);
 
 type QueryDb = DriveTransaction;
 type ItemRow = typeof menuItems.$inferSelect;
@@ -190,8 +202,9 @@ export function createMenusService<Context>({
         }),
       save: (id, version, input) =>
         safe(async () => {
-          await permit(context, "edit");
           validId(id);
+          parseMenuInput(z.number().int().positive(), version);
+          await permit(context, "edit");
           const value = validateItem(input, baseLocale);
           const preserveSpiceLevel = input.spiceLevel === undefined;
           const preserveSizes = input.sizes === undefined;
@@ -234,6 +247,7 @@ export function createMenusService<Context>({
         }),
       reorder: (order) =>
         safe(async () => {
+          order = parseMenuInput(menuOrderSchema, order);
           await permit(context, "edit");
           return db.transaction(async (tx) => {
             await taxonomyLock(tx);
@@ -263,6 +277,7 @@ export function createMenusService<Context>({
         }),
       saveCategory: (input) =>
         safe(async () => {
+          input = parseMenuInput(categorySchema, input);
           await permit(context, "manageTaxonomy");
           const value = validateCategory(input, baseLocale);
           const id = input.id ?? randomUUID();
@@ -306,6 +321,7 @@ export function createMenusService<Context>({
         }),
       saveLabel: (input) =>
         safe(async () => {
+          input = parseMenuInput(labelSchema, input);
           await permit(context, "manageTaxonomy");
           const value = validateLabel(input, baseLocale);
           const id = input.id ?? randomUUID();
@@ -355,15 +371,16 @@ export function createMenusService<Context>({
   return {
     client,
     publicMenu: (locale: string) =>
-      safe(async () =>
-        buildMenu(
+      safe(async () => {
+        locale = parseMenuInput(z.string(), locale);
+        return buildMenu(
           await allItems(db),
           await allCategories(db),
           await allLabels(db),
           locale,
           baseLocale,
-        ),
-      ),
+        );
+      }),
     readPublicImage: (id: string) =>
       safe(async () => {
         const item = await itemById(db, id);

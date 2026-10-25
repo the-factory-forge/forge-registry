@@ -199,6 +199,17 @@ Registry source imports mirror their install targets: `@/components/*`,
 to `registry/components/`; the general `@/*` alias resolves showroom files under
 `src/*`. Check `tsconfig.json` before changing imports or introducing a new source directory.
 
+## Runtime validation
+
+Always use Zod to validate external inputs at trust boundaries, including plugin
+service requests, URL parameters, form payloads and configuration. Parse before
+accessing fields or performing side effects, and use the parsed output with unknown
+fields stripped or rejected. Reuse existing schemas, preserve documented defaults
+and optional-field semantics, and map failures to the existing plugin error codes.
+Keep authorization and business rules explicit alongside schema validation. When
+adding or changing a boundary, test malformed inputs and declare Zod in every
+registry item that imports it. See [service input validation](docs/plugins.md#service-input-validation).
+
 ## Reusable component contract
 
 - Employee management is admin-only: both employee pages require the authenticated

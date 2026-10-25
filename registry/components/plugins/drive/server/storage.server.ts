@@ -26,7 +26,14 @@ import {
   or,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { z } from "zod";
 
+import {
+  driveInputs,
+  driveIdSchema,
+  driveScopeSchema,
+  parseDriveInput,
+} from "@/components/plugins/drive/server/input";
 import {
   driveEntries as entries,
   driveSpaces as spaces,
@@ -335,6 +342,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
   }
 
   async function prepareUpload(context: Context, input: DriveUploadInput, relativePath?: string) {
+    input = parseDriveInput(driveInputs.upload, input);
     const { scope, parentId, requestId, size } = input;
     await access(context, scope, "upload");
     validId(requestId);
@@ -464,6 +472,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     return {
       ...(options.trash ? trashClient(context) : {}),
       async listSpaces(query) {
+        query = parseDriveInput(driveInputs.query, query);
         const page = await options.listScopes(context, {
           search: (query.search ?? "").slice(0, 255),
           cursor: query.cursor,
@@ -480,7 +489,14 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         }
         return { items, nextCursor: page.nextCursor };
       },
-      async listEntries({ scope, parentId, search = "", cursor, sort: inputSort }) {
+      async listEntries(input) {
+        const {
+          scope,
+          parentId,
+          search = "",
+          cursor,
+          sort: inputSort,
+        } = parseDriveInput(driveInputs.listing, input);
         const sort = validSort(inputSort);
         const column = {
           name: entries.name,
@@ -520,7 +536,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           };
         });
       },
-      async createFolder({ scope, parentId, name }) {
+      async createFolder(input) {
+        const { scope, parentId, name } = parseDriveInput(driveInputs.folder, input);
         await access(context, scope, "createFolder");
         const normalized = validName(name);
         await authorized(context, scope, true, "createFolder", async (tx, spaceId) => {
@@ -535,7 +552,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           });
         });
       },
-      async rename({ scope, entryId, name }) {
+      async rename(input) {
+        const { scope, entryId, name } = parseDriveInput(driveInputs.rename, input);
         await access(context, scope, "rename");
         const normalized = validName(name);
         await authorized(context, scope, false, "rename", async (tx, spaceId) => {
@@ -548,7 +566,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             .where(eq(entries.id, row.id));
         });
       },
-      async duplicateEntry({ scope, entryId, name }) {
+      async duplicateEntry(input) {
+        const { scope, entryId, name } = parseDriveInput(driveInputs.rename, input);
         await access(context, scope, "upload");
         const normalized = validName(name);
         await authorized(context, scope, false, "upload", async (tx, spaceId) => {
@@ -575,7 +594,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           }
         });
       },
-      async previewDelete({ scope, entryId }) {
+      async previewDelete(input) {
+        const { scope, entryId } = parseDriveInput(driveInputs.entry, input);
         await access(context, scope, "delete");
         return authorized(context, scope, false, "delete", async (tx, spaceId) => {
           const row = await entry(tx, spaceId, entryId);
@@ -583,7 +603,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           return preview(await subtree(tx, spaceId!, entryId));
         });
       },
-      async deleteEntry({ scope, entryId, token }) {
+      async deleteEntry(input) {
+        const { scope, entryId, token } = parseDriveInput(driveInputs.deletion, input);
         await access(context, scope, "delete");
         validId(entryId);
         await authorized(context, scope, false, "delete", async (tx, spaceId) => {
@@ -630,10 +651,12 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       },
       prepareUpload: (input) => prepareUpload(context, input),
       prepareFolderUpload: async (input) => {
+        input = parseDriveInput(driveInputs.folderUpload, input);
         folderUploadPath(input.relativePath, input.name);
         return prepareUpload(context, input, input.relativePath);
       },
-      async completeUpload({ scope, uploadId }) {
+      async completeUpload(input) {
+        const { scope, uploadId } = parseDriveInput(driveInputs.uploadId, input);
         await access(context, scope, "upload");
         await verifyBucket();
         const completed = await authorized(context, scope, false, "upload", async (tx, spaceId) => {
@@ -680,7 +703,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           )
           .catch(() => undefined);
       },
-      async cancelUpload({ scope, uploadId }) {
+      async cancelUpload(input) {
+        const { scope, uploadId } = parseDriveInput(driveInputs.uploadId, input);
         await access(context, scope, "upload");
         await authorized(context, scope, false, "upload", async (tx, spaceId) => {
           const upload = await reservation(tx, spaceId, uploadId);
@@ -694,7 +718,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         const result = await finishDeletes(scope);
         if (result.failures || result.remaining) throw new DriveError("DELETE_PENDING");
       },
-      async getDownload({ scope, entryId }) {
+      async getDownload(input) {
+        const { scope, entryId } = parseDriveInput(driveInputs.entry, input);
         await access(context, scope, "download");
         return authorized(context, scope, false, "download", async (tx, spaceId) => {
           const row = await entry(tx, spaceId, entryId);
@@ -725,7 +750,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     context: Context,
   ): Pick<DriveClient, "listTrash" | "trashEntry" | "restoreEntry"> {
     return {
-      async listTrash({ scope, search = "", cursor }) {
+      async listTrash(input) {
+        const { scope, search = "", cursor } = parseDriveInput(driveInputs.trash, input);
         const space = await access(context, scope);
         const offset = offsetFor(cursor);
         return authorized(context, scope, false, undefined, async (tx, spaceId) => {
@@ -757,7 +783,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           };
         });
       },
-      async trashEntry({ scope, entryId, token }) {
+      async trashEntry(input) {
+        const { scope, entryId, token } = parseDriveInput(driveInputs.deletion, input);
         await access(context, scope, "delete");
         await authorized(context, scope, false, "delete", async (tx, spaceId) => {
           const root = await entry(tx, spaceId, entryId);
@@ -807,7 +834,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
             .where(and(inSpace(spaceId), eq(entries.id, entryId)));
         });
       },
-      async restoreEntry({ scope, entryId, parentId, name }) {
+      async restoreEntry(input) {
+        const { scope, entryId, parentId, name } = parseDriveInput(driveInputs.restore, input);
         await access(context, scope, "restore");
         await authorized(context, scope, false, "restore", async (tx, spaceId) => {
           const root = await entry(tx, spaceId, entryId);
@@ -876,10 +904,9 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     verifyBucket,
     /** Trusted server callers must authorize the reference before invoking this method. */
     async readTrustedFile(scope: DriveScope, entryId: string, maxBytes: number) {
-      validScope(scope);
-      validId(entryId);
-      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > maxFileBytes)
-        throw new DriveError("INVALID");
+      scope = parseDriveInput(driveScopeSchema, scope);
+      entryId = parseDriveInput(driveIdSchema, entryId);
+      maxBytes = parseDriveInput(z.number().int().min(1).max(maxFileBytes), maxBytes);
       const file = await locked(scope, false, async (tx, spaceId) => {
         const row = await entry(tx, spaceId, entryId);
         if (row.kind !== "file" || row.state !== "ready" || !row.storageId)
@@ -902,6 +929,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       }
     },
     async assertSpaceEmpty(context: Context, scope: DriveScope) {
+      scope = parseDriveInput(driveScopeSchema, scope);
       await access(context, scope, "delete");
       await locked(scope, false, async (tx, spaceId) => {
         const rows = await tx
@@ -917,6 +945,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       scope: DriveScope,
       removeEntity?: (tx: DriveTransaction) => Promise<void>,
     ) {
+      scope = parseDriveInput(driveScopeSchema, scope);
       await access(context, scope, "delete");
       await db
         .transaction(async (tx) => {
@@ -940,8 +969,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         })
         .catch(storageError);
     },
-    async maintenance({ limit = 100 }: { limit?: number } = {}) {
-      if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new DriveError("INVALID");
+    async maintenance(input: { limit?: number } = {}) {
+      const { limit } = parseDriveInput(driveInputs.maintenance, input);
       const pendingSpaces = await db
         .select({ entityType: spaces.entityType, entityId: spaces.entityId })
         .from(spaces)

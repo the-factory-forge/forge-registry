@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { menuLabelIcons } from "@/components/plugins/menus/label-presets";
 import type {
   MenuCategory,
@@ -6,7 +8,6 @@ import type {
   MenuItemInput,
   MenuLabel,
   MenuLabelInput,
-  MenuSpiceLevel,
   MenuTranslation,
   MenuViewCategory,
 } from "@/components/plugins/menus/types";
@@ -30,72 +31,88 @@ export class MenuError extends Error {
 const fail = (condition: unknown) => {
   if (!condition) throw new MenuError("INVALID");
 };
-const position = (value: number) => fail(Number.isSafeInteger(value) && value >= 0);
-const validPrice = (value: number) =>
-  fail(Number.isSafeInteger(value) && value >= 0 && value <= 1e9);
-
+const position = z.number().int().nonnegative();
+const price = position.max(1e9);
+const localeSchema = z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$/);
+const names = z.record(localeSchema, z.string().trim().max(120));
+const translations = z.record(
+  localeSchema,
+  z.object({
+    name: z.string().trim().max(200),
+    description: z.string().trim().max(2000),
+  }),
+);
+export const menuItemInputSchema = z.object({
+  categoryId: z.string().min(1),
+  priceMinor: price,
+  sizes: z
+    .array(
+      z.object({
+        id: z
+          .string()
+          .min(1)
+          .max(120)
+          .refine((value) => !!value.trim()),
+        priceMinor: price,
+        translations: names,
+      }),
+    )
+    .max(20)
+    .optional(),
+  position,
+  visible: z.boolean(),
+  soldOut: z.boolean(),
+  spiceLevel: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  imageEntryId: z.string().nullable(),
+  labelIds: z.array(z.string().min(1)).max(40),
+  translations,
+});
+export const menuCategoryInputSchema = z.object({ position, translations: names });
+export const menuLabelInputSchema = menuCategoryInputSchema.extend({
+  kind: z.enum(["allergen", "dietary"]),
+  icon: z.enum(menuLabelIcons).nullish(),
+});
+export const menuOrderSchema = z.array(
+  z.object({
+    id: z.string(),
+    version: z.number().int().positive(),
+  }),
+);
+export function parseMenuInput<T>(schema: z.ZodType<T>, input: unknown): T {
+  const result = schema.safeParse(input);
+  if (!result.success) throw new MenuError("INVALID");
+  return result.data;
+}
 export function validateTranslations(
   input: Record<string, string | MenuTranslation>,
   baseLocale: string,
   withDescription: boolean,
 ) {
-  fail(input && typeof input === "object" && !Array.isArray(input));
-  const result: Record<string, string | MenuTranslation> = {};
-  for (const [locale, value] of Object.entries(input)) {
-    fail(/^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$/.test(locale));
-    if (withDescription) {
-      fail(value && typeof value === "object" && !Array.isArray(value));
-      const translation = value as MenuTranslation;
-      fail(typeof translation.name === "string" && typeof translation.description === "string");
-      fail(translation.name.trim().length <= 200 && translation.description.trim().length <= 2000);
-      result[locale] = {
-        name: translation.name.trim(),
-        description: translation.description.trim(),
-      };
-    } else {
-      fail(typeof value === "string" && value.trim().length <= 120);
-      result[locale] = (value as string).trim();
-    }
-  }
+  const result = withDescription
+    ? parseMenuInput(translations, input)
+    : parseMenuInput(names, input);
   const base = result[baseLocale];
   fail(withDescription ? !!(base as MenuTranslation | undefined)?.name : !!base);
   return result;
 }
 
 export function validateItem(input: MenuItemInput, baseLocale: string) {
-  fail(input && typeof input === "object");
-  fail(typeof input.categoryId === "string" && !!input.categoryId);
-  validPrice(input.priceMinor);
-  const sizes = input.sizes === undefined ? [] : input.sizes;
-  fail(Array.isArray(sizes) && sizes.length <= 20);
-  const validatedSizes = sizes.map((size) => {
-    fail(size && typeof size === "object" && !Array.isArray(size));
-    fail(typeof size.id === "string" && !!size.id.trim() && size.id.length <= 120);
-    validPrice(size.priceMinor);
-    return {
-      id: size.id,
-      priceMinor: size.priceMinor,
-      translations: validateTranslations(size.translations, baseLocale, false) as Record<
-        string,
-        string
-      >,
-    };
-  });
-  fail(new Set(validatedSizes.map((size) => size.id)).size === validatedSizes.length);
-  position(input.position);
-  fail(typeof input.visible === "boolean" && typeof input.soldOut === "boolean");
-  const spiceLevel = input.spiceLevel === undefined ? 0 : input.spiceLevel;
-  fail(Number.isInteger(spiceLevel) && spiceLevel >= 0 && spiceLevel <= 3);
-  fail(input.imageEntryId === null || typeof input.imageEntryId === "string");
-  fail(Array.isArray(input.labelIds) && input.labelIds.length <= 40);
-  fail(input.labelIds.every((id) => typeof id === "string" && !!id));
-  fail(new Set(input.labelIds).size === input.labelIds.length);
+  const value = parseMenuInput(menuItemInputSchema, input);
+  const sizes = (value.sizes ?? []).map((size) => ({
+    ...size,
+    translations: validateTranslations(size.translations, baseLocale, false) as Record<
+      string,
+      string
+    >,
+  }));
+  fail(new Set(sizes.map((size) => size.id)).size === sizes.length);
+  fail(new Set(value.labelIds).size === value.labelIds.length);
   return {
-    ...input,
-    priceMinor: validatedSizes[0]?.priceMinor ?? input.priceMinor,
-    sizes: validatedSizes,
-    spiceLevel: spiceLevel as MenuSpiceLevel,
-    translations: validateTranslations(input.translations, baseLocale, true) as Record<
+    ...value,
+    priceMinor: sizes[0]?.priceMinor ?? value.priceMinor,
+    sizes,
+    spiceLevel: value.spiceLevel ?? 0,
+    translations: validateTranslations(value.translations, baseLocale, true) as Record<
       string,
       MenuTranslation
     >,
@@ -103,10 +120,10 @@ export function validateItem(input: MenuItemInput, baseLocale: string) {
 }
 
 export function validateCategory(input: MenuCategoryInput, baseLocale: string) {
-  position(input.position);
+  const value = parseMenuInput(menuCategoryInputSchema, input);
   return {
-    position: input.position,
-    translations: validateTranslations(input.translations, baseLocale, false) as Record<
+    ...value,
+    translations: validateTranslations(value.translations, baseLocale, false) as Record<
       string,
       string
     >,
@@ -117,16 +134,7 @@ export function reorderMenuItems(
   items: readonly MenuItem[],
   order: readonly Pick<MenuItem, "id" | "version">[],
 ): MenuItem[] {
-  fail(Array.isArray(order));
-  fail(
-    order.every(
-      (entry) =>
-        entry &&
-        typeof entry.id === "string" &&
-        Number.isSafeInteger(entry.version) &&
-        entry.version > 0,
-    ),
-  );
+  order = parseMenuInput(menuOrderSchema, order);
   fail(new Set(order.map((entry) => entry.id)).size === order.length);
   if (order.length !== items.length) throw new MenuError("CONFLICT");
   const byId = new Map(items.map((item) => [item.id, item]));
@@ -138,14 +146,11 @@ export function reorderMenuItems(
 }
 
 export function validateLabel(input: MenuLabelInput, baseLocale: string) {
-  fail(input.kind === "allergen" || input.kind === "dietary");
-  fail(input.icon === undefined || input.icon === null || menuLabelIcons.includes(input.icon));
-  position(input.position);
+  const value = parseMenuInput(menuLabelInputSchema, input);
   return {
-    kind: input.kind,
-    icon: input.icon ?? null,
-    position: input.position,
-    translations: validateTranslations(input.translations, baseLocale, false) as Record<
+    ...value,
+    icon: value.icon ?? null,
+    translations: validateTranslations(value.translations, baseLocale, false) as Record<
       string,
       string
     >,

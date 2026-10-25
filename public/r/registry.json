@@ -1108,7 +1108,8 @@
         "drizzle-orm@1.0.0-rc.4",
         "postgres@3.4.9",
         "@aws-sdk/client-s3",
-        "@aws-sdk/s3-request-presigner"
+        "@aws-sdk/s3-request-presigner",
+        "zod@4.6.7"
       ],
       "registryDependencies": ["@forge/drive", "@forge/database"],
       "files": [
@@ -1146,6 +1147,11 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/server/input.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/drive/server/input.ts"
         }
       ]
     },
@@ -1240,7 +1246,12 @@
       "type": "registry:block",
       "title": "Blogs storage",
       "description": "PostgreSQL article/history snapshots and private S3 image storage for multilingual blogs.",
-      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9", "@aws-sdk/client-s3"],
+      "dependencies": [
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
+        "@aws-sdk/client-s3",
+        "zod@4.6.7"
+      ],
       "registryDependencies": ["@forge/blogs", "@forge/database"],
       "files": [
         {
@@ -1277,6 +1288,11 @@
           "path": "registry/components/plugins/blogs/server/readiness.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/blogs/server/readiness.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/input.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/input.ts"
         }
       ]
     },
@@ -1285,7 +1301,7 @@
       "type": "registry:block",
       "title": "Menus",
       "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, allergen and dietary filters, staff editors, and branded A4/A5 printing.",
-      "dependencies": ["@base-ui/react", "lucide-react"],
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/ui-shims",
@@ -1369,7 +1385,7 @@
       "type": "registry:block",
       "title": "Menus storage",
       "description": "Typed Drizzle service and schema for restaurant menus with size prices, spice levels and Drive-backed images.",
-      "dependencies": ["drizzle-orm@1.0.0-rc.4"],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
       "registryDependencies": ["@forge/menus", "@forge/drive-storage", "@forge/database"],
       "files": [
         {

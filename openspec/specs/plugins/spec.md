@@ -769,6 +769,13 @@ the optimistic mutation isolation requirement.
 `@forge/drive` SHALL provide `DrivePage` and embeddable `DriveBrowser` using a
 `DriveClient`.
 
+#### Scenario: Rejecting malformed service requests
+
+- **WHEN** a host passes malformed request data to the server companion
+- **THEN** Zod validates the input before its fields reach storage and failures use the plugin's `INVALID` error
+- **AND** parsed objects exclude unknown fields while existing authorization and business rules remain enforced
+- **AND** optional inputs retain their documented omission semantics
+
 #### Scenario: Integrating the scoped Drive browser
 
 - **WHEN** a host connects the Drive browser to an entity scope
@@ -1079,6 +1086,13 @@ The exported Drive Drizzle schema SHALL include trash.
 `@forge/blogs` SHALL provide article administration, language tabs, Markdown
 editing/preview, categories and public list/article components.
 
+#### Scenario: Rejecting malformed service requests
+
+- **WHEN** a host passes malformed request data to the server companion
+- **THEN** Zod validates the input before its fields reach storage and failures use the plugin's `INVALID` error
+- **AND** parsed objects exclude unknown fields while existing authorization and business rules remain enforced
+- **AND** optional inputs retain their documented omission semantics
+
 #### Scenario: Editing and publishing translations
 
 - **WHEN** staff edit or publish a blog article
@@ -1287,6 +1301,13 @@ description, visibility, sold-out state, order, optional image and reusable
 allergen/dietary labels. Missing requested translations SHALL use the base locale
 for the whole entity. Public menus SHALL include only visible items; sold-out
 items SHALL remain visible with a pending-colored status at the top right.
+
+#### Scenario: Rejecting malformed service requests
+
+- **WHEN** a host passes malformed request data to the server companion
+- **THEN** Zod validates the input before its fields reach storage and failures use the plugin's `INVALID` error
+- **AND** parsed objects exclude unknown fields while existing authorization and business rules remain enforced
+- **AND** optional inputs retain their documented omission semantics
 
 #### Scenario: Reordering menu items
 

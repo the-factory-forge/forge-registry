@@ -69,6 +69,26 @@ requires review of legacy attribution and crops covers by default. Current accou
 bylines and retained signatures use host name/deletion adapters; see
 [authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
 
+## Service input validation
+
+Menus, Drive and Blogs parse service request inputs with Zod before using their
+fields or writing data. Malformed inputs return the existing plugin `INVALID`
+error. Schemas strip unknown object fields; Menu item payloads cannot override
+record IDs or versions. Optional Menu sizes, spice levels and label icons retain
+their existing omission semantics. Drive host listing cursors remain opaque.
+Blog drafts may remain incomplete until publication.
+
+Authorization, relationships, stale-version checks, idempotency, image inspection,
+and storage limits remain service business rules. Host adapters still own session
+and transport protection. Install each updated companion with its dependencies;
+no database migration is needed for this validation change.
+
+Recorded consumers requiring separate adoption review are Terminal60 (Menus/Drive),
+Sinigest (Drive), L’Aspic and Osthoepathie Seebach (Blogs), plus custom TC integrations.
+The template does not install these optional plugins by default. Installed consumer
+source and deployments were not updated by this change; other installations remain
+uninspected.
+
 ## Storage encryption and access
 
 For Infomaniak storage, rely on its built-in encryption for all stored files,
