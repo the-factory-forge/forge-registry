@@ -1346,7 +1346,7 @@ function EditorForm({
                       {...fields.field(`${id}-markdown`)}
                       className={cn(
                         inputClass,
-                        "h-auto min-h-96 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
+                        "h-auto min-h-64 resize-y rounded-2xl py-4 font-mono text-sm leading-6",
                       )}
                       value={content.markdown}
                       disabled={pending || readOnly}
