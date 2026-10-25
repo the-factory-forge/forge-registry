@@ -70,10 +70,10 @@ Pass `MenuItemEditorPage.labelsHref` to show a pencil link beside Labels that op
 the host's label management page (`MenuTaxonomyPage` in the showroom). Omit it when
 that page is unavailable to the current user. Override `labels.manageLabels` for
 the accessible name and tooltip. Existing integrations can omit the new prop.
-When the item has unsaved changes, this link offers Save, Discard changes, and
+When the item has unsaved changes, both this link and Back offer Save, Discard changes, and
 Cancel. Saving validates the whole item and navigates only after success; errors
 retain the draft for retry. Cancel retains the form, and Discard changes navigates
-without saving. A pending save blocks the link. Other navigation is unchanged.
+without saving. A pending save blocks both links. Other navigation is unchanged.
 
 ## Default labels and badges
 

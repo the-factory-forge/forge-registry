@@ -13,7 +13,15 @@ import {
   SettingsIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ComponentType, type PointerEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentType,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
@@ -687,6 +695,26 @@ function MenuItemEditorPageContent({
     },
     [],
   );
+  function guardNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (
+      event.defaultPrevented ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    )
+      return;
+    if (lock.current) {
+      event.preventDefault();
+      return;
+    }
+    if (snapshot !== savedSnapshot) {
+      event.preventDefault();
+      navigation.current = href;
+      setLeaveOpen(true);
+    }
+  }
   function discardAndLeave() {
     const href = navigation.current;
     navigation.current = null;
@@ -765,7 +793,12 @@ function MenuItemEditorPageContent({
   }
   return (
     <section className={cn(page, className)}>
-      <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
+      <HostLink
+        href={backHref}
+        className={cn(button, "hover:bg-primary/5 hover:text-primary aria-disabled:opacity-50")}
+        aria-disabled={pending || undefined}
+        onClick={(event) => guardNavigation(event, backHref)}
+      >
         <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
       </HostLink>
@@ -1055,26 +1088,7 @@ function MenuItemEditorPageContent({
                     className={cn(iconButton, "aria-disabled:opacity-50")}
                     aria-label={labels.manageLabels}
                     aria-disabled={pending || undefined}
-                    onClick={(event) => {
-                      if (
-                        event.defaultPrevented ||
-                        event.metaKey ||
-                        event.ctrlKey ||
-                        event.shiftKey ||
-                        event.altKey ||
-                        event.button !== 0
-                      )
-                        return;
-                      if (lock.current) {
-                        event.preventDefault();
-                        return;
-                      }
-                      if (snapshot !== savedSnapshot) {
-                        event.preventDefault();
-                        navigation.current = labelsHref;
-                        setLeaveOpen(true);
-                      }
-                    }}
+                    onClick={(event) => guardNavigation(event, labelsHref)}
                   >
                     <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                   </HostLink>
