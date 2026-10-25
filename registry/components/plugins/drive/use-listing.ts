@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { errorCode } from "@/components/plugins/drive/utils";
 
 /** Private to Drive: callers memoize the read and keep refresh separate from mutation scope. */
@@ -39,6 +40,7 @@ export function useDriveListing<T>(
   }, [load, refreshKey]);
 
   const loading = result?.load !== load || result.refreshKey !== refreshKey;
+  useLoadingActivity(loading);
   return {
     data: result?.data,
     loading,

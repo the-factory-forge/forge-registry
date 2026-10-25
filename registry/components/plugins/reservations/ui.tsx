@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Temporal } from "temporal-polyfill";
 
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { ReservationLabels } from "@/components/plugins/reservations/labels";
 import {
   ReservationError,
@@ -67,6 +68,7 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
     };
   }, [load, revision]);
   const current = result?.load === load && result.revision === revision ? result : undefined;
+  useLoadingActivity(!current);
   return {
     value: result?.load === load ? result.value : undefined,
     error: current?.error,

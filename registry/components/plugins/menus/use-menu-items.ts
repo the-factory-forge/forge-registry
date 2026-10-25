@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { MenuCategory, MenuItem, MenusClient } from "@/components/plugins/menus/types";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
@@ -24,6 +25,7 @@ export function useMenuItems(client: MenusClient) {
   const { scope } = state;
   const currentScope = useRef<typeof scope | null>(scope);
   const optimistic = useOptimisticAction(state.data, scope);
+  useLoadingActivity(state.loading);
   const reorderLock = useRef(false);
   const update = (change: (current: typeof state) => typeof state) =>
     setState((current) => (current.scope === scope ? change(current) : current));

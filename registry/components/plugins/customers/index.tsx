@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
 import type {
@@ -74,6 +75,7 @@ function CustomersPageContent({
   labels: overrides,
   linkComponent: CustomerLink = Link,
 }: CustomersPageProps) {
+  useLoadingActivity(loading);
   const labels = { ...customerLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedCustomers);
   const root = useRef<HTMLElement>(null);

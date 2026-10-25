@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import {
   EmployeeActions,
   type EmployeeActionCallbacks,
@@ -96,6 +97,7 @@ function EmployeesPageContent({
   labels: overrides,
   className,
 }: EmployeesPageProps) {
+  useLoadingActivity(loading);
   const [localSearch, setLocalSearch] = useState("");
   const search = controlledSearch ?? localSearch;
   const optimistic = useOptimisticAction(suppliedEmployees, `${currentUserId}:${offset}:${search}`);

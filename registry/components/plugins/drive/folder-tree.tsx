@@ -5,6 +5,7 @@ import { ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
   DriveBrowserProps,
@@ -46,6 +47,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
     error?: unknown;
   }>();
   const loading = result?.request !== request;
+  useLoadingActivity(loading);
   useEffect(() => onLoadingChange(loading), [loading, onLoadingChange]);
   const error = loading ? undefined : result?.error;
   const nextCursor = result?.nextCursor;

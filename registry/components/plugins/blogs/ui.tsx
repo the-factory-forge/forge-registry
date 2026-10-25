@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingTask } from "@/components/loading-indicator";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
@@ -56,6 +57,7 @@ export function Feedback({ message, error = false }: { message?: string; error?:
   ) : null;
 }
 export function useBlogAction(labels: BlogsLabels) {
+  const track = useLoadingTask();
   const notify = useActionToast();
   const { add } = Toast.useToastManager();
   const lock = useRef(false);
@@ -73,7 +75,8 @@ export function useBlogAction(labels: BlogsLabels) {
     setFeedback(undefined);
     if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
     try {
-      const result = await action(request.current.id);
+      const id = request.current.id;
+      const result = await track(() => action(id));
       request.current = null;
       if (success) notify(success);
       return result;

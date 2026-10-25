@@ -155,6 +155,15 @@ This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.
 
+## Shared loading feedback
+
+The root shell mounts one `LoadingProvider` and a `LoadingIndicator` directly below
+the 56px navbar. Plugin loading states and router navigation share this indicator.
+It appears immediately, stays visible for overlapping requests, and hides 300ms
+after the last activity finishes. New activity cancels that hide; unmounting a
+source releases it. The bar overlays the page without shifting content or blocking
+interaction and respects reduced motion. See [the portable loading component](./loading-indicator.md).
+
 ## Shared preview frame
 
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React

@@ -6,6 +6,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { securityLabels, type SecurityLabels } from "@/components/plugins/auth/account-labels";
 import {
   accountButtonClass,
@@ -84,6 +85,7 @@ function AgentKeysContent({
   locale,
   className,
 }: AgentKeysProps) {
+  useLoadingActivity(loading);
   const labels = { ...securityLabels, ...overrides };
   const id = `factory-agent-key-${useId()}`;
   const [creating, setCreating] = useState(false);

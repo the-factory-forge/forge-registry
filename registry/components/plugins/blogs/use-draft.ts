@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type RefObject } from "react";
 
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { useHistoryPublication } from "@/components/plugins/blogs/history";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import type {
@@ -116,6 +117,7 @@ export function useBlogDraft({
       bodyResult.refresh !== historyRefresh);
   const selected =
     !bodyLoading && bodyResult?.id === selectedId ? (bodyResult.value ?? null) : null;
+  useLoadingActivity(historyLoading || bodyLoading);
 
   useEffect(() => {
     if (!client.history) return;

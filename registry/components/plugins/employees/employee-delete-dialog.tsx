@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
@@ -63,6 +64,7 @@ export function EmployeeDeleteDialog({
   const [decisions, setDecisions] = useState<EmployeeDeletionDecisions>({});
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "saving">("idle");
   const generation = useRef(0);
+  useLoadingActivity(open && status === "loading");
   const saving = useRef(false);
   async function load(selected = targets) {
     const request = ++generation.current;

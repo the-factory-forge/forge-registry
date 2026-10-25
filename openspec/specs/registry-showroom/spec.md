@@ -59,3 +59,14 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 - **THEN** settings are collapsed and the gear remains available to open them
 - **AND** opening or reloading the demo at 40rem or wider starts with settings expanded
 - **AND** changing the viewport after toggling preserves the chosen visibility
+
+### Requirement: Unified loading feedback
+
+The showroom SHALL show one shared loading indicator below the navbar for plugin data loading and route navigation. It SHALL appear immediately, remain visible until all activity ends, and hide 300ms later. New activity SHALL cancel a pending hide. The indicator SHALL preserve layout and focus, allow pointer interaction, expose a translated accessible name and respect reduced motion.
+
+#### Scenario: Refreshing and navigating
+
+- **WHEN** a reviewer refreshes data or navigates while another request is active
+- **THEN** one indicator remains visible until all current loading completes
+- **AND** a fast request still leaves visible feedback for 300ms after completion
+- **AND** failures retain their existing messages, and unmounted sources release activity

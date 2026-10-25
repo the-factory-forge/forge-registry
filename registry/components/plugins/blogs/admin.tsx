@@ -33,6 +33,7 @@ import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
 import { ContentSidebarLayout } from "@/components/layouts/content-sidebar-layout";
 import { Link } from "@/components/link";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
 import {
   BlogHistoryPanel,
@@ -161,6 +162,7 @@ function BlogsPageContent({
   formatDate = (iso) => new Date(iso).toISOString().slice(0, 10),
   className,
 }: BlogsPageProps) {
+  useLoadingActivity(!!loading);
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, `${search}:${suppliedData.page}`);
   const toggleAction = useBlogAction(labels);

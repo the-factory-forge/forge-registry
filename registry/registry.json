@@ -57,6 +57,25 @@
       ]
     },
     {
+      "name": "loading-indicator",
+      "type": "registry:component",
+      "title": "Loading indicator",
+      "description": "App-wide loading feedback with concurrent activity tracking and a 300ms completion hold.",
+      "files": [
+        {
+          "path": "registry/components/loading-indicator.tsx",
+          "type": "registry:component",
+          "target": "@components/loading-indicator.tsx"
+        },
+        {
+          "path": "registry/components/utils/loading-store.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/loading-store.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "icon-tooltip",
       "type": "registry:ui",
       "title": "Icon tooltip",
@@ -931,7 +950,8 @@
         "@forge/editor-form",
         "@forge/dropdown-menu",
         "@forge/table-selection",
-        "@forge/record-deletion"
+        "@forge/record-deletion",
+        "@forge/loading-indicator"
       ]
     },
     {
@@ -984,7 +1004,8 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/table-selection",
-        "@forge/record-deletion"
+        "@forge/record-deletion",
+        "@forge/loading-indicator"
       ]
     },
     {
@@ -1007,7 +1028,8 @@
         "@forge/sidebar-navigation",
         "@forge/subpage-sidebar",
         "@forge/action-toast",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -1147,7 +1169,8 @@
         "@forge/editor-form",
         "@forge/image-crop",
         "@forge/table-selection",
-        "@forge/content-sidebar-layout"
+        "@forge/content-sidebar-layout",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -1275,7 +1298,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -1442,7 +1466,8 @@
         "@forge/ui-shims",
         "@forge/action-toast",
         "@forge/icon-tooltip",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/loading-indicator"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },
@@ -1510,7 +1535,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/table-selection",
-        "@forge/image-crop"
+        "@forge/image-crop",
+        "@forge/loading-indicator"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1589,7 +1615,8 @@
         "@forge/table-styles",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/loading-indicator"
       ],
       "files": [
         {

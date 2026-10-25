@@ -105,6 +105,9 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pu
 
 ## Registry items
 
+App-wide loading feedback uses [`loading-indicator`](./docs/loading-indicator.md),
+with one bar beneath the navbar and a 300ms completion hold.
+
 Icon-only actions use [`icon-tooltip`](./docs/icon-tooltip.md) for translated hover
 and keyboard hints, with a [showroom example](https://registry.the-corner.io/icon-tooltip).
 

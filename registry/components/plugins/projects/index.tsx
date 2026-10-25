@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import {
   buttonClass,
   cardClass,
@@ -78,6 +79,7 @@ function ProjectsListContent({
   linkComponent: ProjectLink = Link,
   className,
 }: ProjectsListProps) {
+  useLoadingActivity(!!loading);
   const labels = { ...projectLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedProjects);
   const projects = optimistic.value;

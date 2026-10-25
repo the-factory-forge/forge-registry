@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { MenuCategory, MenuLabel, MenusClient } from "@/components/plugins/menus/types";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
@@ -15,6 +16,7 @@ export function useMenuCategoriesAndLabels(client: MenusClient) {
     error: false,
   });
   const optimistic = useOptimisticAction(state.data, client);
+  useLoadingActivity(state.loading);
   useEffect(() => {
     let active = true;
     void Promise.all([client.categories(), client.labels()]).then(
