@@ -390,7 +390,8 @@ await suite("Menus browser", async () => {
     );
     await page.getByRole("link", { name: "Manage menu", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
-    const editorLabels = page.getByRole("group", { name: "Labels", exact: true });
+    const editorLabels = page.getByRole("group", { name: "Labels Manage labels", exact: true });
+    await editorLabels.waitFor();
     assert.equal(await editorLabels.getByRole("checkbox").count(), 19);
     await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).check();
     await page.getByRole("button", { name: "Save", exact: true }).click();
