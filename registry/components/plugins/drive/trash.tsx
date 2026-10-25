@@ -118,8 +118,11 @@ export function TrashBrowser({
         error
       />
       <div className={tablePanelClass} aria-busy={loading}>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <p className="flex-1 basis-80 text-sm text-muted-foreground">{labels.trashHint}</p>
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-80 space-y-1.5">
+            <h2 className="text-base font-semibold wrap-anywhere">{labels.trash}</h2>
+            <p className="text-sm text-muted-foreground">{labels.trashHint}</p>
+          </div>
           <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2">
             <TableSearch
               value={search}
@@ -139,7 +142,7 @@ export function TrashBrowser({
               {labels.retry}
             </button>
           </div>
-        </div>
+        </header>
         <div className="overflow-x-auto">
           <table className={cn(tableClass, "min-w-[44rem]")} aria-label={labels.trash}>
             <thead>

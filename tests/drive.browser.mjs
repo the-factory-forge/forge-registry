@@ -54,7 +54,7 @@ await suite("Drive browser", async () => {
   });
   const row = (page, name) => page.getByRole("row").filter({ hasText: name });
 
-  await test("embedded Drive omits its redundant root heading and keeps folder navigation", async (t) => {
+  await test("embedded Drive keeps folder navigation separate from its panel heading", async (t) => {
     for (const colorScheme of ["light", "dark"])
       for (const width of [390, 1440]) {
         const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001", {
@@ -71,6 +71,10 @@ await suite("Drive browser", async () => {
         await folder(page, "Photos");
         await page.getByRole("link", { name: "Photos", exact: true }).press("Enter");
         await breadcrumbs.getByRole("heading", { name: "Photos", exact: true }).waitFor();
+        await page
+          .locator('[aria-busy="false"] > header')
+          .getByRole("heading", { name: "Photos", exact: true })
+          .waitFor();
         await breadcrumbs
           .getByRole("link", { name: "Burrata with tomatoes", exact: true })
           .press("Enter");
@@ -89,6 +93,41 @@ await suite("Drive browser", async () => {
       .getByRole("navigation", { name: "Folder navigation", exact: true })
       .getByRole("heading", { name: "Customer portal", exact: true })
       .waitFor();
+  });
+
+  await test("Drive folder and trash titles sit inside their content panels", async (t) => {
+    for (const colorScheme of ["light", "dark"])
+      for (const width of [390, 1440]) {
+        const page = await preview(t, "/en/drive/project/portal", {
+          viewport: { width, height: 900 },
+          colorScheme,
+          reducedMotion: "reduce",
+        });
+        await row(page, "Annual report.txt").waitFor();
+        const panel = page
+          .locator("div[aria-busy]")
+          .filter({ has: page.getByRole("table") })
+          .last();
+        for (const title of ["Customer portal", "Trash"]) {
+          if (title === "Trash") await driveNavigation(page, "Trash");
+          const heading = panel
+            .locator(":scope > header")
+            .getByRole("heading", { name: title, exact: true });
+          await heading.waitFor();
+          const bounds = await panel.boundingBox();
+          const titleBounds = await heading.boundingBox();
+          assert.ok(titleBounds.x > bounds.x && titleBounds.y > bounds.y);
+          assert.ok(titleBounds.x + titleBounds.width < bounds.x + bounds.width);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          await panel.screenshot({
+            path: `/tmp/drive-panel-${title === "Trash" ? "trash" : "folder"}-${width}-${colorScheme}.png`,
+          });
+        }
+        await page.close();
+      }
   });
 
   await test("Drive confirmation stays available while its preview loads", async (t) => {

@@ -801,17 +801,14 @@ function Browser({
         />
         <div className="min-w-0 flex-1 space-y-5">
           {trashView && trashEnabled ? (
-            <>
-              <h2 className="text-base font-semibold">{labels.trash}</h2>
-              <TrashBrowser
-                client={client}
-                scope={scope}
-                labels={labels}
-                locale={locale}
-                refreshKey={revision}
-                onChanged={refresh}
-              />
-            </>
+            <TrashBrowser
+              client={client}
+              scope={scope}
+              labels={labels}
+              locale={locale}
+              refreshKey={revision}
+              onChanged={refresh}
+            />
           ) : removedFolder ? (
             <div className={tablePanelClass}>
               <p className="mb-3 text-sm">{labels.trashed}</p>
@@ -876,16 +873,22 @@ function Browser({
                     </span>
                   </output>
                 )}
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <p
-                    className={cn(
-                      "text-sm text-muted-foreground",
-                      !capabilities?.upload && "invisible",
-                    )}
-                    aria-hidden={!capabilities?.upload}
-                  >
-                    {labels.drop} {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
-                  </p>
+                <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 space-y-1.5">
+                    <h2 className="text-base font-semibold wrap-anywhere">
+                      {data?.breadcrumbs.at(-1)?.name ?? data?.space.name ?? labels.title}
+                    </h2>
+                    <p
+                      className={cn(
+                        "text-sm text-muted-foreground",
+                        !capabilities?.upload && "invisible",
+                      )}
+                      aria-hidden={!capabilities?.upload}
+                    >
+                      {labels.drop}{" "}
+                      {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
+                    </p>
+                  </div>
                   <TableSearch
                     className="ml-auto"
                     value={search}
@@ -896,7 +899,7 @@ function Browser({
                       setCursors([]);
                     }}
                   />
-                </div>
+                </header>
                 <div className="relative overflow-x-auto">
                   <table
                     aria-label={data?.space.name ?? labels.title}
