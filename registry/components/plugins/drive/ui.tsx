@@ -459,6 +459,7 @@ export function EntryDialog({
   const [preview, setPreview] = useState<DriveDeletePreview>();
   const previewRequest = useRef<Promise<DriveDeletePreview> | undefined>(undefined);
   const lock = useRef(false);
+  const nameRef = useRef<HTMLInputElement>(null);
   const fieldId = `factory-drive-field-${useId()}`;
   const title = deleting
     ? trashing
@@ -569,6 +570,7 @@ export function EntryDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          initialFocus={deleting || disabled ? undefined : nameRef}
           finalFocus={returnFocus}
           onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
           className={cn(
@@ -605,6 +607,7 @@ export function EntryDialog({
                   {labels.name}
                 </label>
                 <input
+                  ref={nameRef}
                   id={fieldId}
                   className={inputClass}
                   value={name}

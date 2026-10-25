@@ -833,6 +833,12 @@ the optimistic mutation isolation requirement.
 - **WHEN** a user opens a subfolder
 - **THEN** its breadcrumb shows the folder title and a usable link back to the root
 
+#### Scenario: Focusing a single-input dialog
+
+- **WHEN** a user opens a folder creation, rename or duplication dialog using a pointer, touch or keyboard
+- **THEN** the editable name field SHALL receive initial focus so typing can begin immediately
+- **AND** closing SHALL preserve the existing focus return behavior; deletion confirmations and disabled fields SHALL retain their default focus behavior
+
 #### Scenario: Renaming from the breadcrumb
 
 - **WHEN** an authorized user clicks or keyboard-activates the current title and edits its name

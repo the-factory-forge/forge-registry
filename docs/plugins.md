@@ -137,6 +137,9 @@ settings, create, edit and delete use the shared Lucide conventions. Icon-only
 buttons and action links use [`@forge/icon-tooltip`](./icon-tooltip.md) with their
 translated accessible names, including edit/delete and close controls. Existing
 confirmations, disabled states and visible action labels remain in place.
+Single-input create/edit dialogs focus their editable field when opened, including
+on touch devices. Drive applies this to folder creation, rename and duplication;
+confirmation dialogs retain their existing focus behavior.
 
 Customer, Project, Employee, Blog, Menu and Drive tables share header styling
 and right-aligned row actions with 8px gaps. Action buttons stay on one line;
