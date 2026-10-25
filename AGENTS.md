@@ -244,8 +244,9 @@ registry item that imports it. See [service input validation](docs/plugins.md#se
   Lucide's `RefreshCwIcon` for refresh/reload, `SettingsIcon` for settings/configuration,
   and `PlusIcon` for new/create/add entry points. Place the icon before the visible
   translated label with `size-4 shrink-0`, inherited color, and `aria-hidden="true"`.
-  Reuse the existing button/link styles. Icons supplement these labels;
-  do not hide visible action labels or add duplicate tooltips to text buttons.
+  Reuse the existing button/link styles. Refresh/reload controls are icon-only,
+  with a translated accessible name and `IconTooltip`. Settings and create actions
+  retain visible labels; do not add duplicate tooltips to text buttons.
 - Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
   Always separate adjacent action buttons and button-styled links by at least
   `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column

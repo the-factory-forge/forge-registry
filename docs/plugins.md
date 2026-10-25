@@ -129,6 +129,14 @@ Employee photos are optional and use the shared crop dialog. Deletion can review
 linked records from multiple host adapters and commit their decisions atomically;
 see [employee photos and related data](./employees.md).
 
+## Shared loading feedback
+
+All UI plugins declare [`@forge/loading-indicator`](./loading-indicator.md). Their
+read/refresh states feed one host-owned indicator beneath the navbar, with a 300ms
+hold after all loading completes. Existing errors, local feedback and disabled
+states remain intact. Install the new dependency and place its provider and
+indicator once in the host shell when adopting the source.
+
 ## Shared presentation
 
 Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
@@ -138,13 +146,24 @@ share this behavior without changing their password values or submission rules.
 Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
-settings, create, edit and delete use the shared Lucide conventions. Icon-only
+settings, create, edit and delete use the shared Lucide conventions. Refresh/reload
+controls show only the refresh icon, retaining their translated accessible name and tooltip. Icon-only
 buttons and action links use [`@forge/icon-tooltip`](./icon-tooltip.md) with their
 translated accessible names, including edit/delete and close controls. Existing
 confirmations, disabled states and visible action labels remain in place.
+Every dialog has a top-right X control, with a translated accessible name and
+tooltip. It follows the existing dismissal and pending rules, with space for long
+titles on mobile. New close labels can be translated through the existing labels
+props; Reservations passes its existing `close` label through every modal.
 Single-input create/edit dialogs focus their editable field when opened, including
 on touch devices. Drive applies this to folder creation, rename and duplication;
 confirmation dialogs retain their existing focus behavior.
+Modal titles and close controls stay pinned at the top, and bottom actions stay
+pinned at the bottom while long content scrolls. Both regions use the dialog
+surface color so fields cannot show through them; actions wrap on narrow screens.
+Keep footer positioning relative to the whole dialog: modal forms and conditional
+result wrappers use `contents` so their boxes cannot trap sticky actions below
+the viewport. Preserve the form element, submission handling and field spacing.
 
 Customer, Project, Employee, Blog, Menu and Drive tables share header styling
 and right-aligned row actions with 8px gaps. Action buttons stay on one line;
@@ -161,7 +180,7 @@ Paginated plugin tables share [`@forge/table-pagination`](./table-pagination.md)
 Blogs and Employees supply totals and page numbers. Drive shows the current page
 and uses Previous/Next with cursor history, without inventing totals. Customers,
 Projects and Menus render their supplied lists without pagination. Reservations
-uses calendar navigation. Labels and data callbacks stay host-owned.
+uses numbered pages in List and date navigation in its calendar views. Labels and data callbacks stay host-owned.
 
 Table headers and their surrounding panels stay visible during loading, empty
 results and errors. Feedback belongs in a spanning table row; background loading

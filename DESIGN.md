@@ -207,6 +207,14 @@ retain their disabled semantics. Destructive controls use red text on a subtle
 tinted surface, including confirmation dialogs. The implemented registry components
 are the visual reference for controls, status indicators, layout, and navigation.
 
+### Loading feedback
+
+Use one 4px primary loading bar directly beneath the navbar. It overlays content
+without changing layout or focus. Real loading states share its activity queue;
+show it immediately and hide 300ms after the final activity settles. New work
+cancels a pending hide. Use a subtle pulse with a static reduced-motion fallback.
+Keep errors and recovery beside their controls.
+
 ### Active controls
 
 Controls that stay selected, pressed, current or expanded must visibly differ
@@ -263,7 +271,7 @@ Action and field labels use sentence case throughout the administrative plugins.
 - Do use semantic color roles and their matching foregrounds.
 - Do reuse the shared preview frame and the relevant plugin styles.
 - Do retain translated labels, keyboard focus, reduced motion, and responsive wrapping.
-- Do preserve visible action text and the shared Lucide action icons.
+- Do use icon-only refresh/reload controls with translated accessible names and tooltips; preserve visible text on other actions.
 - Don't introduce customer-specific colors into reusable components.
 - Don't use showroom-only CSS as an undeclared consumer dependency.
 - Don't rename semantic roles when changing a customer theme.

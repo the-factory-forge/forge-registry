@@ -129,8 +129,21 @@ semantic background/foreground pairs independent of customer brand colors.
 #### Scenario: Moving between plugins
 
 - **WHEN** a staff member opens a different plugin
-- **THEN** familiar actions retain their icons, visible labels, spacing and cursors
+- **THEN** familiar actions retain their icons, accessible names, spacing and cursors
 - **AND** statuses retain their meaning and readable text in both themes
+
+#### Scenario: Sharing loading feedback
+
+- **WHEN** a host mounts the shared loading provider and indicator beneath its navbar
+- **THEN** plugin read and refresh states contribute to one activity queue
+- **AND** the indicator waits 300ms after the final activity finishes before hiding, including failed operations
+- **AND** unmounting releases activity, nested providers reuse the queue, and hooks preserve behavior without a provider
+
+#### Scenario: Refreshing plugin data
+
+- **WHEN** a plugin offers refresh or reload, including error recovery
+- **THEN** the control shows only `RefreshCwIcon`, with its translated accessible name and matching icon tooltip
+- **AND** existing callbacks, pending/disabled behavior and keyboard activation remain intact
 
 #### Scenario: Saving a project or another plugin record
 
@@ -1055,6 +1068,21 @@ The exported Drive Drizzle schema SHALL include trash.
   SHALL remain retryable; location or name conflicts SHALL offer the Trash recovery
   flow without overwriting active files. Permanent deletion SHALL NOT offer Undo.
 
+#### Scenario: Keeping recovery within the current folder browser
+
+- **WHEN** a user changes search, sorting or switches between Files and Trash in the same folder browser
+- **THEN** pending recovery SHALL remain active and update the current folder's listings on completion
+- **AND** restore conflicts SHALL retain destination/name recovery and failed retries SHALL retain entered choices
+- **AND** unconfirmed bulk selections SHALL clear on view changes while confirmed batches retain Deletion session behavior
+
+#### Scenario: Leaving Drive during recovery
+
+- **WHEN** the user changes folders/spaces or the browser unmounts while a deletion or restore is pending
+- **THEN** its Undo controls SHALL close and late completions SHALL NOT refresh the departed view, create notifications or reopen recovery
+- **AND** already submitted writes MAY finish on their original server
+- **AND** replacing only the client within the same browser SHALL preserve recovery, with future Undo and restore retries using the latest client and already submitted writes retaining their original client
+- **AND** hosts SHALL still reset Drive when authenticated identity changes
+
 #### Scenario: Retaining and restoring a trash group
 
 - **WHEN** a trashed group is listed, retained or restored
@@ -1406,6 +1434,21 @@ items SHALL remain visible with a pending-colored status at the top right.
 - **AND** a confirmed bulk deletion SHALL continue through its original client and retain only failed entries for retry without altering the replacement list
 - **AND** loaded rows SHALL remain visible during same-client refresh and failed reads, with further writes disabled until the read succeeds
 
+#### Scenario: Replacing a menu item editor
+
+- **WHEN** the host changes the editor's client or item ID, including creation/edit transitions
+- **THEN** the editor SHALL reset its draft, version, validation and pending state without requiring a host-supplied key
+- **AND** earlier save completions SHALL NOT update the replacement editor, show feedback or call `onSaved` after replacement or unmount
+- **AND** an already submitted write MAY finish on its original server
+
+#### Scenario: Preserving the current menu item draft
+
+- **WHEN** the same client supplies refreshed data for the same item or the user navigates photo folders
+- **THEN** the editor SHALL preserve the local draft and its version rather than silently rebasing edits
+- **AND** fields SHALL remain editable while a save submits a snapshot, with duplicate submissions disabled
+- **AND** success SHALL advance only the accepted version without overwriting later edits; failure SHALL retain the draft and version for retry
+- **AND** existing server version checks SHALL continue to reject conflicting writes
+
 #### Scenario: Filtering visible dishes
 
 - **WHEN** a visitor filters a supplied public menu
@@ -1753,8 +1796,8 @@ available. Feedback SHALL support mouse, touch, both themes and narrow screens.
 ### Requirement: Reservations plugin
 
 `@forge/reservations` SHALL provide public booking, private guest management,
-staff year/month/week/day/agenda calendars, a dedicated staff creation page and settings.
-Appointment creation SHALL support optional month
+staff year/month/week/day calendars, a paginated all-date list, a dedicated staff
+creation page and settings. Appointment creation SHALL support optional month
 availability batching for guest and staff clients, retaining daily fallback for
 existing host adapters and separate selected-day slot reads.
 
@@ -1769,8 +1812,10 @@ existing host adapters and separate selected-day slot reads.
   to arrival selection and preserve departure. Appointments SHALL use fixed duration
   and working hours.
   Staff calendars SHALL support host-controlled resource, service and status filters.
-  Agenda SHALL be the initial staff calendar view on desktop and mobile.
-  The showroom SHALL persist non-default filters in the URL and remove defaults.
+  List SHALL be the initial staff view on desktop and mobile. Month SHALL reuse the
+  public date picker with reservation counts and a selected-date list.
+  The all-date List SHALL replace Agenda with shared pagination and authenticated, bounded server reads.
+  The showroom SHALL persist non-default filters, view, date and list page in the URL and remove defaults.
 
 #### Scenario: Integrating reservation persistence
 
@@ -2045,3 +2090,24 @@ or expose an unfiltered total. Host adapters SHALL preserve URL-owned page state
 - **WHEN** the host receives an invalid cursor or page size
 - **THEN** the service rejects it without performing an unbounded query
 - **AND** the host resets paging when search, ownership scope or mutations change the result set
+
+### Requirement: Dialog close controls
+
+Every plugin dialog SHALL display an X close control at the top right, with a
+translated accessible name, matching icon tooltip, visible keyboard focus and a
+usable mobile target. It SHALL follow existing dismissal and pending guards.
+
+#### Scenario: Dismissing a dialog on a narrow screen
+
+- **WHEN** a user opens a form, confirmation or informational dialog
+- **THEN** its close icon is visible beside the title without overlap
+- **AND** activating it uses the same safe dismissal as the existing cancel action
+- **AND** operations that already prevent dismissal also disable the close icon
+
+#### Scenario: Scrolling a long dialog
+
+- **WHEN** dialog content exceeds the available viewport height
+- **THEN** the title and close control remain visible at the top and bottom actions remain visible at the bottom
+- **AND** bottom actions are fully visible before scrolling even when preceding content fills a short viewport
+- **AND** scrolling content stays behind opaque header and action surfaces
+- **AND** fields remain reachable with keyboard and pointer input, actions wrap on narrow screens, and existing submit and pending behavior is preserved
