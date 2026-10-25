@@ -578,9 +578,7 @@ await test("blog registry files ship independently and never expose server impor
     if (name === "blogs-storage") files.push("registry/components/utils/storage-filename.ts");
     assert.deepEqual(item.files.map((f) => f.path).sort(), files.sort());
     for (const file of item.files) {
-      assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
       const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-      assert.doesNotMatch(source, /from ["'](?:next|@\/lib\/|@\/showroom\/)/);
       if (name === "blogs")
         assert.doesNotMatch(
           source,

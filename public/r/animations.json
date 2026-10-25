@@ -6,6 +6,9 @@
   "dependencies": [
     "motion"
   ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
   "files": [
     {
       "path": "registry/components/animations.tsx",

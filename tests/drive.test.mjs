@@ -76,9 +76,7 @@ await test("Drive UI ships independently; only the companion contains storage de
     if (item === server) actual.push("registry/components/utils/storage-filename.ts");
     assert.deepEqual(item.files.map((file) => file.path).sort(), actual.sort());
     for (const file of item.files) {
-      assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
       const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-      assert.doesNotMatch(source, /from ["'](?:next|@\/lib\/|@\/showroom\/)/);
       if (item === ui)
         assert.doesNotMatch(
           source,

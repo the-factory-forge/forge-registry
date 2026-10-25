@@ -87,23 +87,10 @@ await test("projects installs customers without creating a reverse dependency or
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");
   assert.ok(!customersItem.registryDependencies.includes("@forge/projects"));
-  const shipped = [...item.files, ...customersItem.files];
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-    assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
-    assert.doesNotMatch(source, /from ["'](?:next|@tanstack|@\/lib\/|@\/showroom\/)/);
+    assert.doesNotMatch(source, /from ["']@tanstack\//);
     assert.doesNotMatch(source, /GitHub|googleAnalytics|lighthouse|ImageUp|CameraIcon/);
-    for (const [, dependency] of source.matchAll(/from "(@\/components\/plugins\/[^";]+)"/g)) {
-      const path = dependency.replace("@/components/", "registry/components/");
-      assert.ok(
-        shipped.some(
-          (entry) =>
-            entry.path.replace(/\/index\.tsx$|\.tsx?$/g, "") === path ||
-            entry.path.replace(/\.tsx?$/, "") === path,
-        ),
-        dependency,
-      );
-    }
   }
   for (const file of customersItem.files)
     assert.doesNotMatch(

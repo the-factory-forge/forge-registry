@@ -249,7 +249,8 @@
           "target": "@components/animations.tsx"
         }
       ],
-      "dependencies": ["motion"]
+      "dependencies": ["motion"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "reveal",
@@ -263,7 +264,8 @@
           "target": "@components/reveal.tsx"
         }
       ],
-      "dependencies": ["motion"]
+      "dependencies": ["motion"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "share-button",
@@ -277,7 +279,8 @@
           "target": "@components/share-button.tsx"
         }
       ],
-      "dependencies": ["lucide-react"]
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "back-to-top",
@@ -508,7 +511,8 @@
           "type": "registry:component",
           "target": "@components/manage-cookies-button.tsx"
         }
-      ]
+      ],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "footer",

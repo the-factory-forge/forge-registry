@@ -3,6 +3,9 @@
   "name": "manage-cookies-button",
   "title": "Manage Cookies Button",
   "description": "Client-side button that dispatches a manage-cookies event for the cookie banner.",
+  "registryDependencies": [
+    "@forge/cn"
+  ],
   "files": [
     {
       "path": "registry/components/manage-cookies-button.tsx",

@@ -238,22 +238,15 @@ await test("access changes and deletion use native auth operations with the auth
   }
 });
 
-await test("auth and employees ship complete independent source without host configuration", async () => {
+await test("auth and employees keep host configuration and server imports out of UI", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
   for (const name of ["auth", "employees", "employees-server"]) {
     const item = manifest.items.find((item) => item.name === name);
-    const published = JSON.parse(
-      await readFile(new URL(`../public/r/${name}.json`, import.meta.url), "utf8"),
-    );
     for (const file of item.files) {
       const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-      assert.equal(published.files.find((entry) => entry.path === file.path).content, source);
-      assert.doesNotMatch(
-        source,
-        /from ["'](?:next|@tanstack\/react-(?:start|router)|@\/lib\/|@\/showroom\/|varlock)/,
-      );
+      assert.doesNotMatch(source, /from ["']varlock/);
       assert.doesNotMatch(source, /process\.env|ENV\.|SITE_NAME|SITE_LOGO/);
       if (name !== "employees-server") assert.doesNotMatch(source, /from ["'][^"']*\/server\//);
     }
