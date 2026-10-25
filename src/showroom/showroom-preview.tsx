@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { PreviewControls } from "@/showroom/preview-controls";
 
@@ -33,6 +33,16 @@ export function ShowroomPreview({
   notice?: ReactNode;
   width?: "standard" | "narrow" | "full";
 }) {
+  const initialSettingsOpen = useSyncExternalStore(
+    subscribeReady,
+    () => window.matchMedia("(min-width: 40rem)").matches,
+    () => null,
+  );
+  const [settingsChoice, setSettingsChoice] = useState<boolean | null>(null);
+  if (settingsChoice === null && initialSettingsOpen !== null) {
+    setSettingsChoice(initialSettingsOpen);
+  }
+  const settingsOpen = settingsChoice ?? true;
   const ready = useSyncExternalStore(
     subscribeReady,
     () => true,
@@ -45,10 +55,16 @@ export function ShowroomPreview({
       className="showroom-frame"
       data-width={width}
       data-has-controls={Boolean(controls || navigation)}
+      data-controls-open={settingsOpen}
       data-preview-ready={ready}
     >
       {(controls || navigation) && (
-        <PreviewControls navigation={navigation} notice={notice}>
+        <PreviewControls
+          open={settingsOpen}
+          onToggle={() => setSettingsChoice(!settingsOpen)}
+          navigation={navigation}
+          notice={notice}
+        >
           {controls}
         </PreviewControls>
       )}

@@ -430,6 +430,154 @@ await suite("Showroom browser", async () => {
     assert.deepEqual(errors, []);
   });
 
+  await test("settings default to closed on phones and open on larger screens", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    for (const width of [320, 639, 640, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${baseURL}/en/admin/blogs`);
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      const toggle = page.getByRole("button", { name: "Settings", exact: true });
+      const panel = page.locator("#factory-showroom-controls");
+      const defaultOpen = width >= 640;
+      assert.equal(await panel.isVisible(), defaultOpen);
+      assert.equal(await toggle.getAttribute("aria-expanded"), String(defaultOpen));
+      await toggle.click();
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await page.setViewportSize({ width: defaultOpen ? 320 : 1440, height: 900 });
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await page.setViewportSize({ width, height: 900 });
+      await page.reload();
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      assert.equal(await panel.isVisible(), defaultOpen);
+    }
+    assert.deepEqual(errors, []);
+  });
+
+  await test("settings toggle preserves controls and releases preview space", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ["light", "dark"]) {
+        await page.goto(`${baseURL}/en/admin/blogs`);
+        await page.locator('[data-preview-ready="true"]').waitFor();
+        const themeButton = page.getByRole("button", {
+          name: `${theme === "dark" ? "Dark" : "Light"} mode`,
+          exact: true,
+        });
+        if (await themeButton.count()) await themeButton.click();
+        const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        if (width < 640) await toggle.click();
+        const panel = page.locator("#factory-showroom-controls");
+        const heading = page.getByRole("heading", { name: "Preview controls", exact: true });
+        assert.equal(await toggle.textContent(), "");
+        assert.equal(await page.locator(".showroom-settings").count(), 0);
+        const buttonBox = await toggle.boundingBox();
+        const headingBox = await heading.boundingBox();
+        assert.ok(buttonBox.x > headingBox.x + headingBox.width);
+        assert.equal(buttonBox.y + buttonBox.height / 2, headingBox.y + headingBox.height / 2);
+        const tooltip = page.getByRole("tooltip", { name: "Settings", exact: true });
+        await page.mouse.move(0, 0);
+        await toggle.hover();
+        await tooltip.waitFor();
+        await toggle.press("Escape");
+        await tooltip.waitFor({ state: "hidden" });
+        await page.mouse.move(0, 0);
+        await toggle.press("Tab");
+        await page.keyboard.press("Shift+Tab");
+        await tooltip.waitFor();
+        await toggle.press("Escape");
+        await tooltip.waitFor({ state: "hidden" });
+        const readOnly = panel.getByLabel("Read-only", { exact: true });
+        await readOnly.check();
+        const preview = page.locator("#factory-showroom-preview");
+        const expanded = await preview.boundingBox();
+        const activeBackground = await toggle.evaluate(
+          (el) => getComputedStyle(el).backgroundColor,
+        );
+        assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+        await toggle.press("Enter");
+        assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+        assert.equal(await panel.isVisible(), false);
+        assert.equal(await heading.isVisible(), false);
+        assert.equal(await toggle.isVisible(), true);
+        assert.equal(await page.getByRole("navigation", { name: "Preview navigation" }).count(), 0);
+        assert.notEqual(
+          await toggle.evaluate((el) => getComputedStyle(el).backgroundColor),
+          activeBackground,
+        );
+        const collapsed = await preview.boundingBox();
+        if (width >= 1024) assert.ok(collapsed.width > expanded.width);
+        else assert.ok(collapsed.y < expanded.y);
+        if (width >= 640) assert.deepEqual(await toggle.boundingBox(), buttonBox);
+        else assert.equal((await toggle.boundingBox()).y, collapsed.y + 16);
+        assert.equal(await toggle.evaluate((el) => document.activeElement === el), true);
+        await toggle.press("Tab");
+        assert.equal(await panel.evaluate((el) => el.contains(document.activeElement)), false);
+        await toggle.press("Space");
+        assert.equal(await panel.isVisible(), true);
+        assert.equal(await readOnly.isChecked(), true);
+        assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+        assert.deepEqual(await preview.boundingBox(), expanded);
+        await toggle.click();
+        assert.equal(await panel.isVisible(), false);
+        await toggle.click();
+        assert.equal(await panel.isVisible(), true);
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+      }
+    }
+    await page.goto(baseURL);
+    assert.equal(await page.getByRole("button", { name: "Settings", exact: true }).count(), 0);
+    assert.deepEqual(errors, []);
+  });
+
+  await test("collapsed smartphone settings share the blog editor back row", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const width of [320, 375]) {
+      await page.setViewportSize({ width, height: 850 });
+      await page.goto(`${baseURL}/en/admin/blogs`);
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      await page.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
+      const toggle = page.getByRole("button", { name: "Settings", exact: true });
+      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+      const back = page.getByRole("link", { name: "← Back to posts", exact: true });
+      const backBox = await back.boundingBox();
+      const toggleBox = await toggle.boundingBox();
+      assert.equal(toggleBox.y, backBox.y);
+      assert.ok(backBox.x + backBox.width < toggleBox.x);
+      assert.equal((await page.locator("#factory-showroom-preview").boundingBox()).y, 56);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await toggle.click();
+      assert.equal(await page.locator("#factory-showroom-controls").isVisible(), true);
+      await toggle.click();
+      await back.click();
+      await page.waitForURL(`${baseURL}/en/admin/blogs`);
+    }
+    await page.goto(`${baseURL}/en/login`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const toggle = page.getByRole("button", { name: "Settings", exact: true });
+    assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+    const preview = await page.locator("#factory-showroom-preview").boundingBox();
+    const gear = await toggle.boundingBox();
+    assert.ok(preview.y >= gear.y + gear.height);
+    assert.equal((await page.locator(".showroom-fill").boundingBox()).width, preview.width);
+  });
+
   await test("expanded settings stay beside desktop previews and stack on mobile", async (t) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     t.after(() => context.close());
@@ -478,6 +626,7 @@ await suite("Showroom browser", async () => {
       for (const path of ["/en/login", "/en/projects", "/en/blogs", "/en/intranet-sidebar"]) {
         await page.goto(baseURL + path);
         await page.locator('[data-preview-ready="true"]').waitFor();
+        await page.getByRole("button", { name: "Settings", exact: true }).click();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,

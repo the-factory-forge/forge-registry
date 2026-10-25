@@ -4,6 +4,7 @@ import { after, before, test, suite } from "node:test";
 import { chromium } from "playwright";
 
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Subpage sidebar browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -28,6 +29,7 @@ await suite("Subpage sidebar browser", async () => {
     t.after(() => assert.deepEqual(errors, []));
     await page.goto(`${baseURL}${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
+    await openPreviewControls(page);
     if (theme === "dark")
       await page.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;

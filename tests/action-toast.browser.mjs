@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -27,6 +28,7 @@ void test("project success toasts preserve layout, focus and repeated saves in b
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`${baseURL}/en/projects/website`);
       await page.locator('[data-preview-ready="true"]').waitFor();
+      await openPreviewControls(page);
       if (colorScheme === "dark")
         await page.getByRole("button", { name: "Dark mode", exact: true }).click();
       const button = page.getByRole("button", { name: "Save changes", exact: true });
@@ -70,6 +72,7 @@ void test("toast expiry pauses on hover, nested providers share one queue, and n
   t.after(() => page.close());
   await page.goto(`${baseURL}/en/projects/website`);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await openPreviewControls(page);
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   const toast = page.getByRole("dialog", { name: "Project updated.", exact: true });
   await toast.hover();
@@ -86,6 +89,7 @@ void test("toast example remains available directly and failures retain inline r
   t.after(() => page.close());
   await page.goto(`${baseURL}/action-toast`);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await openPreviewControls(page);
   await page.getByRole("heading", { name: "Action toast", exact: true }).waitFor();
   await page.getByLabel("Simulate action failures").check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
@@ -110,6 +114,7 @@ void test("background toasts share the confirmation frame and keep footer action
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`${baseURL}/action-toast`);
       await page.locator('[data-preview-ready="true"]').waitFor();
+      await openPreviewControls(page);
       if (colorScheme === "dark")
         await page.getByRole("button", { name: "Dark mode", exact: true }).click();
       await page.getByRole("button", { name: "Save changes", exact: true }).click();

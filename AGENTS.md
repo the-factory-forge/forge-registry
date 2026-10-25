@@ -311,7 +311,7 @@ for separating reusable feature code from website adapters.
 
 Wrap examples in `ShowroomPreview` from `src/showroom/showroom-preview.tsx`.
 Supply demo-specific `controls` and optional `navigation`; the shared frame owns
-spacing, the always-expanded right settings sidebar (stacked above the preview
+spacing, the toggleable right settings sidebar (stacked above the preview
 on mobile), keyboard entry, and header offsets.
 Use its standard, narrow, or full width rather than per-route viewport math.
 Light/Dark selection belongs to the shared header, persists across demos, and

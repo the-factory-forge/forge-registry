@@ -158,8 +158,13 @@ indexing decisions, and social metadata.
 ## Shared preview frame
 
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React
-content; the frame places them in an always-expanded right sidebar on desktop
-and above the preview below 64rem. Demos without settings keep the full width. Demo state and callbacks
+content; the frame places them in a right sidebar on desktop
+and above the preview below 64rem. An icon-only Settings button beside
+Preview controls shows or hides the panel content. Settings start hidden below 40rem and open on larger screens; hiding
+them preserves their values and leaves only the gear available to reopen them. Demos without settings omit the button
+and keep the full width. A manual visibility choice lasts until the frame remounts,
+including across viewport resizes. Reloading restores the default for the current width.
+Demo state and callbacks
 stay beside their examples. The shared header has a single sun/moon icon button
 that toggles Light/Dark mode. It also provides the first keyboard stop,
 **Skip to preview**. Activating it focuses the preview and
@@ -202,8 +207,12 @@ Intranet content uses `showroom-inset` and its custom sticky toolbar uses
 `showroom-sticky`.
 
 The shared stylesheet defines the header height once. The desktop settings sidebar
-stays below that header, occupies its own grid column, and scrolls independently
-when needed. On smaller screens, settings remain expanded in normal page flow.
+stays below the header, occupies its own grid column, and scrolls independently
+when needed. When collapsed, its column shrinks to the gear button and padding.
+Expanded settings use normal page flow above the preview on smaller screens.
+Below 40rem, the collapsed gear floats at the right of the preview’s first row,
+so it can sit beside a back link without adding a separate row or covering content.
+Full application previews clear the gear to preserve their own full-width layouts.
 Preview height and intranet offsets depend only on the header; no JavaScript
 measurement is needed. Do not repeat viewport math, header offsets, or per-demo
 theme effects in route files. Keep content free to grow and scroll when it needs

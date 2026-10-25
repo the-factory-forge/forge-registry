@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { openPreviewControls } from "./showroom-helpers.mjs";
+
 let browser;
 before(async () => {
   browser = await chromium.launch();
@@ -21,6 +23,7 @@ async function preview(t, path, options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(base + path);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await openPreviewControls(page);
   return page;
 }
 

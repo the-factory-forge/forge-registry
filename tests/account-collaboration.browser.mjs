@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { openPreviewControls } from "./showroom-helpers.mjs";
+
 let browser;
 before(async () => {
   browser = await chromium.launch();
@@ -42,6 +44,7 @@ void test("account tabs restore URL state and email confirmation preserves the c
     .getByText("The host supplies employee account fields here.", { exact: true })
     .waitFor();
   await page.getByRole("tab", { name: "About you", exact: true }).click();
+  await openPreviewControls(page);
   await page.getByLabel("Allow email change").check();
   await page.getByLabel("Simulate action failures").check();
   const email = page.getByRole("textbox", { name: "New email address", exact: true });

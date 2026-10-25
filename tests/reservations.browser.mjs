@@ -4,6 +4,7 @@ import { after, before, test, suite } from "node:test";
 import { chromium } from "playwright";
 
 import { actionToast } from "./action-toast-helpers.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Reservations browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3215";
@@ -24,6 +25,7 @@ await suite("Reservations browser", async () => {
     t.after(() => assert.deepEqual(errors, []));
     await page.goto(baseURL + path);
     await page.locator('[data-preview-ready="true"]').waitFor();
+    await openPreviewControls(page);
     return page;
   }
   async function createBooking(page, name = "Robin Example") {

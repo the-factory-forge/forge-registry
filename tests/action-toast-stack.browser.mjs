@@ -29,6 +29,8 @@ void test("toast stacks expand with mouse, touch and keyboard and keep every act
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`${baseURL}/action-toast`);
       await page.locator('[data-preview-ready="true"]').waitFor();
+      if (width === 390)
+        await activate(page.getByRole("button", { name: "Settings", exact: true }));
       if (colorScheme === "dark")
         await activate(page.getByRole("button", { name: "Dark mode", exact: true }));
       await activate(page.getByLabel("Simulate action failures"));

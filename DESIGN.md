@@ -142,8 +142,12 @@ The showroom has a sticky 56px header, a standard 80rem maximum width, and fluid
 16px to 32px gutters. Narrow previews cap at 48rem; full previews remove the width
 cap and outer padding. Use the existing ShowroomPreview width options.
 
-Settings occupy a separate 18rem column at 64rem and above. Below that breakpoint
-they remain expanded above the preview. The directory uses one column, two at
+Settings start hidden below 40rem and open on larger screens. Open settings occupy
+a separate 18rem column at 64rem and above, and stack above the preview below that
+breakpoint. An icon-only Settings button beside the panel
+title toggles its content while preserving values. The collapsed panel keeps
+only the gear button and its padding. Below 40rem, the collapsed gear shares the
+preview’s first row, allowing content to flow beside it. The directory uses one column, two at
 40rem, and three at 64rem, with 16px gaps. Controls wrap with gaps in both axes.
 
 Reusable page sections use the existing container and section-spacing helpers.
