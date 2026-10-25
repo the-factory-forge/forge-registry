@@ -13,7 +13,8 @@
 # testing
 /coverage
 
-# TanStack Start / Nitro
+# Vite / TanStack Start / Nitro
+/.vite/
 /.output/
 /.tanstack/
 /dist/
@@ -25,6 +26,7 @@
 /build
 
 # misc
+/.codex-attachments/
 .DS_Store
 *.pem
 

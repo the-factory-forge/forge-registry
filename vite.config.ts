@@ -5,6 +5,7 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  cacheDir: ".vite",
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
   plugins: [tanstackStart(), nitro({ preset: "node-server" }), react(), tailwindcss()],
