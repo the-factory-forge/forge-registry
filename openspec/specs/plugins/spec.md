@@ -800,6 +800,13 @@ the optimistic mutation isolation requirement.
   Failed renames SHALL retain the inline field and entered name for retry,
   with accessible error feedback that does not move the file table.
 
+#### Scenario: Owning upload state and actions
+
+- **WHEN** the upload queue publishes its state to Drive feedback
+- **THEN** the queue SHALL own action eligibility and aggregate loading/completion status
+- **AND** feedback SHALL receive presentation data without files, abort controllers or internal lifecycle flags
+- **AND** existing retry, cancellation, cleanup, concurrency and toast presentation behavior SHALL remain unchanged
+
 #### Scenario: Reporting upload progress and recovery
 
 - **WHEN** a Drive upload or related asynchronous action is pending or completes
@@ -880,6 +887,15 @@ the optimistic mutation isolation requirement.
 - **THEN** Drive SHALL replace the snapshot and resume permitted actions
 - **AND** only accepted successful reads SHALL update the timestamp used to evaluate trash expiry
 - **AND** a listing refresh SHALL NOT reset an optimistic mutation that is still pending
+
+#### Scenario: Preparing Drive deletion
+
+- **WHEN** a single-entry or bulk deletion preview is requested
+- **THEN** Drive SHALL own its counts and confirmation tokens together and ignore superseded or unmounted preview completions
+- **AND** single-entry confirmation SHALL remain available during preparation, await the preview and submit without another confirmation
+- **AND** a single-entry conflict SHALL invalidate the token so the next confirmation prepares and submits again; other mutation failures SHALL retain the token for retry
+- **AND** bulk deletion SHALL retain its shared Deletion session, refresh only failed entries and require explicit confirmation after refreshed previews
+- **AND** host client methods, authorization and trash versus permanent deletion SHALL remain unchanged
 
 ### Requirement: Drive folder action menu
 
@@ -1721,6 +1737,9 @@ available. Feedback SHALL support mouse, touch, both themes and narrow screens.
 
 `@forge/reservations` SHALL provide public booking, private guest management,
 staff year/month/week/day/agenda calendars, a dedicated staff creation page and settings.
+Appointment creation SHALL support optional month
+availability batching for guest and staff clients, retaining daily fallback for
+existing host adapters and separate selected-day slot reads.
 
 #### Scenario: Using the configured booking mode
 

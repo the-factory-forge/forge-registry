@@ -237,3 +237,176 @@ void test("Drive keeps the latest preview tokens when old previews finish last",
   await page.evaluate(() => window.bulkTest.resolve(1));
   await dialog(page).waitFor({ state: "hidden" });
 });
+
+const singleDialog = (page) => page.getByRole("dialog");
+const singleConfirm = (page, trash = false) =>
+  singleDialog(page).getByRole("button", {
+    name: trash ? "Move to trash" : "Delete permanently",
+    exact: true,
+  });
+async function openSingle(page) {
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+}
+
+for (const trash of [false, true]) {
+  void test(`Drive single ${trash ? "trash" : "delete"} waits for an early confirmation exactly once`, async (t) => {
+    const page = await fixture(t, trash ? "single&trash" : "single");
+    await openSingle(page);
+    await waitPreviews(page, 1);
+    const button = singleConfirm(page, trash);
+    assert.equal(await button.isEnabled(), true);
+    assert.equal(
+      await singleDialog(page).getByRole("button", { name: "Cancel", exact: true }).isEnabled(),
+      true,
+    );
+    await button.evaluate((node) => {
+      node.click();
+      node.click();
+    });
+    assert.equal(await button.isEnabled(), false);
+    assert.equal(await page.evaluate(() => window.bulkTest.calls.length), 0);
+    await page.evaluate(() => window.bulkTest.resolvePreview(0, "original"));
+    await waitCalls(page, 1);
+    assert.equal(await page.evaluate(() => window.bulkTest.calls[0].requestId), "original");
+    await page.evaluate(() => window.bulkTest.resolve(0));
+    await singleDialog(page).waitFor({ state: "hidden" });
+  });
+}
+
+void test("Drive single retry keeps ordinary failures' tokens but refreshes conflicts without an extra confirmation", async (t) => {
+  const page = await fixture(t, "single");
+  await openSingle(page);
+  await waitPreviews(page, 1);
+  await page.evaluate(() => window.bulkTest.resolvePreview(0, "original"));
+  await singleConfirm(page).click();
+  await waitCalls(page, 1);
+  await page.evaluate(() => window.bulkTest.reject(0, "STORAGE"));
+  await singleDialog(page).getByRole("alert").waitFor();
+  await singleConfirm(page).click();
+  await waitCalls(page, 2);
+  assert.equal(await page.evaluate(() => window.bulkTest.previewCount()), 1);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[1].requestId), "original");
+  await page.evaluate(() => window.bulkTest.reject(1, "CONFLICT"));
+  await page.waitForFunction(() => !document.querySelector('button[type="submit"]').disabled);
+  assert.equal(await page.evaluate(() => window.bulkTest.previewCount()), 1);
+  await singleConfirm(page).click();
+  await waitPreviews(page, 2);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls.length), 2);
+  await page.evaluate(() => window.bulkTest.resolvePreview(1, "fresh", 3));
+  await waitCalls(page, 3);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[2].requestId), "fresh");
+  await page.evaluate(() => window.bulkTest.resolve(2));
+  await singleDialog(page).waitFor({ state: "hidden" });
+});
+
+void test("Drive single preview failure retries preparation and deletion in the same confirmation", async (t) => {
+  const page = await fixture(t, "single");
+  await openSingle(page);
+  await waitPreviews(page, 1);
+  await page.evaluate(() => window.bulkTest.rejectPreview(0));
+  await singleDialog(page).getByRole("alert").waitFor();
+  await singleConfirm(page).click();
+  await waitPreviews(page, 2);
+  await page.evaluate(() => window.bulkTest.resolvePreview(1, "retry"));
+  await waitCalls(page, 1);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[0].requestId), "retry");
+  await page.evaluate(() => window.bulkTest.resolve(0));
+  await singleDialog(page).waitFor({ state: "hidden" });
+});
+
+void test("Drive single cancellation and reopening ignore an older preview", async (t) => {
+  const page = await fixture(t, "single");
+  await openSingle(page);
+  await waitPreviews(page, 1);
+  await singleDialog(page).getByRole("button", { name: "Cancel", exact: true }).click();
+  await singleDialog(page).waitFor({ state: "hidden" });
+  await openSingle(page);
+  await waitPreviews(page, 2);
+  await page.evaluate(() => window.bulkTest.resolvePreview(1, "current", 3));
+  await singleDialog(page)
+    .getByText(/3 file\(s\)/)
+    .waitFor();
+  await page.evaluate(async () => {
+    window.bulkTest.resolvePreview(0, "stale");
+    await new Promise(requestAnimationFrame);
+  });
+  await singleDialog(page)
+    .getByText(/3 file\(s\)/)
+    .waitFor();
+  await singleConfirm(page).click();
+  await waitCalls(page, 1);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[0].requestId), "current");
+  await page.evaluate(() => window.bulkTest.resolve(0));
+  await singleDialog(page).waitFor({ state: "hidden" });
+});
+
+void test("Drive bulk failure refreshes only failed tokens and waits for reconfirmation", async (t) => {
+  const page = await fixture(t, "drive");
+  await open(page);
+  await waitPreviews(page, 2);
+  const button = dialog(page).getByRole("button", { name: "Delete permanently", exact: true });
+  assert.equal(
+    await dialog(page).getByRole("button", { name: "Please wait…", exact: true }).isEnabled(),
+    false,
+  );
+  await page.evaluate(() => {
+    window.bulkTest.resolvePreview(0, "alpha-original");
+    window.bulkTest.resolvePreview(1, "beta-original");
+  });
+  await button.click();
+  await waitCalls(page, 1);
+  await page.evaluate(() => window.bulkTest.reject(0, "CONFLICT"));
+  await waitCalls(page, 2);
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[1].requestId), "beta-original");
+  await page.evaluate(() => window.bulkTest.resolve(1));
+  await waitPreviews(page, 3);
+  await page.evaluate(() => window.bulkTest.resolvePreview(2, "alpha-fresh", 3));
+  await button.waitFor();
+  assert.equal(await page.evaluate(() => window.bulkTest.calls.length), 2);
+  await button.click();
+  await waitCalls(page, 3);
+  assert.deepEqual(
+    await page.evaluate(() => window.bulkTest.calls.map(({ id, requestId }) => [id, requestId])),
+    [
+      ["alpha", "alpha-original"],
+      ["beta", "beta-original"],
+      ["alpha", "alpha-fresh"],
+    ],
+  );
+  await page.evaluate(() => window.bulkTest.resolve(2));
+  await dialog(page).waitFor({ state: "hidden" });
+});
+
+void test("Drive confirmed bulk retry keeps its original scope and callbacks across a view change", async (t) => {
+  const page = await fixture(t, "drive");
+  await open(page);
+  await waitPreviews(page, 2);
+  await page.evaluate(() => {
+    window.bulkTest.resolvePreview(0, "alpha-original");
+    window.bulkTest.resolvePreview(1, "beta-original");
+  });
+  const button = dialog(page).getByRole("button", { name: "Delete permanently", exact: true });
+  await button.click();
+  await waitCalls(page, 1);
+  await page.evaluate(() => {
+    window.bulkTest.changeView();
+    window.bulkTest.reject(0, "CONFLICT");
+  });
+  await waitCalls(page, 2);
+  await page.evaluate(() => window.bulkTest.resolve(1));
+  await waitPreviews(page, 3);
+  await page.evaluate(() => window.bulkTest.resolvePreview(2, "alpha-fresh"));
+  await button.click();
+  await waitCalls(page, 3);
+  assert.deepEqual(
+    await page.evaluate(() => window.bulkTest.calls.map(({ view, scope }) => [view, scope])),
+    [
+      [0, "0"],
+      [0, "0"],
+      [0, "0"],
+    ],
+  );
+  assert.equal(await page.evaluate(() => window.bulkTest.calls[2].requestId), "alpha-fresh");
+  await page.evaluate(() => window.bulkTest.resolve(2));
+  await dialog(page).waitFor({ state: "hidden" });
+});

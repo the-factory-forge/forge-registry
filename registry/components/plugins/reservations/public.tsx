@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useRef, useState, type ComponentType } from "react";
+import { useCallback, useMemo, useRef, useState, type ComponentType } from "react";
 import { Temporal } from "temporal-polyfill";
 
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -151,6 +151,12 @@ export function BookingForm({
     [client, serviceId, resourceId, stay, departureDate],
   );
   const loadSlots = useCallback(() => availability(date), [availability, date]);
+  const monthAvailability = useMemo(() => {
+    const load = client.monthAvailability?.bind(client);
+    return load
+      ? (month: string) => load({ serviceId, resourceId: resourceId || undefined, month })
+      : undefined;
+  }, [client, serviceId, resourceId]);
   const slots = useReservationLoad(loadSlots);
   const selectedSlot = slots.value?.find((slot) => slot.startsAt === startsAt);
   const zone = catalog.settings.timeZone;
@@ -257,18 +263,6 @@ export function BookingForm({
                   setDepartureDate(departure);
                 }}
               />
-            ) : staff ? (
-              <Field label={labels.date}>
-                <input
-                  type="date"
-                  required
-                  className={fieldClass}
-                  value={date}
-                  onChange={(e) => {
-                    if (e.target.value) selectDate(e.target.value);
-                  }}
-                />
-              </Field>
             ) : (
               <div className={panelClass}>
                 <DatePicker
@@ -277,6 +271,7 @@ export function BookingForm({
                   labels={labels}
                   locale={locale}
                   availability={availability}
+                  monthAvailability={monthAvailability}
                 />
               </div>
             )}

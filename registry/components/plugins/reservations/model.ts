@@ -5,6 +5,7 @@ import {
   ReservationError,
   type Reservation,
   type ReservationAvailabilityQuery,
+  type ReservationMonthAvailabilityQuery,
   type ReservationBookingInput,
   type ReservationConfiguration,
   type ReservationHours,
@@ -161,6 +162,11 @@ export const availabilitySchema = z.object({
   resourceId: id.optional(),
   date: dateSchema,
   departureDate: dateSchema.optional(),
+});
+export const monthAvailabilitySchema = z.object({
+  serviceId: id,
+  resourceId: id.optional(),
+  month: dateSchema.refine((value) => value.endsWith("-01")),
 });
 export const moveSchema = z.object({
   version: z.number().int().positive(),
@@ -419,6 +425,27 @@ export function availableSlots(
     }
   }
   return [...slots.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+}
+
+export function availableMonth(
+  configuration: ReservationConfiguration,
+  reservations: Reservation[],
+  query: ReservationMonthAvailabilityQuery,
+  now: string,
+  options: { staff?: boolean } = {},
+): Record<string, boolean> {
+  if (configuration.mode === "stay") throw new ReservationError("MODE_MISMATCH");
+  const first = Temporal.PlainDate.from(query.month);
+  const from = first.subtract({ days: first.dayOfWeek - 1 });
+  return Object.fromEntries(
+    Array.from({ length: 42 }, (_, i) => {
+      const date = from.add({ days: i }).toString();
+      return [
+        date,
+        availableSlots(configuration, reservations, { ...query, date }, now, options).length > 0,
+      ];
+    }),
+  );
 }
 
 export function placeReservation(

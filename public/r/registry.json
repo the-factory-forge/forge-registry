@@ -1063,6 +1063,11 @@
           "target": "@components/plugins/drive/use-listing.ts"
         },
         {
+          "path": "registry/components/plugins/drive/use-deletion.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/use-deletion.ts"
+        },
+        {
           "path": "registry/components/plugins/drive/use-uploads.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/use-uploads.ts"

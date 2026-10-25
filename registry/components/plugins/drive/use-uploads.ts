@@ -29,6 +29,15 @@ interface Job {
   busy: boolean;
   cancelled: boolean;
 }
+type Upload = Readonly<
+  Pick<Job, "id" | "relativePath" | "state" | "progress" | "error"> & {
+    name: string;
+    failed: boolean;
+    canRetry: boolean;
+    canCancel: boolean;
+    canDismiss: boolean;
+  }
+>;
 export function useUploads(
   client: DriveClient,
   scope: DriveScope,
@@ -39,14 +48,28 @@ export function useUploads(
   const jobs = useRef<Job[]>([]);
   const mounted = useRef(true);
   const generation = useRef(0);
-  const [uploads, setUploads] = useState<Job[]>([]);
+  const [uploads, setUploads] = useState<Upload[]>([]);
   const [previousParentId, setPreviousParentId] = useState(parentId);
   if (previousParentId !== parentId) {
     setPreviousParentId(parentId);
     setUploads([]);
   }
   const publish = useCallback(() => {
-    if (mounted.current) setUploads(jobs.current.map((job) => ({ ...job })));
+    if (mounted.current)
+      setUploads(
+        jobs.current.map(({ id, file, relativePath, state, progress, error }) => ({
+          id,
+          name: file.name,
+          relativePath,
+          state,
+          progress,
+          error,
+          failed: state === "failed" || state === "cancelFailed",
+          canRetry: state === "failed" || state === "cancelFailed",
+          canCancel: ["queued", "uploading", "failed"].includes(state),
+          canDismiss: state === "done" || state === "cancelled",
+        })),
+      );
   }, []);
   const dismiss = useCallback(
     (id: string) => {
@@ -171,6 +194,10 @@ export function useUploads(
   }, [parentId]);
   return {
     uploads,
+    finished: uploads.every((upload) => upload.canDismiss),
+    loading: uploads.some((upload) =>
+      ["queued", "uploading", "finishing", "cancelling"].includes(upload.state),
+    ),
     add(files: File[], maxBytes: number, destination = parentId, directory = false) {
       for (const file of files) {
         let error: unknown;

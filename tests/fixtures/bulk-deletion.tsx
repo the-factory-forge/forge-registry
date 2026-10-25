@@ -5,7 +5,8 @@ import { ActionToastProvider } from "@/components/action-toast";
 import { AgentKeys } from "@/components/plugins/auth/agent-keys";
 import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import { driveLabels } from "@/components/plugins/drive/labels";
-import type { DriveClient } from "@/components/plugins/drive/types";
+import type { DriveClient, DriveDeletePreview } from "@/components/plugins/drive/types";
+import { EntryDialog } from "@/components/plugins/drive/ui";
 import {
   TableBulkDelete,
   TableSelectionCheckbox,
@@ -28,13 +29,13 @@ const initial = ["Alpha", "Beta"].map((name) => ({
   updatedAt: "2026-01-01",
   state: "ready" as const,
 }));
-const calls: { id: string; requestId: string; view: number }[] = [];
-const requests: { resolve: () => void; reject: () => void }[] = [];
-const previews: { resolve: (token: string) => void; reject: () => void }[] = [];
+const calls: { id: string; requestId: string; view: number; scope?: string }[] = [];
+const requests: { resolve: () => void; reject: (code?: string) => void }[] = [];
+const previews: { resolve: (preview: DriveDeletePreview) => void; reject: () => void }[] = [];
 const kind = new URLSearchParams(location.search).get("kind") ?? "table";
 const delayedPreview = new URLSearchParams(location.search).has("preview");
 function preview() {
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<DriveDeletePreview>((resolve, reject) => {
     previews.push({ resolve, reject: () => reject(new Error("Preview failed")) });
   });
 }
@@ -43,10 +44,10 @@ declare global {
     bulkTest: {
       calls: typeof calls;
       previewCount: () => number;
-      resolvePreview: (index: number, token: string) => void;
+      resolvePreview: (index: number, token: string, files?: number) => void;
       rejectPreview: (index: number) => void;
       resolve: (index: number) => void;
-      reject: (index: number) => void;
+      reject: (index: number, code?: string) => void;
       changeView: () => void;
       remove: (id: string) => void;
       showControl: (show: boolean) => void;
@@ -58,20 +59,24 @@ function Fixture() {
   const [view, setView] = useState(0);
   const [control, setControl] = useState(true);
   const selection = useTableSelection(items, String(view));
-  const onDelete = (id: string, requestId = "") => {
-    calls.push({ id, requestId, view });
+  const onDelete = (id: string, requestId = "", scope?: string) => {
+    calls.push({ id, requestId, view, scope });
     return new Promise<void>((resolve, reject) => {
-      requests.push({ resolve, reject: () => reject(new Error("Delete failed")) });
+      requests.push({
+        resolve,
+        reject: (code) => reject(code ? { code } : new Error("Delete failed")),
+      });
     });
   };
   useEffect(() => {
     window.bulkTest = {
       calls,
       previewCount: () => previews.length,
-      resolvePreview: (index, token) => previews[index].resolve(token),
+      resolvePreview: (index, token, files = 1) =>
+        previews[index].resolve({ token, files, folders: 0 }),
       rejectPreview: (index) => previews[index].reject(),
       resolve: (index) => requests[index].resolve(),
-      reject: (index) => requests[index].reject(),
+      reject: (index, code) => requests[index].reject(code),
       changeView: () => setView((value) => value + 1),
       remove: (id) => setItems((rows) => rows.filter((item) => item.id !== id)),
       showControl: setControl,
@@ -89,9 +94,27 @@ function Fixture() {
     completeUpload: unused,
     cancelUpload: unused,
     getDownload: unused,
-    previewDelete: async () => ({ token: await preview(), files: 1, folders: 0 }),
-    deleteEntry: ({ entryId, token }) => onDelete(entryId, token),
+    previewDelete: preview,
+    deleteEntry: ({ entryId, token, scope }) => onDelete(entryId, token, scope.id),
+    trashEntry: ({ entryId, token, scope }) => onDelete(entryId, token, scope.id),
   };
+  if (kind === "single")
+    return (
+      control && (
+        <EntryDialog
+          client={client}
+          scope={{ type: "test", id: String(view) }}
+          parentId={null}
+          entry={initial[0]}
+          deleting
+          trashing={new URLSearchParams(location.search).has("trash")}
+          labels={driveLabels}
+          refresh={() => {}}
+        >
+          Delete Alpha
+        </EntryDialog>
+      )
+    );
   if (kind === "auth")
     return control && <AgentKeys keys={items} onDelete={onDelete} onRetry={() => {}} />;
   return (
@@ -131,7 +154,7 @@ function Fixture() {
             selection={selection}
             getName={(item) => item.name}
             onDelete={(item, requestId) => onDelete(item.id, requestId)}
-            prepare={delayedPreview ? async () => await preview() : undefined}
+            prepare={delayedPreview ? async () => (await preview()).token : undefined}
           />
         ))}
     </main>

@@ -21,7 +21,9 @@ import {
   assertResourceExceptions,
   assertVersion,
   availableSlots,
+  availableMonth,
   availabilitySchema,
+  monthAvailabilitySchema,
   bookingSchema,
   canCustomerChange,
   catalog,
@@ -54,6 +56,7 @@ import {
   type ReservationConfiguration,
   type ReservationManagementClient,
   type ReservationMode,
+  type ReservationMonthAvailabilityQuery,
   type ReservationsAdminClient,
   type ReservationsPublicClient,
 } from "@/components/plugins/reservations/types";
@@ -314,8 +317,15 @@ export function createReservationsService<Context>(options: ReservationsServiceO
     return update(tx, next, "rescheduled");
   }
 
+  async function monthAvailability(input: ReservationMonthAvailabilityQuery, staff = false) {
+    const query = parseReservationInput(monthAvailabilitySchema, input);
+    const at = now();
+    return availableMonth(await configuration(db), await occupied(db, at), query, at, { staff });
+  }
+
   const publicClient: ReservationsPublicClient = {
     catalog: () => safe(async () => catalog(await configuration(db))),
+    monthAvailability: (input) => safe(() => monthAvailability(input)),
     availability: (input) =>
       safe(async () => {
         const query = parseReservationInput(availabilitySchema, input);
@@ -447,6 +457,7 @@ export function createReservationsService<Context>(options: ReservationsServiceO
             reservation,
           });
         }),
+      monthAvailability: (input) => read(() => monthAvailability(input, true)),
       book: (input) =>
         safe(async () => {
           await permit(context, "manage");

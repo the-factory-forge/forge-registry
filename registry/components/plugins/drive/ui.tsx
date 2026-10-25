@@ -25,12 +25,12 @@ import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
   DriveBrowserProps,
   DriveClient,
-  DriveDeletePreview,
   DriveEntry,
   DriveScope,
   DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
+import { useDriveDeletion } from "@/components/plugins/drive/use-deletion";
 import type { useUploads } from "@/components/plugins/drive/use-uploads";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
@@ -207,11 +207,7 @@ export function DriveToasts({
   useEffect(() => {
     currentQueue.current = queue;
   }, [queue]);
-  const { uploads, dismiss } = queue;
-  const finished = uploads.every((upload) => ["done", "cancelled"].includes(upload.state));
-  const loading = uploads.some((upload) =>
-    ["queued", "uploading", "finishing", "cancelling"].includes(upload.state),
-  );
+  const { uploads, dismiss, finished, loading } = queue;
   useEffect(() => () => close(id), [close, id]);
   useEffect(() => {
     if (!uploads.length) {
@@ -230,14 +226,14 @@ export function DriveToasts({
             {uploads.map((upload) => (
               <li key={upload.id} className="space-y-2">
                 <span className="block text-sm break-all">
-                  {upload.relativePath ?? upload.file.name}
+                  {upload.relativePath ?? upload.name}
                 </span>
                 <progress
                   className={cn(
                     "h-2 w-full appearance-none bg-muted [&::-moz-progress-bar]:bg-current [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-current",
                     upload.state === "done"
                       ? "text-status-success-foreground"
-                      : upload.state === "failed" || upload.state === "cancelFailed"
+                      : upload.failed
                         ? "text-destructive"
                         : upload.state === "cancelled"
                           ? "text-status-canceled-foreground"
@@ -245,21 +241,16 @@ export function DriveToasts({
                   )}
                   max={100}
                   value={upload.progress}
-                  aria-label={labels.progress(upload.file.name)}
+                  aria-label={labels.progress(upload.name)}
                 />
                 {upload.error !== undefined && (
                   <DriveFeedback message={messageFor(upload.error, labels)} error />
                 )}
                 <ActionToastFooter
-                  status={
-                    <DriveFeedback
-                      message={labels[upload.state]}
-                      error={upload.state === "failed" || upload.state === "cancelFailed"}
-                    />
-                  }
+                  status={<DriveFeedback message={labels[upload.state]} error={upload.failed} />}
                   actions={
                     <>
-                      {["failed", "cancelFailed"].includes(upload.state) && (
+                      {upload.canRetry && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => currentQueue.current.retry(upload.id)}
@@ -268,7 +259,7 @@ export function DriveToasts({
                           {labels.retry}
                         </button>
                       )}
-                      {["queued", "uploading", "failed"].includes(upload.state) && (
+                      {upload.canCancel && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => currentQueue.current.cancel(upload.id)}
@@ -276,7 +267,7 @@ export function DriveToasts({
                           {labels.cancel}
                         </button>
                       )}
-                      {["done", "cancelled"].includes(upload.state) && (
+                      {upload.canDismiss && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => dismiss(upload.id)}
@@ -455,10 +446,11 @@ export function EntryDialog({
     duplicating && entry ? labels.duplicateName(entry.name) : (entry?.name ?? space?.name ?? ""),
   );
   const [pending, setPending] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(!!onClose && deleting);
   const [error, setError] = useState<string>();
-  const [preview, setPreview] = useState<DriveDeletePreview>();
-  const previewRequest = useRef<Promise<DriveDeletePreview> | undefined>(undefined);
+  const deletion = useDriveDeletion(client, scope);
+  const preview = deletion.counts?.find((count) => count.id === entry?.id);
+  const previewLoading = deletion.loading;
+  const feedback = error ?? (deletion.error ? messageFor(deletion.error, labels) : undefined);
   const lock = useRef(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const fieldId = `factory-drive-field-${useId()}`;
@@ -473,38 +465,12 @@ export function EntryDialog({
         : labels.newFolder;
   function loadPreview() {
     if (disabled || !entry) return;
-    setPreviewLoading(true);
     setError(undefined);
-    setPreview(undefined);
-    return startPreview();
-  }
-  function startPreview() {
-    if (!entry) return;
-    const request = Promise.resolve().then(() =>
-      client.previewDelete({ scope, entryId: entry.id }),
-    );
-    previewRequest.current = request;
-    void request.then(
-      (result) => {
-        if (previewRequest.current !== request) return;
-        setPreview(result);
-        setPreviewLoading(false);
-      },
-      (reason) => {
-        if (previewRequest.current !== request) return;
-        previewRequest.current = undefined;
-        setError(messageFor(reason, labels));
-        setPreviewLoading(false);
-      },
-    );
-    return request;
+    return deletion.prepare([entry.id]);
   }
   useEffect(() => {
     // Menu dialogs mount open; ordinary triggers prepare the preview in changeOpen.
-    if (onClose && deleting) void startPreview();
-    return () => {
-      previewRequest.current = undefined;
-    };
+    if (onClose && deleting && entry) void deletion.prepare([entry.id]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function submit() {
@@ -514,11 +480,7 @@ export function EntryDialog({
     setError(undefined);
     try {
       if (deleting && entry) {
-        const confirmation = preview ?? (await (previewRequest.current ?? loadPreview()));
-        if (!confirmation) return;
-        if (trashing)
-          await client.trashEntry!({ scope, entryId: entry.id, token: confirmation.token });
-        else await client.deleteEntry({ scope, entryId: entry.id, token: confirmation.token });
+        await deletion.remove(entry.id, trashing);
       } else if (duplicating && entry)
         await client.duplicateEntry!({ scope, entryId: entry.id, name: validName(name) });
       else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
@@ -529,10 +491,6 @@ export function EntryDialog({
       onClose?.();
     } catch (reason) {
       setError(messageFor(reason, labels));
-      if (deleting && errorCode(reason) === "CONFLICT") {
-        setPreview(undefined);
-        previewRequest.current = undefined;
-      }
     } finally {
       lock.current = false;
       setPending(false);
@@ -546,8 +504,7 @@ export function EntryDialog({
       setError(undefined);
       if (deleting) void loadPreview();
     } else {
-      previewRequest.current = undefined;
-      setPreviewLoading(false);
+      deletion.reset();
       onClose?.();
     }
   }
@@ -639,14 +596,14 @@ export function EntryDialog({
             <div className={deleting ? "min-h-5" : undefined}>
               <DriveFeedback
                 message={
-                  error ??
+                  feedback ??
                   (deleting && (pending || previewLoading)
                     ? pending
                       ? labels.pending
                       : labels.loading
                     : undefined)
                 }
-                error={Boolean(error)}
+                error={Boolean(feedback)}
               />
             </div>
             <div

@@ -19,7 +19,8 @@ const pool = postgres(
   "postgres://reservations_test:local_reservations_test_only@127.0.0.1:55451/reservations_test",
   { max: 8, prepare: false },
 );
-const db = drizzle({ client: pool });
+const queries = [];
+const db = drizzle({ client: pool, logger: { logQuery: (query) => queries.push(query) } });
 const secret = deriveManagementSecret("reservations-integration-only-secret");
 const rejected = (promise, code) => assert.rejects(promise, (e) => e.code === code);
 
@@ -30,6 +31,7 @@ await test("PostgreSQL booking integrity, authorization, private links and durab
   );
   await initializeStorage(pool, ["reservations"]);
   let clock = new Date("2026-09-27T06:00:00Z");
+  let clockReads = 0;
   let mailFails = false;
   let staffAuthorized = true;
   const emails = [];
@@ -37,7 +39,10 @@ await test("PostgreSQL booking integrity, authorization, private links and durab
     mode: "appointment",
     db,
     managementSecret: secret,
-    now: () => clock,
+    now: () => {
+      clockReads++;
+      return clock;
+    },
     authorize: async (actor, action) =>
       actor === "admin" || (actor === "staff" && staffAuthorized && action !== "settings"),
     getManagementUrl: (token) => `https://example.test/reservations/manage#${token}`,
@@ -106,6 +111,55 @@ await test("PostgreSQL booking integrity, authorization, private links and durab
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
   assert.equal(results.filter((r) => r.status === "rejected")[0].reason.code, "CONFLICT");
   const first = results.find((r) => r.status === "fulfilled").value;
+  await t.test(
+    "month batching shares reads and time, preserving daily results and permissions",
+    async () => {
+      const query = { serviceId: item.id, resourceId: resource.id, month: "2026-09-01" };
+      queries.length = 0;
+      clockReads = 0;
+      const month = await service.publicClient.monthAvailability(query);
+      assert.equal(clockReads, 1);
+      assert.equal(queries.length, 5);
+      for (const table of [
+        "reservations_service",
+        "reservations_resource",
+        "reservations_booking",
+      ]) {
+        assert.equal(queries.filter((sql) => sql.includes(`from "${table}"`)).length, 1);
+      }
+      assert.equal(Object.keys(month).length, 42);
+      for (const [date, available] of Object.entries(month)) {
+        assert.equal(
+          available,
+          (await service.publicClient.availability({ ...query, date })).length > 0,
+        );
+      }
+      for (const invalid of [
+        null,
+        { ...query, month: "2026-09-02" },
+        { ...query, serviceId: "invalid" },
+      ]) {
+        queries.length = 0;
+        await rejected(service.publicClient.monthAvailability(invalid), "INVALID");
+        assert.equal(queries.length, 0);
+      }
+      queries.length = 0;
+      await rejected(service.adminClient("guest").monthAvailability(query), "FORBIDDEN");
+      assert.equal(queries.length, 0);
+      const settings = (await admin.configuration()).settings;
+      const closed = await admin.saveSettings({ ...settings, publicBookingEnabled: false });
+      assert.ok(
+        Object.values(
+          await service.publicClient.monthAvailability({ ...query, staff: true }),
+        ).every((value) => value === false),
+      );
+      assert.equal(
+        (await service.adminClient("staff").monthAvailability(query))["2026-09-28"],
+        true,
+      );
+      await admin.saveSettings({ ...closed, publicBookingEnabled: true });
+    },
+  );
   const concurrentInput = {
     ...input,
     requestId: crypto.randomUUID(),

@@ -257,6 +257,7 @@ export function DatePicker({
   range,
   showInput = true,
   availability,
+  monthAvailability,
 }: {
   date: string;
   onChange: (date: string) => void;
@@ -266,12 +267,15 @@ export function DatePicker({
   range?: { from: string; to: string };
   showInput?: boolean;
   availability?: (date: string) => Promise<ReservationSlot[]>;
+  monthAvailability?: (month: string) => Promise<Record<string, boolean>>;
 }) {
   const selected = Temporal.PlainDate.from(date);
   const [month, setMonth] = useState(() => selected.with({ day: 1 }).toString());
   const start = Temporal.PlainDate.from(month);
   const gridStart = start.subtract({ days: start.dayOfWeek - 1 });
+  const checksAvailability = !!(availability || monthAvailability);
   const loadDates = useCallback(async () => {
+    if (monthAvailability) return monthAvailability(month);
     if (!availability) return {};
     const first = Temporal.PlainDate.from(month);
     const from = first.subtract({ days: first.dayOfWeek - 1 });
@@ -283,7 +287,7 @@ export function DatePicker({
         }),
       ),
     );
-  }, [availability, month]);
+  }, [availability, monthAvailability, month]);
   const dates = useReservationLoad(loadDates);
   const monthLabel = new Intl.DateTimeFormat(locale, {
     month: "long",
@@ -319,7 +323,7 @@ export function DatePicker({
       </div>
       <div
         className="grid grid-cols-7 gap-1"
-        aria-busy={!!availability && !dates.value && !dates.error}
+        aria-busy={checksAvailability && !dates.value && !dates.error}
       >
         {Array.from({ length: 7 }, (_, i) => (
           <span key={i} className="py-1 text-center text-xs text-muted-foreground">
@@ -337,7 +341,7 @@ export function DatePicker({
               key={value}
               disabled={
                 (!!minDate && value < minDate && (!range || value >= range.from)) ||
-                (!!availability && !dates.value?.[value])
+                (checksAvailability && !dates.value?.[value])
               }
               aria-pressed={range ? value >= range.from && value <= range.to : date === value}
               aria-label={new Intl.DateTimeFormat(locale, {
@@ -376,7 +380,7 @@ export function DatePicker({
           />
         </Field>
       )}
-      {availability && (
+      {checksAvailability && (
         <div className="flex min-h-10 flex-wrap items-center gap-2">
           <ErrorNotice error={dates.error} labels={labels} />
           {dates.error ? (

@@ -482,6 +482,13 @@ included. The browser runs two transfers concurrently and uses XHR progress.
 `transferUpload` can replace the transfer for tests or a host-specific transport;
 it receives the reservation, File, AbortSignal, and progress callback.
 
+The internal upload queue owns action eligibility and aggregate batch status.
+Its UI snapshots contain names, paths, progress, status, errors and available actions;
+files, abort controllers and lifecycle flags remain private. Toasts retain translated
+labels, styling and dismissal timing. Adopt `use-uploads.ts` and its upload UI together:
+older copied UI may read `upload.file.name`, while current snapshots expose `upload.name`.
+The public Drive client and transfer interfaces are unchanged.
+
 Preparation reserves a name and returns a conditional, length-bound presigned
 PUT URL valid for at most ten minutes. A reservation expires after fifteen
 minutes. Use the **same UUID requestId** and identical input when retrying.
@@ -507,6 +514,15 @@ waits for that preview before submitting the mutation. Once confirmed, controls
 are disabled to prevent duplicate submissions; failures remain retryable from
 the same confirmation button. Hosts can translate `trashConfirmation` and
 `deleteConfirmation` for the initial description before counts arrive.
+
+Single and bulk deletion share the private `use-deletion.ts` module shipped with
+`@forge/drive`. It owns preview counts, tokens, pending preview identity and conflict
+invalidation. The host client interface is unchanged. Single-entry retries retain
+the preview after ordinary failures; after a conflict, the next confirmation
+fetches a fresh preview and submits using its token. Bulk deletion still refreshes
+only failed entries and requires confirmation again after preparation. Adopt the
+complete Drive item so both callers receive the shared module.
+
 Deletion first commits a deleting subtree, then removes objects and
 metadata from leaves upward. Writes into that subtree are blocked. Storage
 failures keep cleanup metadata and return `DELETE_PENDING`; explicit retry or

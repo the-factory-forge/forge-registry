@@ -5,6 +5,8 @@ import {
   assertResourceExceptions,
   assertVersion,
   availableSlots,
+  availableMonth,
+  monthAvailabilitySchema,
   bookingSchema,
   canCustomerChange,
   catalog,
@@ -204,6 +206,11 @@ export function createReservationsMock() {
     );
   }
   const publicClient: ReservationsPublicClient = {
+    monthAvailability: async (input) => {
+      const query = parseReservationInput(monthAvailabilitySchema, input);
+      await check();
+      return availableMonth(config, reservations, query, currentTime());
+    },
     catalog: async () => {
       await check();
       return structuredClone(catalog(config));
@@ -215,6 +222,11 @@ export function createReservationsMock() {
     book: (input) => book(input),
   };
   const adminClient: ReservationsAdminClient = {
+    monthAvailability: async (input) => {
+      const query = parseReservationInput(monthAvailabilitySchema, input);
+      await check();
+      return availableMonth(config, reservations, query, currentTime(), { staff: true });
+    },
     configuration: async () => {
       await check();
       return structuredClone(config);

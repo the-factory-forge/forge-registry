@@ -36,6 +36,40 @@ Appointments SHALL reserve exactly one eligible resource using the service durat
 - **WHEN** a local clock skips or repeats times
 - **THEN** nonexistent start times are omitted and repeated times remain distinct UTC instants
 
+### Requirement: Optional appointment month availability
+
+Guest and staff appointment creation SHALL support an optional month availability
+operation while retaining the existing daily availability fallback. The operation
+SHALL accept a service, optional resource and first local date of a month, and
+return only availability booleans for the Monday-first 42-date grid. The companion
+SHALL validate inputs before reading storage and reuse one configuration load,
+one occupancy load and one captured time for each request.
+
+#### Scenario: A host supports batching
+
+- **WHEN** the appointment booking month, service or resource changes
+- **THEN** the form requests one month overview using the corresponding public or staff rules
+- **AND** staff overview reads require the existing read permission
+- **AND** selected-day slots continue to load separately and final booking still validates capacity
+
+#### Scenario: An existing host omits batching
+
+- **WHEN** its client supplies only daily availability
+- **THEN** guest and staff appointment creation retain the 42 daily grid reads without a host interface migration
+
+#### Scenario: A month read fails or finishes late
+
+- **WHEN** the current overview fails
+- **THEN** dates remain disabled and the existing refresh action retries that overview
+- **AND** it does not launch daily fallback reads after a batch failure
+- **AND** results from a previous month, service or resource cannot replace the current overview
+
+#### Scenario: A different reservation flow is used
+
+- **WHEN** guests or staff select stays, reschedule a reservation or inspect the staff calendar
+- **THEN** those flows retain their existing reads and saved-policy behavior
+- **AND** the month availability operation rejects stay installations
+
 ### Requirement: Guest management and approval
 
 Services SHALL configure automatic or manual approval and a cancellation cutoff. Pending requests SHALL retain capacity until reviewed or cancelled. Customers SHALL manage only their own reservation using a valid private link.

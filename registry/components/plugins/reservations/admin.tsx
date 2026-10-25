@@ -610,6 +610,7 @@ export function ReservationNewPage({
     () => ({
       catalog: async () => catalog(await client.configuration()),
       availability: (q) => client.availability(q),
+      monthAvailability: client.monthAvailability?.bind(client),
       book: (input) => client.book(input),
     }),
     [client],

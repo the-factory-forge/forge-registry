@@ -115,6 +115,13 @@ export interface ReservationAvailabilityQuery {
   departureDate?: string;
 }
 
+export interface ReservationMonthAvailabilityQuery {
+  serviceId: string;
+  resourceId?: string;
+  /** First day of the viewed month (YYYY-MM-01), in the business time zone. */
+  month: string;
+}
+
 export interface ReservationBookingInput {
   /** Required in stay mode; rejected in appointment mode. */
   departureDate?: string;
@@ -166,6 +173,8 @@ export interface ReservationConfiguration {
 export interface ReservationsPublicClient {
   catalog(): Promise<ReservationCatalog>;
   availability(query: ReservationAvailabilityQuery): Promise<ReservationSlot[]>;
+  /** Appointment creation: availability for the Monday-first, 42-date month grid. */
+  monthAvailability?(query: ReservationMonthAvailabilityQuery): Promise<Record<string, boolean>>;
   book(input: ReservationBookingInput): Promise<Reservation>;
 }
 
@@ -187,6 +196,8 @@ export interface ReservationsAdminClient {
   availability(
     query: ReservationAvailabilityQuery & { reservationId?: string },
   ): Promise<ReservationSlot[]>;
+  /** Appointment creation only; uses staff rules and requires read permission. */
+  monthAvailability?(query: ReservationMonthAvailabilityQuery): Promise<Record<string, boolean>>;
   book(input: ReservationBookingInput): Promise<Reservation>;
   reschedule(id: string, input: ReservationMoveInput): Promise<Reservation>;
   setStatus(id: string, version: number, status: ReservationStatus): Promise<Reservation>;

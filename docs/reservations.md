@@ -208,12 +208,24 @@ lock. Availability responses contain only start/end instants, not customer detai
 Availability queries cover one local date. Calendar queries are limited to 43 elapsed
 days so a six-week month including a daylight-saving transition fits.
 
-The public appointment calendar disables dates without available slots for the
-selected service and resource. It checks all 42 displayed dates through the existing
-availability client when the month, service or resource changes. Dates remain
-disabled during loading or a failed check, with a refresh action to retry. Hosts
-must allow these availability reads through their rate limits. Booking still
-rechecks capacity on the server before reserving a slot.
+Guest and staff appointment creation disable dates without available slots for the
+selected service and resource. Hosts may expose the optional
+`monthAvailability({ serviceId, resourceId?, month })` method on their public and
+admin clients. `month` is the first local calendar date of the viewed month
+(`YYYY-MM-01`). The result maps each of the 42 displayed dates, starting on the
+Monday on or before that date, to a boolean. The companion validates the request
+and computes the grid using one configuration read, one occupied-reservation read
+and one captured time. Public and staff rules remain distinct; the admin method
+requires the existing `read` permission. Stay installations reject this operation.
+
+Forward this optional method through the host's existing transport and authorization.
+Hosts that omit it continue to use 42 daily availability calls; retain rate limits
+that allow that fallback. An implemented batch that fails shows the existing error
+and refresh action instead of falling back to daily calls. Dates remain disabled
+while loading or after failure, and superseded results cannot replace the current
+month. The selected day's slots load separately through `availability`; booking
+still rechecks capacity on the server. Stay booking, rescheduling and staff calendar
+inspection retain their existing reads. No database migration is required.
 
 Duration is elapsed minutes. The Temporal dependency resolves IANA time zones without
 changing globals. Nonexistent local starts are omitted; repeated starts are separate
@@ -272,6 +284,10 @@ request. Staff booking remains available when public booking is disabled.
 
 `ReservationsCalendar` opens in Agenda on desktop and mobile. Staff can switch to
 Year, Month, Week or Day using the calendar toolbar.
+
+`DatePicker` accepts optional `monthAvailability(month)` for date booleans. The
+month callback takes precedence over daily availability when supplied. It retains
+the Monday-first 42-day grid and existing loading, retry and disabled-date behavior.
 
 `ReservationsCalendar` accepts optional controlled `filters` and `onFiltersChange`
 props using the exported `ReservationFilters` type. It contains `resourceId`,
