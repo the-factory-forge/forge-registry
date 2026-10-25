@@ -294,3 +294,19 @@ during loading and errors. Hosts SHALL retain routing and private-token ownershi
 
 - **WHEN** a host omits the destination
 - **THEN** the page shows no back link and its existing management actions remain available
+
+### Requirement: Dedicated staff reservation creation page
+
+The calendar's New reservation action SHALL link to a host-owned creation page.
+The exported `ReservationNewPage` SHALL reuse the booking form with the authorized
+admin client, localized labels, availability, validation and save error handling.
+Hosts SHALL supply the destination, back link, selected date and post-save navigation.
+
+#### Scenario: Creating from the staff calendar
+
+- **WHEN** staff activate New reservation
+- **THEN** a dedicated `/admin/reservations/new` page opens rather than a dialog
+- **AND** the selected date initializes the form and the calendar view, filters, list page and fragment survive navigation
+- **AND** reload and Back/Forward resolve the creation page and calendar correctly
+- **AND** Back and a successful save return to the calendar, while a failed save keeps the form and its inputs
+- **AND** staff may book appointments or stays even when public booking is disabled

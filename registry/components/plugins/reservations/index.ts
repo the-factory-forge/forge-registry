@@ -6,6 +6,8 @@ export {
 } from "@/components/plugins/reservations/public";
 export {
   ReservationsCalendar,
+  ReservationNewPage,
+  type ReservationNewPageProps,
   type ReservationsCalendarProps,
 } from "@/components/plugins/reservations/admin";
 export {

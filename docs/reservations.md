@@ -246,18 +246,29 @@ the same key returns `CONFLICT`. A successful replay returns the current reserva
 
 ## Components
 
-| Component                 | Host inputs                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `ReservationBookingPage`  | Public client, locale, optional labels/initial date, optional `onBooked`       |
-| `ReservationManagePage`   | Management client already bound to a private token, locale and labels          |
-| `ReservationsCalendar`    | Admin client, locale, optional settings link, link adapter and `canManage`     |
-| `ReservationSettingsPage` | Admin client, service/resource editor destinations, back link and link adapter |
+| Component                 | Host inputs                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ReservationBookingPage`  | Public client, locale, optional labels/initial date, optional `onBooked`                       |
+| `ReservationManagePage`   | Management client already bound to a private token, locale and labels                          |
+| `ReservationsCalendar`    | Admin client, required `newHref`, locale, optional settings link, link adapter and `canManage` |
+| `ReservationNewPage`      | Admin client, `backHref`, `onBooked`, locale, labels and optional initial date                 |
+| `ReservationSettingsPage` | Admin client, service/resource editor destinations, back link and link adapter                 |
 
 All components accept `className`; English labels are overridable. Pass a stable client
 object so loading does not restart on every parent render. Settings support
 `editor={{ kind: "service" | "resource", id }}` with `id: "new"` for creation.
 Use dedicated host routes for these editors. The optional `onSaved(kind, id)` can
 navigate a new item to its edit URL. The showroom demonstrates these adapters.
+
+Staff creation uses a dedicated host route such as `/admin/reservations/new`.
+Pass its URL as `ReservationsCalendar.newHref` and render `ReservationNewPage`
+there with the authenticated admin client. Preserve the calendar query and fragment
+in the creation/back links, pass the selected date as `initialDate`, and return to
+the calendar from `onBooked` after saving. The showroom demonstrates reload and
+Back/Forward with this route. Existing hosts adopting this change must add the route
+and `newHref`; the calendar no longer opens a creation dialog. Guard the new route
+with the same staff authorization as the calendar; the server still authorizes each
+request. Staff booking remains available when public booking is disabled.
 
 `ReservationsCalendar` opens in Agenda on desktop and mobile. Staff can switch to
 Year, Month, Week or Day using the calendar toolbar.

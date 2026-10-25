@@ -1678,7 +1678,7 @@ available. Feedback SHALL support mouse, touch, both themes and narrow screens.
 ### Requirement: Reservations plugin
 
 `@forge/reservations` SHALL provide public booking, private guest management,
-staff year/month/week/day/agenda calendars and settings.
+staff year/month/week/day/agenda calendars, a dedicated staff creation page and settings.
 
 #### Scenario: Using the configured booking mode
 

@@ -474,18 +474,83 @@ await suite("Reservations browser", async () => {
     );
   });
 
+  await test("staff creation page preserves calendar state, reloads and handles failed saves", async (t) => {
+    const page = await preview(
+      t,
+      "/en/admin/reservations?view=listWeek&status=pending&ref=shared#factory-preview",
+    );
+    const calendarUrl = page.url();
+    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.waitForURL((url) => url.pathname.endsWith("/new"));
+    const creationUrl = page.url();
+    assert.equal(new URL(creationUrl).search, new URL(calendarUrl).search);
+    assert.equal(new URL(creationUrl).hash, "#factory-preview");
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    await page.getByRole("heading", { name: "New reservation", exact: true }).waitFor();
+    const initialDate = await page.getByLabel("Date", { exact: true }).inputValue();
+    await page.reload();
+    await page.getByLabel("Date", { exact: true }).waitFor();
+    assert.equal(await page.getByLabel("Date", { exact: true }).inputValue(), initialDate);
+    await page.goBack();
+    await page.waitForURL(calendarUrl);
+    await page.goForward();
+    await page.waitForURL(creationUrl);
+    await page.getByRole("link", { name: "Back", exact: true }).click();
+    await page.waitForURL(calendarUrl);
+    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
+    await page.getByLabel("Name", { exact: true }).fill("Page Guest");
+    await page.getByLabel("Email", { exact: true }).fill("page@example.test");
+    await openPreviewControls(page);
+    await page.getByLabel("Simulate action failures").check();
+    await page.getByRole("button", { name: "Book appointment", exact: true }).click();
+    await page.getByRole("alert").waitFor();
+    assert.equal(await page.getByLabel("Name", { exact: true }).inputValue(), "Page Guest");
+    assert.equal(page.url(), creationUrl);
+    await page.getByLabel("Simulate action failures").uncheck();
+    await page.getByRole("button", { name: "Book appointment", exact: true }).click();
+    await page.waitForURL(calendarUrl);
+  });
+
+  await test("staff creation page fits desktop and mobile in both themes and locales", async (t) => {
+    for (const locale of ["en", "fr"]) {
+      const page = await preview(t, `/${locale}/admin/reservations/new`);
+      await page.locator("form").waitFor();
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const theme of ["light", "dark"]) {
+          await page.evaluate((mode) => {
+            document.documentElement.classList.toggle("dark", mode === "dark");
+            document.documentElement.classList.toggle("light", mode === "light");
+          }, theme);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          await page.screenshot({
+            path: `/tmp/reservation-new-${locale}-${width}-${theme}.png`,
+            fullPage: true,
+          });
+        }
+      }
+    }
+  });
+
   await test("staff create, filter, reschedule and reject a manual request", async (t) => {
     const page = await preview(t, "/en/admin/reservations");
     await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("clinic");
-    await page.getByRole("button", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.waitForURL(/\/new(?:\?|$)/);
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    const form = page.locator("form");
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
-    await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Staff Guest");
-    await dialog
+    await form.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
+    await form.getByRole("textbox", { name: "Name", exact: true }).fill("Staff Guest");
+    await form
       .getByRole("textbox", { name: "Email", exact: true })
       .fill("staff-guest@example.test");
-    await dialog.getByRole("button", { name: "Book appointment", exact: true }).click();
-    await dialog.waitFor({ state: "hidden" });
+    await form.getByRole("button", { name: "Book appointment", exact: true }).click();
+    await page.waitForURL((url) => url.pathname === "/en/admin/reservations");
     const event = page.getByText(/Staff Guest ·/).first();
     await event.waitFor();
     const status = page.getByRole("combobox", { name: "Status", exact: true });
@@ -767,19 +832,19 @@ await suite("Reservations browser", async () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.waitForURL(/\/services\/(?!new)[^/]+$/);
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
-    await page.getByRole("button", { name: "New reservation", exact: true }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog
+    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    const form = page.locator("form");
+    await form
       .getByRole("combobox", { name: "Stay offering", exact: true })
       .selectOption({ label: "Weekend stay" });
     const arrival = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-    await dialog.getByLabel("Arrival date", { exact: true }).fill(arrival);
-    await dialog
+    await form.getByLabel("Arrival date", { exact: true }).fill(arrival);
+    await form
       .getByLabel("Departure date", { exact: true })
       .fill(new Date(Date.parse(`${arrival}T12:00:00Z`) + 2 * 86400000).toISOString().slice(0, 10));
     const shortStayDate = new Date(Date.parse(`${arrival}T12:00:00Z`) + 86400000);
     assert.equal(
-      await dialog
+      await form
         .getByRole("button", {
           name: new Intl.DateTimeFormat("en", { dateStyle: "full", timeZone: "UTC" }).format(
             shortStayDate,
@@ -789,11 +854,11 @@ await suite("Reservations browser", async () => {
         .isDisabled(),
       true,
     );
-    await dialog.getByRole("button", { name: /^(?:15:00|03:00.*PM)$/ }).click();
-    await dialog.getByLabel("Name", { exact: true }).fill("Staff Stay");
-    await dialog.getByLabel("Email", { exact: true }).fill("staffstay@example.test");
-    await dialog.getByRole("button", { name: "Book stay", exact: true }).click();
-    await dialog.waitFor({ state: "hidden" });
+    await form.getByRole("button", { name: /^(?:15:00|03:00.*PM)$/ }).click();
+    await form.getByLabel("Name", { exact: true }).fill("Staff Stay");
+    await form.getByLabel("Email", { exact: true }).fill("staffstay@example.test");
+    await form.getByRole("button", { name: "Book stay", exact: true }).click();
+    await page.waitForURL((url) => url.pathname === "/en/admin/reservations");
     await page.getByRole("tab", { name: "Year", exact: true }).click();
     await page.locator(`button[data-date="${arrival}"]`).click();
     await page

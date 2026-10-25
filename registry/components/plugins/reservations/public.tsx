@@ -105,7 +105,7 @@ export function ReservationBookingPage({
   );
 }
 
-/** Also used by the staff's short create dialog. The host binds an authorized client. */
+/** Also used by the staff creation page. The host binds an authorized client. */
 export function BookingForm({
   client,
   catalog,
@@ -244,7 +244,7 @@ export function BookingForm({
               ? `${labels.nights}: ${service.minNights}–${service.maxNights} · ${labels.checkoutTime}: ${service.checkoutTime}`
               : `${labels.duration}: ${service.durationMinutes}`}
           </p>
-          <div className={cn(!staff && "grid gap-6 md:grid-cols-2")}>
+          <div className="grid gap-6 md:grid-cols-2">
             {service.mode === "stay" ? (
               <StayDatePicker
                 arrival={date}
@@ -280,7 +280,7 @@ export function BookingForm({
                 />
               </div>
             )}
-            <div className={cn(!staff && panelClass, "space-y-4")}>
+            <div className={cn(panelClass, "space-y-4")}>
               <ErrorNotice error={slots.error} labels={labels} />
               {slots.error ? (
                 <button type="button" className={buttonClass} onClick={slots.reload}>

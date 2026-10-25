@@ -19,6 +19,7 @@ import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+export const iconButtonClass = cn(buttonClass, "size-10 shrink-0 p-0 md:size-8");
 export const primaryClass = cn(
   buttonClass,
   "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",

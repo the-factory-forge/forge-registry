@@ -1,6 +1,6 @@
 "use client";
 
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi, useLocation } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -14,6 +14,7 @@ import { NativeSelect } from "@/components/native-select";
 import {
   ReservationBookingPage,
   ReservationManagePage,
+  ReservationNewPage,
   ReservationsCalendar,
   ReservationSettingsPage,
   type ReservationLabels,
@@ -289,9 +290,25 @@ export function ReservationAdminPreview() {
   const mock = useMock();
   const { locale, segments } = useShowroomParams();
   const navigate = adminRoute.useNavigate();
-  const { resourceId, serviceId, status } = adminRoute.useSearch();
+  const location = useLocation();
+  const { resourceId, serviceId, status, date } = adminRoute.useSearch();
   const labels = locale === "fr" ? french : undefined;
   const base = `/${locale}/admin/reservations`;
+  const calendarHref = `${base}${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
+  if (segments[0] === "new")
+    return (
+      <ReservationNewPage
+        key={`${mock.generation}-${locale}`}
+        client={mock.adminClient}
+        locale={locale}
+        labels={labels}
+        initialDate={date ?? mock.initialDate}
+        backHref={calendarHref}
+        onBooked={() => void navigate({ to: base, search: true, hash: true })}
+        linkComponent={Link}
+        className="showroom-page"
+      />
+    );
   if (segments[0] === "settings")
     return (
       <ReservationSettingsPage
@@ -326,6 +343,7 @@ export function ReservationAdminPreview() {
       locale={locale}
       labels={labels}
       initialDate={mock.initialDate}
+      newHref={`${base}/new${location.searchStr}${location.hash ? `#${location.hash}` : ""}`}
       settingsHref={`${base}/settings`}
       filters={{ resourceId, serviceId, status }}
       onFiltersChange={(filters) => {

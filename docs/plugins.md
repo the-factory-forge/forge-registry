@@ -42,7 +42,7 @@ retry; see [account security](./intranet-auth.md#account-profile-and-security).
 | `blogs`        | Multilingual Markdown articles and localized history in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`           | [Blogs](./blogs.md)                         |
 | `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing        | `menus-storage`           | [Menus](./menus.md)                         |
 | `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                         | Server transport included | [Mailing](./mailing.md)                     |
-| `reservations` | Appointments or overnight stays, policies and calendars                                                                                    | `reservations-storage`    | [Reservations](./reservations.md)           |
+| `reservations` | Appointments or overnight stays, policies, calendars and dedicated staff creation                                                          | `reservations-storage`    | [Reservations](./reservations.md)           |
 
 Drive folder menus support child-folder creation and ZIP downloads alongside
 uploads, rename, duplication and trash. ZIPs use the existing authenticated reads

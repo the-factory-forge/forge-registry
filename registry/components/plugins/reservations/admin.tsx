@@ -6,6 +6,7 @@ import listPlugin from "@fullcalendar/react/list";
 import classicTheme from "@fullcalendar/react/themes/classic";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import {
+  ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
@@ -30,6 +31,7 @@ import {
 } from "@/components/plugins/reservations/model";
 import { BookingForm, RescheduleDialog } from "@/components/plugins/reservations/public";
 import type {
+  Reservation,
   ReservationAdminRecord,
   ReservationFilters,
   ReservationRange,
@@ -40,6 +42,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  iconButtonClass,
   primaryClass,
   fieldClass,
   pageClass,
@@ -71,6 +74,7 @@ export interface ReservationsCalendarProps {
   initialDate?: string;
   filters?: ReservationFilters;
   onFiltersChange?: (filters: ReservationFilters) => void;
+  newHref: string;
   settingsHref?: string;
   canManage?: boolean;
   className?: string;
@@ -84,6 +88,7 @@ export function ReservationsCalendar({
   initialDate,
   filters: controlledFilters,
   onFiltersChange,
+  newHref,
   settingsHref,
   canManage = true,
   className,
@@ -109,7 +114,7 @@ export function ReservationsCalendar({
     return { from: from.toISOString(), to: new Date(from.getTime() + 7 * 86400000).toISOString() };
   });
   const [selectedRecord, setSelected] = useState<ReservationAdminRecord>();
-  const [dialog, setDialog] = useState<"new" | "move" | "cancelled" | "rejected" | "link">();
+  const [dialog, setDialog] = useState<"move" | "cancelled" | "rejected" | "link">();
   const load = useCallback(() => client.configuration(), [client]);
   const config = useReservationLoad(load);
   const labels = getReservationLabels(overrides, config.value?.mode);
@@ -145,14 +150,6 @@ export function ReservationsCalendar({
       return r.from === from && r.to === to ? r : { ...r, from, to };
     });
   }, []);
-  const staffClient = useMemo<ReservationsPublicClient>(
-    () => ({
-      catalog: async () => catalog(await client.configuration()),
-      availability: (q) => client.availability(q),
-      book: (input) => client.book(input),
-    }),
-    [client],
-  );
   const moveAvailability = useCallback(
     (query: { date: string; resourceId?: string; departureDate?: string }) =>
       client.availability({
@@ -206,16 +203,18 @@ export function ReservationsCalendar({
               {labels.settings}
             </HostLink>
           )}
-          {canManage && (
-            <button
-              className={primaryClass}
-              disabled={!config.value?.services.some((s) => s.active && !s.archived)}
-              onClick={() => setDialog("new")}
-            >
-              <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.newBooking}
-            </button>
-          )}
+          {canManage &&
+            (config.value?.services.some((s) => s.active && !s.archived) ? (
+              <HostLink className={primaryClass} href={newHref}>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.newBooking}
+              </HostLink>
+            ) : (
+              <button type="button" className={primaryClass} disabled>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.newBooking}
+              </button>
+            ))}
         </div>
       </div>
       <ErrorNotice error={config.error ?? data.error ?? action.error} labels={labels} />
@@ -402,23 +401,6 @@ export function ReservationsCalendar({
           />
         </div>
       )}
-      {dialog === "new" && config.value && (
-        <Modal
-          title={labels.newBooking}
-          description={labels.timeZone + ": " + config.value.settings.timeZone}
-          onClose={() => setDialog(undefined)}
-        >
-          <BookingForm
-            staff
-            client={staffClient}
-            catalog={catalog(config.value)}
-            locale={locale}
-            labels={labels}
-            initialDate={initialDate}
-            onBooked={refresh}
-          />
-        </Modal>
-      )}
       {selected && !dialog && (
         <Modal
           title={selected.customer.name}
@@ -586,6 +568,76 @@ export function ReservationsCalendar({
           onSave={moveSave}
           onSaved={refresh}
           onClose={() => setDialog(undefined)}
+        />
+      )}
+    </section>
+  );
+}
+
+export interface ReservationNewPageProps {
+  client: ReservationsAdminClient;
+  backHref: string;
+  onBooked: (reservation: Reservation) => void;
+  locale?: string;
+  labels?: Partial<ReservationLabels>;
+  initialDate?: string;
+  className?: string;
+  linkComponent?: ComponentType<LinkProps>;
+}
+
+export function ReservationNewPage({
+  client,
+  backHref,
+  onBooked,
+  locale = "en",
+  labels: overrides,
+  initialDate,
+  className,
+  linkComponent: HostLink = Link,
+}: ReservationNewPageProps) {
+  const load = useCallback(() => client.configuration(), [client]);
+  const config = useReservationLoad(load);
+  const labels = getReservationLabels(overrides, config.value?.mode);
+  const staffClient = useMemo<ReservationsPublicClient>(
+    () => ({
+      catalog: async () => catalog(await client.configuration()),
+      availability: (q) => client.availability(q),
+      book: (input) => client.book(input),
+    }),
+    [client],
+  );
+  return (
+    <section className={cn(pageClass, className)}>
+      <HostLink className={buttonClass} href={backHref}>
+        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+        {labels.back}
+      </HostLink>
+      <h1 className="font-serif text-3xl font-semibold">{labels.newBooking}</h1>
+      <ErrorNotice error={config.error} labels={labels} />
+      {config.error ? (
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={config.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
+      ) : !config.value ? (
+        <output className="block">{labels.loading}</output>
+      ) : !catalog(config.value).services.length ? (
+        <output className="block">{labels.emptyServices}</output>
+      ) : (
+        <BookingForm
+          staff
+          client={staffClient}
+          catalog={catalog(config.value)}
+          locale={locale}
+          labels={labels}
+          initialDate={initialDate}
+          onBooked={onBooked}
         />
       )}
     </section>
