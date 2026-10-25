@@ -3,6 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import {
+  XIcon,
   ArrowLeftIcon,
   GripVerticalIcon,
   PencilIcon,
@@ -676,6 +677,22 @@ function MenuItemEditorPageContent({
       translations: { ...size.translations },
     })),
   );
+  const snapshot = JSON.stringify([draft, price, sizes]);
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const navigation = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      navigation.current = null;
+    },
+    [],
+  );
+  function discardAndLeave() {
+    const href = navigation.current;
+    navigation.current = null;
+    setLeaveOpen(false);
+    if (href) window.location.assign(href);
+  }
   const updateTranslation = (locale: string, patch: Partial<MenuItem["translations"][string]>) =>
     setDraft((current) => ({
       ...current,
@@ -684,7 +701,7 @@ function MenuItemEditorPageContent({
         [locale]: { ...(current.translations[locale] ?? { name: "", description: "" }), ...patch },
       },
     }));
-  async function submit() {
+  async function submit(continueNavigation = false) {
     if (lock.current) return;
     const issues: Record<string, string> = {};
     if (!draft.translations[baseLocale]?.name.trim()) {
@@ -707,7 +724,11 @@ function MenuItemEditorPageContent({
     if (Object.keys(issues).some((key) => key.endsWith(`-${baseLocale}`))) {
       setSelectedLocale(baseLocale);
     }
-    if (!fields.validate(issues)) return;
+    if (!fields.validate(issues)) {
+      navigation.current = null;
+      setLeaveOpen(false);
+      return;
+    }
     lock.current = true;
     setPending(true);
     setFeedback(undefined);
@@ -725,9 +746,16 @@ function MenuItemEditorPageContent({
       const saved = item
         ? await client.save(item.id, savedVersion ?? item.version, input)
         : await client.create(input);
+      const href = continueNavigation ? navigation.current : null;
+      setSavedSnapshot(snapshot);
       setSavedVersion(saved.version);
       notify(labels.saved);
+      if (href) {
+        navigation.current = null;
+        setLeaveOpen(false);
+      }
       onSaved(saved);
+      if (href) window.location.assign(href);
     } catch {
       setFeedback({ error: true, text: labels.error });
     } finally {
@@ -742,6 +770,66 @@ function MenuItemEditorPageContent({
         {labels.back}
       </HostLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
+      <Dialog.Root
+        open={leaveOpen}
+        onOpenChange={(open) => {
+          if (lock.current) return;
+          setLeaveOpen(open);
+          if (!open) navigation.current = null;
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
+            <div
+              data-dialog-header
+              className="sticky top-0 z-20 -mx-6 flex items-start justify-between gap-3 bg-popover px-6 py-5"
+            >
+              <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                {labels.unsavedTitle}
+              </Dialog.Title>
+              <IconTooltip label={labels.cancel}>
+                <Dialog.Close
+                  type="button"
+                  aria-label={labels.cancel}
+                  className={iconButton}
+                  disabled={pending}
+                >
+                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                </Dialog.Close>
+              </IconTooltip>
+            </div>
+            <Dialog.Description className="text-sm text-muted-foreground">
+              {labels.unsavedDescription}
+            </Dialog.Description>
+            <ErrorMessage message={feedback?.error ? feedback.text : undefined} />
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 py-5"
+            >
+              <Dialog.Close className={outlineButton} disabled={pending}>
+                {labels.cancel}
+              </Dialog.Close>
+              <button
+                type="button"
+                className={outlineButton}
+                disabled={pending}
+                onClick={discardAndLeave}
+              >
+                {labels.discardChanges}
+              </button>
+              <button
+                type="button"
+                className={primary}
+                disabled={pending || !categories.length}
+                onClick={() => void submit(true)}
+              >
+                {pending ? labels.saving : labels.save}
+              </button>
+            </div>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
       <form
         ref={formRef}
         noValidate
@@ -964,8 +1052,29 @@ function MenuItemEditorPageContent({
                 <IconTooltip label={labels.manageLabels}>
                   <HostLink
                     href={labelsHref}
-                    className={iconButton}
+                    className={cn(iconButton, "aria-disabled:opacity-50")}
                     aria-label={labels.manageLabels}
+                    aria-disabled={pending || undefined}
+                    onClick={(event) => {
+                      if (
+                        event.defaultPrevented ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey ||
+                        event.button !== 0
+                      )
+                        return;
+                      if (lock.current) {
+                        event.preventDefault();
+                        return;
+                      }
+                      if (snapshot !== savedSnapshot) {
+                        event.preventDefault();
+                        navigation.current = labelsHref;
+                        setLeaveOpen(true);
+                      }
+                    }}
                   >
                     <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
                   </HostLink>

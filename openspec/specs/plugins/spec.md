@@ -1302,6 +1302,14 @@ allergen/dietary labels. Missing requested translations SHALL use the base local
 for the whole entity. Public menus SHALL include only visible items; sold-out
 items SHALL remain visible with a pending-colored status at the top right.
 
+#### Scenario: Managing labels from an unsaved item
+
+- **WHEN** staff follow the Labels management link with unsaved menu-item changes
+- **THEN** the editor offers save, discard and cancel
+- **AND** save validates all edited fields and continues only after successful persistence; failed saves retain the draft and dialog for retry
+- **AND** invalid input keeps staff in the editor with field errors, while cancel preserves the draft and discard navigates without saving
+- **AND** pending saves block the link and dialog dismissal; unchanged or successfully saved items navigate directly
+
 #### Scenario: Rejecting malformed service requests
 
 - **WHEN** a host passes malformed request data to the server companion
