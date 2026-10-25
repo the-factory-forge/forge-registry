@@ -1325,6 +1325,15 @@ items SHALL remain visible with a pending-colored status at the top right.
 - **AND** invalid input keeps staff in the editor with field errors, while cancel preserves the draft and discard navigates without saving
 - **AND** pending saves block both links and dialog dismissal; unchanged or successfully saved items navigate directly
 
+#### Scenario: Browser history leaves an unsaved menu item
+
+- **WHEN** a host router blocks Back or Forward navigation away from a dirty menu editor
+- **THEN** the portable editor resolves the blocked transition through its existing save, discard and cancel dialog
+- **AND** cancel preserves the editor, URL and draft; discard resumes the original history transition without saving
+- **AND** save resumes that transition only after persistence succeeds, while invalid inputs cancel it and failed saves retain the dialog for retry
+- **AND** hosts prevent cross-document exits through the native browser warning while changes or saves are pending, without adding synthetic history entries
+- **AND** pending saves reject new history transitions until completion; clean editor navigation and same-item folder changes retain normal history behavior
+
 #### Scenario: Rejecting malformed service requests
 
 - **WHEN** a host passes malformed request data to the server companion

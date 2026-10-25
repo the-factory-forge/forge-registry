@@ -73,7 +73,28 @@ the accessible name and tooltip. Existing integrations can omit the new prop.
 When the item has unsaved changes, both this link and Back offer Save, Discard changes, and
 Cancel. Saving validates the whole item and navigates only after success; errors
 retain the draft for retry. Cancel retains the form, and Discard changes navigates
-without saving. A pending save blocks both links. Other navigation is unchanged.
+without saving. A pending save blocks both links.
+
+Browser Back/Forward and other SPA transitions must be blocked by the host router
+before it unmounts the editor. Connect `onNavigationStateChange` to a stable host
+callback tracking `{ dirty, pending }`, and pass `blockedNavigation: { proceed, reset }`
+while a transition is blocked. The same dialog then resumes the original transition
+on successful Save or Discard, or cancels it without losing the draft. Validation
+errors cancel the transition and focus the invalid field; storage errors keep the
+dialog open for retry. Hosts should avoid redirecting from `onSaved` while resolving
+a blocked transition, especially after creating a new item.
+
+The showroom uses TanStack Router's `useBlocker({ withResolver: true })` for dirty
+items, preceded by a blocker that rejects navigation during pending saves. Both
+check for pathname changes and read the latest editor state, so same-item Drive
+folder navigation remains available. The successful new-item redirect bypasses
+blocking after persistence; it is suppressed when resuming a dialog transition. `enableBeforeUnload` reads that same state for
+cross-document navigation, reload and tab closure, where browsers provide their own
+leave-page warning rather than the custom Save/Discard/Cancel dialog. The editor
+reports a clean state synchronously before confirmed navigation to avoid a second
+warning. See [TanStack navigation blocking](https://tanstack.com/router/latest/docs/guide/navigation-blocking)
+and `src/showroom/menus-preview.tsx` for the host adapter. Hosts without this adapter
+retain the portable Back and Labels link protection only.
 
 ## Default labels and badges
 

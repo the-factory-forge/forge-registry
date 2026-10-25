@@ -606,6 +606,10 @@ export interface MenuItemEditorPageProps {
   backHref: string;
   /** Host route for label management; omit when unavailable to this user. */
   labelsHref?: string;
+  /** Host router reports a blocked transition; the editor resolves it with its leave dialog. */
+  blockedNavigation?: { proceed: () => void; reset: () => void };
+  /** Host routers use this state for history blocking and native unload protection. */
+  onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
   onSaved: (item: MenuItem) => void;
   driveClient?: DriveClient;
   driveTransfer?: DriveTransfer;
@@ -626,6 +630,8 @@ function MenuItemEditorPageContent({
   currency,
   backHref,
   labelsHref,
+  blockedNavigation,
+  onNavigationStateChange,
   onSaved,
   driveClient,
   driveTransfer,
@@ -689,12 +695,24 @@ function MenuItemEditorPageContent({
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const navigation = useRef<string | null>(null);
-  useEffect(
-    () => () => {
+  const navigationActive = useRef(false);
+  useEffect(() => {
+    navigationActive.current = true;
+    return () => {
+      navigationActive.current = false;
       navigation.current = null;
-    },
-    [],
-  );
+    };
+  }, []);
+  useEffect(() => {
+    onNavigationStateChange?.({ dirty: snapshot !== savedSnapshot, pending });
+    return () => onNavigationStateChange?.({ dirty: false, pending: false });
+  }, [snapshot, savedSnapshot, pending, onNavigationStateChange]);
+  function cancelNavigation() {
+    if (lock.current) return;
+    navigation.current = null;
+    setLeaveOpen(false);
+    blockedNavigation?.reset();
+  }
   function guardNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
     if (
       event.defaultPrevented ||
@@ -719,7 +737,9 @@ function MenuItemEditorPageContent({
     const href = navigation.current;
     navigation.current = null;
     setLeaveOpen(false);
-    if (href) window.location.assign(href);
+    onNavigationStateChange?.({ dirty: false, pending: false });
+    if (blockedNavigation) blockedNavigation.proceed();
+    else if (href) window.location.assign(href);
   }
   const updateTranslation = (locale: string, patch: Partial<MenuItem["translations"][string]>) =>
     setDraft((current) => ({
@@ -753,8 +773,7 @@ function MenuItemEditorPageContent({
       setSelectedLocale(baseLocale);
     }
     if (!fields.validate(issues)) {
-      navigation.current = null;
-      setLeaveOpen(false);
+      cancelNavigation();
       return;
     }
     lock.current = true;
@@ -775,15 +794,19 @@ function MenuItemEditorPageContent({
         ? await client.save(item.id, savedVersion ?? item.version, input)
         : await client.create(input);
       const href = continueNavigation ? navigation.current : null;
+      const proceed =
+        continueNavigation && navigationActive.current ? blockedNavigation?.proceed : undefined;
       setSavedSnapshot(snapshot);
       setSavedVersion(saved.version);
       notify(labels.saved);
-      if (href) {
+      if (href || proceed) {
         navigation.current = null;
         setLeaveOpen(false);
+        onNavigationStateChange?.({ dirty: false, pending: false });
       }
       onSaved(saved);
-      if (href) window.location.assign(href);
+      if (proceed) proceed();
+      else if (href) window.location.assign(href);
     } catch {
       setFeedback({ error: true, text: labels.error });
     } finally {
@@ -804,11 +827,9 @@ function MenuItemEditorPageContent({
       </HostLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
       <Dialog.Root
-        open={leaveOpen}
+        open={leaveOpen || !!blockedNavigation}
         onOpenChange={(open) => {
-          if (lock.current) return;
-          setLeaveOpen(open);
-          if (!open) navigation.current = null;
+          if (!open) cancelNavigation();
         }}
       >
         <Dialog.Portal>

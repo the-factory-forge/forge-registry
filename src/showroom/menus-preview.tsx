@@ -1,8 +1,10 @@
 "use client";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
+  useCallback,
+  useRef,
   useContext,
   useEffect,
   useMemo,
@@ -387,6 +389,22 @@ export function MenuAdminPreview() {
   const base = `/${locale}/admin/menus`;
   const [id] = segments;
   const item = mock.items.find((entry) => entry.id === id);
+  const editorState = useRef({ dirty: false, pending: false });
+  const onNavigationStateChange = useCallback((state: { dirty: boolean; pending: boolean }) => {
+    editorState.current = state;
+  }, []);
+  // Reject navigation during saves before offering the dirty-form dialog.
+  useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      current.pathname !== next.pathname && editorState.current.pending,
+    enableBeforeUnload: () => editorState.current.dirty || editorState.current.pending,
+  });
+  const blocker = useBlocker({
+    shouldBlockFn: ({ current, next }) =>
+      current.pathname !== next.pathname && editorState.current.dirty,
+    enableBeforeUnload: false,
+    withResolver: true,
+  });
   const driveClient = mock.drive.client(
     mock.items.map((entry) => ({
       scope: { type: "menu-item", id: entry.id },
@@ -450,6 +468,8 @@ export function MenuAdminPreview() {
     return (
       <MenuItemEditorPage
         key={id}
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
         client={mock.client}
         item={item}
         categories={mock.categories}
@@ -466,7 +486,8 @@ export function MenuAdminPreview() {
         photoFolderId={typeof query.folder === "string" ? query.folder : null}
         getFolderHref={(folderId) => `${base}/${id}${folderId ? `?folder=${folderId}` : ""}`}
         onSaved={(saved) => {
-          if (id === "new") void navigate({ to: `${base}/${saved.id}` });
+          if (id === "new" && blocker.status !== "blocked")
+            void navigate({ to: `${base}/${saved.id}`, ignoreBlocker: true });
         }}
       />
     );
