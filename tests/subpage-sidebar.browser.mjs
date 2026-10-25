@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Subpage sidebar browser", async () => {
@@ -31,7 +30,7 @@ await suite("Subpage sidebar browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     await openPreviewControls(page);
     if (theme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
 

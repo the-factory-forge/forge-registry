@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { before, after, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Blogs browser", async () => {
   async function confirmHistoryPublication(page) {
@@ -117,7 +116,7 @@ await suite("Blogs browser", async () => {
       path: "/tmp/forge-blog-toggle-editor-desktop.png",
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
@@ -161,7 +160,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await french.getAttribute("aria-pressed"), "false");
     await row.screenshot({ path: "/tmp/forge-blog-toggle-table-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await french.scrollIntoViewIfNeeded();
     await row.getByRole("cell").nth(3).screenshot({
       path: "/tmp/forge-blog-toggle-table-mobile-dark.png",
@@ -236,7 +235,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 1000 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const link = row.getByRole("link", { name: title, exact: true });
       const category = row.getByRole("cell").nth(2).locator("p");
       assert.equal(await link.getAttribute("title"), title);
@@ -308,7 +307,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 1000 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const nested = parentItem.locator("ul");
       assert.equal(await nested.evaluate((node) => getComputedStyle(node).borderLeftWidth), "1px");
       assert.equal(
@@ -354,7 +353,7 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
     await page.screenshot({ path: "/tmp/forge-blogs-delete-desktop-light.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await trigger.click();
     await dialog.waitFor();
     assert.equal(
@@ -384,7 +383,7 @@ await suite("Blogs browser", async () => {
       await page.goto(baseURL + path);
       await page.locator('[data-preview-ready="true"]').waitFor();
       for (const theme of ["Light", "Dark"]) {
-        const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+        const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         for (const image of await page
@@ -462,7 +461,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 900 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
@@ -505,13 +504,13 @@ await suite("Blogs browser", async () => {
     assert.match(html, /Begin with a question/);
     assert.doesNotMatch(html, /An idea for tomorrow/);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
     await page.screenshot({ path: "/tmp/forge-blogs-mobile-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.waitForURL(`${baseURL}/fr/blogs`);
@@ -697,7 +696,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await title.inputValue(), "Une traduction modifiée");
     await page.screenshot({ path: "/tmp/forge-blog-language-tabs-desktop.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
@@ -749,7 +748,7 @@ await suite("Blogs browser", async () => {
           .waitFor();
       }
       for (const [index, theme] of ["Light", "Dark"].entries()) {
-        const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+        const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         assert.deepEqual(

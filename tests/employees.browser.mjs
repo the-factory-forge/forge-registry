@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
   const browser = await chromium.launch();
@@ -78,7 +77,7 @@ await test("employee pages show content only to administrators", async (t) => {
       [390, "dark"],
     ]) {
       await page.setViewportSize({ width, height: 900 });
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "dark")) {
         await toggle.click();
       }
@@ -211,7 +210,7 @@ await test("employee row actions stay aligned when verification or self-deletion
   assert.equal(await page.getByRole("dialog").count(), 0);
 
   for (const dark of [false, true]) {
-    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await toggle.getAttribute("aria-pressed")) !== String(dark)) await toggle.click();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });

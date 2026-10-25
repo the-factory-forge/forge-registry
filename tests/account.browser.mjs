@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 let browser;
 before(async () => {
   browser = await chromium.launch();

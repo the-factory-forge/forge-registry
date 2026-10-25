@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
@@ -65,7 +65,7 @@ await test("homepage search starts expanded and stays visible through filtering,
   assert.equal(await search.inputValue(), "");
   assert.equal(await page.locator("main a h2").count(), allCount);
   for (const theme of ["Dark", "Light"]) {
-    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
       await toggle.click();
     for (const width of [1440, 320]) {
@@ -127,7 +127,7 @@ await test("table searches are independent, keyboard accessible and contained on
   await employees.getByRole("button", { name: "Show all" }).focus();
   assert.equal(await employeeSearch.count(), 0);
   for (const theme of ["Dark", "Light"]) {
-    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
       await toggle.click();
     for (const width of [1440, 320]) {

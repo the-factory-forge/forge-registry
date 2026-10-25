@@ -11,9 +11,9 @@ type Theme = "light" | "dark";
 // Apply the saved choice before paint. The SSR and unavailable-storage default is light.
 export const themeScript = `try{if(localStorage.getItem("${storageKey}")==="dark"){document.documentElement.classList.replace("light","dark")}}catch{}`;
 
-function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
-  document.documentElement.classList.toggle("light", theme === "light");
+export function applyTheme(theme: Theme, target: Document = document) {
+  target.documentElement.classList.toggle("dark", theme === "dark");
+  target.documentElement.classList.toggle("light", theme === "light");
 }
 
 function subscribe(onChange: () => void) {
@@ -30,12 +30,16 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function ThemeControl() {
-  const theme = useSyncExternalStore(
+export function useShowroomTheme(): Theme {
+  return useSyncExternalStore(
     subscribe,
     () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
     () => "light",
   );
+}
+
+export function ThemeControl() {
+  const theme = useShowroomTheme();
   const Icon = theme === "dark" ? SunIcon : MoonIcon;
 
   return (

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -32,7 +32,7 @@ void test("toast stacks expand with mouse, touch and keyboard and keep every act
       if (width === 390)
         await activate(page.getByRole("button", { name: "Settings", exact: true }));
       if (colorScheme === "dark")
-        await activate(page.getByRole("button", { name: "Dark mode", exact: true }));
+        await activate(page.shell.getByRole("button", { name: "Dark mode", exact: true }));
       await activate(page.getByLabel("Simulate action failures"));
       const create = page.getByRole("button", { name: "Run background action", exact: true });
       const toasts = page.getByRole("dialog", { name: "Background action", exact: true });

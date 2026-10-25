@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
@@ -72,7 +72,7 @@ void test("combined table demo supports discovery, search, pagination and stable
   await cursor.getByRole("button", { name: "Previous page" }).click();
   assert.equal(await cursor.getByRole("button", { name: "Previous page" }).isDisabled(), true);
   for (const dark of [false, true]) {
-    const theme = page.getByRole("button", { name: "Dark mode", exact: true });
+    const theme = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await theme.getAttribute("aria-pressed")) !== String(dark)) await theme.click();
     for (const width of [1440, 320]) {
       await page.setViewportSize({ width, height: 1000 });

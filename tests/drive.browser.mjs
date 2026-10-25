@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import { after, before, test, suite } from "node:test";
 
 import { unzipSync, strFromU8 } from "fflate";
-import { chromium } from "playwright";
 
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Drive browser", async () => {
@@ -29,7 +29,7 @@ await suite("Drive browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     await openPreviewControls(page);
     if (options.colorScheme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
   async function folder(page, name) {
@@ -1554,7 +1554,7 @@ await suite("Drive browser", async () => {
     await page.locator('input[type="file"]:enabled').setInputFiles(file("leaving.txt"));
     const toast = page.getByRole("dialog", { name: "Uploads", exact: true });
     await toast.waitFor();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await page.clock.resume();
     await toast.waitFor({ state: "hidden" });
   });
@@ -1573,7 +1573,7 @@ await suite("Drive browser", async () => {
       exact: true,
     });
     await toast.getByRole("button", { name: "Undo", exact: true }).waitFor();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await toast.waitFor({ state: "hidden" });
   });
 

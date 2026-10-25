@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Menu print browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -122,7 +121,7 @@ await suite("Menu print browser", async () => {
     await page.getByLabel("Paper size", { exact: true }).selectOption("A5");
     assert.equal(await paper.getAttribute("data-menu-paper"), "A5");
     await paper.getByRole("heading", { name: "Autumn menu" }).waitFor();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await paper.evaluate((element) => getComputedStyle(element).backgroundColor),
       "rgb(255, 255, 255)",

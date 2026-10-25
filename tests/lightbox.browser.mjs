@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -27,7 +27,7 @@ await test("lightbox traps focus, preserves image clicks and restores focus afte
     [320, true],
   ]) {
     await page.setViewportSize({ width, height: 900 });
-    const theme = page.getByRole("button", { name: "Dark mode", exact: true });
+    const theme = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await theme.getAttribute("aria-pressed")) !== String(dark)) await theme.click();
     await trigger.focus();
     await trigger.press("Enter");

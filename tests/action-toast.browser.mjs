@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -30,7 +29,7 @@ void test("project success toasts preserve layout, focus and repeated saves in b
       await page.locator('[data-preview-ready="true"]').waitFor();
       await openPreviewControls(page);
       if (colorScheme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const button = page.getByRole("button", { name: "Save changes", exact: true });
       const form = page.locator("form");
       const geometry = () =>
@@ -116,7 +115,7 @@ void test("background toasts share the confirmation frame and keep footer action
       await page.locator('[data-preview-ready="true"]').waitFor();
       await openPreviewControls(page);
       if (colorScheme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       await page.getByRole("button", { name: "Save changes", exact: true }).click();
       const saved = page.getByRole("dialog", { name: "Project updated.", exact: true });
       await saved.waitFor();

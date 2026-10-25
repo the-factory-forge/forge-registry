@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Cookie banner browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";

@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
 const article = "b1000000-0000-4000-8000-000000000001";
 let browser;
@@ -64,7 +63,7 @@ void test("history controls and panel stay together below the header while scrol
   const page = await preview(t, false);
   const trigger = page.getByRole("button", { name: "History", exact: true });
   const compare = page.getByRole("button", { name: "Compare draft", exact: true });
-  const header = page.getByRole("navigation", { name: "Showroom navigation", exact: true });
+  const header = page.shell.getByRole("navigation", { name: "Showroom navigation", exact: true });
   const scroll = (top) =>
     page.evaluate(async (top) => {
       window.scrollTo(0, top);
@@ -104,7 +103,7 @@ void test("history trigger distinguishes open and closed states in both themes a
       await t.test(`${width}px ${theme}`, async (t) => {
         const page = await preview(t, true, { width, height: 1000 });
         if (theme === "dark")
-          await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+          await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
         const trigger = page.getByRole("button", { name: "History", exact: true });
         const appearance = () =>
           trigger.evaluate(async (element) => {

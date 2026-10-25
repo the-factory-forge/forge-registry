@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { chromium } from "playwright";
-
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -46,7 +45,7 @@ void test("plugin tables retain headers, loaded rows and paging through loading,
     const tableHandle = await table.elementHandle();
     assert.ok(headers.length >= 3);
     for (const dark of [false, true]) {
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(dark)) await toggle.click();
       for (const width of [1440, 320]) {
         await page.setViewportSize({ width, height: 1000 });

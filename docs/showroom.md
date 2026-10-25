@@ -164,6 +164,25 @@ after the last activity finishes. New activity cancels that hide; unmounting a
 source releases it. The bar overlays the page without shifting content or blocking
 interaction and respects reduced motion. See [the portable loading component](./loading-indicator.md).
 
+## Device previews
+
+The shared navbar offers one icon button that cycles Small (Phone, 390px) → Medium
+(Tablet, 768px) → Big (Laptop, normal available width) → Small at screen widths of
+640px and above. Its icon shows the current size; its accessible name and tooltip
+describe the current size and the next action. Big is the default. The selected phone/tablet
+mode is stored in `previewDevice`, so reload and Back/Forward restore it. Invalid
+values use Laptop. The button sits immediately to the right of the theme control;
+only Phone and Tablet use the filled active style. Below 640px the control is
+hidden and the normal page is shown.
+
+All three sizes share one persistent same-origin iframe so CSS breakpoints, viewport units,
+JavaScript media queries and portaled dialogs use the selected viewport. Its own
+navbar is omitted. Navigation updates the outer URL; language and theme controls
+remain in the outer navbar. Switching sizes only resizes the existing preview, preserving sample-data edits,
+unsaved drafts, open dialogs, settings and scroll position. Laptop and smartphone
+screens use the available width. Reloading still resets sample data.
+Tablet previews scroll horizontally when the available screen is narrower than 768px.
+
 ## Shared preview frame
 
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React

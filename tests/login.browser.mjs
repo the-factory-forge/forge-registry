@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Login browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -206,7 +205,7 @@ await suite("Login browser", async () => {
     await page.keyboard.press("Enter");
     await page.getByRole("heading", { name: "Forgot your password?", exact: true }).waitFor();
     for (const theme of ["Light", "Dark"]) {
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
         await toggle.click();
       for (const width of [1440, 390]) {

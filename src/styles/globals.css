@@ -14,7 +14,6 @@
 
 :root {
   color-scheme: light dark;
-  scrollbar-gutter: stable;
   --background: light-dark(#ffffff, #000000);
   --foreground: light-dark(#000000, #ffffff);
   --card: var(--background);
@@ -130,6 +129,10 @@
   --showroom-header-height: 3.5rem;
   --showroom-max-width: var(--container-7xl);
   --showroom-gutter: clamp(1rem, 3vw, 2rem);
+}
+
+:root:has([data-showroom-embedded="true"]) {
+  --showroom-header-height: 0rem;
 }
 
 .showroom-content {

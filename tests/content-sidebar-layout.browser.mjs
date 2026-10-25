@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
 let browser;
@@ -37,7 +37,7 @@ for (const width of [1440, 390]) {
     void test(`content sidebar preserves fields and keeps long panels reachable at ${width}px in ${theme}`, async (t) => {
       const page = await preview(t, width);
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const trigger = page.getByRole("button", { name: "Details", exact: true });
       const panel = page.getByRole("complementary", { name: "Project details", exact: true });
       const content = page.getByRole("region", { name: "Project brief", exact: true });

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 let browser;

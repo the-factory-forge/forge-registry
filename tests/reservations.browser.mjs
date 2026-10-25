@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Reservations browser", async () => {
@@ -85,7 +84,7 @@ await suite("Reservations browser", async () => {
       await page.setViewportSize({ width, height: 1000 });
       for (const theme of ["light", "dark"]) {
         if (theme === "dark")
-          await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+          await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
         await calendar.scrollIntoViewIfNeeded();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -97,7 +96,7 @@ await suite("Reservations browser", async () => {
         );
         await page.screenshot({ path: `/tmp/booking-availability-${width}-${theme}.png` });
       }
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     }
   });
 
@@ -292,7 +291,7 @@ await suite("Reservations browser", async () => {
     await page.getByRole("button", { name: "Review booking" }).click();
     await page.getByRole("button", { name: "Book appointment", exact: true }).click();
     await page.getByText("Awaiting approval", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
     await page
       .getByText(/Pat Example ·/)
@@ -315,7 +314,7 @@ await suite("Reservations browser", async () => {
     await page.screenshot({ path: "/tmp/reservations-mobile.png", fullPage: true });
     await page.getByRole("link", { name: "Français", exact: true }).click();
     await page.getByRole("heading", { name: "Réserver un rendez-vous" }).waitFor();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(await page.getByRole("button", { name: "Vérifier la réservation" }).count(), 1);
   });
 
@@ -439,7 +438,7 @@ await suite("Reservations browser", async () => {
     const page = await preview(t, "/fr/admin/reservations/settings", {
       viewport: { width: 390, height: 844 },
     });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
     const archive = page.getByRole("button", {
       name: "Archiver Apartment stay / Séjour",
@@ -648,7 +647,7 @@ await suite("Reservations browser", async () => {
     );
     assert.ok((await table.getByRole("rowheader").first().boundingBox()).width <= 112);
     for (const theme of ["Dark", "Light"]) {
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
         await toggle.click();
       assert.equal(
@@ -660,7 +659,7 @@ await suite("Reservations browser", async () => {
         true,
       );
     }
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await table.locator("button[data-date]").last().focus();
     assert.equal(
       await table
@@ -800,7 +799,7 @@ await suite("Reservations browser", async () => {
     await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
     await page.getByRole("heading", { name: "Réserver un séjour", exact: true }).waitFor();
     for (const theme of ["Light", "Dark"]) {
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
         await toggle.click();
       await page.getByLabel("Date de départ", { exact: true }).focus();

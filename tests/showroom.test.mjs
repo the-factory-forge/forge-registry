@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { localeRedirect } from "../src/lib/locale-redirect.ts";
+import { previewDeviceSearch, previewLocationMessage } from "../src/showroom/preview-device.ts";
 import { showroomHead, notFoundHead } from "../src/showroom/seo.ts";
 
 await test("showroom route metadata keeps canonical and social URLs consistent and honors noindex", () => {
@@ -72,5 +73,29 @@ await test("locale middleware leaves static registry delivery and existing route
     "/unknown",
   ]) {
     assert.equal(localeRedirect(new Request(`https://example.com${path}`)), undefined);
+  }
+});
+
+await test("preview URL and frame messages reject invalid external values", () => {
+  assert.deepEqual(
+    previewDeviceSearch.parse({ previewDevice: "phone", previewEmbed: true, extra: 1 }),
+    { previewDevice: "phone", previewEmbed: true },
+  );
+  for (const value of [null, false, [], {}, "desktop", 390]) {
+    assert.equal(previewDeviceSearch.parse({ previewDevice: value }).previewDevice, undefined);
+    assert.equal(previewDeviceSearch.parse({ previewEmbed: value }).previewEmbed, undefined);
+  }
+  assert.equal(
+    previewLocationMessage.safeParse({
+      type: "showroom-preview-location",
+      href: "/en/projects?search=acme#details",
+    }).success,
+    true,
+  );
+  for (const href of ["//example.com", "https://example.com", "javascript:alert(1)", null]) {
+    assert.equal(
+      previewLocationMessage.safeParse({ type: "showroom-preview-location", href }).success,
+      false,
+    );
   }
 });

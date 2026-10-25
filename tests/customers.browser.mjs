@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Customers browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -25,7 +24,7 @@ await suite("Customers browser", async () => {
     await page.goto(`${baseURL}/en/customers${route}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     if (options.colorScheme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
 

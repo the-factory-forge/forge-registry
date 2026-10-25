@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { before, after, test } from "node:test";
 
-import { chromium } from "playwright";
-
+import { chromium } from "./showroom-browser.mjs";
 import { openPreviewControls } from "./showroom-helpers.mjs";
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -87,7 +86,7 @@ void test("data states across plugins share the indicator and navigation release
     await bar.waitFor({ state: "hidden" });
     await page.getByLabel("Directory state").selectOption("loading");
     await bar.waitFor();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await page.waitForURL(base + "/");
     await bar.waitFor({ state: "hidden" });
   }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Showroom browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -149,7 +149,9 @@ await suite("Showroom browser", async () => {
     const serverState = await page.evaluate((html) => {
       const doc = new DOMParser().parseFromString(html, "text/html");
       return {
-        category: doc.querySelector('fieldset button[aria-pressed="true"]')?.textContent,
+        category: doc.querySelector(
+          '#factory-showroom-preview fieldset button[aria-pressed="true"]',
+        )?.textContent,
         search: doc.querySelector('input[type="search"]')?.value,
         titles: [...doc.querySelectorAll('section[aria-label="Examples"] h2')].map(
           (heading) => heading.textContent,
@@ -246,7 +248,7 @@ await suite("Showroom browser", async () => {
     assert.equal(destinations.filter((href) => href === "/en/menus").length, 1);
     assert.equal(destinations.includes("/en/admin/menus"), false);
     assert.equal(destinations.filter((href) => href === "/en/login").length, 1);
-    const header = page.getByRole("navigation", { name: "Showroom navigation" });
+    const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     const original = await header.boundingBox();
     const titles = new Set();
     const descriptions = new Set();
@@ -366,7 +368,7 @@ await suite("Showroom browser", async () => {
       await page.locator('[data-preview-ready="true"]').waitFor();
       await page.keyboard.press("Tab");
       assert.equal(
-        await page.evaluate(() => document.activeElement.textContent.trim()),
+        await page.shell.evaluate(() => document.activeElement.textContent.trim()),
         "Skip to preview",
       );
       await page.keyboard.press("Enter");
@@ -396,7 +398,7 @@ await suite("Showroom browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     const name = page.getByRole("textbox", { name: "Name *", exact: true });
     await name.fill("Unsaved menu translation");
-    const header = page.getByRole("navigation", { name: "Showroom navigation" });
+    const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     await header.getByRole("button", { name: "Dark mode", exact: true }).click();
     for (const [locale, language] of [
       ["fr", "Français"],
@@ -406,7 +408,7 @@ await suite("Showroom browser", async () => {
     ]) {
       await page.setViewportSize({ width: 320, height: 800 });
       await header.getByRole("button", { name: "Language", exact: true }).press("Enter");
-      await page.getByRole("menuitem", { name: language, exact: true }).click();
+      await page.shell.getByRole("menuitem", { name: language, exact: true }).click();
       await page.waitForURL(`${baseURL}/${locale}${destination}`);
       assert.equal(await name.inputValue(), "Unsaved menu translation");
       assert.equal(
@@ -637,7 +639,7 @@ await suite("Showroom browser", async () => {
           .boundingBox();
         const preview = await page.locator("#factory-showroom-preview").boundingBox();
         assert.ok(rail.y + rail.height <= preview.y, path);
-        const header = await page
+        const header = await page.shell
           .getByRole("navigation", { name: "Showroom navigation" })
           .locator("..")
           .boundingBox();

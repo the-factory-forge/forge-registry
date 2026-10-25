@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3100";
 let browser;
@@ -46,7 +45,8 @@ async function sticky(button) {
 for (const width of [1440, 390]) {
   void test(`blog guides successive corrections and keeps actions visible at ${width}px`, async (t) => {
     const page = await open(t, "/en/admin/blogs/b1000000-0000-4000-8000-000000000004", width);
-    if (width === 390) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    if (width === 390)
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     const save = page.getByRole("button", { name: "Save draft", exact: true });
     const publish = page.getByRole("button", { name: "Publish", exact: true });
     await page.getByRole("textbox", { name: "Title", exact: true }).scrollIntoViewIfNeeded();
