@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "content-sidebar-layout",
+  "title": "Content Sidebar Layout",
+  "description": "Responsive content with optional toolbar and a sticky, independently scrolling supporting panel.",
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/layouts/content-sidebar-layout.tsx",
+      "content": "import type { ReactNode } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface ContentSidebarLayoutProps {\n  children: ReactNode;\n  toolbar?: ReactNode;\n  sidebar?: ReactNode;\n  className?: string;\n}\n\n/** The host supplies --intranet-top-offset when a header covers the viewport. */\nexport function ContentSidebarLayout({\n  children,\n  toolbar,\n  sidebar,\n  className,\n}: ContentSidebarLayoutProps) {\n  return (\n    <div\n      className={cn(\n        \"grid min-w-0 gap-6\",\n        sidebar && \"lg:grid-cols-[minmax(0,1fr)_22rem]\",\n        className,\n      )}\n    >\n      {(toolbar || sidebar) && (\n        <div\n          className={cn(\n            \"flex min-w-0 flex-col gap-6\",\n            sidebar &&\n              \"lg:sticky lg:top-[calc(var(--intranet-top-offset,0rem)+1rem)] lg:order-last lg:max-h-[calc(100dvh-var(--intranet-top-offset,0rem)-2rem)] lg:self-start\",\n          )}\n        >\n          {toolbar && <div className=\"shrink-0\">{toolbar}</div>}\n          {sidebar && <div className=\"min-w-0 lg:min-h-0 lg:overflow-y-auto\">{sidebar}</div>}\n        </div>\n      )}\n      <div className=\"min-w-0\">{children}</div>\n    </div>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/layouts/content-sidebar-layout.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

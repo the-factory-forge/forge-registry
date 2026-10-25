@@ -28,6 +28,14 @@ type Category = keyof typeof categoryIcons;
 const examples = (
   [
     {
+      href: "/content-sidebar-layout",
+      category: "Layout",
+      title: "Content sidebar layout",
+      description:
+        "Content beside a sticky supporting panel with persistent controls and mobile stacking.",
+      keywords: ["sidebar", "layout", "panel", "editor", "sticky"],
+    },
+    {
       href: "/lightbox",
       category: "Component",
       title: "Lightbox",

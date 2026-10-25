@@ -1114,6 +1114,13 @@ editing/preview, categories and public list/article components.
 - **THEN** its status becomes unpublished changes
 - **AND** the public page retains its previous publication until staff publish again
 
+#### Scenario: Scrolling the editor history
+
+- **WHEN** staff scroll an article with history open on desktop
+- **THEN** the comparison and History buttons stick together with the history panel below the host header offset
+- **AND** long timelines scroll inside the panel while the buttons remain visible
+- **AND** narrow layouts retain the controls and expanded history in normal page flow
+
 #### Scenario: Computing a draft save
 
 - **WHEN** a storage or showroom adapter saves a blog draft

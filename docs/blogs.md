@@ -551,6 +551,11 @@ Existing hosts without the optional client retain ordinary controls. The server
 rejects a historical return sent through the old publish method until the host
 wires confirmation, so hiding history cannot bypass deletion protection.
 
+The editor uses [`@forge/content-sidebar-layout`](./content-sidebar-layout.md),
+included by the Blogs registry dependency. On desktop, the comparison and History buttons stick with the right-hand panel,
+below the host's `--intranet-top-offset` (default `0rem`). Long timelines scroll
+inside the panel. On mobile, the controls and expanded history stay in page flow.
+
 The right-hand panel reads headers and loads only the selected body. Selection
 is read-only; Save, Discard and Cancel protect dirty work before inspection,
 resumption, language changes and the editor's Back link. Reloading or leaving the

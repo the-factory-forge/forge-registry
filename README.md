@@ -201,6 +201,12 @@ Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers 
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
+### Layouts
+
+| Name                                                       | Description                                                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [content-sidebar-layout](./docs/content-sidebar-layout.md) | Content beside an optional sticky supporting panel, with persistent toolbar and mobile stacking |
+
 ### Intranet (1)
 
 | Name             | Description                                                                                       |

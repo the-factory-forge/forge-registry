@@ -851,6 +851,20 @@
       ]
     },
     {
+      "name": "content-sidebar-layout",
+      "type": "registry:block",
+      "title": "Content Sidebar Layout",
+      "description": "Responsive content with optional toolbar and a sticky, independently scrolling supporting panel.",
+      "registryDependencies": ["@forge/cn"],
+      "files": [
+        {
+          "path": "registry/components/layouts/content-sidebar-layout.tsx",
+          "type": "registry:component",
+          "target": "@components/layouts/content-sidebar-layout.tsx"
+        }
+      ]
+    },
+    {
       "name": "intranet-shell",
       "type": "registry:block",
       "title": "Intranet Shell",
@@ -1128,7 +1142,8 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/image-crop",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/content-sidebar-layout"
       ],
       "files": [
         {

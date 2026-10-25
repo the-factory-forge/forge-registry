@@ -299,7 +299,7 @@ export function BlogHistoryPanel({
   return (
     <aside
       aria-label={`${labels.history} · ${headers[0]?.locale.toUpperCase() ?? ""}`}
-      className="order-first min-w-0 space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground lg:sticky lg:top-4 lg:order-last lg:self-start"
+      className="min-w-0 space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground"
     >
       <header className="flex items-center justify-between gap-2">
         <h2 className="font-semibold">{labels.history}</h2>

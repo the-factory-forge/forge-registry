@@ -23,9 +23,13 @@ async function preview(t, example = true, viewport = { width: 1440, height: 1000
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(`${base}/en/admin/blogs/${article}`);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  if (example)
-    await page.getByRole("button", { name: "Load history example", exact: true }).click();
+  if (example) await loadExample(page);
   return page;
+}
+async function loadExample(page) {
+  const settings = page.getByRole("button", { name: "Settings", exact: true });
+  if ((await settings.getAttribute("aria-expanded")) === "false") await settings.click();
+  await page.getByRole("button", { name: "Load history example", exact: true }).click();
 }
 const panel = (page, locale = "EN") =>
   page.getByRole("complementary", { name: `History · ${locale}`, exact: true });
@@ -55,6 +59,44 @@ async function counts(page, pubs, drafts, locale = "EN") {
     .getByText(`Publications ${pubs} / 5 · Drafts ${drafts} / 8`, { exact: true })
     .waitFor();
 }
+
+void test("history controls and panel stay together below the header while scrolling", async (t) => {
+  const page = await preview(t, false);
+  const trigger = page.getByRole("button", { name: "History", exact: true });
+  const compare = page.getByRole("button", { name: "Compare draft", exact: true });
+  const header = page.getByRole("navigation", { name: "Showroom navigation", exact: true });
+  const scroll = (top) =>
+    page.evaluate(async (top) => {
+      window.scrollTo(0, top);
+      await new Promise(requestAnimationFrame);
+    }, top);
+  for (const top of [500, 800]) {
+    await scroll(top);
+    const headerBounds = await header.boundingBox();
+    const controls = await trigger.boundingBox();
+    const comparison = await compare.boundingBox();
+    const history = await panel(page).boundingBox();
+    assert.ok(controls.y >= headerBounds.y + headerBounds.height, "History stays below the header");
+    assert.equal(comparison.y, controls.y);
+    assert.ok(history.y >= controls.y + controls.height, "History stays below its buttons");
+  }
+  await loadExample(page);
+  await scroll(800);
+  const history = await panel(page).locator("..").boundingBox();
+  assert.ok(history.y + history.height <= 1000, "Long history fits below its sticky controls");
+  await panel(page)
+    .getByRole("button", { name: /^Actions: v/ })
+    .last()
+    .scrollIntoViewIfNeeded();
+  assert.ok(
+    (await trigger.boundingBox()).y >= 56,
+    "Scrolling the timeline keeps its controls visible",
+  );
+  await panel(page).getByRole("button", { name: "Close history", exact: true }).click();
+  assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+  await trigger.click();
+  await panel(page).waitFor();
+});
 
 void test("history trigger distinguishes open and closed states in both themes and layouts", async (t) => {
   for (const width of [1440, 390]) {
@@ -125,7 +167,7 @@ for (const width of [1440, 390]) {
       }, theme);
       await page.reload();
       await page.locator('[data-preview-ready="true"]').waitFor();
-      await page.getByRole("button", { name: "Load history example", exact: true }).click();
+      await loadExample(page);
       await actions(page, 18);
       await page.keyboard.press("Escape");
       const trigger = panel(page).getByRole("button", { name: "Actions: v18", exact: true });
@@ -197,7 +239,7 @@ void test("history examples target every open post and give English and French i
     await page.goto(`${base}/en/admin/blogs/${id}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     const title = await page.getByRole("textbox", { name: "Title", exact: true }).inputValue();
-    await page.getByRole("button", { name: "Load history example", exact: true }).click();
+    await loadExample(page);
     await counts(page, 5, 4);
     assert.equal(
       await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
@@ -243,7 +285,7 @@ void test("concurrent correction targets the open post and preserves its unsaved
   const page = await preview(t, false);
   await page.goto(`${base}/fr/admin/blogs/${article.slice(0, -1)}2`);
   await page.locator('[data-preview-ready="true"]').waitFor();
-  await page.getByRole("button", { name: "Load history example", exact: true }).click();
+  await loadExample(page);
   const frenchHistory = page.getByRole("complementary", { name: "Historique · FR", exact: true });
   await frenchHistory.getByText("Publications 5 / 5 · Brouillons 4 / 8", { exact: true }).waitFor();
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Ma correction à conserver");
@@ -407,7 +449,7 @@ void test("historical publication lists exact deletions, cancel preserves them a
     "Faire de la place aux idées",
   );
   await page.getByRole("tab", { name: "English", exact: true }).click();
-  await page.getByRole("button", { name: "Load history example", exact: true }).click();
+  await loadExample(page);
   await counts(page, 5, 4);
   await page.getByRole("tab", { name: "Français", exact: true }).click();
   await counts(page, 5, 4, "FR");

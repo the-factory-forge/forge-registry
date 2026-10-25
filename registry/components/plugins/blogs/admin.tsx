@@ -31,6 +31,7 @@ import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
+import { ContentSidebarLayout } from "@/components/layouts/content-sidebar-layout";
 import { Link } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -988,61 +989,85 @@ function EditorForm({
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-      {client.history && (
-        <div className="flex flex-wrap justify-end gap-2">
-          {(draft.feedback?.error || publication.feedback?.error) && (
-            <button
-              type="button"
-              className={outlineButtonClass}
+      <ContentSidebarLayout
+        toolbar={
+          client.history && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {(draft.feedback?.error || publication.feedback?.error) && (
+                <button
+                  type="button"
+                  className={outlineButtonClass}
+                  disabled={pending}
+                  onClick={() => void draft.refresh()}
+                >
+                  <RefreshCwIcon aria-hidden="true" />
+                  {labels.refreshArticle}
+                </button>
+              )}
+              {(selectedId || compareWorking) && (
+                <button
+                  type="button"
+                  className={outlineButtonClass}
+                  disabled={pending}
+                  onClick={history.returnToDraft}
+                >
+                  {labels.returnToDraft}
+                </button>
+              )}
+              {!selectedId && !compareWorking && (
+                <button
+                  type="button"
+                  className={outlineButtonClass}
+                  disabled={pending}
+                  onClick={history.compareDraft}
+                >
+                  <GitCompareArrowsIcon aria-hidden="true" />
+                  {labels.compareDraft}
+                </button>
+              )}
+              <button
+                type="button"
+                className={cn(
+                  outlineButtonClass,
+                  historyOpen && primaryClass,
+                  historyOpen && "border-primary",
+                )}
+                ref={historyTrigger}
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen(!historyOpen)}
+              >
+                <HistoryIcon aria-hidden="true" />
+                {labels.history}
+              </button>
+            </div>
+          )
+        }
+        sidebar={
+          client.history &&
+          historyOpen && (
+            <BlogHistoryPanel
+              headers={headers}
+              selectedId={selectedId}
+              currentId={base.translations[locale]?.history?.currentId ?? null}
+              publishedId={base.translations[locale]?.history?.publishedId ?? null}
+              loading={historyLoading}
+              error={historyError}
+              labels={labels}
+              onSelect={inspect}
+              onCompare={(header) => inspect(header, "compare")}
+              onRetry={history.retry}
+              onClose={() => {
+                setHistoryOpen(false);
+                historyTrigger.current?.focus();
+              }}
               disabled={pending}
-              onClick={() => void draft.refresh()}
-            >
-              <RefreshCwIcon aria-hidden="true" />
-              {labels.refreshArticle}
-            </button>
-          )}
-          {(selectedId || compareWorking) && (
-            <button
-              type="button"
-              className={outlineButtonClass}
-              disabled={pending}
-              onClick={history.returnToDraft}
-            >
-              {labels.returnToDraft}
-            </button>
-          )}
-          {!selectedId && !compareWorking && (
-            <button
-              type="button"
-              className={outlineButtonClass}
-              disabled={pending}
-              onClick={history.compareDraft}
-            >
-              <GitCompareArrowsIcon aria-hidden="true" />
-              {labels.compareDraft}
-            </button>
-          )}
-          <button
-            type="button"
-            className={cn(
-              outlineButtonClass,
-              historyOpen && primaryClass,
-              historyOpen && "border-primary",
-            )}
-            ref={historyTrigger}
-            aria-expanded={historyOpen}
-            onClick={() => setHistoryOpen(!historyOpen)}
-          >
-            <HistoryIcon aria-hidden="true" />
-            {labels.history}
-          </button>
-        </div>
-      )}
-      <div
-        className={cn(
-          "grid min-w-0 gap-6",
-          client.history && historyOpen && "lg:grid-cols-[minmax(0,1fr)_22rem]",
-        )}
+              deleteDisabled={dirty}
+              formatDate={(iso) => formatDate(iso, locale)}
+              working={workingPreview}
+              onDelete={capabilities.delete ? history.delete : undefined}
+            />
+          )
+        }
       >
         <div
           ref={contentArea}
@@ -1426,30 +1451,7 @@ function EditorForm({
           </div>
           <Feedback {...publication.feedback} />
         </div>
-        {client.history && historyOpen && (
-          <BlogHistoryPanel
-            headers={headers}
-            selectedId={selectedId}
-            currentId={base.translations[locale]?.history?.currentId ?? null}
-            publishedId={base.translations[locale]?.history?.publishedId ?? null}
-            loading={historyLoading}
-            error={historyError}
-            labels={labels}
-            onSelect={inspect}
-            onCompare={(header) => inspect(header, "compare")}
-            onRetry={history.retry}
-            onClose={() => {
-              setHistoryOpen(false);
-              historyTrigger.current?.focus();
-            }}
-            disabled={pending}
-            deleteDisabled={dirty}
-            formatDate={(iso) => formatDate(iso, locale)}
-            working={workingPreview}
-            onDelete={capabilities.delete ? history.delete : undefined}
-          />
-        )}
-      </div>
+      </ContentSidebarLayout>
     </>
   );
 }
