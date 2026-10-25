@@ -121,6 +121,10 @@ have no public language fallback.
 Categories form one translated tree with at most two levels. The post editor
 nests child checkboxes beneath their parent with indentation and a connecting guide.
 Selecting a child also selects its parent; clearing a parent clears its children.
+Pass `BlogEditPage.categoriesHref` to show a pencil link beside Categories for
+users with `manageCategories`. It opens the host's category management page and
+uses the editor's save/discard/cancel guard when the draft has unsaved changes.
+Existing integrations can omit the prop to keep their current navigation.
 Parent filters count each article once. Category slugs
 are unique per language. Publication requires names in that language for every
 selected category. Existing labels cannot be removed. Categories in use cannot

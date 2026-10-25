@@ -39,6 +39,7 @@ export interface MenusLabels extends TableSelectionLabels {
   emptyItems: string;
   categories: string;
   labels: string;
+  manageLabels?: string;
   newItem: string;
   editItem: string;
   actions?: string;
@@ -128,6 +129,7 @@ export const menusLabels = {
   emptyItems: "No menu items yet.",
   categories: "Categories",
   labels: "Labels",
+  manageLabels: "Manage labels",
   newItem: "New item",
   editItem: "Edit item",
   actions: "Actions",

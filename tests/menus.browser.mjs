@@ -29,6 +29,32 @@ await suite("Menus browser", async () => {
     return page;
   }
 
+  await test("editor label shortcut opens label management with a keyboard tooltip", async (t) => {
+    const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001");
+    const link = page.getByRole("link", { name: "Manage labels", exact: true });
+    await link.focus();
+    await page.getByRole("tooltip", { name: "Manage labels", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate(
+          (value) => document.documentElement.classList.toggle("dark", value === "dark"),
+          theme,
+        );
+        await link.scrollIntoViewIfNeeded();
+        await link
+          .locator("xpath=ancestor::fieldset[1]")
+          .screenshot({ path: `/tmp/menu-labels-${width}-${theme}.png` });
+      }
+    }
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForURL("**/en/admin/menus/taxonomy");
+    await page.getByRole("heading", { name: "Labels", exact: true }).waitFor();
+    await page.getByRole("button", { name: "New label", exact: true }).waitFor();
+  });
+
   await test("homepage links, public visibility, sold out labels, language fallback, and themes", async (t) => {
     const page = await preview(t, "/");
     await page.getByRole("searchbox", { name: "Search examples" }).fill("menu item editor");

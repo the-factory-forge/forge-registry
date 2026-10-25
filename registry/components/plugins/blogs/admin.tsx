@@ -571,6 +571,8 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   locales: BlogLocale[];
   defaultLocale: string;
   backHref: string;
+  /** Host route for category management; shown only to category managers. */
+  categoriesHref?: string;
   capabilities: BlogCapabilities;
   onSaved?: (article: BlogArticle) => void;
   /** Let the host guard navigation outside this portable editor. */
@@ -647,6 +649,7 @@ function EditorForm({
   article,
   categories,
   assets: initialAssets,
+  categoriesHref,
   locale,
   capabilities,
   onSaved,
@@ -657,7 +660,7 @@ function EditorForm({
   labels: overrides,
   assetUrl,
   imageComponent: BlogImage = Image,
-  linkComponent,
+  linkComponent: BlogLink = Link,
   maxImageBytes = MAX_IMAGE_BYTES,
   maxMarkdownBytes = MAX_MARKDOWN_BYTES,
   imageDimensions = {
@@ -1101,7 +1104,7 @@ function EditorForm({
                   categories={categories}
                   assetUrl={assetUrl}
                   imageComponent={BlogImage}
-                  linkComponent={linkComponent}
+                  linkComponent={BlogLink}
                   formatDate={formatDate}
                   disabled={pending}
                   onResume={selected && capabilities.publish ? () => resume(selected) : undefined}
@@ -1288,7 +1291,36 @@ function EditorForm({
                 </div>
                 <p className="text-xs text-muted-foreground">{labels.imageHint}</p>
                 <fieldset className="space-y-3">
-                  <legend className="mb-3 text-sm font-medium">{labels.categories}</legend>
+                  <legend className="mb-3 text-sm font-medium">
+                    <span className="inline-flex items-center gap-2">
+                      {labels.categories}
+                      {capabilities.manageCategories && categoriesHref && (
+                        <IconTooltip label={labels.manageCategories}>
+                          <BlogLink
+                            href={categoriesHref}
+                            className={iconButtonClass}
+                            aria-label={labels.manageCategories}
+                            onClick={(event) => {
+                              if (
+                                event.defaultPrevented ||
+                                event.metaKey ||
+                                event.ctrlKey ||
+                                event.shiftKey ||
+                                event.altKey ||
+                                event.button !== 0 ||
+                                (!dirty && !pending)
+                              )
+                                return;
+                              event.preventDefault();
+                              navigationRef.current(() => window.location.assign(categoriesHref));
+                            }}
+                          >
+                            <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                          </BlogLink>
+                        </IconTooltip>
+                      )}
+                    </span>
+                  </legend>
                   <ul className="grid gap-4 sm:grid-cols-2">
                     {categories
                       .filter((category) => !category.parentId)
@@ -1395,7 +1427,7 @@ function EditorForm({
                       assetIds={assets.map((a) => a.id)}
                       assetUrl={assetUrl}
                       imageComponent={BlogImage}
-                      linkComponent={linkComponent}
+                      linkComponent={BlogLink}
                     />
                   </section>
                 </div>

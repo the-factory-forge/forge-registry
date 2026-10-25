@@ -182,3 +182,24 @@ void test("clients without history retain direct publication and edit sessions r
   assert.notEqual(await title(page).inputValue(), "Another local edit");
   assert.equal(await page.evaluate(() => window.draftTest.dirtyChanges.at(-1)), false);
 });
+
+void test("category navigation protects drafts and preserves keyboard access", async (t) => {
+  const page = await fixture(t, true);
+  const link = page.getByRole("link", { name: "Manage categories", exact: true });
+  assert.equal(await link.getAttribute("href"), "#categories");
+  await link.focus();
+  await page.getByRole("tooltip", { name: "Manage categories", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  await title(page).fill("Keep this category draft");
+  await link.click();
+  await leave(page).getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal(await title(page).inputValue(), "Keep this category draft");
+  assert.equal(new URL(page.url()).hash, "");
+  await link.click();
+  await leave(page).getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.waitForURL("**#categories");
+  assert.equal(
+    await page.evaluate(() => window.draftTest.current().translations.en.draft.title),
+    "Keep this category draft",
+  );
+});

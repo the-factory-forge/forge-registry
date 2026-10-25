@@ -595,6 +595,8 @@ export interface MenuItemEditorPageProps {
   baseLocale: string;
   currency: string;
   backHref: string;
+  /** Host route for label management; omit when unavailable to this user. */
+  labelsHref?: string;
   onSaved: (item: MenuItem) => void;
   driveClient?: DriveClient;
   driveTransfer?: DriveTransfer;
@@ -614,6 +616,7 @@ function MenuItemEditorPageContent({
   baseLocale,
   currency,
   backHref,
+  labelsHref,
   onSaved,
   driveClient,
   driveTransfer,
@@ -954,7 +957,22 @@ function MenuItemEditorPageContent({
           </div>
         </fieldset>
         <fieldset className="space-y-2">
-          <legend className="font-medium">{labels.labels}</legend>
+          <legend className="font-medium">
+            <span className="inline-flex items-center gap-2">
+              {labels.labels}
+              {labelsHref && (
+                <IconTooltip label={labels.manageLabels}>
+                  <HostLink
+                    href={labelsHref}
+                    className={iconButton}
+                    aria-label={labels.manageLabels}
+                  >
+                    <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </HostLink>
+                </IconTooltip>
+              )}
+            </span>
+          </legend>
           <div className="flex flex-wrap gap-4">
             {sortedLabels.map((label) => (
               <label key={label.id} className="inline-flex items-center gap-2">

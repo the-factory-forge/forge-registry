@@ -324,6 +324,7 @@ export function BlogsAdminPreview() {
         locales={blogLocales}
         defaultLocale={locale}
         backHref={root}
+        categoriesHref={`${root}/categories`}
         onDeleted={() => navigate({ href: root })}
       />
     );

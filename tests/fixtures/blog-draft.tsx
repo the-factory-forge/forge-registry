@@ -101,6 +101,7 @@ function Fixture() {
       locales={blogLocales}
       defaultLocale="en"
       backHref="#posts"
+      categoriesHref="#categories"
       authors={[actor, { id: "alex", name: "Alex Morgan" }]}
       capabilities={blogCapabilities({ id: actor.id, admin: true }, actor.id)}
       assetUrl={mock.assetUrl}

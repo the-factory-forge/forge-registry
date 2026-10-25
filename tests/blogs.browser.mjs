@@ -44,6 +44,32 @@ await suite("Blogs browser", async () => {
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
     await actionToast(page, "Draft saved.");
   }
+  await test("editor category shortcut opens management only for administrators", async (t) => {
+    const page = await preview(t, `/en/admin/blogs/${existing}`);
+    const link = page.getByRole("link", { name: "Manage categories", exact: true });
+    await link.waitFor();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate(
+          (value) => document.documentElement.classList.toggle("dark", value === "dark"),
+          theme,
+        );
+        await link.scrollIntoViewIfNeeded();
+        await link
+          .locator("xpath=ancestor::fieldset[1]")
+          .screenshot({ path: `/tmp/blog-categories-${width}-${theme}.png` });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.getByLabel("Administrator", { exact: true }).uncheck();
+    assert.equal(await link.count(), 0);
+    await page.getByLabel("Administrator", { exact: true }).check();
+    await link.click();
+    await page.waitForURL("**/en/admin/blogs/categories");
+    await page.getByRole("heading", { name: "Categories", exact: true }).waitFor();
+    await page.getByRole("button", { name: "New category", exact: true }).waitFor();
+  });
   await test("editor publication badge saves immediately and protects drafts on failure", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`, {
       viewport: { width: 1440, height: 1000 },

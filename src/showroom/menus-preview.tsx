@@ -458,6 +458,7 @@ export function MenuAdminPreview() {
         baseLocale={baseLocale}
         currency="CHF"
         backHref={base}
+        labelsHref={`${base}/taxonomy`}
         linkComponent={Link}
         className="showroom-page"
         driveClient={driveClient}

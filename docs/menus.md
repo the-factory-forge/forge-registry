@@ -66,6 +66,11 @@ These colors identify labels rather than the severity of an allergic reaction. F
 instructions, result counts and empty messages are overridable through `labels`.
 There is no ordering or checkout flow.
 
+Pass `MenuItemEditorPage.labelsHref` to show a pencil link beside Labels that opens
+the host's label management page (`MenuTaxonomyPage` in the showroom). Omit it when
+that page is unavailable to the current user. Override `labels.manageLabels` for
+the accessible name and tooltip. Existing integrations can omit the new prop.
+
 ## Default labels and badges
 
 `menuLabelPresets` exports the standard catalog with stable IDs, translated names
