@@ -7,6 +7,7 @@ import {
   Loader2Icon,
   LogOutIcon,
   PanelLeftIcon,
+  XIcon,
   SettingsIcon,
 } from "lucide-react";
 import * as React from "react";
@@ -394,7 +395,7 @@ export function IntranetSidebar({
                     sidebarFocusClassName,
                   )}
                 >
-                  <PanelLeftIcon className="size-4" aria-hidden="true" />
+                  <XIcon className="size-4" aria-hidden="true" />
                 </Dialog.Close>
               </IconTooltip>
               {content}

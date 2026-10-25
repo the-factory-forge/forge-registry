@@ -1061,15 +1061,17 @@ function EditorForm({
           client.history && (
             <div className="flex flex-wrap justify-end gap-2">
               {(draft.feedback?.error || publication.feedback?.error) && (
-                <button
-                  type="button"
-                  className={outlineButtonClass}
-                  disabled={pending}
-                  onClick={() => void draft.refresh()}
-                >
-                  <RefreshCwIcon aria-hidden="true" />
-                  {labels.refreshArticle}
-                </button>
+                <IconTooltip label={labels.refreshArticle}>
+                  <button
+                    aria-label={labels.refreshArticle}
+                    type="button"
+                    className={iconButtonClass}
+                    disabled={pending}
+                    onClick={() => void draft.refresh()}
+                  >
+                    <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </button>
+                </IconTooltip>
               )}
               {(selectedId || compareWorking) && (
                 <button

@@ -7,6 +7,7 @@ import {
   GitCompareArrowsIcon,
   HistoryIcon,
   PencilIcon,
+  RefreshCwIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -170,26 +171,29 @@ export function useHistoryPublication(
                     {labels.cancel}
                   </Dialog.Close>
                   {action.feedback?.error && (
-                    <button
-                      type="button"
-                      className={outlineButtonClass}
-                      disabled={action.pending}
-                      onClick={() =>
-                        void action.run("refresh-history-plan", async () => {
-                          const latest = await client!.get(plan.target.id);
-                          const result = await client!.history!.plan({
-                            ...plan.target,
-                            version: latest.version,
-                          });
-                          setPlan(result);
-                          setOmit(false);
-                          setRefreshed(true);
-                          return true;
-                        })
-                      }
-                    >
-                      {labels.refreshPlan}
-                    </button>
+                    <IconTooltip label={labels.refreshPlan}>
+                      <button
+                        aria-label={labels.refreshPlan}
+                        type="button"
+                        className={iconButtonClass}
+                        disabled={action.pending}
+                        onClick={() =>
+                          void action.run("refresh-history-plan", async () => {
+                            const latest = await client!.get(plan.target.id);
+                            const result = await client!.history!.plan({
+                              ...plan.target,
+                              version: latest.version,
+                            });
+                            setPlan(result);
+                            setOmit(false);
+                            setRefreshed(true);
+                            return true;
+                          })
+                        }
+                      >
+                        <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                      </button>
+                    </IconTooltip>
                   )}
                   <button
                     type="button"

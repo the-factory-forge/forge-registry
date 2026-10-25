@@ -479,7 +479,8 @@
           "target": "@components/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/consent-analytics"]
+      "registryDependencies": ["@forge/cn", "@forge/consent-analytics", "@forge/icon-tooltip"],
+      "dependencies": ["lucide-react"]
     },
     {
       "name": "language-switcher",

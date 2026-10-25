@@ -57,7 +57,7 @@ export interface SidebarNavigationProps {
 }
 
 const sidebarFocusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
-export const sidebarNavItemClass = `relative flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm text-sidebar-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
+export const sidebarNavItemClass = `relative flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-none border-l-2 border-transparent px-2 py-1.5 text-sm text-sidebar-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
 export const sidebarNavActiveClass =
   "rounded-l-none border-sidebar-primary bg-sidebar-accent/40 font-semibold text-sidebar-primary";
 

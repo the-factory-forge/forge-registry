@@ -244,10 +244,16 @@ export function EmployeeDeleteDialog({
               {labels.cancel}
             </Dialog.Close>
             {status === "error" && (
-              <button type="button" className={outlineButtonClass} onClick={() => void load()}>
-                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.reloadRelatedData}
-              </button>
+              <IconTooltip label={labels.reloadRelatedData}>
+                <button
+                  aria-label={labels.reloadRelatedData}
+                  type="button"
+                  className={iconButtonClass}
+                  onClick={() => void load()}
+                >
+                  <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+                </button>
+              </IconTooltip>
             )}
             <button
               type="button"
