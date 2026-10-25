@@ -849,64 +849,16 @@ function MenuItemEditorPageContent({
         {labels.back}
       </HostLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
-      <Dialog.Root
+      <MenuLeaveDialog
         open={leaveOpen || !!blockedNavigation}
-        onOpenChange={(open) => {
-          if (!open) cancelNavigation();
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
-            <div
-              data-dialog-header
-              className="sticky top-0 z-20 -mx-6 flex items-start justify-between gap-3 bg-popover px-6 py-5"
-            >
-              <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
-                {labels.unsavedTitle}
-              </Dialog.Title>
-              <IconTooltip label={labels.cancel}>
-                <Dialog.Close
-                  type="button"
-                  aria-label={labels.cancel}
-                  className={iconButton}
-                  disabled={pending}
-                >
-                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
-                </Dialog.Close>
-              </IconTooltip>
-            </div>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {labels.unsavedDescription}
-            </Dialog.Description>
-            <ErrorMessage message={feedback?.error ? feedback.text : undefined} />
-            <div
-              data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 py-5"
-            >
-              <Dialog.Close className={outlineButton} disabled={pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button
-                type="button"
-                className={outlineButton}
-                disabled={pending}
-                onClick={discardAndLeave}
-              >
-                {labels.discardChanges}
-              </button>
-              <button
-                type="button"
-                className={primary}
-                disabled={pending || !categories.length}
-                onClick={() => void submit(true)}
-              >
-                {pending ? labels.saving : labels.save}
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+        pending={pending}
+        labels={labels}
+        error={feedback?.error ? feedback.text : undefined}
+        saveDisabled={!categories.length}
+        onCancel={cancelNavigation}
+        onDiscard={discardAndLeave}
+        onSave={() => void submit(true)}
+      />
       <form
         ref={formRef}
         noValidate
@@ -1235,7 +1187,85 @@ function MenuItemEditorPageContent({
   );
 }
 
+function MenuLeaveDialog({
+  open,
+  pending,
+  labels,
+  error,
+  saveDisabled = false,
+  onCancel,
+  onDiscard,
+  onSave,
+}: {
+  open: boolean;
+  pending: boolean;
+  labels: MenusLabels;
+  error?: string;
+  saveDisabled?: boolean;
+  onCancel: () => void;
+  onDiscard: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 flex items-start justify-between gap-3 bg-popover px-6 py-5"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {labels.unsavedTitle}
+            </Dialog.Title>
+            <IconTooltip label={labels.cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.cancel}
+                className={iconButton}
+                disabled={pending}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
+          <Dialog.Description className="text-sm text-muted-foreground">
+            {labels.unsavedDescription}
+          </Dialog.Description>
+          <ErrorMessage message={error} />
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 py-5"
+          >
+            <Dialog.Close className={outlineButton} disabled={pending}>
+              {labels.cancel}
+            </Dialog.Close>
+            <button type="button" className={outlineButton} disabled={pending} onClick={onDiscard}>
+              {labels.discardChanges}
+            </button>
+            <button
+              type="button"
+              className={primary}
+              disabled={pending || saveDisabled}
+              onClick={onSave}
+            >
+              {pending ? labels.saving : labels.save}
+            </button>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 export interface MenuTaxonomyPageProps {
+  blockedNavigation?: MenuItemEditorPageProps["blockedNavigation"];
+  onNavigationStateChange?: MenuItemEditorPageProps["onNavigationStateChange"];
   /** Keep stable while editing; replacing the client starts a new taxonomy session. */
   client: MenusClient;
   locales: readonly { code: string; name: string }[];
@@ -1254,8 +1284,12 @@ function TaxonomyDialog({
   baseLocale,
   labels,
   onSave,
+  blockedNavigation,
+  onNavigationStateChange,
 }: {
   disabled?: boolean;
+  blockedNavigation?: MenuItemEditorPageProps["blockedNavigation"];
+  onNavigationStateChange?: MenuItemEditorPageProps["onNavigationStateChange"];
   kind: "category" | "label";
   existing?: MenuCategory | MenuLabel;
   locales: readonly { code: string; name: string }[];
@@ -1282,6 +1316,68 @@ function TaxonomyDialog({
   const [icon, setIcon] = useState<MenuLabelIcon | null>(
     existing && "kind" in existing ? (existing.icon ?? null) : null,
   );
+  const snapshot = JSON.stringify([position, translations, labelKind, icon]);
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const form = useRef<HTMLFormElement>(null);
+  const active = useRef(false);
+  const lock = useRef(false);
+  const navigationState = useRef({ dirty: false, pending: false });
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    navigationState.current = { dirty: snapshot !== savedSnapshot, pending };
+    onNavigationStateChange?.(navigationState.current);
+    return () => onNavigationStateChange?.({ dirty: false, pending: false });
+  }, [open, snapshot, savedSnapshot, pending, onNavigationStateChange]);
+  useEffect(() => {
+    if (!open) return;
+    const unload = (event: BeforeUnloadEvent) => {
+      if (navigationState.current.dirty || navigationState.current.pending) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    return () => window.removeEventListener("beforeunload", unload);
+  }, [open]);
+  function resumeNavigation(proceed: () => void) {
+    navigationState.current = { dirty: false, pending: false };
+    onNavigationStateChange?.(navigationState.current);
+    proceed();
+  }
+  async function submit(leaving = false) {
+    if (lock.current || disabled) return;
+    if (!form.current?.checkValidity()) {
+      blockedNavigation?.reset();
+      requestAnimationFrame(() => form.current?.reportValidity());
+      return;
+    }
+    lock.current = true;
+    setPending(true);
+    setError(false);
+    try {
+      await onSave({
+        id: existing?.id,
+        position,
+        translations,
+        ...(kind === "label" ? { kind: labelKind, icon } : {}),
+      });
+      if (!active.current) return;
+      setSavedSnapshot(snapshot);
+      setOpen(false);
+      if (leaving && blockedNavigation) resumeNavigation(blockedNavigation.proceed);
+    } catch {
+      if (active.current) setError(true);
+    } finally {
+      lock.current = false;
+      if (active.current) setPending(false);
+    }
+  }
   const iconNames = { ...menusLabels.iconNames, ...labels.iconNames };
   const title =
     kind === "category"
@@ -1292,7 +1388,10 @@ function TaxonomyDialog({
         ? labels.editLabel
         : labels.newLabel;
   return (
-    <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(value) => !pending && !blockedNavigation && setOpen(value)}
+    >
       <IconTooltip label={existing ? title : undefined}>
         <Dialog.Trigger
           disabled={disabled}
@@ -1335,20 +1434,10 @@ function TaxonomyDialog({
           </div>
           <form
             className="contents space-y-4 [&>:first-child]:mt-2"
+            ref={form}
             onSubmit={(event) => {
               event.preventDefault();
-              if (pending || disabled) return;
-              setPending(true);
-              setError(false);
-              void onSave({
-                id: existing?.id,
-                position,
-                translations,
-                ...(kind === "label" ? { kind: labelKind, icon } : {}),
-              })
-                .then(() => setOpen(false))
-                .catch(() => setError(true))
-                .finally(() => setPending(false));
+              void submit();
             }}
           >
             {editorLocales(locales, baseLocale).map((locale) => (
@@ -1438,6 +1527,19 @@ function TaxonomyDialog({
           </form>
         </Dialog.Popup>
       </Dialog.Portal>
+      <MenuLeaveDialog
+        open={open && !!blockedNavigation}
+        pending={pending}
+        labels={labels}
+        error={error ? labels.error : undefined}
+        onCancel={() => {
+          if (!pending) blockedNavigation?.reset();
+        }}
+        onDiscard={() => {
+          if (!pending && blockedNavigation) resumeNavigation(blockedNavigation.proceed);
+        }}
+        onSave={() => void submit(true)}
+      />
     </Dialog.Root>
   );
 }
@@ -1447,6 +1549,8 @@ function MenuTaxonomyPageContent({
   locales,
   baseLocale,
   backHref,
+  blockedNavigation,
+  onNavigationStateChange,
   linkComponent: HostLink = Link,
   labels: overrides,
   className,
@@ -1485,6 +1589,8 @@ function MenuTaxonomyPageContent({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.categories}</h2>
               <TaxonomyDialog
+                blockedNavigation={blockedNavigation}
+                onNavigationStateChange={onNavigationStateChange}
                 disabled={disabled}
                 key="new-category"
                 kind="category"
@@ -1513,6 +1619,8 @@ function MenuTaxonomyPageContent({
                   <span>{category.translations[baseLocale]}</span>
                   <div className="flex gap-2">
                     <TaxonomyDialog
+                      blockedNavigation={blockedNavigation}
+                      onNavigationStateChange={onNavigationStateChange}
                       disabled={disabled}
                       key={category.id}
                       kind="category"
@@ -1546,6 +1654,8 @@ function MenuTaxonomyPageContent({
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.labels}</h2>
               <TaxonomyDialog
+                blockedNavigation={blockedNavigation}
+                onNavigationStateChange={onNavigationStateChange}
                 disabled={disabled}
                 key="new-label"
                 kind="label"
@@ -1582,6 +1692,8 @@ function MenuTaxonomyPageContent({
                   </span>
                   <div className="flex shrink-0 gap-2">
                     <TaxonomyDialog
+                      blockedNavigation={blockedNavigation}
+                      onNavigationStateChange={onNavigationStateChange}
                       disabled={disabled}
                       key={label.id}
                       kind="label"

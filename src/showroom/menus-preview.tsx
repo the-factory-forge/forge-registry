@@ -456,6 +456,8 @@ export function MenuAdminPreview() {
   if (id === "taxonomy")
     return (
       <MenuTaxonomyPage
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
         client={mock.client}
         locales={locales}
         baseLocale={baseLocale}

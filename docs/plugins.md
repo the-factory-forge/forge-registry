@@ -69,6 +69,11 @@ requires review of legacy attribution and crops covers by default. Current accou
 bylines and retained signatures use host name/deletion adapters; see
 [authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
 
+Blog category and menu taxonomy editors expose the same optional router guard as
+their content editors. Hosts can offer Save, Discard and Cancel for browser
+Back/Forward while protecting pending saves; see the [Blogs](./blogs.md#history-interface)
+and [Menus](./menus.md) integration guides.
+
 ## Service input validation
 
 Menus, Drive and Blogs parse service request inputs with Zod before using their

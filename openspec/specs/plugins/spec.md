@@ -1193,6 +1193,14 @@ editing/preview, categories and public list/article components.
 - **AND** clean navigation and confirmed deletion return normally, without synthetic history entries
 - **AND** document exits use the native browser warning while dirty or pending, without repeating it after confirmed Save or Discard
 
+#### Scenario: Browser history leaves an unsaved blog category
+
+- **WHEN** a host router blocks Back or Forward away from an edited or new category
+- **THEN** the category editor offers Save category, Discard changes and Cancel
+- **AND** Cancel retains all translations, slugs and parent selection; Discard resumes the original transition without saving
+- **AND** Save persists before resuming the transition, while errors retain the draft and dialog for retry
+- **AND** pending saves reject new route changes, and native unload warns while dirty or pending
+
 ### Requirement: Blog content and image persistence
 
 `@forge/blogs-storage` SHALL store complete draft and published Markdown with
@@ -1359,6 +1367,15 @@ items SHALL remain visible with a pending-colored status at the top right.
 - **AND** save resumes that transition only after persistence succeeds, while invalid inputs cancel it and failed saves retain the dialog for retry
 - **AND** hosts prevent cross-document exits through the native browser warning while changes or saves are pending, without adding synthetic history entries
 - **AND** pending saves reject new history transitions until completion; clean editor navigation and same-item folder changes retain normal history behavior
+
+#### Scenario: Browser history leaves an open menu label editor
+
+- **WHEN** a host router blocks Back or Forward while a category or label dialog has unsaved changes
+- **THEN** the taxonomy page offers Save, Discard changes and Cancel before unmounting
+- **AND** Cancel retains the open editor and its translations, position, label type and icon
+- **AND** Save validates and persists before continuing; invalid fields return to the editor and storage errors retain the leave dialog for retry
+- **AND** Discard resumes the original transition without saving; closed or clean editors do not prompt
+- **AND** pending saves reject new route changes, and native unload warns while the open editor is dirty or pending
 
 #### Scenario: Rejecting malformed service requests
 

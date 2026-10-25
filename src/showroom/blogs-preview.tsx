@@ -301,6 +301,8 @@ export function BlogsAdminPreview() {
   if (segments[0] === "categories")
     return (
       <BlogCategoriesPage
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
         {...common}
         locales={blogLocales}
         categories={state.mock.categories()}

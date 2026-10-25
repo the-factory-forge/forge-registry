@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import {
   useId,
+  useEffect,
   useRef,
   useState,
   type FormEvent,
@@ -649,6 +650,87 @@ function BackLink({
     </BlogLink>
   );
 }
+function BlogLeaveDialog({
+  open,
+  pending,
+  labels,
+  feedback,
+  saveLabel,
+  onCancel,
+  onDiscard,
+  onSave,
+}: {
+  open: boolean;
+  pending: boolean;
+  labels: typeof blogsLabels;
+  feedback?: { message: string; error?: boolean };
+  saveLabel: string;
+  onCancel: () => void;
+  onDiscard: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+        <Dialog.Popup
+          className={cn(
+            cardClass,
+            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",
+          )}
+        >
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 font-semibold break-words">
+              {labels.unsavedTitle}
+            </Dialog.Title>
+            <IconTooltip label={labels.close ?? labels.cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.close ?? labels.cancel}
+                disabled={pending}
+                className={iconButtonClass}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
+          <Dialog.Description className="text-sm text-muted-foreground">
+            {labels.unsavedDescription}
+          </Dialog.Description>
+          <Feedback {...feedback} />
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+          >
+            <Dialog.Close className={outlineButtonClass} disabled={pending}>
+              {labels.cancel}
+            </Dialog.Close>
+            <button
+              type="button"
+              className={outlineButtonClass}
+              disabled={pending}
+              onClick={onDiscard}
+            >
+              {labels.discardChanges}
+            </button>
+            <button type="button" className={primaryClass} disabled={pending} onClick={onSave}>
+              {pending ? labels.pending : saveLabel}
+            </button>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 function EditorForm({
   client,
   article,
@@ -964,69 +1046,16 @@ function EditorForm({
   return (
     <>
       {publication.dialog}
-      <Dialog.Root
+      <BlogLeaveDialog
         open={draft.leave.requested}
-        onOpenChange={(open) => {
-          if (!open) draft.leave.cancel();
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup
-            className={cn(
-              cardClass,
-              "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",
-            )}
-          >
-            <div
-              data-dialog-header
-              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
-            >
-              <Dialog.Title className="min-w-0 flex-1 font-semibold break-words">
-                {labels.unsavedTitle}
-              </Dialog.Title>
-              <IconTooltip label={labels.close ?? labels.cancel}>
-                <Dialog.Close
-                  type="button"
-                  aria-label={labels.close ?? labels.cancel}
-                  disabled={pending}
-                  className={iconButtonClass}
-                >
-                  <XIcon className="size-4 shrink-0" aria-hidden="true" />
-                </Dialog.Close>
-              </IconTooltip>
-            </div>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {labels.unsavedDescription}
-            </Dialog.Description>
-            <Feedback {...draft.feedback} />
-            <div
-              data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
-            >
-              <Dialog.Close className={outlineButtonClass} disabled={pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button
-                type="button"
-                className={outlineButtonClass}
-                disabled={pending}
-                onClick={draft.leave.discard}
-              >
-                {labels.discardChanges}
-              </button>
-              <button
-                type="button"
-                className={primaryClass}
-                disabled={pending}
-                onClick={() => void save(undefined, true)}
-              >
-                {pending ? labels.pending : labels.save}
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+        pending={pending}
+        labels={labels}
+        feedback={draft.feedback}
+        saveLabel={labels.save}
+        onCancel={draft.leave.cancel}
+        onDiscard={draft.leave.discard}
+        onSave={() => void save(undefined, true)}
+      />
       <ContentSidebarLayout
         toolbar={
           client.history && (
@@ -1524,6 +1553,8 @@ function EditorForm({
 }
 
 export interface BlogCategoriesPageProps extends BlogsAppearanceProps {
+  blockedNavigation?: BlogEditPageProps["blockedNavigation"];
+  onNavigationStateChange?: BlogEditPageProps["onNavigationStateChange"];
   client: BlogsClient;
   categories: BlogCategory[];
   locales: BlogLocale[];
@@ -1538,6 +1569,8 @@ function BlogCategoriesPageContent({
   capabilities,
   backHref,
   onChanged,
+  blockedNavigation,
+  onNavigationStateChange,
   labels: overrides,
   linkComponent: BlogLink = Link,
   className,
@@ -1638,6 +1671,8 @@ function BlogCategoriesPageContent({
           </ul>
         </nav>
         <CategoryForm
+          blockedNavigation={blockedNavigation}
+          onNavigationStateChange={onNavigationStateChange}
           key={selected ?? "new"}
           category={
             categories.find((c) => c.id === selected) ??
@@ -1648,8 +1683,8 @@ function BlogCategoriesPageContent({
           client={client}
           disabled={!capabilities.manageCategories}
           labels={labels}
-          onSaved={(category) => {
-            setSelected(category.id);
+          onSaved={(category, leaving) => {
+            if (!leaving) setSelected(category.id);
             onChanged();
           }}
           onDeleted={() => {
@@ -1670,6 +1705,8 @@ function CategoryForm({
   labels,
   onSaved,
   onDeleted,
+  blockedNavigation,
+  onNavigationStateChange,
 }: {
   category?: BlogCategory;
   categories: BlogCategory[];
@@ -1677,15 +1714,55 @@ function CategoryForm({
   client: BlogsClient;
   disabled: boolean;
   labels: typeof blogsLabels;
-  onSaved: (category: BlogCategory) => void;
+  onSaved: (category: BlogCategory, leaving: boolean) => void;
+  blockedNavigation?: BlogEditPageProps["blockedNavigation"];
+  onNavigationStateChange?: BlogEditPageProps["onNavigationStateChange"];
   onDeleted: () => void;
 }) {
   const [base, setBase] = useState(category),
     [translations, setTranslations] = useState(category?.translations ?? {}),
     [parentId, setParent] = useState(category?.parentId ?? "");
   const action = useBlogAction(labels);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  const snapshot = JSON.stringify([translations, parentId]);
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const form = useRef<HTMLFormElement>(null);
+  const active = useRef(false);
+  const navigationState = useRef({ dirty: false, pending: false });
+  useEffect(() => {
+    navigationState.current = {
+      dirty: !disabled && snapshot !== savedSnapshot,
+      pending: action.pending,
+    };
+    onNavigationStateChange?.(navigationState.current);
+    return () => onNavigationStateChange?.({ dirty: false, pending: false });
+  }, [snapshot, savedSnapshot, disabled, action.pending, onNavigationStateChange]);
+  useEffect(() => {
+    active.current = true;
+    const unload = (event: BeforeUnloadEvent) => {
+      if (navigationState.current.dirty || navigationState.current.pending) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    return () => {
+      active.current = false;
+      window.removeEventListener("beforeunload", unload);
+    };
+  }, []);
+  function resumeNavigation(proceed: () => void) {
+    navigationState.current = { dirty: false, pending: false };
+    onNavigationStateChange?.(navigationState.current);
+    proceed();
+  }
+  async function submit(event?: FormEvent, leaving = false) {
+    event?.preventDefault();
+    if (action.pending || disabled) return;
+    if (!form.current?.checkValidity()) {
+      blockedNavigation?.reset();
+      requestAnimationFrame(() => form.current?.reportValidity());
+      return;
+    }
     const input = {
       id: base?.id,
       version: base?.version,
@@ -1699,97 +1776,119 @@ function CategoryForm({
       (requestId) => client.saveCategory({ ...input, requestId }),
       labels.categorySaved,
     );
-    if (result) {
+    if (result && active.current) {
+      const proceed = leaving ? blockedNavigation?.proceed : undefined;
+      setSavedSnapshot(JSON.stringify([result.translations, result.parentId ?? ""]));
+      setParent(result.parentId ?? "");
       setBase(result);
       setTranslations(result.translations);
-      onSaved(result);
+      onSaved(result, !!proceed);
+      if (proceed) resumeNavigation(proceed);
     }
   }
   return (
-    <form onSubmit={(e) => void submit(e)} className={cn(cardClass, "space-y-5")}>
-      <header className="flex items-start justify-between gap-3">
-        <h2 className="min-w-0 text-lg font-semibold">{base ? labels.edit : labels.newCategory}</h2>
-        {base && !disabled && (
-          <ConfirmDelete
-            labels={labels}
-            title={labels.deleteCategoryTitle}
-            label={labels.deleteCategory}
-            description={labels.deleteCategoryDescription}
-            disabled={action.pending}
-            onDelete={async (requestId) => {
-              await client.deleteCategory({ id: base.id, version: base.version, requestId });
-              onDeleted();
-            }}
-          />
-        )}
-      </header>
-      <fieldset disabled={disabled || action.pending} className="space-y-5">
-        <label className="block space-y-2 text-sm">
-          <span>{labels.parent}</span>
-          <NativeSelect
-            className={inputClass}
-            value={parentId}
-            onChange={(e) => setParent(e.target.value)}
-          >
-            <option value="">{labels.noParent}</option>
-            {categories
-              .filter((c) => !c.parentId && c.id !== base?.id)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {Object.values(c.translations)[0]?.name}
-                </option>
-              ))}
-          </NativeSelect>
-        </label>
-        {locales.map((locale) => (
-          <fieldset
-            key={locale.code}
-            className="grid gap-4 rounded-2xl border border-border p-4 sm:grid-cols-2"
-          >
-            <legend className="px-2 text-sm font-medium">{locale.name}</legend>
-            <label className="space-y-2 text-sm">
-              <span>{labels.categoryName}</span>
-              <input
-                className={inputClass}
-                maxLength={150}
-                value={translations[locale.code]?.name ?? ""}
-                onChange={(e) =>
-                  setTranslations((t) => ({
-                    ...t,
-                    [locale.code]: {
-                      name: e.target.value,
-                      slug:
-                        !t[locale.code]?.slug ||
-                        t[locale.code].slug === slugify(t[locale.code].name)
-                          ? slugify(e.target.value)
-                          : t[locale.code].slug,
-                    },
-                  }))
-                }
-              />
-            </label>
-            <label className="space-y-2 text-sm">
-              <span>{labels.slug}</span>
-              <input
-                className={inputClass}
-                maxLength={120}
-                value={translations[locale.code]?.slug ?? ""}
-                onChange={(e) =>
-                  setTranslations((t) => ({
-                    ...t,
-                    [locale.code]: { name: t[locale.code]?.name ?? "", slug: e.target.value },
-                  }))
-                }
-              />
-            </label>
-          </fieldset>
-        ))}
-        <button className={primaryClass}>
-          {action.pending ? labels.pending : labels.saveCategory}
-        </button>
-      </fieldset>
-      <Feedback {...action.feedback} />
-    </form>
+    <>
+      <BlogLeaveDialog
+        open={!!blockedNavigation}
+        pending={action.pending}
+        labels={labels}
+        feedback={action.feedback}
+        saveLabel={labels.saveCategory}
+        onCancel={() => {
+          if (!action.pending) blockedNavigation?.reset();
+        }}
+        onDiscard={() => {
+          if (!action.pending && blockedNavigation) resumeNavigation(blockedNavigation.proceed);
+        }}
+        onSave={() => void submit(undefined, true)}
+      />
+      <form ref={form} onSubmit={(e) => void submit(e)} className={cn(cardClass, "space-y-5")}>
+        <header className="flex items-start justify-between gap-3">
+          <h2 className="min-w-0 text-lg font-semibold">
+            {base ? labels.edit : labels.newCategory}
+          </h2>
+          {base && !disabled && (
+            <ConfirmDelete
+              labels={labels}
+              title={labels.deleteCategoryTitle}
+              label={labels.deleteCategory}
+              description={labels.deleteCategoryDescription}
+              disabled={action.pending}
+              onDelete={async (requestId) => {
+                await client.deleteCategory({ id: base.id, version: base.version, requestId });
+                onDeleted();
+              }}
+            />
+          )}
+        </header>
+        <fieldset disabled={disabled || action.pending} className="space-y-5">
+          <label className="block space-y-2 text-sm">
+            <span>{labels.parent}</span>
+            <NativeSelect
+              className={inputClass}
+              value={parentId}
+              onChange={(e) => setParent(e.target.value)}
+            >
+              <option value="">{labels.noParent}</option>
+              {categories
+                .filter((c) => !c.parentId && c.id !== base?.id)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {Object.values(c.translations)[0]?.name}
+                  </option>
+                ))}
+            </NativeSelect>
+          </label>
+          {locales.map((locale) => (
+            <fieldset
+              key={locale.code}
+              className="grid gap-4 rounded-2xl border border-border p-4 sm:grid-cols-2"
+            >
+              <legend className="px-2 text-sm font-medium">{locale.name}</legend>
+              <label className="space-y-2 text-sm">
+                <span>{labels.categoryName}</span>
+                <input
+                  className={inputClass}
+                  maxLength={150}
+                  value={translations[locale.code]?.name ?? ""}
+                  onChange={(e) =>
+                    setTranslations((t) => ({
+                      ...t,
+                      [locale.code]: {
+                        name: e.target.value,
+                        slug:
+                          !t[locale.code]?.slug ||
+                          t[locale.code].slug === slugify(t[locale.code].name)
+                            ? slugify(e.target.value)
+                            : t[locale.code].slug,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span>{labels.slug}</span>
+                <input
+                  className={inputClass}
+                  maxLength={120}
+                  value={translations[locale.code]?.slug ?? ""}
+                  onChange={(e) =>
+                    setTranslations((t) => ({
+                      ...t,
+                      [locale.code]: { name: t[locale.code]?.name ?? "", slug: e.target.value },
+                    }))
+                  }
+                />
+              </label>
+            </fieldset>
+          ))}
+          <button className={primaryClass}>
+            {action.pending ? labels.pending : labels.saveCategory}
+          </button>
+        </fieldset>
+        <Feedback {...action.feedback} />
+      </form>
+    </>
   );
 }
 

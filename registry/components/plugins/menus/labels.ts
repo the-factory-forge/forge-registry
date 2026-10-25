@@ -135,7 +135,7 @@ export const menusLabels = {
   labels: "Labels",
   manageLabels: "Manage labels",
   unsavedTitle: "Keep your changes?",
-  unsavedDescription: "Save this item or discard its changes before continuing.",
+  unsavedDescription: "Save your changes or discard them before continuing.",
   discardChanges: "Discard changes",
   newItem: "New item",
   editItem: "Edit item",

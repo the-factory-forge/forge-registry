@@ -574,6 +574,13 @@ resumes the original transition after successful Save or Discard, and resets it
 on Cancel or validation failure. Storage errors keep the draft and dialog for retry.
 The optional `onDirtyChange` callback remains supported for existing integrations.
 
+`BlogCategoriesPage` accepts the same `onNavigationStateChange` and
+`blockedNavigation` props. Connect them to the same router guard to protect category
+names, slugs, translations and parent changes. Save category persists new or edited
+categories before resuming the blocked transition; Cancel keeps the form and failed
+saves remain available for retry. The category form also warns on native unload
+while dirty or saving.
+
 `src/showroom/blogs-preview.tsx` demonstrates TanStack Router's `useBlocker` adapter,
 matching the menu editor. It guards pathname changes without adding history entries.
 The editor owns native unload protection, so the adapter disables the router's

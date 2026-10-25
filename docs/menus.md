@@ -96,6 +96,15 @@ warning. See [TanStack navigation blocking](https://tanstack.com/router/latest/d
 and `src/showroom/menus-preview.tsx` for the host adapter. Hosts without this adapter
 retain the portable Back and Labels link protection only.
 
+`MenuTaxonomyPage` accepts the same `onNavigationStateChange` and
+`blockedNavigation` props for its category and label dialogs. Only the open editor
+reports dirty or pending state; changes to translations, position, label type and
+icon are protected. Cancel in the leave dialog keeps the editor open with its
+fields intact. Save validates and persists before resuming navigation; invalid
+fields return to the editor and storage errors keep the leave dialog available for
+retry. Native reload and page departures also warn while the open editor is dirty
+or saving. Hosts must connect their router to protect SPA Back/Forward.
+
 ## Default labels and badges
 
 `menuLabelPresets` exports the standard catalog with stable IDs, translated names
