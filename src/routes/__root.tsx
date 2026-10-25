@@ -10,8 +10,6 @@ import type { ReactNode } from "react";
 import { ActionToastProvider } from "@/components/action-toast";
 import { LoadingProvider } from "@/components/loading-indicator";
 import { isLocale } from "@/lib/i18n/config";
-import { ShowroomViewport } from "@/showroom/device-preview";
-import { previewDeviceSearch } from "@/showroom/preview-device";
 import { ShowroomLink } from "@/showroom/routing";
 import { notFoundHead } from "@/showroom/seo";
 import { ShowroomHeader } from "@/showroom/showroom-header";
@@ -30,10 +28,7 @@ export const Route = createRootRoute({
     search?: string;
     category?: string;
     page?: string;
-    previewDevice?: "phone" | "tablet";
-    previewEmbed?: true;
   } => ({
-    ...previewDeviceSearch.parse(search),
     ...Object.fromEntries(
       ["customerId", "folder", "search", "category", "page"].flatMap((key) =>
         typeof search[key] === "string" || typeof search[key] === "number"
@@ -87,9 +82,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           <ShowroomHeader />
           <ShowroomLoading />
           <ActionToastProvider>
-            <div className="showroom-content min-w-0 flex-1">
-              <ShowroomViewport>{children}</ShowroomViewport>
-            </div>
+            <div className="showroom-content min-w-0 flex-1">{children}</div>
           </ActionToastProvider>
         </LoadingProvider>
         <Scripts />

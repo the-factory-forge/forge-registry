@@ -387,7 +387,7 @@ await suite("Showroom browser", async () => {
     }
   });
 
-  await test("header language switching retains the page, query, hash and editor draft", async (t) => {
+  await test("header language switching retains URL context and respects unsaved editor guards", async (t) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     t.after(() => context.close());
     const page = await context.newPage();
@@ -409,6 +409,19 @@ await suite("Showroom browser", async () => {
       await page.setViewportSize({ width: 320, height: 800 });
       await header.getByRole("button", { name: "Language", exact: true }).press("Enter");
       await page.shell.getByRole("menuitem", { name: language, exact: true }).click();
+      if (locale === "fr") {
+        const confirmation = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
+        await confirmation
+          .getByRole("button", { name: "Cancel", exact: true })
+          .filter({ hasText: "Cancel" })
+          .click();
+        await confirmation.waitFor({ state: "hidden" });
+        assert.equal(page.url(), `${baseURL}/en${destination}`);
+        assert.equal(await name.inputValue(), "Unsaved menu translation");
+        await header.getByRole("button", { name: "Language", exact: true }).click();
+        await page.getByRole("menuitem", { name: language, exact: true }).click();
+        await confirmation.getByRole("button", { name: "Save", exact: true }).click();
+      }
       await page.waitForURL(`${baseURL}/${locale}${destination}`);
       assert.equal(await name.inputValue(), "Unsaved menu translation");
       assert.equal(

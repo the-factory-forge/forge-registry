@@ -166,22 +166,23 @@ interaction and respects reduced motion. See [the portable loading component](./
 
 ## Device previews
 
-The shared navbar offers one icon button that cycles Small (Phone, 390px) → Medium
-(Tablet, 768px) → Big (Laptop, normal available width) → Small at screen widths of
-640px and above. Its icon shows the current size; its accessible name and tooltip
-describe the current size and the next action. Big is the default. The selected phone/tablet
-mode is stored in `previewDevice`, so reload and Back/Forward restore it. Invalid
-values use Laptop. The button sits immediately to the right of the theme control;
-only Phone and Tablet use the filled active style. Below 640px the control is
-hidden and the normal page is shown.
+The shared navbar offers one icon button that cycles Small (390px) → Medium
+(768px) → Big (100% available width) → Small at screen widths of 640px and above.
+Its icon shows the current size; its accessible name and tooltip describe the
+current size and the next action. Big is the default. The button sits immediately
+to the right of the theme control; only Small and Medium use the filled active
+style. Below 640px the control is hidden; the page never exceeds the screen width.
 
-All three sizes share one persistent same-origin iframe so CSS breakpoints, viewport units,
-JavaScript media queries and portaled dialogs use the selected viewport. Its own
-navbar is omitted. Navigation updates the outer URL; language and theme controls
-remain in the outer navbar. Switching sizes only resizes the existing preview, preserving sample-data edits,
-unsaved drafts, open dialogs, settings and scroll position. Laptop and smartphone
-screens use the available width. Reloading still resets sample data.
-Tablet previews scroll horizontally when the available screen is narrower than 768px.
+Clicking the button changes `--showroom-device-width`, used as `max-width` on
+`.showroom-content`. The navbar keeps its normal width. The showroom's settings
+layout uses container queries to fit the available content width. Component media
+queries, viewport units and portaled dialogs still use the real browser viewport;
+these sizes are width constraints, not emulated devices.
+
+Demos render directly in the main document. Resizing preserves the mounted page,
+sample-data edits, unsaved drafts and settings without navigation or new history
+entries. Browser Back/Forward work normally. The width persists across client-side
+navigation and resets to Big on a full reload, which also resets sample data.
 
 ## Shared preview frame
 

@@ -7,7 +7,7 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { cn } from "@/components/utils/cn";
 import { isLocale, localeNames, locales, localeShort } from "@/lib/i18n/config";
-import { DeviceControl, useEmbeddedPreview } from "@/showroom/device-preview";
+import { DeviceControl } from "@/showroom/device-preview";
 import { ShowroomLink as Link } from "@/showroom/routing";
 import { ThemeControl } from "@/showroom/theme-control";
 
@@ -17,9 +17,6 @@ export function ShowroomHeader() {
   const locale = location.pathname.split("/")[1];
   const Icon = isList ? LayoutGridIcon : ArrowLeftIcon;
 
-  const embedded = useEmbeddedPreview();
-  if (embedded) return null;
-
   return (
     <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
       <nav aria-label="Showroom navigation" className="showroom-header-inner">
@@ -27,12 +24,7 @@ export function ShowroomHeader() {
           href="#factory-showroom-preview"
           onClick={(event) => {
             event.preventDefault();
-            const frame = document.getElementById(
-              "factory-device-preview",
-            ) as HTMLIFrameElement | null;
-            const preview =
-              frame?.contentDocument?.getElementById("factory-showroom-preview") ??
-              document.getElementById("factory-showroom-preview");
+            const preview = document.getElementById("factory-showroom-preview");
             preview?.focus();
             preview?.scrollIntoView({ block: "start" });
           }}
