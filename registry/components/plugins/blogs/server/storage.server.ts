@@ -68,6 +68,7 @@ import type {
   BlogPublicQuery,
   BlogSaveInput,
   BlogsClient,
+  BlogHistoryHeader,
   BlogHistoryVersion,
   BlogHistoryTarget,
   BlogHistoryPlan,
@@ -697,6 +698,41 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     });
     return get(context, result.id);
   }
+  async function commitPublication(
+    tx: BlogsTransaction,
+    article: BlogArticle,
+    target: BlogHistoryVersion,
+    headers: BlogHistoryHeader[],
+    editor: BlogEditor,
+    now: string,
+    omittedAssetIds: string[],
+  ) {
+    await refreshAuthorNames(tx, [target.shared]);
+    const result = publishBlogVersion(
+      article,
+      target,
+      headers,
+      await allCategories(tx),
+      editor,
+      now,
+      omittedAssetIds,
+      maxMarkdown,
+    );
+    await uniqueSlug(
+      tx,
+      article.id,
+      target.locale,
+      result.article.translations[target.locale].published!.slug,
+    );
+    await storeHistory(tx, article.id, result.saved);
+    await removeHistory(
+      tx,
+      article.id,
+      target.locale,
+      result.discarded.map((header) => header.id),
+    );
+    return saveRecord(tx, result.article);
+  }
   async function publish(context: Context, input: BlogPublishInput, remove = false) {
     locale(input.locale);
     const result = await write(
@@ -720,31 +756,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         );
         const missing = await inspectHistoryImages(tx, input.id, target);
         assertBlog(!missing.length, "NOT_FOUND");
-        await refreshAuthorNames(tx, [target.shared]);
-        const result = publishBlogVersion(
-          article,
-          target,
-          headers,
-          await allCategories(tx),
-          editor,
-          now,
-          [],
-          maxMarkdown,
-        );
-        await uniqueSlug(
-          tx,
-          input.id,
-          input.locale,
-          result.article.translations[input.locale].published!.slug,
-        );
-        await storeHistory(tx, input.id, result.saved);
-        await removeHistory(
-          tx,
-          input.id,
-          input.locale,
-          result.discarded.map((header) => header.id),
-        );
-        return saveRecord(tx, result.article);
+        return commitPublication(tx, article, target, headers, editor, now, []);
       },
     );
     return get(context, result.id);
@@ -891,31 +903,15 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
               !plan.missingAssetIds.length || input.omitMissingImages,
               "HISTORY_CONFIRMATION_REQUIRED",
             );
-            await refreshAuthorNames(tx, [target.shared]);
-            const published = publishBlogVersion(
+            return commitPublication(
+              tx,
               article,
               target,
               headers,
-              await allCategories(tx),
               editor,
               new Date().toISOString(),
               plan.missingAssetIds,
-              maxMarkdown,
             );
-            await uniqueSlug(
-              tx,
-              input.id,
-              input.locale,
-              published.article.translations[input.locale].published!.slug,
-            );
-            await storeHistory(tx, input.id, published.saved);
-            await removeHistory(
-              tx,
-              input.id,
-              input.locale,
-              published.discarded.map((header) => header.id),
-            );
-            return saveRecord(tx, published.article);
           },
         );
         return get(context, result.id);

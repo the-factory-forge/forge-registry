@@ -245,42 +245,66 @@ await test("localized history uses transactional PostgreSQL and private image re
       },
     );
 
-    await t.test(
-      "a database failure after history writes rolls back publication and deletions",
-      async () => {
-        let article = await save(alice, await create("Rollback"), "Original");
-        article = await publish(alice, article);
-        const original = article.translations.en.history.publishedId;
-        article = await save(alice, article, "Successor");
-        article = await publish(alice, article);
-        const before = await alice.get(article.id);
-        const retained = await headers(alice, article);
-        const plan = await alice.history.plan(target(article, original));
-        await pool.unsafe(
-          "create function fail_history_write() returns trigger language plpgsql as $$ begin raise exception 'forced transaction rollback'; end $$",
-        );
-        await pool.unsafe(
-          `create trigger fail_history_write before update on blogs_article for each row when (old.id='${article.id}') execute function fail_history_write()`,
-        );
-        try {
-          await rejected(
-            alice.history.publish({
-              ...target(article, original),
-              ...request(),
-              token: plan.token,
-              omitMissingImages: false,
-            }),
-            "STORAGE",
-          );
-        } finally {
+    for (const historical of [false, true]) {
+      await t.test(
+        `${historical ? "historical" : "ordinary"} publication rolls back history and projections, then retries once`,
+        async () => {
+          let article = await save(alice, await create("Rollback"), "Original");
+          article = await publish(alice, article);
+          const original = article.translations.en.history.publishedId;
+          for (let index = 1; index < 5; index++) {
+            article = await save(alice, article, `Successor ${index}`);
+            article = await publish(alice, article);
+          }
+          article = await save(alice, article, "Next publication");
+          const before = await alice.get(article.id);
+          const retained = await headers(alice, article);
+          const live = await storage.getPublished("en", before.translations.en.published.slug);
+          const plan = historical ? await alice.history.plan(target(article, original)) : null;
+          const input = {
+            id: article.id,
+            version: article.version,
+            locale: "en",
+            ...request(),
+          };
+          const commit = plan
+            ? () =>
+                alice.history.publish({
+                  ...input,
+                  versionId: original,
+                  token: plan.token,
+                  omitMissingImages: false,
+                })
+            : () => alice.publish(input);
           await pool.unsafe(
-            "drop trigger fail_history_write on blogs_article; drop function fail_history_write()",
+            "create function fail_publication_commit() returns trigger language plpgsql as $$ begin raise exception 'forced transaction rollback'; end $$",
           );
-        }
-        assert.deepEqual(await alice.get(article.id), before);
-        assert.deepEqual(await headers(alice, article), retained);
-      },
-    );
+          // Fail after the article, history and projections have all been written.
+          await pool.unsafe(
+            `create trigger fail_publication_commit before insert on blogs_mutation for each row when (new.id='${input.requestId}') execute function fail_publication_commit()`,
+          );
+          try {
+            await rejected(commit(), "STORAGE");
+          } finally {
+            await pool.unsafe(
+              "drop trigger fail_publication_commit on blogs_mutation; drop function fail_publication_commit()",
+            );
+          }
+          assert.deepEqual(await alice.get(article.id), before);
+          assert.deepEqual(await headers(alice, article), retained);
+          assert.deepEqual(await storage.getPublished("en", live.slug), live);
+          const published = await commit();
+          const after = await headers(alice, article);
+          assert.equal(after.length, historical ? 1 : 5);
+          assert.equal(
+            (await storage.getPublished("en", published.translations.en.published.slug)).revisionId,
+            historical ? original : before.translations.en.history.currentId,
+          );
+          assert.deepEqual(await commit(), published);
+          assert.deepEqual(await headers(alice, article), after);
+        },
+      );
+    }
 
     await t.test(
       "staff inspect history but current ownership controls restore and deletion",
