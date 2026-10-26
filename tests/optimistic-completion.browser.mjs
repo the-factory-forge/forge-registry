@@ -174,3 +174,129 @@ void test("pending rescheduling locks its draft and client replacement dismisses
   await flush(page);
   assert.equal(await page.getByRole("dialog").count(), 0);
 });
+
+async function settingsEditor(t, kind) {
+  const page = await fixture(t, `settings-${kind}`);
+  await page
+    .getByRole("textbox", { name: "Name", exact: true, includeHidden: true })
+    .fill(" Draft ");
+  if (kind === "service")
+    await page.getByRole("spinbutton", { name: "Duration (minutes)", exact: true }).fill("30");
+  return page;
+}
+for (const kind of ["service", "resource"])
+  void test(`settings ${kind} uses one write, retains its retry ID and accepts canonical data`, async (t) => {
+    const page = await settingsEditor(t, kind);
+    const name = page.getByRole("textbox", { name: "Name", exact: true, includeHidden: true });
+    await name.evaluate((input) => {
+      input.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      input.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    await calls(page, 1);
+    await flush(page);
+    assert.equal(await page.evaluate(() => window.completionTest.calls.length), 1);
+    assert.equal(await name.isDisabled(), true);
+    const id = await page.evaluate(() => window.completionTest.calls[0].input.id);
+    await settle(page, 0, false);
+    await page.getByRole("alert").waitFor();
+    assert.equal(await name.inputValue(), " Draft ");
+    assert.equal(await name.isEnabled(), true);
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await calls(page, 2);
+    assert.equal(await page.evaluate(() => window.completionTest.calls[1].input.id), id);
+    await settle(page, 1, true);
+    await page.waitForFunction(() => window.completionTest.accepted.length === 1);
+    assert.equal(await name.inputValue(), "Draft");
+    await page.getByRole("button", { name: "Archive", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Archive", exact: true });
+    await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+    await calls(page, 3);
+    assert.equal(await page.evaluate(() => window.completionTest.calls[2].input.version), 1);
+    await settle(page, 2, false);
+    await dialog.getByRole("alert").waitFor();
+    assert.equal(await name.inputValue(), "Draft");
+    await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+    await calls(page, 4);
+    assert.equal(await page.evaluate(() => window.completionTest.calls[3].input.version), 1);
+    await settle(page, 3, true);
+    await dialog.waitFor({ state: "hidden" });
+    await page.getByText("Archived", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.completionTest.accepted.length), 2);
+  });
+
+for (const kind of ["service", "resource"])
+  void test(`settings list ${kind} archive rolls back and retries within the same confirmation`, async (t) => {
+    const page = await fixture(t, "settings-list");
+    const label = kind === "service" ? "Haircut / Coupe" : "Alex";
+    const trigger = page.getByRole("button", {
+      name: `Archive ${label}`,
+      exact: true,
+      includeHidden: true,
+    });
+    const row = page.getByRole("listitem", { includeHidden: true }).filter({ has: trigger });
+    await trigger.click();
+    const dialog = page.getByRole("dialog", { name: "Archive", exact: true });
+    await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+    await calls(page, 1);
+    await row.getByText("Archived", { exact: true }).waitFor();
+    assert.equal(
+      await dialog.getByRole("button", { name: "Back", exact: true }).isDisabled(),
+      true,
+    );
+    await settle(page, 0, false);
+    await dialog.getByRole("alert").waitFor();
+    assert.equal(await row.getByText("Archived", { exact: true }).count(), 0);
+    await dialog.getByRole("button", { name: "Archive", exact: true }).click();
+    await calls(page, 2);
+    await settle(page, 1, true);
+    await dialog.waitFor({ state: "hidden" });
+    await row.getByText("Archived", { exact: true }).waitFor();
+    assert.equal(await trigger.isDisabled(), true);
+  });
+
+for (const kind of ["service", "resource", "list"])
+  for (const [change, success] of [
+    ["replace", true],
+    ["replace", false],
+    ["unmount", true],
+  ])
+    void test(`obsolete settings ${kind} completion stays silent after ${change} (${success})`, async (t) => {
+      const page =
+        kind === "list" ? await fixture(t, "settings-list") : await settingsEditor(t, kind);
+      if (kind === "list") {
+        await page.getByRole("button", { name: "Archive Alex", exact: true }).click();
+        await page
+          .getByRole("dialog", { name: "Archive", exact: true })
+          .getByRole("button", { name: "Archive", exact: true })
+          .click();
+      } else await page.getByRole("button", { name: "Save", exact: true }).click();
+      await calls(page, 1);
+      await page.evaluate((change) => window.completionTest[change](), change);
+      if (change === "replace") {
+        if (kind === "list")
+          await page
+            .getByRole("button", { name: "Archive Sam", exact: true, includeHidden: true })
+            .waitFor();
+        else {
+          await page
+            .getByRole("textbox", { name: "Name", exact: true, includeHidden: true })
+            .fill("Replacement draft");
+          if (kind === "service")
+            await page
+              .getByRole("spinbutton", { name: "Duration (minutes)", exact: true })
+              .fill("30");
+          await page.getByRole("button", { name: "Save", exact: true }).click();
+          await calls(page, 2);
+        }
+      }
+      await settle(page, 0, success);
+      await flush(page);
+      assert.deepEqual(await page.evaluate(() => window.completionTest.accepted), []);
+      assert.equal(await page.getByRole("alert").count(), 0);
+      assert.equal(await page.getByRole("dialog").filter({ hasText: "Saved." }).count(), 0);
+      if (change === "replace" && kind !== "list") {
+        const name = page.getByRole("textbox", { name: "Name", exact: true, includeHidden: true });
+        assert.equal(await name.inputValue(), "Replacement draft");
+        assert.equal(await name.isDisabled(), true);
+      }
+    });

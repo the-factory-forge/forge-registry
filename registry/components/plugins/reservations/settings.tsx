@@ -69,48 +69,57 @@ function ReservationSettingsPageContent({
   const optimistic = useOptimisticAction(data.value, client);
   const config = optimistic.value;
   const notify = useActionToast();
-  const action = useReservationAction(client);
   const [archiving, setArchiving] = useState<{ kind: "service" | "resource"; id: string }>();
   const labels = getReservationLabels(overrides, config?.mode);
   const archive = async () => {
-    if (!archiving || !config) return;
+    if (!archiving || !config || optimistic.pending || !optimistic.isCurrent()) return;
     const { kind, id } = archiving;
-    await optimistic.run(
-      (current) => {
-        if (!current) return current;
-        const key = kind === "service" ? "services" : "resources";
-        return {
-          ...current,
-          [key]: current[key].map((entry) =>
-            entry.id === id ? { ...entry, archived: true, active: false } : entry,
-          ),
-        };
-      },
-      async () => {
-        if (kind === "service") {
-          const entry = config.services.find((entry) => entry.id === id);
-          if (!entry) return;
-          const saved = await client.saveService({ ...entry, archived: true });
-          if (!optimistic.isCurrent()) return;
-          data.setValue((current) => ({
+    await optimistic
+      .run(
+        (current) => {
+          if (!current) return current;
+          const key = kind === "service" ? "services" : "resources";
+          return {
             ...current,
-            services: current.services.map((entry) => (entry.id === id ? saved : entry)),
-          }));
-        } else {
+            [key]: current[key].map((entry) =>
+              entry.id === id ? { ...entry, archived: true, active: false } : entry,
+            ),
+          };
+        },
+        async () => {
+          if (kind === "service") {
+            const entry = config.services.find((entry) => entry.id === id);
+            if (!entry) return;
+            return { kind, saved: await client.saveService({ ...entry, archived: true }) };
+          }
           const entry = config.resources.find((entry) => entry.id === id);
           if (!entry) return;
-          const saved = await client.saveResource({ ...entry, archived: true });
-          if (!optimistic.isCurrent()) return;
-          data.setValue((current) => ({
-            ...current,
-            resources: current.resources.map((entry) => (entry.id === id ? saved : entry)),
-          }));
-        }
-      },
-    );
-    if (!optimistic.isCurrent()) return;
-    notify(labels.saved);
-    setArchiving(undefined);
+          return { kind, saved: await client.saveResource({ ...entry, archived: true }) };
+        },
+        (result) => {
+          if (!result) return;
+          data.setValue((current) =>
+            result.kind === "service"
+              ? {
+                  ...current,
+                  services: current.services.map((entry) =>
+                    entry.id === id ? result.saved : entry,
+                  ),
+                }
+              : {
+                  ...current,
+                  resources: current.resources.map((entry) =>
+                    entry.id === id ? result.saved : entry,
+                  ),
+                },
+          );
+          notify(labels.saved);
+          setArchiving(undefined);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error for the confirmation and retry.
+      });
   };
   const item =
     editor?.kind === "service"
@@ -208,7 +217,7 @@ function ReservationSettingsPageContent({
                       <ArchiveButton
                         labels={labels}
                         name={entry.name}
-                        disabled={action.busy || entry.archived}
+                        disabled={optimistic.pending || entry.archived}
                         onClick={() => setArchiving({ kind, id: entry.id })}
                       />
                     </div>
@@ -220,7 +229,8 @@ function ReservationSettingsPageContent({
           {archiving && (
             <ArchiveDialog
               labels={labels}
-              action={action}
+              pending={optimistic.pending}
+              error={optimistic.error}
               onClose={() => setArchiving(undefined)}
               onArchive={archive}
             />
@@ -335,35 +345,41 @@ function ServiceEditor({
   const optimistic = useOptimisticAction(savedDraft, client);
   const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
-  const action = useReservationAction(client);
   const save = async (archive = false) => {
+    if (optimistic.pending || !optimistic.isCurrent()) return;
     const input = {
       ...draft,
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    setDraft((current) => ({ ...current, id: input.id }));
-    await optimistic.run(
-      () => input,
-      () => client.saveService(input),
-      (next) => {
-        setDraft(next);
-        notify(labels.saved);
-        setArchiving(false);
-        onSaved(next.id);
-      },
-    );
+    await optimistic
+      .run(
+        () => input,
+        () => {
+          setDraft((current) => ({ ...current, id: input.id }));
+          return client.saveService(input);
+        },
+        (next) => {
+          setDraft(next);
+          notify(labels.saved);
+          setArchiving(false);
+          onSaved(next.id);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error while the draft remains available for retry.
+      });
   };
   return (
     <form
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
-        void action.run(() => save());
+        void save();
       }}
     >
-      <fieldset disabled={action.busy} className="contents space-y-6">
-        <ErrorNotice error={action.error} labels={labels} />
+      <fieldset disabled={optimistic.pending} className="contents space-y-6">
+        <ErrorNotice error={optimistic.error} labels={labels} />
         <div className={cn(panelClass, "space-y-4")}>
           <Field label={labels.name}>
             <input
@@ -489,8 +505,8 @@ function ServiceEditor({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className={primaryClass} disabled={action.busy}>
-            {action.busy ? labels.saving : labels.save}
+          <button className={primaryClass} disabled={optimistic.pending}>
+            {optimistic.pending ? labels.saving : labels.save}
           </button>
           {draft.version > 0 && !draft.archived && (
             <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
@@ -500,7 +516,8 @@ function ServiceEditor({
         {archiving && (
           <ArchiveDialog
             labels={labels}
-            action={action}
+            pending={optimistic.pending}
+            error={optimistic.error}
             onClose={() => setArchiving(false)}
             onArchive={() => save(true)}
           />
@@ -603,38 +620,44 @@ function ResourceEditor({
   const optimistic = useOptimisticAction(savedDraft, client);
   const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
-  const action = useReservationAction(client);
   const change = (value: ReservationResource) => {
     setDraft(value);
   };
   const save = async (archive = false) => {
+    if (optimistic.pending || !optimistic.isCurrent()) return;
     const input = {
       ...draft,
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    setDraft((current) => ({ ...current, id: input.id }));
-    await optimistic.run(
-      () => input,
-      () => client.saveResource(input),
-      (next) => {
-        setDraft(next);
-        notify(labels.saved);
-        setArchiving(false);
-        onSaved(next.id);
-      },
-    );
+    await optimistic
+      .run(
+        () => input,
+        () => {
+          setDraft((current) => ({ ...current, id: input.id }));
+          return client.saveResource(input);
+        },
+        (next) => {
+          setDraft(next);
+          notify(labels.saved);
+          setArchiving(false);
+          onSaved(next.id);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error while the draft remains available for retry.
+      });
   };
   return (
     <form
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
-        void action.run(() => save());
+        void save();
       }}
     >
-      <fieldset disabled={action.busy} className="contents space-y-6">
-        <ErrorNotice error={action.error} labels={labels} />
+      <fieldset disabled={optimistic.pending} className="contents space-y-6">
+        <ErrorNotice error={optimistic.error} labels={labels} />
         <div className={cn(panelClass, "space-y-4")}>
           <Field label={labels.name}>
             <input
@@ -790,8 +813,8 @@ function ResourceEditor({
           </>
         )}
         <div className="flex items-center gap-3">
-          <button className={primaryClass} disabled={action.busy}>
-            {action.busy ? labels.saving : labels.save}
+          <button className={primaryClass} disabled={optimistic.pending}>
+            {optimistic.pending ? labels.saving : labels.save}
           </button>
           {draft.version > 0 && !draft.archived && (
             <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
@@ -801,7 +824,8 @@ function ResourceEditor({
         {archiving && (
           <ArchiveDialog
             labels={labels}
-            action={action}
+            pending={optimistic.pending}
+            error={optimistic.error}
             onClose={() => setArchiving(false)}
             onArchive={() => save(true)}
           />
@@ -839,12 +863,14 @@ function ArchiveButton({
 }
 function ArchiveDialog({
   labels,
-  action,
+  pending,
+  error,
   onClose,
   onArchive,
 }: {
   labels: ReservationLabels;
-  action: ReturnType<typeof useReservationAction>;
+  pending: boolean;
+  error: unknown;
   onClose: () => void;
   onArchive: () => Promise<void>;
 }) {
@@ -854,9 +880,9 @@ function ArchiveDialog({
       title={labels.archive}
       description={labels.archiveConfirm}
       onClose={onClose}
-      busy={action.busy}
+      busy={pending}
     >
-      <ErrorNotice error={action.error} labels={labels} />
+      <ErrorNotice error={error} labels={labels} />
       <div
         data-dialog-footer
         className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
@@ -865,16 +891,16 @@ function ArchiveDialog({
           type="button"
           className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
           onClick={onClose}
-          disabled={action.busy}
+          disabled={pending}
         >
           {labels.back}
         </button>
         <button
           type="button"
           className={primaryClass}
-          disabled={action.busy}
+          disabled={pending}
           onClick={() => {
-            void action.run(onArchive);
+            void onArchive();
           }}
         >
           {labels.archive}

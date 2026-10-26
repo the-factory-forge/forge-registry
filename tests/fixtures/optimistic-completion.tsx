@@ -6,19 +6,21 @@ import { ActionToastProvider } from "@/components/action-toast";
 import { useCustomerAction } from "@/components/plugins/customers/ui";
 import { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 import { ReservationsCalendar } from "@/components/plugins/reservations/admin";
+import { ReservationSettingsPage } from "@/components/plugins/reservations/settings";
 import { useReservationLoad } from "@/components/plugins/reservations/ui";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 import { createReservationsMock } from "@/showroom/reservations-mock";
 
 import "../../src/styles/globals.css";
 
-type Call = { kind: string; resolve: () => Promise<void>; reject: () => void };
+type Call = { input?: unknown; kind: string; resolve: () => Promise<void>; reject: () => void };
 const calls: Call[] = [];
 const accepted: string[] = [];
-function hold<T>(kind: string, write: () => Promise<T>) {
+function hold<T>(kind: string, write: () => Promise<T>, input?: unknown) {
   return new Promise<T>((resolve, reject) =>
     calls.push({
       kind,
+      input,
       resolve: async () => {
         await write().then(resolve, reject);
       },
@@ -31,6 +33,18 @@ store.populateList();
 let reads = 0;
 const makeClient = () => ({
   ...store.adminClient,
+  saveService: (input: Parameters<typeof store.adminClient.saveService>[0]) =>
+    hold(
+      "service",
+      () => store.adminClient.saveService({ ...input, name: input.name.trim() }),
+      input,
+    ),
+  saveResource: (input: Parameters<typeof store.adminClient.saveResource>[0]) =>
+    hold(
+      "resource",
+      () => store.adminClient.saveResource({ ...input, name: input.name.trim() }),
+      input,
+    ),
   listPage: async (query: Parameters<typeof store.adminClient.listPage>[0]) => {
     reads++;
     return store.adminClient.listPage(query);
@@ -136,6 +150,21 @@ function Fixture() {
         client={clients[owner % 2]}
         newHref="#new"
         initialDate={store.initialDate}
+      />
+    );
+  if (mode?.startsWith("settings-"))
+    return (
+      <ReservationSettingsPage
+        client={clients[owner % 2]}
+        editor={
+          mode === "settings-service" || mode === "settings-resource"
+            ? { kind: mode === "settings-service" ? "service" : "resource", id: "new" }
+            : undefined
+        }
+        getServiceHref={(id) => `#service-${id}`}
+        getResourceHref={(id) => `#resource-${id}`}
+        backHref="#back"
+        onSaved={(kind, id) => accepted.push(`${kind}:${id}`)}
       />
     );
   if (mode === "employee")
