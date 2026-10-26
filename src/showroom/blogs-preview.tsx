@@ -54,13 +54,12 @@ function usePreview() {
       admin,
       readOnly,
       fail,
-      failUpload,
       missingImages,
       consumeUploadFailure: () => setFailUpload(false),
     });
     if (!historyEnabled) delete client.history;
     return client;
-  }, [mock, editor, admin, readOnly, fail, failUpload, missingImages, historyEnabled]);
+  }, [mock, editor, admin, readOnly, fail, missingImages, historyEnabled]);
   return {
     mock,
     historyEnabled,
@@ -195,7 +194,13 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               />
               Simulate missing illustrations
             </label>
-            <button onClick={() => state.setFailUpload(true)} className="underline">
+            <button
+              onClick={() => {
+                state.mock.failNextUpload();
+                state.setFailUpload(true);
+              }}
+              className="underline"
+            >
               Fail next upload{state.failUpload ? " (armed)" : ""}
             </button>
             <label className="flex items-center gap-2">

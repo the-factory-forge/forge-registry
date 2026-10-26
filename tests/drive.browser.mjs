@@ -1070,11 +1070,8 @@ await suite("Drive browser", async () => {
           .click();
         const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
         await page.getByLabel("Directory state").selectOption("loading");
-        assert.equal(
-          await dialog.getByRole("button", { name: "Save", exact: true }).isDisabled(),
-          true,
-        );
-        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+        // Changing the preview state replaces the client and retires its rename dialog.
+        await dialog.waitFor({ state: "hidden" });
         await page.getByLabel("Directory state").selectOption("error");
         await table.getByRole("alert").waitFor();
         assert.deepEqual(await table.getByRole("columnheader").allTextContents(), loadedHeadings);
@@ -1506,7 +1503,10 @@ await suite("Drive browser", async () => {
     assert.equal((await page.getByRole("table").boundingBox()).y, tableBefore.y);
     await sidebar.getByRole("link", { name: "Customer portal", exact: true }).waitFor();
     await page.getByLabel("Simulate action failures").evaluate((node) => node.click());
-    await nav.locator("input:not([readonly])").waitFor();
+    // Switching failure mode replaces the client, so start a new rename session.
+    await input.waitFor({ state: "hidden" });
+    await title.click();
+    await input.fill("Client portal");
     await input.press("Enter");
     await input.waitFor({ state: "hidden" });
     await nav.getByRole("button", { name: "Rename: Client portal", exact: true }).waitFor();
@@ -1540,10 +1540,16 @@ await suite("Drive browser", async () => {
 
   await test("breadcrumb title keeps pending saves locked and ignores IME confirmation", async (t) => {
     const page = await preview(t, "/en/drive/project/portal");
+    // Folder renames keep the client; root renames replace the host project directory.
+    await folder(page, "Assets");
+    const created = page.getByRole("dialog", { name: "Changes saved.", exact: true });
+    await created.getByRole("button", { name: "Close", exact: true }).click();
+    await created.waitFor({ state: "hidden" });
+    await page.getByRole("link", { name: "Assets", exact: true }).click();
     const nav = page.getByRole("navigation", { name: "Folder navigation" });
-    await nav.getByRole("button", { name: "Rename: Customer portal", exact: true }).click();
+    await nav.getByRole("button", { name: "Rename: Assets", exact: true }).click();
     const input = nav.getByRole("textbox");
-    await input.fill("Client portal");
+    await input.fill("Shared assets");
     await input.dispatchEvent("keydown", { key: "Enter", isComposing: true });
     assert.equal(await input.isVisible(), true);
     assert.equal(await input.getAttribute("readonly"), null);
@@ -1563,7 +1569,7 @@ await suite("Drive browser", async () => {
     );
     assert.equal(
       await nav
-        .getByRole("button", { name: "Rename: Client portal", exact: true })
+        .getByRole("button", { name: "Rename: Shared assets", exact: true })
         .evaluate((node) => node === document.activeElement),
       true,
     );

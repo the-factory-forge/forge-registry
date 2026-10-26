@@ -234,7 +234,8 @@ export function createBlogsMock() {
   let articles = initial.articles,
     categories = initial.categories,
     assets = initial.assets,
-    revision = 0;
+    revision = 0,
+    failUpload = false;
   const urls = new Map(
     initial.assets.map((a) => [a.id, `https://assets.the-corner.io/images/${a.name}`]),
   );
@@ -254,7 +255,6 @@ export function createBlogsMock() {
     admin?: boolean;
     readOnly: boolean;
     fail: boolean;
-    failUpload: boolean;
     consumeUploadFailure: () => void;
     missingImages?: boolean;
   }): BlogsClient {
@@ -569,7 +569,8 @@ export function createBlogsMock() {
           } as { requestId: string },
           async () => {
             get(input.id);
-            if (config.failUpload) {
+            if (failUpload) {
+              failUpload = false;
               config.consumeUploadFailure();
               throw Object.assign(new Error("STORAGE"), { code: "STORAGE" });
             }
@@ -767,6 +768,10 @@ export function createBlogsMock() {
       return () => {
         listeners.delete(listener);
       };
+    },
+    // One-shot failures must not replace a client with an upload in flight.
+    failNextUpload: () => {
+      failUpload = true;
     },
     snapshot: () => revision,
     get,

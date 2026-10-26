@@ -23,7 +23,6 @@ const adapter = mock.client({
   admin: true,
   readOnly: false,
   fail: false,
-  failUpload: false,
   consumeUploadFailure: () => {},
 });
 type Kind =

@@ -185,7 +185,7 @@ void test("post actions preserve confirmation, validation and the last-page boun
     "2",
   );
   await page.getByRole("button", { name: "Edit Small improvements", exact: true }).click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "Edit post", exact: true });
   const title = dialog.getByLabel("Title");
   await title.fill("   ");
   await dialog.getByRole("button", { name: "Save changes" }).click();
@@ -194,17 +194,25 @@ void test("post actions preserve confirmation, validation and the last-page boun
   await dialog.getByRole("button", { name: "Save changes" }).click();
   const edit = page.getByRole("button", { name: "Edit A better table", exact: true });
   await edit.waitFor();
+  await dialog.waitFor({ state: "hidden" });
+  // Finish modal focus restoration before testing the table's tab order.
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute("aria-label") === "Edit A better table",
+  );
   await nav.getByRole("button", { name: "Previous page" }).focus();
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Shift+Tab");
   await page.getByRole("tooltip", { name: "Edit A better table", exact: true }).waitFor();
+  assert.equal(await edit.evaluate((node) => node === document.activeElement), true);
   await page.keyboard.press("Escape");
+  assert.equal(new URL(page.url()).searchParams.get("postPage"), "3");
   const remove = page.getByRole("button", { name: "Delete A better table", exact: true });
   await remove.click();
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  const confirmation = page.getByRole("dialog", { name: "Delete post", exact: true });
+  await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
   assert.equal(await remove.count(), 1);
   await remove.click();
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await confirmation.getByRole("button", { name: "Delete", exact: true }).click();
   await nav.getByText("2/2", { exact: true }).waitFor();
   assert.equal(await nav.getByRole("button", { name: "Next page" }).isDisabled(), true);
   assert.equal(await remove.count(), 0);
