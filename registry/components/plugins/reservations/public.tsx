@@ -144,7 +144,7 @@ export function BookingForm({
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "" });
   const [reviewing, setReviewing] = useState(false);
   const request = useRef<{ input: string; id: string } | null>(null);
-  const action = useReservationAction();
+  const action = useReservationAction(client);
   const service = catalog.services.find((s) => s.id === serviceId);
   const stay = catalog.mode === "stay";
   const availability = useCallback(
@@ -196,13 +196,15 @@ export function BookingForm({
           if (request.current?.input !== fingerprint)
             request.current = { input: fingerprint, id: crypto.randomUUID() };
           try {
-            onBooked(await client.book({ ...value, requestId: request.current.id }));
+            return await client.book({ ...value, requestId: request.current.id });
           } catch (error) {
-            setReviewing(false);
-            slots.reload();
+            if (action.isCurrent()) {
+              setReviewing(false);
+              slots.reload();
+            }
             throw error;
           }
-        });
+        }, onBooked);
       }}
     >
       <ErrorNotice error={action.error} labels={labels} />
@@ -409,7 +411,7 @@ export function ReservationManagePage({
   const data = useReservationLoad(load);
   const labels = getReservationLabels(overrides, data.value?.reservation.mode);
   const [dialog, setDialog] = useState<"cancel" | "move">();
-  const action = useReservationAction();
+  const action = useReservationAction(client);
   const optimistic = useOptimisticAction(data.value, client);
   const r = optimistic.value?.reservation;
   const availability = useCallback(
@@ -434,11 +436,8 @@ export function ReservationManagePage({
               labels.anyResource,
           ),
         },
-      async () => {
-        const saved = await client.reschedule(input);
-        data.setValue((current) => ({ ...current, reservation: saved }));
-        return saved;
-      },
+      () => client.reschedule(input),
+      (saved) => data.setValue((current) => ({ ...current, reservation: saved })),
     );
   return (
     <section className={cn(pageClass, "max-w-3xl", className)}>
@@ -519,26 +518,30 @@ export function ReservationManagePage({
                   className={primaryClass}
                   disabled={action.busy}
                   onClick={() => {
-                    void action.run(async () => {
-                      await optimistic.run(
-                        (current) =>
-                          current && {
-                            ...current,
-                            canChange: false,
-                            reservation: { ...current.reservation, status: "cancelled" },
+                    void action.run(
+                      async () => {
+                        await optimistic.run(
+                          (current) =>
+                            current && {
+                              ...current,
+                              canChange: false,
+                              reservation: { ...current.reservation, status: "cancelled" },
+                            },
+                          () => client.cancel(r.version),
+                          (saved) => {
+                            data.setValue((current) => ({
+                              ...current,
+                              reservation: saved,
+                              canChange: false,
+                            }));
                           },
-                        async () => {
-                          const saved = await client.cancel(r.version);
-                          data.setValue((current) => ({
-                            ...current,
-                            reservation: saved,
-                            canChange: false,
-                          }));
-                        },
-                      );
-                      setDialog(undefined);
-                      data.reload();
-                    });
+                        );
+                      },
+                      () => {
+                        setDialog(undefined);
+                        data.reload();
+                      },
+                    );
                   }}
                 >
                   {labels.cancel}
@@ -593,7 +596,7 @@ export function RescheduleDialog({
     input: Parameters<ReservationManagementClient["reschedule"]>[0],
     slot: ReservationSlot,
   ) => Promise<Reservation>;
-  onSaved: () => void;
+  onSaved?: () => void;
   onClose: () => void;
 }) {
   const [date, setDate] = useState(() => localDate(reservation.startsAt, timeZone));
@@ -613,7 +616,7 @@ export function RescheduleDialog({
     [availability, date, resourceId, stay, departureDate],
   );
   const slots = useReservationLoad(load);
-  const action = useReservationAction();
+  const action = useReservationAction(availability);
   return (
     <Modal
       closeLabel={labels.close}
@@ -628,119 +631,123 @@ export function RescheduleDialog({
         className="contents space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          void action.run(async () => {
-            try {
-              const slot = slots.value?.find((value) => value.startsAt === startsAt);
-              if (!slot) return;
-              await onSave(
-                {
-                  version: reservation.version,
-                  startsAt,
-                  ...(stay ? { departureDate } : {}),
-                  resourceId: resourceId || undefined,
-                },
-                slot,
-              );
-              onSaved();
-            } catch (error) {
-              slots.reload();
-              throw error;
-            }
-          });
+          const slot = slots.value?.find((value) => value.startsAt === startsAt);
+          if (!slot) return;
+          void action.run(
+            async () => {
+              try {
+                await onSave(
+                  {
+                    version: reservation.version,
+                    startsAt,
+                    ...(stay ? { departureDate } : {}),
+                    resourceId: resourceId || undefined,
+                  },
+                  slot,
+                );
+              } catch (error) {
+                if (action.isCurrent()) slots.reload();
+                throw error;
+              }
+            },
+            () => onSaved?.(),
+          );
         }}
       >
-        <ErrorNotice error={action.error ?? slots.error} labels={labels} />
-        <Field label={labels.resource}>
-          <NativeSelect
-            value={resourceId}
-            className={fieldClass}
-            onChange={(e) => {
-              setResourceId(e.target.value);
-              setStartsAt("");
-            }}
-          >
-            <option value="">{labels.anyResource}</option>
-            {resources.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        {reservation.policy.mode === "stay" ? (
-          <StayDatePicker
-            arrival={date}
-            departure={departureDate}
-            minNights={reservation.policy.minNights}
-            labels={labels}
-            locale={locale}
-            onChange={(arrival, departure) => {
-              setDate(arrival);
-              setDepartureDate(departure);
-              setStartsAt("");
-            }}
-          />
-        ) : (
-          <Field label={labels.date}>
-            <input
+        <fieldset disabled={action.busy} className="contents space-y-4">
+          <ErrorNotice error={action.error ?? slots.error} labels={labels} />
+          <Field label={labels.resource}>
+            <NativeSelect
+              value={resourceId}
               className={fieldClass}
-              required
-              type="date"
-              value={date}
               onChange={(e) => {
-                if (e.target.value) {
-                  setDate(e.target.value);
-                  setStartsAt("");
-                }
+                setResourceId(e.target.value);
+                setStartsAt("");
+              }}
+            >
+              <option value="">{labels.anyResource}</option>
+              {resources.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          {reservation.policy.mode === "stay" ? (
+            <StayDatePicker
+              arrival={date}
+              departure={departureDate}
+              minNights={reservation.policy.minNights}
+              labels={labels}
+              locale={locale}
+              onChange={(arrival, departure) => {
+                setDate(arrival);
+                setDepartureDate(departure);
+                setStartsAt("");
               }}
             />
-          </Field>
-        )}
-        <p className="text-sm text-muted-foreground">
-          {timeZone}
-          {reservation.policy.mode === "stay" &&
-            ` · ${labels.checkoutTime}: ${reservation.policy.checkoutTime} · ${labels.nights}: ${stayNights(date, departureDate)}`}
-        </p>
-        {slots.value ? (
-          <SlotPicker
-            slots={slots.value}
-            selected={startsAt}
-            onChange={setStartsAt}
-            locale={locale}
-            labels={labels}
-            zone={timeZone}
-          />
-        ) : (
-          !slots.error && <output className="block">{labels.loading}</output>
-        )}
-        {!!slots.error && (
-          <IconTooltip label={labels.refresh}>
-            <button
-              aria-label={labels.refresh}
-              type="button"
-              className={iconButtonClass}
-              onClick={slots.reload}
-            >
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-            </button>
-          </IconTooltip>
-        )}
-        <div
-          data-dialog-footer
-          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
-        >
-          <button type="button" className={buttonClass} disabled={action.busy} onClick={onClose}>
-            {labels.close}
-          </button>
-          <button
-            className={primaryClass}
-            disabled={
-              !startsAt || action.busy || !slots.value?.some((s) => s.startsAt === startsAt)
-            }
+          ) : (
+            <Field label={labels.date}>
+              <input
+                className={fieldClass}
+                required
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setDate(e.target.value);
+                    setStartsAt("");
+                  }
+                }}
+              />
+            </Field>
+          )}
+          <p className="text-sm text-muted-foreground">
+            {timeZone}
+            {reservation.policy.mode === "stay" &&
+              ` · ${labels.checkoutTime}: ${reservation.policy.checkoutTime} · ${labels.nights}: ${stayNights(date, departureDate)}`}
+          </p>
+          {slots.value ? (
+            <SlotPicker
+              slots={slots.value}
+              selected={startsAt}
+              onChange={setStartsAt}
+              locale={locale}
+              labels={labels}
+              zone={timeZone}
+            />
+          ) : (
+            !slots.error && <output className="block">{labels.loading}</output>
+          )}
+          {!!slots.error && (
+            <IconTooltip label={labels.refresh}>
+              <button
+                aria-label={labels.refresh}
+                type="button"
+                className={iconButtonClass}
+                onClick={slots.reload}
+              >
+                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+              </button>
+            </IconTooltip>
+          )}
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
           >
-            {labels.saveMove}
-          </button>
-        </div>
+            <button type="button" className={buttonClass} disabled={action.busy} onClick={onClose}>
+              {labels.close}
+            </button>
+            <button
+              className={primaryClass}
+              disabled={
+                !startsAt || action.busy || !slots.value?.some((s) => s.startsAt === startsAt)
+              }
+            >
+              {labels.saveMove}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </Modal>
   );

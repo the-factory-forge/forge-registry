@@ -1348,8 +1348,9 @@ function useBlogDraft({
     scope: typeof action.scope;
     value: "draft" | "changed" | "published";
   }>();
-  const status =
-    action.pending && optimisticStatus?.scope === action.scope
+  const status = publication.publishing
+    ? "published"
+    : action.pending && optimisticStatus?.scope === action.scope
       ? optimisticStatus.value
       : !base.translations[locale]?.published
         ? "draft"

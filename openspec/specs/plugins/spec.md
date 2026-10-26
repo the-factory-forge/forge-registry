@@ -16,7 +16,8 @@ integration contracts. It is larger than a single UI primitive, but it does not
 own the host website or require a runtime plugin loader.
 
 Shared plugin UI is a reusable skeleton for generating websites. Data plugins
-provide optimistic UI changes while hosts retain authoritative data and transport.
+provide optimistic UI changes through TanStack Query while hosts retain authoritative
+data and transport. Ordinary asynchronous completion belongs to the submitting view.
 Site-specific fields, assignment rules and workflows belong in the consuming website.
 
 A **service plugin** provides a shared application capability without its own
@@ -194,6 +195,20 @@ for reconnect or persist callbacks or private records to browser storage.
 - **WHEN** a user changes resource, account or filtered page during a mutation
 - **THEN** temporary data is not applied to another scope
 - **AND** optimistic state grants no access to protected data
+
+#### Scenario: An ordinary mutation outlives its owner
+
+- **WHEN** a client or resource is replaced, or its view unmounts, before completion
+- **THEN** the old result SHALL NOT overwrite the new draft, close its dialog or emit completion feedback
+- **AND** a replacement operation SHALL retain its own pending state
+- **AND** the request MAY still finish on the server
+- **AND** confirmed deletion and Drive recovery SHALL retain their separately specified lifetimes
+
+#### Scenario: History publication starts
+
+- **WHEN** the user accepts a publication plan and publishing starts
+- **THEN** Blogs SHALL preview Published until the request settles
+- **AND** rejection SHALL remove the preview and retain recovery controls
 
 #### Scenario: Installing updated source
 

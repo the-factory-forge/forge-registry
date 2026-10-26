@@ -44,7 +44,7 @@ function CustomerFormContent({
   const creating = !customer;
   const [values, setValues] = useState(() => customerFormValues(customer));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
-  const action = useCustomerAction(labels.actionError);
+  const action = useCustomerAction(labels.actionError, customer?.id);
   const deletion = useRecordDeletion({
     items: customer ? [customer] : [],
     scope: customer?.id,
@@ -74,9 +74,11 @@ function CustomerFormContent({
       name: values.name.trim(),
       email: values.email.trim(),
     };
-    if (await action.run(() => onSubmit(normalized), creating ? labels.created : labels.saved)) {
-      setValues(normalized);
-    }
+    await action.run(
+      () => onSubmit(normalized),
+      creating ? labels.created : labels.saved,
+      () => setValues(normalized),
+    );
   }
 
   function field(

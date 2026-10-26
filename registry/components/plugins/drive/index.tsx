@@ -39,6 +39,7 @@ import {
   DriveOwner,
   DriveSize,
   DriveToasts,
+  DriveMutationOwner,
   DriveTitle,
   SortHeading,
   EntryDialog,
@@ -264,9 +265,15 @@ export function DrivePage({
 export function DriveBrowser(props: DriveBrowserProps) {
   const { type, id } = props.scope;
   const scope = useMemo(() => ({ type, id }), [type, id]);
+  const owner = useMemo(
+    () => ({ client: props.client, scope, parentId: props.parentId }),
+    [props.client, scope, props.parentId],
+  );
   return (
     <ActionToastProvider key={scopeKey(scope)} closeLabel={props.labels?.close}>
-      <Browser {...props} scope={scope} />
+      <DriveMutationOwner value={owner}>
+        <Browser {...props} scope={scope} />
+      </DriveMutationOwner>
     </ActionToastProvider>
   );
 }
@@ -339,6 +346,11 @@ function Browser({
     entry: DriveEntry | DriveSpace;
     action: "create" | "rename" | "duplicate" | "trash";
   }>();
+  const [previousClient, setPreviousClient] = useState(client);
+  if (previousClient !== client) {
+    setPreviousClient(client);
+    if (folderAction?.action !== "trash") setFolderAction(undefined);
+  }
   const [removedFolder, setRemovedFolder] = useState<DriveEntry>();
   const [previousParentId, setPreviousParentId] = useState(parentId);
   if (previousParentId !== parentId) {
@@ -654,6 +666,7 @@ function Browser({
                               if (crumb.id)
                                 await actionClient.rename({ scope, entryId: crumb.id, name });
                               else await renameSpace!(name);
+                              if (!optimistic.isCurrent()) return;
                               refresh();
                               setFeedback(undefined);
                               notify(labels.saved);

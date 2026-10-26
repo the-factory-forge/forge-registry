@@ -3,16 +3,16 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import { XIcon, Trash2Icon } from "lucide-react";
-import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
-import type { BlogsClient } from "@/components/plugins/blogs/types";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
+import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:bg-background disabled:text-foreground disabled:hover:bg-background disabled:hover:text-foreground dark:disabled:bg-background dark:disabled:hover:bg-background [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -57,22 +57,16 @@ export function Feedback({ message, error = false }: { message?: string; error?:
     </p>
   ) : null;
 }
-/** Private to Blog editors; changing the client invalidates operations without losing inputs. */
-export const BlogEditorClient = createContext<BlogsClient | null>(null);
+/** Private operation owner; replacing it invalidates completions without resetting editor inputs. */
+export const BlogEditorClient = createContext<unknown>(null);
 
 export function useBlogAction(labels: BlogsLabels) {
   const owner = useContext(BlogEditorClient);
-  const scope = useMemo(() => ({ owner }), [owner]);
-  const active = useRef<typeof scope | null>(null);
+  const lifetime = useActionLifetime(owner);
+  const scope = lifetime.identity;
   const lock = useRef<typeof scope | null>(null);
   const request = useRef<{ scope: typeof scope; key: string; id: string } | null>(null);
-  useLayoutEffect(() => {
-    active.current = scope;
-    return () => {
-      active.current = null;
-    };
-  }, [scope]);
-  const current = () => owner === null || active.current === scope;
+  const current = lifetime.isCurrent;
   const notify = useActionToast();
   const { add } = Toast.useToastManager();
   const [state, setState] = useState<{

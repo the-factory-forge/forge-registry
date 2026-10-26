@@ -63,6 +63,7 @@ export function useRecordDeletion<T extends { id: string }>({
     submitted: boolean;
     error?: string;
   } | null>(null);
+  const pending = !!session?.submitted && !session.error;
   const current =
     session?.scope === scope ? items.find((item) => item.id === session.id) : undefined;
   if (session && !session.submitted && (!current || session.scope !== scope || !onDelete)) {
@@ -103,7 +104,7 @@ export function useRecordDeletion<T extends { id: string }>({
 
   return {
     items: optimistic.value,
-    pending: optimistic.pending,
+    pending,
     open(id: string, element: HTMLElement) {
       if (lock.current || disabled || !onDelete) return;
       const item = items.find((row) => row.id === id);
@@ -156,7 +157,7 @@ export function useRecordDeletion<T extends { id: string }>({
                 <Dialog.Close
                   type="button"
                   aria-label={labels.close ?? labels.cancel}
-                  disabled={optimistic.pending}
+                  disabled={pending}
                   className={cn(buttonClass, "size-10 p-0 md:size-8")}
                 >
                   <XIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -176,18 +177,18 @@ export function useRecordDeletion<T extends { id: string }>({
               <Dialog.Close
                 ref={cancelRef}
                 className={cn(buttonClass, "border border-border")}
-                disabled={optimistic.pending}
+                disabled={pending}
               >
                 {labels.cancel}
               </Dialog.Close>
               <button
                 type="button"
                 className={cn(buttonClass, destructiveClass)}
-                disabled={disabled || optimistic.pending || !current || !onDelete}
-                aria-busy={optimistic.pending}
+                disabled={disabled || pending || !current || !onDelete}
+                aria-busy={pending}
                 onClick={() => void confirm()}
               >
-                {optimistic.pending ? labels.pending : labels.confirmDelete}
+                {pending ? labels.pending : labels.confirmDelete}
               </button>
             </div>
           </Dialog.Popup>

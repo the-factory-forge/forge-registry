@@ -1,7 +1,7 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
 import { XIcon, PencilIcon, SendHorizontalIcon, Trash2Icon } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -34,6 +34,7 @@ import {
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableActionsClass } from "@/components/utils/table-styles";
+import { useMutationAction } from "@/components/utils/use-optimistic-action";
 export interface EmployeeActionCallbacks {
   deletion?: EmployeeDeletionAdapter;
   onUploadPhoto?: (id: string, file: File) => Promise<void>;
@@ -71,32 +72,23 @@ function EmployeeActionsContent({
   const id = `factory-employee-edit-${useId()}`;
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [failedAction, setFailedAction] = useState<string | null>(null);
+  const mutation = useMutationAction(`${currentUserId}:${employee.id}`);
+  const pending = mutation.pending;
+  const [actionKind, setFailedAction] = useState<string | null>(null);
+  const failedAction = mutation.error ? actionKind : null;
   const [feedback, setFeedback] = useState<{ error: boolean; message: string } | null>(null);
   const notify = useActionToast();
-  const lock = useRef(false);
   const isSelf = employee.id === currentUserId;
   const emailAction = employee.mustChangePassword ? labels.sendInvitation : labels.sendEmail;
-  async function run(kind: "edit" | "remove" | "send" | "website", action: () => Promise<void>) {
-    if (disabled || lock.current) return;
-    lock.current = true;
-    setPending(true);
-    setFailedAction(null);
+  function run<T>(
+    kind: "edit" | "remove" | "send" | "website",
+    action: () => Promise<T>,
+    accept?: (result: T) => void,
+  ) {
+    if (disabled || pending) return;
+    setFailedAction(kind);
     setFeedback(null);
-    try {
-      await action();
-    } catch {
-      setFailedAction(kind);
-      if (kind === "send")
-        setFeedback({
-          error: true,
-          message: labels.emailError,
-        });
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
+    return mutation.run(action, accept);
   }
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
@@ -114,20 +106,23 @@ function EmployeeActionsContent({
             }
             aria-label={`${emailAction} ${employee.name}`}
             onClick={() =>
-              void run("send", async () => {
-                const { status } = await onSendVerification(employee.id);
-                if (status === "unavailable") {
-                  setFeedback({ error: true, message: labels.emailUnavailable });
-                } else {
-                  notify(
-                    status === "verified"
-                      ? labels.verified
-                      : employee.mustChangePassword
-                        ? labels.invitationSent
-                        : labels.emailSent,
-                  );
-                }
-              })
+              void run(
+                "send",
+                () => onSendVerification(employee.id),
+                ({ status }) => {
+                  if (status === "unavailable") {
+                    setFeedback({ error: true, message: labels.emailUnavailable });
+                  } else {
+                    notify(
+                      status === "verified"
+                        ? labels.verified
+                        : employee.mustChangePassword
+                          ? labels.invitationSent
+                          : labels.emailSent,
+                    );
+                  }
+                },
+              )
             }
           >
             <SendHorizontalIcon aria-hidden="true" />
@@ -176,10 +171,11 @@ function EmployeeActionsContent({
                           disabled={disabled || pending}
                           className="ml-auto inline-flex min-h-10 cursor-pointer items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8"
                           onClick={() =>
-                            void run("website", async () => {
-                              await onSetWebsitePublished(employee.id, !employee.websitePublished);
-                              notify(labels.websiteUpdated);
-                            })
+                            void run(
+                              "website",
+                              () => onSetWebsitePublished(employee.id, !employee.websitePublished),
+                              () => notify(labels.websiteUpdated),
+                            )
                           }
                         >
                           <EmployeeWebsiteStatus
@@ -220,17 +216,22 @@ function EmployeeActionsContent({
                 onSubmit={(event) => {
                   event.preventDefault();
                   const data = new FormData(event.currentTarget);
-                  void run("edit", async () => {
-                    await onUpdate(
-                      updateEmployeeSchema.parse({
-                        ...Object.fromEntries(data),
-                        id: employee.id,
-                        role: isSelf ? "admin" : data.get("role"),
-                      }),
-                    );
-                    notify(labels.updated);
-                    setEditing(false);
-                  });
+                  void run(
+                    "edit",
+                    async () => {
+                      await onUpdate(
+                        updateEmployeeSchema.parse({
+                          ...Object.fromEntries(data),
+                          id: employee.id,
+                          role: isSelf ? "admin" : data.get("role"),
+                        }),
+                      );
+                    },
+                    () => {
+                      notify(labels.updated);
+                      setEditing(false);
+                    },
+                  );
                 }}
               >
                 {onUploadPhoto && (
@@ -391,10 +392,11 @@ function EmployeeActionsContent({
                     )}
                     disabled={disabled || pending || isSelf}
                     onClick={() =>
-                      void run("remove", async () => {
-                        await onDelete(employee.id);
-                        setDeleting(false);
-                      })
+                      void run(
+                        "remove",
+                        () => onDelete(employee.id),
+                        () => setDeleting(false),
+                      )
                     }
                   >
                     {pending ? labels.deleting : labels.delete}
@@ -405,6 +407,11 @@ function EmployeeActionsContent({
           </Dialog.Root>
         )}
       </div>
+      {failedAction === "send" && (
+        <p role="alert" className="text-xs text-destructive">
+          {labels.emailError}
+        </p>
+      )}
       {feedback && (
         <p
           role={feedback.error ? "alert" : "status"}
@@ -423,7 +430,7 @@ function EmployeeActionsContent({
 export function EmployeeActions(props: EmployeeActionsProps) {
   return (
     <ActionToastProvider>
-      <EmployeeActionsContent {...props} />
+      <EmployeeActionsContent key={`${props.currentUserId}:${props.employee.id}`} {...props} />
     </ActionToastProvider>
   );
 }

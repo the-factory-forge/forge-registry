@@ -296,6 +296,9 @@ for view changes, host refreshes, retry and focus recovery.
 
 Plugins use TanStack Query mutations through [`@forge/optimistic-action`](./optimistic-actions.md).
 Predictable changes appear before the request completes and revert on rejection.
+Ordinary completion is scoped to the submitting client/resource and mounted view.
+Reservations explicit Refresh restarts selection and rescheduling; Drive recovery
+and confirmed deletion keep their documented lifetimes.
 Forms retain drafts, confirmations retain recovery controls, and success toasts wait
 for server confirmation. Hosts keep their existing data and transport callbacks. Bulk deletion keeps its
 confirmation open while existing callbacks settle, removes each confirmed

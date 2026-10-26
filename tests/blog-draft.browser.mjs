@@ -514,3 +514,72 @@ void test("category page keeps its client stable and replaces pending optimistic
   assert.equal(await name.inputValue(), "Preserved category");
   assert.equal(await name.isDisabled(), false);
 });
+
+void test("Blog list replacement retires a pending publication overlay", async (t) => {
+  const page = await fixture(t);
+  await page.goto(`${base}tests/fixtures/blog-draft.html?list-page`);
+  await page.waitForFunction(() => !!window.draftTest);
+  await page.evaluate(() => window.draftTest.hold("unpublish", true));
+  await page.getByRole("button", { name: "Publication status: EN", exact: true }).first().click();
+  await calls(page, "unpublish", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await flush(page);
+  const publish = page.getByRole("button", { name: "Publication status: EN", exact: true }).first();
+  await publish.waitFor();
+  assert.equal(await publish.isEnabled(), true);
+  await reject(page, "unpublish", 0, "STORAGE");
+  await flush(page);
+  assert.equal(await page.getByRole("alert").count(), 0);
+});
+
+void test("history publication previews status only after confirmation and rolls back on failure", async (t) => {
+  const page = await fixture(t);
+  await history(page);
+  const status = page.getByRole("button", { name: "Publication status", exact: true });
+  const before = await status.textContent();
+  await inspect(page, 18);
+  await calls(page, "body", 1);
+  await resolve(page, "body", 0);
+  await page.evaluate(() => window.draftTest.hold("historyPublish", true));
+  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  const confirm = page.getByRole("dialog", { name: "Review publication", exact: true });
+  await confirm.waitFor();
+  const badge = page.locator('button[aria-label="Publication status"]');
+  assert.equal(await badge.textContent(), before);
+  await confirm.getByRole("button", { name: "Publish", exact: true }).click();
+  await calls(page, "historyPublish", 1);
+  await page.waitForFunction(
+    () =>
+      document.querySelector('button[aria-label="Publication status"]').textContent === "Published",
+  );
+  await reject(page, "historyPublish", 0, "STORAGE");
+  await flush(page);
+  assert.equal(await badge.textContent(), before);
+  assert.equal(await confirm.isVisible(), true);
+});
+
+void test("a replaced Blog list cannot turn its late article lookup into a publication plan", async (t) => {
+  const page = await fixture(t);
+  await page.goto(`${base}tests/fixtures/blog-draft.html?list-page`);
+  await page.waitForFunction(() => !!window.draftTest);
+  const status = page.getByRole("button", { name: "Publication status: EN", exact: true });
+  await status.click();
+  await calls(page, "unpublish", 1);
+  await page.waitForFunction(() => !window.draftTest.current().translations.en.published);
+  await page.evaluate(() => {
+    window.draftTest.rerenderArticle();
+    window.draftTest.hold("article", true);
+  });
+  await flush(page);
+  await status.click();
+  await calls(page, "article", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await flush(page);
+  await resolve(page, "article", 0);
+  await flush(page);
+  assert.equal(await page.evaluate(() => window.draftTest.calls.plan.length), 0);
+  assert.equal(
+    await page.getByRole("dialog", { name: "Review publication", exact: true }).count(),
+    0,
+  );
+});

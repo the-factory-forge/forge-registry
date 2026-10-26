@@ -3,11 +3,12 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import { ActionToastProvider } from "@/components/action-toast";
-import { BlogCategoriesPage, BlogEditPage } from "@/components/plugins/blogs";
+import { BlogCategoriesPage, BlogsPage, BlogEditPage } from "@/components/plugins/blogs";
 import { BlogCategoryEditor } from "@/components/plugins/blogs/editor";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
 import { blogCapabilities } from "@/components/plugins/blogs/permissions";
 import type { BlogsClient } from "@/components/plugins/blogs/types";
+import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 
 import "../../src/styles/globals.css";
@@ -151,6 +152,34 @@ function Fixture() {
     };
   }, []);
   if (!visible) return null;
+  if (new URLSearchParams(location.search).has("list-page"))
+    return (
+      <BlogsPage
+        data={{
+          items: [articleListItem(article, "en", mock.categories())],
+          total: 1,
+          page: 1,
+          pageSize: 10,
+        }}
+        search=""
+        onSearchChange={() => {}}
+        onPageChange={() => {}}
+        editHref={() => "#edit"}
+        newHref="#new"
+        categoriesHref="#categories"
+        assetUrl={mock.assetUrl}
+        client={currentClient}
+        capabilities={blogCapabilities({ id: actor.id, admin: true }, actor.id)}
+        onSetPublished={async (id, locale, published, requestId) => {
+          await currentClient[published ? "publish" : "unpublish"]({
+            id,
+            locale,
+            requestId,
+            version: article.version,
+          });
+        }}
+      />
+    );
   if (new URLSearchParams(location.search).has("category-page"))
     return (
       <BlogCategoriesPage

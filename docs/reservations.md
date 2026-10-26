@@ -410,6 +410,11 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+Staff mutations share preview, pending/error, selection and accepted-response handling.
+Explicit Refresh or client replacement clears the selection and rescheduling draft;
+late completions cannot close a new dialog or trigger its refresh. Older reads cannot
+overwrite an accepted mutation. Rescheduling and settings inputs are disabled while
+saving, and rejection retains the submitted values for correction or retry.
 
 ## Notification layout
 

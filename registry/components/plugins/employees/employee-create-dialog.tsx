@@ -1,7 +1,7 @@
 "use client";
 import { Dialog } from "@base-ui/react/dialog";
 import { XIcon, PlusIcon } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
@@ -20,6 +20,7 @@ import {
 } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
+import { useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export interface EmployeeCreateDialogProps {
   /** Role from the host's authenticated session. Missing or non-admin roles render nothing. */
@@ -40,29 +41,25 @@ export function EmployeeCreateDialog({
   const labels = { ...employeeLabels, ...overrides };
   const id = `factory-employee-create-${useId()}`;
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const mutation = useMutationAction(currentUserRole);
+  const pending = mutation.pending;
   const [failed, setFailed] = useState(false);
   const [deliveryFailed, setDeliveryFailed] = useState(false);
-  const lock = useRef(false);
   if (!isEmployeeAdmin(currentUserRole)) return null;
 
   async function submit(form: HTMLFormElement) {
-    if (lock.current) return;
+    if (pending) return;
     const data = new FormData(form);
-    lock.current = true;
-    setPending(true);
     setFailed(false);
-    try {
-      const result = await onCreate(createEmployeeSchema.parse(Object.fromEntries(data)));
-      form.reset();
-      setDeliveryFailed(!result.invitationSent);
-      if (result.invitationSent) setOpen(false);
-    } catch {
-      setFailed(true);
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
+    const accepted = await mutation.run(
+      async () => onCreate(createEmployeeSchema.parse(Object.fromEntries(data))),
+      (result) => {
+        form.reset();
+        setDeliveryFailed(!result.invitationSent);
+        if (result.invitationSent) setOpen(false);
+      },
+    );
+    if (!accepted && mutation.isCurrent()) setFailed(true);
   }
 
   return (

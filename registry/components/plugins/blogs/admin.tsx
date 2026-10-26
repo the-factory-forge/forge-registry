@@ -2,7 +2,15 @@
 
 import { Tabs } from "@base-ui/react/tabs";
 import { PlusIcon, RefreshCwIcon, SettingsIcon, PencilIcon } from "lucide-react";
-import { useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useContext,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -22,6 +30,7 @@ import type {
   BlogsClient,
 } from "@/components/plugins/blogs/types";
 import {
+  BlogEditorClient,
   buttonClass,
   cardClass,
   ConfirmDelete,
@@ -106,7 +115,7 @@ function BlogsPageContent({
 }: BlogsPageProps) {
   useLoadingActivity(!!loading);
   const labels = { ...blogsLabels, ...overrides };
-  const optimistic = useOptimisticAction(suppliedData, `${search}:${suppliedData.page}`);
+  const optimistic = useOptimisticAction(suppliedData, useContext(BlogEditorClient));
   const toggleAction = useBlogAction(labels);
   const historyPublication = useHistoryPublication(client, labels, (result) => {
     void optimistic.run(
@@ -131,7 +140,24 @@ function BlogsPageContent({
       async () => {},
     );
   });
-  const data = optimistic.value;
+  const publishing = historyPublication.publishing;
+  const data = publishing
+    ? {
+        ...optimistic.value,
+        items: optimistic.value.items.map((post) =>
+          post.id === publishing.id
+            ? {
+                ...post,
+                translations: post.translations.map((translation) =>
+                  translation.locale === publishing.locale
+                    ? { ...translation, status: "published" as const }
+                    : translation,
+                ),
+              }
+            : post,
+        ),
+      }
+    : optimistic.value;
   const error =
     loadError || (optimistic.error ? errorMessage(optimistic.error, labels) : undefined);
   const articleCapabilities = (post: BlogListItem) =>
@@ -154,6 +180,7 @@ function BlogsPageContent({
       void toggleAction.run(JSON.stringify(["history-target", post.id, locale]), async () => {
         const article = await client.get(post.id),
           versionId = article.translations[locale]?.history?.currentId;
+        if (!toggleAction.isCurrent()) return;
         if (versionId)
           await historyPublication.prepare({
             id: post.id,
@@ -653,9 +680,15 @@ function BlogCategoriesPageContent({
   );
 }
 export function BlogsPage(props: BlogsPageProps) {
+  const owner = useMemo(
+    () => ({ client: props.client, search: props.search, page: props.data.page }),
+    [props.client, props.search, props.data.page],
+  );
   return (
     <ActionToastProvider>
-      <BlogsPageContent {...props} />
+      <BlogEditorClient value={owner}>
+        <BlogsPageContent {...props} />
+      </BlogEditorClient>
     </ActionToastProvider>
   );
 }

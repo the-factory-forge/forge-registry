@@ -12,7 +12,17 @@ import {
   RefreshCwIcon,
   ArrowUpIcon,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 import {
   ActionToastFooter,
@@ -36,6 +46,7 @@ import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableHeaderClass } from "@/components/utils/table-styles";
+import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -292,6 +303,8 @@ export function DriveToasts({
   return null;
 }
 
+export const DriveMutationOwner = createContext<unknown>(null);
+
 export function DriveTitle({
   name,
   onRename,
@@ -307,10 +320,18 @@ export function DriveTitle({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const input = useRef<HTMLInputElement>(null);
+  const lifetime = useActionLifetime(useContext(DriveMutationOwner));
   const trigger = useRef<HTMLButtonElement>(null);
-  const lock = useRef(false);
+  const lock = useRef<object | null>(null);
   const restoreFocus = useRef(false);
   const errorId = `factory-drive-title-error-${useId()}`;
+  const [previousOwner, setPreviousOwner] = useState(lifetime.identity);
+  if (previousOwner !== lifetime.identity) {
+    setPreviousOwner(lifetime.identity);
+    setDraft(undefined);
+    setPending(false);
+    setError(undefined);
+  }
   const editing = draft !== undefined;
   const { add } = Toast.useToastManager();
   useEffect(() => {
@@ -323,23 +344,27 @@ export function DriveTitle({
     }
   }, [editing, disabled]);
   async function save(returnFocus: boolean) {
-    if (disabled || lock.current || draft === undefined || !onRename) return;
-    lock.current = true;
+    if (disabled || lock.current === lifetime.identity || draft === undefined || !onRename) return;
+    lock.current = lifetime.identity;
     setPending(true);
     setError(undefined);
     try {
       const next = validName(draft);
       if (next !== name) await onRename(next);
+      if (!lifetime.isCurrent()) return;
       restoreFocus.current = returnFocus;
       setDraft(undefined);
       setError(undefined);
     } catch (reason) {
+      if (!lifetime.isCurrent()) return;
       const message = messageFor(reason, labels);
       setError(message);
       add({ title: message, type: "error", data: { closeLabel: labels.close } });
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lifetime.isCurrent()) {
+        lock.current = null;
+        setPending(false);
+      }
     }
   }
   return (
@@ -441,17 +466,30 @@ export function EntryDialog({
   refresh: () => void;
   children?: ReactNode;
 }) {
+  const inheritedOwner = useContext(DriveMutationOwner);
+  // Confirmed deletion keeps its existing folder lifetime across client replacement.
+  const owner = deleting ? null : (inheritedOwner ?? client);
+  const target = `${scope.type}:${scope.id}:${parentId ?? ""}:${entry?.id ?? ""}`;
+  const identity = useMemo(() => ({ owner, target }), [owner, target]);
+  const lifetime = useActionLifetime(identity);
   const [open, setOpen] = useState(!!onClose);
   const [name, setName] = useState(
     duplicating && entry ? labels.duplicateName(entry.name) : (entry?.name ?? space?.name ?? ""),
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
+  const [previousOwner, setPreviousOwner] = useState(lifetime.identity);
+  if (previousOwner !== lifetime.identity) {
+    setPreviousOwner(lifetime.identity);
+    setOpen(false);
+    setPending(false);
+    setError(undefined);
+  }
   const deletion = useDriveDeletion(client, scope);
   const preview = deletion.counts?.find((count) => count.id === entry?.id);
   const previewLoading = deletion.loading;
   const feedback = error ?? (deletion.error ? messageFor(deletion.error, labels) : undefined);
-  const lock = useRef(false);
+  const lock = useRef<object | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const fieldId = `factory-drive-field-${useId()}`;
   const title = deleting
@@ -474,8 +512,8 @@ export function EntryDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function submit() {
-    if (disabled || lock.current) return;
-    lock.current = true;
+    if (disabled || lock.current === lifetime.identity) return;
+    lock.current = lifetime.identity;
     setPending(true);
     setError(undefined);
     try {
@@ -486,18 +524,21 @@ export function EntryDialog({
       else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
       else if (space && onRenameSpace) await onRenameSpace(validName(name));
       else await client.createFolder({ scope, parentId, name: validName(name) });
+      if (!lifetime.isCurrent()) return;
       setOpen(false);
       refresh();
       onClose?.();
     } catch (reason) {
-      setError(messageFor(reason, labels));
+      if (lifetime.isCurrent()) setError(messageFor(reason, labels));
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lifetime.isCurrent()) {
+        lock.current = null;
+        setPending(false);
+      }
     }
   }
   function changeOpen(next: boolean) {
-    if (lock.current) return;
+    if (lock.current === lifetime.identity) return;
     setOpen(next);
     if (next) {
       setName(entry?.name ?? space?.name ?? "");

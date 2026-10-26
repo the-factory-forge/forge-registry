@@ -57,16 +57,19 @@ export function useHistoryPublication(
 ) {
   const action = useBlogAction(labels);
   const [plan, setPlan] = useState<BlogHistoryPlan | null>(null);
+  const [publishing, setPublishing] = useState<BlogHistoryTarget | null>(null);
   const [omit, setOmit] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
   const [scope, setScope] = useState(action.scope);
   if (scope !== action.scope) {
     setScope(action.scope);
     setPlan(null);
+    setPublishing(null);
     setOmit(false);
     setRefreshed(false);
   }
   async function execute(value: BlogHistoryPlan, omitMissingImages: boolean) {
+    setPublishing(value.target);
     await action.run(
       JSON.stringify(["history-publish", value.target, value.token, omitMissingImages]),
       (requestId) =>
@@ -82,6 +85,7 @@ export function useHistoryPublication(
         onPublished(article);
       },
     );
+    if (action.isCurrent()) setPublishing(null);
   }
   async function prepare(target: BlogHistoryTarget) {
     if (!client?.history) return;
@@ -103,6 +107,7 @@ export function useHistoryPublication(
 
   return {
     pending: action.pending,
+    publishing: action.pending ? publishing : null,
     feedback: action.feedback,
     prepare,
     dialog: (

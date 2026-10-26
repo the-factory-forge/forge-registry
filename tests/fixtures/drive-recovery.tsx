@@ -49,7 +49,7 @@ function data(scope: DriveScope) {
 type Input = Parameters<NonNullable<DriveClient["restoreEntry"]>>[0];
 const calls: {
   adapter: string;
-  kind: "trash" | "restore" | "delete";
+  kind: "trash" | "restore" | "delete" | "rename";
   input: Input;
   resolve: () => void;
   reject: (code?: string) => void;
@@ -59,7 +59,7 @@ function client(adapter: string): DriveClient {
   const unused = async (): Promise<never> => {
     throw new Error("Unused operation");
   };
-  function request(kind: "trash" | "restore" | "delete", input: Input) {
+  function request(kind: "trash" | "restore" | "delete" | "rename", input: Input) {
     return new Promise<void>((resolve, reject) => {
       calls.push({
         adapter,
@@ -88,6 +88,10 @@ function client(adapter: string): DriveClient {
               parentId: input.parentId === undefined ? file.originalParentId : input.parentId,
               state: "ready",
             });
+          } else if (kind === "rename") {
+            store.files = store.files.map((file) =>
+              file.id === input.entryId ? { ...file, name: input.name! } : file,
+            );
           } else {
             store.trash = store.trash.filter((file) => file.id !== input.entryId);
           }
@@ -122,7 +126,7 @@ function client(adapter: string): DriveClient {
     trashEntry: (input) => request("trash", input),
     restoreEntry: (input) => request("restore", input),
     deleteEntry: (input) => request("delete", input),
-    rename: unused,
+    rename: (input) => request("rename", input),
     createFolder: unused,
     prepareUpload: unused,
     completeUpload: unused,

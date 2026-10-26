@@ -263,7 +263,9 @@ cells keep their existing columns.
 Directory cards are links with an icon and title opposite a category label,
 a description, and an Open label aligned at the bottom. Padding is 20px on mobile
 and 24px above 40rem. Their border and title respond to hover, with visible keyboard focus. The
-arrow moves slightly on hover or focus when reduced motion is not requested.
+arrow moves slightly to the right on hover or focus, then returns when the interaction
+ends. Keep the label and layout still, hide the decorative arrow from assistive
+technology, and keep it still when reduced motion is requested.
 Plugin cards may use different radii; inspect their shared classes before edits.
 
 ### Navigation and previews

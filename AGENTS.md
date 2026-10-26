@@ -165,8 +165,8 @@ in `tc-website`; this registry contains reusable components for multiple custome
 ## Read first and source of truth
 
 - [README.md](./README.md): overview, inventory, distribution, and commands.
-- [GLOSSARY.md](./GLOSSARY.md): DOM ID naming and screenshot integration.
-- [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
+- [GLOSSARY.md](./GLOSSARY.md): domain terminology for plugin content and workflows.
+- [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, accessibility, DOM ID and screenshot conventions.
 - [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
   including layout stability and [table action alignment](./DESIGN.md#table-action-alignment).
 - `registry/registry.json`: authoritative list of shipped items and files.

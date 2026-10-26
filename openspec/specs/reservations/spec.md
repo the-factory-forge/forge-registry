@@ -399,3 +399,26 @@ Hosts SHALL supply the destination, back link, selected date and post-save navig
 - **AND** reload and Back/Forward resolve the creation page and calendar correctly
 - **AND** Back and a successful save return to the calendar, while a failed save keeps the form and its inputs
 - **AND** staff may book appointments or stays even when public booking is disabled
+
+### Requirement: Staff mutation completion
+
+Staff reservation mutations SHALL share their TanStack Query pending/error and
+optimistic state with selection and accepted-result handling.
+
+#### Scenario: Restarting a staff view
+
+- **WHEN** the user explicitly refreshes or the host replaces the client
+- **THEN** selection and rescheduling drafts SHALL clear
+- **AND** an earlier mutation SHALL NOT close a new dialog, refresh it or report completion
+
+#### Scenario: Accepting a reservation write
+
+- **WHEN** a canonical write result is accepted while an older read is pending
+- **THEN** that read SHALL NOT replace the accepted value
+- **AND** any subsequent read failure SHALL remain a read error
+
+#### Scenario: Submitting a reschedule or settings form
+
+- **WHEN** a submission is pending
+- **THEN** its inputs SHALL be disabled and duplicate submission prevented
+- **AND** rejection SHALL retain the entered values for correction or retry

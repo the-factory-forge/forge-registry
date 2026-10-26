@@ -2,7 +2,7 @@
 
 import { Avatar } from "@base-ui/react/avatar";
 import { ChevronDownIcon } from "lucide-react";
-import { useRef, useState, type ReactNode, type RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import {
@@ -19,6 +19,7 @@ import { customerDisplayName, customerInitials } from "@/components/plugins/cust
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
+import { useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
 export const buttonClass =
@@ -37,29 +38,18 @@ export const inputClass = cn(
   editorInvalidClass,
 );
 
-export function useCustomerAction(errorMessage: string) {
+export function useCustomerAction(errorMessage: string, scope?: unknown) {
   const notify = useActionToast();
-  const lock = useRef(false);
-  const [pending, setPending] = useState(false);
-  const [feedback, setFeedback] = useState<{ error: boolean; message: string }>();
-  async function run(action: () => Promise<void>, success: string) {
-    if (lock.current) return false;
-    lock.current = true;
-    setPending(true);
-    setFeedback(undefined);
-    try {
-      await action();
-      notify(success);
-      return true;
-    } catch {
-      setFeedback({ error: true, message: errorMessage });
-      return false;
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
-  }
-  return { pending, feedback, run };
+  const mutation = useMutationAction(scope);
+  return {
+    pending: mutation.pending,
+    feedback: mutation.error ? { error: true, message: errorMessage } : undefined,
+    run: (action: () => Promise<void>, success: string, accept?: () => void) =>
+      mutation.run(action, () => {
+        notify(success);
+        accept?.();
+      }),
+  };
 }
 
 export function Feedback({ feedback }: { feedback?: { error: boolean; message: string } }) {
@@ -225,11 +215,11 @@ export function StatusBadge<T extends string>({
           onValueChange={(next) => {
             const option = options.find((entry) => entry.value === next);
             if (!option || option.value === value || disabled || action.pending) return;
-            void action
-              .run(() => onChange(option.value), successMessage)
-              .then((success) => {
-                if (success) setOpen(false);
-              });
+            void action.run(
+              () => onChange(option.value),
+              successMessage,
+              () => setOpen(false),
+            );
           }}
         >
           {options.map((option) => (

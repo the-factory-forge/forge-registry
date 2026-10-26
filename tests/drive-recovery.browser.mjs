@@ -287,3 +287,19 @@ void test("conflict-dialog restore cannot notify after leaving Drive", async (t)
   await settle(page, 1);
   assert.equal(await page.getByRole("dialog").count(), 0);
 });
+
+for (const destination of ["folder", "unmount"]) {
+  void test(`ordinary rename cannot notify or refresh after ${destination} departure`, async (t) => {
+    const page = await fixture(t);
+    await row(page, "Report.txt").getByRole("button", { name: "Rename", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
+    await dialog.getByRole("textbox").fill("Renamed.txt");
+    await dialog.getByRole("button", { name: "Save", exact: true }).click();
+    await calls(page, 1);
+    await leave(page, destination);
+    const reads = await page.evaluate(() => window.recoveryTest.reads.length);
+    await settle(page, 0);
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    assert.equal(await page.evaluate(() => window.recoveryTest.reads.length), reads);
+  });
+}

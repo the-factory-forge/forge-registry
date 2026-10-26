@@ -349,8 +349,10 @@ its submit event for client-side navigation.
 The public listing places categories above the posts on narrow screens, in a
 compact disclosure that starts closed and supports keyboard toggling. At the
 desktop breakpoint, categories remain expanded in the right sidebar.
-Main categories use stronger text; child categories are indented with a vertical
-guide. The current category uses the primary color at either level.
+Main categories use semibold foreground text; child categories use muted text
+and indentation with a vertical guide. The current category uses the primary
+color at either level, including its child guide. Preserve translated labels,
+post counts, filtering and visible keyboard focus in both themes.
 
 Call `storage.listPublished({ locale, search, categoryId, page, pageSize })` and
 `storage.getPublished(locale, slug)` in server loaders. `publicCategories()`

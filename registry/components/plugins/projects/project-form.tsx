@@ -44,7 +44,7 @@ function ProjectFormContent({
   const id = `factory-project-form-${useId()}`;
   const [values, setValues] = useState(() => projectFormValues(project));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
-  const action = useCustomerAction(labels.actionError);
+  const action = useCustomerAction(labels.actionError, project?.id);
   const deletion = useRecordDeletion({
     items: project ? [project] : [],
     scope: project?.id,
@@ -77,8 +77,11 @@ function ProjectFormContent({
     const nextErrors = validateProject(normalized, labels);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    if (await action.run(() => onSubmit(normalized), project ? labels.saved : labels.created))
-      setValues(normalized);
+    await action.run(
+      () => onSubmit(normalized),
+      project ? labels.saved : labels.created,
+      () => setValues(normalized),
+    );
   }
   function error(name: keyof ProjectFormValues) {
     return errors[name] ? (

@@ -55,7 +55,6 @@ import {
   ErrorNotice,
   Modal,
   ReservationSummary,
-  useReservationAction,
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { ReservationYearView } from "@/components/plugins/reservations/year";
@@ -89,6 +88,71 @@ export interface ReservationsCalendarProps {
   canManage?: boolean;
   className?: string;
   linkComponent?: ComponentType<LinkProps>;
+}
+
+function useStaffReservations(
+  client: ReservationsAdminClient,
+  load: () => Promise<{ items: ReservationAdminRecord[]; hasMore: boolean }>,
+  listView: boolean,
+) {
+  const [restart, setRestart] = useState(0);
+  const scope = useMemo(() => ({ client, load, restart }), [client, load, restart]);
+  const data = useReservationLoad(load);
+  const displayed = data.value ?? (listView ? data.previousValue : undefined);
+  const mutation = useOptimisticAction(displayed?.items, scope);
+  const [selection, setSelection] = useState<{
+    scope: typeof scope;
+    record: ReservationAdminRecord;
+  }>();
+  const [dialog, setDialog] = useState<"move" | "cancelled" | "rejected" | "link">();
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    setSelection(undefined);
+    setDialog(undefined);
+  }
+  const selected =
+    selection?.scope === scope
+      ? (mutation.value?.find((row) => row.id === selection.record.id) ?? selection.record)
+      : undefined;
+  const setSelected = (record?: ReservationAdminRecord) =>
+    setSelection(record ? { scope, record } : undefined);
+  function refresh() {
+    mutation.invalidate();
+    setRestart((value) => value + 1);
+    setSelected(undefined);
+    setDialog(undefined);
+    data.reload();
+  }
+  function run<T extends Reservation | void>(
+    write: () => Promise<T>,
+    preview: (
+      rows: ReservationAdminRecord[] | undefined,
+    ) => ReservationAdminRecord[] | undefined = (rows) => rows,
+  ) {
+    return mutation.run(preview, write, (saved) => {
+      if (saved)
+        data.setValue((result) => ({
+          ...result,
+          items: result.items.map((row) => (row.id === saved.id ? { ...row, ...saved } : row)),
+        }));
+      setSelected(undefined);
+      setDialog(undefined);
+      data.reload();
+    });
+  }
+  return {
+    data,
+    bookings: mutation.value,
+    selected,
+    setSelected,
+    dialog,
+    setDialog,
+    refresh,
+    run,
+    pending: mutation.pending,
+    error: mutation.error,
+  };
 }
 
 export function ReservationsCalendar({
@@ -136,8 +200,6 @@ export function ReservationsCalendar({
     const from = initialDate ? new Date(`${initialDate}T00:00:00Z`) : new Date();
     return { from: from.toISOString(), to: new Date(from.getTime() + 7 * 86400000).toISOString() };
   });
-  const [selectedRecord, setSelected] = useState<ReservationAdminRecord>();
-  const [dialog, setDialog] = useState<"move" | "cancelled" | "rejected" | "link">();
   const load = useCallback(() => client.configuration(), [client]);
   const config = useReservationLoad(load);
   const labels = getReservationLabels(overrides, config.value?.mode);
@@ -149,29 +211,18 @@ export function ReservationsCalendar({
       hasMore: false,
     };
   }, [client, listView, page, range, resourceId, serviceId, status]);
-  const data = useReservationLoad(loadBookings);
-  const reloadItems = useCallback(async () => (await loadBookings()).items, [loadBookings]);
-  const displayed = data.value ?? (listView ? data.previousValue : undefined);
-  const optimistic = useOptimisticAction(displayed?.items, reloadItems);
-  const bookings = optimistic.value;
-  const selected = bookings?.find((row) => row.id === selectedRecord?.id) ?? selectedRecord;
-  async function setStatus(id: string, version: number, status: ReservationStatus) {
-    await optimistic.run(
+  const changes = useStaffReservations(client, loadBookings, listView);
+  const { data, bookings, selected, setSelected, dialog, setDialog, refresh } = changes;
+  function setStatus(id: string, version: number, status: ReservationStatus) {
+    return changes.run(
+      () => client.setStatus(id, version, status),
       (rows) => rows?.map((row) => (row.id === id ? { ...row, status } : row)),
-      async () => {
-        const saved = await client.setStatus(id, version, status);
-        data.setValue((result) => ({
-          ...result,
-          items: result.items.map((row) => (row.id === id ? { ...row, ...saved } : row)),
-        }));
-      },
     );
   }
-  const action = useReservationAction();
-  const refresh = () => {
-    data.reload();
-    setSelected(undefined);
-    setDialog(undefined);
+  const action = {
+    busy: changes.pending || data.loading,
+    error: changes.error,
+    run: (write: () => Promise<unknown>) => write().catch(() => {}),
   };
   const datesSet = (info: DatesSetInfo) => {
     const nextView = info.view.type as ReservationCalendarView;
@@ -212,7 +263,8 @@ export function ReservationsCalendar({
     slot: ReservationSlot,
   ) => {
     const id = selected?.id ?? "";
-    return optimistic.run(
+    return changes.run(
+      () => client.reschedule(id, input),
       (rows) =>
         rows?.map((row) =>
           row.id === id
@@ -229,14 +281,6 @@ export function ReservationsCalendar({
               }
             : row,
         ),
-      async () => {
-        const saved = await client.reschedule(id, input);
-        data.setValue((result) => ({
-          ...result,
-          items: result.items.map((row) => (row.id === id ? { ...row, ...saved } : row)),
-        }));
-        return saved;
-      },
     );
   };
   return (
@@ -489,7 +533,7 @@ export function ReservationsCalendar({
                 nextLabel={labels.nextPage}
                 previousDisabled={page <= 1}
                 nextDisabled={!data.value?.hasMore}
-                disabled={data.loading || optimistic.pending}
+                disabled={data.loading || changes.pending}
                 onPrevious={() => changePage(page - 1)}
                 onNext={() => changePage(page + 1)}
               />
@@ -542,11 +586,10 @@ export function ReservationsCalendar({
                   <>
                     <button
                       className={primaryClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => {
                         void action.run(async () => {
                           await setStatus(selected.id, selected.version, "confirmed");
-                          refresh();
                         });
                       }}
                     >
@@ -554,7 +597,7 @@ export function ReservationsCalendar({
                     </button>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("rejected")}
                     >
                       {labels.reject}
@@ -565,14 +608,14 @@ export function ReservationsCalendar({
                   <>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("move")}
                     >
                       {labels.reschedule}
                     </button>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("cancelled")}
                     >
                       {labels.cancel}
@@ -582,11 +625,10 @@ export function ReservationsCalendar({
                 {selected.emailFailed && (
                   <button
                     className={buttonClass}
-                    disabled={action.busy || optimistic.pending}
+                    disabled={action.busy || changes.pending}
                     onClick={() => {
                       void action.run(async () => {
-                        await client.retryEmail(selected.id);
-                        refresh();
+                        await changes.run(() => client.retryEmail(selected.id));
                       });
                     }}
                   >
@@ -595,7 +637,7 @@ export function ReservationsCalendar({
                 )}
                 <button
                   className={buttonClass}
-                  disabled={action.busy || optimistic.pending}
+                  disabled={action.busy || changes.pending}
                   onClick={() => setDialog("link")}
                 >
                   {labels.revokeLink}
@@ -604,7 +646,7 @@ export function ReservationsCalendar({
             )}
             <button
               className={buttonClass}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => setSelected(undefined)}
             >
               {labels.close}
@@ -639,23 +681,23 @@ export function ReservationsCalendar({
           >
             <button
               className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => setDialog(undefined)}
             >
               {labels.back}
             </button>
             <button
               className={primaryClass}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => {
                 void action.run(async () => {
-                  if (dialog === "link") await client.revokeLink(selected.id, selected.version);
+                  if (dialog === "link")
+                    await changes.run(() => client.revokeLink(selected.id, selected.version));
                   else {
                     const status = dialog;
                     setDialog(undefined);
                     await setStatus(selected.id, selected.version, status);
                   }
-                  refresh();
                 });
               }}
             >
@@ -686,7 +728,6 @@ export function ReservationsCalendar({
           labels={labels}
           availability={moveAvailability}
           onSave={moveSave}
-          onSaved={refresh}
           onClose={() => setDialog(undefined)}
         />
       )}

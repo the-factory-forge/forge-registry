@@ -372,8 +372,8 @@ function ProjectDetailPageContent({
                   onStatusChange
                     ? onStatusChange(project.id, status)
                     : onSave({ ...projectFormValues(project), status }),
+                () => setStatusUpdate({ status }),
               );
-              setStatusUpdate({ status });
             }}
           />
         </div>

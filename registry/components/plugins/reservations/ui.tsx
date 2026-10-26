@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { XIcon, ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Temporal } from "temporal-polyfill";
 
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -15,7 +15,7 @@ import {
 } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
-import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { useActionLifetime, useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -48,6 +48,9 @@ export function message(error: unknown, labels: ReservationLabels) {
 
 export function useReservationLoad<T>(load: () => Promise<T>) {
   const [revision, setRevision] = useState(0);
+  const owner = useMemo(() => ({ load, revision }), [load, revision]);
+  const lifetime = useActionLifetime(owner);
+  const sequence = useRef(0);
   const [result, setResult] = useState<{
     load: () => Promise<T>;
     revision: number;
@@ -57,12 +60,13 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
   }>();
   useEffect(() => {
     let current = true;
+    const request = ++sequence.current;
     void load().then(
       (value) => {
-        if (current) setResult({ load, revision, value });
+        if (current && request === sequence.current) setResult({ load, revision, value });
       },
       (error: unknown) => {
-        if (current)
+        if (current && request === sequence.current)
           setResult((previous) => ({
             load,
             revision,
@@ -82,27 +86,30 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
     previousValue: result?.value ?? result?.previousValue,
     loading: !current,
     error: current?.error,
-    reload: () => setRevision((v) => v + 1),
-    setValue: (update: (value: T) => T) =>
+    reload: () => {
+      sequence.current++;
+      setRevision((v) => v + 1);
+    },
+    setValue: (update: (value: T) => T) => {
+      if (!lifetime.isCurrent()) return;
+      sequence.current++;
       setResult((previous) =>
         previous?.load === load && previous.value !== undefined
-          ? { ...previous, value: update(previous.value) }
+          ? { load, revision, value: update(previous.value) }
           : previous,
-      ),
+      );
+    },
   };
 }
 
-export function useReservationAction() {
-  const action = useOptimisticAction(undefined);
-  async function run(callback: () => Promise<void>) {
-    if (action.pending) return;
-    try {
-      await action.run(() => undefined, callback);
-    } catch {
-      // The mutation retains its error for the existing inline feedback.
-    }
-  }
-  return { busy: action.pending, error: action.error, run };
+export function useReservationAction(scope?: unknown) {
+  const action = useMutationAction(scope);
+  return {
+    busy: action.pending,
+    error: action.error,
+    run: action.run,
+    isCurrent: action.isCurrent,
+  };
 }
 
 export function ErrorNotice({ error, labels }: { error: unknown; labels: ReservationLabels }) {
