@@ -37,5 +37,10 @@ The component uses Tailwind 4 utilities and installs `cn` and `table-styles`;
 it does not depend on showroom CSS or change host data or authorization.
 
 The [showroom example](https://registry.the-corner.io/table-pagination) includes
-numbered and cursor paging plus loading, empty and error states. Regenerate the
+a multi-column post table with sticky edit/delete actions, numbered and cursor
+paging, and loading, empty and error states. Scroll the table horizontally on a
+narrow screen: the Actions heading and row controls stay pinned at the right edge.
+Use `tableActionHeaderClass` and `tableActionCellClass` from
+`@/components/utils/table-styles` for this behavior at every viewport width.
+Sample edits and confirmed deletions reset on reload. Regenerate the
 registry and review a source install to update an existing consumer.

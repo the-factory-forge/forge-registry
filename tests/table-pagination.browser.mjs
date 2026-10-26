@@ -84,6 +84,35 @@ void test("combined table demo supports discovery, search, pagination and stable
         ),
       );
       const ready = await geometry();
+      const scroll = posts.getByRole("region", { name: "Scrollable blog posts" });
+      const actions = posts.locator("tr > :last-child");
+      const bounds = () =>
+        actions.evaluateAll((cells) =>
+          cells.map((cell) => {
+            const box = cell.getBoundingClientRect();
+            const container = cell.closest("table").parentElement.getBoundingClientRect();
+            return {
+              x: box.x,
+              right: box.right,
+              edge: container.right,
+              position: getComputedStyle(cell).position,
+            };
+          }),
+        );
+      await scroll.evaluate((element) => {
+        element.scrollLeft = 0;
+      });
+      const before = await bounds();
+      await scroll.evaluate((element) => {
+        element.scrollLeft = element.scrollWidth;
+      });
+      const after = await bounds();
+      for (let index = 0; index < after.length; index++) {
+        assert.equal(after[index].position, "sticky");
+        assert.ok(Math.abs(after[index].x - before[index].x) <= 1);
+        assert.ok(Math.abs(after[index].right - after[index].edge) <= 1);
+      }
+      if (width === 320) assert.ok(await scroll.evaluate((element) => element.scrollLeft > 0));
       for (const state of ["loading", "error"]) {
         await page.getByLabel("Table state", { exact: true }).selectOption(state);
         await posts
@@ -95,6 +124,13 @@ void test("combined table demo supports discovery, search, pagination and stable
         assert.deepEqual(await geometry(), ready);
         assert.equal(await next.isDisabled(), true);
         assert.equal(await previous.isDisabled(), true);
+        assert.equal(
+          await posts
+            .getByRole("button", { name: /^Edit / })
+            .first()
+            .isDisabled(),
+          true,
+        );
       }
       await page.getByLabel("Table state", { exact: true }).selectOption("empty");
       assert.match(await nav.innerText(), /0 posts[\s\S]*1\/1/);
@@ -116,6 +152,11 @@ void test("combined table demo supports discovery, search, pagination and stable
         true,
       );
       await search.press("Escape");
+      await posts.evaluate((element) =>
+        Promise.allSettled(
+          element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+        ),
+      );
       await page.screenshot({
         path: `/private/tmp/table-pagination-${dark ? "dark" : "light"}-${width}.png`,
         fullPage: true,
@@ -123,4 +164,50 @@ void test("combined table demo supports discovery, search, pagination and stable
     }
   }
   assert.deepEqual(errors, []);
+});
+
+void test("post actions preserve confirmation, validation and the last-page boundary; URL restores navigation", async (t) => {
+  const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1`);
+  const nav = page.getByRole("navigation", { name: "Blog post pages", exact: true });
+  await nav.getByText("2/3", { exact: true }).waitFor();
+  await nav.getByRole("button", { name: "Next page" }).click();
+  await nav.getByText("3/3", { exact: true }).waitFor();
+  await page.goBack();
+  await nav.getByText("2/3", { exact: true }).waitFor();
+  await page.goForward();
+  await page.reload();
+  await nav.getByText("3/3", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole("navigation", { name: "File batches" }).locator("[aria-live]").innerText(),
+    "2",
+  );
+  await page.getByRole("button", { name: "Edit Small improvements", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const title = dialog.getByLabel("Title");
+  await title.fill("   ");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await dialog.getByRole("alert").waitFor();
+  await title.fill("A better table");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  const edit = page.getByRole("button", { name: "Edit A better table", exact: true });
+  await edit.waitFor();
+  await nav.getByRole("button", { name: "Previous page" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.getByRole("tooltip", { name: "Edit A better table", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  const remove = page.getByRole("button", { name: "Delete A better table", exact: true });
+  await remove.click();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal(await remove.count(), 1);
+  await remove.click();
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await nav.getByText("2/2", { exact: true }).waitFor();
+  assert.equal(await nav.getByRole("button", { name: "Next page" }).isDisabled(), true);
+  assert.equal(await remove.count(), 0);
+  await page.goto(`${baseURL}/table-pagination?postPage=invalid&cursor=-1&q=123`);
+  await nav.getByText("1/3", { exact: true }).waitFor();
 });

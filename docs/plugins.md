@@ -169,8 +169,9 @@ the viewport. Preserve the form element, submission handling and field spacing.
 
 Customer, Project, Employee, Blog, Menu and Drive tables share header styling
 and right-aligned row actions with 8px gaps. Action buttons stay on one line;
-columns stay pinned on desktop and scroll with the row on mobile so they do not
-cover record names or statuses. Keep row-specific unavailable actions visible and
+action headers and cells stay pinned to the right edge at every viewport width,
+including mobile, while the other columns scroll beneath their themed surface.
+Auth agent-key tables use the same pinned action header and cell styles. Keep row-specific unavailable actions visible and
 disabled in their usual positions; follow [table action alignment](../DESIGN.md#table-action-alignment).
 Employees always shows verification/invitation, edit and delete in that order:
 verified accounts disable verification, and the current user disables delete.

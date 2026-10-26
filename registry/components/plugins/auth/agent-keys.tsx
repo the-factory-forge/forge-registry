@@ -18,6 +18,7 @@ import {
 } from "@/components/plugins/auth/account-styles";
 import { useTableSelection, type TableDeletionOptions } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
+import { tableActionCellClass, tableActionHeaderClass } from "@/components/utils/table-styles";
 
 export interface AgentKey {
   id: string;
@@ -214,7 +215,7 @@ function AgentKeysContent({
                       {labels[column]}
                     </th>
                   ))}
-                  <th scope="col" className="w-14 p-2 text-right">
+                  <th scope="col" className={cn(tableActionHeaderClass, "w-14")}>
                     <span className="sr-only">{labels.actions}</span>
                     <div className="h-10">
                       <IconTooltip label={`${labels.deleteSelectedKeys} (${selectedKeys.length})`}>
@@ -281,7 +282,7 @@ function AgentKeysContent({
                     <td className="p-2 whitespace-nowrap tabular-nums">
                       {accountDate(key.expiresAt, locale)}
                     </td>
-                    <td className="p-2 text-right">
+                    <td className={tableActionCellClass}>
                       <IconTooltip label={`${labels.delete} ${key.name}`}>
                         <button
                           type="button"

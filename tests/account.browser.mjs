@@ -193,6 +193,16 @@ for (const width of [390, 1280]) {
       exact: true,
     });
     const bulk = page.getByRole("button", { name: /Delete selected keys \(/ });
+    const actionCell = bulk.locator("xpath=ancestor::th");
+    assert.equal(await actionCell.evaluate((cell) => getComputedStyle(cell).position), "sticky");
+    const before = await actionCell.boundingBox();
+    await actionCell.evaluate((cell) => {
+      const scroll = cell.closest("table").parentElement;
+      scroll.scrollLeft = scroll.scrollWidth;
+    });
+    const after = await actionCell.boundingBox();
+    assert.ok(Math.abs(before.x - after.x) <= 1);
+
     const state = () => all.evaluate((input) => [input.checked, input.indeterminate]);
     assert.deepEqual(await state(), [false, false]);
     assert.equal(await bulk.isVisible(), true);

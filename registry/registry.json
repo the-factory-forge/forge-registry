@@ -1499,7 +1499,8 @@
         "@forge/action-toast",
         "@forge/icon-tooltip",
         "@forge/table-selection",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/table-styles"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },

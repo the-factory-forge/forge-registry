@@ -104,6 +104,13 @@ primary status at the top right; tables SHALL retain their status columns.
 Errors SHALL use destructive tokens. Statuses SHALL include visible text and
 semantic background/foreground pairs independent of customer brand colors.
 
+#### Scenario: Scrolling a plugin table
+
+- **WHEN** a table overflows horizontally at any viewport width, including mobile
+- **THEN** its action header and row action cells SHALL remain pinned to the right edge
+- **AND** the remaining columns SHALL scroll beneath a themed action surface without obscuring the controls
+- **AND** action order, tooltips, keyboard focus, disabled states and deletion confirmation SHALL remain available
+
 #### Scenario: Choosing editors and action feedback
 
 - **WHEN** a plugin presents editing or mutation feedback

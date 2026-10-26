@@ -169,6 +169,9 @@ interface.
 
 ### Table action alignment
 
+Keep action headers and cells sticky at the right edge on every screen size,
+including mobile. Use the shared table styles so horizontally scrolling content
+passes beneath the themed action surface while controls remain visible.
 Keep each row's actions in the same order and positions. Render an action that is
 unavailable for a particular row as a visibly disabled control, with its existing
 icon, accessible name and tooltip. Disabled actions always use the same neutral
