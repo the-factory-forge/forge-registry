@@ -8,7 +8,7 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 ## Source releases and maintenance
 
-Follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+Follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 for version choice, required checks, publication and recovery.
 
 Use the shared [release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md)

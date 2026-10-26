@@ -6,10 +6,13 @@ context: |
   and relevant shared-ui/host-integration specs in ../forge-spec/openspec/specs/.
   Read local openspec/specs/plugins, reservations, registry-showroom and registry-releases
   for registry-specific behavior. Template application specs live in forge-template.
+  For Blogs storage, Mailing rendering/transport or plugin persistence, read the local
+  concepts/adr decisions. Their linked host-branding and project-migration contracts
+  remain shared in forge-spec; template router and deployment decisions remain in forge-template.
   For CSS/Tailwind work, read shared-ui and reuse existing semantic tokens,
   typography, spacing, radii and layout utilities with Tailwind CSS 4.
   If the sibling is absent, use the supplied checkout or canonical repository:
-  https://github.com/the-factory-forge/forge-spec. Report unavailable context.
+  https://github.com/the-factory-forge/forge-specs. Report unavailable context.
   registry/registry.json owns shipped files/dependencies; public/r is generated
   with pnpm registry:sync. Keep showroom src/lib and src/showroom out of items.
   Shared UI uses props, semantic tokens and ui-shims; hosts own routing, locale,

@@ -26,7 +26,7 @@ public team-profile database.
 
 The host stores uploaded photo bytes in private S3-compatible storage. PostgreSQL
 keeps asset metadata and durable object references, not file bytes or signed URLs.
-Use [site/module-scoped keys](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage)
+Use [site/module-scoped keys](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage)
 and authorize reads on the server before exposing a photo.
 
 Missing or unavailable S3 must reject uploads with a translated error, preserve

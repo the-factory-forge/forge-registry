@@ -154,6 +154,6 @@ migration or server-companion change is required.
 Recorded consumer follow-ups are forge-template and Soleva (Employees), l-aspic
 (Employees, Blogs, Reservations), osthoepathie-seebach (Employees, Blogs), Sinigest
 (Employees, Drive, Customers), and Terminal60 (Employees, Menus, Drive). Verify
-current adapters against the [consumer inventory](https://github.com/the-factory-forge/forge-spec/blob/main/consumers/sites.yaml)
+current adapters against the [consumer inventory](https://github.com/the-factory-forge/forge-specs/blob/main/consumers/sites.yaml)
 before adoption; custom features and marketing listings do not establish installed
 plugin usage. This source change does not update or deploy those websites.

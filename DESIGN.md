@@ -181,7 +181,7 @@ disabled and keep verification disabled for an already verified employee. Retain
 semantics, non-clickable cursors, confirmation flows and server authorization.
 Features absent from the whole table or hidden by the host's access policy may
 remain omitted. Verify mixed eligible/ineligible rows and pending states at desktop
-and mobile widths. See the shared [table action contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions).
+and mobile widths. See the shared [table action contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions).
 
 ## Elevation & Depth
 
@@ -222,7 +222,7 @@ Keep errors and recovery beside their controls.
 
 Controls that stay selected, pressed, current or expanded must visibly differ
 from their inactive state after hover and focus leave. Follow the shared
-[active-state contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-persistent-active-control-states).
+[active-state contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-persistent-active-control-states).
 Reuse semantic tokens and existing variants; panel toggles such as Blog History
 use the primary background/foreground pair while open and an outline when closed.
 Keep the active treatment recognizable on hover, preserve a separate focus ring,

@@ -51,6 +51,6 @@ Installed copies remain unchanged until the consumer adopts new source.
 Blogs crops covers by default; `imageDimensions` overrides output sizes or disables
 cropping explicitly. Translate with `imageCropLabels`; see [integration](./blogs.md#crop-new-thumbnail-and-banner-uploads).
 Review each site's recorded integration in the
-[consumer inventory](https://github.com/the-factory-forge/forge-spec/blob/main/consumers/sites.yaml)
+[consumer inventory](https://github.com/the-factory-forge/forge-specs/blob/main/consumers/sites.yaml)
 before updating it. Source adoption, output dimensions and deployment remain
 separate consumer decisions.

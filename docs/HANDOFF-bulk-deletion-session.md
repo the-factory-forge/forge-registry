@@ -50,7 +50,7 @@ not installed registry versions or deployed state.
 | The Corner Factory | Checkout unavailable                       | Re-establish the recorded Auth subset and sidebar/shell dependencies before adoption.                                                                                                |
 
 Projects has no recorded installed consumer. Generic helper users and sites outside
-the inventory remain uninspected. The central [consumer inventory](https://github.com/the-factory-forge/forge-spec/blob/main/consumers/sites.yaml)
+the inventory remain uninspected. The central [consumer inventory](https://github.com/the-factory-forge/forge-specs/blob/main/consumers/sites.yaml)
 tracks these pending updates separately from deployment.
 
 ## Verify each adoption

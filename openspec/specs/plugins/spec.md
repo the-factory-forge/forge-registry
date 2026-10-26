@@ -3,8 +3,8 @@
 ## Purpose
 
 Define a Forge plugin and describe the optional application features distributed
-by forge-registry. Read this with [Shared UI](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md) and
-[Registry distribution](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/registry-distribution/spec.md). The registry manifest
+by forge-registry. Read this with [Shared UI](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md) and
+[Registry distribution](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/registry-distribution/spec.md). The registry manifest
 owns the exact shipped files and dependencies; linked guides explain adapters.
 
 ## Definition
@@ -607,7 +607,7 @@ edit/delete dialogs and verification actions.
 - **WHEN** the directory displays employee verification or access state
 - **THEN** Active/verified states SHALL use success colors, unverified states pending colors,
   and disabled access canceled colors. The list SHALL NOT expose an access toggle.
-  Row controls SHALL follow [stable table row actions](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions),
+  Row controls SHALL follow [stable table row actions](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions),
   including disabled self-delete and unavailable verification/invitation controls.
 
 #### Scenario: The current employee cannot delete their own account

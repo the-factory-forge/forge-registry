@@ -145,7 +145,7 @@ indicator once in the host shell when adopting the source.
 
 ## Shared presentation
 
-Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
+Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md).
 Every password field includes a trailing Show/Hide eye button with translated
 accessible names and icon tooltips. Auth, employee creation and customer creation
 share this behavior without changing their password values or submission rules.

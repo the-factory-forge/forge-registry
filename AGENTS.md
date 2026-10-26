@@ -2,7 +2,7 @@
 
 ## Releases and source maintenance
 
-For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
 `package.json` owns the release version; keep matching notes in `docs/releases/v<version>.md`.
 Preparation creates a local commit and annotated tag. Publication requires separate
@@ -50,7 +50,7 @@ Before implementation, read `../forge-spec/AGENTS.md` and the shared
 is affected. Template application details live in
 `forge-template/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
 use its supplied location or the
-[canonical forge-spec repository](https://github.com/the-factory-forge/forge-spec).
+[canonical forge-specs repository](https://github.com/the-factory-forge/forge-specs).
 Report inaccessible context rather than assuming it was loaded.
 
 `openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
@@ -66,7 +66,7 @@ For plugin work, also read the local [Plugins specification](openspec/specs/plug
 and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
 module requirement when adding or materially changing a feature.
 
-Local main specs live under `openspec/specs/`: `plugins`, `reservations`,
+Local main specs live under `openspec/specs/`, including `plugins`, `reservations`,
 `registry-showroom` and `registry-releases`. The [Blogs storage decision](concepts/adr/0009-blog-content-and-image-storage.md)
 is registry-owned. For Mailing rendering or transport, read
 [ADR-0012](concepts/adr/0012-mailing-rendering-and-transport.md); for plugin locks,
@@ -79,14 +79,14 @@ as the working directory; generated OpenSpec skills remain central.
 ## Filter and view state
 
 When creating or changing filters, search, sorting, pagination or calendar views,
-read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
+read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
 Expose controlled values and change callbacks in portable UI; bind them to URL
 parameters in showroom and consumer adapters. Verify reload and Back/Forward.
 
 ## Object storage
 
 Storage companions require `<SITE_NAME>/<plugin>/` from the host; reject absent or
-unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
+unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
 consumer migration and lifecycle rules. Verify installed callers and fixtures when
 changing this boundary; source adoption does not imply moving deployed objects.
 
@@ -105,7 +105,7 @@ started; Unpublished changes are pending. Keep visible status text and define
 the pairs in the host theme, independently of customer brand colors.
 
 Place a card or detail summary's primary status at the top right, opposite its
-title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
+title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
 Keep translated titles and badges readable on narrow screens; status columns
 in tables keep their existing placement.
 
@@ -254,7 +254,7 @@ registry item that imports it. See [service input validation](docs/plugins.md#se
   or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`
   may be the creation ID). Do not force complex forms into dialogs or create pages
   for simple forms; tc-website's larger employee flow is an intentional page-based exception.
-- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
+- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
   for new or modified toolbars across registry plugins and host projects. Use
   Lucide's `RefreshCwIcon` for refresh/reload, `SettingsIcon` for settings/configuration,
   and `PlusIcon` for new/create/add entry points. Place the icon before the visible
@@ -262,12 +262,12 @@ registry item that imports it. See [service input validation](docs/plugins.md#se
   Reuse the existing button/link styles. Refresh/reload controls are icon-only,
   with a translated accessible name and `IconTooltip`. Settings and create actions
   retain visible labels; do not add duplicate tooltips to text buttons.
-- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
+- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
   Always separate adjacent action buttons and button-styled links by at least
   `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column
   gaps when controls wrap on mobile. Configure third-party button groups too;
   do not leave touching borders or use negative margins to join the buttons.
-- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
+- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
   Enabled buttons use `cursor-pointer`, including icon controls, calendar dates
   and third-party buttons. Disabled controls must not show a pointer; use
   `cursor-not-allowed`. Ship these styles with reusable controls instead of
