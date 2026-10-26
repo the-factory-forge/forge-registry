@@ -1198,10 +1198,11 @@ and unsaved-change protection independently of the Menu editor, preserving the e
 
 - **WHEN** staff edit or publish a blog article
 - **THEN** Articles SHALL
-  group translations with independent drafts and published snapshots. Shared
-  images and category assignments SHALL be captured for the published language;
-  unpublished edits SHALL NOT change a public translation. Missing public
-  translations SHALL NOT silently fall back to another language.
+  group translations with independent drafts, publications and retained history.
+  Complete content, designated author, image references and category assignments
+  SHALL be captured for each saved language state; unpublished edits SHALL NOT
+  change a public translation. Missing public translations SHALL NOT silently
+  fall back to another language.
   `@forge/blogs-storage` SHALL provide `createBlogsStorage` with PostgreSQL and
   private S3 persistence, fresh staff authorization, version checks and idempotent
   mutations. Blogs SHALL remain independent of Customers, Projects and Drive.
@@ -1289,11 +1290,12 @@ and unsaved-change protection independently of the Menu editor, preserving the e
 
 ### Requirement: Blog content and image persistence
 
-`@forge/blogs-storage` SHALL store complete draft and published Markdown with
-metadata in PostgreSQL and use private S3 only for uploaded image bytes. Draft
-saves SHALL update content, version and retry result in one database transaction.
-Text-only reads, saves and publication SHALL NOT issue S3 requests. Publication
-with images SHALL verify that the image objects exist.
+`@forge/blogs-storage` SHALL keep current Markdown and metadata in PostgreSQL
+article documents, retained snapshots in separate indexed rows, and image bytes
+in private S3. Saves SHALL atomically update content, version, retention,
+projections and retry results. Text-only operations SHALL NOT contact S3.
+Publication SHALL verify served images, allowing confirmed historical-image
+omission under the recovery contract.
 
 #### Scenario: Saving while object storage is unavailable
 
@@ -1331,8 +1333,9 @@ Blogs SHALL remain usable with PostgreSQL when the host has no S3 client or buck
 
 ### Requirement: Blog image lifecycle and transfer
 
-Image cleanup SHALL preserve referenced draft/publication images. Article deletion
-SHALL remove public visibility immediately and leave image cleanup retryable after
+Image cleanup SHALL preserve images referenced by current drafts, publications
+or retained history across all languages and reprises. Article deletion SHALL
+remove public visibility immediately and leave image cleanup retryable after
 the grace period. Hosts transferring database image bytes to S3 SHALL preserve
 article documents and image IDs, verify uploaded bytes before cutover and retain
 the original data until recovery is verified.
@@ -1343,6 +1346,12 @@ the original data until recovery is verified.
 - **THEN** the transfer preserves drafts, publications, translations, image IDs and public URLs
 - **AND** failed image verification prevents committing the data transfer
 - **AND** retries do not overwrite different bytes or resurrect subsequently deleted articles
+
+#### Scenario: An image survives only in history
+
+- **WHEN** an image is absent from current drafts and live publications but referenced by a retained version
+- **THEN** maintenance preserves its bytes and reference metadata
+- **AND** removing that version makes the image eligible only after every remaining reference and the grace period have been checked
 
 ### Requirement: Readable storage object filenames
 
@@ -1394,32 +1403,39 @@ maintenance workers together. Adoption SHALL NOT rename existing objects.
 
 ### Requirement: Blog publication toggles
 
-With publish permission, the editor status badge SHALL immediately toggle the
-selected translation's publication. Table language badges SHALL do the same when
-the host supplies `onSetPublished`; otherwise they SHALL remain read-only.
-Both surfaces SHALL preserve validation, authorization, version checks and
-idempotent requests. Pending requests SHALL prevent duplicate toggles; failures
-SHALL restore the prior status and show an error. Unsaved editor input SHALL
-block toggling until saved.
+Publication badges SHALL preserve authorization, validation, version checks and
+idempotency. Editor badges SHALL toggle the selected language; table badges SHALL
+require `onSetPublished`. Historical returns SHALL require version-bound
+confirmation. Pending or unsaved changes SHALL block toggling; failures SHALL
+restore the prior status and show an error.
 
 #### Scenario: Toggling a live translation
 
 - **WHEN** staff activate a Published or Unpublished changes badge
 - **THEN** only that translation is unpublished immediately, preserving its draft
-- **AND** activating its Draft badge publishes the saved revision if valid
+- **AND** activating its Draft badge publishes the saved revision if valid, after historical-return confirmation when required
 - **AND** the separate Publish action can publish revisions without unpublishing first
+- **AND** table badges remain read-only without the host's `onSetPublished` callback
+
+#### Scenario: A badge would discard later publications
+
+- **WHEN** a history-enabled publication badge targets a draft resumed from an earlier publication
+- **THEN** it names the versions to discard and awaits explicit confirmation
+- **AND** canceling preserves the live publication and every retained state
+- **AND** a direct request without required historical-return confirmation fails with `HISTORY_CONFIRMATION_REQUIRED` without mutation
 
 ### Requirement: Blog administration table
 
-The administrative article table SHALL show assigned category names in the requested
-locale, falling back to an available category translation. Long titles and category
-lists SHALL truncate visually while retaining the full text for assistive technology.
+The administrative article table SHALL show the requested language's current
+draft category names, falling back to an available category translation. Long
+titles and category lists SHALL truncate visually while retaining the full text
+for assistive technology.
 Existing list adapters MAY omit category names until they refresh their source or data mapping.
 
 #### Scenario: Scanning article categories
 
 - **WHEN** staff view the article table
-- **THEN** each article shows its current shared category assignments
+- **THEN** each article shows the requested language's current draft category assignments
 - **AND** long text does not push the row actions out of the table
 
 #### Scenario: Updating a custom list adapter
@@ -1427,6 +1443,324 @@ Existing list adapters MAY omit category names until they refresh their source o
 - **WHEN** an existing adapter supplies list items without category names
 - **THEN** the table remains usable and shows an empty category indicator
 - **AND** the host can supply names without a database migration
+
+### Requirement: Separate blog authorship
+
+Blogs SHALL separate authors from editors, defaulting authorship to the creator.
+Public credit SHALL use the publication's author, falling back to its editor only
+for unattributed legacy publications. Assignment SHALL use trusted server names.
+Captured language signatures SHALL remain separate from article-wide management
+authority. Optional host adapters SHALL resolve current names and retain trusted
+signatures when deleting accounts.
+
+#### Scenario: Author changes their account name
+
+- **WHEN** an author renames their account and the host supplies current-name resolution
+- **THEN** admin and public reads show the current account name across published languages
+- **AND** a distinct public employee profile name does not replace it
+- **AND** published text, revision, publication date and last editor remain unchanged without a draft save or republication
+- **AND** clients without the optional resolver continue displaying stored signatures
+- **AND** the host invalidates affected admin and public caches
+
+#### Scenario: Keeping a departing author's articles
+
+- **WHEN** an administrator keeps articles while removing their author's account
+- **THEN** the host snapshots the last trusted name in the same authorized transaction as account removal and invalidates affected caches
+- **AND** that name remains readable after deletion
+- **AND** current and retained history signatures are updated without changing content versions, publication dates or saving actors
+- **AND** a failed deletion transaction does not partially update signatures
+
+### Requirement: Reviewed legacy blog attribution
+
+Older documents without an explicit author SHALL remain readable with their recorded
+attribution and editable as drafts. Publication SHALL fail until an administrator
+explicitly selects and saves an eligible author. Saving other fields SHALL NOT
+confirm the last editor as author or grant that editor ownership. Hosts SHALL NOT
+claim to recover an unknown historical author from editing history.
+
+#### Scenario: Republishing an older article
+
+- **WHEN** an administrator publishes a document without a confirmed author
+- **THEN** the server rejects publication and the UI requests explicit author selection
+- **AND** its existing public version stays unchanged
+- **WHEN** the administrator selects and saves an eligible author
+- **THEN** that author or an administrator can publish the reviewed draft
+
+### Requirement: Collaborative blog permissions
+
+The shared policy SHALL let active staff read articles and save drafts. Only the
+current author or administrator SHALL publish, unpublish, delete or reassign.
+Category management and confirmation of unknown legacy authorship SHALL require
+an administrator. Hosts SHALL derive eligible actors and current stored authors
+on the server, repeating authorization inside the write transaction. Per-article
+controls and bulk selection SHALL honor these capabilities.
+
+#### Scenario: A colleague corrects another author's article
+
+- **WHEN** a colleague saves a correction
+- **THEN** the draft records the colleague as last editor without changing the author
+- **AND** publication or author takeover is rejected unless the actor is the author or an administrator
+
+### Requirement: Optimized blog cover images
+
+Blog cover uploads SHALL use the shared crop dialog to prepare optimized WebP
+bytes by default. Hosts MAY override output dimensions or explicitly disable
+cover cropping. Inline Markdown images SHALL retain their existing proportions.
+Invalid images and failed uploads SHALL preserve other edits and allow retry or
+cancellation.
+
+#### Scenario: Confirming or canceling a cover crop
+
+- **WHEN** an editor selects a new cover image
+- **THEN** the configured crop is confirmed before upload begins
+- **AND** canceling preserves the previous image
+
+#### Scenario: Blog cover upload fails
+
+- **WHEN** image decoding or the host upload fails
+- **THEN** accessible feedback supports retry or cancellation
+- **AND** unrelated form values remain intact
+
+### Requirement: Complete localized blog history
+
+Each article language SHALL retain complete saved states containing title, slug,
+summary, Markdown, designated author, thumbnail and banner references, their
+alternative text, inline image references and category assignments. Version
+identity, save time and saving actor SHALL be recorded separately from the
+designated author. Retained states SHALL preserve their captured content; trusted
+account-name resolution and departure-signature retention SHALL remain supported.
+
+#### Scenario: Returning to a complete French state
+
+- **WHEN** an authorized user resumes an earlier French state
+- **THEN** its content, signature, illustrations and category assignments are available together
+- **AND** German drafts, retained states and public content remain unchanged
+- **AND** the global category taxonomy is not rolled back or recreated
+- **AND** a category that no longer satisfies publication validation must be corrected before publication
+
+#### Scenario: A colleague saved the selected version
+
+- **WHEN** Bob saved a state whose designated author is Alice
+- **THEN** the history identifies Bob as its editor and Alice as its signature
+- **AND** restoring it does not credit Bob or the publisher automatically
+- **AND** current account-name resolution and trusted signatures after account deletion still apply
+- **AND** unknown legacy authorship still requires explicit administrator review
+
+### Requirement: Stable blog version identity
+
+An explicit save of changed publication inputs SHALL create one saved draft
+version. Unchanged saves and publishing a saved state SHALL NOT create duplicate
+content versions. Visible version numbers SHALL be stable and increase within
+the article language; deletion or pruning SHALL NOT reuse numbers. Unsaved edits
+SHALL remain distinguishable from saved versions.
+
+#### Scenario: Saving and publishing one edit
+
+- **WHEN** an editor saves changed text, author or other captured inputs
+- **THEN** one new saved version is recorded
+- **AND** repeating an unchanged save or retrying the same request creates no additional version
+- **AND** publishing that state preserves its version identity
+- **AND** changing only an account's current name does not create a content version
+
+#### Scenario: Saving after a historical return
+
+- **WHEN** the largest allocated number was v40 and later states are discarded
+- **THEN** the next changed save receives a number greater than 40
+- **AND** optimistic concurrency versions remain independent of visible history numbers
+
+### Requirement: Independent blog history limits
+
+Each article language SHALL retain at most five publications, including its live
+publication, and eight saved drafts, including its latest draft, across all
+reprises. Exceeding either limit SHALL prune the oldest state in that group.
+Successful publication SHALL clear pending drafts for that language without
+duplicating the promoted state. Unpublishing SHALL preserve retained history and
+allocate no new saved content version. Other languages SHALL retain their own limits.
+
+#### Scenario: Saving a ninth draft
+
+- **WHEN** eight drafts are retained and a changed draft is saved on any reprise
+- **THEN** the oldest saved draft is pruned and eight remain
+- **AND** publications are preserved and the limit does not restart for the new reprise
+
+#### Scenario: Publishing a sixth publication
+
+- **WHEN** normal publication would retain six publications
+- **THEN** the oldest non-live publication is pruned and five remain
+- **AND** the promoted version is live and pending drafts in that language are cleared
+- **AND** a failed publication performs neither cleanup nor pruning
+
+### Requirement: Independent blog reprises
+
+Starting from a publication SHALL create a distinct reprise on its first changed
+save, even when another reprise has the same source. Editing a saved draft SHALL
+continue its reprise. Reprise identity and source publication identity SHALL
+survive pruning of earlier draft states. Merely selecting history SHALL NOT
+create a reprise or overwrite a saved draft.
+
+#### Scenario: Starting twice from one publication
+
+- **WHEN** an editor starts from v18, saves v38, then starts again from v18 and saves v42
+- **THEN** v38 and v42 belong to independent reprises with the same source
+- **AND** modifying v38 and saving again continues the first reprise
+- **AND** neither save discards later publications
+
+#### Scenario: Continuing after the first draft was pruned
+
+- **WHEN** an earlier saved member of a reprise has been pruned
+- **THEN** its remaining drafts retain their source and reprise identity
+- **AND** a removed source is identified as unavailable without inventing another source
+- **AND** selecting a publication or canceling unsaved work creates no saved node
+
+### Requirement: Confirmed atomic blog history publication
+
+Historical publication SHALL atomically publish the selected state and discard
+later publications and pending drafts. Every historical-return entrypoint SHALL
+confirm a server-derived plan bound to article version, language, target,
+discarded states and missing images. Authorization, validation, concurrency,
+retention and idempotency SHALL remain enforced. History actions SHALL also
+confirm ordinary publication plans that discard retained states.
+
+#### Scenario: Reworking v18 before publication
+
+- **WHEN** an authorized user resumes v18 while v22, v26, v36 and v37 are retained
+- **THEN** saving the derived draft preserves those publications, subject only to the independent draft limit
+- **WHEN** the user publishes the saved draft
+- **THEN** confirmation names the later publications and pending drafts to discard
+- **AND** success makes the selected state live and removes exactly the confirmed states
+- **AND** the same truncation applies when v18 is republished without editing
+
+#### Scenario: A stale or failed confirmation
+
+- **WHEN** article state changes after the deletion plan was displayed, or authorization, validation, image checking or persistence fails
+- **THEN** publication leaves the prior live content and retained history intact
+- **AND** the UI retains the selected state and unsaved input for correction or retry
+- **AND** a stale article version or plan token returns `CONFLICT` and must be refreshed and confirmed again
+- **AND** replaying a successful request does not repeat deletions or allocate a new version
+
+### Requirement: Authorized blog history management
+
+Active staff SHALL be able to inspect history. Only the current designated author
+or an administrator SHALL resume historical states, republish them or delete
+history. Authorization SHALL use the current article before restoration, not the
+selected historical author. Ordinary collaborative draft editing and explicit
+author reassignment SHALL retain their existing policy.
+
+#### Scenario: A historical author attempts to take control
+
+- **WHEN** a caller owns the selected old signature but lacks current management rights
+- **THEN** direct resume, historical publication and deletion requests are rejected
+- **AND** selecting the old version does not change ownership
+
+#### Scenario: Managing a signature and deleting a version
+
+- **WHEN** the current author or an administrator resumes a state
+- **THEN** its designated author is retained and the existing author selector remains available
+- **AND** an explicit saved reassignment changes current management rights under the existing article-wide authorship policy
+- **AND** other languages' saved signatures and live publications remain unchanged
+- **WHEN** an authorized user confirms deletion of a non-live retained version
+- **THEN** only that version is removed, without renumbering or changing live content
+- **AND** the live publication cannot be individually deleted from history
+- **AND** deleting the current saved draft selects the latest remaining draft, then the live state, then an empty unsaved state without resetting allocation counters
+
+### Requirement: Blog history inspection and comparison
+
+The editor SHALL offer a right-side history panel with version numbers, authors,
+times, states and separate publication/draft counts. Selection SHALL show a
+read-only state. A unified diff against the live language publication SHALL show
+unchanged context once and emphasize changed words within subtle removed and
+added rows. Comparison work SHALL be bounded, falling back to complete removed
+and added text for expensive inputs. Missing live content SHALL have an explicit
+comparison empty state.
+
+#### Scenario: Comparing a small text change
+
+- **WHEN** only one word changes inside a paragraph
+- **THEN** unchanged words retain subdued emphasis and the changed words have stronger removed/added backgrounds
+- **AND** a pure insertion does not invent a removal or duplicate an unchanged prefix
+- **AND** changed captured fields are distinguishable without relying only on color
+- **AND** Markdown and diff text cannot execute supplied markup or scripts
+
+#### Scenario: Inspecting on a narrow screen
+
+- **WHEN** a user opens history on mobile or uses the keyboard in either theme
+- **THEN** selection, comparison, version labels and permitted actions remain usable without horizontal overflow
+- **AND** leaving dirty work requests an explicit save or discard decision
+- **AND** historical inspection does not mutate article content, attribution or permissions
+
+### Requirement: Simultaneous blog reprise paths
+
+History SHALL show every retained reprise on a distinct path, including reprises
+from the live publication and independent starts from the same source. Selecting
+a version SHALL NOT move nodes to another path or hide other reprises. The active
+path SHALL be visibly thicker and remain continuous above crossing paths, with
+text identifying its source independently of color.
+
+#### Scenario: Inspecting three simultaneous reprises
+
+- **WHEN** v38 comes from v18, v39 from v22 and v40 from live v37
+- **THEN** all three paths remain visible beside the publication chronology
+- **AND** selecting v38 accentuates its path without reassigning v39 or v40
+- **AND** two reprises from v18 remain distinct and continued saves use their existing path
+- **AND** unsaved resumed work has a clearly unsaved preview rather than a committed version number
+
+### Requirement: Blog history image recovery
+
+A missing optional historical illustration SHALL NOT prevent publication of
+otherwise valid text after explicit confirmation. Preview SHALL show a missing
+image placeholder; the public view SHALL omit the unavailable illustration or
+leave its image area empty. Recovery SHALL preserve original historical references
+and asset ownership checks. Transient provider failures SHALL remain retryable.
+
+#### Scenario: Publishing without a lost illustration
+
+- **WHEN** a selected historical image is confirmed missing and the user confirms publication without it
+- **THEN** valid text is published without a broken public image
+- **AND** the historical source keeps its original image reference
+- **AND** the user can instead replace, reimport or remove the illustration in a draft
+- **AND** publication does not copy S3 objects or invent replacement bytes
+
+#### Scenario: An image cannot be verified temporarily
+
+- **WHEN** image verification times out or storage access fails without establishing absence
+- **THEN** feedback distinguishes the failure from a confirmed missing image and permits retry
+- **AND** failed verification does not discard content, history or references
+- **AND** inaccessible or foreign image identifiers do not bypass article ownership or authorization
+
+### Requirement: Private and compatible blog history adoption
+
+History and history-only images SHALL require fresh article read permission.
+Public responses SHALL expose only effective live content. Article lists SHALL
+exclude history bodies; history lists SHALL return bounded summaries and fetch
+selected bodies on demand. Retry acknowledgements SHALL remain small.
+`BlogsClient.history` SHALL be optional. Hosts SHALL own validated transport,
+session checks, cache invalidation and coordinated migration.
+
+#### Scenario: Requesting archived content publicly
+
+- **WHEN** an unauthenticated visitor requests a historical body, its metadata or a history-only image
+- **THEN** it is not disclosed through public endpoints or caches
+- **AND** an authorized staff reader can inspect it without making it public
+
+#### Scenario: Adopting existing articles
+
+- **WHEN** a host explicitly migrates existing blog data for history support
+- **THEN** it generates additive migrations from the exported Drizzle schema and stops incompatible writers
+- **AND** `backfillHistory` followed by `backfillBlogProjections` runs in the reviewed migration transaction
+- **AND** current drafts and live publications become retained initial states without invented older versions
+- **AND** content, saved signatures, image IDs, URLs and publication metadata are preserved
+- **AND** repeating migration creates no duplicate versions
+- **AND** identical current draft/publication inputs share one initial history identity
+- **AND** existing clients remain usable for ordinary publication without history controls, while the server rejects historical returns without confirmation
+- **AND** history-enabled hosts wire authorized `list`, `get`, `plan`, `publish` and `delete` operations while preserving their adapters
+- **AND** migration-journal and Blogs readiness checks pass before traffic is served
+- **AND** source installation runs no migration and does not establish deployment
+
+#### Scenario: Rolling back history controls
+
+- **WHEN** a host rolls back the history interface
+- **THEN** it retains the additive schema, history data and compatible writers
+- **AND** it does not downgrade to writers that discard localized settings or history counters
 
 ### Requirement: Menus plugin
 
