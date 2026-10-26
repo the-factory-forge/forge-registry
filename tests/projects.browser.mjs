@@ -61,10 +61,8 @@ await suite("Projects browser", async () => {
     );
     assert.equal(await page.getByRole("link", { name: "Create project", exact: true }).count(), 0);
     const row = page.getByRole("row").filter({ hasText: "Studio website" });
-    assert.equal(
-      await row.getByRole("link", { name: "Visit Studio website website" }).getAttribute("href"),
-      "https://example.com",
-    );
+    assert.equal(await page.getByRole("columnheader", { name: "Website", exact: true }).count(), 0);
+    assert.equal(await row.getByRole("cell").count(), 5);
     await row.getByRole("link", { name: "Acme Studio", exact: true }).click();
     await page.getByRole("heading", { name: "Acme Studio", exact: true }).waitFor();
   });
@@ -114,14 +112,13 @@ await suite("Projects browser", async () => {
     await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await actionToast(page, "Project updated");
     await page.getByRole("heading", { name: "Updated website", exact: true }).waitFor();
+    const summary = page.locator("header").filter({ hasText: "Updated website" });
+    assert.equal(await summary.getByRole("link").count(), 0);
+    assert.equal(await summary.locator("p").count(), 0);
     await page.getByRole("link", { name: "Back to projects", exact: true }).click();
     const row = page.getByRole("row").filter({ hasText: "Updated website" });
     await row.getByText("Acme Studio", { exact: true }).waitFor();
     await row.getByText("Jordan Lee", { exact: true }).waitFor();
-    assert.equal(
-      await row.getByRole("link", { name: "Visit Updated website website" }).getAttribute("href"),
-      "https://example.com",
-    );
     await page.getByRole("link", { name: "Customer portal", exact: true }).click();
     assert.equal(await page.getByLabel("Name *", { exact: true }).inputValue(), "Customer portal");
   });

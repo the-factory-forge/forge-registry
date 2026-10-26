@@ -15,6 +15,7 @@ export function createProjectsSchema(customers: CustomersSchema) {
       name: text("name").notNull(),
       status: text("status").$type<ProjectStatus>().notNull().default("requested"),
       description: text("description"),
+      // Retain legacy data without inviting a destructive host migration.
       url: text("url"),
       posterImage: text("poster_image"),
       assigneeId: text("assignee_id"),

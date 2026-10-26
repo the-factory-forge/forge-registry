@@ -13,7 +13,6 @@ export interface Project {
   ownerId: Customer["id"];
   status: ProjectStatus;
   description?: string | null;
-  url?: string | null;
   posterImage?: string | null;
   assigneeId?: string | null;
 }

@@ -40,7 +40,8 @@ The directory receives `projects`, `customers`, optional `assignees`, controlled
 `getProjectHref`, optional `getCustomerHref`, optional `onDelete(id)`, and optional `onStatusChange(id, status)`.
 The host searches/fetches records. `customerId` additionally scopes the supplied
 projects and hides Owner. Missing create/delete props hide those controls.
-Customer company names take precedence over contact names.
+Customer company names take precedence over contact names. Project lists and
+detail summaries do not display website URLs.
 
 Detail receives `project`, `backHref`, `sectionHrefs: { details, drive }`,
 `section` (default `details`), `onSave(values)`, optional `onDelete(id)`, and
@@ -103,7 +104,7 @@ the host; there is no Drive dependency today.
 ## Form and ownership contract
 
 `Project` requires `id`, `name`, `ownerId`, and `status`; nullable optional fields
-are `description`, `url`, `posterImage`, and `assigneeId`. Status values are
+are `description`, `posterImage`, and `assigneeId`. Status values are
 `requested`, `prospect`, `under-construction`, and `production`, with creation
 defaulting to `requested`. All status labels are overridable.
 
@@ -115,7 +116,7 @@ summary may still display metadata supplied by the host.
 When creating from a customer, take its ID from authorized host context and add
 it in `onCreate`. A standalone creation route must collect or resolve that context
 outside the shared form. For updates, merge the three submitted fields into the
-existing record so ownership, URL and assignment are preserved. Never infer a
+existing record so ownership and assignment are preserved. Never infer a
 reassignment from a customer query parameter.
 
 The host must enforce customer ownership again on every server write. An
@@ -127,7 +128,7 @@ migrations or database entries are created by this plugin.
 `ProjectFormValues` contains `name`, `status`, and `description`. Name is trimmed
 and required; description is trimmed and limited to 5,000 characters. Empty
 descriptions submit as empty strings; translate to database null in the host if
-needed. Persisted website URLs retain the existing safe-link checks for display.
+needed.
 
 ### Updating existing hosts
 
@@ -135,7 +136,10 @@ This narrows the form callback contract. Stop reading `url`, `ownerId` and
 `assigneeId` from `onCreate` or `onSave` values. Remove `ProjectDirectoryProps` and
 the former directory props, including `defaultOwnerId` and `lockOwner`, from form
 page adapters. Supply ownership in the host create callback and preserve existing
-metadata on update. Remove obsolete picker/field label overrides. No database
+metadata on update. Remove obsolete picker/field label overrides, including
+`website`, `visit` and `noWebsite`, and stop using `safeProjectUrl`. `Project` no
+longer declares `url`. The persistence schema retains its legacy `url` column to
+preserve stored data; the shared service does not write it. No database
 migration or stored-data deletion is part of this change.
 
 Drafts survive same-project rerenders and failed saves. Switching project ID

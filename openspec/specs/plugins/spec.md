@@ -732,7 +732,7 @@ the optimistic mutation isolation requirement.
 
 - **WHEN** a host installs Projects and connects creation or editing
 - **THEN** A project SHALL belong to one customer and may have an assignee,
-  website URL, description and display image supplied by the host. Shared create
+  description and display image supplied by the host. Shared create
   and edit forms SHALL expose only name, status and description and submit only
   those fields. They SHALL NOT render Website URL, Owner or Assignee inputs or
   require people directories to save. The host SHALL resolve and authorize the
@@ -758,6 +758,14 @@ the optimistic mutation isolation requirement.
 - **THEN** the badge updates before the host response and competing mutations are disabled
 - **AND** success synchronizes the detail form status without saving unrelated draft fields
 - **AND** rejection restores the prior badge and retains every draft field with a retryable menu error
+
+#### Scenario: Viewing the project directory
+
+- **WHEN** a host renders the project directory or an embedded project list
+- **THEN** the table omits the Website column
+- **AND** project detail summaries omit website links and missing-URL placeholders
+- **AND** the UI model and labels do not expose a website URL
+- **AND** legacy stored URLs remain untouched by this display cleanup
 
 #### Scenario: Viewing projects for one customer
 
