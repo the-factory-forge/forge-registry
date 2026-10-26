@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { BlogEditPage } from "@/components/plugins/blogs";
+import { ActionToastProvider } from "@/components/action-toast";
+import { BlogCategoriesPage, BlogEditPage } from "@/components/plugins/blogs";
+import { BlogCategoryEditor } from "@/components/plugins/blogs/editor";
+import { blogsLabels } from "@/components/plugins/blogs/labels";
 import { blogCapabilities } from "@/components/plugins/blogs/permissions";
 import type { BlogsClient } from "@/components/plugins/blogs/types";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
@@ -21,40 +25,88 @@ const adapter = mock.client({
   failUpload: false,
   consumeUploadFailure: () => {},
 });
-type Kind = "list" | "body" | "save" | "article";
+type Kind =
+  | "list"
+  | "body"
+  | "save"
+  | "article"
+  | "publish"
+  | "unpublish"
+  | "plan"
+  | "historyPublish"
+  | "historyDelete"
+  | "upload"
+  | "delete"
+  | "saveCategory"
+  | "deleteCategory";
 const held = new Set<Kind>(legacy ? [] : ["list", "body"]);
 const calls: Record<
   Kind,
-  { input: unknown; resolve: () => void; reject: (code: string) => void }[]
-> = { list: [], body: [], save: [], article: [] };
+  { input: unknown; resolve: () => Promise<void>; reject: (code: string) => void }[]
+> = {
+  list: [],
+  body: [],
+  save: [],
+  article: [],
+  publish: [],
+  unpublish: [],
+  plan: [],
+  historyPublish: [],
+  historyDelete: [],
+  upload: [],
+  delete: [],
+  saveCategory: [],
+  deleteCategory: [],
+};
 function controlled<T>(kind: Kind, input: unknown, read: () => Promise<T>) {
   // Reads capture their response now; mutations execute only when explicitly resolved.
-  const snapshot = kind === "save" ? undefined : read();
+  const snapshot = ["list", "body", "article", "plan"].includes(kind) ? read() : undefined;
   void snapshot?.catch(() => {});
   return new Promise<T>((resolve, reject) => {
     const request = {
       input,
-      resolve: () => {
-        void (snapshot ?? read()).then(resolve, reject);
+      resolve: async () => {
+        await (snapshot ?? read()).then(resolve, reject);
       },
       reject: (code: string) => reject({ code }),
     };
     calls[kind].push(request);
-    if (!held.has(kind)) request.resolve();
+    if (!held.has(kind)) void request.resolve();
   });
 }
 const client: BlogsClient = {
   ...adapter,
   get: (id) => controlled("article", id, () => adapter.get(id)),
   save: (input) => controlled("save", input, () => adapter.save(input)),
+  publish: (input) => controlled("publish", input, () => adapter.publish(input)),
+  unpublish: (input) => controlled("unpublish", input, () => adapter.unpublish(input)),
+  upload: (input) => controlled("upload", input, () => adapter.upload(input)),
+  delete: (input) => controlled("delete", input, () => adapter.delete(input)),
+  saveCategory: (input) => controlled("saveCategory", input, () => adapter.saveCategory(input)),
+  deleteCategory: (input) =>
+    controlled("deleteCategory", input, () => adapter.deleteCategory(input)),
   history: legacy
     ? undefined
     : {
         ...adapter.history!,
         list: (input) => controlled("list", input, () => adapter.history!.list(input)),
         get: (input) => controlled("body", input, () => adapter.history!.get(input)),
+        plan: (input) => controlled("plan", input, () => adapter.history!.plan(input)),
+        publish: (input) =>
+          controlled("historyPublish", input, () => adapter.history!.publish(input)),
+        delete: (input) => controlled("historyDelete", input, () => adapter.history!.delete(input)),
       },
 };
+const editableCategory = new URLSearchParams(location.search).has("category")
+  ? await adapter.saveCategory({
+      requestId: crypto.randomUUID(),
+      parentId: null,
+      translations: { en: { name: "Unused category", slug: "unused-category" } },
+    })
+  : mock.categories()[0];
+const accepted: string[] = [];
+const deleted: string[] = [];
+const clients = [client, { ...client }];
 const dirtyChanges: boolean[] = [];
 const onDirtyChange = (value: boolean) => dirtyChanges.push(value);
 declare global {
@@ -62,11 +114,13 @@ declare global {
     draftTest: {
       calls: typeof calls;
       dirtyChanges: boolean[];
+      accepted: string[];
+      deleted: string[];
       hold: (kind: Kind, value: boolean) => void;
-      replaceClient: () => void;
+      replaceClient: (generation?: number) => void;
       correct: () => void;
       rerenderArticle: () => void;
-      switchArticle: () => void;
+      switchArticle: (index?: number) => void;
       unmount: () => void;
       current: () => ReturnType<typeof mock.get>;
     };
@@ -75,26 +129,65 @@ declare global {
 function Fixture() {
   const [article, setArticle] = useState(() => mock.get(id));
   const [generation, setGeneration] = useState(0);
-  const currentClient = useMemo(() => ({ ...client, generation }), [generation]);
+  const [visible, setVisible] = useState(true);
+  const [category, setCategory] = useState(editableCategory);
+  const currentClient = clients[generation % clients.length];
   useEffect(() => {
     window.draftTest = {
       calls,
       dirtyChanges,
+      accepted,
+      deleted,
       hold: (kind, value) => {
         if (value) held.add(kind);
         else held.delete(kind);
       },
-      replaceClient: () => setGeneration((value) => value + 1),
+      replaceClient: (generation) => setGeneration((value) => generation ?? value + 1),
       correct: () => mock.applyConcurrentCorrection(id),
       rerenderArticle: () => setArticle(mock.get(id)),
-      switchArticle: () => setArticle(mock.all()[1]),
-      unmount: () => root.unmount(),
+      switchArticle: (index = 1) => setArticle(mock.all()[index]),
+      unmount: () => flushSync(() => setVisible(false)),
       current: () => mock.get(id),
     };
   }, []);
+  if (!visible) return null;
+  if (new URLSearchParams(location.search).has("category-page"))
+    return (
+      <BlogCategoriesPage
+        assetUrl={mock.assetUrl}
+        categories={mock.categories()}
+        locales={blogLocales}
+        client={currentClient}
+        capabilities={blogCapabilities({ id: actor.id, admin: true })}
+        backHref="#posts"
+        onChanged={() => {
+          accepted.push("category-change");
+          setCategory(mock.categories().at(-1)!);
+        }}
+      />
+    );
+  if (new URLSearchParams(location.search).has("category"))
+    return (
+      <BlogCategoryEditor
+        category={category}
+        categories={mock.categories()}
+        locales={blogLocales}
+        client={currentClient}
+        disabled={false}
+        labels={blogsLabels}
+        onSaved={(saved) => {
+          accepted.push(saved.id);
+          setCategory(saved);
+        }}
+        onDeleted={() => {
+          deleted.push(category.id);
+        }}
+      />
+    );
   return (
     <BlogEditPage
       client={currentClient}
+      imageDimensions={false}
       article={article}
       categories={mock.categories()}
       assets={mock.assets(article.id)}
@@ -105,11 +198,20 @@ function Fixture() {
       authors={[actor, { id: "alex", name: "Alex Morgan" }]}
       capabilities={blogCapabilities({ id: actor.id, admin: true }, actor.id)}
       assetUrl={mock.assetUrl}
-      onSaved={setArticle}
+      onSaved={(saved) => {
+        accepted.push(saved.id);
+        setArticle(saved);
+      }}
       onDirtyChange={onDirtyChange}
-      onDeleted={() => {}}
+      onDeleted={() => {
+        deleted.push(article.id);
+      }}
     />
   );
 }
 const root = createRoot(document.getElementById("factory-blog-draft-fixture")!);
-root.render(<Fixture />);
+root.render(
+  <ActionToastProvider>
+    <Fixture />
+  </ActionToastProvider>,
+);

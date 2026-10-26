@@ -37,6 +37,7 @@ import type {
   BlogsClient,
 } from "@/components/plugins/blogs/types";
 import {
+  BlogEditorClient,
   cardClass,
   ConfirmDelete,
   Feedback,
@@ -58,8 +59,15 @@ export function useHistoryPublication(
   const [plan, setPlan] = useState<BlogHistoryPlan | null>(null);
   const [omit, setOmit] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
+  const [scope, setScope] = useState(action.scope);
+  if (scope !== action.scope) {
+    setScope(action.scope);
+    setPlan(null);
+    setOmit(false);
+    setRefreshed(false);
+  }
   async function execute(value: BlogHistoryPlan, omitMissingImages: boolean) {
-    const article = await action.run(
+    await action.run(
       JSON.stringify(["history-publish", value.target, value.token, omitMissingImages]),
       (requestId) =>
         client!.history!.publish({
@@ -69,24 +77,30 @@ export function useHistoryPublication(
           requestId,
         }),
       labels.publishedSuccess,
+      (article) => {
+        setPlan(null);
+        onPublished(article);
+      },
     );
-    if (article) {
-      setPlan(null);
-      onPublished(article);
-    }
   }
   async function prepare(target: BlogHistoryTarget) {
     if (!client?.history) return;
-    const result = await action.run(JSON.stringify(["history-plan", target]), () =>
-      client!.history!.plan(target),
+    let publishing: Promise<void> | undefined;
+    await action.run(
+      JSON.stringify(["history-plan", target]),
+      () => client.history!.plan(target),
+      undefined,
+      (result) => {
+        setOmit(false);
+        setRefreshed(false);
+        if (result.historicalReturn || result.discarded.length || result.missingAssetIds.length)
+          setPlan(result);
+        else publishing = execute(result, false);
+      },
     );
-    if (!result) return;
-    setOmit(false);
-    setRefreshed(false);
-    if (result.historicalReturn || result.discarded.length || result.missingAssetIds.length)
-      setPlan(result);
-    else await execute(result, false);
+    await publishing;
   }
+
   return {
     pending: action.pending,
     feedback: action.feedback,
@@ -178,17 +192,22 @@ export function useHistoryPublication(
                         className={iconButtonClass}
                         disabled={action.pending}
                         onClick={() =>
-                          void action.run("refresh-history-plan", async () => {
-                            const latest = await client!.get(plan.target.id);
-                            const result = await client!.history!.plan({
-                              ...plan.target,
-                              version: latest.version,
-                            });
-                            setPlan(result);
-                            setOmit(false);
-                            setRefreshed(true);
-                            return true;
-                          })
+                          void action.run(
+                            "refresh-history-plan",
+                            async () => {
+                              const latest = await client!.get(plan.target.id);
+                              return client!.history!.plan({
+                                ...plan.target,
+                                version: latest.version,
+                              });
+                            },
+                            undefined,
+                            (result) => {
+                              setPlan(result);
+                              setOmit(false);
+                              setRefreshed(true);
+                            },
+                          )
                         }
                       >
                         <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -213,7 +232,7 @@ export function useHistoryPublication(
   };
 }
 
-export function BlogHistoryPanel({
+export function BlogHistoryPanel<T = void>({
   headers,
   selectedId,
   currentId,
@@ -226,6 +245,7 @@ export function BlogHistoryPanel({
   onRetry,
   onClose,
   onDelete,
+  onDeleted,
   disabled,
   deleteDisabled = false,
   formatDate,
@@ -242,7 +262,8 @@ export function BlogHistoryPanel({
   onCompare: (header: BlogHistoryHeader) => void;
   onRetry: () => void;
   onClose: () => void;
-  onDelete?: (version: BlogHistoryHeader, requestId: string) => Promise<void>;
+  onDelete?: (version: BlogHistoryHeader, requestId: string) => Promise<T>;
+  onDeleted?: (result: T) => void;
   disabled: boolean;
   deleteDisabled?: boolean;
   formatDate: (iso: string) => string;
@@ -251,6 +272,12 @@ export function BlogHistoryPanel({
   const list = useRef<HTMLOListElement>(null);
   const actionTrigger = useRef<HTMLButtonElement>(null);
   const [deleting, setDeleting] = useState<BlogHistoryHeader | null>(null);
+  const owner = useContext(BlogEditorClient);
+  const [previousOwner, setPreviousOwner] = useState(owner);
+  if (previousOwner !== owner) {
+    setPreviousOwner(owner);
+    setDeleting(null);
+  }
   const [geometry, setGeometry] = useState<{
     height: number;
     width: number;
@@ -544,6 +571,7 @@ export function BlogHistoryPanel({
           label={`${labels.deleteVersion} ${labels.versionLabel(deleting.number)}`}
           disabled={disabled || deleteDisabled || deleting.id === publishedId}
           onDelete={(requestId) => onDelete(deleting, requestId)}
+          onDeleted={onDeleted}
           onClose={() => setDeleting(null)}
           finalFocus={() =>
             actionTrigger.current?.isConnected

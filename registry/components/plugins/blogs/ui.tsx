@@ -3,12 +3,13 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import { XIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
-import { useLoadingTask } from "@/components/loading-indicator";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
+import type { BlogsClient } from "@/components/plugins/blogs/types";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
@@ -56,31 +57,47 @@ export function Feedback({ message, error = false }: { message?: string; error?:
     </p>
   ) : null;
 }
+/** Private to Blog editors; changing the client invalidates operations without losing inputs. */
+export const BlogEditorClient = createContext<BlogsClient | null>(null);
+
 export function useBlogAction(labels: BlogsLabels) {
-  const track = useLoadingTask();
+  const owner = useContext(BlogEditorClient);
+  const scope = useMemo(() => ({ owner }), [owner]);
+  const active = useRef<typeof scope | null>(null);
+  const lock = useRef<typeof scope | null>(null);
+  const request = useRef<{ scope: typeof scope; key: string; id: string } | null>(null);
+  useLayoutEffect(() => {
+    active.current = scope;
+    return () => {
+      active.current = null;
+    };
+  }, [scope]);
+  const current = () => owner === null || active.current === scope;
   const notify = useActionToast();
   const { add } = Toast.useToastManager();
-  const lock = useRef(false);
-  const request = useRef<{ key: string; id: string } | null>(null);
-  const [pending, setPending] = useState(false),
-    [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
+  const [state, setState] = useState<{
+    scope: typeof scope;
+    pending: boolean;
+    feedback?: { message: string; error?: boolean };
+  }>({ scope, pending: false });
+  useLoadingActivity(state.scope === scope && state.pending);
   async function run<T>(
     key: string,
     action: (requestId: string) => Promise<T>,
     success?: string,
+    accept?: (result: T) => void,
   ): Promise<T | undefined> {
-    if (lock.current) return;
-    lock.current = true;
-    setPending(true);
-    setFeedback(undefined);
-    if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
+    if (!current() || lock.current === scope) return;
+    lock.current = scope;
+    setState({ scope, pending: true });
+    if (request.current?.scope !== scope || request.current.key !== key)
+      request.current = { scope, key, id: crypto.randomUUID() };
+    let result: T;
     try {
       const id = request.current.id;
-      const result = await track(() => action(id));
-      request.current = null;
-      if (success) notify(success);
-      return result;
+      result = await action(id);
     } catch (error) {
+      if (!current()) return;
       const message = errorMessage(error, labels);
       if (
         error &&
@@ -90,21 +107,36 @@ export function useBlogAction(labels: BlogsLabels) {
       ) {
         add({ title: message, type: "error" });
       } else {
-        setFeedback({ message, error: true });
+        setState({ scope, pending: false, feedback: { message, error: true } });
       }
       return undefined;
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lock.current === scope) lock.current = null;
+      if (current())
+        setState((previous) =>
+          previous.scope === scope ? { ...previous, pending: false } : previous,
+        );
     }
+    if (!current()) return;
+    request.current = null;
+    if (success) notify(success);
+    accept?.(result);
+    return result;
   }
-  return { pending, feedback, run };
+  return {
+    scope,
+    isCurrent: current,
+    pending: state.scope === scope && state.pending,
+    feedback: state.scope === scope ? state.feedback : undefined,
+    run,
+  };
 }
-export function ConfirmDelete({
+export function ConfirmDelete<T>({
   labels,
   title,
   description,
   onDelete,
+  onDeleted,
   disabled = false,
   label,
   onClose,
@@ -113,14 +145,20 @@ export function ConfirmDelete({
   labels: BlogsLabels;
   title: string;
   description: string;
-  onDelete: (requestId: string) => Promise<void>;
+  onDelete: (requestId: string) => Promise<T>;
+  onDeleted?: (result: T) => void;
   disabled?: boolean;
   label: string;
   onClose?: () => void;
   finalFocus?: Dialog.Popup.Props["finalFocus"];
 }) {
-  const [open, setOpen] = useState(!!onClose);
   const action = useBlogAction(labels);
+  const [open, setOpen] = useState(!!onClose);
+  const [scope, setScope] = useState(action.scope);
+  if (scope !== action.scope) {
+    setScope(action.scope);
+    setOpen(false);
+  }
   return (
     <Dialog.Root
       open={open}
@@ -192,11 +230,10 @@ export function ConfirmDelete({
               )}
               disabled={disabled || action.pending}
               onClick={() =>
-                void action.run("delete", async (requestId) => {
-                  await onDelete(requestId);
+                void action.run("delete", onDelete, undefined, (result) => {
                   setOpen(false);
                   onClose?.();
-                  return true;
+                  onDeleted?.(result);
                 })
               }
             >

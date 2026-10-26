@@ -2,7 +2,7 @@
 
 import { Tabs } from "@base-ui/react/tabs";
 import { PlusIcon, RefreshCwIcon, SettingsIcon, PencilIcon } from "lucide-react";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -527,26 +527,33 @@ function BlogCategoriesPageContent({
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedCategories, suppliedClient);
   const categories = optimistic.value;
-  const client: BlogsClient = {
-    ...suppliedClient,
-    saveCategory: (input) => {
-      const id = input.id ?? `pending-${crypto.randomUUID()}`;
-      let category: BlogCategory = { ...input, id, version: input.version ?? 0 };
-      return optimistic.run(
-        (rows) =>
-          input.id ? rows.map((row) => (row.id === id ? category : row)) : [...rows, category],
-        async () => {
-          category = await suppliedClient.saveCategory(input);
-          return category;
-        },
-      );
-    },
-    deleteCategory: (input) =>
-      optimistic.run(
-        (rows) => rows.filter((row) => row.id !== input.id),
-        () => suppliedClient.deleteCategory(input),
-      ),
-  };
+  const run = useRef(optimistic.run);
+  useLayoutEffect(() => {
+    run.current = optimistic.run;
+  });
+  const client = useMemo<BlogsClient>(
+    () => ({
+      ...suppliedClient,
+      saveCategory: (input) => {
+        const id = input.id ?? `pending-${crypto.randomUUID()}`;
+        let category: BlogCategory = { ...input, id, version: input.version ?? 0 };
+        return run.current(
+          (rows) =>
+            input.id ? rows.map((row) => (row.id === id ? category : row)) : [...rows, category],
+          async () => {
+            category = await suppliedClient.saveCategory(input);
+            return category;
+          },
+        );
+      },
+      deleteCategory: (input) =>
+        run.current(
+          (rows) => rows.filter((row) => row.id !== input.id),
+          () => suppliedClient.deleteCategory(input),
+        ),
+    }),
+    [suppliedClient],
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const childrenByParent = new Map<string, BlogCategory[]>();
   for (const category of categories) {

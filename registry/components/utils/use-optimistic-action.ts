@@ -1,13 +1,14 @@
 "use client";
 
 import { QueryClient, QueryClientContext, useMutation } from "@tanstack/react-query";
-import { useContext, useRef, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 
 /** Overlay pending changes on host data without replacing its cache or fetch contract. */
 export function useOptimisticAction<T>(value: T, scope?: unknown) {
   const inheritedClient = useContext(QueryClientContext);
   const [localClient] = useState(() => new QueryClient());
-  const lock = useRef(false);
+  const lifetime = useMemo(() => ({ scope }), [scope]);
+  const lock = useRef<typeof lifetime | null>(null);
   const mutation = useMutation(
     {
       mutationFn: (input: {
@@ -22,23 +23,23 @@ export function useOptimisticAction<T>(value: T, scope?: unknown) {
     },
     inheritedClient ?? localClient,
   );
-  const current = mutation.variables?.scope === scope;
+  const current = mutation.variables?.scope === lifetime;
   const optimistic =
     current && (mutation.isPending || (mutation.isSuccess && mutation.variables?.source === value));
 
   async function run<R>(update: (current: T) => T, action: () => Promise<R>): Promise<R> {
-    if (lock.current) throw new Error("An action is already pending.");
-    lock.current = true;
+    if (lock.current === lifetime) throw new Error("An action is already pending.");
+    lock.current = lifetime;
     try {
-      return (await mutation.mutateAsync({ update, source: value, scope, action })) as R;
+      return (await mutation.mutateAsync({ update, source: value, scope: lifetime, action })) as R;
     } finally {
-      lock.current = false;
+      if (lock.current === lifetime) lock.current = null;
     }
   }
 
   return {
     value: optimistic && mutation.variables ? mutation.variables.update(value) : value,
-    pending: mutation.isPending,
+    pending: current && mutation.isPending,
     error: current ? mutation.error : null,
     run,
   };

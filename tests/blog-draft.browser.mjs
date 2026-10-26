@@ -225,3 +225,292 @@ void test("replacing an editor during save cannot resume its previous navigation
   );
   assert.equal(await leave(page).count(), 0);
 });
+
+async function flush(page) {
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+}
+async function noCompletion(page) {
+  await flush(page);
+  assert.deepEqual(await page.evaluate(() => window.draftTest.accepted), []);
+  assert.deepEqual(await page.evaluate(() => window.draftTest.deleted), []);
+  assert.equal(await page.getByRole("dialog").count(), 0);
+}
+
+for (const replacement of ["article", "client", "unmount"]) {
+  void test(`late refresh cannot affect ${replacement} replacement`, async (t) => {
+    const page = await fixture(t);
+    await history(page);
+    await page.evaluate(() => {
+      window.draftTest.correct();
+      window.draftTest.hold("article", true);
+    });
+    await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+    await page.getByRole("button", { name: "Refresh article", exact: true }).click();
+    await calls(page, "article", 1);
+    await page.evaluate((replacement) => {
+      if (replacement === "article") window.draftTest.switchArticle();
+      else if (replacement === "client") window.draftTest.replaceClient();
+      else window.draftTest.unmount();
+    }, replacement);
+    await flush(page);
+    const before = replacement === "unmount" ? undefined : await title(page).inputValue();
+    await resolve(page, "article", 0);
+    await noCompletion(page);
+    if (before !== undefined) assert.equal(await title(page).inputValue(), before);
+    else assert.equal(await title(page).count(), 0);
+  });
+}
+
+void test("client replacement preserves inputs and an old failure cannot unlock or notify a newer save", async (t) => {
+  const page = await fixture(t, true);
+  await page.evaluate(() => window.draftTest.hold("save", true));
+  await title(page).fill("Keep this unsaved draft");
+  await save(page).click();
+  await calls(page, "save", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await save(page).waitFor();
+  assert.equal(await title(page).inputValue(), "Keep this unsaved draft");
+  await save(page).click();
+  await calls(page, "save", 2);
+  await reject(page, "save", 0, "STORAGE_NOT_CONFIGURED");
+  await noCompletion(page);
+  assert.equal(
+    (await page.getByRole("button", { name: "Please wait…", exact: true }).count()) > 0,
+    true,
+  );
+  assert.equal(await page.getByRole("alert").count(), 0);
+  await resolve(page, "save", 1);
+  await actionToast(page, "Draft saved.");
+  assert.equal((await page.evaluate(() => window.draftTest.accepted)).length, 1);
+  assert.equal(await title(page).inputValue(), "Keep this unsaved draft");
+});
+
+for (const operation of ["publish", "unpublish", "upload", "delete"]) {
+  void test(`obsolete ${operation} cannot accept results or produce feedback`, async (t) => {
+    const page = await fixture(t, true);
+    if (operation === "publish") {
+      await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+      await actionToast(page, "This language is no longer public.");
+      await page.evaluate(() => {
+        window.draftTest.accepted.length = 0;
+      });
+    }
+    await page.evaluate((kind) => window.draftTest.hold(kind, true), operation);
+    if (operation === "publish") {
+      await page.getByRole("button", { name: "Publish", exact: true }).click();
+    } else if (operation === "unpublish") {
+      await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+    } else if (operation === "upload") {
+      await page.getByLabel("Insert image", { exact: true }).setInputFiles({
+        name: "tiny.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==",
+          "base64",
+        ),
+      });
+    } else {
+      await page.getByRole("button", { name: "Delete post", exact: true }).click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Delete permanently", exact: true })
+        .click();
+    }
+    await calls(page, operation, 1);
+    await page.evaluate(() => window.draftTest.replaceClient());
+    await flush(page);
+    const before = await title(page).inputValue();
+    const markdownBefore = await page
+      .getByRole("textbox", { name: "Markdown", exact: true })
+      .inputValue();
+    await resolve(page, operation, 0);
+    await noCompletion(page);
+    assert.equal(await title(page).inputValue(), before);
+    assert.equal(await page.getByRole("alert").count(), 0);
+    if (operation === "upload")
+      assert.equal(
+        await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
+        markdownBefore,
+      );
+    if (operation === "unpublish")
+      assert.equal(
+        await page.getByRole("button", { name: "Unpublish", exact: true }).isEnabled(),
+        true,
+      );
+  });
+}
+
+void test("obsolete history plan cannot start publication or reopen a confirmation", async (t) => {
+  const page = await fixture(t);
+  await history(page);
+  await inspect(page, 18);
+  await calls(page, "body", 1);
+  await resolve(page, "body", 0);
+  await page.evaluate(() => window.draftTest.hold("plan", true));
+  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  await calls(page, "plan", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await resolve(page, "plan", 0);
+  await noCompletion(page);
+  assert.equal(
+    await page.getByRole("dialog", { name: "Review publication", exact: true }).count(),
+    0,
+  );
+  assert.equal(await page.evaluate(() => window.draftTest.calls.historyPublish.length), 0);
+});
+
+void test("client replacement discards a prepared publication confirmation", async (t) => {
+  const page = await fixture(t);
+  await history(page);
+  await inspect(page, 18);
+  await calls(page, "body", 1);
+  await resolve(page, "body", 0);
+  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  await page.getByRole("dialog", { name: "Review publication", exact: true }).waitFor();
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await flush(page);
+  assert.equal(
+    await page.getByRole("dialog", { name: "Review publication", exact: true }).count(),
+    0,
+  );
+});
+
+for (const operation of ["historyPublish", "historyDelete"]) {
+  void test(`late ${operation} cannot replace the new article`, async (t) => {
+    const page = await fixture(t);
+    await history(page);
+    await page.evaluate((kind) => window.draftTest.hold(kind, true), operation);
+    if (operation === "historyPublish") {
+      await inspect(page, 18);
+      await calls(page, "body", 1);
+      await resolve(page, "body", 0);
+      await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+      await page
+        .getByRole("dialog", { name: "Review publication", exact: true })
+        .getByRole("button", { name: "Publish", exact: true })
+        .click();
+    } else {
+      await panel(page).getByRole("button", { name: "Actions: v18", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Delete version", exact: true }).click();
+      await page
+        .getByRole("dialog", { name: "Delete version v18", exact: true })
+        .getByRole("button", { name: "Delete permanently", exact: true })
+        .click();
+    }
+    await calls(page, operation, 1);
+    await page.evaluate(() => window.draftTest.switchArticle());
+    await flush(page);
+    const before = await title(page).inputValue();
+    await resolve(page, operation, 0);
+    await noCompletion(page);
+    assert.equal(await title(page).inputValue(), before);
+  });
+}
+
+void test("category save preserves inputs after client replacement and suppresses its obsolete callback", async (t) => {
+  const page = await fixture(t, true);
+  await page.goto(`${base}tests/fixtures/blog-draft.html?category`);
+  await page.waitForFunction(() => !!window.draftTest);
+  const name = page
+    .getByRole("group", { name: "English", exact: true })
+    .getByRole("textbox")
+    .first();
+  await name.fill("Keep my category");
+  await page.evaluate(() => window.draftTest.hold("saveCategory", true));
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await calls(page, "saveCategory", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await resolve(page, "saveCategory", 0);
+  await noCompletion(page);
+  assert.equal(await name.inputValue(), "Keep my category");
+});
+
+void test("returning to the same client object does not revive its old save", async (t) => {
+  const page = await fixture(t, true);
+  await page.evaluate(() => window.draftTest.hold("save", true));
+  await title(page).fill("Retain across A B A");
+  await save(page).click();
+  await calls(page, "save", 1);
+  await page.evaluate(() => window.draftTest.replaceClient(1));
+  await save(page).waitFor();
+  await flush(page);
+  await page.evaluate(() => window.draftTest.replaceClient(0));
+  await flush(page);
+  await resolve(page, "save", 0);
+  await noCompletion(page);
+  assert.equal(await title(page).inputValue(), "Retain across A B A");
+  assert.equal(await save(page).isEnabled(), true);
+});
+
+void test("category deletion suppresses obsolete exit but current deletion still exits", async (t) => {
+  const page = await fixture(t, true);
+  await page.goto(`${base}tests/fixtures/blog-draft.html?category`);
+  await page.waitForFunction(() => !!window.draftTest);
+  await page.evaluate(() => window.draftTest.hold("deleteCategory", true));
+  await page.getByRole("button", { name: "Delete category", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete permanently", exact: true })
+    .click();
+  await calls(page, "deleteCategory", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await reject(page, "deleteCategory", 0, "STORAGE");
+  await noCompletion(page);
+  await page.getByRole("button", { name: "Delete category", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete permanently", exact: true })
+    .click();
+  await calls(page, "deleteCategory", 2);
+  await resolve(page, "deleteCategory", 1);
+  await flush(page);
+  assert.equal(await page.evaluate(() => window.draftTest.deleted.length), 1);
+});
+
+void test("history deletion cannot notify or accept into a replacement language", async (t) => {
+  const page = await fixture(t);
+  await history(page);
+  await page.evaluate(() => window.draftTest.hold("historyDelete", true));
+  await panel(page).getByRole("button", { name: "Actions: v18", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Delete version", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Delete version v18", exact: true })
+    .getByRole("button", { name: "Delete permanently", exact: true })
+    .click();
+  await calls(page, "historyDelete", 1);
+  // Client invalidation releases the old dialog without discarding the draft.
+  await page.evaluate(() => window.draftTest.replaceClient());
+  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await page.getByRole("tabpanel", { name: "Français", exact: true }).waitFor();
+  const before = await title(page).inputValue();
+  await resolve(page, "historyDelete", 0);
+  await noCompletion(page);
+  assert.equal(await title(page).inputValue(), before);
+});
+
+void test("category page keeps its client stable and replaces pending optimistic operations", async (t) => {
+  const page = await fixture(t);
+  await page.goto(`${base}tests/fixtures/blog-draft.html?category-page`);
+  await page.waitForFunction(() => !!window.draftTest);
+  await page.evaluate(() => window.draftTest.hold("saveCategory", true));
+  const name = page
+    .getByRole("group", { name: "English", exact: true })
+    .getByRole("textbox", { name: "Category name", exact: true });
+  await name.fill("Preserved category");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await calls(page, "saveCategory", 1);
+  await page.evaluate(() => window.draftTest.replaceClient());
+  assert.equal(await name.inputValue(), "Preserved category");
+  await page.getByRole("button", { name: "Save category", exact: true }).click();
+  await calls(page, "saveCategory", 2);
+  await reject(page, "saveCategory", 0, "STORAGE");
+  await flush(page);
+  assert.equal(await name.isDisabled(), true);
+  assert.deepEqual(await page.evaluate(() => window.draftTest.accepted), []);
+  await resolve(page, "saveCategory", 1);
+  await page.waitForFunction(() => window.draftTest.accepted.length === 1);
+  assert.equal(await name.inputValue(), "Preserved category");
+  assert.equal(await name.isDisabled(), false);
+});

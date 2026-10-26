@@ -236,6 +236,24 @@ The former private `use-draft.ts` is no longer used and can be removed after ado
 Same-article prop updates preserve the active session; changing article or language
 starts a new one. Clients without `BlogsClient.history` retain direct publication.
 
+Every editor operation accepts results and feedback only while its originating
+article/language and client remain current. Leaving the editor or replacing its
+client suppresses late success/error feedback, callbacks, navigation, uploads and
+publication confirmations. Already-submitted server writes may still finish.
+Replacing only the client preserves unsaved text, settings and category inputs,
+clears obsolete pending state and confirmations, and uses the new client for later
+attempts. Unchanged retries within that client retain their request IDs; a replacement
+client starts fresh attempts. Version checks still apply to writes that finish late.
+Hosts must close or reset the editor when switching accounts or workspaces.
+Keep client objects stable across ordinary rerenders. Keep the editor mounted
+through deletion completion so its accepted callback can navigate; removing it
+early in response to a cache update intentionally invalidates that callback.
+
+This protection ships in `@forge/blogs`; `blogs-storage` depends on that item but
+has no server changes or migration for this update. L’Aspic and Osthoepathie Seebach
+are recorded consumers requiring separate adoption review. Their installed adapters
+and deployments were not updated here; other installations remain uninspected.
+
 The pure draft-save module now exposes `saveBlogDraft` in `model.ts` instead of
 `saveArticle` and `recordBlogSave`. Update Blogs and its storage adapter together;
 see the [draft-save adoption handoff](./HANDOFF-blog-save-module.md) for direct

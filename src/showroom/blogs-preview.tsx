@@ -234,6 +234,13 @@ export function BlogsAdminPreview() {
   const state = useBlogsPreview(),
     navigate = useNavigate();
   const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
+  const currentArticle = state.mock.all().find((article) => article.id === segments[0]);
+  const [lastArticle, setLastArticle] = useState(currentArticle);
+  if (
+    currentArticle &&
+    (currentArticle.id !== lastArticle?.id || currentArticle.version !== lastArticle.version)
+  )
+    setLastArticle(currentArticle);
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
@@ -298,7 +305,8 @@ export function BlogsAdminPreview() {
       />
     );
   if (segments[0]) {
-    const article = state.mock.all().find((a) => a.id === segments[0]);
+    // Keep the editor mounted until its successful deletion callback navigates away.
+    const article = currentArticle ?? (lastArticle?.id === segments[0] ? lastArticle : undefined);
     if (!article)
       return (
         <p role="alert" className="p-8">

@@ -71,6 +71,10 @@ bylines and retained signatures use host name/deletion adapters; see
 
 The Blog editor and Menu editor are separate domain modules, each owning its forms,
 save flow and unsaved-change protection. Their existing page interfaces stay stable.
+The Blog editor also owns asynchronous completion: replaced clients or departed
+editors cannot accept late results, feedback or host callbacks. Client replacement
+preserves unsaved inputs while invalidating old operations and confirmations; see
+[Blog editor adoption](./blogs.md#updating-consumers).
 Blog category and menu taxonomy editors expose the same optional router guard as
 their content editors. Hosts can offer Save, Discard and Cancel for browser
 Back/Forward while protecting pending saves; see the [Blogs](./blogs.md#history-interface)

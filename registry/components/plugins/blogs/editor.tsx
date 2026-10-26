@@ -58,6 +58,7 @@ import type {
   BlogsClient,
 } from "@/components/plugins/blogs/types";
 import {
+  BlogEditorClient,
   buttonClass,
   cardClass,
   ConfirmDelete,
@@ -85,7 +86,6 @@ import {
 } from "@/components/plugins/blogs/utils";
 import { emptyContent } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
-import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 function subscribeHistoryDesktop(callback: () => void) {
   const query = window.matchMedia("(min-width: 1024px)");
   query.addEventListener("change", callback);
@@ -144,7 +144,9 @@ function Editor(props: BlogEditPageProps) {
           ))}
         </Tabs.List>
         <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
-          <EditorForm {...props} locale={locale} navigationRef={navigationRef} />
+          <BlogEditorClient value={props.client}>
+            <EditorForm {...props} locale={locale} navigationRef={navigationRef} />
+          </BlogEditorClient>
         </Tabs.Panel>
       </Tabs.Root>
     </section>
@@ -339,6 +341,12 @@ function EditorForm({
     target: "thumbnailId" | "bannerId";
     dimensions: ImageCropSize;
   } | null>(null);
+  const [previousClient, setPreviousClient] = useState(client);
+  if (previousClient !== client) {
+    setPreviousClient(client);
+    setCrop(null);
+    setValidation("");
+  }
   const readOnly = !capabilities.edit;
   const StatusBadge = capabilities.publish ? "button" : "span";
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
@@ -406,6 +414,7 @@ function EditorForm({
         content.markdown.slice(end),
     );
     requestAnimationFrame(() => {
+      if (!draft.isCurrent()) return;
       textarea.current?.focus();
       textarea.current?.setSelectionRange(start + prefix.length, end + prefix.length);
     });
@@ -420,12 +429,12 @@ function EditorForm({
       return false;
     }
 
-    const result = await draft.upload(file, target);
-    if (result) {
+    const result = await draft.upload(file, target, (result) => {
       setAssets((previous) => [...previous.filter((a) => a.id !== result.id), result]);
       if (target === "inline") insert(`![](${`./assets/${result.id}`})`);
       else sharedField(target, result.id);
-    }
+      setCrop(null);
+    });
     return !!result;
   }
   function selectImage(file: File, target: "thumbnailId" | "bannerId") {
@@ -668,6 +677,7 @@ function EditorForm({
               formatDate={(iso) => formatDate(iso, locale)}
               working={workingPreview}
               onDelete={capabilities.delete ? history.delete : undefined}
+              onDeleted={history.accept}
             />
           )
         }
@@ -750,7 +760,6 @@ function EditorForm({
                 onCancel={() => setCrop(null)}
                 onConfirm={async (file) => {
                   if (!(await upload(file, crop.target))) throw new Error("Upload failed");
-                  setCrop(null);
                 }}
               />
             )}
@@ -1041,10 +1050,10 @@ function EditorForm({
                     label={labels.delete}
                     description={labels.deleteDescription}
                     disabled={pending}
-                    onDelete={async (requestId) => {
-                      await client.delete({ id: base.id, version: base.version, requestId });
-                      onDeleted();
-                    }}
+                    onDelete={(requestId) =>
+                      client.delete({ id: base.id, version: base.version, requestId })
+                    }
+                    onDeleted={onDeleted}
                   />
                 )}
                 <div className="ml-auto flex flex-wrap justify-end gap-2">
@@ -1101,7 +1110,15 @@ export interface BlogCategoryEditorProps {
   onDeleted: () => void;
 }
 
-export function BlogCategoryEditor({
+export function BlogCategoryEditor(props: BlogCategoryEditorProps) {
+  return (
+    <BlogEditorClient value={props.client}>
+      <BlogCategoryEditorContent key={props.category?.id ?? "new"} {...props} />
+    </BlogEditorClient>
+  );
+}
+
+function BlogCategoryEditorContent({
   category,
   categories,
   locales,
@@ -1141,20 +1158,20 @@ export function BlogCategoryEditor({
         Object.entries(translations).filter(([, value]) => value.name.trim()),
       ),
     };
-    const result = await action.run(
+    await action.run(
       JSON.stringify(input),
       (requestId) => client.saveCategory({ ...input, requestId }),
       labels.categorySaved,
+      (result) => {
+        const proceed = leaving ? blockedNavigation?.proceed : undefined;
+        setSavedSnapshot(JSON.stringify([result.translations, result.parentId ?? ""]));
+        setParent(result.parentId ?? "");
+        setBase(result);
+        setTranslations(result.translations);
+        onSaved(result, !!proceed);
+        if (proceed) editor.resume(proceed);
+      },
     );
-    if (result && editor.isActive()) {
-      const proceed = leaving ? blockedNavigation?.proceed : undefined;
-      setSavedSnapshot(JSON.stringify([result.translations, result.parentId ?? ""]));
-      setParent(result.parentId ?? "");
-      setBase(result);
-      setTranslations(result.translations);
-      onSaved(result, !!proceed);
-      if (proceed) editor.resume(proceed);
-    }
   }
   return (
     <>
@@ -1184,10 +1201,10 @@ export function BlogCategoryEditor({
               label={labels.deleteCategory}
               description={labels.deleteCategoryDescription}
               disabled={action.pending}
-              onDelete={async (requestId) => {
-                await client.deleteCategory({ id: base.id, version: base.version, requestId });
-                onDeleted();
-              }}
+              onDelete={(requestId) =>
+                client.deleteCategory({ id: base.id, version: base.version, requestId })
+              }
+              onDeleted={onDeleted}
             />
           )}
         </header>
@@ -1327,14 +1344,18 @@ function useBlogDraft({
   const publication = useHistoryPublication(client, labels, accept);
   const pending = action.pending || publication.pending;
   const editor = useBlogEditorState(dirty, pending, onNavigationStateChange);
-  const optimistic = useOptimisticAction<"draft" | "changed" | "published">(
-    !base.translations[locale]?.published
-      ? "draft"
-      : hasUnpublishedChanges(base, locale)
-        ? "changed"
-        : "published",
-    `${base.id}:${locale}:${base.version}`,
-  );
+  const [optimisticStatus, setOptimisticStatus] = useState<{
+    scope: typeof action.scope;
+    value: "draft" | "changed" | "published";
+  }>();
+  const status =
+    action.pending && optimisticStatus?.scope === action.scope
+      ? optimisticStatus.value
+      : !base.translations[locale]?.published
+        ? "draft"
+        : hasUnpublishedChanges(base, locale)
+          ? "changed"
+          : "published";
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -1446,31 +1467,32 @@ function useBlogDraft({
   async function save(continueNavigation = false) {
     if (pending) return false;
     const next = continueNavigation ? (blockedNavigation?.proceed ?? leave) : null;
+    setOptimisticStatus({
+      scope: action.scope,
+      value: base.translations[locale]?.published ? "changed" : "draft",
+    });
     const result = await action.run(
       JSON.stringify(["save", base.version, locale, content, shared, origin]),
       (requestId) =>
-        optimistic.run(
-          () => (base.translations[locale]?.published ? "changed" : "draft"),
-          () =>
-            client.save({
-              id: base.id,
-              version: base.version,
-              locale,
-              content,
-              shared,
-              origin,
-              requestId,
-            }),
-        ),
+        client.save({
+          id: base.id,
+          version: base.version,
+          locale,
+          content,
+          shared,
+          origin,
+          requestId,
+        }),
       labels.saved,
+      (saved) => {
+        accept(saved);
+        if (continueNavigation) {
+          setLeave(null);
+          if (next) editor.resume(next);
+        }
+      },
     );
-    if (!result || !editor.isActive()) return false;
-    accept(result);
-    if (continueNavigation) {
-      setLeave(null);
-      if (next) editor.resume(next);
-    }
-    return true;
+    return !!result;
   }
   async function publish(remove = false) {
     if (pending || dirty) return;
@@ -1479,35 +1501,35 @@ function useBlogDraft({
       await publication.prepare({ id: base.id, version: base.version, locale, versionId });
       return;
     }
-    const result = await action.run(
+    setOptimisticStatus({ scope: action.scope, value: remove ? "draft" : "published" });
+    await action.run(
       JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
       (requestId) =>
-        optimistic.run(
-          () => (remove ? "draft" : "published"),
-          () =>
-            client[remove ? "unpublish" : "publish"]({
-              id: base.id,
-              version: base.version,
-              locale,
-              requestId,
-            }),
-        ),
+        client[remove ? "unpublish" : "publish"]({
+          id: base.id,
+          version: base.version,
+          locale,
+          requestId,
+        }),
       remove ? labels.unpublishedSuccess : labels.publishedSuccess,
+      accept,
     );
-    if (result) accept(result);
   }
   function refresh() {
-    return action.run("refresh-article", async () => {
-      const latest = await client.get(base.id);
-      if (dirty || selectedId) {
-        setBase(latest);
-        if (!dirty) {
-          setContent({ ...emptyContent, ...latest.translations[locale]?.draft });
-          setShared(structuredClone(latest.translations[locale]?.shared ?? latest.shared));
-        }
-      } else accept(latest);
-      return true;
-    });
+    return action.run(
+      "refresh-article",
+      () => client.get(base.id),
+      undefined,
+      (latest) => {
+        if (dirty || selectedId) {
+          setBase(latest);
+          if (!dirty) {
+            setContent({ ...emptyContent, ...latest.translations[locale]?.draft });
+            setShared(structuredClone(latest.translations[locale]?.shared ?? latest.shared));
+          }
+        } else accept(latest);
+      },
+    );
   }
 
   return {
@@ -1517,8 +1539,9 @@ function useBlogDraft({
     dirty,
     origin,
     pending,
-    status: optimistic.value,
+    status,
     feedback: action.feedback,
+    isCurrent: action.isCurrent,
     publication,
     save,
     publish,
@@ -1531,11 +1554,16 @@ function useBlogDraft({
       setShared((previous) => ({ ...previous, [key]: value }));
       setDirty(true);
     },
-    upload: (file: File, target: "thumbnailId" | "bannerId" | "inline") => {
+    upload: (
+      file: File,
+      target: "thumbnailId" | "bannerId" | "inline",
+      onUploaded: (asset: BlogAsset) => void,
+    ) => {
       return action.run(
         JSON.stringify(["upload", file.name, file.size, file.lastModified, target]),
         (requestId) => client.upload({ id: base.id, file, requestId }),
         labels.uploaded,
+        onUploaded,
       );
     },
     leave: {
@@ -1600,16 +1628,15 @@ function useBlogDraft({
           onEntered();
         });
       },
-      delete: async (version: BlogHistoryHeader, requestId: string) => {
-        const result = await client.history!.delete({
+      accept,
+      delete: (version: BlogHistoryHeader, requestId: string) =>
+        client.history!.delete({
           id: base.id,
           version: base.version,
           locale,
           versionId: version.id,
           requestId,
-        });
-        accept(result);
-      },
+        }),
     },
   };
 }
@@ -1642,7 +1669,6 @@ function useBlogEditorState(
     };
   }, []);
   return {
-    isActive: () => active.current,
     resume: (next: () => void) => {
       if (!active.current) return;
       // Clear before calling the host so a confirmed move never warns twice.

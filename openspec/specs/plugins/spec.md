@@ -1162,8 +1162,8 @@ drafts within the current folder browser, independently of the selected view.
 
 `@forge/blogs` SHALL provide article administration, language tabs, Markdown
 editing/preview, categories and public list/article components. Its Blog editor
-module SHALL own article and category editing, saved state and unsaved-change
-protection independently of the Menu editor, preserving the existing page interfaces.
+module SHALL own article and category editing, saved state, asynchronous completion
+and unsaved-change protection independently of the Menu editor, preserving the existing page interfaces.
 
 #### Scenario: Rejecting malformed service requests
 
@@ -1230,6 +1230,22 @@ protection independently of the Menu editor, preserving the existing page interf
 - **AND** explicit article refresh adopts the latest version while retaining dirty content, settings and history origin
 - **AND** obsolete history responses cannot replace the current client's headers or selected version
 - **AND** clients without history retain direct publication through the existing client interface
+
+#### Scenario: An obsolete Blog editor operation finishes
+
+- **WHEN** a save, refresh, publication, history operation, upload or deletion finishes after its article/language editor or category editor has been replaced, unmounted or given a replacement client
+- **THEN** the old completion does not update editor state, produce success/error feedback, invoke host callbacks or resume navigation
+- **AND** obsolete publication plans cannot open confirmations or start publication
+- **AND** already-submitted server writes may finish without affecting the replacement editor
+- **AND** an obsolete attempt cannot clear a newer attempt's pending state or retry identity
+
+#### Scenario: Replacing only the Blog editor client
+
+- **WHEN** the host supplies a different client for the same article/language or category
+- **THEN** unsaved inputs remain intact while obsolete pending state, feedback and confirmations are cleared
+- **AND** subsequent attempts use the replacement client and a fresh retry identity, even when a prior client object is later reused
+- **AND** unchanged retries within the same client retain their request ID and existing version checks
+- **AND** current successful saves and confirmed deletions retain their normal host callbacks and navigation
 
 #### Scenario: Browser history leaves an unsaved blog draft
 
