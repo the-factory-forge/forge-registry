@@ -10,7 +10,7 @@ import { examples } from "@/showroom/examples";
 import { ShowroomLink } from "@/showroom/routing";
 
 const iconButtonClass =
-  "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring";
+  "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
 export function ShowroomSearch() {
   const [open, setOpen] = useState(false);
@@ -93,42 +93,44 @@ export function ShowroomSearch() {
             results and Enter to open.
           </Dialog.Description>
           <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-3 sm:px-5">
-            <SearchIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <input
-              ref={inputRef}
-              type="search"
-              aria-label="Search registry examples"
-              aria-controls="factory-showroom-search-results"
-              placeholder="Search registry…"
-              autoComplete="off"
-              spellCheck={false}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.nativeEvent.isComposing) return;
-                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                  event.preventDefault();
-                  focusResult(event.key === "ArrowDown" ? 0 : results.length - 1);
-                } else if (event.key === "Enter") {
-                  event.preventDefault();
-                  resultsRef.current?.querySelector<HTMLAnchorElement>("a")?.click();
-                }
-              }}
-              className="h-10 min-w-0 flex-1 rounded-md bg-transparent px-1 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-search-cancel-button]:hidden"
-            />
-            <IconTooltip label="Clear search">
-              <button
-                type="button"
-                aria-label="Clear search"
-                className={cn(iconButtonClass, !query && "invisible")}
-                onClick={() => {
-                  setQuery("");
-                  inputRef.current?.focus();
+            <SearchIcon className="size-5 shrink-0 text-foreground" aria-hidden="true" />
+            <div className="relative min-w-0 flex-1">
+              <input
+                ref={inputRef}
+                type="search"
+                aria-label="Search registry examples"
+                aria-controls="factory-showroom-search-results"
+                placeholder="Search registry…"
+                autoComplete="off"
+                spellCheck={false}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
+                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    focusResult(event.key === "ArrowDown" ? 0 : results.length - 1);
+                  } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    resultsRef.current?.querySelector<HTMLAnchorElement>("a")?.click();
+                  }
                 }}
-              >
-                <XIcon className="size-4" aria-hidden="true" />
-              </button>
-            </IconTooltip>
+                className="h-10 w-full min-w-0 rounded-md bg-transparent pr-10 pl-1 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-search-cancel-button]:hidden"
+              />
+              <IconTooltip label="Clear search">
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className={cn(iconButtonClass, "absolute top-0 right-0", !query && "invisible")}
+                  onClick={() => {
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                >
+                  <XIcon className="size-4" aria-hidden="true" />
+                </button>
+              </IconTooltip>
+            </div>
             <IconTooltip label="Close search">
               <Dialog.Close aria-label="Close search" className={iconButtonClass}>
                 <XIcon className="size-5" aria-hidden="true" />
