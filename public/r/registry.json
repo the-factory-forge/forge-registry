@@ -302,21 +302,6 @@
       "registryDependencies": ["@forge/cn"]
     },
     {
-      "name": "back-to-top",
-      "type": "registry:ui",
-      "title": "Back to Top",
-      "description": "Scroll-to-top floating button that appears after scrolling.",
-      "files": [
-        {
-          "path": "registry/components/back-to-top.tsx",
-          "type": "registry:component",
-          "target": "@components/back-to-top.tsx"
-        }
-      ],
-      "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/icon-tooltip"]
-    },
-    {
       "name": "section-heading",
       "type": "registry:ui",
       "title": "Section Heading",

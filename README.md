@@ -146,7 +146,6 @@ supply their own translations and theme configuration.
 | `animations`                                   | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
 | `reveal`                                       | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
 | `share-button`                                 | Web Share API + clipboard fallback                                                  |
-| `back-to-top`                                  | Floating scroll-to-top button                                                       |
 | `section-heading`                              | Eyebrow + title + subtitle, alignment and inverted variants                         |
 | `image-with-fallback`                          | Image (shim) with error placeholder                                                 |
 | `lightbox`                                     | Click-to-enlarge image with overlay                                                 |
