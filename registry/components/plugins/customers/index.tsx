@@ -449,10 +449,6 @@ export function CustomerNewPage({
         <ArrowLeftIcon aria-hidden="true" />
         {labels.back}
       </CustomerLink>
-      <header className={cn(cardClass, "space-y-1.5")}>
-        <h1 className="text-base font-semibold">{labels.newTitle}</h1>
-        <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
-      </header>
       <CustomerForm labels={labels} onSubmit={onCreate} />
     </div>
   );

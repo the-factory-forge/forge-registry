@@ -686,6 +686,7 @@ uploads SHALL preserve other edits and allow retry or cancellation.
 
 `@forge/customers` SHALL provide a searchable directory, a creation page and an
 About editor for customer contact, company and address fields.
+The creation header SHALL show a fixed-size avatar using the current draft's initials.
 Single-record deletion SHALL follow the target, refresh and focus behavior in
 the optimistic mutation isolation requirement.
 
@@ -705,6 +706,12 @@ the optimistic mutation isolation requirement.
   placeholder addresses or silently attach an existing identity.
   Verified/unverified indicators SHALL use success/pending colors; disabled access
   SHALL use canceled colors.
+
+#### Scenario: Previewing a customer avatar during creation
+
+- **WHEN** staff type or clear company, contact name or email fields before saving
+- **THEN** the creation avatar updates immediately using company name, contact name, then email in that order
+- **AND** empty or whitespace-only values show `?` without changing the avatar's size
 
 #### Scenario: Offering customer verification choices
 

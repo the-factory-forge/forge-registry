@@ -77,7 +77,7 @@ export function CustomerAvatar({
   customer,
   large = false,
 }: {
-  customer: Customer;
+  customer: Pick<Customer, "name" | "companyName" | "email" | "image">;
   large?: boolean;
 }) {
   const name = customerDisplayName(customer);

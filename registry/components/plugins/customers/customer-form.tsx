@@ -12,6 +12,7 @@ import type {
 } from "@/components/plugins/customers/types";
 import {
   cardClass,
+  CustomerAvatar,
   Feedback,
   inputClass,
   primaryButtonClass,
@@ -141,6 +142,15 @@ function CustomerFormContent({
       aria-busy={pending}
       className="space-y-6 focus-visible:ring-2 focus-visible:ring-ring"
     >
+      {creating && (
+        <header className={cn(cardClass, "flex items-center gap-4")}>
+          <CustomerAvatar customer={values} large />
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="text-base font-semibold">{labels.newTitle}</h1>
+            <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
+          </div>
+        </header>
+      )}
       <fieldset disabled={pending} className="min-w-0 space-y-6">
         <section aria-labelledby={`${id}-contact`} className={cn(cardClass, "space-y-5")}>
           <div className="space-y-1.5">

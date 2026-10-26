@@ -104,6 +104,40 @@ await suite("Customers browser", async () => {
     await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
   });
 
+  await test("creation avatar follows draft initials without saving or shifting the form", async (t) => {
+    const page = await preview(t, "/new");
+    const header = page.locator("form header");
+    const name = page.getByLabel("Full name *", { exact: true });
+    const email = page.getByLabel("Email *", { exact: true });
+    const company = page.getByLabel("Company name", { exact: true });
+    const initialPosition = await name.evaluate(
+      (input) => input.getBoundingClientRect().top + scrollY,
+    );
+    await header.getByText("?", { exact: true }).waitFor();
+    await email.fill("alex@example.com");
+    await header.getByText("AL", { exact: true }).waitFor();
+    await name.pressSequentially("Alex Morgan");
+    await header.getByText("AM", { exact: true }).waitFor();
+    await company.pressSequentially("Acme Studio");
+    await header.getByText("AS", { exact: true }).waitFor();
+    await company.fill("   ");
+    await header.getByText("AM", { exact: true }).waitFor();
+    await name.fill("   ");
+    await header.getByText("AL", { exact: true }).waitFor();
+    await email.fill("");
+    await header.getByText("?", { exact: true }).waitFor();
+    assert.equal(
+      await name.evaluate((input) => input.getBoundingClientRect().top + scrollY),
+      initialPosition,
+    );
+    await name.fill("Alex Morgan");
+    await email.fill("alex@example.com");
+    await page.getByLabel("Simulate action failures").check();
+    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+    await header.getByText("AM", { exact: true }).waitFor();
+  });
+
   await test("creation validates contact fields without collecting a password", async (t) => {
     const page = await preview(t, "/new");
     const submit = page.getByRole("button", { name: "Create customer", exact: true });
@@ -246,6 +280,8 @@ await suite("Customers browser", async () => {
         });
         await page.getByRole("link", { name: "Create customer", exact: true }).click();
         await page.getByRole("heading", { name: "New customer", exact: true }).waitFor();
+        await page.getByLabel("Full name *", { exact: true }).fill("Alex Morgan");
+        await page.locator("form header").getByText("AM", { exact: true }).waitFor();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,

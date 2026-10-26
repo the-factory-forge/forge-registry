@@ -80,6 +80,10 @@ files belong to the consuming app and are not installed by the registry.
 and `addressComplement`. Company name takes precedence over contact name in the
 summary and directory. `city` retains TC's combined postal-code/city field.
 
+The creation header shows an avatar that updates as contact and company fields
+are typed. Initials use company name first, then contact name, then email; empty
+fields show `?`. Its size stays fixed while the draft changes.
+
 `CustomerFormValues` contains strings for the seven editable contact/company/
 address fields. Empty optional fields submit as empty strings; map these to
 database nulls in the host if needed. Name and email are trimmed on submission.
