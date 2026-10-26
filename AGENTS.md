@@ -68,7 +68,12 @@ module requirement when adding or materially changing a feature.
 
 Local main specs live under `openspec/specs/`: `plugins`, `reservations`,
 `registry-showroom` and `registry-releases`. The [Blogs storage decision](concepts/adr/0009-blog-content-and-image-storage.md)
-is registry-owned. Use forge-spec's installed OpenSpec CLI with this repository
+is registry-owned. For Mailing rendering or transport, read
+[ADR-0012](concepts/adr/0012-mailing-rendering-and-transport.md); for plugin locks,
+projections or customer identity transactions, read
+[ADR-0013](concepts/adr/0013-plugin-persistence-and-identities.md). Their linked
+shared decisions retain host branding and project migration ownership.
+Use forge-spec's installed OpenSpec CLI with this repository
 as the working directory; generated OpenSpec skills remain central.
 
 ## Filter and view state

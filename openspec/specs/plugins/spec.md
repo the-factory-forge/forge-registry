@@ -610,6 +610,19 @@ edit/delete dialogs and verification actions.
   Row controls SHALL follow [stable table row actions](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions),
   including disabled self-delete and unavailable verification/invitation controls.
 
+#### Scenario: The current employee cannot delete their own account
+
+- **WHEN** an administrator views their own employee row alongside other employees
+- **THEN** every row shows verification/invitation, edit and delete in the same positions
+- **AND** self-delete remains visible and disabled without opening a confirmation or invoking deletion
+- **AND** another employee's enabled delete action still requires confirmation
+
+#### Scenario: Verification is unnecessary or unavailable
+
+- **WHEN** an employee has a verified email and no pending invitation, or the account is banned
+- **THEN** the send action remains visible and disabled without moving edit or delete
+- **AND** an eligible pending invitation retains resend even if the email is already verified
+
 #### Scenario: Controlling public profile visibility
 
 - **WHEN** a host offers employee profile publication
@@ -690,12 +703,50 @@ uploads SHALL preserve other edits and allow retry or cancellation.
 - **THEN** the photo control imposes no required-file validation
 - **WHEN** the employee selects an image
 - **THEN** crop confirmation prepares the configured WebP output before upload
+- **AND** host adapters follow [the upload contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-user-uploaded-file-persistence) through existing optional photo callbacks
+- **AND** a successful upload stores the bytes in S3 and persists only metadata and a durable reference in PostgreSQL
 
 #### Scenario: Employee photo upload fails
 
 - **WHEN** image decoding or the host upload fails
 - **THEN** accessible feedback supports retry or cancellation
 - **AND** unrelated form values remain intact
+- **AND** missing or unavailable S3 leaves the previous photo unchanged without a database-byte fallback
+
+#### Scenario: An existing host does not enable photo uploads
+
+- **WHEN** the host omits the optional photo upload callback
+- **THEN** employee management remains usable without an upload feature or required S3 configuration
+- **AND** installing Employees does not create photo storage, public profiles or a data migration
+
+### Requirement: Employee photo access and lifetime
+
+Hosts SHALL validate file bytes and fresh authorization before photo writes and
+authorize reads independently of object keys under the host's access policy.
+Public profiles and their publication rules SHALL remain host-owned.
+Replacement, canceled edits and employee deletion SHALL preserve referenced
+photos and retain recoverable cleanup information for
+unreferenced objects. A failed S3 deletion SHALL NOT lose the cleanup reference.
+
+#### Scenario: Reading an employee photo
+
+- **WHEN** a caller requests an employee photo
+- **THEN** the host authorizes the request under its existing photo access rules
+- **AND** knowing an asset ID or S3 key does not grant access to a protected photo
+- **AND** installing Employees does not introduce public profiles or change the host's publication rules
+
+#### Scenario: Replacing a photo or canceling an edit
+
+- **WHEN** a replacement upload fails or the editor discards the new selection
+- **THEN** the previously saved profile and photo remain readable
+- **AND** uploaded but unreferenced objects can be cleaned without deleting a referenced photo
+
+#### Scenario: Removing an employee while storage is unavailable
+
+- **WHEN** authorized employee deletion commits but S3 object removal fails
+- **THEN** removed employee references no longer grant access to their photos
+- **AND** durable cleanup references survive account deletion and allow removal to be retried
+- **AND** related-data decisions retain their existing database transaction guarantees
 
 ### Requirement: Customers plugin
 
@@ -867,6 +918,12 @@ the optimistic mutation isolation requirement.
   Asynchronous toast feedback SHALL update in place through loading, success and
   error states. Loading indicators SHALL respect reduced motion. Failed requests
   SHALL retain recovery controls or leave the initiating action available for retry.
+
+#### Scenario: Leaving an upload browser
+
+- **WHEN** a Drive browser with unfinished uploads unmounts
+- **THEN** its independently identified batch toast is removed and the existing cancellation behavior runs
+- **AND** context-bound Undo controls close with their browser while ordinary confirmations remain in the shared queue
 
 #### Scenario: Connecting scoped Drive storage
 
@@ -1209,6 +1266,12 @@ and unsaved-change protection independently of the Menu editor, preserving the e
   Published, unpublished changes and draft SHALL use success, pending and
   not-started colors in both list and editor.
 
+#### Scenario: Reading a blog status
+
+- **WHEN** a blog translation is published, has unpublished changes, or is a draft
+- **THEN** its editor and list badge use the same green, orange, or gray status pair respectively
+- **AND** its translated status remains available as text without relying on color alone
+
 #### Scenario: Submitting public blog search
 
 - **WHEN** a visitor types in or clears the public blog search
@@ -1236,6 +1299,12 @@ and unsaved-change protection independently of the Menu editor, preserving the e
 - **THEN** the comparison and History buttons stick together with the history panel below the host header offset
 - **AND** long timelines scroll inside the panel while the buttons remain visible
 - **AND** narrow layouts retain the controls and expanded history in normal page flow
+
+#### Scenario: Opening and closing History
+
+- **WHEN** the Blog History panel opens by default or through its toggle
+- **THEN** the toggle has a filled primary treatment and exposes `aria-expanded="true"`
+- **AND** closing through the toggle, panel close action or mobile version selection restores its inactive outline and `aria-expanded="false"`
 
 #### Scenario: Computing a draft save
 

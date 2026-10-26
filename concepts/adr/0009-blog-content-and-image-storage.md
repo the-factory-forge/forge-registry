@@ -29,7 +29,9 @@ preserves live content and history. Designated authors remain separate from
 saving actors; current article ownership governs management, while trusted name
 resolution and account-deletion transactions maintain captured signatures.
 
-S3 holds uploaded image bytes only. Text-only operations do not contact S3.
+S3 holds uploaded image bytes only, following the shared
+[user-upload persistence contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-user-uploaded-file-persistence).
+Text-only operations do not contact S3.
 Current drafts, publications and retained snapshots protect image references
 without copying objects per version. Publication verifies the images it will
 serve. An explicitly confirmed missing historical illustration may be omitted

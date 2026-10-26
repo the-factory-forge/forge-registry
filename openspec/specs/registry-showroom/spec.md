@@ -41,6 +41,8 @@ SHALL NOT issue tokens or deliver mail.
 
 - **WHEN** a reviewer opens `/mailing` or a documented sample link
 - **THEN** the default verification or selected sample renders in a sandboxed iframe
+- **AND** navigation identifies the selected sample and provides direct links to every example
+- **AND** account samples distinguish their purpose in the heading, copy and action, and reservation confirmation includes its reservation details
 - **AND** unknown sample paths return not found
 - **AND** the existing verification, password reset and reservation confirmation URLs remain available
 
