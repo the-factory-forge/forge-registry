@@ -179,7 +179,12 @@ export function ShowroomSearch() {
                     }}
                     className="block rounded-lg p-3 hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                   >
-                    <span className="block text-xs text-muted-foreground">{result.category}</span>
+                    <span
+                      data-showroom-category={result.category}
+                      className="inline-block rounded-md bg-showroom-category px-2 py-1 text-xs font-medium text-showroom-category-foreground"
+                    >
+                      {result.category}
+                    </span>
                     <span className="mt-1 block font-semibold">{result.title}</span>
                     <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
                       {result.description}

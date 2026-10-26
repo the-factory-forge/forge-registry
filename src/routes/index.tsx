@@ -59,16 +59,19 @@ function Home() {
                 ref={option === "All" ? allFilterRef : undefined}
                 type="button"
                 aria-pressed={type === option}
+                data-showroom-category={option === "All" ? undefined : option}
                 onClick={() => updateFilters({ category: option === "All" ? undefined : option })}
                 className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none ${
-                  type === option
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-transparent bg-background text-muted-foreground hover:border-border hover:bg-primary/5 hover:text-foreground"
+                  option !== "All"
+                    ? "border-transparent bg-showroom-category text-showroom-category-foreground hover:border-showroom-category-foreground aria-pressed:border-showroom-category-foreground aria-pressed:bg-showroom-category-foreground aria-pressed:text-showroom-category"
+                    : type === option
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-transparent bg-background text-muted-foreground hover:border-border hover:bg-primary/5 hover:text-foreground"
                 }`}
               >
                 {Icon && <Icon className="size-4" aria-hidden="true" />}
                 {option}
-                <span aria-hidden="true" className="text-xs tabular-nums opacity-80">
+                <span aria-hidden="true" className="text-xs tabular-nums">
                   {option === "All"
                     ? examples.length
                     : examples.filter((example) => example.category === option).length}
@@ -134,7 +137,10 @@ function Home() {
                   <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
                   {example.title}
                 </h2>
-                <span className="rounded-md bg-foreground/5 px-2 py-1 text-xs font-medium text-muted-foreground">
+                <span
+                  data-showroom-category={example.category}
+                  className="rounded-md bg-showroom-category px-2 py-1 text-xs font-medium text-showroom-category-foreground"
+                >
                   {example.category}
                 </span>
               </div>

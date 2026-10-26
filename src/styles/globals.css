@@ -30,6 +30,14 @@
   --accent-foreground: var(--primary);
   --destructive: light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216));
   --destructive-foreground: light-dark(#ffffff, #000000);
+  --showroom-component: light-dark(#eff6ff, #10213d);
+  --showroom-component-foreground: light-dark(#1e40af, #93c5fd);
+  --showroom-layout: light-dark(#f5f3ff, #26183d);
+  --showroom-layout-foreground: light-dark(#6d28d9, #c4b5fd);
+  --showroom-page: light-dark(#e9f6f3, #102b28);
+  --showroom-page-foreground: light-dark(#0f6662, #83d8cb);
+  --showroom-plugin: light-dark(#fff8db, #2b230c);
+  --showroom-plugin-foreground: light-dark(#806000, #e5bf4d);
   --status-success: light-dark(#dcfce7, #052e16);
   --status-success-foreground: light-dark(#166534, #86efac);
   --status-pending: light-dark(#ffedd5, #431407);
@@ -80,6 +88,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-showroom-category: var(--showroom-category);
+  --color-showroom-category-foreground: var(--showroom-category-foreground);
   --color-status-success: var(--status-success);
   --color-status-success-foreground: var(--status-success-foreground);
   --color-status-pending: var(--status-pending);
@@ -114,6 +124,26 @@
     "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --animate-in: enter 200ms ease-out;
   --animate-out: exit 150ms ease-in forwards;
+}
+
+[data-showroom-category="Component"] {
+  --showroom-category: var(--showroom-component);
+  --showroom-category-foreground: var(--showroom-component-foreground);
+}
+
+[data-showroom-category="Layout"] {
+  --showroom-category: var(--showroom-layout);
+  --showroom-category-foreground: var(--showroom-layout-foreground);
+}
+
+[data-showroom-category="Page"] {
+  --showroom-category: var(--showroom-page);
+  --showroom-category-foreground: var(--showroom-page-foreground);
+}
+
+[data-showroom-category="Plugin"] {
+  --showroom-category: var(--showroom-plugin);
+  --showroom-category-foreground: var(--showroom-plugin-foreground);
 }
 
 .light {

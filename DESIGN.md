@@ -80,8 +80,8 @@ components:
     height: 40px
     padding: 0 12px
   category-chip:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.primary-foreground}"
+    backgroundColor: "var(--showroom-category-foreground)"
+    textColor: "var(--showroom-category)"
     rounded: "{rounded.xl}"
     height: 44px
     padding: 8px 12px
@@ -244,7 +244,14 @@ their height; they expand to 288px, capped by the available space.
 ### Chips and status labels
 
 Directory category controls are 44px high with visible labels, counts, and optional
-leading icons. The selected category uses the primary pair. Results show a live
+leading icons. Component uses blue, Layout violet, Page teal and Plugin gold.
+Filters, directory badges and global search badges share the showroom category
+surface/foreground pairs from the stylesheet. Inactive filters and badges use
+soft fills; selected filters reverse the pair for a solid fill with contrasting
+text. Hover adds a border without changing size; keyboard focus retains the
+separate ring. All keeps the primary pair. Labels and icons retain their meaning
+without color. These tokens stay private to the showroom and do not change plugin
+status colors or customer themes. Results show a live
 count and a reset action that clears both filters and returns focus to All. Status labels use
 the appropriate status pair and visible text with a small decorative dot; they are
 not buttons by default. Verification labels that already carry an icon retain it.
