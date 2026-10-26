@@ -13,6 +13,31 @@ await suite("Showroom browser", async () => {
     await browser?.close();
   });
 
+  await test("intranet Drive badge describes its sample count and preserves navigation", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${baseURL}/en/intranet`);
+      if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
+      const navigation = page.getByRole("navigation", { name: "Side navigation", exact: true });
+      const drive = navigation
+        .getByRole("region", { name: "Plugins", exact: true })
+        .getByRole("link", { name: "Drive 3 unreviewed changes" });
+      await drive.waitFor({ state: "visible" });
+      assert.equal(await navigation.getByText("My account", { exact: true }).count(), 0);
+      assert.equal(await navigation.getByRole("link", { name: "Profile settings" }).count(), 0);
+      assert.equal(await drive.getAttribute("href"), "#drive");
+      await drive.press("Enter");
+      await page.waitForURL("**/en/intranet#drive");
+      await page.getByText("Current destination: #drive").waitFor();
+      if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
+      assert.equal(await drive.getAttribute("aria-current"), "page");
+      assert.equal(await page.getByRole("link", { name: "Team", exact: true }).count(), 1);
+    }
+  });
+
   await test("mailing samples have direct links and restore their previews through navigation", async (t) => {
     const context = await browser.newContext();
     t.after(() => context.close());

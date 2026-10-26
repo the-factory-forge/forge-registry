@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
+import { FileTextIcon, HomeIcon, UsersIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
+import { pluginIcons } from "@/components/utils/plugin-icons";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -27,10 +28,21 @@ const groups: IntranetNavGroup[] = [
     ],
   },
   {
-    id: "account",
-    label: "My account",
+    id: "plugins",
+    label: "Plugins",
     items: [
-      { id: "profile", label: "Profile settings", href: "#profile", icon: <UserRoundIcon /> },
+      {
+        id: "drive",
+        label: "Drive",
+        href: "#drive",
+        icon: <pluginIcons.drive />,
+        badge: (
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-pending px-2 py-0.5 text-xs font-medium text-status-pending-foreground">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />3
+            <span className="sr-only"> unreviewed changes</span>
+          </span>
+        ),
+      },
     ],
   },
 ];
@@ -133,6 +145,7 @@ function IntranetExample() {
           <p className="text-sm text-muted-foreground">
             Current destination: <code>{pathname}</code>
           </p>
+          <p className="text-sm text-muted-foreground">Drive shows 3 sample unreviewed changes.</p>
           {signedOut && <output className="block text-sm">The demo session has ended.</output>}
         </section>
         <p className="text-sm text-muted-foreground">
