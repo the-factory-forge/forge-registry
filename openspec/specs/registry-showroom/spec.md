@@ -55,12 +55,20 @@ SHALL NOT issue tokens or deliver mail.
 
 The shared header SHALL expose a search dialog on every showroom page through a
 search button, Command+K on macOS and Ctrl+K on Windows/Linux. The dialog SHALL
-reuse the homepage catalog, matching all query words case-insensitively against
-titles, descriptions, categories, tags and keywords. Results SHALL retain ordinary
-link behavior and show their title, category and description. The dialog SHALL
-use the current theme, fit narrow screens, trap focus and scroll results within a
-stable frame. Its transient query SHALL NOT change the underlying page's URL or
-form values and SHALL clear when dismissed.
+reuse the homepage catalog. Its transient query SHALL NOT change the underlying
+page's URL or form values and SHALL clear when dismissed.
+
+#### Scenario: Matching and displaying search results
+
+- **WHEN** a reviewer enters a search query
+- **THEN** the dialog SHALL match all query words case-insensitively against titles, descriptions, categories, tags and keywords
+- **AND** results SHALL retain ordinary link behavior and show their title, category and description
+
+#### Scenario: Displaying the search dialog
+
+- **WHEN** a reviewer opens search at any supported screen width
+- **THEN** the dialog SHALL use the current theme, fit narrow screens and trap focus
+- **AND** results SHALL scroll within a stable frame
 
 #### Scenario: Finding a demo with the keyboard
 
@@ -128,15 +136,22 @@ The showroom SHALL show one shared loading indicator below the navbar for plugin
 ### Requirement: Device preview sizes
 
 The showroom navbar SHALL offer one accessible icon button that cycles Small
-(390px) → Medium (768px) → Big (100% available width). Its icon, accessible name
-and tooltip SHALL identify the current size and next action. Big SHALL be the
-default. The control SHALL change `--showroom-device-width`, used as the main
-showroom content's maximum width, without changing the URL or browser history.
-Demos SHALL render directly in the main document without a device-preview iframe.
-The navbar SHALL retain its normal width. The settings layout SHALL adapt to the
-content container; component media queries and portaled dialogs SHALL retain the
-actual browser viewport. The size button SHALL sit to the right of the theme
-control and use filled active styling only for Small and Medium.
+(390px) → Medium (768px) → Big (100% available width), defaulting to Big. The
+control SHALL change `--showroom-device-width`, used as the main showroom
+content's maximum width, without changing the URL or browser history.
+
+#### Scenario: Identifying the device control
+
+- **WHEN** the device control is displayed
+- **THEN** its icon, accessible name and tooltip SHALL identify the current size and next action
+- **AND** the button SHALL sit to the right of the theme control and use filled active styling only for Small and Medium
+
+#### Scenario: Constraining preview content
+
+- **WHEN** a reviewer selects a preview size
+- **THEN** demos SHALL render directly in the main document without a device-preview iframe
+- **AND** the navbar SHALL retain its normal width and the settings layout SHALL adapt to the content container
+- **AND** component media queries and portaled dialogs SHALL retain the actual browser viewport
 
 #### Scenario: Resizing without navigation
 

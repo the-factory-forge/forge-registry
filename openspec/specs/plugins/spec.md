@@ -1766,12 +1766,19 @@ session checks, cache invalidation and coordinated migration.
 
 `@forge/menus` SHALL provide public menus and staff item/taxonomy editors. Its Menu
 editor module SHALL own item and taxonomy editing, saved state and unsaved-change
-protection independently of the Blog editor, preserving the existing page interfaces. Items
-SHALL contain a default price in minor currency units, optional size prices, a category, translated name and
-description, visibility, sold-out state, order, optional image and reusable
-allergen/dietary labels. Missing requested translations SHALL use the base locale
-for the whole entity. Public menus SHALL include only visible items; sold-out
-items SHALL remain visible with a pending-colored status at the top right.
+protection independently of the Blog editor, preserving the existing page interfaces.
+
+#### Scenario: Representing a menu item
+
+- **WHEN** staff create or edit a menu item
+- **THEN** it SHALL contain a default price in minor currency units, optional size prices, a category, translated name and description, visibility, sold-out state, order, optional image and reusable allergen/dietary labels
+
+#### Scenario: Reading a public menu
+
+- **WHEN** a visitor views a public menu in the requested locale
+- **THEN** missing requested translations SHALL use the base locale for the whole entity
+- **AND** the menu SHALL include only visible items
+- **AND** sold-out items SHALL remain visible with a pending-colored status at the top right
 
 #### Scenario: Leaving an unsaved menu item
 
