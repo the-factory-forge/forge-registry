@@ -22,7 +22,7 @@ import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import { DriveFolderMenu } from "@/components/plugins/drive/folder-menu";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
-import { TrashBrowser } from "@/components/plugins/drive/trash";
+import { useDriveRecovery } from "@/components/plugins/drive/recovery";
 import type {
   DriveBrowserProps,
   DriveClient,
@@ -50,7 +50,6 @@ import { useUploads } from "@/components/plugins/drive/use-uploads";
 import {
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
-  errorCode,
   safeDownloadUrl,
   scopeKey,
 } from "@/components/plugins/drive/utils";
@@ -299,8 +298,6 @@ function Browser({
   };
   const [revision, setRevision] = useState(0);
   const [trashView, setTrashView] = useState(false);
-  const [visitedTrash, setVisitedTrash] = useState(false);
-  if (trashView && !visitedTrash) setVisitedTrash(true);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
   const load = useCallback(
@@ -328,22 +325,6 @@ function Browser({
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
   const notify = useActionToast();
-  const undoToasts = useRef(new Set<string>());
-  const folderSession = useMemo(() => ({ parentId }), [parentId]);
-  const active = useRef<typeof folderSession | null>(null);
-  const { close: closeToast } = toastManager;
-  useLayoutEffect(() => {
-    active.current = folderSession;
-    const ids = undoToasts.current;
-    return () => {
-      active.current = null;
-      for (const id of ids) closeToast(id);
-    };
-  }, [folderSession, closeToast]);
-  const currentClient = useRef(client);
-  useLayoutEffect(() => {
-    currentClient.current = client;
-  }, [client]);
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const downloadController = useRef<AbortController | null>(null);
@@ -366,7 +347,6 @@ function Browser({
     setCursors([]);
     setSort({ field: "name", direction: "asc" });
     setTrashView(false);
-    setVisitedTrash(false);
     setFeedback(undefined);
     setFolderAction(undefined);
     setRemovedFolder(undefined);
@@ -469,78 +449,35 @@ function Browser({
         (current) => current && { ...current, space: { ...current.space, name } },
         () => onRenameSpace(name),
       ));
-  function deleted(entry: DriveEntry) {
-    if (active.current !== folderSession) return;
-    if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
-    refresh();
-    setFeedback(undefined);
-    const trashed = trashEnabled && entry.state === "ready";
-    let pending = false;
-    const actionProps = { children: labels.undo, onClick: () => void undo() };
-    const id = toastManager.add({
-      title: trashed ? labels.trashed : labels.deleted,
-      data: { closeLabel: labels.close },
-      type: "success",
-      actionProps: trashed && capabilities?.restore ? actionProps : undefined,
-      onRemove: () => {
-        undoToasts.current.delete(id);
-      },
-    });
-    if (trashed && capabilities?.restore) undoToasts.current.add(id);
-    async function undo() {
-      if (pending || active.current !== folderSession) return;
-      pending = true;
-      toastManager.update(id, {
-        title: labels.restoring,
-        type: "loading",
-        timeout: 0,
-        description: undefined,
-        actionProps: { ...actionProps, disabled: true, "aria-busy": true },
-      });
-      try {
-        await optimistic.run(
-          (current) =>
-            current && {
-              ...current,
-              items:
-                entry.parentId !== parentId || current.items.some((row) => row.id === entry.id)
-                  ? current.items
-                  : [...current.items, entry],
-            },
-          () => currentClient.current.restoreEntry!({ scope, entryId: entry.id }),
-        );
-        if (active.current !== folderSession) return;
-        setRemovedFolder(undefined);
-        refresh();
-        toastManager.update(id, {
-          title: labels.restored,
-          type: "success",
-          description: undefined,
-          actionProps: undefined,
-          timeout: 5000,
-        });
-      } catch (reason) {
-        if (active.current !== folderSession) return;
-        const conflict = errorCode(reason) === "RESTORE_CONFLICT";
-        toastManager.update(id, {
-          title: labels.trashed,
-          type: "error",
-          description: conflict ? labels.undoConflict : messageFor(reason, labels),
-          actionProps: conflict
-            ? {
-                children: labels.trash,
-                onClick: () => {
-                  toastManager.close(id);
-                  setTrashView(true);
-                },
-              }
-            : actionProps,
-        });
-      } finally {
-        pending = false;
-      }
-    }
-  }
+  const recovery = useDriveRecovery({
+    client,
+    scope,
+    parentId,
+    labels,
+    locale,
+    visible: trashView,
+    refreshKey: revision,
+    onChanged: refresh,
+    onDeleted: (entry) => {
+      if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
+      setFeedback(undefined);
+    },
+    onUndo: (entry, restore) =>
+      optimistic.run(
+        (current) =>
+          current && {
+            ...current,
+            items:
+              entry.parentId !== parentId || current.items.some((row) => row.id === entry.id)
+                ? current.items
+                : [...current.items, entry],
+          },
+        restore,
+      ),
+    onUndoRestored: () => setRemovedFolder(undefined),
+    onOpenTrash: () => setTrashView(true),
+  });
+  const deleted = (entry: DriveEntry) => recovery.deleted(entry, !!capabilities?.restore);
   async function download(entry: DriveEntry | DriveSpace) {
     if (actionsDisabled || downloadLock.current) return;
     downloadLock.current = true;
@@ -844,17 +781,7 @@ function Browser({
           ]}
         />
         <div className="min-w-0 flex-1 space-y-5">
-          {visitedTrash && trashEnabled && (
-            <TrashBrowser
-              client={client}
-              scope={scope}
-              labels={labels}
-              locale={locale}
-              refreshKey={revision}
-              onChanged={refresh}
-              visible={trashView}
-            />
-          )}
+          {recovery.trash}
           {trashView && trashEnabled ? null : removedFolder ? (
             <div className={tablePanelClass}>
               <p className="mb-3 text-sm">{labels.trashed}</p>

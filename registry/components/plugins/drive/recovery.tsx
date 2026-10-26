@@ -10,7 +10,12 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
-import type { DriveClient, DriveScope, DriveTrashEntry } from "@/components/plugins/drive/types";
+import type {
+  DriveClient,
+  DriveEntry,
+  DriveScope,
+  DriveTrashEntry,
+} from "@/components/plugins/drive/types";
 import {
   buttonClass,
   iconButtonClass,
@@ -24,7 +29,7 @@ import {
   primaryClass,
 } from "@/components/plugins/drive/ui";
 import { useDriveListing } from "@/components/plugins/drive/use-listing";
-import { errorCode, validName } from "@/components/plugins/drive/utils";
+import { errorCode, scopeKey, validName } from "@/components/plugins/drive/utils";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { TableSelectionCheckbox, useTableSelection } from "@/components/table-selection";
@@ -42,23 +47,163 @@ import {
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
-export function TrashBrowser({
+/** Folder-owned recovery; views never own an attempt or its conflict draft. */
+export function useDriveRecovery({
+  client,
+  scope,
+  parentId,
+  labels,
+  locale,
+  visible,
+  refreshKey,
+  onChanged,
+  onDeleted,
+  onUndo,
+  onUndoRestored,
+  onOpenTrash,
+}: {
+  client: DriveClient;
+  scope: DriveScope;
+  parentId: string | null;
+  labels: DriveLabels;
+  locale?: string;
+  visible: boolean;
+  refreshKey: number;
+  onChanged: () => void;
+  onDeleted: (entry: DriveEntry) => void;
+  onUndo: (entry: DriveEntry, restore: () => Promise<void>) => Promise<unknown>;
+  onUndoRestored: () => void;
+  onOpenTrash: () => void;
+}) {
+  const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
+  const session = useMemo(
+    () => ({ scope, parentId, trashEnabled }),
+    [scope, parentId, trashEnabled],
+  );
+  const [visited, setVisited] = useState<typeof session>();
+  if (visible && visited !== session) setVisited(session);
+  const active = useRef<typeof session | null>(null);
+  const currentClient = useRef(client);
+  useLayoutEffect(() => {
+    currentClient.current = client;
+  }, [client]);
+  const manager = Toast.useToastManager();
+  const undoToasts = useRef(new Set<string>());
+  const { close: closeToast } = manager;
+  useLayoutEffect(() => {
+    active.current = session;
+    const ids = undoToasts.current;
+    return () => {
+      active.current = null;
+      for (const id of ids) closeToast(id);
+    };
+  }, [session, closeToast]);
+  function deletedEntry(entry: DriveEntry, canRestore: boolean) {
+    if (active.current !== session) return;
+    onDeleted(entry);
+    onChanged();
+    const trashed = trashEnabled && entry.state === "ready";
+    let pending = false;
+    const actionProps = { children: labels.undo, onClick: () => void undo() };
+    const id = manager.add({
+      title: trashed ? labels.trashed : labels.deleted,
+      data: { closeLabel: labels.close },
+      type: "success",
+      actionProps: trashed && canRestore ? actionProps : undefined,
+      onRemove: () => {
+        undoToasts.current.delete(id);
+      },
+    });
+    if (trashed && canRestore) undoToasts.current.add(id);
+    async function undo() {
+      if (pending || active.current !== session) return;
+      pending = true;
+      manager.update(id, {
+        title: labels.restoring,
+        type: "loading",
+        timeout: 0,
+        description: undefined,
+        actionProps: { ...actionProps, disabled: true, "aria-busy": true },
+      });
+      try {
+        // Capture the adapter before awaiting; only a later retry uses its replacement.
+        const attemptClient = currentClient.current;
+        await onUndo(entry, () => attemptClient.restoreEntry!({ scope, entryId: entry.id }));
+        if (active.current !== session) return;
+        onUndoRestored();
+        onChanged();
+        manager.update(id, {
+          title: labels.restored,
+          type: "success",
+          description: undefined,
+          actionProps: undefined,
+          timeout: 5000,
+        });
+      } catch (reason) {
+        if (active.current !== session) return;
+        const conflict = errorCode(reason) === "RESTORE_CONFLICT";
+        manager.update(id, {
+          title: labels.trashed,
+          type: "error",
+          description: conflict ? labels.undoConflict : messageFor(reason, labels),
+          actionProps: conflict
+            ? {
+                children: labels.trash,
+                onClick: () => {
+                  manager.close(id);
+                  onOpenTrash();
+                },
+              }
+            : actionProps,
+        });
+      } finally {
+        pending = false;
+      }
+    }
+  }
+  return {
+    deleted: deletedEntry,
+    trash:
+      trashEnabled && visited === session ? (
+        <TrashRecovery
+          key={`${scopeKey(scope)}:${parentId}`}
+          client={client}
+          scope={scope}
+          labels={labels}
+          locale={locale}
+          visible={visible}
+          refreshKey={refreshKey}
+          onChanged={onChanged}
+          isActive={() => active.current === session}
+          restoreEntry={(input) => currentClient.current.restoreEntry!(input)}
+        />
+      ) : null,
+  };
+}
+
+function TrashRecovery({
   client,
   scope,
   labels,
   locale,
-  refreshKey = 0,
+  visible,
+  refreshKey,
   onChanged,
-  visible = true,
+  isActive,
+  restoreEntry: restoreRequest,
 }: {
   client: DriveClient;
   scope: DriveScope;
   labels: DriveLabels;
   locale?: string;
-  refreshKey?: number;
-  onChanged?: () => void;
-  visible?: boolean;
+  visible: boolean;
+  refreshKey: number;
+  onChanged: () => void;
+  isActive: () => boolean;
+  restoreEntry: NonNullable<DriveClient["restoreEntry"]>;
 }) {
+  const manager = Toast.useToastManager();
+  const notify = useActionToast();
   const [search, setSearch] = useState("");
   const [cursors, setCursors] = useState<string[]>([]);
   const cursor = cursors.at(-1);
@@ -72,15 +217,6 @@ export function TrashBrowser({
   const [restoring, setRestoring] = useState<string>();
   const [restoreEntry, setRestoreEntry] = useState<DriveTrashEntry>();
   const lock = useRef(false);
-  const active = useRef(false);
-  useLayoutEffect(() => {
-    active.current = true;
-    return () => {
-      active.current = false;
-    };
-  }, []);
-  const manager = Toast.useToastManager();
-  const notify = useActionToast();
   const mutationScope = useMemo(
     () => ({ client, scope, search, cursor }),
     [client, scope, search, cursor],
@@ -93,16 +229,16 @@ export function TrashBrowser({
   const disabled = loading || !!error || !!restoring || optimistic.pending || selection.pending;
   const refresh = () => setRevision((value) => value + 1);
   const restored = () => {
-    if (!active.current) return;
+    if (!isActive()) return;
     setRestoreEntry(undefined);
     refresh();
-    onChanged?.();
+    onChanged();
     notify(labels.restored);
   };
   const deleted = () => {
-    if (!active.current) return;
+    if (!isActive()) return;
     refresh();
-    onChanged?.();
+    onChanged();
     notify(labels.deleted);
   };
   async function restore(entry: DriveTrashEntry) {
@@ -113,11 +249,11 @@ export function TrashBrowser({
       await optimistic.run(
         (current) =>
           current && { ...current, items: current.items.filter((row) => row.id !== entry.id) },
-        () => client.restoreEntry!({ scope, entryId: entry.id }),
+        () => restoreRequest({ scope, entryId: entry.id }),
       );
       restored();
     } catch (reason) {
-      if (!active.current) return;
+      if (!isActive()) return;
       if (errorCode(reason) === "RESTORE_CONFLICT") setRestoreEntry(entry);
       else
         manager.add({
@@ -126,8 +262,10 @@ export function TrashBrowser({
           data: { closeLabel: labels.close },
         });
     } finally {
-      lock.current = false;
-      if (active.current) setRestoring(undefined);
+      if (isActive()) {
+        lock.current = false;
+        setRestoring(undefined);
+      }
     }
   }
   const table = (
@@ -348,7 +486,8 @@ export function TrashBrowser({
   );
   return (
     <>
-      {visible && table}
+      {/* Listing and confirmed deletion stay mounted independently of the recovery dialog. */}
+      <div hidden={!visible}>{table}</div>
       {restoreEntry && (
         <RestoreDialog
           client={client}
@@ -366,7 +505,7 @@ export function TrashBrowser({
                   ...current,
                   items: current.items.filter((row) => row.id !== input.entryId),
                 },
-              () => client.restoreEntry!(input),
+              () => restoreRequest(input),
             )
           }
         />

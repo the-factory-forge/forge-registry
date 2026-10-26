@@ -168,17 +168,64 @@ void test("a restore started in Trash survives Files and returns its conflict di
     ["A", "B", "B"],
   );
 });
-for (const code of [undefined, "STORAGE", "RESTORE_CONFLICT"]) {
-  void test(`direct restore completion after leaving Drive is silent (${code ?? "success"})`, async (t) => {
-    const page = await fixture(t);
-    await trash(page);
-    await row(page, "Archived.txt").getByRole("button", { name: "Restore", exact: true }).click();
-    await calls(page, 1);
-    await leave(page, "unmount");
-    await settle(page, 0, code);
-    assert.equal(await page.getByRole("dialog").count(), 0);
-  });
+for (const destination of ["unmount", "folder", "space"]) {
+  for (const code of [undefined, "STORAGE", "RESTORE_CONFLICT"]) {
+    void test(`direct restore completion after ${destination} is silent (${code ?? "success"})`, async (t) => {
+      const page = await fixture(t);
+      await trash(page);
+      await row(page, "Archived.txt").getByRole("button", { name: "Restore", exact: true }).click();
+      await calls(page, 1);
+      await leave(page, destination);
+      await settle(page, 0, code);
+      assert.equal(await page.getByRole("dialog").count(), 0);
+    });
+  }
 }
+
+void test("confirmed Trash deletion survives a view switch and retries only failed records", async (t) => {
+  const page = await fixture(t);
+  await page.evaluate(() => window.recoveryTest.addTrash());
+  await trash(page);
+  await row(page, "Archived.txt").getByRole("checkbox").check();
+  await row(page, "Second archive.txt").getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Delete selected items (2)", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Delete selected items?", exact: true });
+  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await calls(page, 1);
+  // A host can change the view while the confirmation dialog owns focus.
+  await page
+    .locator('nav[aria-label="Drive navigation"] a')
+    .filter({ hasText: "Recovery space" })
+    .evaluate((link) => link.click());
+  await settle(page, 0);
+  await calls(page, 2);
+  await settle(page, 1, "STORAGE");
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await dialog.getByRole("listitem").filter({ hasText: "Archived.txt" }).count(), 0);
+  await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await calls(page, 3);
+  assert.deepEqual(
+    await page.evaluate(() => window.recoveryTest.calls.map((call) => call.input.entryId)),
+    ["archived", "second-archive", "second-archive"],
+  );
+  await settle(page, 2);
+  await dialog.waitFor({ state: "hidden" });
+  await row(page, "Report.txt").waitFor();
+  await trash(page);
+  assert.equal(await row(page, "Second archive.txt").count(), 0);
+});
+
+void test("Trash search survives Files and Trash view switches", async (t) => {
+  const page = await fixture(t);
+  await trash(page);
+  await page.getByRole("button", { name: "Search trash", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Search trash", exact: true });
+  await search.fill("Archived");
+  await files(page);
+  await trash(page);
+  assert.equal(await search.inputValue(), "Archived");
+  await row(page, "Archived.txt").waitFor();
+});
 
 void test("view switches retain a pending restore and clear unconfirmed selections", async (t) => {
   const page = await fixture(t);

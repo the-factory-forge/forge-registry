@@ -226,9 +226,12 @@ also close when their browser unmounts; ordinary confirmations can remain in the
 host queue across navigation.
 Form loading, validation and listing errors remain inline with the affected controls.
 
-Recovery belongs to the current folder browser. Once visited, Trash keeps its
-pending recovery state across Files/Trash switches; its listing is rendered only
-while selected. Search, sorting and view changes do not cancel submitted recovery.
+The private Drive recovery module in `recovery.tsx` owns Undo, restore attempts,
+conflict drafts and their folder lifetime. The browser supplies listing refresh
+and optimistic Files updates; views do not manage recovery lifetimes.
+Trash filters and the shared Deletion session remain mounted across Files/Trash
+switches, with the table hidden while Files is selected. Recovery dialogs remain
+available independently of that table. Search, sorting and view changes do not cancel submitted recovery.
 Conflicts still offer the destination/name dialog, even after switching to Files,
 and failed attempts retain their recovery choices for retry. Unconfirmed bulk
 selections clear on view changes; confirmed batches retain the shared Deletion
@@ -241,6 +244,10 @@ browser preserves recovery: future Undo and restore retries use the latest clien
 while each submitted write finishes through its original client. Hosts must still
 reset Drive when authenticated identity changes. No storage migration is required;
 installed consumers need a separate reviewed source update.
+
+Install the complete `@forge/drive` item when adopting this refactor. The former
+private `trash.tsx` is replaced by `recovery.tsx` and can be removed after checking
+for host imports. Public Drive props and storage contracts are unchanged.
 
 Dragging files over the upload-enabled table shows an overlay with the translated
 `dropActive` instruction and file-size limit. The overlay covers only the drop

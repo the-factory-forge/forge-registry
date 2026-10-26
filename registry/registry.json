@@ -1079,9 +1079,9 @@
           "target": "@components/plugins/drive/utils.ts"
         },
         {
-          "path": "registry/components/plugins/drive/trash.tsx",
+          "path": "registry/components/plugins/drive/recovery.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/drive/trash.tsx"
+          "target": "@components/plugins/drive/recovery.tsx"
         },
         {
           "path": "registry/components/plugins/drive/folder-tree.tsx",

@@ -137,6 +137,7 @@ declare global {
       calls: typeof calls;
       reads: typeof reads;
       replaceClient: () => void;
+      addTrash: () => void;
       leave: (destination: "unmount" | "folder" | "space") => void;
     };
   }
@@ -151,6 +152,12 @@ function Fixture() {
       calls,
       reads,
       replaceClient: () => setAdapter("B"),
+      addTrash: () =>
+        data({ type: "project", id: "first" }).trash.push({
+          ...archived,
+          id: "second-archive",
+          name: "Second archive.txt",
+        }),
       leave: (destination) => {
         if (destination === "unmount") setVisible(false);
         else if (destination === "folder") setParentId("other");

@@ -1063,6 +1063,8 @@ Non-file drags and unavailable upload actions SHALL NOT show an upload target.
 ### Requirement: Drive trash and restoration
 
 The exported Drive Drizzle schema SHALL include trash.
+The private Drive recovery module SHALL own Undo, restore attempts and conflict
+drafts within the current folder browser, independently of the selected view.
 
 #### Scenario: Enabling trash and recovery capabilities
 

@@ -6,7 +6,7 @@ import { Link } from "@/components/link";
 import { DriveBrowser, DrivePage } from "@/components/plugins/drive";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
-import { TrashBrowser } from "@/components/plugins/drive/trash";
+import { useDriveRecovery } from "@/components/plugins/drive/recovery";
 import type { DriveClient, DriveFolderResult, DriveScope } from "@/components/plugins/drive/types";
 import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
@@ -196,7 +196,7 @@ function Fixture() {
       ) : kind === "folder" ? (
         <DriveBrowser client={currentClient} scope={scope} getFolderHref={() => "#folder"} />
       ) : (
-        <TrashBrowser
+        <TrashListingFixture
           client={currentClient}
           scope={scope}
           labels={driveLabels}
@@ -205,6 +205,32 @@ function Fixture() {
       )}
     </main>
   );
+}
+function TrashListingFixture({
+  client,
+  scope,
+  labels,
+  refreshKey,
+}: {
+  client: DriveClient;
+  scope: DriveScope;
+  labels: typeof driveLabels;
+  refreshKey: number;
+}) {
+  const recovery = useDriveRecovery({
+    client,
+    scope,
+    labels,
+    parentId: null,
+    visible: true,
+    refreshKey,
+    onChanged: () => {},
+    onDeleted: () => {},
+    onUndoRestored: () => {},
+    onOpenTrash: () => {},
+    onUndo: (_entry, restore) => restore(),
+  });
+  return recovery.trash;
 }
 const root = createRoot(document.getElementById("factory-drive-listing-fixture")!);
 root.render(

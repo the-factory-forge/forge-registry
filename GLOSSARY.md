@@ -37,6 +37,10 @@ separate published snapshot until the draft is published.
 **Drive listing**: One page of spaces, folder contents, trashed entries or possible
 restore destinations. It reflects the current location, search and ordering.
 
+**Drive recovery**: Undoing a move to trash or restoring a trashed entry, including
+resolving name or destination conflicts and retrying failed attempts. Recovery
+belongs to the current folder browser and survives Files/Trash view changes.
+
 ## Menu language
 
 **Menu editor**: The staff workspace for editing menu items, categories and labels,
