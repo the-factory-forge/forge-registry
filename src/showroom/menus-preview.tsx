@@ -397,7 +397,7 @@ export function MenuAdminPreview() {
   useBlocker({
     shouldBlockFn: ({ current, next }) =>
       current.pathname !== next.pathname && editorState.current.pending,
-    enableBeforeUnload: () => editorState.current.dirty || editorState.current.pending,
+    enableBeforeUnload: false,
   });
   const blocker = useBlocker({
     shouldBlockFn: ({ current, next }) =>

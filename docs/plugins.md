@@ -69,6 +69,8 @@ requires review of legacy attribution and crops covers by default. Current accou
 bylines and retained signatures use host name/deletion adapters; see
 [authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
 
+The Blog editor and Menu editor are separate domain modules, each owning its forms,
+save flow and unsaved-change protection. Their existing page interfaces stay stable.
 Blog category and menu taxonomy editors expose the same optional router guard as
 their content editors. Hosts can offer Save, Discard and Cancel for browser
 Back/Forward while protecting pending saves; see the [Blogs](./blogs.md#history-interface)

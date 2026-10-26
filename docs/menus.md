@@ -88,13 +88,15 @@ The showroom uses TanStack Router's `useBlocker({ withResolver: true })` for dir
 items, preceded by a blocker that rejects navigation during pending saves. Both
 check for pathname changes and read the latest editor state, so same-item Drive
 folder navigation remains available. The successful new-item redirect bypasses
-blocking after persistence; it is suppressed when resuming a dialog transition. `enableBeforeUnload` reads that same state for
-cross-document navigation, reload and tab closure, where browsers provide their own
-leave-page warning rather than the custom Save/Discard/Cancel dialog. The editor
-reports a clean state synchronously before confirmed navigation to avoid a second
+blocking after persistence; it is suppressed when resuming a dialog transition.
+The Menu editor owns native protection for cross-document navigation, reload and
+tab closure. Hosts should set the router's `enableBeforeUnload: false` to avoid
+installing an additional handler. Browsers provide their own leave-page warning
+for those native departures. The editor reports a clean state synchronously before confirmed navigation to avoid a second
 warning. See [TanStack navigation blocking](https://tanstack.com/router/latest/docs/guide/navigation-blocking)
 and `src/showroom/menus-preview.tsx` for the host adapter. Hosts without this adapter
-retain the portable Back and Labels link protection only.
+retain the portable Back and Labels link protection and native unload warnings;
+SPA history protection still needs the host router.
 
 `MenuTaxonomyPage` accepts the same `onNavigationStateChange` and
 `blockedNavigation` props for its category and label dialogs. Only the open editor
@@ -104,6 +106,13 @@ fields intact. Save validates and persists before resuming navigation; invalid
 fields return to the editor and storage errors keep the leave dialog available for
 retry. Native reload and page departures also warn while the open editor is dirty
 or saving. Hosts must connect their router to protect SPA Back/Forward.
+
+The Menu editor module in `editor.tsx` owns item and taxonomy forms, validation,
+save acceptance and unsaved-change protection, separately from the Blog editor.
+List loading and reordering remain in `use-menu-items.ts`; taxonomy loading remains
+in `use-categories-and-labels.ts`. Existing page names, props and admin exports are
+unchanged. Install the full `@forge/menus` item to include `editor.tsx` and the local
+shared controls in `ui.tsx`.
 
 ## Default labels and badges
 

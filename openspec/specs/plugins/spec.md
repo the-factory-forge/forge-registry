@@ -1152,7 +1152,9 @@ The exported Drive Drizzle schema SHALL include trash.
 ### Requirement: Blogs plugin
 
 `@forge/blogs` SHALL provide article administration, language tabs, Markdown
-editing/preview, categories and public list/article components.
+editing/preview, categories and public list/article components. Its Blog editor
+module SHALL own article and category editing, saved state and unsaved-change
+protection independently of the Menu editor, preserving the existing page interfaces.
 
 #### Scenario: Rejecting malformed service requests
 
@@ -1381,7 +1383,9 @@ Existing list adapters MAY omit category names until they refresh their source o
 
 ### Requirement: Menus plugin
 
-`@forge/menus` SHALL provide public menus and staff item/taxonomy editors. Items
+`@forge/menus` SHALL provide public menus and staff item/taxonomy editors. Its Menu
+editor module SHALL own item and taxonomy editing, saved state and unsaved-change
+protection independently of the Blog editor, preserving the existing page interfaces. Items
 SHALL contain a default price in minor currency units, optional size prices, a category, translated name and
 description, visibility, sold-out state, order, optional image and reusable
 allergen/dietary labels. Missing requested translations SHALL use the base locale
@@ -1402,7 +1406,8 @@ items SHALL remain visible with a pending-colored status at the top right.
 - **THEN** the portable editor resolves the blocked transition through its existing save, discard and cancel dialog
 - **AND** cancel preserves the editor, URL and draft; discard resumes the original history transition without saving
 - **AND** save resumes that transition only after persistence succeeds, while invalid inputs cancel it and failed saves retain the dialog for retry
-- **AND** hosts prevent cross-document exits through the native browser warning while changes or saves are pending, without adding synthetic history entries
+- **AND** the Menu editor owns the native browser warning while changes or saves are pending, including hosts without a router adapter; confirmed Save or Discard clears that warning before leaving
+- **AND** host adapters own SPA interception without adding duplicate unload handlers or synthetic history entries
 - **AND** pending saves reject new history transitions until completion; clean editor navigation and same-item folder changes retain normal history behavior
 
 #### Scenario: Browser history leaves an open menu label editor

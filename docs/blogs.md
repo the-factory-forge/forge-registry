@@ -227,13 +227,14 @@ update changes future uploads only; live consumer adoption remains separate.
 
 ## Updating consumers
 
-The editor's private `use-draft.ts` module owns the draft session, history reads,
-save acceptance and guarded navigation. Install the complete `@forge/blogs` item
-when updating; `BlogEditPage` props and `BlogsClient` remain unchanged. The module
-reuses the existing action/retry and publication helpers; validation, focus and
-image selection stay in the view. Same-article prop updates preserve the active
-session; changing article or language starts a new one. Clients without
-`BlogsClient.history` retain direct publication.
+The Blog editor module in `editor.tsx` owns article and category forms, draft
+sessions, history reads, save acceptance and unsaved-change protection. Its private
+draft hook reuses the existing action/retry and publication helpers. Blog editing
+stays separate from the Menu editor. Install the complete `@forge/blogs` item when
+updating; `BlogEditPage` props, existing admin exports and `BlogsClient` are unchanged.
+The former private `use-draft.ts` is no longer used and can be removed after adoption.
+Same-article prop updates preserve the active session; changing article or language
+starts a new one. Clients without `BlogsClient.history` retain direct publication.
 
 The pure draft-save module now exposes `saveBlogDraft` in `model.ts` instead of
 `saveArticle` and `recordBlogSave`. Update Blogs and its storage adapter together;

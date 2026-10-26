@@ -26,6 +26,9 @@ focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-ima
 
 ## Blog language
 
+**Blog editor**: The staff workspace for editing article translations and blog
+categories, preserving unsaved work while staff save, discard or continue editing.
+
 **Blog draft**: The editable state of one article translation. Readers see its
 separate published snapshot until the draft is published.
 
@@ -35,6 +38,9 @@ separate published snapshot until the draft is published.
 restore destinations. It reflects the current location, search and ordering.
 
 ## Menu language
+
+**Menu editor**: The staff workspace for editing menu items, categories and labels,
+preserving unsaved work while staff save, discard or continue editing.
 
 **Menu item**: A dish or drink with translated content, prices, a category and
 optional labels. Staff control its visibility, availability and position in the menu.

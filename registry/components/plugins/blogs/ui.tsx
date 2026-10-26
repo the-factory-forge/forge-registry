@@ -240,3 +240,14 @@ export function Pagination({
     />
   );
 }
+
+export const blogStatusClass = {
+  published: "bg-status-success text-status-success-foreground",
+  changed: "bg-status-pending text-status-pending-foreground",
+  draft: "bg-status-not-started text-status-not-started-foreground",
+};
+export const publicationToggleClass =
+  "cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+export const languageTabClass =
+  "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";

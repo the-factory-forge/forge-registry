@@ -155,3 +155,18 @@ void test("refresh and folder navigation preserve drafts and versions; edits dur
   await save(page).waitFor();
   assert.equal(await page.getByRole("alert").count(), 0);
 });
+
+void test("the portable menu editor protects native reloads without a host router", async (t) => {
+  const page = await fixture(t);
+  await name(page).fill("Keep through reload");
+  const warnings = [];
+  page.on("dialog", async (warning) => {
+    warnings.push(warning.type());
+    await warning.dismiss();
+  });
+  const warning = page.waitForEvent("dialog");
+  await page.evaluate(() => location.reload());
+  await warning;
+  assert.equal(await name(page).inputValue(), "Keep through reload");
+  assert.deepEqual(warnings, ["beforeunload"]);
+});

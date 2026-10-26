@@ -1191,9 +1191,9 @@
           "target": "@components/plugins/blogs/admin.tsx"
         },
         {
-          "path": "registry/components/plugins/blogs/use-draft.ts",
+          "path": "registry/components/plugins/blogs/editor.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/blogs/use-draft.ts"
+          "target": "@components/plugins/blogs/editor.tsx"
         },
         {
           "path": "registry/components/plugins/blogs/index.ts",
@@ -1383,6 +1383,16 @@
           "path": "registry/components/plugins/menus/spice-badge.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/spice-badge.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/editor.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/editor.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/ui.tsx"
         }
       ]
     },

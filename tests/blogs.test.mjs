@@ -582,7 +582,7 @@ await test("blog registry files ship independently and never expose server impor
       if (name === "blogs")
         assert.doesNotMatch(
           source,
-          /blogs\/server|plugins\/(?:drive|customers|projects)|drizzle-orm|@aws-sdk/,
+          /blogs\/server|plugins\/(?:drive|customers|projects|menus)|drizzle-orm|@aws-sdk/,
         );
     }
   }
