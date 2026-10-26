@@ -10,10 +10,21 @@ Each sample has a direct showroom link:
 
 - [Verify your email](/mailing/verify-email)
 - [Reset your password](/mailing/reset-password)
-- [Your stay is confirmed](/mailing/reservation-confirmation)
+- [Accept your invitation](/mailing/invitation)
+- [Confirm your new email address](/mailing/email-change)
+- [Your reservation is confirmed](/mailing/reservation-confirmation)
 
 The preview navigation switches between these pages. `/mailing` opens the
-verification sample, and each page also offers its plain-text version.
+verification sample. The plain-text control stores `format=text` in the URL;
+switching examples, reloading and Back/Forward preserve the selected format.
+Missing or invalid format values show HTML.
+
+These are common transactional examples using neutral “Your website” copy and
+the renderer's defaults. There are no brand presets or brand selectors. Names,
+dates and action links are synthetic; previews neither issue tokens nor send
+mail. Hosts supply their own branding, translations and token-expiry wording.
+Keep additional examples within the
+[barebones scope rule](../AGENTS.md#barebones-scope-and-confirmation).
 
 ```sh
 vpr ui add @forge/mailing

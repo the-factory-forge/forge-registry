@@ -29,6 +29,28 @@ selection; font and System controls are excluded.
 - **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, do not appear as standalone cards
 - **AND** their existing demo URLs and registry installation remain available
 
+### Requirement: Barebones mailing examples
+
+Mailing previews SHALL demonstrate common verification, password reset, invitation,
+email change and reservation confirmation messages with neutral sample content
+and the existing renderer defaults. They SHALL NOT add brand presets or selectors.
+Customer branding SHALL remain host-owned. Samples SHALL use synthetic data and
+SHALL NOT issue tokens or deliver mail.
+
+#### Scenario: Opening and navigating a sample
+
+- **WHEN** a reviewer opens `/mailing` or a documented sample link
+- **THEN** the default verification or selected sample renders in a sandboxed iframe
+- **AND** unknown sample paths return not found
+- **AND** the existing verification, password reset and reservation confirmation URLs remain available
+
+#### Scenario: Inspecting plain text
+
+- **WHEN** a reviewer selects the plain-text version
+- **THEN** `format=text` records the choice in the URL and the same message and destination appear as text
+- **AND** example navigation, reload and Back/Forward preserve that choice
+- **AND** missing or invalid format values use HTML
+
 ### Requirement: Global registry search
 
 The shared header SHALL expose a search dialog on every showroom page through a

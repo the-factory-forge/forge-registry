@@ -47,7 +47,9 @@ await suite("Showroom browser", async () => {
     const samples = [
       ["verify-email", "Verify your email"],
       ["reset-password", "Reset your password"],
-      ["reservation-confirmation", "Your stay is confirmed"],
+      ["invitation", "Accept your invitation"],
+      ["email-change", "Confirm your new email address"],
+      ["reservation-confirmation", "Your reservation is confirmed"],
     ];
     const navigation = page.getByRole("navigation", { name: "Preview navigation" });
     const preview = page.frameLocator('iframe[title="Email preview"]');
@@ -56,7 +58,7 @@ await suite("Showroom browser", async () => {
       assert.equal(response.status(), 200);
       await page.locator('[data-preview-ready="true"]').waitFor();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
-      assert.equal(await navigation.getByRole("link").count(), 3);
+      assert.equal(await navigation.getByRole("link").count(), samples.length);
       assert.equal(await page.getByRole("combobox").count(), 0);
       assert.equal(
         await navigation.getByRole("link", { name: heading }).getAttribute("aria-current"),
@@ -90,6 +92,41 @@ await suite("Showroom browser", async () => {
       assert.equal((await fetch(baseURL + path)).status, 404);
     }
     assert.deepEqual(errors, []);
+  });
+
+  await test("mailing format survives reload and navigation without brand presets", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    await page.goto(`${baseURL}/mailing/invitation?category=Plugin#factory-showroom-preview`);
+    const preview = page.frameLocator('iframe[title="Email preview"]');
+    await preview.getByText("Your website", { exact: true }).waitFor();
+    assert.equal(await preview.locator("img").count(), 0);
+    assert.equal(await page.locator("iframe").getAttribute("sandbox"), "");
+    await page.getByLabel("Plain-text version").check();
+    await page.waitForURL((url) => url.searchParams.get("format") === "text");
+    await page.reload();
+    assert.equal(await page.getByLabel("Plain-text version").isChecked(), true);
+    await page.getByRole("link", { name: "Confirm your new email address", exact: true }).click();
+    await page.waitForURL((url) => url.pathname === "/mailing/email-change");
+    assert.equal(new URL(page.url()).searchParams.get("format"), "text");
+    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
+    assert.equal(new URL(page.url()).hash, "#factory-showroom-preview");
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    await page.goBack();
+    await page.locator("pre").filter({ hasText: "Accept your invitation" }).waitFor();
+    await page.goForward();
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    await page.getByLabel("Plain-text version").uncheck();
+    await page.waitForURL((url) => !url.searchParams.has("format"));
+    await preview.getByRole("heading", { name: "Confirm your new email address" }).waitFor();
+    await page.goBack();
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    await page.goto(`${baseURL}/mailing?format=invalid&brand=lodge`);
+    await preview.getByRole("heading", { name: "Verify your email" }).waitFor();
+    assert.equal(await page.getByLabel("Plain-text version").isChecked(), false);
+    assert.equal(await page.getByRole("combobox").count(), 0);
+    await preview.getByText("Your website", { exact: true }).waitFor();
   });
 
   await test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {

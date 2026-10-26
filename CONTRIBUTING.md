@@ -4,6 +4,8 @@ Component conventions and checklist for the shared registry.
 
 Keep TC-specific components, visual styling, and branding in `tc-website`.
 Registry components must be reusable across customers.
+Before extending the library or its demos, follow the
+[barebones scope and confirmation rule](./AGENTS.md#barebones-scope-and-confirmation).
 
 ## Shared color contract
 

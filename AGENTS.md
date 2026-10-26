@@ -124,14 +124,24 @@ sections, and supporting utilities. The goal is to reuse these elements across
 different projects through shadcn's registry model. Consumers receive source
 files they can adapt; this repository is not a published runtime npm library.
 
-This registry is a reusable skeleton for generating customer websites. Keep
-shared plugins focused on their basic purpose. Site-specific fields, assignment
-rules, integrations and workflows belong in the consuming website.
-Before adding or extending behavior, check whether it serves the reusable
-skeleton or a particular site's implementation. If that boundary is unclear,
-ask the user once before implementing the disputed behavior. Reuse an explicit
-scope decision already made in the task instead of asking again. Props and
-feature flags alone do not make a site-specific feature appropriate here.
+### Barebones scope and confirmation
+
+Everything added to this library must be **barebones**: the smallest complete
+capability that most customer websites using that feature are likely to need.
+Apply this rule to components, plugins, helpers, configuration and showroom
+examples. Preserve validation, authorization, accessibility and failure recovery.
+Use neutral sample content and existing defaults. Do not add brand presets or
+brand selectors; customer identity and styling belong in the consuming website.
+Site-specific fields, assignment rules, integrations and workflows belong there
+too. Props and feature flags alone do not make an addition broadly useful.
+
+Before implementing an addition, identify its common customer use case. If it
+goes beyond barebones scope, or that boundary is unclear, tell the user exactly
+what exceeds the baseline, why it is proposed, and the smallest alternative
+(including keeping it in the host). **Wait for explicit user confirmation before
+implementing that part.** A general request to improve or extend a feature is
+not confirmation of the exception. Reuse an explicit scope decision already
+made in the task; continue independent, authorized work while awaiting a decision.
 
 The TanStack Start app in this repository is a showroom for developing and previewing
 registry elements. Work on the reusable element first; keep example content and
