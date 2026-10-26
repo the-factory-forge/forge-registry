@@ -27,6 +27,8 @@ upstream Cove independently of those consumers.
   checkout can typecheck before starting Vite. Do not edit it manually.
 - `src/showroom/routing.tsx` adapts the published `href` contract to TanStack
   navigation, including search parameters and hashes. It is never distributed.
+  Its `useShowroomEditorGuard` owns the shared Blog/Menu router blocking policy;
+  each editor retains its save/discard flow and native unload protection.
 - Pathless `_plugins` and `_blogs` routes retain mock providers across their child
   pages. Customers/projects/Drive share their in-memory records; blogs retain
   publications when switching between administration, public pages, and languages.

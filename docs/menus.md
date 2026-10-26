@@ -84,7 +84,8 @@ errors cancel the transition and focus the invalid field; storage errors keep th
 dialog open for retry. Hosts should avoid redirecting from `onSaved` while resolving
 a blocked transition, especially after creating a new item.
 
-The showroom uses TanStack Router's `useBlocker({ withResolver: true })` for dirty
+The showroom shares `useShowroomEditorGuard` in `src/showroom/routing.tsx` with
+the Blog editor. It uses TanStack Router's `useBlocker({ withResolver: true })` for dirty
 items, preceded by a blocker that rejects navigation during pending saves. Both
 check for pathname changes and read the latest editor state, so same-item Drive
 folder navigation remains available. The successful new-item redirect bypasses

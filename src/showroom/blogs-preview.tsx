@@ -1,10 +1,8 @@
 "use client";
 
-import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
-  useCallback,
-  useRef,
   useContext,
   useEffect,
   useMemo,
@@ -26,7 +24,11 @@ import {
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
-import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import {
+  ShowroomLink as Link,
+  useShowroomParams,
+  useShowroomEditorGuard,
+} from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const previewClassName =
@@ -231,22 +233,7 @@ export function BlogsAdminPreview() {
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
     navigate = useNavigate();
-  const editorState = useRef({ dirty: false, pending: false });
-  const onNavigationStateChange = useCallback((value: { dirty: boolean; pending: boolean }) => {
-    editorState.current = value;
-  }, []);
-  // Reject navigation during saves before offering the dirty-draft dialog.
-  useBlocker({
-    shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.pending,
-    enableBeforeUnload: false,
-  });
-  const blocker = useBlocker({
-    shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.dirty,
-    enableBeforeUnload: false,
-    withResolver: true,
-  });
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
@@ -302,7 +289,7 @@ export function BlogsAdminPreview() {
     return (
       <BlogCategoriesPage
         onNavigationStateChange={onNavigationStateChange}
-        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
+        blockedNavigation={blockedNavigation}
         {...common}
         locales={blogLocales}
         categories={state.mock.categories()}
@@ -328,7 +315,7 @@ export function BlogsAdminPreview() {
       <BlogEditPage
         key={`${article.id}:${state.exampleRevision}`}
         onNavigationStateChange={onNavigationStateChange}
-        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
+        blockedNavigation={blockedNavigation}
         {...common}
         authors={[
           { id: "jordan", name: "Jordan Lee" },

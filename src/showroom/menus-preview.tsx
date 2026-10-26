@@ -1,10 +1,8 @@
 "use client";
 
-import { useBlocker, useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
-  useCallback,
-  useRef,
   useContext,
   useEffect,
   useMemo,
@@ -29,7 +27,11 @@ import {
 } from "@/components/plugins/menus";
 import { reorderMenuItems, validateLabel } from "@/components/plugins/menus/model";
 import { createDriveMock } from "@/showroom/drive-mock";
-import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import {
+  ShowroomLink as Link,
+  useShowroomParams,
+  useShowroomEditorGuard,
+} from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const editable = { upload: true, createFolder: true, rename: true, delete: true, download: true };
@@ -389,22 +391,7 @@ export function MenuAdminPreview() {
   const base = `/${locale}/admin/menus`;
   const [id] = segments;
   const item = mock.items.find((entry) => entry.id === id);
-  const editorState = useRef({ dirty: false, pending: false });
-  const onNavigationStateChange = useCallback((state: { dirty: boolean; pending: boolean }) => {
-    editorState.current = state;
-  }, []);
-  // Reject navigation during saves before offering the dirty-form dialog.
-  useBlocker({
-    shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.pending,
-    enableBeforeUnload: false,
-  });
-  const blocker = useBlocker({
-    shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.dirty,
-    enableBeforeUnload: false,
-    withResolver: true,
-  });
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
   const driveClient = mock.drive.client(
     mock.items.map((entry) => ({
       scope: { type: "menu-item", id: entry.id },
@@ -457,7 +444,7 @@ export function MenuAdminPreview() {
     return (
       <MenuTaxonomyPage
         onNavigationStateChange={onNavigationStateChange}
-        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
+        blockedNavigation={blockedNavigation}
         client={mock.client}
         locales={locales}
         baseLocale={baseLocale}
@@ -470,7 +457,7 @@ export function MenuAdminPreview() {
     return (
       <MenuItemEditorPage
         onNavigationStateChange={onNavigationStateChange}
-        blockedNavigation={blocker.status === "blocked" ? blocker : undefined}
+        blockedNavigation={blockedNavigation}
         client={mock.client}
         item={item}
         categories={mock.categories}
@@ -487,7 +474,7 @@ export function MenuAdminPreview() {
         photoFolderId={typeof query.folder === "string" ? query.folder : null}
         getFolderHref={(folderId) => `${base}/${id}${folderId ? `?folder=${folderId}` : ""}`}
         onSaved={(saved) => {
-          if (id === "new" && blocker.status !== "blocked")
+          if (id === "new" && !blockedNavigation)
             void navigate({ to: `${base}/${saved.id}`, ignoreBlocker: true });
         }}
       />

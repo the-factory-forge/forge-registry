@@ -582,8 +582,9 @@ categories before resuming the blocked transition; Cancel keeps the form and fai
 saves remain available for retry. The category form also warns on native unload
 while dirty or saving.
 
-`src/showroom/blogs-preview.tsx` demonstrates TanStack Router's `useBlocker` adapter,
-matching the menu editor. It guards pathname changes without adding history entries.
+`src/showroom/blogs-preview.tsx` uses `useShowroomEditorGuard` from
+`src/showroom/routing.tsx`, sharing the TanStack Router adapter with the Menu editor.
+It guards pathname changes without adding history entries.
 The editor owns native unload protection, so the adapter disables the router's
 additional `beforeunload` handler. A successful, explicitly confirmed deletion
 bypasses blocking when returning to the list. Other hosts must wire their router;
