@@ -135,7 +135,7 @@ export function CookieBanner({
   }, [consentKey, normalizeConsent, notifyConsent]);
 
   useEffect(() => {
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- hydrate saved consent and listen for external changes
+    // oxlint-disable-next-line react/set-state-in-effect -- hydrate saved consent and listen for external changes
     evaluate();
     const onStorage = (event: StorageEvent) => {
       if (event.key === consentKey || event.key === null) evaluate();
