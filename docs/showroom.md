@@ -253,6 +253,10 @@ Intranet content uses `showroom-inset` and its custom sticky toolbar uses
 The shared stylesheet defines the header height once. The desktop settings sidebar
 stays below the header, occupies its own grid column, and scrolls independently
 when needed. When collapsed, its column shrinks to the gear button and padding.
+Standard and narrow previews center within the whole showroom content container
+when space permits, matching the header in Big mode. As space tightens, they stop
+at the settings column without overlapping it or shrinking below the available
+preview width. Full application previews continue to fill the remaining column.
 Expanded settings use normal page flow above the preview on smaller screens.
 Below 40rem, the collapsed gear floats at the right of the preview’s first row,
 so it can sit beside a back link without adding a separate row or covering content.

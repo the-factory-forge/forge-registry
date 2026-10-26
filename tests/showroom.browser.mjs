@@ -593,6 +593,35 @@ await suite("Showroom browser", async () => {
     assert.equal((await page.locator(".showroom-fill").boundingBox()).width, preview.width);
   });
 
+  await test("bounded previews center in the window without overlapping desktop settings", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const path of ["/en/reservations", "/newsletter"]) {
+      for (const width of [2048, 1600, 1440, 1024]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(baseURL + path);
+        const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        for (const open of [true, false]) {
+          assert.equal(await toggle.getAttribute("aria-expanded"), String(open));
+          const preview = await page.locator("#factory-showroom-preview").boundingBox();
+          const rail = await page.locator(".showroom-controls").boundingBox();
+          const expectedLeft = Math.max(
+            0,
+            Math.min((width - preview.width) / 2, rail.x - preview.width),
+          );
+          assert.ok(Math.abs(preview.x - expectedLeft) < 1, `${path}: ${width}, open=${open}`);
+          assert.ok(preview.x + preview.width <= rail.x + 1);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          if (open) await toggle.click();
+        }
+      }
+    }
+  });
+
   await test("expanded settings stay beside desktop previews and stack on mobile", async (t) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     t.after(() => context.close());

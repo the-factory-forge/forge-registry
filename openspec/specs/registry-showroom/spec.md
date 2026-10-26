@@ -71,6 +71,13 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 - **THEN** the preview uses the available width within its existing width limit
 - **AND** only the gear button and its padding remain in the collapsed panel, without a separate toolbar row or covering preview content
 
+#### Scenario: Centering previews beside desktop settings
+
+- **WHEN** the content container has room for a standard or narrow preview centered beside the expanded or collapsed settings column
+- **THEN** the preview SHALL center in the whole content container
+- **AND** tighter containers SHALL constrain it before the settings column without overlap or horizontal overflow
+- **AND** full application previews SHALL keep filling the remaining column
+
 #### Scenario: Collapsed settings on a smartphone
 
 - **WHEN** the reviewer hides settings below 40rem

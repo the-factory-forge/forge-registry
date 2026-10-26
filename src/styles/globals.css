@@ -219,6 +219,15 @@
     grid-column: 1;
     grid-row: 1;
   }
+  .showroom-frame[data-has-controls="true"]:not([data-width="full"]) > .showroom-stage {
+    /* Center in the whole frame, stopping before the settings column. */
+    margin-inline: clamp(
+        0px,
+        calc((100cqw - var(--showroom-max-width)) / 2),
+        calc(100% - var(--showroom-max-width))
+      )
+      0;
+  }
 }
 
 .showroom-stage,
@@ -236,7 +245,7 @@
 }
 
 .showroom-frame[data-width="narrow"] > .showroom-stage {
-  max-width: 48rem;
+  --showroom-max-width: 48rem;
 }
 .showroom-frame[data-width="full"] > .showroom-stage {
   max-width: none;
