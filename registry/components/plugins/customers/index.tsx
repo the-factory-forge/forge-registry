@@ -346,7 +346,7 @@ function CustomerDetailPageContent({
         </div>
         <dl className="ml-auto flex flex-wrap justify-end gap-x-6 gap-y-2 self-start text-sm">
           <div>
-            <dt className="text-muted-foreground">{labels.email}</dt>
+            <dt className="sr-only">{labels.email}</dt>
             <dd className="mt-1">
               <CustomerStatusBadge
                 customer={customer}
