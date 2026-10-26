@@ -273,19 +273,22 @@ requests retain loaded rows, upload guidance and known controls; actions are
 disabled until the request finishes. Guidance space is reserved before permissions
 arrive and on read-only views, without displaying upload instructions there.
 
-Spaces, folder contents, trash and restore destinations share a private listing
-lifecycle. New reads cancel previous reads and ignore late responses even when
-the adapter ignores cancellation. Failed reads retain the last successful rows
+Spaces, folder contents, trash, restore destinations and the folder tree share a
+private listing lifecycle. New reads cancel previous reads and ignore late
+responses even when the adapter ignores cancellation. Failed reads retain the last successful rows
 or destination options, with mutations and pagination disabled and Retry available.
-`FORBIDDEN` and `NOT_FOUND` clear that listing instead. A successful retry replaces
-the snapshot; only accepted successful reads update the timestamp used for trash
-expiry. Refreshes do not reset pending optimistic mutations.
+`FORBIDDEN` and `NOT_FOUND` clear that listing instead. Table reads replace the
+snapshot; tree cursor pages append ready folders without repeating existing IDs.
+Tree retries keep the failed cursor. A refresh or client replacement restarts the
+tree at its first page, replacing retained folders once that read succeeds.
+Only accepted successful reads update the timestamp used for trash expiry.
+Refreshes do not reset pending optimistic mutations.
 
 Keep the client stable between renders. Changing it triggers a read while retaining
 the previous snapshot. Hosts must unmount or key Drive by authenticated identity
-when the user changes; replacing the client alone is not a session reset. Folder
-and space navigation already remount the scoped browser. Folder-tree pagination
-and URL state remain separate from this private module.
+when the user changes; replacing the client alone is not a session reset. Space
+navigation remounts the scoped browser; folder navigation preserves its expanded
+tree branches and loaded pages. URL state remains host-owned.
 
 The private `use-listing.ts` file ships with `@forge/drive`; adopt it with the
 updated browser files. `DriveClient`, public props and storage schemas are unchanged.

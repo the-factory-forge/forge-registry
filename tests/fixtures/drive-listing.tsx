@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { Link } from "@/components/link";
 import { DriveBrowser, DrivePage } from "@/components/plugins/drive";
+import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { TrashBrowser } from "@/components/plugins/drive/trash";
 import type { DriveClient, DriveFolderResult, DriveScope } from "@/components/plugins/drive/types";
@@ -47,6 +49,8 @@ function folder(name: string): DriveFolderResult {
 }
 const requests: {
   signal?: AbortSignal;
+  cursor?: string;
+  resolveFolder?: (data: DriveFolderResult) => void;
   resolve: (name: string) => void;
   reject: (code: string) => void;
 }[] = [];
@@ -67,9 +71,19 @@ const client: DriveClient = {
   listSpaces: ({ signal }) =>
     read(signal, (name) => ({ items: [{ ...space, name }], nextCursor: "next" })),
   listEntries: (query) =>
-    kind === "folder" && query.sort === undefined
-      ? Promise.resolve({ ...folder("Tree"), items: [], nextCursor: undefined })
-      : read(query.signal, folder),
+    kind === "tree"
+      ? new Promise<DriveFolderResult>((resolve, reject) => {
+          requests.push({
+            signal: query.signal,
+            cursor: query.cursor,
+            resolve: (name) => resolve(folder(name)),
+            resolveFolder: resolve,
+            reject: (code) => reject({ code }),
+          });
+        })
+      : kind === "folder" && query.sort === undefined
+        ? Promise.resolve({ ...folder("Tree"), items: [], nextCursor: undefined })
+        : read(query.signal, folder),
   listTrash: ({ signal }) =>
     read(signal, (name) => ({
       space,
@@ -157,6 +171,26 @@ function Fixture() {
     <main className="p-4">
       {kind === "hook" ? (
         <Hook revision={revision} generation={generation} />
+      ) : kind === "tree" ? (
+        <DriveFolderTree
+          client={currentClient}
+          scope={scope}
+          parentId={null}
+          currentFolderId={null}
+          breadcrumbs={[]}
+          labels={driveLabels}
+          getFolderHref={(id) => `#${id}`}
+          linkComponent={Link}
+          refreshKey={revision}
+          onLoadingChange={() => {}}
+          filesActive
+          onNavigate={() => {}}
+          renderActions={(entry, disabled) => (
+            <button type="button" disabled={disabled}>
+              Action: {entry.name}
+            </button>
+          )}
+        />
       ) : kind === "spaces" ? (
         <DrivePage client={currentClient} getSpaceHref={() => "#space"} />
       ) : kind === "folder" ? (

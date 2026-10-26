@@ -193,3 +193,110 @@ void test("restore destinations retain disabled options and recover without movi
     await page.close();
   }
 });
+
+const treeFolders = (page) => page.getByRole("link", { name: /^Folder:/ });
+const treeSettled = (page) => page.locator("main > [aria-busy=false]").waitFor();
+const resolveFolders = (page, index, names, nextCursor) =>
+  page.evaluate(
+    ({ index, names, nextCursor }) => {
+      window.listingTest.requests[index].resolveFolder({
+        items: names.map((name) => ({
+          id: name,
+          name,
+          kind: name === "file" ? "file" : "folder",
+          state: name === "pending" ? "pending" : "ready",
+          parentId: null,
+          updatedAt: "2026-01-01",
+        })),
+        nextCursor,
+      });
+    },
+    { index, names, nextCursor },
+  );
+
+void test("tree cursor pages append ready folders once, retain disabled rows after failure and retry the same cursor", async (t) => {
+  const page = await fixture(t, "tree");
+  await resolveFolders(page, 0, ["Alpha", "file", "pending"], "second");
+  await treeSettled(page);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Alpha"]);
+  const more = page.getByRole("button", { name: "Load more folders", exact: true });
+  await more.click();
+  await calls(page, 2);
+  assert.equal(await more.isDisabled(), true);
+  await reject(page, 1, "STORAGE");
+  const retry = page.getByRole("button", { name: /Retry/ });
+  await retry.waitFor();
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Alpha"]);
+  assert.equal(
+    await page.getByRole("button", { name: "Action: Alpha", exact: true }).isDisabled(),
+    true,
+  );
+  await retry.click();
+  await calls(page, 3);
+  assert.equal(await page.evaluate(() => window.listingTest.requests[2].cursor), "second");
+  await resolveFolders(page, 2, ["Alpha", "Beta"], "third");
+  await treeSettled(page);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Alpha", "Beta"]);
+  assert.equal(
+    await page.getByRole("button", { name: "Action: Alpha", exact: true }).isEnabled(),
+    true,
+  );
+  await more.click();
+  await calls(page, 4);
+  assert.equal(await page.evaluate(() => window.listingTest.requests[3].cursor), "third");
+  await resolveFolders(page, 3, ["Beta", "Gamma"]);
+  await treeSettled(page);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Alpha", "Beta", "Gamma"]);
+  assert.equal(await more.count(), 0);
+});
+
+void test("tree refresh and client replacement restart pagination and ignore late reads, errors and unmounts", async (t) => {
+  const page = await fixture(t, "tree");
+  await resolveFolders(page, 0, ["Old"], "second");
+  await treeSettled(page);
+  await page.getByRole("button", { name: "Load more folders", exact: true }).click();
+  await calls(page, 2);
+  await page.evaluate(() => window.listingTest.replaceClient());
+  await calls(page, 3);
+  assert.equal(await page.evaluate(() => window.listingTest.requests[1].signal.aborted), true);
+  assert.equal(await page.evaluate(() => window.listingTest.requests[2].cursor), undefined);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Old"]);
+  await resolveFolders(page, 2, ["Current"], "current-next");
+  await treeSettled(page);
+  await resolveFolders(page, 1, ["Stale"]);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Current"]);
+  await page.getByRole("button", { name: "Load more folders", exact: true }).click();
+  await calls(page, 4);
+  await page.evaluate(() => window.listingTest.refresh());
+  await calls(page, 5);
+  assert.equal(await page.evaluate(() => window.listingTest.requests[4].cursor), undefined);
+  await reject(page, 3, "FORBIDDEN");
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Current"]);
+  await resolveFolders(page, 4, ["Refreshed"]);
+  await treeSettled(page);
+  assert.deepEqual(await treeFolders(page).allTextContents(), ["Refreshed"]);
+  await page.evaluate(() => window.listingTest.refresh());
+  await calls(page, 6);
+  await page.evaluate(() => window.listingTest.unmount());
+  assert.equal(await page.evaluate(() => window.listingTest.requests[5].signal.aborted), true);
+  await resolveFolders(page, 5, ["Unmounted"]);
+  assert.equal(await treeFolders(page).count(), 0);
+});
+
+for (const code of ["FORBIDDEN", "NOT_FOUND"]) {
+  void test(`tree clears retained folders on ${code} and can retry`, async (t) => {
+    const page = await fixture(t, "tree");
+    await resolveFolders(page, 0, ["Private"], "second");
+    await treeSettled(page);
+    await page.getByRole("button", { name: "Load more folders", exact: true }).click();
+    await calls(page, 2);
+    await reject(page, 1, code);
+    await treeSettled(page);
+    assert.equal(await treeFolders(page).count(), 0);
+    await page.getByRole("button", { name: /Retry/ }).click();
+    await calls(page, 3);
+    await resolveFolders(page, 2, ["Recovered"]);
+    await treeSettled(page);
+    assert.deepEqual(await treeFolders(page).allTextContents(), ["Recovered"]);
+  });
+}
