@@ -155,6 +155,21 @@ This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.
 
+## Registry search
+
+The shared header opens a search dialog from every showroom page, using its search
+button, **⌘K** on macOS, or **Ctrl+K** on Windows/Linux. Search matches every typed
+word against example titles, descriptions, categories, tags and keywords. Results
+show their category and description and link to the same demos as the homepage.
+Arrow keys move between the input and result links; Enter opens a result, and
+Escape or the close button dismisses the dialog and restores focus.
+
+`src/showroom/examples.ts` owns the catalog shared by the directory and dialog.
+Keep new examples there. Search is showroom-only and uses the existing Base UI
+dialog, with no search service or distributed registry item. The dialog query is
+temporary and clears on close; it does not change the current page's URL filters
+or unsaved inputs. Homepage filters remain URL-owned.
+
 ## Shared loading feedback
 
 The root shell mounts one `LoadingProvider` and a `LoadingIndicator` directly below

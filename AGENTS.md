@@ -334,7 +334,8 @@ out of shipped registry components.
 ## Showroom homepage requirement
 
 Every new registry UI component or module must have a working showroom example.
-Keep the homepage `examples` array in `src/routes/index.tsx` focused on composed
+Keep the shared `examples` array in `src/showroom/examples.ts`, used by the homepage
+and global search, focused on composed
 components, page sections, layouts and plugins. Basic controls and feedback helpers,
 such as native selects, icon tooltips and action toasts, must not have standalone
 homepage cards; keep their demos accessible through documentation or parent examples.

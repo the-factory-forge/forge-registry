@@ -10,7 +10,7 @@ Read `docs/showroom.md` for its layout and development procedures.
 ### Requirement: Discoverable showroom examples
 
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,
-controls and navigation. The homepage `examples` in `src/routes/index.tsx` SHALL
+controls and navigation. The shared `examples` catalog in `src/showroom/examples.ts` SHALL
 list composed components, page sections, layouts and plugins, excluding basic
 controls and feedback helpers. Their demos and non-visual helpers SHALL be linked
 from item guides or parent examples. The shared header owns persisted Light/Dark
@@ -28,6 +28,31 @@ selection; font and System controls are excluded.
 - **WHEN** a reviewer browses All or Component on the showroom homepage
 - **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, do not appear as standalone cards
 - **AND** their existing demo URLs and registry installation remain available
+
+### Requirement: Global registry search
+
+The shared header SHALL expose a search dialog on every showroom page through a
+search button, Command+K on macOS and Ctrl+K on Windows/Linux. The dialog SHALL
+reuse the homepage catalog, matching all query words case-insensitively against
+titles, descriptions, categories, tags and keywords. Results SHALL retain ordinary
+link behavior and show their title, category and description. The dialog SHALL
+use the current theme, fit narrow screens, trap focus and scroll results within a
+stable frame. Its transient query SHALL NOT change the underlying page's URL or
+form values and SHALL clear when dismissed.
+
+#### Scenario: Finding a demo with the keyboard
+
+- **WHEN** a reviewer opens search with either keyboard shortcut
+- **THEN** the search input receives focus and an empty-state prompt explains the scope
+- **AND** typing updates the result count and matching links, or displays a no-results state
+- **AND** arrow keys move between the input and results, Enter opens a result, and Escape closes search and restores focus
+
+#### Scenario: Opening search from a demo
+
+- **WHEN** a reviewer opens and closes search while editing or filtering a demo
+- **THEN** the demo's URL, filters and unsaved inputs remain intact
+- **AND** choosing a result navigates to its demo and closes search
+- **AND** browser Back/Forward retains normal navigation behavior
 
 ### Requirement: Toggleable preview settings
 
