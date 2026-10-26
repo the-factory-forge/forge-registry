@@ -174,6 +174,22 @@ child, while `aria-current="page"` on the parent identifies only its exact
 route. An empty child list still renders the parent link, which supports
 asynchronously loaded project navigation. Empty groups without a link are hidden.
 
+### Project version
+
+Supply the host project's `package.json` version through the `version` prop on
+`IntranetSidebar` or `IntranetShell`. For example, from a host adapter under
+`src/components/`:
+
+```tsx
+import { version } from "../../package.json";
+
+<IntranetShell {...shellProps} version={`v${version}`} />;
+```
+
+Both showroom demos use this wiring. A package version change is included on the
+next build and deployment, including prerelease suffixes. The reusable sidebar
+keeps the value host-owned; omit the prop to hide it.
+
 ### Plugin icons
 
 The sidebar item includes `pluginIcons` from `@/components/utils/plugin-icons`.

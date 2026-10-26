@@ -8,6 +8,8 @@ import { pluginIcons } from "@/components/utils/plugin-icons";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
+import { version } from "../../package.json";
+
 const groups: IntranetNavGroup[] = [
   {
     id: "workspace",
@@ -101,7 +103,7 @@ function IntranetExample() {
         groups={groups}
         pathname={pathname}
         profileHref="#profile"
-        version="v1.0.0"
+        version={`v${version}`}
         showTopbar={showTopbar}
         topbar={<span className="text-sm font-medium">Team workspace</span>}
         renderTopbar={
