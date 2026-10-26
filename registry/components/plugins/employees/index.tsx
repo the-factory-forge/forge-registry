@@ -256,13 +256,13 @@ function EmployeesPageContent({
                       className={cn(tableCellClass, "whitespace-nowrap")}
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-primary/20">
+                        <Avatar.Root className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border">
                           <Avatar.Image
                             className="size-full object-cover"
                             src={employee.image ?? undefined}
                             alt=""
                           />
-                          <Avatar.Fallback className="flex size-full items-center justify-center text-xs">
+                          <Avatar.Fallback>
                             {employee.name
                               .trim()
                               .split(/\s+/)
