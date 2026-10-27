@@ -55,6 +55,11 @@ sans-serif fallbacks; remote fonts are not required. The default email is light
 and remains self-contained. Inbox clients may apply their own dark-mode colors.
 Browser previews do not certify every Outlook, Gmail or Apple Mail version.
 
+Without `logoUrl`, the email shows the site's name without an image. Without
+`theme`, it uses the renderer's default palette and system fonts. A partial theme
+overrides only the supplied roles. A supplied logo still needs a URL that the
+recipient's email client can reach.
+
 ## Sending from a server
 
 ```ts
@@ -79,6 +84,42 @@ configuration, network errors or unsuccessful provider responses. It forwards
 safe public error handling. In particular, password recovery must retain its
 neutral public response even when delivery fails. Another provider can consume
 the rendered content without this Resend helper.
+
+## Site setup and local previews
+
+Keep one site-owned message builder outside installed Registry source. It supplies
+the site's identity, translated copy and trusted destinations. Call that same
+builder for delivery and previews so they cannot drift into separate templates.
+
+Seebach provides a tested example:
+
+| Responsibility                         | Site-owned example                                                                                                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity and translated messages       | [Message builder](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.ts)       |
+| Recipients, tokens and delivery errors | [Server sender](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/auth/verification-email.ts)  |
+| Synthetic HTML/text exports            | [Preview fixtures](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.test.ts) |
+
+From the Seebach checkout, run:
+
+```sh
+vp run preview:mailing
+```
+
+Open the generated `.cache/mailing/*.html` files and inspect their `.txt`
+alternatives. The command supplies synthetic settings and tokens without
+connecting to a database or sending mail. Each host owns its preview command;
+generated files stay ignored by Git and outside public routes.
+
+The [Seebach preview instructions](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/docs/mailing.md#preview-without-sending)
+also show how to serve those files with the local logo.
+
+The [delivery test](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/e2e/mailing-locales.spec.ts)
+captures real sender payloads with a fake provider. It checks each message and
+locale against the same builder, including recipients and trusted action links.
+
+For inbox checks, the logo must be accessible publicly over HTTPS. Gmail cannot
+retrieve `.localhost` images even when the browser preview displays them. Verify
+the deployed image separately; keep activation links in the intended environment.
 
 ## Plugin integration and adoption
 
