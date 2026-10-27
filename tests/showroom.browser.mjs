@@ -151,7 +151,8 @@ await suite("Showroom browser", async () => {
     assert.equal(await page.getByRole("combobox").count(), 0);
     await preview.getByText("The Corner Factory", { exact: true }).waitFor();
     const navigation = page.getByRole("navigation", { name: "Preview navigation" });
-    await navigation.getByRole("button", { name: "Reservations", exact: true }).press("Enter");
+    const reservations = navigation.getByRole("button", { name: "Reservations", exact: true });
+    await reservations.press("Enter");
     const cancelled = navigation.getByRole("link", { name: "Your stay has been cancelled" });
     await cancelled.press("Enter");
     await page.waitForURL((url) => url.pathname === "/mailing/reservation-cancelled");
@@ -165,14 +166,12 @@ await suite("Showroom browser", async () => {
         .getAttribute("aria-expanded"),
       "true",
     );
+    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
+    assert.equal(await cancelled.evaluate((link) => document.activeElement === link), true);
     await page.goForward();
     await preview.getByRole("heading", { name: "Your stay has been cancelled" }).waitFor();
-    assert.equal(
-      await navigation
-        .getByRole("button", { name: "Reservations", exact: true })
-        .getAttribute("aria-expanded"),
-      "true",
-    );
+    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
+    assert.equal(await cancelled.evaluate((link) => document.activeElement === link), true);
   });
 
   await test("mailing retains the Corner palette on narrow screens and without images", async (t) => {

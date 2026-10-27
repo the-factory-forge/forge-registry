@@ -35,8 +35,12 @@ function MailingPage() {
   const hydrated = useHydrated();
   const activeGroup = mailingExamples[selected]!.group;
   const [sections, setSections] = useState({ sample: selected, open: [activeGroup] as string[] });
-  // Open the selected group on history navigation without remounting focused links.
-  if (sections.sample !== selected) setSections({ sample: selected, open: [activeGroup] });
+  // Keep opened sections visible so history navigation preserves keyboard focus.
+  if (sections.sample !== selected)
+    setSections({
+      sample: selected,
+      open: sections.open.includes(activeGroup) ? sections.open : [...sections.open, activeGroup],
+    });
   return (
     <ShowroomPreview
       width="narrow"
