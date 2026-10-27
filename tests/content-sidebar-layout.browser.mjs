@@ -117,3 +117,20 @@ void test("layout can stick without the host header offset", async (t) => {
     16,
   );
 });
+
+void test("layout keeps className sizing when composed inside a flex row", async (t) => {
+  const page = await preview(t);
+  const container = page.locator('[class~="@container/content-sidebar"]');
+  await container.evaluate((element) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;width:900px";
+    const sibling = document.createElement("div");
+    sibling.style.cssText = "width:200px;flex-shrink:0";
+    element.before(row);
+    row.append(element, sibling);
+  });
+  assert.equal((await container.boundingBox()).width, 700);
+  assert.ok(
+    (await page.getByRole("textbox", { name: "Overview", exact: true }).boundingBox()).width > 600,
+  );
+});
