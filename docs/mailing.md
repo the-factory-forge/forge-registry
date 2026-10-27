@@ -1,30 +1,19 @@
 # Mailing
 
-`@forge/mailing` is a service plugin shared by features that send transactional
-email. It uses React Email components to render branded HTML and matching plain text. It has no administration
-screen, database, subscription list or runtime plugin loader.
+`@forge/mailing` renders transactional HTML and matching plain text. See
+[ADR-0012](../concepts/adr/0012-mailing-rendering-and-transport.md) for the architecture.
 
 [Preview account and reservation emails](/mailing).
 
-Each sample has a direct showroom link:
+| Section      | Examples                                                                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account      | [Verification](/mailing/verify-email), [password reset](/mailing/reset-password), [invitation](/mailing/invitation), [email change](/mailing/email-change)                                                                                                                            |
+| Reservations | [Request](/mailing/reservation-booked), [confirmation](/mailing/reservation-confirmation), [rescheduling](/mailing/reservation-rescheduled), [rejection](/mailing/reservation-rejected), [cancellation](/mailing/reservation-cancelled), [management link](/mailing/reservation-link) |
 
-- [Verify your email](/mailing/verify-email)
-- [Reset your password](/mailing/reset-password)
-- [Accept your invitation](/mailing/invitation)
-- [Confirm your new email address](/mailing/email-change)
-- [Your reservation is confirmed](/mailing/reservation-confirmation)
-
-The preview navigation switches between these pages. `/mailing` opens the
-verification sample. The plain-text control stores `format=text` in the URL;
-switching examples, reloading and Back/Forward preserve the selected format.
-Missing or invalid format values show HTML.
-
-These are common transactional examples using neutral “Your website” copy and
-the renderer's defaults. There are no brand presets or brand selectors. Names,
-dates and action links are synthetic; previews neither issue tokens nor send
-mail. Hosts supply their own branding, translations and token-expiry wording.
-Keep additional examples within the
-[barebones scope rule](../AGENTS.md#barebones-scope-and-confirmation).
+`/mailing` opens verification. Expand either section to browse its samples and
+select Plain-text version to inspect `format=text`. The
+[showroom contract](../openspec/specs/registry-showroom/spec.md#requirement-barebones-mailing-examples)
+defines identity and navigation behavior. These previews never send mail.
 
 ```sh
 vpr ui add @forge/mailing
@@ -57,10 +46,6 @@ logos require absolute HTTP(S) URLs without credentials. The host supplies trust
 destinations, translations, preview text and optional logo, details and footer.
 There is no raw-HTML slot or tracking pixel. Brand theme values are trusted
 application configuration, never submitted user CSS.
-
-The centered card, logo, heading, action and quiet footer follow the Up4it account
-emails. Up4it code and assets are reference material only; no runtime imports or
-Up4it branding ship. L'Aspic supplies its own logo, French copy and palette.
 
 Emails use table layout and inline styles because they cannot inherit a website's
 Tailwind stylesheet or CSS variables. `brand.theme` uses the existing semantic

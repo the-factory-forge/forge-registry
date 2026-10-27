@@ -49,7 +49,12 @@ await suite("Showroom browser", async () => {
       ["reset-password", "Reset your password"],
       ["invitation", "Accept your invitation"],
       ["email-change", "Confirm your new email address"],
+      ["reservation-booked", "Your request is received"],
       ["reservation-confirmation", "Your reservation is confirmed"],
+      ["reservation-rescheduled", "Your stay has been rescheduled"],
+      ["reservation-rejected", "Your request was not approved"],
+      ["reservation-cancelled", "Your stay has been cancelled"],
+      ["reservation-link", "Your reservation management link"],
     ];
     const navigation = page.getByRole("navigation", { name: "Preview navigation" });
     const preview = page.frameLocator('iframe[title="Email preview"]');
@@ -58,7 +63,19 @@ await suite("Showroom browser", async () => {
       assert.equal(response.status(), 200);
       await page.locator('[data-preview-ready="true"]').waitFor();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
-      assert.equal(await navigation.getByRole("link").count(), samples.length);
+      assert.equal(
+        await navigation.getByRole("link", { includeHidden: true }).count(),
+        samples.length,
+      );
+      assert.equal(
+        await navigation
+          .getByRole("button", {
+            name: slug.startsWith("reservation-") ? "Reservations" : "Account",
+            exact: true,
+          })
+          .getAttribute("aria-expanded"),
+        "true",
+      );
       assert.equal(await page.getByRole("combobox").count(), 0);
       assert.equal(
         await navigation.getByRole("link", { name: heading }).getAttribute("aria-current"),
@@ -66,7 +83,9 @@ await suite("Showroom browser", async () => {
       );
       for (const [linkSlug, linkHeading] of samples) {
         assert.equal(
-          await navigation.getByRole("link", { name: linkHeading }).getAttribute("href"),
+          await navigation
+            .getByRole("link", { name: linkHeading, includeHidden: true })
+            .getAttribute("href"),
           `/mailing/${linkSlug}`,
         );
       }
@@ -76,6 +95,7 @@ await suite("Showroom browser", async () => {
       await page.reload();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
     }
+    await navigation.getByRole("button", { name: "Account", exact: true }).click();
     await navigation.getByRole("link", { name: "Reset your password" }).press("Enter");
     await page.waitForURL(`${baseURL}/mailing/reset-password`);
     await preview.getByRole("heading", { name: "Reset your password", exact: true }).waitFor();
@@ -100,8 +120,11 @@ await suite("Showroom browser", async () => {
     const page = await context.newPage();
     await page.goto(`${baseURL}/mailing/invitation?category=Plugin#factory-showroom-preview`);
     const preview = page.frameLocator('iframe[title="Email preview"]');
-    await preview.getByText("Your website", { exact: true }).waitFor();
-    assert.equal(await preview.locator("img").count(), 0);
+    await preview.getByText("The Corner Factory", { exact: true }).waitFor();
+    const logo = preview.locator("img");
+    assert.equal(await logo.getAttribute("src"), `${baseURL}/icon.png`);
+    await logo.evaluate((image) => image.decode());
+    assert.ok(await logo.evaluate((image) => image.naturalWidth > 0));
     assert.equal(await page.locator("iframe").getAttribute("sandbox"), "");
     await page.getByLabel("Plain-text version").check();
     await page.waitForURL((url) => url.searchParams.get("format") === "text");
@@ -126,7 +149,58 @@ await suite("Showroom browser", async () => {
     await preview.getByRole("heading", { name: "Verify your email" }).waitFor();
     assert.equal(await page.getByLabel("Plain-text version").isChecked(), false);
     assert.equal(await page.getByRole("combobox").count(), 0);
-    await preview.getByText("Your website", { exact: true }).waitFor();
+    await preview.getByText("The Corner Factory", { exact: true }).waitFor();
+    const navigation = page.getByRole("navigation", { name: "Preview navigation" });
+    await navigation.getByRole("button", { name: "Reservations", exact: true }).press("Enter");
+    const cancelled = navigation.getByRole("link", { name: "Your stay has been cancelled" });
+    await cancelled.press("Enter");
+    await page.waitForURL((url) => url.pathname === "/mailing/reservation-cancelled");
+    await preview.getByRole("heading", { name: "Your stay has been cancelled" }).waitFor();
+    assert.equal(await cancelled.evaluate((link) => document.activeElement === link), true);
+    await page.goBack();
+    await preview.getByRole("heading", { name: "Verify your email" }).waitFor();
+    assert.equal(
+      await navigation
+        .getByRole("button", { name: "Account", exact: true })
+        .getAttribute("aria-expanded"),
+      "true",
+    );
+    await page.goForward();
+    await preview.getByRole("heading", { name: "Your stay has been cancelled" }).waitFor();
+    assert.equal(
+      await navigation
+        .getByRole("button", { name: "Reservations", exact: true })
+        .getAttribute("aria-expanded"),
+      "true",
+    );
+  });
+
+  await test("mailing retains the Corner palette on narrow screens and without images", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    await context.route("**/icon.png", (route) => route.abort());
+    const page = await context.newPage();
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${baseURL}/mailing/reservation-confirmation`);
+      for (const dark of [false, true]) {
+        const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+        if ((await toggle.getAttribute("aria-pressed")) !== String(dark)) await toggle.click();
+        const email = page.frameLocator('iframe[title="Email preview"]');
+        await email.getByText("The Corner Factory", { exact: true }).waitFor();
+        const colors = await email.locator("body").evaluate((body) => ({
+          background: getComputedStyle(body).backgroundColor,
+          foreground: getComputedStyle(body).color,
+          overflow: body.scrollWidth > body.clientWidth,
+        }));
+        assert.deepEqual(colors, {
+          background: "rgb(255, 255, 255)",
+          foreground: "rgb(0, 0, 0)",
+          overflow: false,
+        });
+        assert.equal(await page.getByRole("combobox").count(), 0);
+      }
+    }
   });
 
   await test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {

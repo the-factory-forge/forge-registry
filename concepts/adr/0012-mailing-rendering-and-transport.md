@@ -26,9 +26,8 @@ notification lifecycle; provider idempotency does not replace durable retry stat
 
 Recipients, translations, authorization, delivery policy and branding remain
 host-owned under the shared decision. Inline styles follow its concrete semantic
-email values. Showroom examples use neutral defaults and synthetic content without
-brand presets, token issuance or delivery. A campaign system, shared queue and
-customer-specific workflows are outside Mailing's barebones capability.
+email values. Campaigns, shared queues and customer-specific workflows are outside
+Mailing's scope. The linked showroom contract owns preview behavior.
 
 ## Alternatives and consequences
 

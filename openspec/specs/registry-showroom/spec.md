@@ -31,20 +31,28 @@ selection; font and System controls are excluded.
 
 ### Requirement: Barebones mailing examples
 
-Mailing previews SHALL demonstrate common verification, password reset, invitation,
-email change and reservation confirmation messages with neutral sample content
-and the existing renderer defaults. They SHALL NOT add brand presets or selectors.
-Customer branding SHALL remain host-owned. Samples SHALL use synthetic data and
-SHALL NOT issue tokens or deliver mail.
+Mailing SHALL preview verification, password reset, invitation and email change,
+plus reservation request, confirmation, rescheduling, rejection, cancellation and
+management-link messages. Samples SHALL use synthetic content without issuing
+tokens or sending mail. Customer branding SHALL remain host-owned.
 
 #### Scenario: Opening and navigating a sample
 
 - **WHEN** a reviewer opens `/mailing` or a documented sample link
 - **THEN** the default verification or selected sample renders in a sandboxed iframe
-- **AND** navigation identifies the selected sample and provides direct links to every example
-- **AND** account samples distinguish their purpose in the heading, copy and action, and reservation confirmation includes its reservation details
+- **AND** Account and Reservations are independently collapsible sections with direct links to every example
+- **AND** direct links and Back/Forward open the selected sample's section without losing keyboard focus
+- **AND** each message identifies its purpose and includes the relevant action and reservation details
 - **AND** unknown sample paths return not found
 - **AND** the existing verification, password reset and reservation confirmation URLs remain available
+
+#### Scenario: Reviewing the showroom identity
+
+- **WHEN** a reviewer opens a Mailing example in either showroom theme
+- **THEN** the email uses The Corner Factory's identity and the showroom's concrete light-theme values
+- **AND** no alternative brands or brand selector appear
+- **AND** the name, message and action remain readable without the logo or downloaded fonts
+- **AND** the distributed renderer and customer brand adapters remain unchanged
 
 #### Scenario: Inspecting plain text
 
