@@ -85,41 +85,38 @@ safe public error handling. In particular, password recovery must retain its
 neutral public response even when delivery fails. Another provider can consume
 the rendered content without this Resend helper.
 
-## Site setup and local previews
+## Change and preview a site's emails
 
-Keep one site-owned message builder outside installed Registry source. It supplies
-the site's identity, translated copy and trusted destinations. Call that same
-builder for delivery and previews so they cannot drift into separate templates.
+In Seebach, [template.ts](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.ts)
+sets the clinic name, logo, colors, translated text and action links. Keep these
+site settings outside installed Registry source.
 
-Seebach provides a tested example:
-
-| Responsibility                         | Site-owned example                                                                                                                                                |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identity and translated messages       | [Message builder](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.ts)       |
-| Recipients, tokens and delivery errors | [Server sender](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/auth/verification-email.ts)  |
-| Synthetic HTML/text exports            | [Preview fixtures](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.test.ts) |
-
-From the Seebach checkout, run:
+To see the emails without sending them, run this from the Seebach checkout:
 
 ```sh
 vp run preview:mailing
 ```
 
-Open the generated `.cache/mailing/*.html` files and inspect their `.txt`
-alternatives. The command supplies synthetic settings and tokens without
-connecting to a database or sending mail. Each host owns its preview command;
-generated files stay ignored by Git and outside public routes.
+Open the generated `.cache/mailing/*.html` files in a browser and their `.txt`
+alternatives in an editor. The [preview test](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.test.ts)
+lists the messages and languages to generate. It uses fake settings and tokens;
+it needs no database or email credentials. Each site provides its own preview
+command. Generated files stay ignored by Git and outside public routes.
 
 The [Seebach preview instructions](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/docs/mailing.md#preview-without-sending)
-also show how to serve those files with the local logo.
+show how to serve the files locally so the logo appears too.
+
+The [sender](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/auth/verification-email.ts)
+calls the same function as the preview, so both use the same layout and text.
+The sender handles recipients, account tokens and delivery errors.
 
 The [delivery test](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/e2e/mailing-locales.spec.ts)
-captures real sender payloads with a fake provider. It checks each message and
-locale against the same builder, including recipients and trusted action links.
+intercepts outgoing mail instead of delivering it. It compares every message and
+language with the preview function and checks the recipient and action URL.
 
-For inbox checks, the logo must be accessible publicly over HTTPS. Gmail cannot
-retrieve `.localhost` images even when the browser preview displays them. Verify
-the deployed image separately; keep activation links in the intended environment.
+To check a logo in Gmail, its HTTPS address must be public. A `.localhost` image
+can appear in your browser but not in Gmail. Check the logo again after deployment
+and keep activation links pointed at the environment you are testing.
 
 ## Plugin integration and adoption
 
