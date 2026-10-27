@@ -2,7 +2,7 @@
 
 `@forge/menus` provides a public restaurant menu and staff pages for items,
 categories, and reusable allergen and dietary labels. `@forge/menus-storage`
-adds Better Auth schema registration, Drizzle tables, and server operations. It
+adds Drizzle tables and typed server operations. It
 also installs Drive storage for private image uploads. No restaurant routes,
 sessions, database migration, or bucket configuration are installed automatically.
 
@@ -17,20 +17,13 @@ pnpm dlx shadcn@4.22.1 add @forge/menus-storage
 
 Import `MenuPage`, `MenuItemsPage`, `MenuItemEditorPage`, `MenuTaxonomyPage`, and
 their types from `@/components/plugins/menus`. Import `createMenusService`,
-`menusPlugin`, the Drizzle tables, and `menuImageDeleteGuard` only from
-`@/components/plugins/menus/server`. Register `menusPlugin()` in the host's
-Better Auth configuration and include the exported Drizzle tables in its schema.
-Review `server/migration.sql`, `server/spice-level.sql`, `server/sizes.sql` and
-`server/label-icon.sql` and apply them in that order through the host migration
-workflow. Existing
-installations only need the upgrades they have not yet applied after updating
-their source. The upgrades add a constrained spice level defaulting to zero and
-a sizes array defaulting to empty, plus a nullable label icon, preserving existing
-dishes and labels. Reapplying them retains saved heat, sizes and icons. The initial
-migration creates three menu tables;
-Drive storage has its own migration.
-Do not run both a manual SQL migration and generated Drizzle migration for the
-same tables.
+the Drizzle tables, and `menuImageDeleteGuard` only from
+`@/components/plugins/menus/server`. Compose those tables, Drive tables and
+`pluginLocks` into the host schema; generate and review one project migration.
+Remove the former `menusPlugin()` registration and obsolete installed file. Menus
+business tables no longer register with Better Auth. Follow the
+[persistence and cutover guide](./persistence.md), preserving saved dishes, spice
+levels, sizes and icons. Historical SQL remains an upgrade fixture only.
 
 The host configures `createDriveStorage` for a `menu-item` scope. Its
 `resolveScope` callback must verify that the item exists and that the current
@@ -73,6 +66,55 @@ These colors identify labels rather than the severity of an allergic reaction. F
 instructions, result counts and empty messages are overridable through `labels`.
 There is no ordering or checkout flow.
 
+Pass `MenuItemEditorPage.labelsHref` to show a pencil link beside Labels that opens
+the host's label management page (`MenuTaxonomyPage` in the showroom). Omit it when
+that page is unavailable to the current user. Override `labels.manageLabels` for
+the accessible name and tooltip. Existing integrations can omit the new prop.
+When the item has unsaved changes, both this link and Back offer Save, Discard changes, and
+Cancel. Saving validates the whole item and navigates only after success; errors
+retain the draft for retry. Cancel retains the form, and Discard changes navigates
+without saving. A pending save blocks both links.
+
+Browser Back/Forward and other SPA transitions must be blocked by the host router
+before it unmounts the editor. Connect `onNavigationStateChange` to a stable host
+callback tracking `{ dirty, pending }`, and pass `blockedNavigation: { proceed, reset }`
+while a transition is blocked. The same dialog then resumes the original transition
+on successful Save or Discard, or cancels it without losing the draft. Validation
+errors cancel the transition and focus the invalid field; storage errors keep the
+dialog open for retry. Hosts should avoid redirecting from `onSaved` while resolving
+a blocked transition, especially after creating a new item.
+
+The showroom shares `useShowroomEditorGuard` in `src/showroom/routing.tsx` with
+the Blog editor. It uses TanStack Router's `useBlocker({ withResolver: true })` for dirty
+items, preceded by a blocker that rejects navigation during pending saves. Both
+check for pathname changes and read the latest editor state, so same-item Drive
+folder navigation remains available. The successful new-item redirect bypasses
+blocking after persistence; it is suppressed when resuming a dialog transition.
+The Menu editor owns native protection for cross-document navigation, reload and
+tab closure. Hosts should set the router's `enableBeforeUnload: false` to avoid
+installing an additional handler. Browsers provide their own leave-page warning
+for those native departures. The editor reports a clean state synchronously before confirmed navigation to avoid a second
+warning. See [TanStack navigation blocking](https://tanstack.com/router/latest/docs/guide/navigation-blocking)
+and `src/showroom/menus-preview.tsx` for the host adapter. Hosts without this adapter
+retain the portable Back and Labels link protection and native unload warnings;
+SPA history protection still needs the host router.
+
+`MenuTaxonomyPage` accepts the same `onNavigationStateChange` and
+`blockedNavigation` props for its category and label dialogs. Only the open editor
+reports dirty or pending state; changes to translations, position, label type and
+icon are protected. Cancel in the leave dialog keeps the editor open with its
+fields intact. Save validates and persists before resuming navigation; invalid
+fields return to the editor and storage errors keep the leave dialog available for
+retry. Native reload and page departures also warn while the open editor is dirty
+or saving. Hosts must connect their router to protect SPA Back/Forward.
+
+The Menu editor module in `editor.tsx` owns item and taxonomy forms, validation,
+save acceptance and unsaved-change protection, separately from the Blog editor.
+List loading and reordering remain in `use-menu-items.ts`; taxonomy loading remains
+in `use-categories-and-labels.ts`. Existing page names, props and admin exports are
+unchanged. Install the full `@forge/menus` item to include `editor.tsx` and the local
+shared controls in `ui.tsx`.
+
 ## Default labels and badges
 
 `menuLabelPresets` exports the standard catalog with stable IDs, translated names
@@ -104,7 +146,7 @@ use the same saved choice. Choose Automatic to restore the preset or generic ico
 `MenuLabel.icon` and `MenuViewLabel.icon` accept a `MenuLabelIcon` value from
 `menuLabelIcons`. An omitted icon on update preserves the saved choice; explicit
 `null` clears it. The storage service validates and persists icons. Apply the
-incremental `server/label-icon.sql` migration before using the updated storage
+generated incremental label-icon migration before using the updated storage
 companion. Override `icon`, `automaticIcon` and `iconNames` through `labels` to
 translate the selector. Partial `iconNames` overrides retain English fallbacks.
 
@@ -208,6 +250,57 @@ image file in its own Drive space. The response has `Cache-Control: no-store`
 and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
+
+## Item editor lifetime
+
+Keep the `MenusClient` reference stable while editing. `MenuItemEditorPage` starts
+a fresh editor when the client or item ID changes, including creation/edit
+transitions; hosts do not need to key the page themselves. Earlier saves may
+finish on the server, but cannot update the replacement editor, show feedback or
+call `onSaved` after replacement or unmount.
+
+Refreshing the same item or navigating its photo folders preserves the local
+draft and version. Only a successful save advances that version; concurrent
+server changes still produce the existing conflict error. Fields remain editable
+during save, while duplicate submissions wait. Saving submits a snapshot and
+retains later typing on both success and failure. Hosts still navigate from
+creation to the saved item's edit route in `onSaved`.
+
+Terminal60 is the recorded Menus consumer and needs a separate reviewed adoption.
+Its installed editor was not changed or verified for these lifetime rules.
+
+## Item list lifecycle
+
+The private `use-menu-items.ts` module owns item and category reads, saved order
+and versions, optimistic moves, deletion results and refresh. Loaded rows remain
+visible during refresh or a failed read. Reordering failures restore the accepted
+order and reload current data; writes wait while reads or earlier writes finish.
+
+Keep the `MenusClient` reference stable while using the list. Replacing it starts
+a fresh list session and clears unconfirmed selections, single-delete dialogs and
+drag gestures. Earlier responses cannot change or reload the replacement list,
+even when item IDs are reused. A confirmed bulk deletion continues through its
+original client and retains only failed items for retry. Single deletions refresh
+the list after success; bulk deletions accept each removed row without interrupting
+the remaining batch with a read. The public page and client interfaces are unchanged.
+
+## Category and label lifecycle
+
+The private `use-categories-and-labels.ts` module owns category and label reads, optimistic
+changes, canonical save results and refresh. Loaded rows remain visible during
+refresh; writes wait for that read to finish. Failed writes retain dialog drafts
+and deletion confirmations for retry. Replacing the client starts a fresh taxonomy
+session, so earlier reads and writes cannot update or refresh the new client's data.
+Its pending operations also cannot block the new session. Hosts should keep the
+client reference stable while editing; replacing it resets the session's dialogs.
+The public `MenuTaxonomyPage` props and `MenusClient` interface are unchanged.
+Install the complete `@forge/menus` item so the private module is included.
+
+Terminal60 is the recorded Menus consumer. Its adapter and category route were
+reviewed alongside the item-list route at `487436539604f77f449cf9e2808d85e57b6a6605`: both routes memoize the
+client, and writes invalidate host queries before returning. Adoption remains
+pending; preserve its localized menus, Drive integration and authorization.
+The template does not install Menus. Other installations remain uninspected.
 
 ## Reordering items
 

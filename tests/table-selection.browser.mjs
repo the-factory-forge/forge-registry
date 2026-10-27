@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 let browser;
 before(async () => {
@@ -139,7 +139,7 @@ for (const path of [
     for (const width of [1440, 390])
       for (const dark of [false, true]) {
         await page.setViewportSize({ width, height: 1000 });
-        const theme = page.getByRole("button", { name: "Dark mode", exact: true });
+        const theme = page.shell.getByRole("button", { name: "Dark mode", exact: true });
         if ((await theme.getAttribute("aria-pressed")) !== String(dark)) await theme.click();
         await page.waitForFunction(
           (dark) => document.documentElement.classList.contains("dark") === dark,

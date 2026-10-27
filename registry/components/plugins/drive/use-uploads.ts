@@ -29,6 +29,15 @@ interface Job {
   busy: boolean;
   cancelled: boolean;
 }
+type Upload = Readonly<
+  Pick<Job, "id" | "relativePath" | "state" | "progress" | "error"> & {
+    name: string;
+    failed: boolean;
+    canRetry: boolean;
+    canCancel: boolean;
+    canDismiss: boolean;
+  }
+>;
 export function useUploads(
   client: DriveClient,
   scope: DriveScope,
@@ -38,9 +47,29 @@ export function useUploads(
 ) {
   const jobs = useRef<Job[]>([]);
   const mounted = useRef(true);
-  const [uploads, setUploads] = useState<Job[]>([]);
+  const generation = useRef(0);
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [previousParentId, setPreviousParentId] = useState(parentId);
+  if (previousParentId !== parentId) {
+    setPreviousParentId(parentId);
+    setUploads([]);
+  }
   const publish = useCallback(() => {
-    if (mounted.current) setUploads(jobs.current.map((job) => ({ ...job })));
+    if (mounted.current)
+      setUploads(
+        jobs.current.map(({ id, file, relativePath, state, progress, error }) => ({
+          id,
+          name: file.name,
+          relativePath,
+          state,
+          progress,
+          error,
+          failed: state === "failed" || state === "cancelFailed",
+          canRetry: state === "failed" || state === "cancelFailed",
+          canCancel: ["queued", "uploading", "failed"].includes(state),
+          canDismiss: state === "done" || state === "cancelled",
+        })),
+      );
   }, []);
   const dismiss = useCallback(
     (id: string) => {
@@ -64,6 +93,7 @@ export function useUploads(
     publish();
   }
   async function run(job: Job) {
+    const started = generation.current;
     job.busy = true;
     job.state = "uploading";
     job.error = undefined;
@@ -108,7 +138,7 @@ export function useUploads(
           await client.completeUpload({ scope, uploadId: job.id });
           job.state = "done";
           job.progress = 100;
-          if (mounted.current) refresh();
+          if (mounted.current && !job.cancelled) refresh();
           return;
         }
         if (job.cancelled) {
@@ -121,7 +151,7 @@ export function useUploads(
       }
       job.state = "done";
       job.progress = 100;
-      if (mounted.current) refresh();
+      if (mounted.current && !job.cancelled) refresh();
     } catch (error) {
       if (job.cancelled) await abandon(job);
       else {
@@ -131,7 +161,7 @@ export function useUploads(
     } finally {
       job.busy = false;
       publish();
-      pump();
+      if (generation.current === started) pump();
     }
   }
   function pump() {
@@ -149,18 +179,25 @@ export function useUploads(
     mounted.current = true;
     return () => {
       mounted.current = false;
-      for (const job of jobs.current) {
+      generation.current += 1;
+      const departed = jobs.current;
+      jobs.current = [];
+      for (const job of departed) {
         if (["done", "cancelled"].includes(job.state)) continue;
         job.cancelled = true;
         job.controller.abort();
         if (!job.busy) void abandon(job);
       }
     };
-    // This hook is owned by a browser keyed to its space and folder.
+    // Space changes remount the browser; folder changes cancel only this queue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [parentId]);
   return {
     uploads,
+    finished: uploads.every((upload) => upload.canDismiss),
+    loading: uploads.some((upload) =>
+      ["queued", "uploading", "finishing", "cancelling"].includes(upload.state),
+    ),
     add(files: File[], maxBytes: number, destination = parentId, directory = false) {
       for (const file of files) {
         let error: unknown;

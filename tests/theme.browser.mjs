@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Theme browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
@@ -56,8 +56,8 @@ await suite("Theme browser", async () => {
     for (const value of Object.values(light)) assert.notEqual(value, "rgba(0, 0, 0, 0)");
     await page.emulateMedia({ colorScheme: "light" });
     assert.deepEqual(await palette(page), light);
-    assert.equal(await page.getByRole("button", { name: "System", exact: true }).count(), 0);
-    assert.equal(await page.getByRole("button", { name: "Font", exact: true }).count(), 0);
+    assert.equal(await page.shell.getByRole("button", { name: "System", exact: true }).count(), 0);
+    assert.equal(await page.shell.getByRole("button", { name: "Font", exact: true }).count(), 0);
   });
 
   await test("shared theme persists across previews, reloads, tabs and portaled dialogs", async (t) => {
@@ -68,7 +68,7 @@ await suite("Theme browser", async () => {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`${baseURL}/en/admin/blogs/categories`);
     await page.locator('[data-preview-ready="true"]').waitFor();
-    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     assert.equal(await toggle.count(), 1);
     assert.equal(await toggle.textContent(), "");
     assert.equal(await toggle.locator('svg[aria-hidden="true"]').count(), 1);
@@ -88,11 +88,11 @@ await suite("Theme browser", async () => {
       "rgb(0, 0, 0)",
     );
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await page.waitForURL(`${baseURL}/`);
     assert.deepEqual(await palette(page), dark);
     await page.reload();
-    await page.waitForFunction(
+    await page.shell.waitForFunction(
       () =>
         document.querySelector('button[aria-label="Dark mode"]')?.getAttribute("aria-pressed") ===
         "true",
@@ -104,7 +104,7 @@ await suite("Theme browser", async () => {
     await second.goto(`${baseURL}/en/employees`);
     await second.locator('[data-preview-ready="true"]').waitFor();
     assert.deepEqual(await palette(second), dark);
-    await second.getByRole("button", { name: "Dark mode", exact: true }).focus();
+    await second.shell.getByRole("button", { name: "Dark mode", exact: true }).focus();
     await second.keyboard.press("Space");
     await page.waitForFunction(() => document.documentElement.classList.contains("light"));
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
@@ -128,11 +128,11 @@ await suite("Theme browser", async () => {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(baseURL);
     await page.locator('[data-preview-ready="true"]').waitFor();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
     await page.locator('a[href="/en/projects"]').click();
     assert.equal((await palette(page)).primary, "rgb(186, 222, 222)");
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
     assert.deepEqual(errors, []);
   });

@@ -1,26 +1,34 @@
 import { randomUUID } from "node:crypto";
 
-import { sql } from "drizzle-orm";
+import { and, arrayContains, eq, inArray, notExists } from "drizzle-orm";
+import { z } from "zod";
 
+import { driveEntries, driveSpaces } from "@/components/plugins/drive/server/schema";
 import type { DriveDatabase, DriveTransaction } from "@/components/plugins/drive/server/types";
 import type { DriveScope } from "@/components/plugins/drive/types";
-import { scopeKey, validId } from "@/components/plugins/drive/utils";
+import { scopeKey } from "@/components/plugins/drive/utils";
 import {
   buildMenu,
   MenuError,
+  menuCategoryInputSchema,
+  menuLabelInputSchema,
+  menuOrderSchema,
+  parseMenuInput,
   reorderMenuItems,
   validateCategory,
   validateItem,
   validateLabel,
 } from "@/components/plugins/menus/model";
+import { menuItems, menuCategories, menuLabels } from "@/components/plugins/menus/server/schema";
 import type {
   MenuCategory,
   MenuItem,
   MenuItemInput,
   MenuLabel,
-  MenuSpiceLevel,
   MenusClient,
 } from "@/components/plugins/menus/types";
+import { databaseErrorCode } from "@/components/utils/database";
+import { lockPlugin } from "@/components/utils/database";
 
 export type MenusDatabase = DriveDatabase;
 export interface MenusDrive<Context> {
@@ -44,75 +52,47 @@ export interface MenusServiceOptions<Context> {
   authorize: (context: Context, action: MenuAction) => Promise<boolean>;
 }
 
-type QueryDb = Pick<MenusDatabase, "execute">;
-type ItemRow = {
-  id: string;
-  version: number;
-  category_id: string;
-  price_minor: number;
-  sizes: NonNullable<MenuItem["sizes"]>;
-  position: number;
-  visible: boolean;
-  sold_out: boolean;
-  spice_level: MenuSpiceLevel;
-  image_entry_id: string | null;
-  label_ids: string[];
-  translations: MenuItem["translations"];
-};
-type CategoryRow = { id: string; position: number; translations: MenuCategory["translations"] };
-type LabelRow = {
-  id: string;
-  kind: MenuLabel["kind"];
-  icon: MenuLabel["icon"];
-  position: number;
-  translations: MenuLabel["translations"];
-};
+const idSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+const categorySchema = menuCategoryInputSchema.extend({ id: idSchema.optional() });
+const labelSchema = menuLabelInputSchema.extend({ id: idSchema.optional() });
+const validId = (id: unknown) => parseMenuInput(idSchema, id);
+
+type QueryDb = DriveTransaction;
+type ItemRow = typeof menuItems.$inferSelect;
 const imageLimit = 10_000_000;
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
 const menuScope = (id: string): DriveScope => ({ type: "menu-item", id });
-const itemFromRow = (row: ItemRow): MenuItem => ({
-  id: row.id,
-  version: row.version,
-  categoryId: row.category_id,
-  priceMinor: row.price_minor,
-  sizes: row.sizes,
-  position: row.position,
-  visible: row.visible,
-  soldOut: row.sold_out,
-  spiceLevel: row.spice_level,
-  imageEntryId: row.image_entry_id,
-  labelIds: row.label_ids,
-  translations: row.translations,
-});
+const itemFromRow = (row: ItemRow): MenuItem => row;
 
 async function allItems(db: QueryDb) {
-  const rows = await db.execute<ItemRow>(sql`select * from menu_item order by position,id`);
+  const rows = await db.select().from(menuItems).orderBy(menuItems.position, menuItems.id);
   return rows.map(itemFromRow);
 }
 async function allCategories(db: QueryDb): Promise<MenuCategory[]> {
-  return db.execute<CategoryRow>(sql`select * from menu_category order by position,id`);
+  return db.select().from(menuCategories).orderBy(menuCategories.position, menuCategories.id);
 }
 async function allLabels(db: QueryDb): Promise<MenuLabel[]> {
-  return db.execute<LabelRow>(sql`select * from menu_label order by position,id`);
+  return db.select().from(menuLabels).orderBy(menuLabels.position, menuLabels.id);
 }
 async function itemById(db: QueryDb, id: string) {
   validId(id);
-  const [row] = await db.execute<ItemRow>(sql`select * from menu_item where id=${id}`);
+  const [row] = await db.select().from(menuItems).where(eq(menuItems.id, id));
   if (!row) throw new MenuError("NOT_FOUND");
   return itemFromRow(row);
 }
 async function checkReferences(db: QueryDb, input: MenuItemInput) {
-  const [category] = await db.execute(
-    sql`select id from menu_category where id=${input.categoryId}`,
-  );
+  const [category] = await db
+    .select({ id: menuCategories.id })
+    .from(menuCategories)
+    .where(eq(menuCategories.id, input.categoryId));
   if (!category) throw new MenuError("INVALID");
   if (input.labelIds.length) {
-    const rows = await db.execute<{ id: string }>(
-      sql`select id from menu_label where id in (${sql.join(
-        input.labelIds.map((id) => sql`${id}`),
-        sql`,`,
-      )})`,
-    );
+    const rows = await db
+      .select({ id: menuLabels.id })
+      .from(menuLabels)
+      .where(inArray(menuLabels.id, input.labelIds));
     if (rows.length !== input.labelIds.length) throw new MenuError("INVALID");
   }
 }
@@ -143,8 +123,7 @@ async function safe<T>(action: () => Promise<T>): Promise<T> {
       if (error.code === "FORBIDDEN") throw new MenuError("FORBIDDEN");
       if (error.code === "CONFLICT") throw new MenuError("IN_USE");
     }
-    if (error && typeof error === "object" && "code" in error && error.code === "23503")
-      throw new MenuError("IN_USE");
+    if (databaseErrorCode(error) === "23503") throw new MenuError("IN_USE");
     throw new MenuError("STORAGE");
   }
 }
@@ -154,15 +133,14 @@ export async function menuImageDeleteGuard(
   _context: unknown,
   scope: DriveScope,
   entryIds: string[],
-  tx: Pick<DriveTransaction, "execute">,
+  tx: DriveTransaction,
 ) {
   if (scope.type !== "menu-item" || !entryIds.length) return true;
-  const rows = await tx.execute(
-    sql`select id from menu_item where id=${scope.id} and image_entry_id in (${sql.join(
-      entryIds.map((id) => sql`${id}`),
-      sql`,`,
-    )}) limit 1`,
-  );
+  const rows = await tx
+    .select({ id: menuItems.id })
+    .from(menuItems)
+    .where(and(eq(menuItems.id, scope.id), inArray(menuItems.imageEntryId, entryIds)))
+    .limit(1);
   return rows.length === 0;
 }
 
@@ -183,7 +161,7 @@ export function createMenusService<Context>({
       throw new MenuError("INVALID");
   }
   async function taxonomyLock(tx: QueryDb) {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('menu-taxonomy',0))`);
+    await lockPlugin(tx, "menu-taxonomy");
   }
   function client(context: Context): MenusClient {
     return {
@@ -216,56 +194,73 @@ export function createMenusService<Context>({
           await db.transaction(async (tx) => {
             await taxonomyLock(tx);
             await checkReferences(tx, value);
-            await tx.execute(sql`insert into menu_item (id,version,category_id,price_minor,sizes,position,visible,sold_out,spice_level,image_entry_id,label_ids,translations)
-            values (${id},1,${value.categoryId},${value.priceMinor},${JSON.stringify(value.sizes)}::jsonb,${value.position},false,${value.soldOut},${value.spiceLevel},null,${JSON.stringify(value.labelIds)}::jsonb,${JSON.stringify(value.translations)}::jsonb)`);
+            await tx
+              .insert(menuItems)
+              .values({ ...value, id, version: 1, visible: false, imageEntryId: null });
           });
           return itemById(db, id);
         }),
       save: (id, version, input) =>
         safe(async () => {
-          await permit(context, "edit");
           validId(id);
+          parseMenuInput(z.number().int().positive(), version);
+          await permit(context, "edit");
           const value = validateItem(input, baseLocale);
           const preserveSpiceLevel = input.spiceLevel === undefined;
           const preserveSizes = input.sizes === undefined;
           if (value.imageEntryId) await verifyImage(id, value.imageEntryId);
           return db.transaction(async (tx) => {
-            await tx.execute(
-              sql`select pg_advisory_xact_lock(hashtextextended(${scopeKey(menuScope(id))},0))`,
-            );
+            await lockPlugin(tx, `drive:${scopeKey(menuScope(id))}`);
             await taxonomyLock(tx);
             const current = await itemById(tx, id);
             if (current.version !== version) throw new MenuError("CONFLICT");
             await checkReferences(tx, value);
             if (value.imageEntryId) {
-              const [entry] =
-                await tx.execute(sql`select e.id from drive_entry e join drive_space s on s.id=e.space_id
-              where s.entity_type='menu-item' and s.entity_id=${id} and e.id=${value.imageEntryId} and e.kind='file' and e.state='ready'`);
+              const [entry] = await tx
+                .select({ id: driveEntries.id })
+                .from(driveEntries)
+                .innerJoin(driveSpaces, eq(driveSpaces.id, driveEntries.spaceId))
+                .where(
+                  and(
+                    eq(driveSpaces.entityType, "menu-item"),
+                    eq(driveSpaces.entityId, id),
+                    eq(driveEntries.id, value.imageEntryId),
+                    eq(driveEntries.kind, "file"),
+                    eq(driveEntries.state, "ready"),
+                  ),
+                );
               if (!entry) throw new MenuError("INVALID");
             }
             const sizes = preserveSizes ? (current.sizes ?? []) : value.sizes;
-            await tx.execute(sql`update menu_item set version=version+1,category_id=${value.categoryId},price_minor=${sizes[0]?.priceMinor ?? value.priceMinor},sizes=${JSON.stringify(sizes)}::jsonb,
-            position=${value.position},visible=${value.visible},sold_out=${value.soldOut},spice_level=${preserveSpiceLevel ? (current.spiceLevel ?? 0) : value.spiceLevel},image_entry_id=${value.imageEntryId},
-            label_ids=${JSON.stringify(value.labelIds)}::jsonb,translations=${JSON.stringify(value.translations)}::jsonb where id=${id}`);
+            await tx
+              .update(menuItems)
+              .set({
+                ...value,
+                version: current.version + 1,
+                priceMinor: sizes[0]?.priceMinor ?? value.priceMinor,
+                sizes,
+                spiceLevel: preserveSpiceLevel ? (current.spiceLevel ?? 0) : value.spiceLevel,
+              })
+              .where(eq(menuItems.id, id));
             return itemById(tx, id);
           });
         }),
       reorder: (order) =>
         safe(async () => {
+          order = parseMenuInput(menuOrderSchema, order);
           await permit(context, "edit");
           return db.transaction(async (tx) => {
             await taxonomyLock(tx);
-            const rows = await tx.execute<ItemRow>(
-              sql`select * from menu_item order by id for update`,
-            );
+            const rows = await tx.select().from(menuItems).orderBy(menuItems.id).for("update");
             const items = rows.map(itemFromRow);
             const ordered = reorderMenuItems(items, order);
             const versions = new Map(items.map((item) => [item.id, item.version]));
             for (const item of ordered) {
               if (item.version !== versions.get(item.id)) {
-                await tx.execute(
-                  sql`update menu_item set position=${item.position},version=${item.version} where id=${item.id}`,
-                );
+                await tx
+                  .update(menuItems)
+                  .set({ position: item.position, version: item.version })
+                  .where(eq(menuItems.id, item.id));
               }
             }
             return ordered;
@@ -277,57 +272,69 @@ export function createMenusService<Context>({
           validId(id);
           await itemById(db, id);
           await drive.deleteSpace(context, menuScope(id), async (tx) => {
-            await tx.execute(sql`delete from menu_item where id=${id}`);
+            await tx.delete(menuItems).where(eq(menuItems.id, id));
           });
         }),
       saveCategory: (input) =>
         safe(async () => {
+          input = parseMenuInput(categorySchema, input);
           await permit(context, "manageTaxonomy");
           const value = validateCategory(input, baseLocale);
           const id = input.id ?? randomUUID();
           validId(id);
           if (input.id) {
-            const rows = await db.execute(
-              sql`update menu_category set position=${value.position},translations=${JSON.stringify(value.translations)}::jsonb where id=${id} returning id`,
-            );
+            const rows = await db
+              .update(menuCategories)
+              .set(value)
+              .where(eq(menuCategories.id, id))
+              .returning({ id: menuCategories.id });
             if (!rows.length) throw new MenuError("NOT_FOUND");
-          } else
-            await db.execute(
-              sql`insert into menu_category (id,position,translations) values (${id},${value.position},${JSON.stringify(value.translations)}::jsonb)`,
-            );
-          const [row] = await db.execute<CategoryRow>(
-            sql`select * from menu_category where id=${id}`,
-          );
+          } else await db.insert(menuCategories).values({ ...value, id });
+          const [row] = await db.select().from(menuCategories).where(eq(menuCategories.id, id));
           return row;
         }),
       removeCategory: (id) =>
         safe(async () => {
           await permit(context, "manageTaxonomy");
           validId(id);
-          const rows = await db.execute(
-            sql`delete from menu_category where id=${id} and not exists (select 1 from menu_item where category_id=${id}) returning id`,
-          );
+          const rows = await db
+            .delete(menuCategories)
+            .where(
+              and(
+                eq(menuCategories.id, id),
+                notExists(
+                  db
+                    .select({ id: menuItems.id })
+                    .from(menuItems)
+                    .where(eq(menuItems.categoryId, id)),
+                ),
+              ),
+            )
+            .returning({ id: menuCategories.id });
           if (!rows.length) {
-            const existing = await db.execute(sql`select id from menu_category where id=${id}`);
+            const existing = await db
+              .select({ id: menuCategories.id })
+              .from(menuCategories)
+              .where(eq(menuCategories.id, id));
             throw new MenuError(existing.length ? "IN_USE" : "NOT_FOUND");
           }
         }),
       saveLabel: (input) =>
         safe(async () => {
+          input = parseMenuInput(labelSchema, input);
           await permit(context, "manageTaxonomy");
           const value = validateLabel(input, baseLocale);
           const id = input.id ?? randomUUID();
           validId(id);
           if (input.id) {
-            const rows = await db.execute(
-              sql`update menu_label set kind=${value.kind},icon=${input.icon === undefined ? sql`icon` : value.icon},position=${value.position},translations=${JSON.stringify(value.translations)}::jsonb where id=${id} returning id`,
-            );
+            const rows = await db
+              .update(menuLabels)
+              .set({ ...value, icon: input.icon === undefined ? undefined : value.icon })
+              .where(eq(menuLabels.id, id))
+              .returning({ id: menuLabels.id });
             if (!rows.length) throw new MenuError("NOT_FOUND");
-          } else
-            await db.execute(
-              sql`insert into menu_label (id,kind,icon,position,translations) values (${id},${value.kind},${value.icon},${value.position},${JSON.stringify(value.translations)}::jsonb)`,
-            );
-          const [row] = await db.execute<LabelRow>(sql`select * from menu_label where id=${id}`);
+          } else await db.insert(menuLabels).values({ ...value, id });
+          const [row] = await db.select().from(menuLabels).where(eq(menuLabels.id, id));
           return row;
         }),
       removeLabel: (id) =>
@@ -336,11 +343,25 @@ export function createMenusService<Context>({
           validId(id);
           await db.transaction(async (tx) => {
             await taxonomyLock(tx);
-            const rows = await tx.execute(
-              sql`delete from menu_label where id=${id} and not exists (select 1 from menu_item where label_ids ? ${id}) returning id`,
-            );
+            const rows = await tx
+              .delete(menuLabels)
+              .where(
+                and(
+                  eq(menuLabels.id, id),
+                  notExists(
+                    tx
+                      .select({ id: menuItems.id })
+                      .from(menuItems)
+                      .where(arrayContains(menuItems.labelIds, [id])),
+                  ),
+                ),
+              )
+              .returning({ id: menuLabels.id });
             if (!rows.length) {
-              const existing = await tx.execute(sql`select id from menu_label where id=${id}`);
+              const existing = await tx
+                .select({ id: menuLabels.id })
+                .from(menuLabels)
+                .where(eq(menuLabels.id, id));
               throw new MenuError(existing.length ? "IN_USE" : "NOT_FOUND");
             }
           });
@@ -350,15 +371,16 @@ export function createMenusService<Context>({
   return {
     client,
     publicMenu: (locale: string) =>
-      safe(async () =>
-        buildMenu(
+      safe(async () => {
+        locale = parseMenuInput(z.string(), locale);
+        return buildMenu(
           await allItems(db),
           await allCategories(db),
           await allLabels(db),
           locale,
           baseLocale,
-        ),
-      ),
+        );
+      }),
     readPublicImage: (id: string) =>
       safe(async () => {
         const item = await itemById(db, id);

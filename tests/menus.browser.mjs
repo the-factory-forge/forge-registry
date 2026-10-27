@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Menus browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -29,6 +28,32 @@ await suite("Menus browser", async () => {
     return page;
   }
 
+  await test("editor label shortcut opens label management with a keyboard tooltip", async (t) => {
+    const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001");
+    const link = page.getByRole("link", { name: "Manage labels", exact: true });
+    await link.focus();
+    await page.getByRole("tooltip", { name: "Manage labels", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate(
+          (value) => document.documentElement.classList.toggle("dark", value === "dark"),
+          theme,
+        );
+        await link.scrollIntoViewIfNeeded();
+        await link
+          .locator("xpath=ancestor::fieldset[1]")
+          .screenshot({ path: `/tmp/menu-labels-${width}-${theme}.png` });
+      }
+    }
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForURL("**/en/admin/menus/taxonomy");
+    await page.getByRole("heading", { name: "Labels", exact: true }).waitFor();
+    await page.getByRole("button", { name: "New label", exact: true }).waitFor();
+  });
+
   await test("homepage links, public visibility, sold out labels, language fallback, and themes", async (t) => {
     const page = await preview(t, "/");
     await page.getByRole("searchbox", { name: "Search examples" }).fill("menu item editor");
@@ -52,7 +77,7 @@ await suite("Menus browser", async () => {
     await page.getByRole("heading", { name: "Burrata aux tomates" }).waitFor();
     await page.getByRole("heading", { name: "House pasta" }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page
         .getByRole("img", { name: "Burrata aux tomates", exact: true })
@@ -129,14 +154,10 @@ await suite("Menus browser", async () => {
     );
     assert.match(await main.getAttribute("href"), /^#factory-/);
     assert.equal(await page.locator("article").count(), 2);
+    assert.equal(Math.round((await navigation.boundingBox()).y), 56);
     assert.equal(
-      await navigation.evaluate((element) => Math.round(element.getBoundingClientRect().top)),
-      56,
-    );
-    assert.equal(
-      await page
-        .getByRole("region", { name: "Main courses", exact: true })
-        .evaluate((element) => element.getBoundingClientRect().top >= 112),
+      (await page.getByRole("region", { name: "Main courses", exact: true }).boundingBox()).y >=
+        112,
       true,
     );
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -152,7 +173,7 @@ await suite("Menus browser", async () => {
     await page.getByRole("button", { name: "Clear filters" }).click();
     assert.equal(await navigation.getByRole("link").count(), 2);
     await page.getByRole("link", { name: "French menu" }).click();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     const french = page.getByRole("navigation", { name: "Catégories", exact: true });
     assert.deepEqual(await french.getByRole("link").allTextContents(), [
       "Entrées",
@@ -336,7 +357,7 @@ await suite("Menus browser", async () => {
     assert.equal(await page.getByRole("checkbox", { checked: true }).count(), 0);
     await page.getByRole("link", { name: "French menu" }).click();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page
       .getByRole("group", { name: "Exclure les allergènes" })
       .getByRole("checkbox", { name: "Lait", exact: true })
@@ -369,7 +390,8 @@ await suite("Menus browser", async () => {
     );
     await page.getByRole("link", { name: "Manage menu", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
-    const editorLabels = page.getByRole("group", { name: "Labels", exact: true });
+    const editorLabels = page.getByRole("group", { name: "Labels Manage labels", exact: true });
+    await editorLabels.waitFor();
     assert.equal(await editorLabels.getByRole("checkbox").count(), 19);
     await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).check();
     await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -546,7 +568,7 @@ await suite("Menus browser", async () => {
     await page.mouse.up();
     await actionToast(page, "Saved.");
     assert.deepEqual(await names(), [original[1], original[0], original[2]]);
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await start(original[2]);
     await hover(0, "after");
     assert.equal(await rows.nth(0).getAttribute("data-menu-drop-edge"), "after");
@@ -719,7 +741,7 @@ await suite("Menus browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
@@ -762,7 +784,7 @@ await suite("Menus browser", async () => {
   await test("staff taxonomy and nested photo folders work with keyboard navigation on mobile", async (t) => {
     const page = await preview(t, "/en/admin/menus");
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("link", { name: "Categories / Labels" }).click();
     const addLabel = page.getByRole("button", { name: "New label" });
     await addLabel.focus();
@@ -851,7 +873,7 @@ await suite("Menus browser", async () => {
       .filter({ has: page.getByRole("checkbox", { name: "Végétarien", exact: true }) })
       .locator("svg.lucide-sprout")
       .waitFor();
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("link", { name: "Manage menu", exact: true }).click();
     await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
     await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();

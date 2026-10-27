@@ -1,11 +1,10 @@
 "use client";
 
 import FullCalendar, { useCalendarController, type DatesSetInfo } from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/react/daygrid";
-import listPlugin from "@fullcalendar/react/list";
 import classicTheme from "@fullcalendar/react/themes/classic";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import {
+  ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { ComponentType } from "react";
+import { Temporal } from "temporal-polyfill";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
@@ -27,10 +27,14 @@ import {
   loadReservationCalendar,
   localDate,
   previewReservationMove,
+  reservationDayCounts,
 } from "@/components/plugins/reservations/model";
 import { BookingForm, RescheduleDialog } from "@/components/plugins/reservations/public";
 import type {
+  Reservation,
   ReservationAdminRecord,
+  ReservationCalendarState,
+  ReservationCalendarView,
   ReservationFilters,
   ReservationRange,
   ReservationSlot,
@@ -40,17 +44,21 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  iconButtonClass,
   primaryClass,
   fieldClass,
   pageClass,
   Field,
+  DatePicker,
+  Status,
+  formatDateTime,
   ErrorNotice,
   Modal,
   ReservationSummary,
-  useReservationAction,
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { ReservationYearView } from "@/components/plugins/reservations/year";
+import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
@@ -69,12 +77,82 @@ export interface ReservationsCalendarProps {
   locale?: string;
   labels?: Partial<ReservationLabels>;
   initialDate?: string;
+  calendarState?: ReservationCalendarState;
+  onCalendarStateChange?: (state: ReservationCalendarState) => void;
+  page?: number;
+  onPageChange?: (page: number) => void;
   filters?: ReservationFilters;
   onFiltersChange?: (filters: ReservationFilters) => void;
+  newHref: string;
   settingsHref?: string;
   canManage?: boolean;
   className?: string;
   linkComponent?: ComponentType<LinkProps>;
+}
+
+function useStaffReservations(
+  client: ReservationsAdminClient,
+  load: () => Promise<{ items: ReservationAdminRecord[]; hasMore: boolean }>,
+  listView: boolean,
+) {
+  const [restart, setRestart] = useState(0);
+  const scope = useMemo(() => ({ client, load, restart }), [client, load, restart]);
+  const data = useReservationLoad(load);
+  const displayed = data.value ?? (listView ? data.previousValue : undefined);
+  const mutation = useOptimisticAction(displayed?.items, scope);
+  const [selection, setSelection] = useState<{
+    scope: typeof scope;
+    record: ReservationAdminRecord;
+  }>();
+  const [dialog, setDialog] = useState<"move" | "cancelled" | "rejected" | "link">();
+  const [previousScope, setPreviousScope] = useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
+    setSelection(undefined);
+    setDialog(undefined);
+  }
+  const selected =
+    selection?.scope === scope
+      ? (mutation.value?.find((row) => row.id === selection.record.id) ?? selection.record)
+      : undefined;
+  const setSelected = (record?: ReservationAdminRecord) =>
+    setSelection(record ? { scope, record } : undefined);
+  function refresh() {
+    mutation.invalidate();
+    setRestart((value) => value + 1);
+    setSelected(undefined);
+    setDialog(undefined);
+    data.reload();
+  }
+  function run<T extends Reservation | void>(
+    write: () => Promise<T>,
+    preview: (
+      rows: ReservationAdminRecord[] | undefined,
+    ) => ReservationAdminRecord[] | undefined = (rows) => rows,
+  ) {
+    return mutation.run(preview, write, (saved) => {
+      if (saved)
+        data.setValue((result) => ({
+          ...result,
+          items: result.items.map((row) => (row.id === saved.id ? { ...row, ...saved } : row)),
+        }));
+      setSelected(undefined);
+      setDialog(undefined);
+      data.reload();
+    });
+  }
+  return {
+    data,
+    bookings: mutation.value,
+    selected,
+    setSelected,
+    dialog,
+    setDialog,
+    refresh,
+    run,
+    pending: mutation.pending,
+    error: mutation.error,
+  };
 }
 
 export function ReservationsCalendar({
@@ -82,8 +160,13 @@ export function ReservationsCalendar({
   locale = "en",
   labels: overrides,
   initialDate,
+  calendarState,
+  onCalendarStateChange,
+  page: controlledPage,
+  onPageChange,
   filters: controlledFilters,
   onFiltersChange,
+  newHref,
   settingsHref,
   canManage = true,
   className,
@@ -96,11 +179,20 @@ export function ReservationsCalendar({
     () => false,
   );
   const mobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, () => false);
-  const [view, setView] = useState("");
+  const [view, setView] = useState(calendarState?.view ?? "listWeek");
+  const listView = (calendarState?.view ?? view) === "listWeek";
+  const [localPage, setLocalPage] = useState(1);
+  const page = controlledPage ?? localPage;
+  function changePage(next: number) {
+    setLocalPage(next);
+    onPageChange?.(next);
+  }
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [localFilters, setLocalFilters] = useState<ReservationFilters>({});
   const filters = controlledFilters ?? localFilters;
   const { resourceId, serviceId, status } = filters;
   function changeFilters(next: ReservationFilters) {
+    setLocalPage(1);
     setLocalFilters(next);
     onFiltersChange?.(next);
   }
@@ -108,51 +200,55 @@ export function ReservationsCalendar({
     const from = initialDate ? new Date(`${initialDate}T00:00:00Z`) : new Date();
     return { from: from.toISOString(), to: new Date(from.getTime() + 7 * 86400000).toISOString() };
   });
-  const [selectedRecord, setSelected] = useState<ReservationAdminRecord>();
-  const [dialog, setDialog] = useState<"new" | "move" | "cancelled" | "rejected" | "link">();
   const load = useCallback(() => client.configuration(), [client]);
   const config = useReservationLoad(load);
   const labels = getReservationLabels(overrides, config.value?.mode);
   const timeZone = config.value?.settings.timeZone ?? "UTC";
-  const loadBookings = useCallback(
-    () => loadReservationCalendar(client, { ...range, resourceId, serviceId, status }),
-    [client, range, resourceId, serviceId, status],
-  );
-  const data = useReservationLoad(loadBookings);
-  const optimistic = useOptimisticAction(data.value, loadBookings);
-  const bookings = optimistic.value;
-  const selected = bookings?.find((row) => row.id === selectedRecord?.id) ?? selectedRecord;
-  async function setStatus(id: string, version: number, status: ReservationStatus) {
-    await optimistic.run(
+  const loadBookings = useCallback(async () => {
+    if (listView) return client.listPage({ page, resourceId, serviceId, status });
+    return {
+      items: await loadReservationCalendar(client, { ...range, resourceId, serviceId, status }),
+      hasMore: false,
+    };
+  }, [client, listView, page, range, resourceId, serviceId, status]);
+  const changes = useStaffReservations(client, loadBookings, listView);
+  const { data, bookings, selected, setSelected, dialog, setDialog, refresh } = changes;
+  function setStatus(id: string, version: number, status: ReservationStatus) {
+    return changes.run(
+      () => client.setStatus(id, version, status),
       (rows) => rows?.map((row) => (row.id === id ? { ...row, status } : row)),
-      async () => {
-        const saved = await client.setStatus(id, version, status);
-        data.setValue((rows) => rows.map((row) => (row.id === id ? { ...row, ...saved } : row)));
-      },
     );
   }
-  const action = useReservationAction();
-  const refresh = () => {
-    data.reload();
-    setSelected(undefined);
-    setDialog(undefined);
+  const action = {
+    busy: changes.pending || data.loading,
+    error: changes.error,
+    run: (write: () => Promise<unknown>) => write().catch(() => {}),
   };
-  const datesSet = useCallback((info: DatesSetInfo) => {
-    setView(info.view.type);
+  const datesSet = (info: DatesSetInfo) => {
+    const nextView = info.view.type as ReservationCalendarView;
+    const date = localDate(info.view.calendar.getDate().toISOString(), timeZone);
+    setView(nextView);
+    setSelectedDate(date);
+    if (calendarState && (calendarState.view !== nextView || calendarState.date !== date)) {
+      onCalendarStateChange?.({ view: nextView, date });
+    } else if (!calendarState) onCalendarStateChange?.({ view: nextView, date });
+    if (nextView === "listWeek") return;
     setRange((r) => {
-      const from = info.start.toISOString(),
-        to = info.end.toISOString();
+      const start = Temporal.PlainDate.from(
+        localDate(info.view.currentStart.toISOString(), timeZone),
+      );
+      const gridStart = start.subtract({ days: start.dayOfWeek - 1 });
+      const from =
+        nextView === "reservationsMonth"
+          ? gridStart.toZonedDateTime(timeZone).toInstant().toString()
+          : info.start.toISOString();
+      const to =
+        nextView === "reservationsMonth"
+          ? gridStart.add({ days: 42 }).toZonedDateTime(timeZone).toInstant().toString()
+          : info.end.toISOString();
       return r.from === from && r.to === to ? r : { ...r, from, to };
     });
-  }, []);
-  const staffClient = useMemo<ReservationsPublicClient>(
-    () => ({
-      catalog: async () => catalog(await client.configuration()),
-      availability: (q) => client.availability(q),
-      book: (input) => client.book(input),
-    }),
-    [client],
-  );
+  };
   const moveAvailability = useCallback(
     (query: { date: string; resourceId?: string; departureDate?: string }) =>
       client.availability({
@@ -167,7 +263,8 @@ export function ReservationsCalendar({
     slot: ReservationSlot,
   ) => {
     const id = selected?.id ?? "";
-    return optimistic.run(
+    return changes.run(
+      () => client.reschedule(id, input),
       (rows) =>
         rows?.map((row) =>
           row.id === id
@@ -184,11 +281,6 @@ export function ReservationsCalendar({
               }
             : row,
         ),
-      async () => {
-        const saved = await client.reschedule(id, input);
-        data.setValue((rows) => rows.map((row) => (row.id === id ? { ...row, ...saved } : row)));
-        return saved;
-      },
     );
   };
   return (
@@ -196,26 +288,34 @@ export function ReservationsCalendar({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl font-semibold">{labels.calendar}</h1>
         <div className="flex flex-wrap gap-2">
-          <button className={buttonClass} onClick={refresh}>
-            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.refresh}
-          </button>
+          <IconTooltip label={labels.refresh}>
+            <button
+              type="button"
+              aria-label={labels.refresh}
+              className={iconButtonClass}
+              onClick={refresh}
+            >
+              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          </IconTooltip>
           {settingsHref && (
             <HostLink className={buttonClass} href={settingsHref}>
               <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
               {labels.settings}
             </HostLink>
           )}
-          {canManage && (
-            <button
-              className={primaryClass}
-              disabled={!config.value?.services.some((s) => s.active && !s.archived)}
-              onClick={() => setDialog("new")}
-            >
-              <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.newBooking}
-            </button>
-          )}
+          {canManage &&
+            (config.value?.services.some((s) => s.active && !s.archived) ? (
+              <HostLink className={primaryClass} href={newHref}>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.newBooking}
+              </HostLink>
+            ) : (
+              <button type="button" className={primaryClass} disabled>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.newBooking}
+              </button>
+            ))}
         </div>
       </div>
       <ErrorNotice error={config.error ?? data.error ?? action.error} labels={labels} />
@@ -279,22 +379,27 @@ export function ReservationsCalendar({
           </p>
         </>
       )}
-      {(!data.value || !config.value) && !data.error && !config.error && (
+      {((!data.value && !listView) || !config.value) && !data.error && !config.error && (
         <output className="block">{labels.loading}</output>
       )}
       {mounted && config.value && (
         <div className="reservations-calendar min-w-0 overflow-x-auto rounded-xl border border-border p-3">
           <FullCalendar
+            key={calendarState ? `${calendarState.view}/${calendarState.date}` : undefined}
             controller={calendar}
-            plugins={[classicTheme, dayGridPlugin, timeGridPlugin, listPlugin]}
-            initialView="listWeek"
-            initialDate={initialDate}
+            plugins={[classicTheme, timeGridPlugin]}
+            initialView={calendarState?.view ?? "listWeek"}
+            initialDate={calendarState?.date ?? initialDate}
             locale={locale}
             timeZone={config.value.settings.timeZone}
             headerToolbar={{
-              start: "previousPeriod,nextPeriod today",
-              center: "title",
-              end: "reservationsYear,dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+              start: listView
+                ? ""
+                : view === "reservationsMonth"
+                  ? "today"
+                  : "previousPeriod,nextPeriod today",
+              center: listView || view === "reservationsMonth" ? "" : "title",
+              end: "reservationsYear,reservationsMonth,timeGridWeek,timeGridDay,listWeek",
             }}
             toolbarElements={{
               previousPeriod: () => (
@@ -325,6 +430,13 @@ export function ReservationsCalendar({
               ),
             }}
             views={{
+              listWeek: { duration: { days: 1 }, content: () => null },
+              reservationsMonth: {
+                duration: { months: 1 },
+                dateAlignment: "month",
+                dateIncrement: { months: 1 },
+                content: () => null,
+              },
               reservationsYear: {
                 duration: { months: 12 },
                 dateAlignment: "month",
@@ -344,6 +456,7 @@ export function ReservationsCalendar({
                   ) : null,
               },
             }}
+            viewClass={listView || view === "reservationsMonth" ? "hidden" : undefined}
             toolbarClass="flex flex-wrap items-center justify-between gap-3 mb-4"
             toolbarSectionClass="flex min-w-0 max-w-full flex-wrap items-center gap-2"
             buttonGroupClass="flex min-w-0 max-w-full flex-wrap items-center gap-2"
@@ -351,7 +464,7 @@ export function ReservationsCalendar({
             viewHint={(text) => text}
             buttons={{
               reservationsYear: { text: labels.year, hint: labels.year },
-              dayGridMonth: { text: labels.month, hint: labels.month },
+              reservationsMonth: { text: labels.month, hint: labels.month },
               timeGridWeek: { text: labels.week, hint: labels.week },
               timeGridDay: { text: labels.day, hint: labels.day },
               listWeek: { text: labels.agenda, hint: labels.agenda },
@@ -364,11 +477,14 @@ export function ReservationsCalendar({
             monthText={labels.month}
             weekTextLong={labels.week}
             dayText={labels.day}
-            listText={labels.agenda}
             prevHint={labels.previous}
             nextHint={labels.next}
             todayHint={labels.today}
-            height={mobile || view === "reservationsYear" ? "auto" : 640}
+            height={
+              mobile || listView || view === "reservationsYear" || view === "reservationsMonth"
+                ? "auto"
+                : 640
+            }
             firstDay={1}
             allDaySlot={false}
             slotMinTime="00:00:00"
@@ -389,8 +505,6 @@ export function ReservationsCalendar({
                     : "bg-status-canceled text-status-canceled-foreground",
               )
             }
-            listItemEventTitleClass="whitespace-normal break-words p-2"
-            listDayHeaderInnerClass="flex flex-wrap items-center justify-between gap-1 p-2 text-sm"
             events={(bookings ?? []).map((r) => ({
               id: r.id,
               start: r.startsAt,
@@ -400,27 +514,52 @@ export function ReservationsCalendar({
             }))}
             eventClick={(info) => setSelected(bookings?.find((r) => r.id === info.event.id))}
           />
+          {listView && (
+            <section aria-label={labels.agenda} aria-busy={data.loading} className="space-y-3">
+              <ReservationRows
+                reservations={bookings}
+                error={data.error}
+                loading={data.loading || Boolean(data.error)}
+                locale={locale}
+                timeZone={timeZone}
+                labels={labels}
+                emptyLabel={labels.emptyList}
+                onSelect={setSelected}
+              />
+              <TablePagination
+                page={page}
+                label={labels.pagination}
+                previousLabel={labels.previousPage}
+                nextLabel={labels.nextPage}
+                previousDisabled={page <= 1}
+                nextDisabled={!data.value?.hasMore}
+                disabled={data.loading || changes.pending}
+                onPrevious={() => changePage(page - 1)}
+                onNext={() => changePage(page + 1)}
+              />
+            </section>
+          )}
+          {view === "reservationsMonth" && (
+            <ReservationMonthView
+              date={calendarState?.date ?? selectedDate ?? localDate(range.from, timeZone)}
+              reservations={bookings}
+              error={data.error}
+              timeZone={timeZone}
+              locale={locale}
+              labels={labels}
+              onDateChange={(date) => {
+                setSelectedDate(date);
+                if (calendarState) onCalendarStateChange?.({ view: "reservationsMonth", date });
+                else calendar.gotoDate(date);
+              }}
+              onSelect={setSelected}
+            />
+          )}
         </div>
-      )}
-      {dialog === "new" && config.value && (
-        <Modal
-          title={labels.newBooking}
-          description={labels.timeZone + ": " + config.value.settings.timeZone}
-          onClose={() => setDialog(undefined)}
-        >
-          <BookingForm
-            staff
-            client={staffClient}
-            catalog={catalog(config.value)}
-            locale={locale}
-            labels={labels}
-            initialDate={initialDate}
-            onBooked={refresh}
-          />
-        </Modal>
       )}
       {selected && !dialog && (
         <Modal
+          closeLabel={labels.close}
           title={selected.customer.name}
           description={
             selected.customer.email +
@@ -437,18 +576,20 @@ export function ReservationsCalendar({
           {selected.emailFailed && (
             <output className="block text-sm text-destructive">{labels.emailFailed}</output>
           )}
-          <div className="flex flex-wrap gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             {canManage && (
               <>
                 {selected.status === "pending" && (
                   <>
                     <button
                       className={primaryClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => {
                         void action.run(async () => {
                           await setStatus(selected.id, selected.version, "confirmed");
-                          refresh();
                         });
                       }}
                     >
@@ -456,7 +597,7 @@ export function ReservationsCalendar({
                     </button>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("rejected")}
                     >
                       {labels.reject}
@@ -467,14 +608,14 @@ export function ReservationsCalendar({
                   <>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("move")}
                     >
                       {labels.reschedule}
                     </button>
                     <button
                       className={buttonClass}
-                      disabled={action.busy || optimistic.pending}
+                      disabled={action.busy || changes.pending}
                       onClick={() => setDialog("cancelled")}
                     >
                       {labels.cancel}
@@ -484,11 +625,10 @@ export function ReservationsCalendar({
                 {selected.emailFailed && (
                   <button
                     className={buttonClass}
-                    disabled={action.busy || optimistic.pending}
+                    disabled={action.busy || changes.pending}
                     onClick={() => {
                       void action.run(async () => {
-                        await client.retryEmail(selected.id);
-                        refresh();
+                        await changes.run(() => client.retryEmail(selected.id));
                       });
                     }}
                   >
@@ -497,7 +637,7 @@ export function ReservationsCalendar({
                 )}
                 <button
                   className={buttonClass}
-                  disabled={action.busy || optimistic.pending}
+                  disabled={action.busy || changes.pending}
                   onClick={() => setDialog("link")}
                 >
                   {labels.revokeLink}
@@ -506,7 +646,7 @@ export function ReservationsCalendar({
             )}
             <button
               className={buttonClass}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => setSelected(undefined)}
             >
               {labels.close}
@@ -516,6 +656,7 @@ export function ReservationsCalendar({
       )}
       {selected && (dialog === "cancelled" || dialog === "rejected" || dialog === "link") && (
         <Modal
+          closeLabel={labels.close}
           title={
             dialog === "link"
               ? labels.revokeLink
@@ -534,26 +675,29 @@ export function ReservationsCalendar({
           busy={action.busy}
         >
           <ErrorNotice error={action.error} labels={labels} />
-          <div className="flex gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+          >
             <button
               className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => setDialog(undefined)}
             >
               {labels.back}
             </button>
             <button
               className={primaryClass}
-              disabled={action.busy || optimistic.pending}
+              disabled={action.busy || changes.pending}
               onClick={() => {
                 void action.run(async () => {
-                  if (dialog === "link") await client.revokeLink(selected.id, selected.version);
+                  if (dialog === "link")
+                    await changes.run(() => client.revokeLink(selected.id, selected.version));
                   else {
                     const status = dialog;
                     setDialog(undefined);
                     await setStatus(selected.id, selected.version, status);
                   }
-                  refresh();
                 });
               }}
             >
@@ -584,10 +728,196 @@ export function ReservationsCalendar({
           labels={labels}
           availability={moveAvailability}
           onSave={moveSave}
-          onSaved={refresh}
           onClose={() => setDialog(undefined)}
         />
       )}
     </section>
+  );
+}
+
+export interface ReservationNewPageProps {
+  client: ReservationsAdminClient;
+  backHref: string;
+  onBooked: (reservation: Reservation) => void;
+  locale?: string;
+  labels?: Partial<ReservationLabels>;
+  initialDate?: string;
+  className?: string;
+  linkComponent?: ComponentType<LinkProps>;
+}
+
+export function ReservationNewPage({
+  client,
+  backHref,
+  onBooked,
+  locale = "en",
+  labels: overrides,
+  initialDate,
+  className,
+  linkComponent: HostLink = Link,
+}: ReservationNewPageProps) {
+  const load = useCallback(() => client.configuration(), [client]);
+  const config = useReservationLoad(load);
+  const labels = getReservationLabels(overrides, config.value?.mode);
+  const staffClient = useMemo<ReservationsPublicClient>(
+    () => ({
+      catalog: async () => catalog(await client.configuration()),
+      availability: (q) => client.availability(q),
+      monthAvailability: client.monthAvailability?.bind(client),
+      book: (input) => client.book(input),
+    }),
+    [client],
+  );
+  return (
+    <section className={cn(pageClass, className)}>
+      <HostLink className={buttonClass} href={backHref}>
+        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+        {labels.back}
+      </HostLink>
+      <h1 className="font-serif text-3xl font-semibold">{labels.newBooking}</h1>
+      <ErrorNotice error={config.error} labels={labels} />
+      {config.error ? (
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={config.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
+      ) : !config.value ? (
+        <output className="block">{labels.loading}</output>
+      ) : !catalog(config.value).services.length ? (
+        <output className="block">{labels.emptyServices}</output>
+      ) : (
+        <BookingForm
+          staff
+          client={staffClient}
+          catalog={catalog(config.value)}
+          locale={locale}
+          labels={labels}
+          initialDate={initialDate}
+          onBooked={onBooked}
+        />
+      )}
+    </section>
+  );
+}
+
+function ReservationMonthView({
+  date,
+  reservations,
+  error,
+  timeZone,
+  locale,
+  labels,
+  onDateChange,
+  onSelect,
+}: {
+  date: string;
+  reservations?: ReservationAdminRecord[];
+  error: unknown;
+  timeZone: string;
+  locale: string;
+  labels: ReservationLabels;
+  onDateChange: (date: string) => void;
+  onSelect: (reservation: ReservationAdminRecord) => void;
+}) {
+  const counts = useMemo(
+    () => reservationDayCounts(reservations ?? [], timeZone),
+    [reservations, timeZone],
+  );
+  const rows = reservations?.filter((reservation) =>
+    reservationDayCounts([reservation], timeZone).has(date),
+  );
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+      <DatePicker
+        date={date}
+        month={Temporal.PlainDate.from(date).with({ day: 1 }).toString()}
+        onChange={onDateChange}
+        onMonthChange={onDateChange}
+        counts={reservations ? counts : undefined}
+        locale={locale}
+        labels={labels}
+        showInput={false}
+      />
+      <section className="min-w-0 space-y-3" aria-busy={!reservations && !error}>
+        <h2 className="font-medium">
+          {new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" }).format(
+            new Date(`${date}T12:00:00Z`),
+          )}
+        </h2>
+        <ReservationRows
+          reservations={rows}
+          error={error}
+          locale={locale}
+          timeZone={timeZone}
+          labels={labels}
+          emptyLabel={labels.emptyCalendar}
+          onSelect={onSelect}
+        />
+      </section>
+    </div>
+  );
+}
+
+function ReservationRows({
+  reservations,
+  error,
+  loading = false,
+  locale,
+  timeZone,
+  labels,
+  emptyLabel,
+  onSelect,
+}: {
+  reservations?: ReservationAdminRecord[];
+  error: unknown;
+  loading?: boolean;
+  locale: string;
+  timeZone: string;
+  labels: ReservationLabels;
+  emptyLabel: string;
+  onSelect: (reservation: ReservationAdminRecord) => void;
+}) {
+  return (
+    <div className="min-h-40">
+      {!reservations ? (
+        <output>{error ? labels.error : labels.loading}</output>
+      ) : !reservations.length ? (
+        <output>{emptyLabel}</output>
+      ) : (
+        <ul className="divide-y divide-border">
+          {reservations.map((reservation) => (
+            <li key={reservation.id}>
+              <button
+                type="button"
+                className="flex w-full cursor-pointer flex-wrap items-start justify-between gap-2 rounded-lg px-2 py-3 text-left focus-visible:outline-2 focus-visible:outline-ring enabled:hover:bg-accent disabled:cursor-not-allowed"
+                disabled={loading}
+                onClick={() => onSelect(reservation)}
+              >
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="block text-sm font-medium wrap-anywhere">
+                    {reservation.customer.name} · {reservation.serviceName} ·{" "}
+                    {reservation.resourceName}
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    {formatDateTime(reservation.startsAt, locale, timeZone)} –{" "}
+                    {formatDateTime(reservation.endsAt, locale, timeZone)}
+                  </span>
+                  {reservation.outsideHours && (
+                    <span className="block text-sm">{labels.outsideHours}</span>
+                  )}
+                </span>
+                <Status status={reservation.status} labels={labels} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

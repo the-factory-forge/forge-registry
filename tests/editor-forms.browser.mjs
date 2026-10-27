@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3100";
 let browser;
@@ -23,10 +22,8 @@ async function open(t, path, width = 1440) {
   return page;
 }
 
-async function focused(control) {
-  await control
-    .page()
-    .waitForFunction(() => document.activeElement?.getAttribute("aria-invalid") === "true");
+async function focused(page, control) {
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-invalid") === "true");
   assert.equal(await control.evaluate((node) => node === document.activeElement), true);
   assert.equal(await control.getAttribute("aria-invalid"), "true");
 }
@@ -46,7 +43,9 @@ async function sticky(button) {
 for (const width of [1440, 390]) {
   void test(`blog guides successive corrections and keeps actions visible at ${width}px`, async (t) => {
     const page = await open(t, "/en/admin/blogs/b1000000-0000-4000-8000-000000000004", width);
-    if (width === 390) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    if (width === 390)
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.getByLabel("Author", { exact: true }).selectOption("jordan");
     const save = page.getByRole("button", { name: "Save draft", exact: true });
     const publish = page.getByRole("button", { name: "Publish", exact: true });
     await page.getByRole("textbox", { name: "Title", exact: true }).scrollIntoViewIfNeeded();
@@ -60,7 +59,7 @@ for (const width of [1440, 390]) {
     await save.click();
     await actionToast(page, "Draft saved.");
     await publish.click();
-    await focused(title);
+    await focused(page, title);
     await page.screenshot({ path: `/tmp/editor-validation-${width}.png` });
     await title.fill("Corrected title");
     assert.equal(await title.evaluate((node) => node === document.activeElement), true);
@@ -68,12 +67,12 @@ for (const width of [1440, 390]) {
     await save.click();
     await actionToast(page, "Draft saved.");
     await publish.click();
-    await focused(slug);
+    await focused(page, slug);
     await slug.fill("corrected-title");
     await save.click();
     await actionToast(page, "Draft saved.");
     await publish.click();
-    await focused(markdown);
+    await focused(page, markdown);
     await sticky(save);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -83,6 +82,10 @@ for (const width of [1440, 390]) {
     await save.click();
     await actionToast(page, "Draft saved.");
     await publish.click();
+    await page
+      .getByRole("dialog", { name: "Review publication", exact: true })
+      .getByRole("button", { name: "Publish", exact: true })
+      .click();
     await actionToast(page, "This language is now published.");
   });
 }
@@ -94,10 +97,10 @@ void test("menu errors focus price, then reveal the missing base translation", a
   await price.fill("-1");
   await page.getByRole("tab", { name: "Français", exact: true }).click();
   await save.click();
-  await focused(price);
+  await focused(page, price);
   await price.fill("12.50");
   await save.click();
-  await focused(page.getByRole("textbox", { name: "Name *", exact: true }));
+  await focused(page, page.getByRole("textbox", { name: "Name *", exact: true }));
   await sticky(save);
   await page.screenshot({ path: "/tmp/menu-editor-validation-mobile.png" });
 });
@@ -113,6 +116,7 @@ void test("publishing points to a selected category missing its translation", as
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await page.getByRole("link", { name: "An idea for tomorrow", exact: true }).click();
   await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await page.getByLabel("Author", { exact: true }).selectOption("jordan");
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Article");
   await page.getByRole("textbox", { name: "Slug", exact: true }).fill("article");
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Contenu");
@@ -121,7 +125,7 @@ void test("publishing points to a selected category missing its translation", as
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await actionToast(page, "Draft saved.");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
-  await focused(category);
+  await focused(page, category);
   await page.getByRole("alert").filter({ hasText: "Translate this category" }).waitFor();
   await category.uncheck();
   assert.equal(await category.getAttribute("aria-invalid"), "false");
@@ -136,7 +140,7 @@ for (const [path, action, name] of [
     const button = page.getByRole("button", { name: action, exact: true });
     await button.click();
     const field = page.getByRole("textbox", { name, exact: true });
-    await focused(field);
+    await focused(page, field);
     await sticky(button);
     await field.fill("Corrected name");
     assert.equal(await field.getAttribute("aria-invalid"), "false");

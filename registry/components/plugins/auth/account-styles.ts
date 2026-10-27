@@ -7,7 +7,7 @@ export const accountPrimaryClass =
 export const accountInputClass =
   "h-10 w-full rounded-md border border-input bg-transparent px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
 export const accountDialogClass =
-  "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-lg";
+  "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 scroll-py-32 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-lg";
 export function accountDate(value: Date | string, locale?: string) {
   return new Date(value).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
 }

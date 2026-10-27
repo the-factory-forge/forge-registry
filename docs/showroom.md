@@ -27,6 +27,8 @@ upstream Cove independently of those consumers.
   checkout can typecheck before starting Vite. Do not edit it manually.
 - `src/showroom/routing.tsx` adapts the published `href` contract to TanStack
   navigation, including search parameters and hashes. It is never distributed.
+  Its `useShowroomEditorGuard` owns the shared Blog/Menu router blocking policy;
+  each editor retains its save/discard flow and native unload protection.
 - Pathless `_plugins` and `_blogs` routes retain mock providers across their child
   pages. Customers/projects/Drive share their in-memory records; blogs retain
   publications when switching between administration, public pages, and languages.
@@ -155,11 +157,60 @@ This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.
 
+## Registry search
+
+The shared header opens a search dialog from every showroom page, using its search
+button, **⌘K** on macOS, or **Ctrl+K** on Windows/Linux. Search matches every typed
+word against example titles, descriptions, categories, tags and keywords. Results
+show their category and description and link to the same demos as the homepage.
+Arrow keys move between the input and result links; Enter opens a result, and
+Escape or the close button dismisses the dialog and restores focus.
+
+`src/showroom/examples.ts` owns the catalog shared by the directory and dialog.
+Keep new examples there. Search is showroom-only and uses the existing Base UI
+dialog, with no search service or distributed registry item. The dialog query is
+temporary and clears on close; it does not change the current page's URL filters
+or unsaved inputs. Homepage filters remain URL-owned.
+
+## Shared loading feedback
+
+The root shell mounts one `LoadingProvider` and a `LoadingIndicator` directly below
+the 56px navbar. Plugin loading states and router navigation share this indicator.
+It appears immediately, stays visible for overlapping requests, and hides 300ms
+after the last activity finishes. New activity cancels that hide; unmounting a
+source releases it. The bar overlays the page without shifting content or blocking
+interaction and respects reduced motion. See [the portable loading component](./loading-indicator.md).
+
+## Device previews
+
+The shared navbar offers one icon button that cycles Small (390px) → Medium
+(768px) → Big (100% available width) → Small at screen widths of 640px and above.
+Its icon shows the current size; its accessible name and tooltip describe the
+current size and the next action. Big is the default. The button sits immediately
+to the right of the theme control; only Small and Medium use the filled active
+style. Below 640px the control is hidden; the page never exceeds the screen width.
+
+Clicking the button changes `--showroom-device-width`, used as `max-width` on
+`.showroom-content`. The navbar keeps its normal width. The showroom's settings
+layout uses container queries to fit the available content width. Component media
+queries, viewport units and portaled dialogs still use the real browser viewport;
+these sizes are width constraints, not emulated devices.
+
+Demos render directly in the main document. Resizing preserves the mounted page,
+sample-data edits, unsaved drafts and settings without navigation or new history
+entries. Browser Back/Forward work normally. The width persists across client-side
+navigation and resets to Big on a full reload, which also resets sample data.
+
 ## Shared preview frame
 
 Every demo uses `ShowroomPreview`. Supply `controls` and `navigation` as React
-content; the frame places them in an always-expanded right sidebar on desktop
-and above the preview below 64rem. Demos without settings keep the full width. Demo state and callbacks
+content; the frame places them in a right sidebar on desktop
+and above the preview below 64rem. An icon-only Settings button beside
+Preview controls shows or hides the panel content. Settings start hidden below 40rem and open on larger screens; hiding
+them preserves their values and leaves only the gear available to reopen them. Demos without settings omit the button
+and keep the full width. A manual visibility choice lasts until the frame remounts,
+including across viewport resizes. Reloading restores the default for the current width.
+Demo state and callbacks
 stay beside their examples. The shared header has a single sun/moon icon button
 that toggles Light/Dark mode. It also provides the first keyboard stop,
 **Skip to preview**. Activating it focuses the preview and
@@ -202,8 +253,16 @@ Intranet content uses `showroom-inset` and its custom sticky toolbar uses
 `showroom-sticky`.
 
 The shared stylesheet defines the header height once. The desktop settings sidebar
-stays below that header, occupies its own grid column, and scrolls independently
-when needed. On smaller screens, settings remain expanded in normal page flow.
+stays below the header, occupies its own grid column, and scrolls independently
+when needed. When collapsed, its column shrinks to the gear button and padding.
+Standard and narrow previews center within the whole showroom content container
+when space permits, matching the header in Big mode. As space tightens, they stop
+at the settings column without overlapping it or shrinking below the available
+preview width. Full application previews continue to fill the remaining column.
+Expanded settings use normal page flow above the preview on smaller screens.
+Below 40rem, the collapsed gear floats at the right of the preview’s first row,
+so it can sit beside a back link without adding a separate row or covering content.
+Full application previews clear the gear to preserve their own full-width layouts.
 Preview height and intranet offsets depend only on the header; no JavaScript
 measurement is needed. Do not repeat viewport math, header offsets, or per-demo
 theme effects in route files. Keep content free to grow and scroll when it needs

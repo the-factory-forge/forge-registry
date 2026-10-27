@@ -2,7 +2,7 @@
 
 `@forge/reservations` provides guest appointment and overnight stay booking, private booking management,
 staff year/month/week/day/agenda calendars, and settings editors. `@forge/reservations-storage`
-adds a PostgreSQL service, Drizzle tables, reviewed SQL migrations, signed management
+adds a PostgreSQL service, Drizzle tables, signed management
 links, and a durable email queue. Both distribute editable source.
 
 ```sh
@@ -24,10 +24,10 @@ is required by the item. Existing host authentication supplies staff authorizati
 
 ## Set up the host
 
-1. Include the companion's exported Drizzle tables in the host schema. Review
-   `server/migration.sql` and apply it through the host's migration workflow.
-   Do not apply both this SQL and a generated migration for the same tables.
-2. Supply a Drizzle PostgreSQL database with `execute` and `transaction`, using
+1. Include the companion's exported Drizzle tables and `pluginLocks` in the host
+   schema. Generate, review and apply its migration following the
+   [persistence guide](./persistence.md).
+2. Supply a typed Drizzle PostgreSQL database with query builders and `transaction`, using
    the default Read Committed transaction isolation. Use a separate database per
    business, as in Forge's existing deployment convention.
 3. Derive the management signing key from an existing server-only host secret with
@@ -208,12 +208,24 @@ lock. Availability responses contain only start/end instants, not customer detai
 Availability queries cover one local date. Calendar queries are limited to 43 elapsed
 days so a six-week month including a daylight-saving transition fits.
 
-The public appointment calendar disables dates without available slots for the
-selected service and resource. It checks all 42 displayed dates through the existing
-availability client when the month, service or resource changes. Dates remain
-disabled during loading or a failed check, with a refresh action to retry. Hosts
-must allow these availability reads through their rate limits. Booking still
-rechecks capacity on the server before reserving a slot.
+Guest and staff appointment creation disable dates without available slots for the
+selected service and resource. Hosts may expose the optional
+`monthAvailability({ serviceId, resourceId?, month })` method on their public and
+admin clients. `month` is the first local calendar date of the viewed month
+(`YYYY-MM-01`). The result maps each of the 42 displayed dates, starting on the
+Monday on or before that date, to a boolean. The companion validates the request
+and computes the grid using one configuration read, one occupied-reservation read
+and one captured time. Public and staff rules remain distinct; the admin method
+requires the existing `read` permission. Stay installations reject this operation.
+
+Forward this optional method through the host's existing transport and authorization.
+Hosts that omit it continue to use 42 daily availability calls; retain rate limits
+that allow that fallback. An implemented batch that fails shows the existing error
+and refresh action instead of falling back to daily calls. Dates remain disabled
+while loading or after failure, and superseded results cannot replace the current
+month. The selected day's slots load separately through `availability`; booking
+still rechecks capacity on the server. Stay booking, rescheduling and staff calendar
+inspection retain their existing reads. No database migration is required.
 
 Duration is elapsed minutes. The Temporal dependency resolves IANA time zones without
 changing globals. Nonexistent local starts are omitted; repeated starts are separate
@@ -246,12 +258,13 @@ the same key returns `CONFLICT`. A successful replay returns the current reserva
 
 ## Components
 
-| Component                 | Host inputs                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `ReservationBookingPage`  | Public client, locale, optional labels/initial date, optional `onBooked`       |
-| `ReservationManagePage`   | Management client already bound to a private token, locale and labels          |
-| `ReservationsCalendar`    | Admin client, locale, optional settings link, link adapter and `canManage`     |
-| `ReservationSettingsPage` | Admin client, service/resource editor destinations, back link and link adapter |
+| Component                 | Host inputs                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ReservationBookingPage`  | Public client, locale, optional labels/initial date, optional `onBooked`                       |
+| `ReservationManagePage`   | Management client already bound to a private token, locale and labels                          |
+| `ReservationsCalendar`    | Admin client, required `newHref`, locale, optional settings link, link adapter and `canManage` |
+| `ReservationNewPage`      | Admin client, `backHref`, `onBooked`, locale, labels and optional initial date                 |
+| `ReservationSettingsPage` | Admin client, service/resource editor destinations, back link and link adapter                 |
 
 All components accept `className`; English labels are overridable. Pass a stable client
 object so loading does not restart on every parent render. Settings support
@@ -259,8 +272,56 @@ object so loading does not restart on every parent render. Settings support
 Use dedicated host routes for these editors. The optional `onSaved(kind, id)` can
 navigate a new item to its edit URL. The showroom demonstrates these adapters.
 
-`ReservationsCalendar` opens in Agenda on desktop and mobile. Staff can switch to
-Year, Month, Week or Day using the calendar toolbar.
+Staff creation uses a dedicated host route such as `/admin/reservations/new`.
+Pass its URL as `ReservationsCalendar.newHref` and render `ReservationNewPage`
+there with the authenticated admin client. Preserve the calendar query and fragment
+in the creation/back links, pass the selected date as `initialDate`, and return to
+the calendar from `onBooked` after saving. The showroom demonstrates reload and
+Back/Forward with this route. Existing hosts adopting this change must add the route
+and `newHref`; the calendar no longer opens a creation dialog. Guard the new route
+with the same staff authorization as the calendar; the server still authorizes each
+request. Staff booking remains available when public booking is disabled.
+
+`ReservationsCalendar` opens in List on desktop and mobile. Its Month view uses the
+same exported `DatePicker` used in public booking, staff creation and stay forms.
+Staff see filtered reservation counts and select a date to open its reservation
+list beside the grid (below it on mobile). Selecting a reservation opens the existing
+details and actions. Year, Month, Week, Day and List remain available in the toolbar.
+
+Pass optional `calendarState={{ view, date }}` and `onCalendarStateChange` to bind
+navigation to host URLs. `ReservationCalendarState` uses an ISO local date and
+`reservationsMonth`, `reservationsYear`, `timeGridWeek`, `timeGridDay` or `listWeek`.
+The showroom validates `view` and `date`, defaults to List and the example date,
+removes default values, and restores navigation on reload and Back/Forward.
+Existing hosts may omit these props for local navigation. To use Month as a
+host default, supply `reservationsMonth`. No customer site is updated by this registry change.
+
+List replaces the date-limited Agenda. It shows all reservations across all dates
+and statuses, ordered by start time then ID, with the existing filters and detail
+actions. Date arrows, Today and the period heading are hidden in List; reservation
+rows still show their start/end dates. The footer uses shared pagination, with
+20 reservations per page and disabled controls at the first/last page.
+
+Hosts must expose the new authenticated `ReservationsAdminClient.listPage` method:
+`listPage({ page, resourceId?, serviceId?, status? })` returns `{ items, hasMore }`.
+Pages are positive integers up to 1,000,000. The service validates inputs and applies
+filters, ordering, limit and offset in PostgreSQL before returning rows. Calendar
+`list` reads keep their existing 43-day maximum. Update the UI, storage companion
+and host transport together; no database migration is required.
+
+Pass optional `page` and `onPageChange` props for controlled pagination. Hosts reset
+`page` to 1 when filters change. Uncontrolled usage resets locally. The showroom
+validates `reservationPage`, omits page 1, resets it when filters change, and restores
+it on reload and Back/Forward. `listWeek` and the `agenda` label key remain compatible;
+the English label now defaults to List. Translate `pagination`, `previousPage`,
+`nextPage` and `emptyList` through the existing label overrides.
+
+`DatePicker` accepts controlled `month` / `onMonthChange`, optional reservation
+`counts`, optional `monthAvailability(month)` for date booleans, and the existing
+date/range/availability props. The month callback takes precedence over daily
+availability when supplied. It owns the Monday-first
+42-day grid, translated navigation, range highlighting and disabled-date behavior.
+Stay endpoint rules and server availability checks remain unchanged.
 
 `ReservationsCalendar` accepts optional controlled `filters` and `onFiltersChange`
 props using the exported `ReservationFilters` type. It contains `resourceId`,
@@ -283,7 +344,7 @@ reservations that cross request boundaries. Hosts keep the existing `list` contr
 and 43-day maximum. A failed request reports an error instead of displaying partial
 counts. Dates and counts use the business time zone, including leap days.
 
-FullCalendar uses its free standard views and a custom React year table. There are no premium resource columns,
+FullCalendar uses its free standard views, the shared month picker and a custom React year table. There are no premium resource columns,
 dragging, recurring rules or calendar integrations. Resources are selected with filters.
 The calendar's stylesheet imports its required package CSS and maps colors to the
 host's semantic variables. Supply the shared `status-success`, `status-pending` and
@@ -315,7 +376,8 @@ diagnoses or patient records.
 
 Open `/en/reservations`, `/fr/reservations`, or `/en/admin/reservations`.
 The provider shares in-memory state across pages; reloading resets it. Choose
-Hairdresser, Clinic or Apartment, simulate failed mutations and slow responses, and inspect
+Hairdresser, Clinic or Apartment, use Many reservations to test pagination across past and future bookings,
+simulate failed mutations and slow responses, and inspect
 the latest booking through the demo inbox. The inbox uses mock IDs, sends no email,
 and must never be used as a production authorization adapter.
 
@@ -348,6 +410,11 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+Staff mutations share preview, pending/error, selection and accepted-response handling.
+Explicit Refresh or client replacement clears the selection and rescheduling draft;
+late completions cannot close a new dialog or trigger its refresh. Older reads cannot
+overwrite an accepted mutation. Rescheduling and settings inputs are disabled while
+saving, and rejection retains the submitted values for correction or retry.
 
 ## Notification layout
 

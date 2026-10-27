@@ -1,6 +1,6 @@
 {
   "name": "forge-registry",
-  "version": "0.0.0-rc.4",
+  "version": "0.0.0-rc.5",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,10 +21,11 @@
     "test:browser": "node --test tests/*.browser.mjs",
     "test:deployment": "node --test tests/deployment.smoke.mjs",
     "test:storage": "node --test tests/drive-storage/storage.integration.mjs",
-    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs",
+    "test:blogs-storage": "node --test tests/blogs-storage/storage.integration.mjs tests/blogs-storage/history.integration.mjs",
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview",
-    "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs"
+    "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs",
+    "test:persistence": "node --test tests/persistence/*.integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1153.0",
@@ -35,13 +36,12 @@
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.45",
     "@tanstack/react-start": "1.169.3",
-    "better-auth": "1.7.12",
     "cnfast": "0.1.0",
-    "drizzle-orm": "0.45.4",
+    "diff": "9.0.0",
+    "drizzle-orm": "1.0.0-rc.4",
     "fflate": "0.8.3",
     "lucide-react": "1.60.0",
     "motion": "12.43.0",
-    "postgres": "3.4.9",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-email": "6.11.3",
@@ -49,15 +49,18 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@better-auth/drizzle-adapter": "1.7.12",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
-    "eslint-plugin-react-hooks": "7.1.1",
+    "better-auth": "1.7.12",
+    "drizzle-kit": "1.0.0-rc.4",
     "nitro": "3.0.260903-beta",
     "playwright": "1.64.1",
     "portless": "0.15.8",
+    "postgres": "3.4.9",
     "shadcn": "4.22.1",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",

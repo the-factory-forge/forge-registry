@@ -8,7 +8,7 @@ The UI uses Base UI primitives, props-driven content, and framework shims. The r
 
 ## Source releases and maintenance
 
-Follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+Follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 for version choice, required checks, publication and recovery.
 
 Use the shared [release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md)
@@ -32,6 +32,18 @@ installed from this repository. Common maintenance lives in `forge-skills`:
 ## Context for contributors and AI
 
 Start with [AGENTS.md](./AGENTS.md) for project boundaries, source locations, the extraction workflow, and current limitations. [CONTRIBUTING.md](./CONTRIBUTING.md) covers component conventions.
+
+Registry-owned specs cover [Plugins](openspec/specs/plugins/spec.md),
+[Reservations](openspec/specs/reservations/spec.md),
+[showroom discovery](openspec/specs/registry-showroom/spec.md) and
+[registry releases](openspec/specs/registry-releases/spec.md). Their changes live in
+this repository's `openspec/changes/`. Only contracts constraining both registry and
+template live in `forge-spec`; consumer installation alone does not make a plugin
+spec shared.
+
+Changes that also modify a shared contract keep one root in `forge-spec` and
+name each delta's destination. Relocated archives retain their original repository
+labels and verification history; their current location determines ownership.
 
 The attached sibling project `../tc-website` is a reference, a source of components for extraction, and a consumer of the shared intranet sidebar. It uses TanStack Start/Router, React, Tailwind CSS, and shadcn Base UI. Extract selected components into this registry with reusable props, theme tokens, and declared dependencies; keep website-specific content and integrations in the consuming project. Attaching it does not initiate further migrations.
 
@@ -93,6 +105,9 @@ The legacy aggregate endpoint (`public/registry/registry.json`) and `registry:pu
 
 ## Registry items
 
+App-wide loading feedback uses [`loading-indicator`](./docs/loading-indicator.md),
+with one bar beneath the navbar and a 300ms completion hold.
+
 Icon-only actions use [`icon-tooltip`](./docs/icon-tooltip.md) for translated hover
 and keyboard hints, with a [showroom example](https://registry.the-corner.io/icon-tooltip).
 
@@ -105,17 +120,18 @@ supply their own translations and theme configuration.
 
 ### Libs
 
-| Name                                              | Description                                                              |
-| ------------------------------------------------- | ------------------------------------------------------------------------ |
-| `consent-analytics`                               | Consent-driven Google Analytics and Ads loading, event gating, and retry |
-| `cn`                                              | Class-name utility (re-exports `cnfast`)                                 |
-| [optimistic-action](./docs/optimistic-actions.md) | TanStack Query mutations with temporary UI updates and rollback          |
-| `table-styles`                                    | Shared layout classes for plugin tables                                  |
-| `section-variants`                                | Shared SectionVariant type and color map for themeable sections          |
-| `build-metadata`                                  | Canonical, hreflang, Open Graph, Twitter cards                           |
-| `json-ld`                                         | Organization, Breadcrumb, FAQ, Service schemas                           |
-| `privacy-content`                                 | Reference privacy-policy content in fr/en/de/it for site adaptation      |
-| `footer-helpers`                                  | Builds footer props from site data, including attribution defaults       |
+| Name                                                                            | Description                                                                   |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `consent-analytics`                                                             | Consent-driven Google Analytics and Ads loading, event gating, and retry      |
+| `cn`                                                                            | Class-name utility (re-exports `cnfast`)                                      |
+| [optimistic-action](./docs/optimistic-actions.md)                               | TanStack Query mutations with temporary UI updates and rollback               |
+| [record-deletion](./docs/optimistic-actions.md#customers-and-projects-deletion) | Shared Customers/Projects confirmation, optimistic removal and focus recovery |
+| `table-styles`                                                                  | Shared layout classes for plugin tables                                       |
+| `section-variants`                                                              | Shared SectionVariant type and color map for themeable sections               |
+| `build-metadata`                                                                | Canonical, hreflang, Open Graph, Twitter cards                                |
+| `json-ld`                                                                       | Organization, Breadcrumb, FAQ, Service schemas                                |
+| `privacy-content`                                                               | Reference privacy-policy content in fr/en/de/it for site adaptation           |
+| `footer-helpers`                                                                | Builds footer props from site data, including attribution defaults            |
 
 ### UI Primitives
 
@@ -130,7 +146,6 @@ supply their own translations and theme configuration.
 | `animations`                                   | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |
 | `reveal`                                       | Scroll-triggered fade-up (useInView + post-hydration animate - actually plays)      |
 | `share-button`                                 | Web Share API + clipboard fallback                                                  |
-| `back-to-top`                                  | Floating scroll-to-top button                                                       |
 | `section-heading`                              | Eyebrow + title + subtitle, alignment and inverted variants                         |
 | `image-with-fallback`                          | Image (shim) with error placeholder                                                 |
 | `lightbox`                                     | Click-to-enlarge image with overlay                                                 |
@@ -176,10 +191,10 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence  |
 | [blogs / blogs-storage](./docs/blogs.md)                      | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence      |
-| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, size prices, spice levels, staff editing, and Better Auth/Drizzle persistence      |
+| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, size prices, spice levels, staff editing, and typed Drizzle persistence            |
 | [drive / drive-storage](./docs/drive.md)                      | Entity-scoped file browser and optional private S3/PostgreSQL persistence                           |
-| [projects](./docs/projects.md)                                | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                     |
-| [customers](./docs/customers.md)                              | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions           |
+| [projects / projects-storage](./docs/projects.md)             | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                     |
+| [customers / customers-storage](./docs/customers.md)          | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions           |
 | [auth](./docs/intranet-auth.md)                               | Account profile/security, sign-in/out, password recovery/change, access-denied page and auth layout |
 | [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                 |
 | [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                                |
@@ -187,6 +202,12 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
+
+### Layouts
+
+| Name                                                       | Description                                                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [content-sidebar-layout](./docs/content-sidebar-layout.md) | Content beside an optional sticky supporting panel, with persistent toolbar and mobile stacking |
 
 ### Intranet (1)
 

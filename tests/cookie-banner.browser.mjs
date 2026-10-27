@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Cookie banner browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -60,22 +60,41 @@ await suite("Cookie banner browser", async () => {
   const reopen = (page) => page.getByRole("button", { name: "Open cookie banner" }).click();
   const customize = (dialog) => dialog.getByRole("button", { name: "Custom selection" }).click();
 
+  await test("close discards unconfirmed cookie choices without granting consent", async (t) => {
+    const { page, dialog } = await openPreview(t);
+    await customize(dialog);
+    await dialog.getByRole("checkbox", { name: /^Statistics/ }).check();
+    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await storedConsent(page), null);
+    await expectApplied(page, false, false);
+    await reopen(page);
+    await customize(dialog);
+    assert.equal(await dialog.getByRole("checkbox", { name: /^Statistics/ }).isChecked(), false);
+  });
+
   await test("compact actions, custom selection, and saved preferences work", async (t) => {
     const { page, dialog } = await openPreview(t);
     await dialog.waitFor();
     assert.equal(await dialog.getAttribute("id"), "factory-cookie-banner");
     assert.equal(await dialog.getByRole("checkbox").count(), 0);
-    assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
-      "Custom selection",
-      "Accept all",
-    ]);
+    assert.deepEqual(
+      await dialog
+        .getByRole("button")
+        .filter({ hasNot: page.locator("svg") })
+        .allTextContents(),
+      ["Custom selection", "Accept all"],
+    );
     await customize(dialog);
     assert.equal(await dialog.getByRole("checkbox").count(), 3);
     assert.equal(await dialog.getByRole("checkbox", { name: /^Necessary/ }).isDisabled(), true);
-    assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
-      "Cancel",
-      "Confirm selection",
-    ]);
+    assert.deepEqual(
+      await dialog
+        .getByRole("button")
+        .filter({ hasNot: page.locator("svg") })
+        .allTextContents(),
+      ["Cancel", "Confirm selection"],
+    );
     await expectApplied(page, false, false);
 
     await dialog.getByRole("checkbox", { name: /^Statistics/ }).check();

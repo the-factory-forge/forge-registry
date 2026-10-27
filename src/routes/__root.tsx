@@ -8,10 +8,12 @@ import {
 import type { ReactNode } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { LoadingProvider } from "@/components/loading-indicator";
 import { isLocale } from "@/lib/i18n/config";
 import { ShowroomLink } from "@/showroom/routing";
 import { notFoundHead } from "@/showroom/seo";
 import { ShowroomHeader } from "@/showroom/showroom-header";
+import { ShowroomLoading } from "@/showroom/showroom-loading";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 import { themeScript } from "@/showroom/theme-control";
 
@@ -26,14 +28,15 @@ export const Route = createRootRoute({
     search?: string;
     category?: string;
     page?: string;
-  } =>
-    Object.fromEntries(
+  } => ({
+    ...Object.fromEntries(
       ["customerId", "folder", "search", "category", "page"].flatMap((key) =>
         typeof search[key] === "string" || typeof search[key] === "number"
           ? [[key, String(search[key])]]
           : [],
       ),
     ),
+  }),
   beforeLoad: ({ params }) => {
     if ("locale" in params && !isLocale(String(params.locale))) throw notFound();
   },
@@ -75,10 +78,13 @@ function RootDocument({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body className="flex min-h-full flex-col">
-        <ShowroomHeader />
-        <ActionToastProvider>
-          <div className="showroom-content min-w-0 flex-1">{children}</div>
-        </ActionToastProvider>
+        <LoadingProvider>
+          <ShowroomHeader />
+          <ShowroomLoading />
+          <ActionToastProvider>
+            <div className="showroom-content min-w-0 flex-1">{children}</div>
+          </ActionToastProvider>
+        </LoadingProvider>
         <Scripts />
       </body>
     </html>

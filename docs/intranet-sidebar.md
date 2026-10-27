@@ -156,6 +156,7 @@ same offset. Reset it to `0rem` when printing if that header is hidden.
 | `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                               |
 | `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host        |
 | Navigation item      | Stable `id`, `label`, optional icon node, and `href`, nested `items`, or both                          |
+| `badge`              | Optional non-interactive React node aligned after the item label; supply accessible text for counts    |
 | `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                |
 | `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                  |
 | Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                           |
@@ -172,6 +173,22 @@ expand/collapse button. Its section stays active on its own route or any active
 child, while `aria-current="page"` on the parent identifies only its exact
 route. An empty child list still renders the parent link, which supports
 asynchronously loaded project navigation. Empty groups without a link are hidden.
+
+### Project version
+
+Supply the host project's `package.json` version through the `version` prop on
+`IntranetSidebar` or `IntranetShell`. For example, from a host adapter under
+`src/components/`:
+
+```tsx
+import { version } from "../../package.json";
+
+<IntranetShell {...shellProps} version={`v${version}`} />;
+```
+
+Both showroom demos use this wiring. A package version change is included on the
+next build and deployment, including prerelease suffixes. The reusable sidebar
+keeps the value host-owned; omit the prop to hide it.
 
 ### Plugin icons
 
@@ -243,7 +260,10 @@ navigation visibility; existing server authorization remains authoritative.
 Run `pnpm dev` and open `/en/intranet-sidebar` at the printed URL. The showroom uses mock
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
-The `/en/intranet` demo also includes linked parent navigation and a custom topbar.
+The `/en/intranet` demo also includes linked parent navigation, a custom topbar,
+and a Plugins group with a Drive entry showing 3 sample unreviewed changes in a pending status badge.
+Badge content, counts and translations belong to the host; use its semantic status
+tokens and include an accessible description when only a number is visible.
 Run `pnpm test` for the navigation matching regression checks (Node 22.18+).
 
 Verify desktop collapse/reopen, keyboard focus after collapse, mobile Escape and

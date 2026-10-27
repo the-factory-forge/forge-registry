@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Customers browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -25,7 +24,7 @@ await suite("Customers browser", async () => {
     await page.goto(`${baseURL}/en/customers${route}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     if (options.colorScheme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
 
@@ -105,6 +104,40 @@ await suite("Customers browser", async () => {
     await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
   });
 
+  await test("creation avatar follows draft initials without saving or shifting the form", async (t) => {
+    const page = await preview(t, "/new");
+    const header = page.locator("form header");
+    const name = page.getByLabel("Full name *", { exact: true });
+    const email = page.getByLabel("Email *", { exact: true });
+    const company = page.getByLabel("Company name", { exact: true });
+    const initialPosition = await name.evaluate(
+      (input) => input.getBoundingClientRect().top + scrollY,
+    );
+    await header.getByText("?", { exact: true }).waitFor();
+    await email.fill("alex@example.com");
+    await header.getByText("AL", { exact: true }).waitFor();
+    await name.pressSequentially("Alex Morgan");
+    await header.getByText("AM", { exact: true }).waitFor();
+    await company.pressSequentially("Acme Studio");
+    await header.getByText("AS", { exact: true }).waitFor();
+    await company.fill("   ");
+    await header.getByText("AM", { exact: true }).waitFor();
+    await name.fill("   ");
+    await header.getByText("AL", { exact: true }).waitFor();
+    await email.fill("");
+    await header.getByText("?", { exact: true }).waitFor();
+    assert.equal(
+      await name.evaluate((input) => input.getBoundingClientRect().top + scrollY),
+      initialPosition,
+    );
+    await name.fill("Alex Morgan");
+    await email.fill("alex@example.com");
+    await page.getByLabel("Simulate action failures").check();
+    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
+    await header.getByText("AM", { exact: true }).waitFor();
+  });
+
   await test("creation validates contact fields without collecting a password", async (t) => {
     const page = await preview(t, "/new");
     const submit = page.getByRole("button", { name: "Create customer", exact: true });
@@ -114,17 +147,17 @@ await suite("Customers browser", async () => {
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a full name" }).waitFor();
     await page.getByLabel("Full name *", { exact: true }).fill("Taylor Casey");
-    await page.getByLabel("Email", { exact: true }).fill("invalid-email");
+    await page.getByLabel("Email *", { exact: true }).fill("invalid-email");
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
-    await page.getByLabel("Email", { exact: true }).fill("");
+    await page.getByLabel("Email *", { exact: true }).fill("");
     assert.equal(await page.locator('input[type="password"]').count(), 0);
-    await page.getByLabel("Email", { exact: true }).fill("taylor@example.com");
+    await page.getByLabel("Email *", { exact: true }).fill("taylor@example.com");
     await page.getByLabel("Simulate action failures").check();
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
     assert.equal(
-      await page.getByLabel("Email", { exact: true }).inputValue(),
+      await page.getByLabel("Email *", { exact: true }).inputValue(),
       "taylor@example.com",
     );
     await page.getByLabel("Simulate action failures").uncheck();
@@ -148,9 +181,14 @@ await suite("Customers browser", async () => {
     assert.equal(await page.locator('input[type="password"]').count(), 0);
   });
 
-  await test("a customer can be created without email or credentials", async (t) => {
+  await test("customer creation requires email and never collects credentials", async (t) => {
     const page = await preview(t, "/new");
     await page.getByLabel("Full name *", { exact: true }).fill("Offline Contact");
+    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
+    assert.equal(await page.getByLabel("Email *", { exact: true }).getAttribute("required"), "");
+    assert.equal(await page.locator('input[type="password"]').count(), 0);
+    await page.getByLabel("Email *", { exact: true }).fill("contact@example.test");
     await page.getByRole("button", { name: "Create customer", exact: true }).click();
     await page.getByRole("heading", { name: "Offline Contact", exact: true }).waitFor();
   });
@@ -162,6 +200,7 @@ await suite("Customers browser", async () => {
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog", { name: "Delete customer" });
     await dialog.waitFor();
+    await page.waitForFunction(() => document.activeElement?.textContent === "Cancel");
     assert.equal(
       await dialog
         .getByRole("button", { name: "Cancel" })
@@ -241,6 +280,8 @@ await suite("Customers browser", async () => {
         });
         await page.getByRole("link", { name: "Create customer", exact: true }).click();
         await page.getByRole("heading", { name: "New customer", exact: true }).waitFor();
+        await page.getByLabel("Full name *", { exact: true }).fill("Alex Morgan");
+        await page.locator("form header").getByText("AM", { exact: true }).waitFor();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,

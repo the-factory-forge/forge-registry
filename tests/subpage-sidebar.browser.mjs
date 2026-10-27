@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Subpage sidebar browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -28,8 +28,9 @@ await suite("Subpage sidebar browser", async () => {
     t.after(() => assert.deepEqual(errors, []));
     await page.goto(`${baseURL}${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
+    await openPreviewControls(page);
     if (theme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
 
@@ -110,15 +111,23 @@ await suite("Subpage sidebar browser", async () => {
         await createFolder(page, "Assets");
         await createFolder(page, "Archive");
         await page.getByRole("table").getByRole("link", { name: "Assets", exact: true }).click();
-        await page.getByRole("heading", { name: "Assets", exact: true }).waitFor();
+        await page
+          .getByRole("navigation", { name: "Folder navigation", exact: true })
+          .getByRole("heading", { name: "Assets", exact: true })
+          .waitFor();
         await createFolder(page, "Brand");
         let nav = await navigation(page);
         await nav.getByRole("link", { name: "Studio website", exact: true }).click();
         await page.getByRole("table").getByRole("link", { name: "Assets", exact: true }).waitFor();
         nav = await navigation(page);
+        const collapse = nav.getByRole("button", { name: "Collapse folder: Assets", exact: true });
+        if (await collapse.isVisible()) await collapse.click();
         await nav.getByRole("button", { name: "Expand folder: Assets", exact: true }).click();
         await nav.getByRole("link", { name: "Folder: Brand", exact: true }).click();
-        await page.getByRole("heading", { name: "Brand", exact: true }).waitFor();
+        await page
+          .getByRole("navigation", { name: "Folder navigation", exact: true })
+          .getByRole("heading", { name: "Brand", exact: true })
+          .waitFor();
         nav = await navigation(page);
         assert.equal(
           await nav
@@ -307,8 +316,14 @@ await suite("Subpage sidebar browser", async () => {
       if (width < 768) await toggle.click();
       const nav = page.getByRole("navigation", { name: "Side navigation", exact: true });
       await nav.getByRole("button", { name: "Contracts", exact: true }).click();
+      const initialUrl = page.url();
       await nav.getByRole("link", { name: "Customer", exact: true }).click();
       await page.waitForURL((url) => url.hash === "#contracts/customer");
+      const selectedUrl = page.url();
+      await page.goBack();
+      await page.waitForURL(initialUrl);
+      await page.goForward();
+      await page.waitForURL(selectedUrl);
       if (width < 768) await toggle.click();
       await nav
         .getByRole("link", { name: "Customer", exact: true })

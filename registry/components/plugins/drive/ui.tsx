@@ -3,6 +3,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
 import {
+  XIcon,
   ArrowDownIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -11,7 +12,17 @@ import {
   RefreshCwIcon,
   ArrowUpIcon,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 import {
   ActionToastFooter,
@@ -24,17 +35,18 @@ import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type {
   DriveBrowserProps,
   DriveClient,
-  DriveDeletePreview,
   DriveEntry,
   DriveScope,
   DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
+import { useDriveDeletion } from "@/components/plugins/drive/use-deletion";
 import type { useUploads } from "@/components/plugins/drive/use-uploads";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableHeaderClass } from "@/components/utils/table-styles";
+import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
@@ -206,11 +218,7 @@ export function DriveToasts({
   useEffect(() => {
     currentQueue.current = queue;
   }, [queue]);
-  const { uploads, dismiss } = queue;
-  const finished = uploads.every((upload) => ["done", "cancelled"].includes(upload.state));
-  const loading = uploads.some((upload) =>
-    ["queued", "uploading", "finishing", "cancelling"].includes(upload.state),
-  );
+  const { uploads, dismiss, finished, loading } = queue;
   useEffect(() => () => close(id), [close, id]);
   useEffect(() => {
     if (!uploads.length) {
@@ -229,14 +237,14 @@ export function DriveToasts({
             {uploads.map((upload) => (
               <li key={upload.id} className="space-y-2">
                 <span className="block text-sm break-all">
-                  {upload.relativePath ?? upload.file.name}
+                  {upload.relativePath ?? upload.name}
                 </span>
                 <progress
                   className={cn(
                     "h-2 w-full appearance-none bg-muted [&::-moz-progress-bar]:bg-current [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-current",
                     upload.state === "done"
                       ? "text-status-success-foreground"
-                      : upload.state === "failed" || upload.state === "cancelFailed"
+                      : upload.failed
                         ? "text-destructive"
                         : upload.state === "cancelled"
                           ? "text-status-canceled-foreground"
@@ -244,21 +252,16 @@ export function DriveToasts({
                   )}
                   max={100}
                   value={upload.progress}
-                  aria-label={labels.progress(upload.file.name)}
+                  aria-label={labels.progress(upload.name)}
                 />
                 {upload.error !== undefined && (
                   <DriveFeedback message={messageFor(upload.error, labels)} error />
                 )}
                 <ActionToastFooter
-                  status={
-                    <DriveFeedback
-                      message={labels[upload.state]}
-                      error={upload.state === "failed" || upload.state === "cancelFailed"}
-                    />
-                  }
+                  status={<DriveFeedback message={labels[upload.state]} error={upload.failed} />}
                   actions={
                     <>
-                      {["failed", "cancelFailed"].includes(upload.state) && (
+                      {upload.canRetry && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => currentQueue.current.retry(upload.id)}
@@ -267,7 +270,7 @@ export function DriveToasts({
                           {labels.retry}
                         </button>
                       )}
-                      {["queued", "uploading", "failed"].includes(upload.state) && (
+                      {upload.canCancel && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => currentQueue.current.cancel(upload.id)}
@@ -275,7 +278,7 @@ export function DriveToasts({
                           {labels.cancel}
                         </button>
                       )}
-                      {["done", "cancelled"].includes(upload.state) && (
+                      {upload.canDismiss && (
                         <button
                           className={actionToastButtonClass}
                           onClick={() => dismiss(upload.id)}
@@ -300,6 +303,8 @@ export function DriveToasts({
   return null;
 }
 
+export const DriveMutationOwner = createContext<unknown>(null);
+
 export function DriveTitle({
   name,
   onRename,
@@ -315,10 +320,18 @@ export function DriveTitle({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const input = useRef<HTMLInputElement>(null);
+  const lifetime = useActionLifetime(useContext(DriveMutationOwner));
   const trigger = useRef<HTMLButtonElement>(null);
-  const lock = useRef(false);
+  const lock = useRef<object | null>(null);
   const restoreFocus = useRef(false);
   const errorId = `factory-drive-title-error-${useId()}`;
+  const [previousOwner, setPreviousOwner] = useState(lifetime.identity);
+  if (previousOwner !== lifetime.identity) {
+    setPreviousOwner(lifetime.identity);
+    setDraft(undefined);
+    setPending(false);
+    setError(undefined);
+  }
   const editing = draft !== undefined;
   const { add } = Toast.useToastManager();
   useEffect(() => {
@@ -331,23 +344,27 @@ export function DriveTitle({
     }
   }, [editing, disabled]);
   async function save(returnFocus: boolean) {
-    if (disabled || lock.current || draft === undefined || !onRename) return;
-    lock.current = true;
+    if (disabled || lock.current === lifetime.identity || draft === undefined || !onRename) return;
+    lock.current = lifetime.identity;
     setPending(true);
     setError(undefined);
     try {
       const next = validName(draft);
       if (next !== name) await onRename(next);
+      if (!lifetime.isCurrent()) return;
       restoreFocus.current = returnFocus;
       setDraft(undefined);
       setError(undefined);
     } catch (reason) {
+      if (!lifetime.isCurrent()) return;
       const message = messageFor(reason, labels);
       setError(message);
       add({ title: message, type: "error", data: { closeLabel: labels.close } });
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lifetime.isCurrent()) {
+        lock.current = null;
+        setPending(false);
+      }
     }
   }
   return (
@@ -449,16 +466,31 @@ export function EntryDialog({
   refresh: () => void;
   children?: ReactNode;
 }) {
+  const inheritedOwner = useContext(DriveMutationOwner);
+  // Confirmed deletion keeps its existing folder lifetime across client replacement.
+  const owner = deleting ? null : (inheritedOwner ?? client);
+  const target = `${scope.type}:${scope.id}:${parentId ?? ""}:${entry?.id ?? ""}`;
+  const identity = useMemo(() => ({ owner, target }), [owner, target]);
+  const lifetime = useActionLifetime(identity);
   const [open, setOpen] = useState(!!onClose);
   const [name, setName] = useState(
     duplicating && entry ? labels.duplicateName(entry.name) : (entry?.name ?? space?.name ?? ""),
   );
   const [pending, setPending] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(!!onClose && deleting);
   const [error, setError] = useState<string>();
-  const [preview, setPreview] = useState<DriveDeletePreview>();
-  const previewRequest = useRef<Promise<DriveDeletePreview> | undefined>(undefined);
-  const lock = useRef(false);
+  const [previousOwner, setPreviousOwner] = useState(lifetime.identity);
+  if (previousOwner !== lifetime.identity) {
+    setPreviousOwner(lifetime.identity);
+    setOpen(false);
+    setPending(false);
+    setError(undefined);
+  }
+  const deletion = useDriveDeletion(client, scope);
+  const preview = deletion.counts?.find((count) => count.id === entry?.id);
+  const previewLoading = deletion.loading;
+  const feedback = error ?? (deletion.error ? messageFor(deletion.error, labels) : undefined);
+  const lock = useRef<object | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const fieldId = `factory-drive-field-${useId()}`;
   const title = deleting
     ? trashing
@@ -471,81 +503,49 @@ export function EntryDialog({
         : labels.newFolder;
   function loadPreview() {
     if (disabled || !entry) return;
-    setPreviewLoading(true);
     setError(undefined);
-    setPreview(undefined);
-    return startPreview();
-  }
-  function startPreview() {
-    if (!entry) return;
-    const request = Promise.resolve().then(() =>
-      client.previewDelete({ scope, entryId: entry.id }),
-    );
-    previewRequest.current = request;
-    void request.then(
-      (result) => {
-        if (previewRequest.current !== request) return;
-        setPreview(result);
-        setPreviewLoading(false);
-      },
-      (reason) => {
-        if (previewRequest.current !== request) return;
-        previewRequest.current = undefined;
-        setError(messageFor(reason, labels));
-        setPreviewLoading(false);
-      },
-    );
-    return request;
+    return deletion.prepare([entry.id]);
   }
   useEffect(() => {
     // Menu dialogs mount open; ordinary triggers prepare the preview in changeOpen.
-    if (onClose && deleting) void startPreview();
-    return () => {
-      previewRequest.current = undefined;
-    };
+    if (onClose && deleting && entry) void deletion.prepare([entry.id]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function submit() {
-    if (disabled || lock.current) return;
-    lock.current = true;
+    if (disabled || lock.current === lifetime.identity) return;
+    lock.current = lifetime.identity;
     setPending(true);
     setError(undefined);
     try {
       if (deleting && entry) {
-        const confirmation = preview ?? (await (previewRequest.current ?? loadPreview()));
-        if (!confirmation) return;
-        if (trashing)
-          await client.trashEntry!({ scope, entryId: entry.id, token: confirmation.token });
-        else await client.deleteEntry({ scope, entryId: entry.id, token: confirmation.token });
+        await deletion.remove(entry.id, trashing);
       } else if (duplicating && entry)
         await client.duplicateEntry!({ scope, entryId: entry.id, name: validName(name) });
       else if (entry) await client.rename({ scope, entryId: entry.id, name: validName(name) });
       else if (space && onRenameSpace) await onRenameSpace(validName(name));
       else await client.createFolder({ scope, parentId, name: validName(name) });
+      if (!lifetime.isCurrent()) return;
       setOpen(false);
       refresh();
       onClose?.();
     } catch (reason) {
-      setError(messageFor(reason, labels));
-      if (deleting && errorCode(reason) === "CONFLICT") {
-        setPreview(undefined);
-        previewRequest.current = undefined;
-      }
+      if (lifetime.isCurrent()) setError(messageFor(reason, labels));
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lifetime.isCurrent()) {
+        lock.current = null;
+        setPending(false);
+      }
     }
   }
   function changeOpen(next: boolean) {
-    if (lock.current) return;
+    if (lock.current === lifetime.identity) return;
     setOpen(next);
     if (next) {
       setName(entry?.name ?? space?.name ?? "");
       setError(undefined);
       if (deleting) void loadPreview();
     } else {
-      previewRequest.current = undefined;
-      setPreviewLoading(false);
+      deletion.reset();
       onClose?.();
     }
   }
@@ -569,16 +569,34 @@ export function EntryDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          initialFocus={deleting || disabled ? undefined : nameRef}
           finalFocus={returnFocus}
           onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
           className={cn(
             cardClass,
-            "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
+            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",
           )}
         >
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {title}
+            </Dialog.Title>
+            <IconTooltip label={labels.close}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.close}
+                disabled={pending}
+                className={iconButtonClass}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
           <Dialog.Description
-            className={cn("text-sm text-muted-foreground", deleting && "min-h-20")}
+            className={cn("text-sm text-muted-foreground", deleting && "mb-0 min-h-16 sm:min-h-10")}
           >
             {deleting
               ? preview && entry
@@ -597,7 +615,7 @@ export function EntryDialog({
               event.preventDefault();
               void submit();
             }}
-            className="space-y-4"
+            className={cn("contents", deleting ? "space-y-0" : "space-y-4")}
           >
             {!deleting && (
               <div className="space-y-2">
@@ -605,6 +623,7 @@ export function EntryDialog({
                   {labels.name}
                 </label>
                 <input
+                  ref={nameRef}
                   id={fieldId}
                   className={inputClass}
                   value={name}
@@ -618,17 +637,20 @@ export function EntryDialog({
             <div className={deleting ? "min-h-5" : undefined}>
               <DriveFeedback
                 message={
-                  error ??
+                  feedback ??
                   (deleting && (pending || previewLoading)
                     ? pending
                       ? labels.pending
                       : labels.loading
                     : undefined)
                 }
-                error={Boolean(error)}
+                error={Boolean(feedback)}
               />
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 py-5"
+            >
               <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}
               </Dialog.Close>

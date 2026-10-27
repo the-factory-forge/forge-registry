@@ -6,6 +6,9 @@
   "dependencies": [
     "lucide-react"
   ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
   "files": [
     {
       "path": "registry/components/share-button.tsx",

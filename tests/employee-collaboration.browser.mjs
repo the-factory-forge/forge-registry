@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 let browser;
 before(async () => {
@@ -21,6 +22,7 @@ async function preview(t, path, options = {}) {
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(base + path);
   await page.locator('[data-preview-ready="true"]').waitFor();
+  await openPreviewControls(page);
   return page;
 }
 
@@ -31,7 +33,7 @@ void test("employee deletion reviews linked groups and retains failure feedback 
   });
   await page.getByLabel("Review related plugin data").check();
   await page.getByLabel("Fail deletion confirmation").check();
-  await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+  await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
   await page.getByRole("button", { name: "Delete Sam Rivera", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Delete employee", exact: true });
   await dialog.getByText("Blogs", { exact: true }).waitFor();

@@ -1,9 +1,8 @@
 "use client";
 
 import { Avatar } from "@base-ui/react/avatar";
-import { Dialog } from "@base-ui/react/dialog";
-import { ChevronDownIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { ChevronDownIcon } from "lucide-react";
+import { useState, type ReactNode, type RefObject } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import {
@@ -17,8 +16,10 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { Customer } from "@/components/plugins/customers/types";
 import { customerDisplayName, customerInitials } from "@/components/plugins/customers/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
+import { useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
 export const buttonClass =
@@ -37,29 +38,18 @@ export const inputClass = cn(
   editorInvalidClass,
 );
 
-export function useCustomerAction(errorMessage: string) {
+export function useCustomerAction(errorMessage: string, scope?: unknown) {
   const notify = useActionToast();
-  const lock = useRef(false);
-  const [pending, setPending] = useState(false);
-  const [feedback, setFeedback] = useState<{ error: boolean; message: string }>();
-  async function run(action: () => Promise<void>, success: string) {
-    if (lock.current) return false;
-    lock.current = true;
-    setPending(true);
-    setFeedback(undefined);
-    try {
-      await action();
-      notify(success);
-      return true;
-    } catch {
-      setFeedback({ error: true, message: errorMessage });
-      return false;
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
-  }
-  return { pending, feedback, run };
+  const mutation = useMutationAction(scope);
+  return {
+    pending: mutation.pending,
+    feedback: mutation.error ? { error: true, message: errorMessage } : undefined,
+    run: (action: () => Promise<void>, success: string, accept?: () => void) =>
+      mutation.run(action, () => {
+        notify(success);
+        accept?.();
+      }),
+  };
 }
 
 export function Feedback({ feedback }: { feedback?: { error: boolean; message: string } }) {
@@ -77,7 +67,7 @@ export function CustomerAvatar({
   customer,
   large = false,
 }: {
-  customer: Customer;
+  customer: Pick<Customer, "name" | "companyName" | "email" | "image">;
   large?: boolean;
 }) {
   const name = customerDisplayName(customer);
@@ -136,70 +126,34 @@ export function DeleteCustomer({
   onDelete,
   labels,
   disabled = false,
+  returnFocus,
 }: {
   customer: Customer;
   onDelete: (id: string) => Promise<void>;
   labels: CustomersLabels;
   disabled?: boolean;
+  returnFocus?: RefObject<HTMLElement | null>;
 }) {
-  const [open, setOpen] = useState(false);
-  const action = useCustomerAction(labels.actionError);
+  const deletion = useRecordDeletion({
+    items: [customer],
+    scope: customer.id,
+    getName: customerDisplayName,
+    onDelete,
+    label: labels.deleteCustomer,
+    labels,
+    disabled,
+    returnFocus,
+    className: "max-w-md",
+  });
   return (
-    <div>
-      <Dialog.Root
-        open={open}
-        onOpenChange={(next) => {
-          if (!action.pending) setOpen(next);
-        }}
-      >
-        <IconTooltip label={labels.deleteCustomer}>
-          <Dialog.Trigger
-            className={cn(
-              iconButtonClass,
-              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-            )}
-            aria-label={labels.deleteCustomer}
-            disabled={disabled || action.pending}
-          >
-            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-          </Dialog.Trigger>
-        </IconTooltip>
-        <Dialog.Portal>
-          <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup
-            className={cn(
-              cardClass,
-              "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
-            )}
-          >
-            <Dialog.Title className="text-lg font-semibold">{labels.deleteCustomer}</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {labels.deleteDescription(customerDisplayName(customer))}
-            </Dialog.Description>
-            <Feedback feedback={action.feedback} />
-            <div className="flex flex-wrap justify-end gap-2">
-              <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button
-                type="button"
-                disabled={disabled || action.pending}
-                className={cn(
-                  buttonClass,
-                  "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-                )}
-                onClick={async () => {
-                  if (await action.run(() => onDelete(customer.id), labels.deleted)) setOpen(false);
-                }}
-              >
-                {action.pending ? labels.pending : labels.confirmDelete}
-              </button>
-            </div>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-      {!open && <Feedback feedback={action.feedback} />}
-    </div>
+    <>
+      <RecordDeleteButton
+        label={labels.deleteCustomer}
+        disabled={disabled || deletion.pending}
+        onClick={(event) => deletion.open(customer.id, event.currentTarget)}
+      />
+      {deletion.dialog}
+    </>
   );
 }
 
@@ -261,11 +215,11 @@ export function StatusBadge<T extends string>({
           onValueChange={(next) => {
             const option = options.find((entry) => entry.value === next);
             if (!option || option.value === value || disabled || action.pending) return;
-            void action
-              .run(() => onChange(option.value), successMessage)
-              .then((success) => {
-                if (success) setOpen(false);
-              });
+            void action.run(
+              () => onChange(option.value),
+              successMessage,
+              () => setOpen(false),
+            );
           }}
         >
           {options.map((option) => (

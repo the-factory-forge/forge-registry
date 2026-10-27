@@ -1,7 +1,5 @@
 "use client";
 
-import { Dialog } from "@base-ui/react/dialog";
-import { Tabs } from "@base-ui/react/tabs";
 import {
   ArrowLeftIcon,
   GripVerticalIcon,
@@ -10,7 +8,6 @@ import {
   PrinterIcon,
   RefreshCwIcon,
   SettingsIcon,
-  Trash2Icon,
 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ComponentType, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
@@ -18,21 +15,24 @@ import { createPortal } from "react-dom";
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
-import { NativeSelect } from "@/components/native-select";
-import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
-import type { DriveTransfer } from "@/components/plugins/drive/transfer";
-import { MenuLabelBadge, MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
-import { menuLabelIcons, type MenuLabelIcon } from "@/components/plugins/menus/label-presets";
+import {
+  MenuTaxonomyEditor,
+  type MenuItemEditorPageProps,
+} from "@/components/plugins/menus/editor";
+import { MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
-import { parsePrice } from "@/components/plugins/menus/model";
-import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
-import type {
-  MenuCategory,
-  MenuItem,
-  MenuItemInput,
-  MenuLabel,
-  MenusClient,
-} from "@/components/plugins/menus/types";
+import type { MenuItem, MenusClient } from "@/components/plugins/menus/types";
+import {
+  button,
+  outlineButton,
+  primary,
+  page,
+  iconButton,
+  ErrorMessage,
+  DeleteControl,
+} from "@/components/plugins/menus/ui";
+import { useMenuCategoriesAndLabels } from "@/components/plugins/menus/use-categories-and-labels";
+import { useMenuItems } from "@/components/plugins/menus/use-menu-items";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -40,12 +40,6 @@ import {
   useTableSelection,
 } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
-import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
-import {
-  editorActionsClass,
-  editorInvalidClass,
-  useEditorValidation,
-} from "@/components/utils/editor-form";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -56,118 +50,14 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
-import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
-
-const field = cn(
-  "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
-  editorInvalidClass,
-);
-const button =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
-const outlineButton = cn(button, "border border-border");
-const primary = cn(
-  button,
-  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-);
-const page = "mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-foreground";
-const iconButton = cn(
-  button,
-  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 md:size-8 md:min-h-8",
-);
-const editorLocales = (locales: readonly { code: string; name: string }[], baseLocale: string) =>
-  locales.some((locale) => locale.code === baseLocale)
-    ? locales
-    : [{ code: baseLocale, name: baseLocale }, ...locales];
-
-function ErrorMessage({ message }: { message?: string }) {
-  return message ? (
-    <p role="alert" className="text-sm text-destructive">
-      {message}
-    </p>
-  ) : null;
-}
-
-function DeleteControl({
-  label,
-  confirm,
-  cancel,
-  errorMessage,
-  onDelete,
-  onDone,
-  disabled = false,
-}: {
-  label: string;
-  confirm: string;
-  cancel: string;
-  errorMessage: string;
-  onDelete: () => Promise<void>;
-  onDone: () => void;
-  disabled?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState(false);
-  const lock = useRef(false);
-  return (
-    <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <IconTooltip label={label}>
-        <Dialog.Trigger
-          className={cn(
-            iconButton,
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          disabled={disabled || pending}
-          aria-label={label}
-        >
-          <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
-        </Dialog.Trigger>
-      </IconTooltip>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
-          <Dialog.Title className="text-lg font-semibold">{label}</Dialog.Title>
-          <Dialog.Description className="text-sm text-muted-foreground">
-            {confirm}?
-          </Dialog.Description>
-          {error ? <ErrorMessage message={errorMessage} /> : null}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Dialog.Close className={outlineButton} disabled={pending}>
-              {cancel}
-            </Dialog.Close>
-            <button
-              type="button"
-              className={cn(
-                primary,
-                "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-              )}
-              disabled={disabled || pending}
-              onClick={() => {
-                if (disabled || lock.current) return;
-                lock.current = true;
-                setPending(true);
-                setError(false);
-                void onDelete()
-                  .then(() => {
-                    setOpen(false);
-                    onDone();
-                  })
-                  .catch(() => setError(true))
-                  .finally(() => {
-                    lock.current = false;
-                    setPending(false);
-                  });
-              }}
-            >
-              {confirm}
-            </button>
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
+import { retainRemovedItems } from "@/components/utils/use-optimistic-action";
+export {
+  MenuItemEditorPage,
+  type MenuItemEditorPageProps,
+} from "@/components/plugins/menus/editor";
 
 export interface MenuItemsPageProps {
+  /** Keep stable while editing; replacing the client starts a fresh item list. */
   client: MenusClient;
   baseLocale: string;
   newHref: string;
@@ -192,18 +82,11 @@ function MenuItemsPageContent({
 }: MenuItemsPageProps) {
   const labels = { ...menusLabels, ...overrides };
   const [search, setSearch] = useState("");
-  const [revision, setRevision] = useState(0);
-  const [savedData, setData] = useState<{ items: MenuItem[]; categories: MenuCategory[] }>();
-  const optimistic = useOptimisticAction(savedData, client);
-  const data = optimistic.value;
-  const [failed, setError] = useState(false);
-  const [settled, setSettled] = useState<{ client: MenusClient; revision: number }>();
-  const loading = settled?.client !== client || settled?.revision !== revision;
-  const error = !loading && failed;
-  const [reordering, setReordering] = useState(false);
+  const items = useMenuItems(client);
+  const { data, source: savedData, loading, error, reordering } = items;
   const notify = useActionToast();
-  const [orderFeedback, setOrderFeedback] = useState<"error">();
-  const [dragPreview, setDragPreview] = useState<{
+  const [preview, setDragPreview] = useState<{
+    scope: number;
     id: string;
     x: number;
     y: number;
@@ -211,8 +94,10 @@ function MenuItemsPageContent({
     edge?: "before" | "after";
     container: HTMLElement;
   }>();
+  const dragPreview = preview?.scope === items.scope ? preview : undefined;
   const drag = useRef<
     | {
+        scope: number;
         id: string;
         pointerId: number;
         startX: number;
@@ -222,30 +107,10 @@ function MenuItemsPageContent({
       }
     | undefined
   >(undefined);
-  const reorderLock = useRef(false);
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
   useEffect(() => {
-    let active = true;
-    Promise.all([client.list(), client.categories()])
-      .then(([items, categories]) => {
-        if (active) {
-          setData({
-            items: [...items].sort((a, b) => a.position - b.position || a.id.localeCompare(b.id)),
-            categories,
-          });
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (active) setError(true);
-      })
-      .finally(() => {
-        if (active) setSettled({ client, revision });
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, revision]);
+    drag.current = undefined;
+  }, [items.scope]);
   function clearDrag() {
     drag.current = undefined;
     setDragPreview(undefined);
@@ -253,6 +118,10 @@ function MenuItemsPageContent({
   function updateDrag(event: PointerEvent<HTMLButtonElement>) {
     const current = drag.current;
     if (!current || !data) return;
+    if (current.scope !== items.scope) {
+      clearDrag();
+      return;
+    }
     if (
       !current.active &&
       Math.hypot(event.clientX - current.startX, event.clientY - current.startY) < 6
@@ -278,6 +147,7 @@ function MenuItemsPageContent({
       }
     }
     setDragPreview({
+      scope: items.scope,
       id: current.id,
       x: Math.max(16, Math.min(event.clientX + 16, window.innerWidth - 304)),
       y: Math.max(16, Math.min(event.clientY - 80, window.innerHeight - 96)),
@@ -287,28 +157,7 @@ function MenuItemsPageContent({
     });
   }
   async function moveItem(id: string, to: number) {
-    if (!data || !client.reorder || reorderLock.current || reorderDisabled) return;
-    const from = data.items.findIndex((item) => item.id === id);
-    if (from < 0 || to < 0 || to >= data.items.length || from === to) return;
-    const ordered = [...data.items];
-    ordered.splice(to, 0, ...ordered.splice(from, 1));
-    reorderLock.current = true;
-    setReordering(true);
-    setOrderFeedback(undefined);
-    try {
-      const items = await optimistic.run(
-        (current) => current && { ...current, items: ordered },
-        () => client.reorder!(ordered.map(({ id, version }) => ({ id, version }))),
-      );
-      setData((current) => (current ? { ...current, items } : current));
-      notify(labels.saved);
-    } catch {
-      setOrderFeedback("error");
-      setRevision((value) => value + 1);
-    } finally {
-      reorderLock.current = false;
-      setReordering(false);
-    }
+    if (!reorderDisabled && (await items.move(id, to))) notify(labels.saved);
   }
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
@@ -325,9 +174,8 @@ function MenuItemsPageContent({
       ),
     ) ?? [];
   const selectable = filteredItems;
-  const selection = useTableSelection(selectable, search);
-  const selectionDisabled =
-    loading || error || reordering || optimistic.pending || selection.pending;
+  const selection = useTableSelection(selectable, JSON.stringify([items.scope, search]));
+  const selectionDisabled = loading || error || reordering || items.pending || selection.pending;
   const reorderDisabled = selectionDisabled || !!search.trim();
   return (
     <section className={cn(page, className)}>
@@ -363,9 +211,7 @@ function MenuItemsPageContent({
           </p>
         )}
         {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
-        {orderFeedback === "error" || optimistic.error ? (
-          <ErrorMessage message={labels.error} />
-        ) : null}
+        {items.mutationError ? <ErrorMessage message={labels.error} /> : null}
         <div className="mt-5 overflow-x-auto">
           <table className={tableClass} aria-busy={loading || reordering}>
             {loading && filteredItems.length > 0 && (
@@ -402,16 +248,7 @@ function MenuItemsPageContent({
                     <TableBulkDelete
                       selection={selection}
                       getName={(item) => item.translations[baseLocale]?.name ?? item.id}
-                      onDelete={async (item) => {
-                        await client.remove(item.id);
-                        setData(
-                          (current) =>
-                            current && {
-                              ...current,
-                              items: current.items.filter((row) => row.id !== item.id),
-                            },
-                        );
-                      }}
+                      onDelete={(item) => items.removeSelected(item.id)}
                       labels={labels}
                       disabled={selectionDisabled}
                       errorMessage={() => labels.deleteFilesFirst}
@@ -421,10 +258,10 @@ function MenuItemsPageContent({
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
-              {retainRemovedItems(filteredItems, savedData?.items ?? [], optimistic.pending).map(
+              {retainRemovedItems(filteredItems, savedData?.items ?? [], items.pending).map(
                 (item) => (
                   <tr
-                    key={item.id}
+                    key={`${items.scope}:${item.id}`}
                     hidden={
                       selection.isDeleting(item.id) ||
                       !filteredItems.some((row) => row.id === item.id)
@@ -465,16 +302,12 @@ function MenuItemsPageContent({
                               aria-describedby={reorderHelpId}
                               aria-disabled={reorderDisabled}
                               onPointerDown={(event) => {
-                                if (
-                                  reorderDisabled ||
-                                  reorderLock.current ||
-                                  event.button !== 0 ||
-                                  !event.isPrimary
-                                )
+                                if (reorderDisabled || event.button !== 0 || !event.isPrimary)
                                   return;
                                 event.currentTarget.setPointerCapture(event.pointerId);
                                 event.currentTarget.focus({ preventScroll: true });
                                 drag.current = {
+                                  scope: items.scope,
                                   id: item.id,
                                   pointerId: event.pointerId,
                                   startX: event.clientX,
@@ -570,27 +403,9 @@ function MenuItemsPageContent({
                           label={`${labels.deleteItem}: ${item.translations[baseLocale]?.name}`}
                           confirm={labels.confirmDelete}
                           cancel={labels.cancel}
+                          closeLabel={labels.close}
                           errorMessage={labels.deleteFilesFirst}
-                          onDelete={() =>
-                            optimistic.run(
-                              (current) =>
-                                current && {
-                                  ...current,
-                                  items: current.items.filter((row) => row.id !== item.id),
-                                },
-                              async () => {
-                                await client.remove(item.id);
-                                setData(
-                                  (current) =>
-                                    current && {
-                                      ...current,
-                                      items: current.items.filter((row) => row.id !== item.id),
-                                    },
-                                );
-                              },
-                            )
-                          }
-                          onDone={() => setRevision((n) => n + 1)}
+                          onDelete={() => items.remove(item.id)}
                         />
                       </div>
                     </td>
@@ -607,7 +422,8 @@ function MenuItemsPageContent({
                           <button
                             type="button"
                             className={button}
-                            onClick={() => setRevision((n) => n + 1)}
+                            onClick={items.refresh}
+                            disabled={items.pending || selection.pending}
                           >
                             <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
                             {labels.retry}
@@ -658,470 +474,10 @@ function MenuItemsPageContent({
   );
 }
 
-export interface MenuItemEditorPageProps {
-  client: MenusClient;
-  item?: MenuItem;
-  categories: readonly MenuCategory[];
-  labelsData: readonly MenuLabel[];
-  locales: readonly { code: string; name: string }[];
-  baseLocale: string;
-  currency: string;
-  backHref: string;
-  onSaved: (item: MenuItem) => void;
-  driveClient?: DriveClient;
-  driveTransfer?: DriveTransfer;
-  photoFolderId?: string | null;
-  getFolderHref?: (folderId: string | null) => string;
-  linkComponent?: ComponentType<LinkProps>;
-  labels?: Partial<MenusLabels>;
-  className?: string;
-}
-
-function MenuItemEditorPageContent({
-  client,
-  item,
-  categories,
-  labelsData,
-  locales,
-  baseLocale,
-  currency,
-  backHref,
-  onSaved,
-  driveClient,
-  driveTransfer,
-  photoFolderId,
-  getFolderHref,
-  linkComponent: HostLink = Link,
-  labels: overrides,
-  className,
-}: MenuItemEditorPageProps) {
-  const labels = { ...menusLabels, ...overrides };
-  const { formRef, ...fields } = useEditorValidation();
-  const id = `factory-menu-editor-${useId()}`;
-  const [draft, setDraft] = useState<MenuItemInput>(() =>
-    item
-      ? {
-          categoryId: item.categoryId,
-          priceMinor: item.priceMinor,
-          position: item.position,
-          visible: item.visible,
-          soldOut: item.soldOut,
-          spiceLevel: item.spiceLevel ?? 0,
-          imageEntryId: item.imageEntryId,
-          labelIds: [...item.labelIds],
-          translations: { ...item.translations },
-        }
-      : {
-          categoryId: categories[0]?.id ?? "",
-          priceMinor: 0,
-          position: 0,
-          visible: false,
-          soldOut: false,
-          spiceLevel: 0,
-          imageEntryId: null,
-          labelIds: [],
-          translations: { [baseLocale]: { name: "", description: "" } },
-        },
-  );
-  const [selectedLocale, setSelectedLocale] = useState(baseLocale);
-  const sortedLabels = [...labelsData].sort((a, b) =>
-    a.translations[baseLocale].localeCompare(b.translations[baseLocale], baseLocale, {
-      sensitivity: "base",
-    }),
-  );
-  const [pending, setPending] = useState(false);
-  const notify = useActionToast();
-  const [feedback, setFeedback] = useState<{ error: boolean; text: string }>();
-  const [photoName, setPhotoName] = useState("");
-  const [savedVersion, setSavedVersion] = useState(item?.version);
-  const lock = useRef(false);
-  const formatter = new Intl.NumberFormat(baseLocale, { style: "currency", currency });
-  const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
-  const [price, setPrice] = useState((draft.priceMinor / 10 ** digits).toFixed(digits));
-  const [sizes, setSizes] = useState(() =>
-    (item?.sizes ?? []).map((size) => ({
-      id: size.id,
-      price: (size.priceMinor / 10 ** digits).toFixed(digits),
-      translations: { ...size.translations },
-    })),
-  );
-  const updateTranslation = (locale: string, patch: Partial<MenuItem["translations"][string]>) =>
-    setDraft((current) => ({
-      ...current,
-      translations: {
-        ...current.translations,
-        [locale]: { ...(current.translations[locale] ?? { name: "", description: "" }), ...patch },
-      },
-    }));
-  async function submit() {
-    if (lock.current) return;
-    const issues: Record<string, string> = {};
-    if (!draft.translations[baseLocale]?.name.trim()) {
-      issues[`${id}-name-${baseLocale}`] = labels.baseNameRequired;
-    }
-    for (const size of sizes) {
-      if (!size.translations[baseLocale]?.trim()) {
-        issues[`${id}-size-${size.id}-${baseLocale}`] = labels.baseSizeNameRequired;
-      }
-    }
-    for (const [key, value] of sizes.length
-      ? sizes.map((size) => [`${id}-price-${size.id}`, size.price])
-      : [[`${id}-price`, price]]) {
-      try {
-        parsePrice(value, digits);
-      } catch {
-        issues[key] = labels.priceInvalid;
-      }
-    }
-    if (Object.keys(issues).some((key) => key.endsWith(`-${baseLocale}`))) {
-      setSelectedLocale(baseLocale);
-    }
-    if (!fields.validate(issues)) return;
-    lock.current = true;
-    setPending(true);
-    setFeedback(undefined);
-    try {
-      const sizePrices = sizes.map((size) => ({
-        id: size.id,
-        priceMinor: parsePrice(size.price, digits),
-        translations: size.translations,
-      }));
-      const input = {
-        ...draft,
-        priceMinor: sizePrices[0]?.priceMinor ?? parsePrice(price, digits),
-        sizes: sizePrices,
-      };
-      const saved = item
-        ? await client.save(item.id, savedVersion ?? item.version, input)
-        : await client.create(input);
-      setSavedVersion(saved.version);
-      notify(labels.saved);
-      onSaved(saved);
-    } catch {
-      setFeedback({ error: true, text: labels.error });
-    } finally {
-      lock.current = false;
-      setPending(false);
-    }
-  }
-  return (
-    <section className={cn(page, className)}>
-      <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
-        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
-        {labels.back}
-      </HostLink>
-      <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
-      <form
-        ref={formRef}
-        noValidate
-        onChange={(event) => fields.clear(event.target.id)}
-        className="space-y-6"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1">
-            <span>{labels.category}</span>
-            <NativeSelect
-              className={field}
-              {...fields.field(`${id}-category`)}
-              aria-label={labels.category}
-              value={draft.categoryId}
-              onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
-              required
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.translations[baseLocale]}
-                </option>
-              ))}
-            </NativeSelect>
-            {fields.message(`${id}-category`)}
-          </label>
-          {sizes.length === 0 ? (
-            <label className="space-y-1">
-              <span>
-                {labels.price} ({currency})
-              </span>
-              <input
-                className={field}
-                inputMode="decimal"
-                {...fields.field(`${id}-price`)}
-                aria-label={`${labels.price} (${currency})`}
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-                required
-              />
-              {fields.message(`${id}-price`)}
-            </label>
-          ) : null}
-        </div>
-        <Tabs.Root
-          value={selectedLocale}
-          onValueChange={(value) => setSelectedLocale(value as string)}
-        >
-          <Tabs.List
-            aria-label={labels.language}
-            className="flex gap-1 overflow-x-auto border-b border-border"
-          >
-            {editorLocales(locales, baseLocale).map((locale) => (
-              <Tabs.Tab
-                key={locale.code}
-                type="button"
-                value={locale.code}
-                className="min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed data-[active]:border-primary data-[active]:text-foreground"
-              >
-                {locale.name}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-          {editorLocales(locales, baseLocale).map((locale) => {
-            const translation = draft.translations[locale.code] ?? { name: "", description: "" };
-            return (
-              <Tabs.Panel key={locale.code} value={locale.code} className="space-y-4 pt-4">
-                <label className="block space-y-1">
-                  <span>
-                    {labels.name}
-                    {locale.code === baseLocale ? " *" : ""}
-                  </span>
-                  <input
-                    className={field}
-                    {...fields.field(`${id}-name-${locale.code}`)}
-                    aria-label={`${labels.name}${locale.code === baseLocale ? " *" : ""}`}
-                    value={translation.name}
-                    onChange={(event) =>
-                      updateTranslation(locale.code, { name: event.target.value })
-                    }
-                    maxLength={200}
-                    required={locale.code === baseLocale}
-                  />
-                  {fields.message(`${id}-name-${locale.code}`)}
-                </label>
-                <label className="block space-y-1">
-                  <span>{labels.description}</span>
-                  <textarea
-                    className={field}
-                    rows={4}
-                    {...fields.field(`${id}-description-${locale.code}`)}
-                    aria-label={labels.description}
-                    value={translation.description}
-                    onChange={(event) =>
-                      updateTranslation(locale.code, { description: event.target.value })
-                    }
-                    maxLength={2000}
-                  />
-                  {fields.message(`${id}-description-${locale.code}`)}
-                </label>
-              </Tabs.Panel>
-            );
-          })}
-        </Tabs.Root>
-        <fieldset className="min-w-0 space-y-3">
-          <legend className="font-medium">{labels.sizes}</legend>
-          <p className="text-sm text-muted-foreground">{labels.sizeHelp}</p>
-          {sizes.map((size, index) => (
-            <div key={size.id} className="flex items-end gap-2 rounded-xl border border-border p-3">
-              <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-                <label className="min-w-0 space-y-1">
-                  <span>
-                    {labels.sizeName} ({selectedLocale}) {index + 1}
-                  </span>
-                  <input
-                    className={field}
-                    {...fields.field(`${id}-size-${size.id}-${selectedLocale}`)}
-                    aria-label={`${labels.sizeName} (${selectedLocale}) ${index + 1}`}
-                    value={size.translations[selectedLocale] ?? ""}
-                    maxLength={120}
-                    onChange={(event) =>
-                      setSizes((current) =>
-                        current.map((entry) =>
-                          entry.id === size.id
-                            ? {
-                                ...entry,
-                                translations: {
-                                  ...entry.translations,
-                                  [selectedLocale]: event.target.value,
-                                },
-                              }
-                            : entry,
-                        ),
-                      )
-                    }
-                  />
-                  {fields.message(`${id}-size-${size.id}-${selectedLocale}`)}
-                </label>
-                <label className="min-w-0 space-y-1">
-                  <span>
-                    {labels.price} ({currency}) {index + 1}
-                  </span>
-                  <input
-                    className={field}
-                    inputMode="decimal"
-                    {...fields.field(`${id}-price-${size.id}`)}
-                    aria-label={`${labels.price} (${currency}) ${index + 1}`}
-                    value={size.price}
-                    required
-                    onChange={(event) =>
-                      setSizes((current) =>
-                        current.map((entry) =>
-                          entry.id === size.id ? { ...entry, price: event.target.value } : entry,
-                        ),
-                      )
-                    }
-                  />
-                  {fields.message(`${id}-price-${size.id}`)}
-                </label>
-              </div>
-              <DeleteControl
-                label={`${labels.removeSize}: ${size.translations[baseLocale] || index + 1}`}
-                confirm={labels.confirmDelete}
-                cancel={labels.cancel}
-                errorMessage={labels.error}
-                onDelete={async () => {}}
-                onDone={() =>
-                  setSizes((current) => current.filter((entry) => entry.id !== size.id))
-                }
-              />
-            </div>
-          ))}
-          <button
-            type="button"
-            className={outlineButton}
-            disabled={sizes.length >= 20}
-            onClick={() =>
-              setSizes((current) => [
-                ...current,
-                { id: crypto.randomUUID(), price, translations: { [baseLocale]: "" } },
-              ])
-            }
-          >
-            <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-            {labels.addSize}
-          </button>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="font-medium">{labels.spiceLevel}</legend>
-          <div className="flex flex-wrap gap-2">
-            {([0, 1, 2, 3] as const).map((level) => (
-              <label
-                key={level}
-                className={cn(
-                  "inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2",
-                  draft.spiceLevel === level && "ring-2 ring-ring",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="spiceLevel"
-                  value={level}
-                  checked={draft.spiceLevel === level}
-                  className="size-4 shrink-0 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring"
-                  onChange={() => setDraft((current) => ({ ...current, spiceLevel: level }))}
-                />
-                {level === 0 ? labels.notSpicy : <MenuSpiceBadge level={level} labels={labels} />}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="font-medium">{labels.labels}</legend>
-          <div className="flex flex-wrap gap-4">
-            {sortedLabels.map((label) => (
-              <label key={label.id} className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.labelIds.includes(label.id)}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      labelIds: event.target.checked
-                        ? [...current.labelIds, label.id]
-                        : current.labelIds.filter((id) => id !== label.id),
-                    }))
-                  }
-                />
-                <MenuLabelBadge label={{ ...label, name: label.translations[baseLocale] }} />
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div className="flex flex-wrap gap-5">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={draft.visible}
-              onChange={(event) => setDraft({ ...draft, visible: event.target.checked })}
-              disabled={!item}
-            />
-            {labels.visible}
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={draft.soldOut}
-              onChange={(event) => setDraft({ ...draft, soldOut: event.target.checked })}
-            />
-            {labels.unavailable}
-          </label>
-        </div>
-        {draft.imageEntryId ? (
-          <div className="flex items-center gap-3 text-sm">
-            <span>
-              {labels.photo}: {photoName || draft.imageEntryId}
-            </span>
-            <button
-              type="button"
-              className={button}
-              onClick={() => setDraft({ ...draft, imageEntryId: null })}
-            >
-              {labels.removePhoto}
-            </button>
-          </div>
-        ) : null}
-        {feedback ? (
-          <p
-            role={feedback.error ? "alert" : "status"}
-            className={feedback.error ? "text-destructive" : "text-muted-foreground"}
-          >
-            {feedback.text}
-          </p>
-        ) : null}
-        <div className={editorActionsClass}>
-          <button type="submit" className={primary} disabled={pending || !categories.length}>
-            {pending ? labels.saving : labels.save}
-          </button>
-        </div>
-      </form>
-      {item && driveClient && getFolderHref ? (
-        <div className="border-t border-border pt-6">
-          <h2 className="mb-4 text-xl font-semibold">{labels.photo}</h2>
-          <DriveBrowser
-            client={driveClient}
-            transferUpload={driveTransfer}
-            scope={{ type: "menu-item", id: item.id }}
-            parentId={photoFolderId}
-            getFolderHref={getFolderHref}
-            linkComponent={HostLink}
-            onSelectFile={(entry) => {
-              setDraft({ ...draft, imageEntryId: entry.id });
-              setPhotoName(entry.name);
-            }}
-            isSelectableFile={(entry: DriveEntry) =>
-              ["image/jpeg", "image/png", "image/webp"].includes(entry.contentType) &&
-              entry.size <= 10_000_000
-            }
-            selectFileLabel={labels.selectPhoto}
-            uploadAccept="image/jpeg,image/png,image/webp"
-          />
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
 export interface MenuTaxonomyPageProps {
+  blockedNavigation?: MenuItemEditorPageProps["blockedNavigation"];
+  onNavigationStateChange?: MenuItemEditorPageProps["onNavigationStateChange"];
+  /** Keep stable while editing; replacing the client starts a new taxonomy session. */
   client: MenusClient;
   locales: readonly { code: string; name: string }[];
   baseLocale: string;
@@ -1131,299 +487,21 @@ export interface MenuTaxonomyPageProps {
   className?: string;
 }
 
-function TaxonomyDialog({
-  disabled = false,
-  kind,
-  existing,
-  locales,
-  baseLocale,
-  labels,
-  onSave,
-}: {
-  disabled?: boolean;
-  kind: "category" | "label";
-  existing?: MenuCategory | MenuLabel;
-  locales: readonly { code: string; name: string }[];
-  baseLocale: string;
-  labels: MenusLabels;
-  onSave: (data: {
-    id?: string;
-    position: number;
-    translations: Record<string, string>;
-    kind?: MenuLabel["kind"];
-    icon?: MenuLabelIcon | null;
-  }) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState(false);
-  const [position, setPosition] = useState(existing?.position ?? 0);
-  const [translations, setTranslations] = useState<Record<string, string>>(
-    existing?.translations ?? {},
-  );
-  const [labelKind, setLabelKind] = useState<MenuLabel["kind"]>(
-    existing && "kind" in existing ? existing.kind : "allergen",
-  );
-  const [icon, setIcon] = useState<MenuLabelIcon | null>(
-    existing && "kind" in existing ? (existing.icon ?? null) : null,
-  );
-  const iconNames = { ...menusLabels.iconNames, ...labels.iconNames };
-  const title =
-    kind === "category"
-      ? existing
-        ? labels.editCategory
-        : labels.newCategory
-      : existing
-        ? labels.editLabel
-        : labels.newLabel;
-  return (
-    <Dialog.Root open={open} onOpenChange={(value) => !pending && setOpen(value)}>
-      <IconTooltip label={existing ? title : undefined}>
-        <Dialog.Trigger
-          disabled={disabled}
-          className={existing ? iconButton : primary}
-          aria-label={title}
-        >
-          {existing ? (
-            <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
-          ) : (
-            <>
-              <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-              {title}
-            </>
-          )}
-        </Dialog.Trigger>
-      </IconTooltip>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup
-          onKeyDownCapture={submitDialogOnShortcut}
-          className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
-        >
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-          <form
-            className="mt-5 space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (pending || disabled) return;
-              setPending(true);
-              setError(false);
-              void onSave({
-                id: existing?.id,
-                position,
-                translations,
-                ...(kind === "label" ? { kind: labelKind, icon } : {}),
-              })
-                .then(() => setOpen(false))
-                .catch(() => setError(true))
-                .finally(() => setPending(false));
-            }}
-          >
-            {editorLocales(locales, baseLocale).map((locale) => (
-              <label key={locale.code} className="block space-y-1">
-                <span>
-                  {labels.name} ({locale.name}){locale.code === baseLocale ? " *" : ""}
-                </span>
-                <input
-                  className={field}
-                  value={translations[locale.code] ?? ""}
-                  onChange={(event) =>
-                    setTranslations({ ...translations, [locale.code]: event.target.value })
-                  }
-                  required={locale.code === baseLocale}
-                  maxLength={120}
-                />
-              </label>
-            ))}
-            <label className="block space-y-1">
-              <span>{labels.position}</span>
-              <input
-                className={field}
-                type="number"
-                min="0"
-                step="1"
-                value={position}
-                onChange={(event) => setPosition(Number(event.target.value))}
-                required
-              />
-            </label>
-            {kind === "label" ? (
-              <>
-                <label className="block space-y-1">
-                  <span>{labels.labelKind}</span>
-                  <NativeSelect
-                    className={field}
-                    value={labelKind}
-                    onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
-                  >
-                    <option value="allergen">{labels.allergens}</option>
-                    <option value="dietary">{labels.dietary}</option>
-                  </NativeSelect>
-                </label>
-                <label className="block space-y-1">
-                  <span>{labels.icon}</span>
-                  <span className="flex items-center gap-3">
-                    <MenuLabelSymbol
-                      label={{
-                        id: existing?.id ?? "",
-                        name: translations[baseLocale] ?? "",
-                        kind: labelKind,
-                        icon,
-                      }}
-                    />
-                    <NativeSelect
-                      className={field}
-                      value={icon ?? ""}
-                      onChange={(event) =>
-                        setIcon((event.target.value || null) as MenuLabelIcon | null)
-                      }
-                    >
-                      <option value="">{labels.automaticIcon}</option>
-                      {[...menuLabelIcons]
-                        .sort((a, b) => iconNames[a].localeCompare(iconNames[b], baseLocale))
-                        .map((value) => (
-                          <option key={value} value={value}>
-                            {iconNames[value]}
-                          </option>
-                        ))}
-                    </NativeSelect>
-                  </span>
-                </label>
-              </>
-            ) : null}
-            {error ? <ErrorMessage message={labels.error} /> : null}
-            <div className="flex flex-wrap justify-end gap-2">
-              <Dialog.Close className={outlineButton} disabled={pending}>
-                {labels.cancel}
-              </Dialog.Close>
-              <button className={primary} disabled={pending}>
-                {pending ? labels.saving : labels.save}
-              </button>
-            </div>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-export function MenuTaxonomyPage({
-  client: suppliedClient,
+function MenuTaxonomyPageContent({
+  client,
   locales,
   baseLocale,
   backHref,
+  blockedNavigation,
+  onNavigationStateChange,
   linkComponent: HostLink = Link,
   labels: overrides,
   className,
 }: MenuTaxonomyPageProps) {
   const labels = { ...menusLabels, ...overrides };
-  const [revision, setRevision] = useState(0);
-  const [savedData, setData] = useState<{ categories: MenuCategory[]; labelsData: MenuLabel[] }>();
-  const optimistic = useOptimisticAction(savedData, suppliedClient);
-  const data = optimistic.value;
-  const client: MenusClient = {
-    ...suppliedClient,
-    saveCategory: (input) => {
-      const id = input.id ?? `pending-${crypto.randomUUID()}`;
-      return optimistic.run(
-        (current) =>
-          current && {
-            ...current,
-            categories: input.id
-              ? current.categories.map((row) => (row.id === id ? { ...row, ...input, id } : row))
-              : [...current.categories, { ...input, id }],
-          },
-        async () => {
-          const result = await suppliedClient.saveCategory(input);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                categories: [
-                  ...current.categories.filter((row) => row.id !== result.id),
-                  result,
-                ].sort((a, b) => a.position - b.position),
-              },
-          );
-          return result;
-        },
-      );
-    },
-    saveLabel: (input) => {
-      const id = input.id ?? `pending-${crypto.randomUUID()}`;
-      return optimistic.run(
-        (current) =>
-          current && {
-            ...current,
-            labelsData: input.id
-              ? current.labelsData.map((row) => (row.id === id ? { ...row, ...input, id } : row))
-              : [...current.labelsData, { ...input, id }],
-          },
-        async () => {
-          const result = await suppliedClient.saveLabel(input);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                labelsData: [
-                  ...current.labelsData.filter((row) => row.id !== result.id),
-                  result,
-                ].sort((a, b) => a.position - b.position),
-              },
-          );
-          return result;
-        },
-      );
-    },
-    removeCategory: (id) =>
-      optimistic.run(
-        (current) =>
-          current && { ...current, categories: current.categories.filter((row) => row.id !== id) },
-        async () => {
-          await suppliedClient.removeCategory(id);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                categories: current.categories.filter((row) => row.id !== id),
-              },
-          );
-        },
-      ),
-    removeLabel: (id) =>
-      optimistic.run(
-        (current) =>
-          current && { ...current, labelsData: current.labelsData.filter((row) => row.id !== id) },
-        async () => {
-          await suppliedClient.removeLabel(id);
-          setData(
-            (current) =>
-              current && {
-                ...current,
-                labelsData: current.labelsData.filter((row) => row.id !== id),
-              },
-          );
-        },
-      ),
-  };
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    let active = true;
-    Promise.all([suppliedClient.categories(), suppliedClient.labels()])
-      .then(([categories, labelsData]) => {
-        if (active) {
-          setData({ categories, labelsData });
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (active) setError(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [suppliedClient, revision]);
-  const refresh = () => setRevision((n) => n + 1);
+  const taxonomy = useMenuCategoriesAndLabels(client);
+  const { data, source: savedData, error, refresh } = taxonomy;
+  const disabled = taxonomy.loading || taxonomy.pending;
   return (
     <section className={cn(page, className)}>
       <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
@@ -1433,11 +511,15 @@ export function MenuTaxonomyPage({
       <h1 className="text-2xl font-semibold">
         {labels.categories} / {labels.labels}
       </h1>
-      <ErrorMessage message={optimistic.error ? labels.error : undefined} />
+      <ErrorMessage message={taxonomy.mutationError ? labels.error : undefined} />
       {error ? (
         <div>
           <ErrorMessage message={labels.error} />
-          <button className={button} onClick={refresh}>
+          <button
+            className={button}
+            onClick={refresh}
+            disabled={taxonomy.pending || taxonomy.loading}
+          >
             <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.retry}
           </button>
@@ -1449,19 +531,20 @@ export function MenuTaxonomyPage({
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.categories}</h2>
-              <TaxonomyDialog
-                disabled={optimistic.pending}
+              <MenuTaxonomyEditor
+                blockedNavigation={blockedNavigation}
+                onNavigationStateChange={onNavigationStateChange}
+                disabled={disabled}
                 key="new-category"
                 kind="category"
                 locales={locales}
                 baseLocale={baseLocale}
                 labels={labels}
                 onSave={async (input) => {
-                  await client.saveCategory({
+                  await taxonomy.saveCategory({
                     position: input.position,
                     translations: input.translations,
                   });
-                  refresh();
                 }}
               />
             </div>
@@ -1469,7 +552,7 @@ export function MenuTaxonomyPage({
               {retainRemovedItems(
                 data.categories,
                 savedData?.categories ?? [],
-                optimistic.pending,
+                taxonomy.pending,
               ).map((category) => (
                 <li
                   key={category.id}
@@ -1478,8 +561,10 @@ export function MenuTaxonomyPage({
                 >
                   <span>{category.translations[baseLocale]}</span>
                   <div className="flex gap-2">
-                    <TaxonomyDialog
-                      disabled={optimistic.pending}
+                    <MenuTaxonomyEditor
+                      blockedNavigation={blockedNavigation}
+                      onNavigationStateChange={onNavigationStateChange}
+                      disabled={disabled}
                       key={category.id}
                       kind="category"
                       existing={category}
@@ -1487,22 +572,21 @@ export function MenuTaxonomyPage({
                       baseLocale={baseLocale}
                       labels={labels}
                       onSave={async (input) => {
-                        await client.saveCategory({
+                        await taxonomy.saveCategory({
                           id: category.id,
                           position: input.position,
                           translations: input.translations,
                         });
-                        refresh();
                       }}
                     />
                     <DeleteControl
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
+                      closeLabel={labels.close}
                       errorMessage={labels.error}
-                      onDelete={() => client.removeCategory(category.id)}
-                      onDone={refresh}
+                      onDelete={() => taxonomy.removeCategory(category.id)}
                     />
                   </div>
                 </li>
@@ -1512,21 +596,22 @@ export function MenuTaxonomyPage({
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.labels}</h2>
-              <TaxonomyDialog
-                disabled={optimistic.pending}
+              <MenuTaxonomyEditor
+                blockedNavigation={blockedNavigation}
+                onNavigationStateChange={onNavigationStateChange}
+                disabled={disabled}
                 key="new-label"
                 kind="label"
                 locales={locales}
                 baseLocale={baseLocale}
                 labels={labels}
                 onSave={async (input) => {
-                  await client.saveLabel({
+                  await taxonomy.saveLabel({
                     kind: input.kind ?? "allergen",
                     icon: input.icon,
                     position: input.position,
                     translations: input.translations,
                   });
-                  refresh();
                 }}
               />
             </div>
@@ -1534,7 +619,7 @@ export function MenuTaxonomyPage({
               {retainRemovedItems(
                 data.labelsData,
                 savedData?.labelsData ?? [],
-                optimistic.pending,
+                taxonomy.pending,
               ).map((label) => (
                 <li
                   key={label.id}
@@ -1549,8 +634,10 @@ export function MenuTaxonomyPage({
                     </span>
                   </span>
                   <div className="flex shrink-0 gap-2">
-                    <TaxonomyDialog
-                      disabled={optimistic.pending}
+                    <MenuTaxonomyEditor
+                      blockedNavigation={blockedNavigation}
+                      onNavigationStateChange={onNavigationStateChange}
+                      disabled={disabled}
                       key={label.id}
                       kind="label"
                       existing={label}
@@ -1558,24 +645,23 @@ export function MenuTaxonomyPage({
                       baseLocale={baseLocale}
                       labels={labels}
                       onSave={async (input) => {
-                        await client.saveLabel({
+                        await taxonomy.saveLabel({
                           id: label.id,
                           kind: input.kind ?? label.kind,
                           icon: input.icon,
                           position: input.position,
                           translations: input.translations,
                         });
-                        refresh();
                       }}
                     />
                     <DeleteControl
-                      disabled={optimistic.pending}
+                      disabled={disabled}
                       label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
                       confirm={labels.confirmDelete}
                       cancel={labels.cancel}
+                      closeLabel={labels.close}
                       errorMessage={labels.error}
-                      onDelete={() => client.removeLabel(label.id)}
-                      onDone={refresh}
+                      onDelete={() => taxonomy.removeLabel(label.id)}
                     />
                   </div>
                 </li>
@@ -1588,18 +674,16 @@ export function MenuTaxonomyPage({
   );
 }
 
+export function MenuTaxonomyPage(props: MenuTaxonomyPageProps) {
+  const [session, setSession] = useState({ client: props.client, key: 0 });
+  if (session.client !== props.client) setSession({ client: props.client, key: session.key + 1 });
+  return <MenuTaxonomyPageContent key={session.key} {...props} />;
+}
+
 export function MenuItemsPage(props: MenuItemsPageProps) {
   return (
     <ActionToastProvider>
       <MenuItemsPageContent {...props} />
-    </ActionToastProvider>
-  );
-}
-
-export function MenuItemEditorPage(props: MenuItemEditorPageProps) {
-  return (
-    <ActionToastProvider>
-      <MenuItemEditorPageContent {...props} />
     </ActionToastProvider>
   );
 }

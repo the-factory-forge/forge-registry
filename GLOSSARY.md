@@ -1,55 +1,78 @@
 # Registry context
 
-Reusable source lives under `registry/components/`; the showroom is under `src/`.
-`registry/registry.json` owns the install manifest. Rebuild `public/r/` with
-`pnpm registry:sync`; consumer sites receive changes through reviewed shadcn installs.
+Forge provides reusable website features and a showroom where their behavior can
+be explored. This language describes the content and staff workflows those features share.
 
-## Showroom card links
+## Language
 
-The arrow after each homepage card's "Open" label moves slightly to the right
-when the card is hovered or focused, then returns when the interaction ends.
-Keep the label and layout still, preserve visible keyboard focus, and hide the
-decorative arrow from assistive technology. Respect reduced-motion preferences
-by keeping the arrow still.
+### Blogs
 
-## Public blog categories
+**Blog editor**:
+The staff workspace for preparing article translations and managing blog categories.
 
-On narrow screens, place Categories above the posts in a compact disclosure that
-starts closed and supports keyboard opening and closing. On desktop, keep the
-categories expanded in the right sidebar.
+**Blog draft**:
+The saved, editable version of one article translation, separate from the
+publication readers see.
+_Avoid_: Publication, live article
 
-Distinguish main categories with semibold foreground text. Indent child categories,
-use muted text, and add a vertical border as a hierarchy guide. Highlight the
-selected category with the primary color at either level, including the child's
-guide. Preserve translated labels, post counts, filtering, and visible keyboard
-focus in both themes. See the [Blogs guide](./docs/blogs.md#public-pages-and-images).
+**Unsaved blog changes**:
+Edits in the blog editor that have not yet been saved into the article's draft.
+_Avoid_: Saved draft
 
-## DOM IDs
+**Blog publication**:
+A saved snapshot of an article translation released for public reading. The current
+publication is the snapshot readers see, while earlier publications may remain in history.
+_Avoid_: Live draft
 
-Every DOM ID authored by registry or showroom code must start with `factory-`.
-Use descriptive fixed IDs for singleton elements, such as `factory-cookie-banner`.
-Use a prefixed React instance ID for reusable fields and sections:
+### Drive
 
-```tsx
-const id = `factory-customer-form-${useId()}`;
-```
+**Drive listing**:
+One page of spaces, folder contents, trashed entries or possible restore destinations
+for a particular location, search and ordering.
 
-Keep `htmlFor`, ARIA references, fragment links, CSS selectors, and tests aligned
-with the resulting IDs. Host adapters supplying a DOM ID to a transparent shim or
-field component must also use this prefix; supplied values pass through unchanged.
-Database/entity IDs, provider tracking IDs, and IDs generated internally by third-party
-libraries retain their own contracts. The shared rule lives in forge-spec's
-[Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
+**Drive recovery**:
+The process of undoing a move to trash or restoring a trashed entry, including
+resolving name or destination conflicts and retrying failed attempts.
+_Avoid_: Permanent deletion
 
-The website screenshot CLI hides `#factory-cookie-banner` only during capture,
-without accepting cookies or changing saved consent. Render one cookie banner per
-page. Existing consumer sites must refresh the component and redeploy to receive
-renamed IDs; their custom selectors must be updated alongside that refresh.
+### Menus
 
-## Admin controls
+**Menu editor**:
+The staff workspace for editing menu items, categories and labels.
 
-The implemented registry components are the design reference. Plugin action buttons
-use compact rounded corners, 32px desktop minimums and 40px mobile targets; delete
-actions use a tinted destructive surface. Status labels retain their semantic color
-pairs and readable text, with a small decorative dot. The existing sidebar, shell,
-showroom layout, and page/card spacing are unchanged.
+**Menu item**:
+A dish or drink with translated content, prices, a category and optional labels,
+with its own visibility, availability and position in the menu.
+
+**Menu taxonomy**:
+The categories that organize dishes and the reusable allergen and dietary labels
+assigned to them, with names for each supported language.
+
+### Reservations
+
+**Reservation**:
+An appointment or stay for a customer, associated with a service, an assigned
+resource, a time period and a reservation policy.
+
+**Reservation status**:
+The booking's approval or cancellation state: Pending, Confirmed, Rejected or
+Cancelled. Pending means awaiting approval, including when rescheduling requires renewed approval.
+_Avoid_: Request progress, save status
+
+**Reservation rescheduling**:
+A change to the dates, times or assigned resource of an existing reservation.
+_Avoid_: New reservation
+
+**Reservation cancellation**:
+The ending of an existing booking, whose record remains with the Cancelled status.
+_Avoid_: Closing a dialog, discarding a rescheduling draft, ignoring a late response
+
+### Deletion
+
+**Deletion session**:
+One or more selected records awaiting deletion confirmation, being deleted, or
+awaiting retry after a failed attempt.
+
+**Deletion confirmation**:
+The user's approval to submit deletion of the selected records.
+_Avoid_: Deletion success, completed deletion

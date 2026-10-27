@@ -57,6 +57,25 @@
       ]
     },
     {
+      "name": "loading-indicator",
+      "type": "registry:component",
+      "title": "Loading indicator",
+      "description": "App-wide loading feedback with concurrent activity tracking and a 300ms completion hold.",
+      "files": [
+        {
+          "path": "registry/components/loading-indicator.tsx",
+          "type": "registry:component",
+          "target": "@components/loading-indicator.tsx"
+        },
+        {
+          "path": "registry/components/utils/loading-store.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/loading-store.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "icon-tooltip",
       "type": "registry:ui",
       "title": "Icon tooltip",
@@ -122,6 +141,26 @@
         "@forge/cn",
         "@forge/icon-tooltip",
         "@forge/action-toast",
+        "@forge/optimistic-action"
+      ]
+    },
+    {
+      "name": "record-deletion",
+      "type": "registry:ui",
+      "title": "Record Deletion",
+      "description": "Single-record confirmation with optimistic removal, retry and focus recovery; demonstrated by Customers and Projects.",
+      "files": [
+        {
+          "path": "registry/components/record-deletion.tsx",
+          "type": "registry:component",
+          "target": "@components/record-deletion.tsx"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/action-toast",
+        "@forge/icon-tooltip",
         "@forge/optimistic-action"
       ]
     },
@@ -229,7 +268,8 @@
           "target": "@components/animations.tsx"
         }
       ],
-      "dependencies": ["motion"]
+      "dependencies": ["motion"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "reveal",
@@ -243,7 +283,8 @@
           "target": "@components/reveal.tsx"
         }
       ],
-      "dependencies": ["motion"]
+      "dependencies": ["motion"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "share-button",
@@ -257,22 +298,8 @@
           "target": "@components/share-button.tsx"
         }
       ],
-      "dependencies": ["lucide-react"]
-    },
-    {
-      "name": "back-to-top",
-      "type": "registry:ui",
-      "title": "Back to Top",
-      "description": "Scroll-to-top floating button that appears after scrolling.",
-      "files": [
-        {
-          "path": "registry/components/back-to-top.tsx",
-          "type": "registry:component",
-          "target": "@components/back-to-top.tsx"
-        }
-      ],
       "dependencies": ["lucide-react"],
-      "registryDependencies": ["@forge/icon-tooltip"]
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "section-heading",
@@ -437,7 +464,8 @@
           "target": "@components/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/consent-analytics"]
+      "registryDependencies": ["@forge/cn", "@forge/consent-analytics", "@forge/icon-tooltip"],
+      "dependencies": ["lucide-react"]
     },
     {
       "name": "language-switcher",
@@ -488,7 +516,8 @@
           "type": "registry:component",
           "target": "@components/manage-cookies-button.tsx"
         }
-      ]
+      ],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "footer",
@@ -831,6 +860,20 @@
       ]
     },
     {
+      "name": "content-sidebar-layout",
+      "type": "registry:block",
+      "title": "Content Sidebar Layout",
+      "description": "Responsive content with optional toolbar and a sticky, independently scrolling supporting panel.",
+      "registryDependencies": ["@forge/cn"],
+      "files": [
+        {
+          "path": "registry/components/layouts/content-sidebar-layout.tsx",
+          "type": "registry:component",
+          "target": "@components/layouts/content-sidebar-layout.tsx"
+        }
+      ]
+    },
+    {
       "name": "intranet-shell",
       "type": "registry:block",
       "title": "Intranet Shell",
@@ -892,7 +935,9 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/dropdown-menu",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/record-deletion",
+        "@forge/loading-indicator"
       ]
     },
     {
@@ -944,7 +989,9 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/record-deletion",
+        "@forge/loading-indicator"
       ]
     },
     {
@@ -967,7 +1014,8 @@
         "@forge/sidebar-navigation",
         "@forge/subpage-sidebar",
         "@forge/action-toast",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -996,6 +1044,16 @@
           "target": "@components/plugins/drive/ui.tsx"
         },
         {
+          "path": "registry/components/plugins/drive/use-listing.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/use-listing.ts"
+        },
+        {
+          "path": "registry/components/plugins/drive/use-deletion.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/drive/use-deletion.ts"
+        },
+        {
           "path": "registry/components/plugins/drive/use-uploads.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/use-uploads.ts"
@@ -1006,9 +1064,9 @@
           "target": "@components/plugins/drive/utils.ts"
         },
         {
-          "path": "registry/components/plugins/drive/trash.tsx",
+          "path": "registry/components/plugins/drive/recovery.tsx",
           "type": "registry:component",
-          "target": "@components/plugins/drive/trash.tsx"
+          "target": "@components/plugins/drive/recovery.tsx"
         },
         {
           "path": "registry/components/plugins/drive/folder-tree.tsx",
@@ -1038,22 +1096,18 @@
       "title": "Drive storage",
       "description": "Private S3 and PostgreSQL storage for entity-scoped Drive spaces.",
       "dependencies": [
-        "drizzle-orm",
-        "postgres",
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
         "@aws-sdk/client-s3",
-        "@aws-sdk/s3-request-presigner"
+        "@aws-sdk/s3-request-presigner",
+        "zod@4.6.7"
       ],
-      "registryDependencies": ["@forge/drive"],
+      "registryDependencies": ["@forge/drive", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/drive/server/index.ts",
           "type": "registry:component",
           "target": "@components/plugins/drive/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/drive/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/drive/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/drive/server/schema.ts",
@@ -1086,9 +1140,9 @@
           "target": "@components/utils/storage-filename.ts"
         },
         {
-          "path": "registry/components/plugins/drive/server/storage-names-migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/drive/server/storage-names-migration.sql"
+          "path": "registry/components/plugins/drive/server/input.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/drive/server/input.ts"
         }
       ]
     },
@@ -1096,9 +1150,10 @@
       "name": "blogs",
       "type": "registry:block",
       "title": "Blogs",
-      "description": "Multilingual Markdown articles, category-aware administration, public pages, and editorial workflows.",
-      "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react"],
+      "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
+      "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/dropdown-menu",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1110,13 +1165,20 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/image-crop",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/content-sidebar-layout",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
           "path": "registry/components/plugins/blogs/admin.tsx",
           "type": "registry:component",
           "target": "@components/plugins/blogs/admin.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/editor.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/editor.tsx"
         },
         {
           "path": "registry/components/plugins/blogs/index.ts",
@@ -1152,6 +1214,21 @@
           "path": "registry/components/plugins/blogs/utils.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/utils.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/permissions.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/permissions.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/history.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/history.tsx"
+        },
+        {
+          "path": "registry/components/plugins/blogs/history-diff.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/blogs/history-diff.ts"
         }
       ]
     },
@@ -1159,19 +1236,19 @@
       "name": "blogs-storage",
       "type": "registry:block",
       "title": "Blogs storage",
-      "description": "PostgreSQL Markdown drafts/publications and private S3 image storage for multilingual blogs.",
-      "dependencies": ["drizzle-orm", "postgres", "@aws-sdk/client-s3"],
-      "registryDependencies": ["@forge/blogs"],
+      "description": "PostgreSQL article/history snapshots and private S3 image storage for multilingual blogs.",
+      "dependencies": [
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
+        "@aws-sdk/client-s3",
+        "zod@4.6.7"
+      ],
+      "registryDependencies": ["@forge/blogs", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/blogs/server/index.ts",
           "type": "registry:component",
           "target": "@components/plugins/blogs/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/blogs/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/blogs/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/blogs/server/schema.ts",
@@ -1192,6 +1269,21 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/projections.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/projections.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/readiness.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/readiness.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/blogs/server/input.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/blogs/server/input.ts"
         }
       ]
     },
@@ -1200,7 +1292,7 @@
       "type": "registry:block",
       "title": "Menus",
       "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, allergen and dietary filters, staff editors, and branded A4/A5 printing.",
-      "dependencies": ["@base-ui/react", "lucide-react"],
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
       "registryDependencies": [
         "@forge/cn",
         "@forge/ui-shims",
@@ -1213,7 +1305,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/editor-form",
-        "@forge/table-selection"
+        "@forge/table-selection",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -1252,6 +1345,16 @@
           "target": "@components/plugins/menus/admin.tsx"
         },
         {
+          "path": "registry/components/plugins/menus/use-categories-and-labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/use-categories-and-labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/use-menu-items.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/use-menu-items.ts"
+        },
+        {
           "path": "registry/components/plugins/menus/label-presets.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/label-presets.ts"
@@ -1265,6 +1368,16 @@
           "path": "registry/components/plugins/menus/spice-badge.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/spice-badge.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/editor.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/editor.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/ui.tsx"
         }
       ]
     },
@@ -1272,19 +1385,14 @@
       "name": "menus-storage",
       "type": "registry:block",
       "title": "Menus storage",
-      "description": "Better Auth models and Drizzle service for restaurant menus with size prices, spice levels and Drive-backed images.",
-      "dependencies": ["better-auth@1.7.12", "drizzle-orm"],
-      "registryDependencies": ["@forge/menus", "@forge/drive-storage"],
+      "description": "Typed Drizzle service and schema for restaurant menus with size prices, spice levels and Drive-backed images.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/menus", "@forge/drive-storage", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/menus/server/index.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/server/index.ts"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/better-auth.ts",
-          "type": "registry:lib",
-          "target": "@components/plugins/menus/server/better-auth.ts"
         },
         {
           "path": "registry/components/plugins/menus/server/schema.ts",
@@ -1295,26 +1403,6 @@
           "path": "registry/components/plugins/menus/server/service.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/server/service.server.ts"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/migration.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/spice-level.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/spice-level.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/sizes.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/sizes.sql"
-        },
-        {
-          "path": "registry/components/plugins/menus/server/label-icon.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/menus/server/label-icon.sql"
         }
       ]
     },
@@ -1394,7 +1482,10 @@
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/action-toast",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/table-selection",
+        "@forge/loading-indicator",
+        "@forge/table-styles"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },
@@ -1462,7 +1553,8 @@
         "@forge/optimistic-action",
         "@forge/icon-tooltip",
         "@forge/table-selection",
-        "@forge/image-crop"
+        "@forge/image-crop",
+        "@forge/loading-indicator"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1525,7 +1617,7 @@
       "name": "reservations",
       "type": "registry:block",
       "title": "Reservations",
-      "description": "Guest appointments and overnight stays, staff calendars, policies, blocked dates, and private management.",
+      "description": "Guest appointments and overnight stays, dedicated staff creation, calendars and a paginated reservation list, policies, blocked dates, and private management.",
       "dependencies": [
         "@base-ui/react@1.9.0",
         "@fullcalendar/react@7.1.3",
@@ -1534,6 +1626,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/dialog-submit",
@@ -1541,7 +1634,8 @@
         "@forge/table-styles",
         "@forge/action-toast",
         "@forge/optimistic-action",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/loading-indicator"
       ],
       "files": [
         {
@@ -1601,8 +1695,8 @@
       "type": "registry:block",
       "title": "Reservations storage",
       "description": "PostgreSQL appointment and stay scheduling, private management links, and durable email delivery.",
-      "dependencies": ["drizzle-orm@0.45.4", "postgres@3.4.9"],
-      "registryDependencies": ["@forge/reservations", "@forge/mailing"],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9"],
+      "registryDependencies": ["@forge/reservations", "@forge/mailing", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/reservations/server/index.ts",
@@ -1613,11 +1707,6 @@
           "path": "registry/components/plugins/reservations/server/links.ts",
           "type": "registry:component",
           "target": "@components/plugins/reservations/server/links.ts"
-        },
-        {
-          "path": "registry/components/plugins/reservations/server/migration.sql",
-          "type": "registry:file",
-          "target": "@components/plugins/reservations/server/migration.sql"
         },
         {
           "path": "registry/components/plugins/reservations/server/schema.ts",
@@ -1701,8 +1790,77 @@
           "target": "@components/utils/crop-image.ts"
         }
       ],
-      "dependencies": ["@base-ui/react"],
-      "registryDependencies": ["@forge/cn", "@forge/dialog-submit"]
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/dialog-submit", "@forge/icon-tooltip"]
+    },
+    {
+      "name": "database",
+      "type": "registry:lib",
+      "title": "Plugin database",
+      "description": "Server-only typed Drizzle queries, bounded directory reads, persistent transaction locks and migration-journal preflight.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "postgres@3.4.9", "zod"],
+      "files": [
+        {
+          "path": "registry/components/utils/database.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/database.ts"
+        },
+        {
+          "path": "registry/components/utils/database-migrations.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/database-migrations.ts"
+        }
+      ]
+    },
+    {
+      "name": "customers-storage",
+      "type": "registry:block",
+      "title": "Customers storage",
+      "description": "Typed customer profiles linked to the host Better Auth user table with transactional identity operations.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/customers", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/customers/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/server/service.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "projects-storage",
+      "type": "registry:block",
+      "title": "Projects storage",
+      "description": "Typed project persistence with required customer ownership and restricted deletion.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/projects", "@forge/customers-storage", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/projects/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/server/service.server.ts"
+        }
+      ]
     }
   ]
 }

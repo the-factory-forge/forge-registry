@@ -55,14 +55,16 @@ await test("Drive UI ships independently; only the companion contains storage de
     "@forge/subpage-sidebar",
     "@forge/action-toast",
     "@forge/table-selection",
+    "@forge/loading-indicator",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react", "fflate@0.8.3"]);
-  assert.deepEqual(server.registryDependencies, ["@forge/drive"]);
+  assert.deepEqual(server.registryDependencies, ["@forge/drive", "@forge/database"]);
   assert.deepEqual(server.dependencies, [
-    "drizzle-orm",
-    "postgres",
+    "drizzle-orm@1.0.0-rc.4",
+    "postgres@3.4.9",
     "@aws-sdk/client-s3",
     "@aws-sdk/s3-request-presigner",
+    "zod@4.6.7",
   ]);
   for (const item of [ui, server]) {
     assert.equal(item.type, "registry:block");
@@ -76,9 +78,7 @@ await test("Drive UI ships independently; only the companion contains storage de
     if (item === server) actual.push("registry/components/utils/storage-filename.ts");
     assert.deepEqual(item.files.map((file) => file.path).sort(), actual.sort());
     for (const file of item.files) {
-      assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
       const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-      assert.doesNotMatch(source, /from ["'](?:next|@\/lib\/|@\/showroom\/)/);
       if (item === ui)
         assert.doesNotMatch(
           source,

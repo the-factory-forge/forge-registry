@@ -20,10 +20,15 @@ import {
   BlogNewPage,
   BlogPostPage,
   BlogsPage,
+  blogCapabilities,
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
-import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import {
+  ShowroomLink as Link,
+  useShowroomParams,
+  useShowroomEditorGuard,
+} from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const previewClassName =
@@ -32,30 +37,43 @@ const previewClassName =
 function usePreview() {
   const [mock] = useState(createBlogsMock),
     [editor, setEditor] = useState("jordan"),
+    [admin, setAdmin] = useState(true),
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
     [failUpload, setFailUpload] = useState(false),
     [cropImages, setCropImages] = useState(true),
-    [state, setState] = useState("ready");
+    [state, setState] = useState("ready"),
+    [exampleRevision, setExampleRevision] = useState(0),
+    [missingImages, setMissingImages] = useState(false),
+    [historyEnabled, setHistoryEnabled] = useState(true);
   const revision = useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   useEffect(() => () => mock.dispose(), [mock]);
-  const client = useMemo(
-    () =>
-      mock.client({
-        editor: { id: editor, name: editor === "jordan" ? "Jordan Lee" : "Alex Morgan" },
-        readOnly,
-        fail,
-        failUpload,
-        consumeUploadFailure: () => setFailUpload(false),
-      }),
-    [mock, editor, readOnly, fail, failUpload],
-  );
+  const client = useMemo(() => {
+    const client = mock.client({
+      editor: { id: editor, name: editor === "jordan" ? "Jordan Lee" : "Alex Morgan" },
+      admin,
+      readOnly,
+      fail,
+      missingImages,
+      consumeUploadFailure: () => setFailUpload(false),
+    });
+    if (!historyEnabled) delete client.history;
+    return client;
+  }, [mock, editor, admin, readOnly, fail, missingImages, historyEnabled]);
   return {
     mock,
+    historyEnabled,
+    setHistoryEnabled,
+    exampleRevision,
+    setExampleRevision,
+    missingImages,
+    setMissingImages,
     client,
     revision,
     editor,
     setEditor,
+    admin,
+    setAdmin,
     readOnly,
     setReadOnly,
     fail,
@@ -76,8 +94,9 @@ function useBlogsPreview() {
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const selectId = `factory-showroom-blogs-${useId()}`;
-  const { locale } = useShowroomParams();
+  const { locale, segments } = useShowroomParams();
   const state = usePreview();
+  const article = state.mock.all().find((value) => value.id === segments[0]);
   return (
     <Context.Provider value={state}>
       <ShowroomPreview
@@ -114,12 +133,74 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
+                checked={state.admin}
+                onChange={(event) => state.setAdmin(event.target.checked)}
+              />
+              Administrator
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
                 checked={state.fail}
                 onChange={(e) => state.setFail(e.target.checked)}
               />
               Simulate action failures
             </label>
-            <button onClick={() => state.setFailUpload(true)} className="underline">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.historyEnabled}
+                onChange={(event) => state.setHistoryEnabled(event.target.checked)}
+              />
+              History transport
+            </label>
+            <div className="space-y-2">
+              <button
+                className="underline disabled:text-muted-foreground disabled:no-underline"
+                disabled={!article}
+                aria-describedby={`${selectId}-history-example`}
+                onClick={() => {
+                  if (!article) return;
+                  state.mock.loadHistoryExample(article.id);
+                  state.setExampleRevision((value) => value + 1);
+                }}
+              >
+                Load history example
+              </button>
+              <p id={`${selectId}-history-example`} className="text-xs text-muted-foreground">
+                {article
+                  ? "Replaces this post’s demo content and history in English and French."
+                  : "Open a post in Manage posts to load its history example."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                className="underline disabled:text-muted-foreground disabled:no-underline"
+                disabled={!article}
+                aria-describedby={`${selectId}-concurrent-correction`}
+                onClick={() => article && state.mock.applyConcurrentCorrection(article.id)}
+              >
+                Simulate concurrent correction
+              </button>
+              <p id={`${selectId}-concurrent-correction`} className="text-xs text-muted-foreground">
+                Changes this post as another editor. The next save will conflict.
+              </p>
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={state.missingImages}
+                onChange={(event) => state.setMissingImages(event.target.checked)}
+              />
+              Simulate missing illustrations
+            </label>
+            <button
+              onClick={() => {
+                state.mock.failNextUpload();
+                state.setFailUpload(true);
+              }}
+              className="underline"
+            >
               Fail next upload{state.failUpload ? " (armed)" : ""}
             </button>
             <label className="flex items-center gap-2">
@@ -157,23 +238,54 @@ export function BlogsAdminPreview() {
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
     navigate = useNavigate();
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
+  const currentArticle = state.mock.all().find((article) => article.id === segments[0]);
+  const [lastArticle, setLastArticle] = useState(currentArticle);
+  if (
+    currentArticle &&
+    (currentArticle.id !== lastArticle?.id || currentArticle.version !== lastArticle.version)
+  )
+    setLastArticle(currentArticle);
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const root = `/${locale}/admin/blogs`,
-    capabilities = {
-      create: !state.readOnly,
-      edit: !state.readOnly,
-      publish: !state.readOnly,
-      delete: !state.readOnly,
-      upload: !state.readOnly,
-      manageCategories: !state.readOnly,
-    };
+    actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
+    capabilities = blogCapabilities(actor);
   const common = {
     className: previewClassName,
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     client: state.client,
     capabilities,
+    labels:
+      locale === "fr"
+        ? {
+            history: "Historique",
+            closeHistory: "Fermer l’historique",
+            read: "Lire",
+            compare: "Comparer",
+            compareDraft: "Comparer le brouillon",
+            currentDraft: "Brouillon courant",
+            returnToDraft: "Revenir au brouillon",
+            unsavedDraft: "Brouillon non enregistré",
+            historyReadOnly: "Lecture seule. Votre brouillon reste conservé.",
+            historyEmpty: "Aucune version enregistrée dans cette langue.",
+            live: "En ligne",
+            publication: "Publication",
+            signature: "Signature de l’article",
+            savedBy: "Enregistrée par",
+            newReprise: "Reprendre comme brouillon",
+            continueDraft: "Modifier ce brouillon",
+            publishVersion: "Publier cette version",
+            deleteVersion: "Supprimer la version",
+            sourceUnavailable: "Source indisponible",
+            historyCounts: (publications: number, drafts: number) =>
+              `Publications ${publications} / 5 · Brouillons ${drafts} / 8`,
+            resumedFrom: (source: string) => `Depuis ${source}`,
+            repriseLabel: (version: string) => `Reprise ${version}`,
+            compareWith: (version: string) => `Comparaison avec la publication ${version}`,
+          }
+        : undefined,
   };
   if (segments[0] === "new")
     return (
@@ -188,6 +300,8 @@ export function BlogsAdminPreview() {
   if (segments[0] === "categories")
     return (
       <BlogCategoriesPage
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blockedNavigation}
         {...common}
         locales={blogLocales}
         categories={state.mock.categories()}
@@ -196,7 +310,8 @@ export function BlogsAdminPreview() {
       />
     );
   if (segments[0]) {
-    const article = state.mock.all().find((a) => a.id === segments[0]);
+    // Keep the editor mounted until its successful deletion callback navigates away.
+    const article = currentArticle ?? (lastArticle?.id === segments[0] ? lastArticle : undefined);
     if (!article)
       return (
         <p role="alert" className="p-8">
@@ -211,11 +326,19 @@ export function BlogsAdminPreview() {
       );
     return (
       <BlogEditPage
+        key={`${article.id}:${state.exampleRevision}`}
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blockedNavigation}
         {...common}
+        authors={[
+          { id: "jordan", name: "Jordan Lee" },
+          { id: "alex", name: "Alex Morgan" },
+        ]}
+        capabilities={blogCapabilities(actor, article.shared.author?.id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
-            : undefined
+            : false
         }
         article={article}
         categories={state.mock.categories()}
@@ -223,7 +346,8 @@ export function BlogsAdminPreview() {
         locales={blogLocales}
         defaultLocale={locale}
         backHref={root}
-        onDeleted={() => navigate({ href: root })}
+        categoriesHref={`${root}/categories`}
+        onDeleted={() => navigate({ href: root, ignoreBlocker: true })}
       />
     );
   }
@@ -241,6 +365,7 @@ export function BlogsAdminPreview() {
   return (
     <BlogsPage
       {...common}
+      capabilitiesForArticle={(post) => blogCapabilities(actor, post.author?.id)}
       data={{
         items: items.slice((page - 1) * 6, page * 6),
         total: items.length,

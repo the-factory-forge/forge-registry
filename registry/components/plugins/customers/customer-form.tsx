@@ -12,13 +12,14 @@ import type {
 } from "@/components/plugins/customers/types";
 import {
   cardClass,
+  CustomerAvatar,
   Feedback,
-  DeleteCustomer,
   inputClass,
   primaryButtonClass,
   useCustomerAction,
 } from "@/components/plugins/customers/ui";
-import { customerFormValues } from "@/components/plugins/customers/utils";
+import { customerDisplayName, customerFormValues } from "@/components/plugins/customers/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
@@ -41,11 +42,21 @@ function CustomerFormContent({
 }: CustomerFormProps) {
   const id = `factory-customer-form-${useId()}`;
   const creating = !customer;
-  const [deleting, setDeleting] = useState(false);
   const [values, setValues] = useState(() => customerFormValues(customer));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
-  const action = useCustomerAction(labels.actionError);
-  const pending = disabled || action.pending || deleting;
+  const action = useCustomerAction(labels.actionError, customer?.id);
+  const deletion = useRecordDeletion({
+    items: customer ? [customer] : [],
+    scope: customer?.id,
+    getName: customerDisplayName,
+    onDelete,
+    label: labels.deleteCustomer,
+    labels,
+    disabled: disabled || action.pending,
+    returnFocus: formRef,
+    className: "max-w-md",
+  });
+  const pending = disabled || action.pending || deletion.pending;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +65,7 @@ function CustomerFormContent({
     const nextErrors: typeof errors = {};
     if (!values.name.trim()) nextErrors.name = labels.nameRequired;
     const emailInput = form.elements.namedItem("email") as HTMLInputElement;
-    if ((!creating && !values.email.trim()) || emailInput.validity.typeMismatch)
+    if (!values.email.trim() || emailInput.validity.typeMismatch)
       nextErrors.email = labels.emailRequired;
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -63,9 +74,11 @@ function CustomerFormContent({
       name: values.name.trim(),
       email: values.email.trim(),
     };
-    if (await action.run(() => onSubmit(normalized), creating ? labels.created : labels.saved)) {
-      setValues(normalized);
-    }
+    await action.run(
+      () => onSubmit(normalized),
+      creating ? labels.created : labels.saved,
+      () => setValues(normalized),
+    );
   }
 
   function field(
@@ -123,7 +136,23 @@ function CustomerFormContent({
   }
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} aria-busy={pending} className="space-y-6">
+    <form
+      ref={formRef}
+      tabIndex={-1}
+      noValidate
+      onSubmit={submit}
+      aria-busy={pending}
+      className="space-y-6 focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {creating && (
+        <header className={cn(cardClass, "flex items-center gap-4")}>
+          <CustomerAvatar customer={values} large />
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="text-base font-semibold">{labels.newTitle}</h1>
+            <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
+          </div>
+        </header>
+      )}
       <fieldset disabled={pending} className="min-w-0 space-y-6">
         <section aria-labelledby={`${id}-contact`} className={cn(cardClass, "space-y-5")}>
           <div className="space-y-1.5">
@@ -137,7 +166,7 @@ function CustomerFormContent({
             {field("email", {
               type: "email",
               autoComplete: "email",
-              required: !creating,
+              required: true,
               description: creating ? undefined : emailChangeDescription,
             })}
             {field("phoneNumber", {
@@ -176,18 +205,10 @@ function CustomerFormContent({
       </fieldset>
       <div className={editorActionsClass}>
         {customer && onDelete && (
-          <DeleteCustomer
-            customer={customer}
-            labels={labels}
+          <RecordDeleteButton
+            label={labels.deleteCustomer}
             disabled={pending}
-            onDelete={async (id) => {
-              setDeleting(true);
-              try {
-                await onDelete(id);
-              } finally {
-                setDeleting(false);
-              }
-            }}
+            onClick={(event) => deletion.open(customer.id, event.currentTarget)}
           />
         )}
         <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
@@ -195,6 +216,7 @@ function CustomerFormContent({
         </button>
       </div>
       <Feedback feedback={action.feedback} />
+      {deletion.dialog}
     </form>
   );
 }

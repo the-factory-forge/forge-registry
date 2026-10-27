@@ -1,7 +1,7 @@
-import "../drive-storage/register.mjs";
 import assert from "node:assert/strict";
+
+import "../drive-storage/register.mjs";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -13,6 +13,8 @@ import {
 } from "@aws-sdk/client-s3";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+
+import { initializeStorage } from "../persistence/migrations.mjs";
 const { createBlogsStorage } =
   await import("../../registry/components/plugins/blogs/server/storage.server.ts");
 const { emptyContent } = await import("../../registry/components/plugins/blogs/utils.ts");
@@ -21,7 +23,7 @@ const pool = postgres("postgres://blogs_test:local_blogs_test_only@127.0.0.1:554
     prepare: false,
     max: 8,
   }),
-  db = drizzle(pool);
+  db = drizzle({ client: pool });
 const s3 = new S3Client({
   endpoint: "http://127.0.0.1:19040",
   region: "us-east-1",
@@ -85,17 +87,17 @@ await test("private blog persistence, publication boundaries, retries, and recov
     assert.ok(post);
     assert.equal(post.markdown, "Persisted Markdown");
     assert.deepEqual(Buffer.from((await storage.readImage(post.shared.thumbnailId)).bytes), image);
+    const history = await client.history.list({ id: post.id, locale: "en" });
+    const current = history.find((version) => version.id === post.revisionId);
+    assert.equal(current.state, "publication");
+    const snapshot = await client.history.get({ id: post.id, locale: "en", versionId: current.id });
+    assert.equal(snapshot.content.markdown, "Persisted Markdown");
     return;
   }
   await pool.unsafe(
-    "DROP TABLE IF EXISTS blogs_mutation,blogs_object,blogs_category,blogs_article CASCADE",
+    "DROP TABLE IF EXISTS blogs_translation,blogs_publication_category,blogs_mutation,blogs_object,blogs_category,blogs_history,blogs_article CASCADE",
   );
-  await pool.unsafe(
-    await readFile(
-      new URL("../../registry/components/plugins/blogs/server/migration.sql", import.meta.url),
-      "utf8",
-    ),
-  );
+  await initializeStorage(pool, ["blogs"]);
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   } catch (error) {
@@ -363,7 +365,10 @@ await test("private blog persistence, publication boundaries, retries, and recov
     const failing = createBlogsStorage({
       ...options,
       db: {
-        execute: db.execute.bind(db),
+        select: db.select.bind(db),
+        insert: db.insert.bind(db),
+        update: db.update.bind(db),
+        delete: db.delete.bind(db),
         transaction: (callback) =>
           db.transaction(async (tx) => {
             await callback(tx);

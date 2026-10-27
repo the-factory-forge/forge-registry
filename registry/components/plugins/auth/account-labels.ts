@@ -35,6 +35,7 @@ export const securityLabels = {
   never: "Never",
   delete: "Delete",
   cancel: "Cancel",
+  close: "Close",
   done: "Done",
   createDescription:
     "Choose a name and an expiry within 90 days. Times use your device’s time zone.",
@@ -83,4 +84,4 @@ export const securityLabels = {
   signingOut: "Signing out…",
   revokeError: "Could not sign out this session. Refresh and try again.",
 };
-export type SecurityLabels = typeof securityLabels;
+export type SecurityLabels = Omit<typeof securityLabels, "close"> & { close?: string };

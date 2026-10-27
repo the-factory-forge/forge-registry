@@ -80,8 +80,8 @@ components:
     height: 40px
     padding: 0 12px
   category-chip:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.primary-foreground}"
+    backgroundColor: "var(--showroom-category-foreground)"
+    textColor: "var(--showroom-category)"
     rounded: "{rounded.xl}"
     height: 44px
     padding: 8px 12px
@@ -142,8 +142,12 @@ The showroom has a sticky 56px header, a standard 80rem maximum width, and fluid
 16px to 32px gutters. Narrow previews cap at 48rem; full previews remove the width
 cap and outer padding. Use the existing ShowroomPreview width options.
 
-Settings occupy a separate 18rem column at 64rem and above. Below that breakpoint
-they remain expanded above the preview. The directory uses one column, two at
+Settings start hidden below 40rem and open on larger screens. Open settings occupy
+a separate 18rem column at 64rem and above, and stack above the preview below that
+breakpoint. An icon-only Settings button beside the panel
+title toggles its content while preserving values. The collapsed panel keeps
+only the gear button and its padding. Below 40rem, the collapsed gear shares the
+preview’s first row, allowing content to flow beside it. The directory uses one column, two at
 40rem, and three at 64rem, with 16px gaps. Controls wrap with gaps in both axes.
 
 Reusable page sections use the existing container and section-spacing helpers.
@@ -165,6 +169,9 @@ interface.
 
 ### Table action alignment
 
+Keep action headers and cells sticky at the right edge on every screen size,
+including mobile. Use the shared table styles so horizontally scrolling content
+passes beneath the themed action surface while controls remain visible.
 Keep each row's actions in the same order and positions. Render an action that is
 unavailable for a particular row as a visibly disabled control, with its existing
 icon, accessible name and tooltip. Disabled actions always use the same neutral
@@ -174,7 +181,7 @@ disabled and keep verification disabled for an already verified employee. Retain
 semantics, non-clickable cursors, confirmation flows and server authorization.
 Features absent from the whole table or hidden by the host's access policy may
 remain omitted. Verify mixed eligible/ineligible rows and pending states at desktop
-and mobile widths. See the shared [table action contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions).
+and mobile widths. See the shared [table action contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-stable-table-row-actions).
 
 ## Elevation & Depth
 
@@ -203,6 +210,25 @@ retain their disabled semantics. Destructive controls use red text on a subtle
 tinted surface, including confirmation dialogs. The implemented registry components
 are the visual reference for controls, status indicators, layout, and navigation.
 
+### Loading feedback
+
+Use one 4px primary loading bar directly beneath the navbar. It overlays content
+without changing layout or focus. Real loading states share its activity queue;
+show it immediately and hide 300ms after the final activity settles. New work
+cancels a pending hide. Use a subtle pulse with a static reduced-motion fallback.
+Keep errors and recovery beside their controls.
+
+### Active controls
+
+Controls that stay selected, pressed, current or expanded must visibly differ
+from their inactive state after hover and focus leave. Follow the shared
+[active-state contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-persistent-active-control-states).
+Reuse semantic tokens and existing variants; panel toggles such as Blog History
+use the primary background/foreground pair while open and an outline when closed.
+Keep the active treatment recognizable on hover, preserve a separate focus ring,
+and expose the corresponding native or ARIA state. State changes must not resize
+the control. Verify opening and every closing path in both themes and at narrow widths.
+
 ### Inputs
 
 Administrative plugin inputs use a 40px minimum height, lg corners, semantic borders,
@@ -218,7 +244,14 @@ their height; they expand to 288px, capped by the available space.
 ### Chips and status labels
 
 Directory category controls are 44px high with visible labels, counts, and optional
-leading icons. The selected category uses the primary pair. Results show a live
+leading icons. Component uses blue, Layout violet, Page teal and Plugin gold.
+Filters, directory badges and global search badges share the showroom category
+surface/foreground pairs from the stylesheet. Inactive filters and badges use
+soft fills; selected filters reverse the pair for a solid fill with contrasting
+text. Hover adds a border without changing size; keyboard focus retains the
+separate ring. All keeps the primary pair. Labels and icons retain their meaning
+without color. These tokens stay private to the showroom and do not change plugin
+status colors or customer themes. Results show a live
 count and a reset action that clears both filters and returns focus to All. Status labels use
 the appropriate status pair and visible text with a small decorative dot; they are
 not buttons by default. Verification labels that already carry an icon retain it.
@@ -230,7 +263,9 @@ cells keep their existing columns.
 Directory cards are links with an icon and title opposite a category label,
 a description, and an Open label aligned at the bottom. Padding is 20px on mobile
 and 24px above 40rem. Their border and title respond to hover, with visible keyboard focus. The
-arrow moves slightly on hover or focus when reduced motion is not requested.
+arrow moves slightly to the right on hover or focus, then returns when the interaction
+ends. Keep the label and layout still, hide the decorative arrow from assistive
+technology, and keep it still when reduced motion is requested.
 Plugin cards may use different radii; inspect their shared classes before edits.
 
 ### Navigation and previews
@@ -248,7 +283,7 @@ Action and field labels use sentence case throughout the administrative plugins.
 - Do use semantic color roles and their matching foregrounds.
 - Do reuse the shared preview frame and the relevant plugin styles.
 - Do retain translated labels, keyboard focus, reduced motion, and responsive wrapping.
-- Do preserve visible action text and the shared Lucide action icons.
+- Do use icon-only refresh/reload controls with translated accessible names and tooltips; preserve visible text on other actions.
 - Don't introduce customer-specific colors into reusable components.
 - Don't use showroom-only CSS as an undeclared consumer dependency.
 - Don't rename semantic roles when changing a customer theme.

@@ -38,7 +38,6 @@ function usePreviewState() {
       ownerId: "acme",
       status: "requested",
       description: "A new website for Acme Studio.",
-      url: "https://example.com",
       assigneeId: "jordan",
     },
     {
@@ -46,7 +45,6 @@ function usePreviewState() {
       name: "Customer portal",
       ownerId: "acme",
       status: "production",
-      url: "/en/customers",
     },
   ]);
   const [showProjects, setShowProjects] = useState(true);

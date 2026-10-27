@@ -22,6 +22,23 @@ registers, visibility workflow, storage routes and card/portrait sizes stay in
 the site. Employees' basic schema does not require a photograph or install a
 public team-profile database.
 
+## Photo storage
+
+The host stores uploaded photo bytes in private S3-compatible storage. PostgreSQL
+keeps asset metadata and durable object references, not file bytes or signed URLs.
+Use [site/module-scoped keys](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage)
+and authorize reads on the server before exposing a photo.
+
+Missing or unavailable S3 must reject uploads with a translated error, preserve
+the crop, previous photo and other edits, and allow retry or cancellation. Never
+fall back to storing new bytes in PostgreSQL. Employee management stays usable
+without photo uploads.
+
+When transferring database photos, preserve IDs and URLs, verify destination bytes
+before switching reads, and retain originals until recovery is verified. Replaced
+or abandoned photos need reference-aware cleanup. Cleanup metadata must survive
+account deletion so failed S3 removals can be retried.
+
 ## Deletion with several data sources
 
 Pass `deletion: EmployeeDeletionAdapter` to the employee directory/actions.

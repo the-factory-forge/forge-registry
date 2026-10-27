@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { chromium } from "playwright";
-
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -60,7 +59,7 @@ void test("Drive folders open on hover and keyboard focus without shifting rows"
         viewport: { width, height: 1000 },
         reducedMotion: width === 390 ? "reduce" : "no-preference",
       });
-      if (dark) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      if (dark) await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const portal = page.getByRole("link", { name: "Customer portal", exact: true });
       await folderState(portal, false);
       await portal.scrollIntoViewIfNeeded();
@@ -138,7 +137,7 @@ void test("navigation arrows respond to intent and stay still when disabled or m
   await next.hover();
   await translate(next.locator("svg"), "none");
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  const back = page.getByRole("link", { name: "All components", exact: true }).first();
+  const back = page.shell.getByRole("link", { name: "All components", exact: true }).first();
   await back.hover();
   await translate(back.locator("svg"), "-2px");
 });
@@ -147,7 +146,7 @@ void test("whole blog cards link to articles and animate arrows on hover and key
   for (const width of [1440, 390])
     for (const dark of [false, true]) {
       const page = await preview(t, "/en/blogs", { viewport: { width, height: 1000 } });
-      if (dark) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      if (dark) await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const card = page.getByRole("link", { name: "Make room for better ideas", exact: true });
       const article = page.locator("article").filter({ has: card });
       const arrow = card.locator(".lucide-arrow-up-right");
@@ -192,7 +191,7 @@ void test("Drive directory actions open every space, including read-only spaces"
   for (const width of [1440, 390])
     for (const dark of [false, true]) {
       const page = await preview(t, "/en/drive", { viewport: { width, height: 1000 } });
-      if (dark) await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      if (dark) await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       for (const name of ["Customer portal", "Studio website", "Team handbook"]) {
         const title = page.getByRole("link", { name, exact: true });
         const open = page.getByRole("link", { name: `Open folder: ${name}`, exact: true });

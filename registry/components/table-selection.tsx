@@ -1,8 +1,8 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { Trash2Icon } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { XIcon, Trash2Icon } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -14,34 +14,165 @@ import {
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export type { TableSelectionLabels } from "@/components/utils/table-selection-labels";
 
+export interface TableDeletionOptions<T> {
+  onDelete: (item: T, requestId: string) => Promise<unknown>;
+  prepare?: (items: readonly T[]) => Promise<ReactNode>;
+  onComplete?: (count: number) => void;
+}
+interface DeletionSession<T> {
+  scope: string;
+  options: TableDeletionOptions<T>;
+  entries: { item: T; requestId: string }[];
+  phase: "preparing" | "ready" | "deleting";
+  ready: boolean;
+  details?: ReactNode;
+  failure?: { stage: "prepare" | "delete"; cause: unknown };
+  attempted: number;
+}
+
 export function useTableSelection<T extends { id: string }>(items: readonly T[], scope = "") {
   const [state, setState] = useState({ ids: [] as string[], scope });
-  const [pending, setPending] = useState(false);
-  const deletion = useOptimisticAction<string | undefined>(undefined, scope);
+  const [session, setSession] = useState<DeletionSession<T> | null>(null);
+  const active = useRef<DeletionSession<T> | null>(null);
+  const requestPending = useRef(false);
+  const mounted = useRef(true);
+  const currentScope = useRef(scope);
+  const optimistic = useOptimisticAction<string | undefined>(undefined, scope);
+  const dispose = useCallback(() => {
+    active.current = null;
+    if (mounted.current) setSession(null);
+  }, []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      active.current = null;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    currentScope.current = scope;
+    if (active.current && active.current.scope !== scope && active.current.attempted === 0)
+      dispose();
+  }, [scope, dispose]);
   const selected = items.filter((item) => state.scope === scope && state.ids.includes(item.id));
   if (state.scope !== scope || selected.length !== state.ids.length) {
     setState({ ids: selected.map((item) => item.id), scope });
+  }
+  const visible = session && (session.scope === scope || session.attempted > 0) ? session : null;
+  const pending = (!!visible && visible.phase !== "ready") || optimistic.pending;
+  const current = (target: DeletionSession<T>) => mounted.current && active.current === target;
+  const busy = () =>
+    requestPending.current || (!!active.current && active.current.phase !== "ready");
+  const publish = (target: DeletionSession<T>) => {
+    if (current(target)) setSession({ ...target });
+  };
+  async function prepare(target: DeletionSession<T>, options: TableDeletionOptions<T>) {
+    target.phase = "preparing";
+    target.ready = false;
+    target.details = undefined;
+    publish(target);
+    try {
+      const details = await options.prepare?.(target.entries.map(({ item }) => item));
+      if (!current(target)) return;
+      target.details = details;
+      target.ready = true;
+    } catch (cause) {
+      if (!current(target)) return;
+      target.failure = { stage: "prepare", cause };
+    }
+    target.phase = "ready";
+    publish(target);
+  }
+  async function confirm(provided: TableDeletionOptions<T>) {
+    const target = active.current;
+    if (!target || busy()) return;
+    const options = target.scope === currentScope.current ? provided : target.options;
+    target.options = options;
+    target.failure = undefined;
+    if (!target.ready) return prepare(target, options);
+    target.phase = "deleting";
+    const entries = target.entries;
+    target.attempted = entries.length;
+    publish(target);
+    const failed: typeof entries = [];
+    let reason: unknown;
+    for (const entry of entries) {
+      if (!current(target)) return;
+      try {
+        requestPending.current = true;
+        await optimistic.run(
+          () => entry.item.id,
+          () => options.onDelete(entry.item, entry.requestId),
+        );
+        if (current(target))
+          setState((previous) =>
+            previous.scope === target.scope
+              ? { ...previous, ids: previous.ids.filter((id) => id !== entry.item.id) }
+              : previous,
+          );
+      } catch (error) {
+        failed.push(entry);
+        reason = error;
+      } finally {
+        requestPending.current = false;
+      }
+    }
+    if (!current(target)) return;
+    if (!failed.length) {
+      dispose();
+      options.onComplete?.(entries.length);
+    } else {
+      target.entries = failed;
+      target.failure = { stage: "delete", cause: reason };
+      await prepare(target, options);
+    }
   }
   return {
     selected,
     scope,
     pending,
-    setPending,
-    isDeleting: (id: string) => deletion.pending && deletion.value === id,
-    delete: (id: string, action: () => Promise<unknown>) => deletion.run(() => id, action),
+    isDeleting: (id: string) =>
+      visible?.scope === scope && optimistic.pending && optimistic.value === id,
+    deletion: {
+      items: visible?.entries.map(({ item }) => item) ?? [],
+      details: visible?.details,
+      ready: visible?.ready ?? false,
+      failure: visible?.failure,
+      attempted: visible?.attempted ?? 0,
+      open(options: TableDeletionOptions<T>, targets: readonly T[] = selected) {
+        if (busy() || !targets.length) return;
+        const target: DeletionSession<T> = {
+          scope,
+          options,
+          entries: targets.map((item) => ({ item, requestId: crypto.randomUUID() })),
+          phase: "preparing",
+          ready: false,
+          attempted: 0,
+        };
+        active.current = target;
+        void prepare(target, options);
+      },
+      confirm,
+      close() {
+        if (!busy()) dispose();
+      },
+      /** A dialog can unmount while its table remains mounted. */
+      dispose,
+    },
     all: items.length > 0 && selected.length === items.length,
     mixed: selected.length > 0 && selected.length < items.length,
-    toggleAll: (checked: boolean) =>
-      setState({ ids: checked ? items.map((item) => item.id) : [], scope }),
-    toggle: (id: string, checked: boolean) =>
+    toggleAll: (checked: boolean) => {
+      if (!busy()) setState({ ids: checked ? items.map((item) => item.id) : [], scope });
+    },
+    toggle: (id: string, checked: boolean) => {
+      if (busy()) return;
       setState((current) => ({
         scope,
         ids: checked
           ? [...current.ids.filter((value) => value !== id), id]
           : current.ids.filter((value) => value !== id),
-      })),
-    remove: (id: string) =>
-      setState((current) => ({ ...current, ids: current.ids.filter((value) => value !== id) })),
+      }));
+    },
   };
 }
 
@@ -103,49 +234,20 @@ export function TableBulkDelete<T extends { id: string }>({
   disabled,
 }: TableBulkDeleteProps<T>) {
   const labels = { ...tableSelectionLabels, ...overrides };
-  const [deleting, setDeleting] = useState<{ item: T; requestId: string }[]>([]);
-  const [details, setDetails] = useState<ReactNode>();
-  const [ready, setReady] = useState(!prepare);
-  const [failure, setFailure] = useState("");
-  const lock = useRef(false);
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  useEffect(() => {
-    if (!lock.current) setDeleting([]);
-  }, [selection.scope]);
+  const { deletion } = selection;
+  useEffect(() => deletion.dispose, [deletion.dispose]);
   const notify = useActionToast();
-  async function prepareDeletion(entries: typeof deleting) {
-    setReady(false);
-    setDetails(undefined);
-    try {
-      const next = await prepare?.(entries.map(({ item }) => item));
-      if (mounted.current) {
-        setDetails(next);
-        setReady(true);
-      }
-    } catch (error) {
-      if (mounted.current) setFailure(errorMessage?.(error) ?? labels.bulkPrepareError);
-    }
-  }
-  async function open() {
-    if (lock.current || disabled || !selection.selected.length) return;
-    const entries = selection.selected.map((item) => ({ item, requestId: crypto.randomUUID() }));
-    setDeleting(entries);
-    setFailure("");
-    lock.current = true;
-    selection.setPending(true);
-    try {
-      await prepareDeletion(entries);
-    } finally {
-      lock.current = false;
-      selection.setPending(false);
-    }
-  }
+  const options: TableDeletionOptions<T> = {
+    onDelete,
+    prepare,
+    onComplete: () => {
+      if (labels.bulkDeleted) notify(labels.bulkDeleted);
+    },
+  };
+  const failure = deletion.failure
+    ? (errorMessage?.(deletion.failure.cause) ??
+      (deletion.failure.stage === "prepare" ? labels.bulkPrepareError : labels.bulkDeleteError))
+    : "";
   const actionLabel = `${labels.deleteSelected} (${selection.selected.length})`;
   const actionDisabled = disabled || selection.pending || selection.selected.length === 0;
   return (
@@ -163,35 +265,59 @@ export function TableBulkDelete<T extends { id: string }>({
               "size-10 p-0 md:size-8",
             )}
             disabled={actionDisabled}
-            onClick={() => void open()}
+            onClick={() => {
+              if (!actionDisabled) deletion.open(options);
+            }}
           >
             <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
           </button>
         </IconTooltip>
       </div>
       <Dialog.Root
-        open={deleting.length > 0}
+        open={deletion.items.length > 0}
         onOpenChange={(open) => {
-          if (!open && !lock.current) setDeleting([]);
+          if (!open) deletion.close();
         }}
       >
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
-            <Dialog.Title className="text-lg font-semibold">{labels.bulkDeleteTitle}</Dialog.Title>
-            <Dialog.Description className="text-sm text-muted-foreground">
-              {description ?? labels.bulkDeleteDescription}
-            </Dialog.Description>
+          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 scroll-py-32 gap-4 overflow-y-auto rounded-xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
+            <div
+              data-dialog-header
+              className="sticky top-0 z-20 -mx-6 space-y-2 bg-popover px-6 pt-5 pb-0"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+                  {labels.bulkDeleteTitle}
+                </Dialog.Title>
+                <IconTooltip label={labels.bulkClose ?? labels.bulkCancel}>
+                  <Dialog.Close
+                    type="button"
+                    aria-label={labels.bulkClose ?? labels.bulkCancel}
+                    disabled={selection.pending}
+                    className={cn(buttonClass, "size-10 shrink-0 p-0 md:size-8")}
+                  >
+                    <XIcon className="size-4 shrink-0" aria-hidden="true" />
+                  </Dialog.Close>
+                </IconTooltip>
+              </div>
+              <Dialog.Description className="text-sm text-muted-foreground">
+                {description ?? labels.bulkDeleteDescription}
+              </Dialog.Description>
+            </div>
             <ul className="max-h-48 list-inside list-disc overflow-y-auto text-sm">
-              {deleting.map(({ item }) => (
+              {deletion.items.map((item) => (
                 <li key={item.id} className="break-words">
                   {getName(item)}
                 </li>
               ))}
             </ul>
             {prepare && (
-              <div className="h-32 overflow-y-auto" aria-busy={selection.pending && !ready}>
-                {details ??
+              <div
+                className="h-32 overflow-y-auto"
+                aria-busy={selection.pending && !deletion.ready}
+              >
+                {deletion.details ??
                   (selection.pending && (
                     <output className="block text-sm text-muted-foreground">
                       {labels.bulkPending}
@@ -199,10 +325,13 @@ export function TableBulkDelete<T extends { id: string }>({
                   ))}
               </div>
             )}
-            <div className="h-12 overflow-y-auto text-sm text-destructive">
+            <div className="h-10 overflow-y-auto text-sm text-destructive">
               {failure && <p role="alert">{failure}</p>}
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            >
               <Dialog.Close className={buttonClass} disabled={selection.pending}>
                 {labels.bulkCancel}
               </Dialog.Close>
@@ -210,45 +339,13 @@ export function TableBulkDelete<T extends { id: string }>({
                 type="button"
                 className={cn(buttonClass, destructiveClass)}
                 disabled={disabled || selection.pending}
-                onClick={async () => {
-                  if (lock.current || disabled) return;
-                  lock.current = true;
-                  selection.setPending(true);
-                  setFailure("");
-                  const failed: typeof deleting = [];
-                  let reason: unknown;
-                  try {
-                    if (!ready) {
-                      await prepareDeletion(deleting);
-                      return;
-                    }
-                    for (const entry of deleting) {
-                      if (!mounted.current) break;
-                      try {
-                        await selection.delete(entry.item.id, () =>
-                          onDelete(entry.item, entry.requestId),
-                        );
-                        selection.remove(entry.item.id);
-                      } catch (error) {
-                        failed.push(entry);
-                        reason = error;
-                      }
-                    }
-                    if (!mounted.current) return;
-                    setDeleting(failed);
-                    if (failed.length) {
-                      setFailure(errorMessage?.(reason) ?? labels.bulkDeleteError);
-                      await prepareDeletion(failed);
-                    } else if (labels.bulkDeleted) notify(labels.bulkDeleted);
-                  } finally {
-                    lock.current = false;
-                    selection.setPending(false);
-                  }
+                onClick={() => {
+                  if (!disabled) void deletion.confirm(options);
                 }}
               >
                 {selection.pending
                   ? labels.bulkPending
-                  : ready
+                  : deletion.ready
                     ? labels.bulkConfirm
                     : labels.bulkRetry}
               </button>

@@ -57,8 +57,9 @@ export const customerLabels = {
   deleteCustomer: "Delete customer",
   deleteDescription: (name: string) => `Delete ${name}? This action cannot be undone.`,
   cancel: "Cancel",
+  close: "Close",
   confirmDelete: "Delete",
   deleted: "Customer deleted.",
 };
 
-export type CustomersLabels = typeof customerLabels;
+export type CustomersLabels = Omit<typeof customerLabels, "close"> & { close?: string };

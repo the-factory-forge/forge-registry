@@ -30,7 +30,6 @@
 | UI         | `animations`                                                     | FadeUp/FadeIn/ScaleIn/Stagger/HeroAnimation/ImageReveal                        | ✅     |
 | UI         | `reveal`                                                         | Scroll-triggered fade-up (useInView + post-hydration — actually plays)         | ✅     |
 | UI         | `share-button`                                                   | Web Share API + clipboard fallback                                             | ✅     |
-| UI         | `back-to-top`                                                    | Floating scroll-to-top                                                         | ✅     |
 | UI         | `section-heading`                                                | Eyebrow + title + subtitle                                                     | ✅     |
 | UI         | `image-with-fallback`                                            | Image shim + error placeholder                                                 | ✅     |
 | UI         | `lightbox`                                                       | Click-to-enlarge + Escape/overlay dismiss                                      | ✅     |

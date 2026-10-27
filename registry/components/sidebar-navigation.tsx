@@ -10,7 +10,14 @@ import { cn } from "@/components/utils/cn";
 import { itemIsActive } from "@/components/utils/intranet-sidebar-active";
 
 export type SidebarLinkProps = React.ComponentProps<"a"> & { href: string };
-type NavItemBase = { id: string; label: string; icon?: React.ReactNode; onNavigate?: () => void };
+type NavItemBase = {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  /** Non-interactive status or count, with its accessible description supplied by the host. */
+  badge?: React.ReactNode;
+  onNavigate?: () => void;
+};
 export type SidebarNavItem = NavItemBase &
   (
     | {
@@ -57,7 +64,7 @@ export interface SidebarNavigationProps {
 }
 
 const sidebarFocusClassName = "outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
-export const sidebarNavItemClass = `relative flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-lg border-l-2 border-transparent px-2 py-1.5 text-sm text-sidebar-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
+export const sidebarNavItemClass = `relative flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-none border-l-2 border-transparent px-2 py-1.5 text-sm text-sidebar-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ${sidebarFocusClassName}`;
 export const sidebarNavActiveClass =
   "rounded-l-none border-sidebar-primary bg-sidebar-accent/40 font-semibold text-sidebar-primary";
 
@@ -107,6 +114,7 @@ function NavigationItem({
         </span>
       )}
       <span className="min-w-0 flex-1 text-left wrap-anywhere">{item.label}</span>
+      {item.badge != null && <span className="shrink-0">{item.badge}</span>}
     </>
   );
   const link = item.onSelect ? (
@@ -155,8 +163,8 @@ function NavigationItem({
     return (
       <li>
         {link || (
-          <p className="px-2 pt-2 text-xs font-medium text-muted-foreground uppercase">
-            {item.label}
+          <p className="flex items-center gap-2 px-2 pt-2 text-xs font-medium text-muted-foreground uppercase">
+            {label}
           </p>
         )}
         {childList}

@@ -14,7 +14,6 @@
 
 :root {
   color-scheme: light dark;
-  scrollbar-gutter: stable;
   --background: light-dark(#ffffff, #000000);
   --foreground: light-dark(#000000, #ffffff);
   --card: var(--background);
@@ -31,6 +30,14 @@
   --accent-foreground: var(--primary);
   --destructive: light-dark(oklch(0.58 0.22 27), oklch(0.704 0.191 22.216));
   --destructive-foreground: light-dark(#ffffff, #000000);
+  --showroom-component: light-dark(#eff6ff, #10213d);
+  --showroom-component-foreground: light-dark(#1e40af, #93c5fd);
+  --showroom-layout: light-dark(#f5f3ff, #26183d);
+  --showroom-layout-foreground: light-dark(#6d28d9, #c4b5fd);
+  --showroom-page: light-dark(#e9f6f3, #102b28);
+  --showroom-page-foreground: light-dark(#0f6662, #83d8cb);
+  --showroom-plugin: light-dark(#fff8db, #2b230c);
+  --showroom-plugin-foreground: light-dark(#806000, #e5bf4d);
   --status-success: light-dark(#dcfce7, #052e16);
   --status-success-foreground: light-dark(#166534, #86efac);
   --status-pending: light-dark(#ffedd5, #431407);
@@ -81,6 +88,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-showroom-category: var(--showroom-category);
+  --color-showroom-category-foreground: var(--showroom-category-foreground);
   --color-status-success: var(--status-success);
   --color-status-success-foreground: var(--status-success-foreground);
   --color-status-pending: var(--status-pending);
@@ -117,6 +126,26 @@
   --animate-out: exit 150ms ease-in forwards;
 }
 
+[data-showroom-category="Component"] {
+  --showroom-category: var(--showroom-component);
+  --showroom-category-foreground: var(--showroom-component-foreground);
+}
+
+[data-showroom-category="Layout"] {
+  --showroom-category: var(--showroom-layout);
+  --showroom-category-foreground: var(--showroom-layout-foreground);
+}
+
+[data-showroom-category="Page"] {
+  --showroom-category: var(--showroom-page);
+  --showroom-category-foreground: var(--showroom-page-foreground);
+}
+
+[data-showroom-category="Plugin"] {
+  --showroom-category: var(--showroom-plugin);
+  --showroom-category-foreground: var(--showroom-plugin-foreground);
+}
+
 .light {
   color-scheme: light;
 }
@@ -129,10 +158,15 @@
 :root {
   --showroom-header-height: 3.5rem;
   --showroom-max-width: var(--container-7xl);
+  --showroom-device-width: 100%;
   --showroom-gutter: clamp(1rem, 3vw, 2rem);
 }
 
 .showroom-content {
+  width: 100%;
+  max-width: var(--showroom-device-width);
+  margin-inline: auto;
+  container: showroom / inline-size;
   min-height: calc(100svh - var(--showroom-header-height));
 }
 
@@ -164,31 +198,65 @@
 }
 
 .showroom-controls {
-  border-bottom: 1px solid var(--border);
   padding: 1.5rem;
   overflow-wrap: anywhere;
 }
 
-@media (min-width: 64rem) {
+.showroom-frame[data-controls-open="true"] > .showroom-controls {
+  border-bottom: 1px solid var(--border);
+}
+
+@container showroom (width < 40rem) {
+  .showroom-frame[data-controls-open="false"] {
+    display: flow-root;
+  }
+  .showroom-frame[data-controls-open="false"] > .showroom-controls {
+    float: right;
+    position: relative;
+    z-index: 1;
+    margin: var(--showroom-gutter);
+    padding: 0;
+  }
+  .showroom-frame[data-controls-open="false"][data-width="full"] > .showroom-stage {
+    clear: both;
+  }
+}
+
+@container showroom (min-width: 64rem) {
   .showroom-frame[data-has-controls="true"] {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 18rem;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
+  }
+  .showroom-frame[data-has-controls="true"][data-controls-open="true"] {
+    grid-template-columns: minmax(0, 1fr) 18rem;
   }
   .showroom-controls {
     grid-column: 2;
     grid-row: 1;
     position: sticky;
-    top: var(--showroom-header-height);
-    height: var(--showroom-preview-height);
+    top: var(--showroom-top-offset);
+    max-height: var(--showroom-preview-height);
     overflow: auto;
     overscroll-behavior: contain;
+  }
+  .showroom-frame[data-controls-open="true"] > .showroom-controls {
+    height: var(--showroom-preview-height);
     border-bottom: 0;
     border-left: 1px solid var(--border);
   }
   .showroom-stage {
     grid-column: 1;
     grid-row: 1;
+  }
+  .showroom-frame[data-has-controls="true"]:not([data-width="full"]) > .showroom-stage {
+    /* Center in the whole frame, stopping before the settings column. */
+    margin-inline: clamp(
+        0px,
+        calc((100cqw - var(--showroom-max-width)) / 2),
+        calc(100% - var(--showroom-max-width))
+      )
+      0;
   }
 }
 
@@ -207,7 +275,7 @@
 }
 
 .showroom-frame[data-width="narrow"] > .showroom-stage {
-  max-width: 48rem;
+  --showroom-max-width: 48rem;
 }
 .showroom-frame[data-width="full"] > .showroom-stage {
   max-width: none;
@@ -230,6 +298,9 @@
 }
 
 @media print {
+  .showroom-content {
+    max-width: none;
+  }
   :root {
     --showroom-header-height: 0rem;
   }

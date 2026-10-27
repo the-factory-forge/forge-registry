@@ -15,7 +15,7 @@ A server companion implements persistence or server operations for the same
 feature. Hosts own routing, authorization, data, branding,
 translations and transport; installation does not enable routes or apply migrations.
 
-The shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+The registry-owned [Plugins specification](../openspec/specs/plugins/spec.md)
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
@@ -28,21 +28,21 @@ Auth account pages also support host-supplied plugin tabs and optional confirmed
 email changes. About and plugin panels preserve form state across tab switches;
 see [account sections and email](./intranet-auth.md#account-sections-and-email).
 
-Auth agent keys support row selection, select-all with a mixed state, and confirmed
+Auth agent keys use the shared [deletion session](./table-selection.md) for row selection, select-all with a mixed state, and confirmed
 bulk deletion through the existing host callback. Failed keys remain available for
 retry; see [account security](./intranet-auth.md#account-profile-and-security).
 
-| Plugin         | Purpose                                                                                                                                                                            | Optional server item      | Guide                                       |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
-| `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                             | Host auth provider        | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                                           | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                                    | Host callbacks            | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                             | Host callbacks            | [Projects](./projects.md)                   |
-| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                                                         | `drive-storage`           | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles in PostgreSQL, optional S3 image uploads with host-configured cropping, publishing, categories, automatic public search and confirmed post deletion | `blogs-storage`           | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing                                                | `menus-storage`           | [Menus](./menus.md)                         |
-| `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                                                                 | Server transport included | [Mailing](./mailing.md)                     |
-| `reservations` | Appointments or overnight stays, policies and calendars                                                                                                                            | `reservations-storage`    | [Reservations](./reservations.md)           |
+| Plugin         | Purpose                                                                                                                                    | Optional server item      | Guide                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------- |
+| `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                     | Host auth provider        | [Auth](./intranet-auth.md)                  |
+| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                   | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
+| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                            | `customers-storage`       | [Customers](./customers.md)                 |
+| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                     | `projects-storage`        | [Projects](./projects.md)                   |
+| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                 | `drive-storage`           | [Drive](./drive.md)                         |
+| `blogs`        | Multilingual Markdown articles and localized history in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`           | [Blogs](./blogs.md)                         |
+| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing        | `menus-storage`           | [Menus](./menus.md)                         |
+| `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                         | Server transport included | [Mailing](./mailing.md)                     |
+| `reservations` | Appointments or overnight stays, policies, calendars and dedicated staff creation                                                          | `reservations-storage`    | [Reservations](./reservations.md)           |
 
 Drive folder menus support child-folder creation and ZIP downloads alongside
 uploads, rename, duplication and trash. ZIPs use the existing authenticated reads
@@ -63,6 +63,42 @@ with `blog`; Drive uses its scope type, normalized to `menu_item` for Menus medi
 Existing modifiers are retained, except `original`; absent modifiers stay absent. See
 [Drive migration and naming](./drive.md#object-filenames) and
 [Blog naming](./blogs.md#object-filenames) before adopting the server companions.
+
+Blogs separates authors from editors, supplies staff collaboration permissions,
+requires review of legacy attribution and crops covers by default. Current account
+bylines and retained signatures use host name/deletion adapters; see
+[authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
+
+The Blog editor and Menu editor are separate domain modules, each owning its forms,
+save flow and unsaved-change protection. Their existing page interfaces stay stable.
+The Blog editor also owns asynchronous completion: replaced clients or departed
+editors cannot accept late results, feedback or host callbacks. Client replacement
+preserves unsaved inputs while invalidating old operations and confirmations; see
+[Blog editor adoption](./blogs.md#updating-consumers).
+Blog category and menu taxonomy editors expose the same optional router guard as
+their content editors. Hosts can offer Save, Discard and Cancel for browser
+Back/Forward while protecting pending saves; see the [Blogs](./blogs.md#history-interface)
+and [Menus](./menus.md) integration guides.
+
+## Service input validation
+
+Menus, Drive and Blogs parse service request inputs with Zod before using their
+fields or writing data. Malformed inputs return the existing plugin `INVALID`
+error. Schemas strip unknown object fields; Menu item payloads cannot override
+record IDs or versions. Optional Menu sizes, spice levels and label icons retain
+their existing omission semantics. Drive host listing cursors remain opaque.
+Blog drafts may remain incomplete until publication.
+
+Authorization, relationships, stale-version checks, idempotency, image inspection,
+and storage limits remain service business rules. Host adapters still own session
+and transport protection. Install each updated companion with its dependencies;
+no database migration is needed for this validation change.
+
+Recorded consumers requiring separate adoption review are Terminal60 (Menus/Drive),
+Sinigest (Drive), L’Aspic and Osthoepathie Seebach (Blogs), plus custom TC integrations.
+The template does not install these optional plugins by default. Installed consumer
+source and deployments were not updated by this change; other installations remain
+uninspected.
 
 ## Storage encryption and access
 
@@ -99,24 +135,47 @@ Employee photos are optional and use the shared crop dialog. Deletion can review
 linked records from multiple host adapters and commit their decisions atomically;
 see [employee photos and related data](./employees.md).
 
+## Shared loading feedback
+
+All UI plugins declare [`@forge/loading-indicator`](./loading-indicator.md). Their
+read/refresh states feed one host-owned indicator beneath the navbar, with a 300ms
+hold after all loading completes. Existing errors, local feedback and disabled
+states remain intact. Install the new dependency and place its provider and
+indicator once in the host shell when adopting the source.
+
 ## Shared presentation
 
-Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md).
+Plugins follow the [Shared UI contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md).
 Every password field includes a trailing Show/Hide eye button with translated
 accessible names and icon tooltips. Auth, employee creation and customer creation
 share this behavior without changing their password values or submission rules.
 Primary detail statuses sit at the top right, opposite the title; table statuses
 stay in their columns. Enabled controls ship pointer cursors, disabled controls
 retain disabled behavior, and adjacent actions keep visible gaps. Refresh,
-settings, create, edit and delete use the shared Lucide conventions. Icon-only
+settings, create, edit and delete use the shared Lucide conventions. Refresh/reload
+controls show only the refresh icon, retaining their translated accessible name and tooltip. Icon-only
 buttons and action links use [`@forge/icon-tooltip`](./icon-tooltip.md) with their
 translated accessible names, including edit/delete and close controls. Existing
 confirmations, disabled states and visible action labels remain in place.
+Every dialog has a top-right X control, with a translated accessible name and
+tooltip. It follows the existing dismissal and pending rules, with space for long
+titles on mobile. New close labels can be translated through the existing labels
+props; Reservations passes its existing `close` label through every modal.
+Single-input create/edit dialogs focus their editable field when opened, including
+on touch devices. Drive applies this to folder creation, rename and duplication;
+confirmation dialogs retain their existing focus behavior.
+Modal titles and close controls stay pinned at the top, and bottom actions stay
+pinned at the bottom while long content scrolls. Both regions use the dialog
+surface color so fields cannot show through them; actions wrap on narrow screens.
+Keep footer positioning relative to the whole dialog: modal forms and conditional
+result wrappers use `contents` so their boxes cannot trap sticky actions below
+the viewport. Preserve the form element, submission handling and field spacing.
 
 Customer, Project, Employee, Blog, Menu and Drive tables share header styling
 and right-aligned row actions with 8px gaps. Action buttons stay on one line;
-columns stay pinned on desktop and scroll with the row on mobile so they do not
-cover record names or statuses. Keep row-specific unavailable actions visible and
+action headers and cells stay pinned to the right edge at every viewport width,
+including mobile, while the other columns scroll beneath their themed surface.
+Auth agent-key tables use the same pinned action header and cell styles. Keep row-specific unavailable actions visible and
 disabled in their usual positions; follow [table action alignment](../DESIGN.md#table-action-alignment).
 Employees always shows verification/invitation, edit and delete in that order:
 verified accounts disable verification, and the current user disables delete.
@@ -128,12 +187,16 @@ Paginated plugin tables share [`@forge/table-pagination`](./table-pagination.md)
 Blogs and Employees supply totals and page numbers. Drive shows the current page
 and uses Previous/Next with cursor history, without inventing totals. Customers,
 Projects and Menus render their supplied lists without pagination. Reservations
-uses calendar navigation. Labels and data callbacks stay host-owned.
+uses numbered pages in List and date navigation in its calendar views. Labels and data callbacks stay host-owned.
 
 Table headers and their surrounding panels stay visible during loading, empty
 results and errors. Feedback belongs in a spanning table row; background loading
 retains supplied rows, announces progress and disables mutations and pagination.
 Hosts using controlled lists must keep their last loaded rows while fetching.
+Drive also retains its table listings and folder-tree pages after read failures,
+with mutations and pagination disabled until recovery; denied or missing listings
+clear their rows. Tree cursor pages accumulate folders; table reads replace pages.
+See the [Drive guide](./drive.md) for cancellation and authenticated-session resets.
 Employee tables still render nothing without an authenticated admin role.
 
 Customer verification and project lifecycle badges open an accessible status menu
@@ -202,7 +265,7 @@ incomplete drafts remain saveable. Hosts can reuse the helper for their own edit
 
 ## Table selection and bulk deletion
 
-Customers, Projects (including embedded lists), Employees, Blogs, Menu items,
+Auth keys, Customers, Projects (including embedded lists), Employees, Blogs, Menu items,
 and Drive file/trash tables use [`@forge/table-selection`](./table-selection.md).
 Select individual rows or all eligible rows on the current filtered page. The
 header checkbox shows a mixed state for partial selection. The trash action stays
@@ -219,11 +282,23 @@ no row deletion and do not offer bulk selection.
 Install the shared helper with each affected plugin and translate its added
 labels through the existing plugin labels prop. No new batch server API is
 required: deletion invokes the existing callback once per selected row.
+The helper owns confirmation, pending state and retries. Scope changes cancel
+unconfirmed previews; confirmed batches may finish across host refreshes, while
+unmounting the control stops later requests. Employee retention deletion remains
+a separate transaction-backed flow. See the [source adoption handoff](./HANDOFF-bulk-deletion-session.md)
+before updating custom helper callers or installing Auth's new dependency closure.
 
 ## Optimistic actions
 
+Customers and Projects share list/form-owned single-record confirmations through
+`@forge/record-deletion`. See [their deletion lifecycle](./optimistic-actions.md#customers-and-projects-deletion)
+for view changes, host refreshes, retry and focus recovery.
+
 Plugins use TanStack Query mutations through [`@forge/optimistic-action`](./optimistic-actions.md).
 Predictable changes appear before the request completes and revert on rejection.
+Ordinary completion is scoped to the submitting client/resource and mounted view.
+Reservations explicit Refresh restarts selection and rescheduling; Drive recovery
+and confirmed deletion keep their documented lifetimes.
 Forms retain drafts, confirmations retain recovery controls, and success toasts wait
 for server confirmation. Hosts keep their existing data and transport callbacks. Bulk deletion keeps its
 confirmation open while existing callbacks settle, removes each confirmed
@@ -236,3 +311,11 @@ the generated source diff. A companion may install its parent's UI and declared
 feature dependencies; it still needs explicit server setup. Each guide describes
 those dependencies and any migrations. Validate the host's themes, permissions,
 locale routing and workflows before deploying an updated consumer.
+
+## Persistence ownership
+
+Persistent companions use typed Drizzle queries and server-only schema exports.
+Each host composes authentication and installed plugins into one schema and owns
+its migration history. Customers and Projects now offer `customers-storage` and
+`projects-storage`; Mailing remains stateless. Read [plugin persistence](./persistence.md)
+for schema composition, migration generation/review, backfills and cutover.

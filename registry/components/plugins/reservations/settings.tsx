@@ -27,6 +27,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  iconButtonClass,
   primaryClass,
   fieldClass,
   pageClass,
@@ -68,45 +69,57 @@ function ReservationSettingsPageContent({
   const optimistic = useOptimisticAction(data.value, client);
   const config = optimistic.value;
   const notify = useActionToast();
-  const action = useReservationAction();
   const [archiving, setArchiving] = useState<{ kind: "service" | "resource"; id: string }>();
   const labels = getReservationLabels(overrides, config?.mode);
   const archive = async () => {
-    if (!archiving || !config) return;
+    if (!archiving || !config || optimistic.pending || !optimistic.isCurrent()) return;
     const { kind, id } = archiving;
-    await optimistic.run(
-      (current) => {
-        if (!current) return current;
-        const key = kind === "service" ? "services" : "resources";
-        return {
-          ...current,
-          [key]: current[key].map((entry) =>
-            entry.id === id ? { ...entry, archived: true, active: false } : entry,
-          ),
-        };
-      },
-      async () => {
-        if (kind === "service") {
-          const entry = config.services.find((entry) => entry.id === id);
-          if (!entry) return;
-          const saved = await client.saveService({ ...entry, archived: true });
-          data.setValue((current) => ({
+    await optimistic
+      .run(
+        (current) => {
+          if (!current) return current;
+          const key = kind === "service" ? "services" : "resources";
+          return {
             ...current,
-            services: current.services.map((entry) => (entry.id === id ? saved : entry)),
-          }));
-        } else {
+            [key]: current[key].map((entry) =>
+              entry.id === id ? { ...entry, archived: true, active: false } : entry,
+            ),
+          };
+        },
+        async () => {
+          if (kind === "service") {
+            const entry = config.services.find((entry) => entry.id === id);
+            if (!entry) return;
+            return { kind, saved: await client.saveService({ ...entry, archived: true }) };
+          }
           const entry = config.resources.find((entry) => entry.id === id);
           if (!entry) return;
-          const saved = await client.saveResource({ ...entry, archived: true });
-          data.setValue((current) => ({
-            ...current,
-            resources: current.resources.map((entry) => (entry.id === id ? saved : entry)),
-          }));
-        }
-      },
-    );
-    notify(labels.saved);
-    setArchiving(undefined);
+          return { kind, saved: await client.saveResource({ ...entry, archived: true }) };
+        },
+        (result) => {
+          if (!result) return;
+          data.setValue((current) =>
+            result.kind === "service"
+              ? {
+                  ...current,
+                  services: current.services.map((entry) =>
+                    entry.id === id ? result.saved : entry,
+                  ),
+                }
+              : {
+                  ...current,
+                  resources: current.resources.map((entry) =>
+                    entry.id === id ? result.saved : entry,
+                  ),
+                },
+          );
+          notify(labels.saved);
+          setArchiving(undefined);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error for the confirmation and retry.
+      });
   };
   const item =
     editor?.kind === "service"
@@ -125,10 +138,16 @@ function ReservationSettingsPageContent({
       </h1>
       <ErrorNotice error={data.error} labels={labels} />
       {data.error ? (
-        <button className={buttonClass} onClick={data.reload}>
-          <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.refresh}
-        </button>
+        <IconTooltip label={labels.refresh}>
+          <button
+            type="button"
+            aria-label={labels.refresh}
+            className={iconButtonClass}
+            onClick={data.reload}
+          >
+            <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+          </button>
+        </IconTooltip>
       ) : !config ? (
         <output className="block">{labels.loading}</output>
       ) : editor ? (
@@ -198,7 +217,7 @@ function ReservationSettingsPageContent({
                       <ArchiveButton
                         labels={labels}
                         name={entry.name}
-                        disabled={action.busy || entry.archived}
+                        disabled={optimistic.pending || entry.archived}
                         onClick={() => setArchiving({ kind, id: entry.id })}
                       />
                     </div>
@@ -210,7 +229,8 @@ function ReservationSettingsPageContent({
           {archiving && (
             <ArchiveDialog
               labels={labels}
-              action={action}
+              pending={optimistic.pending}
+              error={optimistic.error}
               onClose={() => setArchiving(undefined)}
               onArchive={archive}
             />
@@ -232,45 +252,52 @@ function BusinessSettings({
 }) {
   const [draft, setDraft] = useState(value);
   const notify = useActionToast();
-  const action = useReservationAction();
+  const action = useReservationAction(client);
   return (
     <form
       className={cn(panelClass, "space-y-4")}
       onSubmit={(e) => {
         e.preventDefault();
 
-        void action.run(async () => {
-          setDraft(await client.saveSettings(draft));
-          notify(labels.saved);
-        });
+        void action.run(
+          async () => {
+            return client.saveSettings(draft);
+          },
+          (saved) => {
+            setDraft(saved);
+            notify(labels.saved);
+          },
+        );
       }}
     >
-      <h2 className="text-xl font-semibold">{labels.business}</h2>
-      <ErrorNotice error={action.error} labels={labels} />
-      <Field label={labels.timeZone}>
-        <input
-          className={fieldClass}
-          required
-          value={draft.timeZone}
-          placeholder="Europe/Zurich"
-          onChange={(e) => {
-            setDraft({ ...draft, timeZone: e.target.value });
-          }}
-        />
-      </Field>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={draft.publicBookingEnabled}
-          onChange={(e) => {
-            setDraft({ ...draft, publicBookingEnabled: e.target.checked });
-          }}
-        />
-        {labels.publicEnabled}
-      </label>
-      <button className={primaryClass} disabled={action.busy}>
-        {action.busy ? labels.saving : labels.save}
-      </button>
+      <fieldset disabled={action.busy} className="contents space-y-4">
+        <h2 className="text-xl font-semibold">{labels.business}</h2>
+        <ErrorNotice error={action.error} labels={labels} />
+        <Field label={labels.timeZone}>
+          <input
+            className={fieldClass}
+            required
+            value={draft.timeZone}
+            placeholder="Europe/Zurich"
+            onChange={(e) => {
+              setDraft({ ...draft, timeZone: e.target.value });
+            }}
+          />
+        </Field>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={draft.publicBookingEnabled}
+            onChange={(e) => {
+              setDraft({ ...draft, publicBookingEnabled: e.target.checked });
+            }}
+          />
+          {labels.publicEnabled}
+        </label>
+        <button className={primaryClass} disabled={action.busy}>
+          {action.busy ? labels.saving : labels.save}
+        </button>
+      </fieldset>
     </form>
   );
 }
@@ -315,176 +342,187 @@ function ServiceEditor({
       },
   );
   const notify = useActionToast();
-  const optimistic = useOptimisticAction(savedDraft);
+  const optimistic = useOptimisticAction(savedDraft, client);
   const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
-  const action = useReservationAction();
   const save = async (archive = false) => {
+    if (optimistic.pending || !optimistic.isCurrent()) return;
     const input = {
       ...draft,
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    setDraft((current) => ({ ...current, id: input.id }));
-    const next = await optimistic.run(
-      () => input,
-      () => client.saveService(input),
-    );
-    setDraft(next);
-    notify(labels.saved);
-    setArchiving(false);
-    onSaved(next.id);
+    await optimistic
+      .run(
+        () => input,
+        () => {
+          setDraft((current) => ({ ...current, id: input.id }));
+          return client.saveService(input);
+        },
+        (next) => {
+          setDraft(next);
+          notify(labels.saved);
+          setArchiving(false);
+          onSaved(next.id);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error while the draft remains available for retry.
+      });
   };
   return (
     <form
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
-        void action.run(() => save());
+        void save();
       }}
     >
-      <ErrorNotice error={action.error} labels={labels} />
-      <div className={cn(panelClass, "space-y-4")}>
-        <Field label={labels.name}>
-          <input
-            className={fieldClass}
-            required
-            maxLength={120}
-            value={draft.name}
-            onChange={(e) => {
-              setDraft({ ...draft, name: e.target.value });
-            }}
-          />
-        </Field>
-        <Field label={labels.description}>
-          <textarea
-            className={fieldClass}
-            maxLength={2000}
-            value={draft.description}
-            onChange={(e) => {
-              setDraft({ ...draft, description: e.target.value });
-            }}
-          />
-        </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={draft.active}
-            disabled={draft.archived}
-            onChange={(e) => {
-              setDraft({ ...draft, active: e.target.checked });
-            }}
-          />
-          {labels.active}
-        </label>
-      </div>
-      <fieldset className={cn(panelClass, "space-y-3")}>
-        <legend className="px-2 font-medium">{labels.eligibleResources}</legend>
-        {config.resources
-          .filter((r) => !r.archived)
-          .map((r) => (
-            <label key={r.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.resourceIds.includes(r.id)}
-                onChange={(e) => {
-                  setDraft({
-                    ...draft,
-                    resourceIds: e.target.checked
-                      ? [...draft.resourceIds, r.id]
-                      : draft.resourceIds.filter((id) => id !== r.id),
-                  });
-                }}
-              />
-              {r.name}
-            </label>
-          ))}
-      </fieldset>
-      <div className={cn(panelClass, "space-y-5")}>
-        <p className="text-sm text-muted-foreground">{labels.policyHelp}</p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {policyFields
-            .filter(([field]) => field !== "durationMinutes" || draft.mode !== "stay")
-            .map(([field, label, min, max]) => (
-              <Field key={field} label={labels[label]}>
+      <fieldset disabled={optimistic.pending} className="contents space-y-6">
+        <ErrorNotice error={optimistic.error} labels={labels} />
+        <div className={cn(panelClass, "space-y-4")}>
+          <Field label={labels.name}>
+            <input
+              className={fieldClass}
+              required
+              maxLength={120}
+              value={draft.name}
+              onChange={(e) => {
+                setDraft({ ...draft, name: e.target.value });
+              }}
+            />
+          </Field>
+          <Field label={labels.description}>
+            <textarea
+              className={fieldClass}
+              maxLength={2000}
+              value={draft.description}
+              onChange={(e) => {
+                setDraft({ ...draft, description: e.target.value });
+              }}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.active}
+              disabled={draft.archived}
+              onChange={(e) => {
+                setDraft({ ...draft, active: e.target.checked });
+              }}
+            />
+            {labels.active}
+          </label>
+        </div>
+        <fieldset className={cn(panelClass, "space-y-3")}>
+          <legend className="px-2 font-medium">{labels.eligibleResources}</legend>
+          {config.resources
+            .filter((r) => !r.archived)
+            .map((r) => (
+              <label key={r.id} className="flex items-center gap-2 text-sm">
                 <input
-                  className={fieldClass}
-                  type="number"
-                  required
-                  min={min}
-                  max={max}
-                  step={1}
-                  value={draft[field] || (field === "durationMinutes" ? "" : 0)}
+                  type="checkbox"
+                  checked={draft.resourceIds.includes(r.id)}
                   onChange={(e) => {
-                    setDraft({ ...draft, [field]: e.target.valueAsNumber });
+                    setDraft({
+                      ...draft,
+                      resourceIds: e.target.checked
+                        ? [...draft.resourceIds, r.id]
+                        : draft.resourceIds.filter((id) => id !== r.id),
+                    });
                   }}
                 />
-              </Field>
+                {r.name}
+              </label>
             ))}
-          {draft.mode === "stay" && (
-            <>
-              {(["arrivalStart", "arrivalEnd", "checkoutTime"] as const).map((field) => (
-                <Field key={field} label={labels[field]}>
+        </fieldset>
+        <div className={cn(panelClass, "space-y-5")}>
+          <p className="text-sm text-muted-foreground">{labels.policyHelp}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {policyFields
+              .filter(([field]) => field !== "durationMinutes" || draft.mode !== "stay")
+              .map(([field, label, min, max]) => (
+                <Field key={field} label={labels[label]}>
                   <input
-                    type="time"
-                    required
                     className={fieldClass}
-                    value={draft[field]}
-                    onChange={(e) => {
-                      setDraft({ ...draft, [field]: e.target.value });
-                    }}
-                  />
-                </Field>
-              ))}
-              {(["minNights", "maxNights"] as const).map((field) => (
-                <Field key={field} label={labels[field]}>
-                  <input
                     type="number"
                     required
-                    min={1}
-                    max={365}
+                    min={min}
+                    max={max}
                     step={1}
-                    className={fieldClass}
-                    value={draft[field]}
+                    value={draft[field] || (field === "durationMinutes" ? "" : 0)}
                     onChange={(e) => {
                       setDraft({ ...draft, [field]: e.target.valueAsNumber });
                     }}
                   />
                 </Field>
               ))}
-            </>
-          )}
-          <Field label={labels.approval}>
-            <NativeSelect
-              className={fieldClass}
-              value={draft.approval}
-              onChange={(e) => {
-                setDraft({ ...draft, approval: e.target.value as "automatic" | "manual" });
-              }}
-            >
-              <option value="automatic">{labels.automatic}</option>
-              <option value="manual">{labels.manual}</option>
-            </NativeSelect>
-          </Field>
+            {draft.mode === "stay" && (
+              <>
+                {(["arrivalStart", "arrivalEnd", "checkoutTime"] as const).map((field) => (
+                  <Field key={field} label={labels[field]}>
+                    <input
+                      type="time"
+                      required
+                      className={fieldClass}
+                      value={draft[field]}
+                      onChange={(e) => {
+                        setDraft({ ...draft, [field]: e.target.value });
+                      }}
+                    />
+                  </Field>
+                ))}
+                {(["minNights", "maxNights"] as const).map((field) => (
+                  <Field key={field} label={labels[field]}>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={365}
+                      step={1}
+                      className={fieldClass}
+                      value={draft[field]}
+                      onChange={(e) => {
+                        setDraft({ ...draft, [field]: e.target.valueAsNumber });
+                      }}
+                    />
+                  </Field>
+                ))}
+              </>
+            )}
+            <Field label={labels.approval}>
+              <NativeSelect
+                className={fieldClass}
+                value={draft.approval}
+                onChange={(e) => {
+                  setDraft({ ...draft, approval: e.target.value as "automatic" | "manual" });
+                }}
+              >
+                <option value="automatic">{labels.automatic}</option>
+                <option value="manual">{labels.manual}</option>
+              </NativeSelect>
+            </Field>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <button className={primaryClass} disabled={action.busy}>
-          {action.busy ? labels.saving : labels.save}
-        </button>
-        {draft.version > 0 && !draft.archived && (
-          <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
+        <div className="flex items-center gap-3">
+          <button className={primaryClass} disabled={optimistic.pending}>
+            {optimistic.pending ? labels.saving : labels.save}
+          </button>
+          {draft.version > 0 && !draft.archived && (
+            <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
+          )}
+          {draft.archived && <span>{labels.archived}</span>}
+        </div>
+        {archiving && (
+          <ArchiveDialog
+            labels={labels}
+            pending={optimistic.pending}
+            error={optimistic.error}
+            onClose={() => setArchiving(false)}
+            onArchive={() => save(true)}
+          />
         )}
-        {draft.archived && <span>{labels.archived}</span>}
-      </div>
-      {archiving && (
-        <ArchiveDialog
-          labels={labels}
-          action={action}
-          onClose={() => setArchiving(false)}
-          onArchive={() => save(true)}
-        />
-      )}
+      </fieldset>
     </form>
   );
 }
@@ -579,209 +617,220 @@ function ResourceEditor({
   );
   const [date, setDate] = useState("");
   const notify = useActionToast();
-  const optimistic = useOptimisticAction(savedDraft);
+  const optimistic = useOptimisticAction(savedDraft, client);
   const draft = optimistic.value;
   const [archiving, setArchiving] = useState(false);
-  const action = useReservationAction();
   const change = (value: ReservationResource) => {
     setDraft(value);
   };
   const save = async (archive = false) => {
+    if (optimistic.pending || !optimistic.isCurrent()) return;
     const input = {
       ...draft,
       id: draft.id || crypto.randomUUID(),
       archived: archive || draft.archived,
     };
-    setDraft((current) => ({ ...current, id: input.id }));
-    const next = await optimistic.run(
-      () => input,
-      () => client.saveResource(input),
-    );
-    setDraft(next);
-    notify(labels.saved);
-    setArchiving(false);
-    onSaved(next.id);
+    await optimistic
+      .run(
+        () => input,
+        () => {
+          setDraft((current) => ({ ...current, id: input.id }));
+          return client.saveResource(input);
+        },
+        (next) => {
+          setDraft(next);
+          notify(labels.saved);
+          setArchiving(false);
+          onSaved(next.id);
+        },
+      )
+      .catch(() => {
+        // The mutation retains the error while the draft remains available for retry.
+      });
   };
   return (
     <form
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
-        void action.run(() => save());
+        void save();
       }}
     >
-      <ErrorNotice error={action.error} labels={labels} />
-      <div className={cn(panelClass, "space-y-4")}>
-        <Field label={labels.name}>
-          <input
-            className={fieldClass}
-            required
-            maxLength={120}
-            value={draft.name}
-            onChange={(e) => change({ ...draft, name: e.target.value })}
-          />
-        </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={draft.active}
-            disabled={draft.archived}
-            onChange={(e) => change({ ...draft, active: e.target.checked })}
-          />
-          {labels.active}
-        </label>
-      </div>
-      {mode === "stay" ? (
+      <fieldset disabled={optimistic.pending} className="contents space-y-6">
+        <ErrorNotice error={optimistic.error} labels={labels} />
         <div className={cn(panelClass, "space-y-4")}>
-          <h2 className="text-xl font-semibold">{labels.blockedDates}</h2>
-          <p className="text-sm text-muted-foreground">{labels.closuresHelp}</p>
-          {(draft.blockedDates ?? []).map((block, index) => (
-            <div key={index} className="flex flex-wrap items-end gap-2">
-              {(["from", "through"] as const).map((field) => (
-                <Field
-                  key={field}
-                  label={field === "from" ? labels.blockedFrom : labels.blockedThrough}
-                >
-                  <input
-                    type="date"
-                    required
-                    className={fieldClass}
-                    value={block[field]}
-                    min={field === "through" ? block.from : undefined}
-                    onChange={(e) =>
+          <Field label={labels.name}>
+            <input
+              className={fieldClass}
+              required
+              maxLength={120}
+              value={draft.name}
+              onChange={(e) => change({ ...draft, name: e.target.value })}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.active}
+              disabled={draft.archived}
+              onChange={(e) => change({ ...draft, active: e.target.checked })}
+            />
+            {labels.active}
+          </label>
+        </div>
+        {mode === "stay" ? (
+          <div className={cn(panelClass, "space-y-4")}>
+            <h2 className="text-xl font-semibold">{labels.blockedDates}</h2>
+            <p className="text-sm text-muted-foreground">{labels.closuresHelp}</p>
+            {(draft.blockedDates ?? []).map((block, index) => (
+              <div key={index} className="flex flex-wrap items-end gap-2">
+                {(["from", "through"] as const).map((field) => (
+                  <Field
+                    key={field}
+                    label={field === "from" ? labels.blockedFrom : labels.blockedThrough}
+                  >
+                    <input
+                      type="date"
+                      required
+                      className={fieldClass}
+                      value={block[field]}
+                      min={field === "through" ? block.from : undefined}
+                      onChange={(e) =>
+                        change({
+                          ...draft,
+                          blockedDates: draft.blockedDates!.map((old, i) =>
+                            i === index ? { ...old, [field]: e.target.value } : old,
+                          ),
+                        })
+                      }
+                    />
+                  </Field>
+                ))}
+                <IconTooltip label={`${labels.remove} ${block.from}–${block.through}`}>
+                  <button
+                    type="button"
+                    className={cn(buttonClass, "size-10 p-0")}
+                    aria-label={`${labels.remove} ${block.from}–${block.through}`}
+                    onClick={() =>
                       change({
                         ...draft,
-                        blockedDates: draft.blockedDates!.map((old, i) =>
-                          i === index ? { ...old, [field]: e.target.value } : old,
-                        ),
+                        blockedDates: draft.blockedDates!.filter((_, i) => i !== index),
                       })
                     }
-                  />
-                </Field>
-              ))}
-              <IconTooltip label={`${labels.remove} ${block.from}–${block.through}`}>
-                <button
-                  type="button"
-                  className={cn(buttonClass, "size-10 p-0")}
-                  aria-label={`${labels.remove} ${block.from}–${block.through}`}
-                  onClick={() =>
-                    change({
-                      ...draft,
-                      blockedDates: draft.blockedDates!.filter((_, i) => i !== index),
-                    })
-                  }
-                >
-                  <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
-                </button>
-              </IconTooltip>
-            </div>
-          ))}
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={() =>
-              change({
-                ...draft,
-                blockedDates: [...(draft.blockedDates ?? []), { from: "", through: "" }],
-              })
-            }
-          >
-            <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-            {labels.addClosure}
-          </button>
-        </div>
-      ) : (
-        <>
-          <h2 className="text-xl font-semibold">{labels.hours}</h2>
-          <p className="text-sm text-muted-foreground">{labels.hoursHelp}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {Array.from({ length: 7 }, (_, i) => String(i + 1)).map((day) => (
-              <fieldset className={panelClass} key={day}>
-                <legend className="px-2 font-medium">
-                  {labels[`weekday${day}` as keyof ReservationLabels]}
-                </legend>
-                <HoursEditor
-                  value={draft.weeklyHours[day] ?? []}
-                  onChange={(hours) =>
-                    change({ ...draft, weeklyHours: { ...draft.weeklyHours, [day]: hours } })
-                  }
-                  labels={labels}
-                />
-              </fieldset>
+                  >
+                    <Trash2Icon aria-hidden="true" className="size-4 shrink-0" />
+                  </button>
+                </IconTooltip>
+              </div>
             ))}
+            <button
+              type="button"
+              className={buttonClass}
+              onClick={() =>
+                change({
+                  ...draft,
+                  blockedDates: [...(draft.blockedDates ?? []), { from: "", through: "" }],
+                })
+              }
+            >
+              <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
+              {labels.addClosure}
+            </button>
           </div>
-          <div className={cn(panelClass, "space-y-4")}>
-            <h2 className="text-xl font-semibold">{labels.exceptions}</h2>
-            <div className="flex flex-wrap items-end gap-3">
-              <Field label={labels.date}>
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </Field>
-              <button
-                type="button"
-                disabled={!date || date in draft.exceptions}
-                className={buttonClass}
-                onClick={() => {
-                  change({ ...draft, exceptions: { ...draft.exceptions, [date]: [] } });
-                  setDate("");
-                }}
-              >
-                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.addException}
-              </button>
-            </div>
-            {Object.entries(draft.exceptions)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([day, hours]) => (
-                <fieldset key={day} className="space-y-3 rounded-xl border border-border p-4">
-                  <legend className="px-2 font-medium">{day}</legend>
+        ) : (
+          <>
+            <h2 className="text-xl font-semibold">{labels.hours}</h2>
+            <p className="text-sm text-muted-foreground">{labels.hoursHelp}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 7 }, (_, i) => String(i + 1)).map((day) => (
+                <fieldset className={panelClass} key={day}>
+                  <legend className="px-2 font-medium">
+                    {labels[`weekday${day}` as keyof ReservationLabels]}
+                  </legend>
                   <HoursEditor
-                    value={hours}
-                    labels={labels}
-                    onChange={(next) =>
-                      change({ ...draft, exceptions: { ...draft.exceptions, [day]: next } })
+                    value={draft.weeklyHours[day] ?? []}
+                    onChange={(hours) =>
+                      change({ ...draft, weeklyHours: { ...draft.weeklyHours, [day]: hours } })
                     }
+                    labels={labels}
                   />
-                  <IconTooltip label={`${labels.remove} ${day}`}>
-                    <button
-                      type="button"
-                      className={cn(buttonClass, "size-10 p-0")}
-                      aria-label={`${labels.remove} ${day}`}
-                      onClick={() => {
-                        const exceptions = { ...draft.exceptions };
-                        delete exceptions[day];
-                        change({ ...draft, exceptions });
-                      }}
-                    >
-                      <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-                    </button>
-                  </IconTooltip>
                 </fieldset>
               ))}
-          </div>
-        </>
-      )}
-      <div className="flex items-center gap-3">
-        <button className={primaryClass} disabled={action.busy}>
-          {action.busy ? labels.saving : labels.save}
-        </button>
-        {draft.version > 0 && !draft.archived && (
-          <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
+            </div>
+            <div className={cn(panelClass, "space-y-4")}>
+              <h2 className="text-xl font-semibold">{labels.exceptions}</h2>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label={labels.date}>
+                  <input
+                    type="date"
+                    className={fieldClass}
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </Field>
+                <button
+                  type="button"
+                  disabled={!date || date in draft.exceptions}
+                  className={buttonClass}
+                  onClick={() => {
+                    change({ ...draft, exceptions: { ...draft.exceptions, [date]: [] } });
+                    setDate("");
+                  }}
+                >
+                  <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
+                  {labels.addException}
+                </button>
+              </div>
+              {Object.entries(draft.exceptions)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([day, hours]) => (
+                  <fieldset key={day} className="space-y-3 rounded-xl border border-border p-4">
+                    <legend className="px-2 font-medium">{day}</legend>
+                    <HoursEditor
+                      value={hours}
+                      labels={labels}
+                      onChange={(next) =>
+                        change({ ...draft, exceptions: { ...draft.exceptions, [day]: next } })
+                      }
+                    />
+                    <IconTooltip label={`${labels.remove} ${day}`}>
+                      <button
+                        type="button"
+                        className={cn(buttonClass, "size-10 p-0")}
+                        aria-label={`${labels.remove} ${day}`}
+                        onClick={() => {
+                          const exceptions = { ...draft.exceptions };
+                          delete exceptions[day];
+                          change({ ...draft, exceptions });
+                        }}
+                      >
+                        <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+                      </button>
+                    </IconTooltip>
+                  </fieldset>
+                ))}
+            </div>
+          </>
         )}
-        {draft.archived && <span>{labels.archived}</span>}
-      </div>
-      {archiving && (
-        <ArchiveDialog
-          labels={labels}
-          action={action}
-          onClose={() => setArchiving(false)}
-          onArchive={() => save(true)}
-        />
-      )}
+        <div className="flex items-center gap-3">
+          <button className={primaryClass} disabled={optimistic.pending}>
+            {optimistic.pending ? labels.saving : labels.save}
+          </button>
+          {draft.version > 0 && !draft.archived && (
+            <ArchiveButton labels={labels} onClick={() => setArchiving(true)} />
+          )}
+          {draft.archived && <span>{labels.archived}</span>}
+        </div>
+        {archiving && (
+          <ArchiveDialog
+            labels={labels}
+            pending={optimistic.pending}
+            error={optimistic.error}
+            onClose={() => setArchiving(false)}
+            onArchive={() => save(true)}
+          />
+        )}
+      </fieldset>
     </form>
   );
 }
@@ -814,38 +863,44 @@ function ArchiveButton({
 }
 function ArchiveDialog({
   labels,
-  action,
+  pending,
+  error,
   onClose,
   onArchive,
 }: {
   labels: ReservationLabels;
-  action: ReturnType<typeof useReservationAction>;
+  pending: boolean;
+  error: unknown;
   onClose: () => void;
   onArchive: () => Promise<void>;
 }) {
   return (
     <Modal
+      closeLabel={labels.close}
       title={labels.archive}
       description={labels.archiveConfirm}
       onClose={onClose}
-      busy={action.busy}
+      busy={pending}
     >
-      <ErrorNotice error={action.error} labels={labels} />
-      <div className="flex gap-3">
+      <ErrorNotice error={error} labels={labels} />
+      <div
+        data-dialog-footer
+        className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
+      >
         <button
           type="button"
           className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
           onClick={onClose}
-          disabled={action.busy}
+          disabled={pending}
         >
           {labels.back}
         </button>
         <button
           type="button"
           className={primaryClass}
-          disabled={action.busy}
+          disabled={pending}
           onClick={() => {
-            void action.run(onArchive);
+            void onArchive();
           }}
         >
           {labels.archive}

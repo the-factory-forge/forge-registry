@@ -7,7 +7,9 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { cn } from "@/components/utils/cn";
 import { isLocale, localeNames, locales, localeShort } from "@/lib/i18n/config";
+import { DeviceControl } from "@/showroom/device-preview";
 import { ShowroomLink as Link } from "@/showroom/routing";
+import { ShowroomSearch } from "@/showroom/showroom-search";
 import { ThemeControl } from "@/showroom/theme-control";
 
 export function ShowroomHeader() {
@@ -18,7 +20,7 @@ export function ShowroomHeader() {
 
   return (
     <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
-      <nav aria-label="Showroom navigation" className="showroom-header-inner">
+      <nav aria-label="Showroom navigation" className="showroom-header-inner relative">
         <a
           href="#factory-showroom-preview"
           onClick={(event) => {
@@ -60,6 +62,9 @@ export function ShowroomHeader() {
             All components
           </Link>
         </div>
+        <div className="shrink-0 sm:absolute sm:left-1/2 sm:-translate-x-1/2">
+          <ShowroomSearch />
+        </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {isLocale(locale) && (
             <LanguageSwitcher
@@ -81,6 +86,7 @@ export function ShowroomHeader() {
             />
           )}
           <ThemeControl />
+          <DeviceControl />
           <IconTooltip label="GitHub repository">
             <a
               href="https://github.com/the-factory-forge/forge-registry"

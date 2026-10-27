@@ -30,12 +30,16 @@ function subscribe(onChange: () => void) {
   };
 }
 
-export function ThemeControl() {
-  const theme = useSyncExternalStore(
+function useShowroomTheme(): Theme {
+  return useSyncExternalStore(
     subscribe,
     () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
     () => "light",
   );
+}
+
+export function ThemeControl() {
+  const theme = useShowroomTheme();
   const Icon = theme === "dark" ? SunIcon : MoonIcon;
 
   return (

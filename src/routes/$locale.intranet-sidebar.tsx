@@ -21,6 +21,8 @@ import { pluginIcons } from "@/components/utils/plugin-icons";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
+import { version } from "../../package.json";
+
 const groups: IntranetNavGroup[] = [
   {
     id: "my-space",
@@ -160,7 +162,7 @@ function IntranetSidebarExample() {
           groups={groups}
           pathname={pathname}
           profileHref="#profile"
-          version="v1.0.0"
+          version={`v${version}`}
           togglePlacement={externalToggle ? "external" : "sidebar"}
           onSignOut={async () => {
             await new Promise((resolve) => setTimeout(resolve, 600));

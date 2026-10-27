@@ -58,3 +58,7 @@ export const menuItems = pgTable(
     check("menu_item_sizes_check", sql`jsonb_typeof(${table.sizes}) = 'array'`),
   ],
 );
+
+export type MenuCategoryRecord = typeof menuCategories.$inferSelect;
+export type MenuItemRecord = typeof menuItems.$inferSelect;
+export type MenuLabelRecord = typeof menuLabels.$inferSelect;

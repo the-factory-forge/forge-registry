@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Temporal } from "temporal-polyfill";
 
 import type { ReservationLabels } from "@/components/plugins/reservations/labels";
-import { localDate } from "@/components/plugins/reservations/model";
+import { localDate, reservationDayCounts } from "@/components/plugins/reservations/model";
 import type { ReservationAdminRecord } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
 import { tableClass, tableHeaderClass } from "@/components/utils/table-styles";
@@ -33,23 +33,10 @@ export function ReservationYearView({
     today >= start && today < firstMonth.add({ years: 1 }).toString() ? today : start,
   );
   const counts = useMemo(() => {
-    const days = new Map<string, number>();
-    for (const reservation of reservations) {
-      let date = Temporal.PlainDate.from(localDate(reservation.startsAt, timeZone));
-      const last =
-        reservation.mode === "stay"
-          ? localDate(new Date(Date.parse(reservation.endsAt) - 1).toISOString(), timeZone)
-          : date.toString();
-      while (date.toString() <= last) {
-        const key = date.toString();
-        days.set(key, (days.get(key) ?? 0) + 1);
-        date = date.add({ days: 1 });
-      }
-    }
-    return days;
+    return reservationDayCounts(reservations, timeZone);
   }, [reservations, timeZone]);
   const monthFormat = new Intl.DateTimeFormat(locale, {
-    month: "long",
+    month: "short",
     year: "numeric",
     timeZone: "UTC",
   });
@@ -59,10 +46,10 @@ export function ReservationYearView({
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">{labels.yearHelp}</p>
       <div className="max-w-full overflow-x-auto rounded-xl border border-border">
-        <table className={cn(tableClass, "min-w-[88rem] table-fixed")}>
+        <table className={cn(tableClass, "min-w-[85rem] table-fixed")}>
           <caption className="sr-only">{labels.year}</caption>
           <colgroup>
-            <col className="w-40" />
+            <col className="w-28" />
             {Array.from({ length: 31 }, (_, i) => (
               <col key={i} />
             ))}
@@ -79,7 +66,12 @@ export function ReservationYearView({
                       "sticky left-0 z-10 border-r border-b border-border bg-background py-2",
                     )}
                   >
-                    {monthFormat.format(new Date(`${month.toString()}T12:00:00Z`))}
+                    {monthFormat
+                      .formatToParts(new Date(`${month.toString()}T12:00:00Z`))
+                      .map((part) =>
+                        part.type === "month" ? part.value.replace(/\.?$/, ".") : part.value,
+                      )
+                      .join("")}
                   </th>
                   {Array.from({ length: 31 }, (_, i) => {
                     if (i >= month.daysInMonth)
@@ -102,7 +94,7 @@ export function ReservationYearView({
                           aria-current={today === date ? "date" : undefined}
                           aria-label={`${dateFormat.format(new Date(`${date}T12:00:00Z`))} · ${labels.calendar}: ${numberFormat.format(count)}`}
                           className={cn(
-                            "flex min-h-10 w-full cursor-pointer scroll-mr-1 scroll-ml-40 flex-col items-center justify-center gap-0.5 px-1 py-1 hover:bg-accent focus-visible:relative focus-visible:z-20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                            "flex min-h-10 w-full cursor-pointer scroll-mr-1 scroll-ml-28 flex-col items-center justify-center gap-0.5 px-1 py-1 hover:bg-accent focus-visible:relative focus-visible:z-20 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                             day.dayOfWeek > 5 && "bg-muted/50 text-muted-foreground",
                             count > 0 && "bg-accent text-accent-foreground",
                             today === date && "ring-2 ring-primary ring-inset",

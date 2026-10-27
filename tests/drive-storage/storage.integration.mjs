@@ -1,5 +1,6 @@
-import "./register.mjs";
 import assert from "node:assert/strict";
+
+import "./register.mjs";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -19,6 +20,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { chromium } from "playwright";
 import postgres from "postgres";
+
+import { initializeStorage } from "../persistence/migrations.mjs";
 const { createDriveStorage } =
   await import("../../registry/components/plugins/drive/server/storage.server.ts");
 
@@ -26,7 +29,7 @@ const pool = postgres("postgres://drive_test:local_drive_test_only@127.0.0.1:554
   prepare: false,
   max: 6,
 });
-const db = drizzle(pool);
+const db = drizzle({ client: pool });
 const bucket = "forge-drive-integration";
 const s3 = new S3Client({
   endpoint: "http://127.0.0.1:19039",
@@ -148,24 +151,7 @@ await test("private Drive persistence and storage recovery", async (t) => {
     return;
   }
   await pool.unsafe("DROP TABLE IF EXISTS drive_upload, drive_entry, drive_space CASCADE");
-  await pool.unsafe(
-    await readFile(
-      new URL("../../registry/components/plugins/drive/server/migration.sql", import.meta.url),
-      "utf8",
-    ),
-  );
-  await pool.unsafe(
-    "ALTER TABLE drive_entry DROP COLUMN storage_name; ALTER TABLE drive_upload DROP COLUMN storage_name",
-  );
-  const namesMigration = await readFile(
-    new URL(
-      "../../registry/components/plugins/drive/server/storage-names-migration.sql",
-      import.meta.url,
-    ),
-    "utf8",
-  );
-  await pool.unsafe(namesMigration);
-  await pool.unsafe(namesMigration);
+  await initializeStorage(pool, ["drive"]);
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
   } catch (error) {
@@ -190,6 +176,94 @@ await test("private Drive persistence and storage recovery", async (t) => {
     }),
   );
   await storage.verifyBucket();
+
+  await t.test("wide subtrees use bounded queries and atomic mutation batches", async () => {
+    const scope = { type: "workspace", id: "wide-tree" };
+    await client.createFolder({ scope, parentId: null, name: "Wide tree" });
+    const folder = (await list(scope)).items[0];
+    const [space] = await pool`select space_id from drive_entry where id=${folder.id}`;
+    await pool`insert into drive_entry (id,space_id,parent_id,kind,name,state)
+      select gen_random_uuid(),${space.space_id},${folder.id},'folder','Child ' || i,'ready'
+      from generate_series(1,2105) i`;
+    let fail = false,
+      updates = 0,
+      childQueries = 0;
+    const boundedDb = drizzle({
+      client: pool,
+      logger: {
+        logQuery(query, params) {
+          assert.ok(params.length <= 1010, `Unbounded Drive parameters: ${params.length}`);
+          if (query.startsWith("select") && query.includes('"parent_id" in')) {
+            childQueries++;
+            assert.match(query, /limit/);
+          }
+          if (query.startsWith('update "drive_entry" set "state"')) {
+            updates++;
+            if (fail && updates === 2) throw new Error("Second batch failed");
+          }
+        },
+      },
+    });
+    const wide = createDriveStorage({
+      ...options,
+      db: boundedDb,
+      trash: {},
+      canDelete: async (_, __, ids) => {
+        assert.equal(ids.length, 2106);
+        return true;
+      },
+    }).client("editor");
+    const preview = await wide.previewDelete({ scope, entryId: folder.id });
+    assert.equal(preview.folders, 2106);
+    assert.ok(childQueries >= 3, "a single wide parent is paged too");
+    fail = true;
+    await rejected(wide.trashEntry({ scope, entryId: folder.id, token: preview.token }), "STORAGE");
+    assert.equal(
+      (
+        await pool`select count(*)::int as count from drive_entry where space_id=${space.space_id} and state='ready'`
+      )[0].count,
+      2106,
+    );
+    fail = false;
+    updates = 0;
+    await wide.trashEntry({ scope, entryId: folder.id, token: preview.token });
+    assert.equal(updates, 3);
+    assert.equal(
+      (
+        await pool`select count(distinct deleted_at)::int as count from drive_entry where space_id=${space.space_id}`
+      )[0].count,
+      1,
+    );
+    await wide.restoreEntry({ scope, entryId: folder.id });
+    assert.equal(
+      (await pool`select count(*)::int as count from drive_entry where parent_id=${folder.id}`)[0]
+        .count,
+      2105,
+    );
+    const permanent = createDriveStorage({ ...options, db: boundedDb }).client("editor");
+    const removal = await permanent.previewDelete({ scope, entryId: folder.id });
+    updates = 0;
+    await rejected(
+      permanent.deleteEntry({ scope, entryId: folder.id, token: removal.token }),
+      "DELETE_PENDING",
+    );
+    assert.equal(updates, 3);
+    for (let retry = 0; retry < 3; retry++) {
+      try {
+        await permanent.deleteEntry({ scope, entryId: folder.id, token: removal.token });
+        break;
+      } catch (error) {
+        assert.equal(error.code, "DELETE_PENDING");
+      }
+    }
+    assert.equal(
+      (
+        await pool`select count(*)::int as count from drive_entry where space_id=${space.space_id}`
+      )[0].count,
+      0,
+    );
+    await storage.deleteSpace("editor", scope);
+  });
 
   await t.test(
     "spaces are lazy; permission checks and parent isolation apply to every write",
@@ -550,11 +624,11 @@ await test("private Drive persistence and storage recovery", async (t) => {
             : stripTypeScriptTypes(utilsSource),
       );
     });
-    await new Promise((resolve) => server.listen(19040, "127.0.0.1", resolve));
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const browser = await chromium.launch();
     try {
       const page = await browser.newPage();
-      await page.goto("http://127.0.0.1:19040");
+      await page.goto(`http://127.0.0.1:${server.address().port}`);
       const value = await reserve("browser.txt");
       const progress = await page.evaluate(async ({ ticket, body }) => {
         const { transferDriveUpload } = await import("/transfer.js");

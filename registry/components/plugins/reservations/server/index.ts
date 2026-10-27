@@ -14,3 +14,13 @@ export {
   reservations,
   reservationNotifications,
 } from "@/components/plugins/reservations/server/schema";
+
+export type {
+  ReservationRecord,
+  ReservationNotificationRecord,
+} from "@/components/plugins/reservations/server/schema";
+export type {
+  ReservationSettingsRecord,
+  ReservationResourceRecord,
+  ReservationServiceRecord,
+} from "@/components/plugins/reservations/server/schema";

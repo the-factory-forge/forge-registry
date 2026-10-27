@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Showroom browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -11,6 +11,31 @@ await suite("Showroom browser", async () => {
   });
   after(async () => {
     await browser?.close();
+  });
+
+  await test("intranet Drive badge describes its sample count and preserves navigation", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${baseURL}/en/intranet`);
+      if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
+      const navigation = page.getByRole("navigation", { name: "Side navigation", exact: true });
+      const drive = navigation
+        .getByRole("region", { name: "Plugins", exact: true })
+        .getByRole("link", { name: "Drive 3 unreviewed changes" });
+      await drive.waitFor({ state: "visible" });
+      assert.equal(await navigation.getByText("My account", { exact: true }).count(), 0);
+      assert.equal(await navigation.getByRole("link", { name: "Profile settings" }).count(), 0);
+      assert.equal(await drive.getAttribute("href"), "#drive");
+      await drive.press("Enter");
+      await page.waitForURL("**/en/intranet#drive");
+      await page.getByText("Current destination: #drive").waitFor();
+      if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
+      assert.equal(await drive.getAttribute("aria-current"), "page");
+      assert.equal(await page.getByRole("link", { name: "Team", exact: true }).count(), 1);
+    }
   });
 
   await test("mailing samples have direct links and restore their previews through navigation", async (t) => {
@@ -24,12 +49,7 @@ await suite("Showroom browser", async () => {
       ["reset-password", "Reset your password"],
       ["invitation", "Accept your invitation"],
       ["email-change", "Confirm your new email address"],
-      ["reservation-booked", "Your request is received"],
-      ["reservation-confirmation", "Your stay is confirmed"],
-      ["reservation-rescheduled", "Your stay has been rescheduled"],
-      ["reservation-rejected", "Your request was not approved"],
-      ["reservation-cancelled", "Your stay has been cancelled"],
-      ["reservation-link", "Your reservation management link"],
+      ["reservation-confirmation", "Your reservation is confirmed"],
     ];
     const navigation = page.getByRole("navigation", { name: "Preview navigation" });
     const preview = page.frameLocator('iframe[title="Email preview"]');
@@ -38,17 +58,15 @@ await suite("Showroom browser", async () => {
       assert.equal(response.status(), 200);
       await page.locator('[data-preview-ready="true"]').waitFor();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
-      assert.equal(await navigation.getByRole("link", { includeHidden: true }).count(), 10);
-      assert.equal(await page.getByRole("combobox", { name: "Brand" }).count(), 1);
+      assert.equal(await navigation.getByRole("link").count(), samples.length);
+      assert.equal(await page.getByRole("combobox").count(), 0);
       assert.equal(
         await navigation.getByRole("link", { name: heading }).getAttribute("aria-current"),
         "page",
       );
       for (const [linkSlug, linkHeading] of samples) {
         assert.equal(
-          await navigation
-            .getByRole("link", { name: linkHeading, includeHidden: true })
-            .getAttribute("href"),
+          await navigation.getByRole("link", { name: linkHeading }).getAttribute("href"),
           `/mailing/${linkSlug}`,
         );
       }
@@ -58,7 +76,6 @@ await suite("Showroom browser", async () => {
       await page.reload();
       await preview.getByRole("heading", { name: heading, exact: true }).waitFor();
     }
-    await navigation.getByRole("button", { name: "Account", exact: true }).click();
     await navigation.getByRole("link", { name: "Reset your password" }).press("Enter");
     await page.waitForURL(`${baseURL}/mailing/reset-password`);
     await preview.getByRole("heading", { name: "Reset your password", exact: true }).waitFor();
@@ -77,159 +94,39 @@ await suite("Showroom browser", async () => {
     assert.deepEqual(errors, []);
   });
 
-  await test("mailing brand and format survive reload, links and browser history", async (t) => {
+  await test("mailing format survives reload and navigation without brand presets", async (t) => {
     const context = await browser.newContext();
     t.after(() => context.close());
     const page = await context.newPage();
-    const preview = page.frameLocator('iframe[title="Email preview"]');
-    const navigation = page.getByRole("navigation", { name: "Preview navigation" });
-    const errors = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    page.on("console", (message) => {
-      if (message.type() === "error") errors.push(message.text());
-    });
     await page.goto(`${baseURL}/mailing/invitation?category=Plugin#factory-showroom-preview`);
-    await page.locator('[data-preview-ready="true"]').waitFor();
-    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
-    const image = preview.locator("img");
-    await image.evaluate((element) => element.decode());
-    assert.ok(await image.evaluate((element) => element.naturalWidth > 0));
+    const preview = page.frameLocator('iframe[title="Email preview"]');
+    await preview.getByText("Your website", { exact: true }).waitFor();
+    assert.equal(await preview.locator("img").count(), 0);
     assert.equal(await page.locator("iframe").getAttribute("sandbox"), "");
-
-    await page.getByRole("combobox", { name: "Brand" }).selectOption("lodge");
-    await page.waitForURL((url) => url.searchParams.get("brand") === "lodge");
-    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
-    const lodgeHTML = await page.locator("iframe").getAttribute("srcdoc");
-    assert.match(lodgeHTML, /#87452d/);
-    assert.match(lodgeHTML, /Georgia/);
-    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
-    assert.equal(new URL(page.url()).hash, "#factory-showroom-preview");
-
     await page.getByLabel("Plain-text version").check();
     await page.waitForURL((url) => url.searchParams.get("format") === "text");
     await page.reload();
-    await page.locator('[data-preview-ready="true"]').waitFor();
-    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "lodge");
     assert.equal(await page.getByLabel("Plain-text version").isChecked(), true);
-    assert.match(await page.locator("pre").textContent(), /Pinewood Lodge/);
-    await navigation.getByRole("link", { name: "Confirm your new email address" }).click();
+    await page.getByRole("link", { name: "Confirm your new email address", exact: true }).click();
     await page.waitForURL((url) => url.pathname === "/mailing/email-change");
-    assert.equal(new URL(page.url()).searchParams.get("brand"), "lodge");
     assert.equal(new URL(page.url()).searchParams.get("format"), "text");
+    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
     assert.equal(new URL(page.url()).hash, "#factory-showroom-preview");
     await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
-    assert.match(await page.locator("pre").textContent(), /Confirm your new email address/);
-
     await page.goBack();
-    await page.waitForURL((url) => url.pathname === "/mailing/invitation");
-    await page.goBack();
-    await page.waitForURL((url) => !url.searchParams.has("format"));
-    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
-    await page.goBack();
-    await page.waitForURL((url) => !url.searchParams.has("brand"));
-    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
+    await page.locator("pre").filter({ hasText: "Accept your invitation" }).waitFor();
     await page.goForward();
-    await page.waitForURL((url) => url.searchParams.get("brand") === "lodge");
-    await preview.getByText("Pinewood Lodge", { exact: true }).waitFor();
-    await page.getByRole("combobox", { name: "Brand" }).selectOption("studio");
-    await page.waitForURL((url) => !url.searchParams.has("brand"));
-    assert.equal(new URL(page.url()).searchParams.get("category"), "Plugin");
-
-    await page.goto(`${baseURL}/mailing?brand=unknown&format=invalid`);
-    await preview.getByText("Northstar Studio", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "studio");
-    assert.equal(await page.getByLabel("Plain-text version").isChecked(), false);
-    assert.deepEqual(errors, []);
-  });
-
-  await test("mailing remains readable in both themes on narrow screens without images", async (t) => {
-    const context = await browser.newContext();
-    t.after(() => context.close());
-    await context.route(/\/(?:showroom\/mailing\/[^/]+|icon)\.png$/, (route) => route.abort());
-    const page = await context.newPage();
-    for (const width of [320, 390]) {
-      await page.setViewportSize({ width, height: 844 });
-      for (const brand of ["studio", "lodge", "corner"]) {
-        await page.goto(`${baseURL}/mailing/reservation-rescheduled?brand=${brand}`);
-        await page.locator('[data-preview-ready="true"]').waitFor();
-        const preview = page.frameLocator('iframe[title="Email preview"]');
-        await preview.getByRole("heading", { name: "Your stay has been rescheduled" }).waitFor();
-        for (const dark of [false, true]) {
-          const theme = page.getByRole("button", { name: "Dark mode", exact: true });
-          if ((await theme.getAttribute("aria-pressed")) !== String(dark)) await theme.click();
-          assert.equal(
-            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-            true,
-          );
-          assert.equal(
-            await preview
-              .locator("body")
-              .evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-            true,
-          );
-          assert.equal(await preview.locator("img").evaluate((image) => image.naturalWidth), 0);
-          assert.ok(
-            await preview
-              .getByText(
-                brand === "lodge"
-                  ? "Pinewood Lodge"
-                  : brand === "corner"
-                    ? "The Corner"
-                    : "Northstar Studio",
-                { exact: true },
-              )
-              .isVisible(),
-          );
-          assert.ok(
-            await preview
-              .getByRole("link", { name: "Manage my reservation", exact: true })
-              .isVisible(),
-          );
-          assert.match(await preview.locator("body").innerText(), /23 October 2026/);
-        }
-      }
-    }
-  });
-
-  await test("mailing sections support keyboard navigation and The Corner branding", async (t) => {
-    const context = await browser.newContext();
-    t.after(() => context.close());
-    const page = await context.newPage();
-    await page.goto(`${baseURL}/mailing/reservation-link?brand=corner`);
-    await page.locator('[data-preview-ready="true"]').waitFor();
-    const navigation = page.getByRole("navigation", { name: "Preview navigation" });
-    const account = navigation.getByRole("button", { name: "Account", exact: true });
-    const reservations = navigation.getByRole("button", { name: "Reservations", exact: true });
-    assert.equal(await account.getAttribute("aria-expanded"), "false");
-    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
-    assert.equal(await navigation.getByRole("link").count(), 6);
-    const preview = page.frameLocator('iframe[title="Email preview"]');
-    await preview.getByText("The Corner", { exact: true }).waitFor();
-    await preview.locator("img").evaluate((image) => image.decode());
-    assert.equal(await page.getByRole("combobox", { name: "Brand" }).inputValue(), "corner");
-    const html = await page.locator("iframe").getAttribute("srcdoc");
-    assert.match(html, /#13343a/);
-    assert.match(html, /Work Sans/);
-    await account.press("Enter");
-    assert.equal(await account.getAttribute("aria-expanded"), "true");
-    await reservations.press("Space");
-    assert.equal(await reservations.getAttribute("aria-expanded"), "false");
-    const verify = navigation.getByRole("link", { name: "Verify your email", exact: true });
-    await verify.press("Enter");
-    await page.waitForURL((url) => url.pathname === "/mailing/verify-email");
-    await preview.getByRole("heading", { name: "Verify your email", exact: true }).waitFor();
-    assert.equal(await verify.evaluate((link) => document.activeElement === link), true);
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    await page.getByLabel("Plain-text version").uncheck();
+    await page.waitForURL((url) => !url.searchParams.has("format"));
+    await preview.getByRole("heading", { name: "Confirm your new email address" }).waitFor();
     await page.goBack();
-    await page.waitForURL((url) => url.pathname === "/mailing/reservation-link");
-    await preview
-      .getByRole("heading", { name: "Your reservation management link", exact: true })
-      .waitFor();
-    assert.equal(await reservations.getAttribute("aria-expanded"), "true");
-    assert.equal(await account.getAttribute("aria-expanded"), "false");
-    await page.reload();
-    await preview.getByText("The Corner", { exact: true }).waitFor();
-    await page.getByLabel("Plain-text version").check();
-    assert.match(await page.locator("pre").textContent(), /The Corner/);
+    await page.locator("pre").filter({ hasText: "Confirm your new email address" }).waitFor();
+    await page.goto(`${baseURL}/mailing?format=invalid&brand=lodge`);
+    await preview.getByRole("heading", { name: "Verify your email" }).waitFor();
+    assert.equal(await page.getByLabel("Plain-text version").isChecked(), false);
+    assert.equal(await page.getByRole("combobox").count(), 0);
+    await preview.getByText("Your website", { exact: true }).waitFor();
   });
 
   await test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {
@@ -314,7 +211,9 @@ await suite("Showroom browser", async () => {
     const serverState = await page.evaluate((html) => {
       const doc = new DOMParser().parseFromString(html, "text/html");
       return {
-        category: doc.querySelector('fieldset button[aria-pressed="true"]')?.textContent,
+        category: doc.querySelector(
+          '#factory-showroom-preview fieldset button[aria-pressed="true"]',
+        )?.textContent,
         search: doc.querySelector('input[type="search"]')?.value,
         titles: [...doc.querySelectorAll('section[aria-label="Examples"] h2')].map(
           (heading) => heading.textContent,
@@ -411,7 +310,7 @@ await suite("Showroom browser", async () => {
     assert.equal(destinations.filter((href) => href === "/en/menus").length, 1);
     assert.equal(destinations.includes("/en/admin/menus"), false);
     assert.equal(destinations.filter((href) => href === "/en/login").length, 1);
-    const header = page.getByRole("navigation", { name: "Showroom navigation" });
+    const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     const original = await header.boundingBox();
     const titles = new Set();
     const descriptions = new Set();
@@ -531,7 +430,7 @@ await suite("Showroom browser", async () => {
       await page.locator('[data-preview-ready="true"]').waitFor();
       await page.keyboard.press("Tab");
       assert.equal(
-        await page.evaluate(() => document.activeElement.textContent.trim()),
+        await page.shell.evaluate(() => document.activeElement.textContent.trim()),
         "Skip to preview",
       );
       await page.keyboard.press("Enter");
@@ -550,7 +449,7 @@ await suite("Showroom browser", async () => {
     }
   });
 
-  await test("header language switching retains the page, query, hash and editor draft", async (t) => {
+  await test("header language switching retains URL context and respects unsaved editor guards", async (t) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     t.after(() => context.close());
     const page = await context.newPage();
@@ -561,7 +460,7 @@ await suite("Showroom browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     const name = page.getByRole("textbox", { name: "Name *", exact: true });
     await name.fill("Unsaved menu translation");
-    const header = page.getByRole("navigation", { name: "Showroom navigation" });
+    const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     await header.getByRole("button", { name: "Dark mode", exact: true }).click();
     for (const [locale, language] of [
       ["fr", "Français"],
@@ -571,7 +470,20 @@ await suite("Showroom browser", async () => {
     ]) {
       await page.setViewportSize({ width: 320, height: 800 });
       await header.getByRole("button", { name: "Language", exact: true }).press("Enter");
-      await page.getByRole("menuitem", { name: language, exact: true }).click();
+      await page.shell.getByRole("menuitem", { name: language, exact: true }).click();
+      if (locale === "fr") {
+        const confirmation = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
+        await confirmation
+          .getByRole("button", { name: "Cancel", exact: true })
+          .filter({ hasText: "Cancel" })
+          .click();
+        await confirmation.waitFor({ state: "hidden" });
+        assert.equal(page.url(), `${baseURL}/en${destination}`);
+        assert.equal(await name.inputValue(), "Unsaved menu translation");
+        await header.getByRole("button", { name: "Language", exact: true }).click();
+        await page.getByRole("menuitem", { name: language, exact: true }).click();
+        await confirmation.getByRole("button", { name: "Save", exact: true }).click();
+      }
       await page.waitForURL(`${baseURL}/${locale}${destination}`);
       assert.equal(await name.inputValue(), "Unsaved menu translation");
       assert.equal(
@@ -593,6 +505,183 @@ await suite("Showroom browser", async () => {
       assert.equal(await header.getByRole("button", { name: "Language", exact: true }).count(), 0);
     }
     assert.deepEqual(errors, []);
+  });
+
+  await test("settings default to closed on phones and open on larger screens", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    for (const width of [320, 639, 640, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${baseURL}/en/admin/blogs`);
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      const toggle = page.getByRole("button", { name: "Settings", exact: true });
+      const panel = page.locator("#factory-showroom-controls");
+      const defaultOpen = width >= 640;
+      assert.equal(await panel.isVisible(), defaultOpen);
+      assert.equal(await toggle.getAttribute("aria-expanded"), String(defaultOpen));
+      await toggle.click();
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await page.setViewportSize({ width: defaultOpen ? 320 : 1440, height: 900 });
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await page.setViewportSize({ width, height: 900 });
+      await page.reload();
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      assert.equal(await panel.isVisible(), defaultOpen);
+    }
+    assert.deepEqual(errors, []);
+  });
+
+  await test("settings toggle preserves controls and releases preview space", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    for (const width of [1440, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const theme of ["light", "dark"]) {
+        await page.goto(`${baseURL}/en/admin/blogs`);
+        await page.locator('[data-preview-ready="true"]').waitFor();
+        const themeButton = page.getByRole("button", {
+          name: `${theme === "dark" ? "Dark" : "Light"} mode`,
+          exact: true,
+        });
+        if (await themeButton.count()) await themeButton.click();
+        const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        if (width < 640) await toggle.click();
+        const panel = page.locator("#factory-showroom-controls");
+        const heading = page.getByRole("heading", { name: "Preview controls", exact: true });
+        assert.equal(await toggle.textContent(), "");
+        assert.equal(await page.locator(".showroom-settings").count(), 0);
+        const buttonBox = await toggle.boundingBox();
+        const headingBox = await heading.boundingBox();
+        assert.ok(buttonBox.x > headingBox.x + headingBox.width);
+        assert.equal(buttonBox.y + buttonBox.height / 2, headingBox.y + headingBox.height / 2);
+        const tooltip = page.getByRole("tooltip", { name: "Settings", exact: true });
+        await page.mouse.move(0, 0);
+        await toggle.hover();
+        await tooltip.waitFor();
+        await toggle.press("Escape");
+        await tooltip.waitFor({ state: "hidden" });
+        await page.mouse.move(0, 0);
+        await toggle.press("Tab");
+        await page.keyboard.press("Shift+Tab");
+        await tooltip.waitFor();
+        await toggle.press("Escape");
+        await tooltip.waitFor({ state: "hidden" });
+        const readOnly = panel.getByLabel("Read-only", { exact: true });
+        await readOnly.check();
+        const preview = page.locator("#factory-showroom-preview");
+        const expanded = await preview.boundingBox();
+        const activeBackground = await toggle.evaluate(
+          (el) => getComputedStyle(el).backgroundColor,
+        );
+        assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+        await toggle.press("Enter");
+        assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+        assert.equal(await panel.isVisible(), false);
+        assert.equal(await heading.isVisible(), false);
+        assert.equal(await toggle.isVisible(), true);
+        assert.equal(await page.getByRole("navigation", { name: "Preview navigation" }).count(), 0);
+        assert.notEqual(
+          await toggle.evaluate((el) => getComputedStyle(el).backgroundColor),
+          activeBackground,
+        );
+        const collapsed = await preview.boundingBox();
+        if (width >= 1024) assert.ok(collapsed.width > expanded.width);
+        else assert.ok(collapsed.y < expanded.y);
+        if (width >= 640) assert.deepEqual(await toggle.boundingBox(), buttonBox);
+        else assert.equal((await toggle.boundingBox()).y, collapsed.y + 16);
+        assert.equal(await toggle.evaluate((el) => document.activeElement === el), true);
+        await toggle.press("Tab");
+        assert.equal(await panel.evaluate((el) => el.contains(document.activeElement)), false);
+        await toggle.press("Space");
+        assert.equal(await panel.isVisible(), true);
+        assert.equal(await readOnly.isChecked(), true);
+        assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+        assert.deepEqual(await preview.boundingBox(), expanded);
+        await toggle.click();
+        assert.equal(await panel.isVisible(), false);
+        await toggle.click();
+        assert.equal(await panel.isVisible(), true);
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+      }
+    }
+    await page.goto(baseURL);
+    assert.equal(await page.getByRole("button", { name: "Settings", exact: true }).count(), 0);
+    assert.deepEqual(errors, []);
+  });
+
+  await test("collapsed smartphone settings share the blog editor back row", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const width of [320, 375]) {
+      await page.setViewportSize({ width, height: 850 });
+      await page.goto(`${baseURL}/en/admin/blogs`);
+      await page.locator('[data-preview-ready="true"]').waitFor();
+      await page.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
+      const toggle = page.getByRole("button", { name: "Settings", exact: true });
+      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+      const back = page.getByRole("link", { name: "← Back to posts", exact: true });
+      const backBox = await back.boundingBox();
+      const toggleBox = await toggle.boundingBox();
+      assert.equal(toggleBox.y, backBox.y);
+      assert.ok(backBox.x + backBox.width < toggleBox.x);
+      assert.equal((await page.locator("#factory-showroom-preview").boundingBox()).y, 56);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      await toggle.click();
+      assert.equal(await page.locator("#factory-showroom-controls").isVisible(), true);
+      await toggle.click();
+      await back.click();
+      await page.waitForURL(`${baseURL}/en/admin/blogs`);
+    }
+    await page.goto(`${baseURL}/en/login`);
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const toggle = page.getByRole("button", { name: "Settings", exact: true });
+    assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+    const preview = await page.locator("#factory-showroom-preview").boundingBox();
+    const gear = await toggle.boundingBox();
+    assert.ok(preview.y >= gear.y + gear.height);
+    assert.equal((await page.locator(".showroom-fill").boundingBox()).width, preview.width);
+  });
+
+  await test("bounded previews center in the window without overlapping desktop settings", async (t) => {
+    const context = await browser.newContext();
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const path of ["/en/reservations", "/newsletter"]) {
+      for (const width of [2048, 1600, 1440, 1024]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(baseURL + path);
+        const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        for (const open of [true, false]) {
+          assert.equal(await toggle.getAttribute("aria-expanded"), String(open));
+          const preview = await page.locator("#factory-showroom-preview").boundingBox();
+          const rail = await page.locator(".showroom-controls").boundingBox();
+          const expectedLeft = Math.max(
+            0,
+            Math.min((width - preview.width) / 2, rail.x - preview.width),
+          );
+          assert.ok(Math.abs(preview.x - expectedLeft) < 1, `${path}: ${width}, open=${open}`);
+          assert.ok(preview.x + preview.width <= rail.x + 1);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          if (open) await toggle.click();
+        }
+      }
+    }
   });
 
   await test("expanded settings stay beside desktop previews and stack on mobile", async (t) => {
@@ -643,6 +732,7 @@ await suite("Showroom browser", async () => {
       for (const path of ["/en/login", "/en/projects", "/en/blogs", "/en/intranet-sidebar"]) {
         await page.goto(baseURL + path);
         await page.locator('[data-preview-ready="true"]').waitFor();
+        await page.getByRole("button", { name: "Settings", exact: true }).click();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,
@@ -653,7 +743,7 @@ await suite("Showroom browser", async () => {
           .boundingBox();
         const preview = await page.locator("#factory-showroom-preview").boundingBox();
         assert.ok(rail.y + rail.height <= preview.y, path);
-        const header = await page
+        const header = await page.shell
           .getByRole("navigation", { name: "Showroom navigation" })
           .locator("..")
           .boundingBox();

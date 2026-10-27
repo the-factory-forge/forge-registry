@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeftIcon, ExternalLinkIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { ArrowLeftIcon, PencilIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import {
   buttonClass,
   cardClass,
@@ -22,8 +23,9 @@ import type {
   ProjectsListProps,
   ProjectsPageProps,
 } from "@/components/plugins/projects/types";
-import { DeleteProject, ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
-import { projectFormValues, safeProjectUrl } from "@/components/plugins/projects/utils";
+import { ProjectAvatar, ProjectStatusBadge } from "@/components/plugins/projects/ui";
+import { projectFormValues } from "@/components/plugins/projects/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TableSearch } from "@/components/table-search";
 import {
   TableBulkDelete,
@@ -41,7 +43,7 @@ import {
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
-import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export type {
   Project,
@@ -77,6 +79,7 @@ function ProjectsListContent({
   linkComponent: ProjectLink = Link,
   className,
 }: ProjectsListProps) {
+  useLoadingActivity(!!loading);
   const labels = { ...projectLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedProjects);
   const projects = optimistic.value;
@@ -86,9 +89,20 @@ function ProjectsListContent({
     customerId === undefined
       ? projects
       : projects.filter((project) => project.ownerId === customerId);
-  const selectable = onDelete ? visibleProjects : [];
+  const deletion = useRecordDeletion({
+    items: visibleProjects,
+    scope: JSON.stringify([customerId, search]),
+    getName: (project) => project.name,
+    onDelete,
+    label: labels.deleteProject,
+    labels,
+    disabled: loading || !!loadError || optimistic.pending,
+    returnFocus: root,
+  });
+  const selectable = onDelete ? deletion.items : [];
   const selection = useTableSelection(selectable, `${customerId ?? ""}:${search ?? ""}`);
-  const selectionDisabled = loading || !!loadError || optimistic.pending || selection.pending;
+  const selectionDisabled =
+    loading || !!loadError || optimistic.pending || deletion.pending || selection.pending;
   const owners = new Map(customers.map((customer) => [customer.id, customer]));
   const assigned = new Map(assignees.map((assignee) => [assignee.id, assignee]));
   return (
@@ -127,7 +141,7 @@ function ProjectsListContent({
       </header>
       <div className="overflow-x-auto">
         <table className={tableClass} aria-busy={loading}>
-          {loading && visibleProjects.length > 0 && (
+          {loading && deletion.items.length > 0 && (
             <caption className="sr-only">
               <output>{labels.loading}</output>
             </caption>
@@ -149,7 +163,6 @@ function ProjectsListContent({
                 labels.name,
                 ...(customerId === undefined ? [labels.owner] : []),
                 labels.assignee,
-                labels.website,
                 labels.status,
                 labels.actions,
               ].map((label, index) => (
@@ -157,20 +170,20 @@ function ProjectsListContent({
                   key={index}
                   scope="col"
                   className={
-                    index === (customerId === undefined ? 5 : 4)
+                    index === (customerId === undefined ? 4 : 3)
                       ? tableActionHeaderClass
                       : tableHeaderClass
                   }
                 >
                   <div
                     className={
-                      index === (customerId === undefined ? 5 : 4)
+                      index === (customerId === undefined ? 4 : 3)
                         ? "flex items-center justify-end gap-2"
                         : undefined
                     }
                   >
                     {label}
-                    {index === (customerId === undefined ? 5 : 4) && (
+                    {index === (customerId === undefined ? 4 : 3) && (
                       <>
                         {onDelete && (
                           <TableBulkDelete
@@ -189,23 +202,13 @@ function ProjectsListContent({
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {retainRemovedItems(
-              visibleProjects,
-              suppliedProjects.filter(
-                (row) => customerId === undefined || row.ownerId === customerId,
-              ),
-              optimistic.pending,
-            ).map((project) => {
+            {deletion.items.map((project) => {
               const owner = owners.get(project.ownerId);
               const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
-              const website = safeProjectUrl(project.url);
               return (
                 <tr
                   key={project.id}
-                  hidden={
-                    selection.isDeleting(project.id) ||
-                    !visibleProjects.some((row) => row.id === project.id)
-                  }
+                  hidden={selection.isDeleting(project.id)}
                   className={tableRowClass}
                 >
                   {onDelete && (
@@ -250,23 +253,6 @@ function ProjectsListContent({
                       (project.assigneeId ? labels.unavailableAssignee : labels.unassigned)}
                   </td>
                   <td className={tableCellClass}>
-                    {website ? (
-                      <IconTooltip label={labels.visit(project.name)}>
-                        <ProjectLink
-                          href={website}
-                          target={website.startsWith("/") ? undefined : "_blank"}
-                          rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
-                          aria-label={labels.visit(project.name)}
-                          className={iconButtonClass}
-                        >
-                          <ExternalLinkIcon aria-hidden="true" />
-                        </ProjectLink>
-                      </IconTooltip>
-                    ) : (
-                      <span className="text-muted-foreground">{labels.noWebsite}</span>
-                    )}
-                  </td>
-                  <td className={tableCellClass}>
                     <ProjectStatusBadge
                       status={project.status}
                       name={project.name}
@@ -298,17 +284,10 @@ function ProjectsListContent({
                         </ProjectLink>
                       </IconTooltip>
                       {onDelete && (
-                        <DeleteProject
-                          project={project}
+                        <RecordDeleteButton
+                          label={labels.deleteProject}
                           disabled={selectionDisabled}
-                          onDelete={(id) =>
-                            optimistic.run(
-                              (rows) => rows.filter((row) => row.id !== id),
-                              () => onDelete(id),
-                            )
-                          }
-                          labels={labels}
-                          returnFocus={root}
+                          onClick={(event) => deletion.open(project.id, event.currentTarget)}
                         />
                       )}
                     </div>
@@ -316,10 +295,10 @@ function ProjectsListContent({
                 </tr>
               );
             })}
-            {((error && !loading) || visibleProjects.length === 0) && (
+            {((error && !loading) || deletion.items.length === 0) && (
               <tr className={tableRowClass}>
                 <td
-                  colSpan={(customerId === undefined ? 6 : 5) + (onDelete ? 1 : 0)}
+                  colSpan={(customerId === undefined ? 5 : 4) + (onDelete ? 1 : 0)}
                   className={cn(tableCellClass, "py-10 text-center text-muted-foreground")}
                 >
                   {error && !loading ? (
@@ -335,6 +314,7 @@ function ProjectsListContent({
           </tbody>
         </table>
       </div>
+      {deletion.dialog}
     </section>
   );
 }
@@ -365,7 +345,6 @@ function ProjectDetailPageContent({
   const optimistic = useOptimisticAction(suppliedProject, suppliedProject.id);
   const project = optimistic.value;
   const [statusUpdate, setStatusUpdate] = useState<{ status: ProjectStatus }>();
-  const website = safeProjectUrl(project.url);
   return (
     <div className={cn(pageClass, className)}>
       <ProjectLink
@@ -379,20 +358,6 @@ function ProjectDetailPageContent({
         <ProjectAvatar name={project.name} image={project.posterImage} large />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold break-words">{project.name}</h1>
-          <p className="text-sm break-all text-muted-foreground">
-            {website ? (
-              <ProjectLink
-                href={website}
-                className="hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-                target={website.startsWith("/") ? undefined : "_blank"}
-                rel={website.startsWith("/") ? undefined : "noopener noreferrer"}
-              >
-                {website}
-              </ProjectLink>
-            ) : (
-              labels.noWebsite
-            )}
-          </p>
         </div>
         <div className="ml-auto self-start">
           <ProjectStatusBadge
@@ -407,8 +372,8 @@ function ProjectDetailPageContent({
                   onStatusChange
                     ? onStatusChange(project.id, status)
                     : onSave({ ...projectFormValues(project), status }),
+                () => setStatusUpdate({ status }),
               );
-              setStatusUpdate({ status });
             }}
           />
         </div>

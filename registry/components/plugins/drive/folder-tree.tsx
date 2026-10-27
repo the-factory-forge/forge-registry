@@ -2,7 +2,7 @@
 
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ChevronRightIcon, RefreshCwIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
@@ -12,7 +12,7 @@ import type {
   DriveFolderResult,
 } from "@/components/plugins/drive/types";
 import { DriveFeedback, DriveFolderIcon, messageFor } from "@/components/plugins/drive/ui";
-import { errorCode } from "@/components/plugins/drive/utils";
+import { useDriveFolderListing } from "@/components/plugins/drive/use-listing";
 import { sidebarNavActiveClass, sidebarNavItemClass } from "@/components/sidebar-navigation";
 import { cn } from "@/components/utils/cn";
 
@@ -31,26 +31,15 @@ type FolderTreeProps = Pick<DriveBrowserProps, "client" | "scope" | "getFolderHr
 
 export function DriveFolderTree(props: FolderTreeProps) {
   const { client, scope, parentId, labels, refreshKey, onLoadingChange } = props;
-  const [page, setPage] = useState<{ refreshKey: number; cursor?: string }>({ refreshKey });
-  if (page.refreshKey !== refreshKey) setPage({ refreshKey });
-  const cursor = page.refreshKey === refreshKey ? page.cursor : undefined;
-  const [revision, setRevision] = useState(0);
-  const request = useMemo(
-    () => ({ client, scope, parentId, cursor, revision, refreshKey }),
-    [client, scope, parentId, cursor, revision, refreshKey],
+  const { data, loading, error, retry, loadMore } = useDriveFolderListing(
+    client,
+    scope,
+    parentId,
+    refreshKey,
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    entries: DriveEntry[];
-    nextCursor?: string;
-    error?: unknown;
-  }>();
-  const loading = result?.request !== request;
   useEffect(() => onLoadingChange(loading), [loading, onLoadingChange]);
-  const error = loading ? undefined : result?.error;
-  const nextCursor = result?.nextCursor;
-  const lock = useRef(false);
-  const entries = result?.entries ?? [];
+  const nextCursor = data?.nextCursor;
+  const entries = data?.items ?? [];
   const parentIndex = props.breadcrumbs.findIndex((crumb) => crumb.id === parentId);
   const ancestor =
     parentId === null
@@ -62,42 +51,6 @@ export function DriveFolderTree(props: FolderTreeProps) {
     !error && ancestor && !entries.some((entry) => entry.id === ancestor.id)
       ? [...entries, ancestor]
       : entries;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void client
-      .listEntries({ scope, parentId, cursor, signal: controller.signal })
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        const folders = data.items.filter(
-          (entry) => entry.kind === "folder" && entry.state === "ready",
-        );
-        setResult((previous) => ({
-          request,
-          entries: cursor
-            ? [
-                ...(previous?.entries ?? []),
-                ...folders.filter((entry) => !previous?.entries.some((old) => old.id === entry.id)),
-              ]
-            : folders,
-          nextCursor: data.nextCursor,
-        }));
-      })
-      .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        setResult((previous) => ({
-          request,
-          error: reason,
-          entries: ["FORBIDDEN", "NOT_FOUND"].includes(errorCode(reason) ?? "")
-            ? []
-            : (previous?.entries ?? []),
-        }));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) lock.current = false;
-      });
-    return () => controller.abort();
-  }, [client, scope, parentId, cursor, request]);
 
   return (
     <div aria-busy={loading}>
@@ -123,7 +76,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
                   type="button"
                   aria-label={`${messageFor(error, labels)} ${labels.retry}`}
                   className="inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring md:size-8"
-                  onClick={() => setRevision((value) => value + 1)}
+                  onClick={retry}
                 >
                   <RefreshCwIcon className="size-4" aria-hidden="true" />
                 </button>
@@ -134,11 +87,7 @@ export function DriveFolderTree(props: FolderTreeProps) {
               type="button"
               className={sidebarNavItemClass}
               disabled={loading}
-              onClick={() => {
-                if (loading || lock.current) return;
-                lock.current = true;
-                setPage({ refreshKey, cursor: nextCursor });
-              }}
+              onClick={loadMore}
             >
               <span className="truncate">{labels.loadMoreFolders}</span>
             </button>

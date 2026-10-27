@@ -1,0 +1,56 @@
+{
+  "l-aspic": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md",
+    "PRODUCT.md"
+  ],
+  "forge-template": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md"
+  ],
+  "osthoepathie-seebach": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md"
+  ],
+  "sinigest": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md"
+  ],
+  "soleva": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md"
+  ],
+  "terminal60": [
+    "src/intranet/auth/auth.ts",
+    "src/intranet/e2e/employees.spec.ts",
+    "src/intranet/e2e/invitations.spec.ts",
+    "src/intranet/e2e/login.spec.ts",
+    "docs/registry-sync.md"
+  ],
+  "forge-registry": ["docs/intranet-auth.md"],
+  "forge-spec": [
+    "consumers/sites.yaml",
+    "openspec/specs/plugins/spec.md",
+    "openspec/changes/single-use-invitations/proposal.md",
+    "openspec/changes/single-use-invitations/design.md",
+    "openspec/changes/single-use-invitations/tasks.md",
+    "openspec/changes/single-use-invitations/specs/plugins/spec.md",
+    "openspec/changes/single-use-invitations/email-verification-validation.md",
+    "openspec/changes/single-use-invitations/email-verification-files.json"
+  ]
+}

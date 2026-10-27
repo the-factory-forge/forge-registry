@@ -5,6 +5,7 @@ import {
   ReservationError,
   type Reservation,
   type ReservationAvailabilityQuery,
+  type ReservationMonthAvailabilityQuery,
   type ReservationBookingInput,
   type ReservationConfiguration,
   type ReservationHours,
@@ -162,6 +163,11 @@ export const availabilitySchema = z.object({
   date: dateSchema,
   departureDate: dateSchema.optional(),
 });
+export const monthAvailabilitySchema = z.object({
+  serviceId: id,
+  resourceId: id.optional(),
+  month: dateSchema.refine((value) => value.endsWith("-01")),
+});
 export const moveSchema = z.object({
   version: z.number().int().positive(),
   startsAt: instantSchema,
@@ -181,6 +187,14 @@ export const rangeSchema = z
       Date.parse(v.to) > Date.parse(v.from) &&
       Date.parse(v.to) - Date.parse(v.from) <= 43 * 86400000,
   );
+
+export const reservationPageSize = 20;
+export const reservationListQuerySchema = z.object({
+  page: z.number().int().min(1).max(1_000_000),
+  resourceId: rangeSchema.shape.resourceId,
+  serviceId: rangeSchema.shape.serviceId,
+  status: rangeSchema.shape.status,
+});
 
 /** Keep the server's bounded list contract when displaying a whole year. */
 export async function loadReservationCalendar(
@@ -421,6 +435,27 @@ export function availableSlots(
   return [...slots.values()].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 }
 
+export function availableMonth(
+  configuration: ReservationConfiguration,
+  reservations: Reservation[],
+  query: ReservationMonthAvailabilityQuery,
+  now: string,
+  options: { staff?: boolean } = {},
+): Record<string, boolean> {
+  if (configuration.mode === "stay") throw new ReservationError("MODE_MISMATCH");
+  const first = Temporal.PlainDate.from(query.month);
+  const from = first.subtract({ days: first.dayOfWeek - 1 });
+  return Object.fromEntries(
+    Array.from({ length: 42 }, (_, i) => {
+      const date = from.add({ days: i }).toString();
+      return [
+        date,
+        availableSlots(configuration, reservations, { ...query, date }, now, options).length > 0,
+      ];
+    }),
+  );
+}
+
 export function placeReservation(
   configuration: ReservationConfiguration,
   reservations: Reservation[],
@@ -546,4 +581,21 @@ export function previewReservationMove(
         }
       : {}),
   };
+}
+
+export function reservationDayCounts(reservations: Reservation[], timeZone: string) {
+  const days = new Map<string, number>();
+  for (const reservation of reservations) {
+    let date = Temporal.PlainDate.from(localDate(reservation.startsAt, timeZone));
+    const last =
+      reservation.mode === "stay"
+        ? localDate(new Date(Date.parse(reservation.endsAt) - 1).toISOString(), timeZone)
+        : date.toString();
+    while (date.toString() <= last) {
+      const key = date.toString();
+      days.set(key, (days.get(key) ?? 0) + 1);
+      date = date.add({ days: 1 });
+    }
+  }
+  return days;
 }

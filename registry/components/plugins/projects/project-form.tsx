@@ -13,12 +13,12 @@ import {
 } from "@/components/plugins/customers/ui";
 import type { ProjectsLabels } from "@/components/plugins/projects/labels";
 import type { Project, ProjectFormValues } from "@/components/plugins/projects/types";
-import { DeleteProject } from "@/components/plugins/projects/ui";
 import {
   projectFormValues,
   projectStatuses,
   validateProject,
 } from "@/components/plugins/projects/utils";
+import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
@@ -44,9 +44,18 @@ function ProjectFormContent({
   const id = `factory-project-form-${useId()}`;
   const [values, setValues] = useState(() => projectFormValues(project));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
-  const [deleting, setDeleting] = useState(false);
-  const action = useCustomerAction(labels.actionError);
-  const pending = disabled || action.pending || deleting;
+  const action = useCustomerAction(labels.actionError, project?.id);
+  const deletion = useRecordDeletion({
+    items: project ? [project] : [],
+    scope: project?.id,
+    getName: (item) => item.name,
+    onDelete,
+    label: labels.deleteProject,
+    labels,
+    disabled: disabled || action.pending,
+    returnFocus: formRef,
+  });
+  const pending = disabled || action.pending || deletion.pending;
   const [previousStatusUpdate, setPreviousStatusUpdate] = useState(statusUpdate);
   if (statusUpdate !== previousStatusUpdate) {
     setPreviousStatusUpdate(statusUpdate);
@@ -68,8 +77,11 @@ function ProjectFormContent({
     const nextErrors = validateProject(normalized, labels);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    if (await action.run(() => onSubmit(normalized), project ? labels.saved : labels.created))
-      setValues(normalized);
+    await action.run(
+      () => onSubmit(normalized),
+      project ? labels.saved : labels.created,
+      () => setValues(normalized),
+    );
   }
   function error(name: keyof ProjectFormValues) {
     return errors[name] ? (
@@ -95,7 +107,7 @@ function ProjectFormContent({
         noValidate
         onSubmit={submit}
         aria-busy={pending}
-        className={cn(cardClass, "space-y-5")}
+        className={cn(cardClass, "space-y-5 focus-visible:ring-2 focus-visible:ring-ring")}
       >
         {project && (
           <div className="space-y-1.5">
@@ -153,21 +165,17 @@ function ProjectFormContent({
         <Feedback feedback={action.feedback} />
         <div className={editorActionsClass}>
           {project && onDelete && (
-            <div>
-              <DeleteProject
-                project={project}
-                onDelete={onDelete}
-                labels={labels}
-                disabled={pending}
-                onPendingChange={setDeleting}
-                returnFocus={formRef}
-              />
-            </div>
+            <RecordDeleteButton
+              label={labels.deleteProject}
+              disabled={pending}
+              onClick={(event) => deletion.open(project.id, event.currentTarget)}
+            />
           )}
           <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
             {pending ? labels.pending : project ? labels.save : labels.create}
           </button>
         </div>
+        {deletion.dialog}
       </form>
     </div>
   );

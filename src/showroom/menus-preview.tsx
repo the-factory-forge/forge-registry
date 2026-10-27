@@ -27,7 +27,11 @@ import {
 } from "@/components/plugins/menus";
 import { reorderMenuItems, validateLabel } from "@/components/plugins/menus/model";
 import { createDriveMock } from "@/showroom/drive-mock";
-import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
+import {
+  ShowroomLink as Link,
+  useShowroomParams,
+  useShowroomEditorGuard,
+} from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const editable = { upload: true, createFolder: true, rename: true, delete: true, download: true };
@@ -387,6 +391,7 @@ export function MenuAdminPreview() {
   const base = `/${locale}/admin/menus`;
   const [id] = segments;
   const item = mock.items.find((entry) => entry.id === id);
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
   const driveClient = mock.drive.client(
     mock.items.map((entry) => ({
       scope: { type: "menu-item", id: entry.id },
@@ -438,6 +443,8 @@ export function MenuAdminPreview() {
   if (id === "taxonomy")
     return (
       <MenuTaxonomyPage
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blockedNavigation}
         client={mock.client}
         locales={locales}
         baseLocale={baseLocale}
@@ -449,7 +456,8 @@ export function MenuAdminPreview() {
   if (id === "new" || item)
     return (
       <MenuItemEditorPage
-        key={id}
+        onNavigationStateChange={onNavigationStateChange}
+        blockedNavigation={blockedNavigation}
         client={mock.client}
         item={item}
         categories={mock.categories}
@@ -458,6 +466,7 @@ export function MenuAdminPreview() {
         baseLocale={baseLocale}
         currency="CHF"
         backHref={base}
+        labelsHref={`${base}/taxonomy`}
         linkComponent={Link}
         className="showroom-page"
         driveClient={driveClient}
@@ -465,7 +474,8 @@ export function MenuAdminPreview() {
         photoFolderId={typeof query.folder === "string" ? query.folder : null}
         getFolderHref={(folderId) => `${base}/${id}${folderId ? `?folder=${folderId}` : ""}`}
         onSaved={(saved) => {
-          if (id === "new") void navigate({ to: `${base}/${saved.id}` });
+          if (id === "new" && !blockedNavigation)
+            void navigate({ to: `${base}/${saved.id}`, ignoreBlocker: true });
         }}
       />
     );

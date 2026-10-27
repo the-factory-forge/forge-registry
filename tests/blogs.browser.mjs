@@ -1,11 +1,23 @@
 import assert from "node:assert/strict";
 import { before, after, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { actionToast } from "./action-toast-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Blogs browser", async () => {
+  async function confirmHistoryPublication(page) {
+    const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
+    await Promise.race([
+      dialog.waitFor(),
+      page
+        .getByRole("dialog")
+        .filter({ hasText: "This language is now published" })
+        .last()
+        .waitFor(),
+    ]);
+    if (await dialog.isVisible())
+      await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+  }
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
   const existing = "b1000000-0000-4000-8000-000000000001";
   let browser;
@@ -31,6 +43,32 @@ await suite("Blogs browser", async () => {
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
     await actionToast(page, "Draft saved.");
   }
+  await test("editor category shortcut opens management only for administrators", async (t) => {
+    const page = await preview(t, `/en/admin/blogs/${existing}`);
+    const link = page.getByRole("link", { name: "Manage categories", exact: true });
+    await link.waitFor();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate(
+          (value) => document.documentElement.classList.toggle("dark", value === "dark"),
+          theme,
+        );
+        await link.scrollIntoViewIfNeeded();
+        await link
+          .locator("xpath=ancestor::fieldset[1]")
+          .screenshot({ path: `/tmp/blog-categories-${width}-${theme}.png` });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.getByLabel("Administrator", { exact: true }).uncheck();
+    assert.equal(await link.count(), 0);
+    await page.getByLabel("Administrator", { exact: true }).check();
+    await link.click();
+    await page.waitForURL("**/en/admin/blogs/categories");
+    await page.getByRole("heading", { name: "Categories", exact: true }).waitFor();
+    await page.getByRole("button", { name: "New category", exact: true }).waitFor();
+  });
   await test("editor publication badge saves immediately and protects drafts on failure", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`, {
       viewport: { width: 1440, height: 1000 },
@@ -49,6 +87,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("tab", { name: "English", exact: true }).click();
     await badge.focus();
     await page.keyboard.press("Enter");
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
 
@@ -56,10 +95,15 @@ await suite("Blogs browser", async () => {
     await title.fill("A protected revision");
     assert.equal(await badge.isDisabled(), true);
     await saved(page);
+    await badge.filter({ hasText: "Unpublished changes" }).waitFor();
     assert.equal(await badge.textContent(), "Unpublished changes");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
     await badge.click();
-    await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+    await page
+      .locator("form")
+      .getByRole("alert")
+      .filter({ hasText: "Storage is unavailable" })
+      .waitFor();
     assert.equal(await badge.textContent(), "Unpublished changes");
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
     assert.equal(await title.inputValue(), "A protected revision");
@@ -68,16 +112,16 @@ await suite("Blogs browser", async () => {
     await actionToast(page, "This language is no longer public");
     assert.equal(await badge.textContent(), "Draft");
     assert.equal(await title.inputValue(), "A protected revision");
-    await page.getByRole("tabpanel").locator("header").screenshot({
+    await page.getByRole("tabpanel").locator("header").first().screenshot({
       path: "/tmp/forge-blog-toggle-editor-desktop.png",
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("tabpanel").locator("header").screenshot({
+    await page.getByRole("tabpanel").locator("header").first().screenshot({
       path: "/tmp/forge-blog-toggle-editor-mobile-dark.png",
     });
     await page.getByLabel("Read-only", { exact: true }).check();
@@ -102,6 +146,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await french.getAttribute("aria-pressed"), "true");
     await english.focus();
     await page.keyboard.press("Enter");
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await english.getAttribute("aria-pressed"), "true");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
@@ -115,7 +160,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await french.getAttribute("aria-pressed"), "false");
     await row.screenshot({ path: "/tmp/forge-blog-toggle-table-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await french.scrollIntoViewIfNeeded();
     await row.getByRole("cell").nth(3).screenshot({
       path: "/tmp/forge-blog-toggle-table-mobile-dark.png",
@@ -123,7 +168,10 @@ await suite("Blogs browser", async () => {
     const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
     const draftBadge = draft.getByRole("button", { name: "Publication status: EN", exact: true });
     await draftBadge.click();
-    await page.getByRole("alert").filter({ hasText: "Check your fields" }).waitFor();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "An administrator must select and save a confirmed author" })
+      .waitFor();
     assert.equal(await draftBadge.getAttribute("aria-pressed"), "false");
     await page.getByLabel("Read-only", { exact: true }).check();
     assert.equal(await row.getByRole("button", { name: /^Publication status:/ }).count(), 0);
@@ -145,6 +193,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("tab", { name: "English", exact: true }).click();
     assert.equal(await publish.isEnabled(), true);
     await publish.click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     assert.equal(await publish.count(), 0);
     assert.equal(await unpublish.isEnabled(), true);
@@ -186,7 +235,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 1000 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const link = row.getByRole("link", { name: title, exact: true });
       const category = row.getByRole("cell").nth(2).locator("p");
       assert.equal(await link.getAttribute("title"), title);
@@ -227,7 +276,8 @@ await suite("Blogs browser", async () => {
     const page = await preview(t, `/en/admin/blogs/${existing}`, {
       viewport: { width: 1440, height: 1000 },
     });
-    const group = page.getByRole("group", { name: "Categories", exact: true });
+    const group = page.getByRole("group", { name: /^Categories(?: Manage categories)?$/ });
+    await group.waitFor();
     const parent = group.getByRole("checkbox", { name: "Ideas & practice", exact: true });
     const child = group.getByRole("checkbox", { name: "Design", exact: true });
     const parentItem = group.locator(":scope > ul > li").filter({
@@ -258,7 +308,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 1000 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const nested = parentItem.locator("ul");
       assert.equal(await nested.evaluate((node) => getComputedStyle(node).borderLeftWidth), "1px");
       assert.equal(
@@ -304,7 +354,7 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
     await page.screenshot({ path: "/tmp/forge-blogs-delete-desktop-light.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await trigger.click();
     await dialog.waitFor();
     assert.equal(
@@ -334,7 +384,7 @@ await suite("Blogs browser", async () => {
       await page.goto(baseURL + path);
       await page.locator('[data-preview-ready="true"]').waitFor();
       for (const theme of ["Light", "Dark"]) {
-        const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+        const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         for (const image of await page
@@ -412,7 +462,7 @@ await suite("Blogs browser", async () => {
     ]) {
       await page.setViewportSize({ width, height: 900 });
       if (theme === "dark")
-        await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+        await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
         true,
@@ -455,13 +505,13 @@ await suite("Blogs browser", async () => {
     assert.match(html, /Begin with a question/);
     assert.doesNotMatch(html, /An idea for tomorrow/);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
     await page.screenshot({ path: "/tmp/forge-blogs-mobile-dark.png", fullPage: true });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.waitForURL(`${baseURL}/fr/blogs`);
@@ -488,10 +538,15 @@ await suite("Blogs browser", async () => {
     await saved(page);
     await page.getByLabel("Editor", { exact: true }).selectOption("alex");
     await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.getByRole("link", { name: "A browser-created post", exact: true }).click();
-    await page.getByText("Alex Morgan", { exact: true }).last().waitFor();
+    await page.getByText("Jordan Lee", { exact: true }).last().waitFor();
+    assert.equal(
+      await page.locator("article").getByText("Alex Morgan", { exact: true }).count(),
+      0,
+    );
     await page.getByRole("link", { name: "Manage posts", exact: true }).click();
     await page.getByRole("heading", { name: "Blog posts", exact: true }).waitFor();
     await page.getByRole("button", { name: "Search posts", exact: true }).click();
@@ -600,8 +655,10 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Title", { exact: true }).fill("Une idée");
     await page.getByLabel("Slug", { exact: true }).fill("une-idee");
     await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Un nouveau texte.");
+    await page.getByLabel("Author", { exact: true }).selectOption("jordan");
     await saved(page);
     await page.getByRole("button", { name: "Publish", exact: true }).click();
+    await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
     await page.getByRole("link", { name: "French blog", exact: true }).click();
     await page.getByRole("link", { name: "Une idée", exact: true }).waitFor();
@@ -620,11 +677,16 @@ await suite("Blogs browser", async () => {
     const title = page.getByRole("textbox", { name: "Title", exact: true });
     assert.equal(await title.inputValue(), "Faire de la place aux idées");
     await title.fill("Une traduction modifiée");
-    assert.equal(await english.isDisabled(), true);
+    assert.equal(await english.isDisabled(), false);
+    await english.click();
+    const leave = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
+    await leave.waitFor();
+    await leave.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.equal(await french.getAttribute("aria-selected"), "true");
     await page.getByLabel("Simulate action failures", { exact: true }).check();
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
-    assert.equal(await english.isDisabled(), true);
+    assert.equal(await english.isDisabled(), false);
     assert.equal(await title.inputValue(), "Une traduction modifiée");
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
     await saved(page);
@@ -635,7 +697,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await title.inputValue(), "Une traduction modifiée");
     await page.screenshot({ path: "/tmp/forge-blog-language-tabs-desktop.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
@@ -681,23 +743,32 @@ await suite("Blogs browser", async () => {
         await saved(page);
       } else if (label === "Draft") {
         await page.getByRole("button", { name: "Unpublish", exact: true }).click();
-        await page.getByText(label, { exact: true }).waitFor();
+        // The badge changes optimistically; navigation waits for persistence.
+        await actionToast(page, "This language is no longer public");
+        await page
+          .getByRole("button", { name: "Publication status", exact: true })
+          .filter({ hasText: label })
+          .waitFor();
       }
       for (const [index, theme] of ["Light", "Dark"].entries()) {
-        const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+        const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         assert.deepEqual(
-          await page.getByText(label, { exact: true }).evaluate((node) => {
-            const style = getComputedStyle(node);
-            return [style.backgroundColor, style.color];
-          }),
+          await page
+            .getByRole("button", { name: "Publication status", exact: true })
+            .filter({ hasText: label })
+            .evaluate((node) => {
+              const style = getComputedStyle(node);
+              return [style.backgroundColor, style.color];
+            }),
           colors[index],
         );
         if (label === "Published") {
           await page
             .getByRole("tabpanel")
             .locator("header")
+            .first()
             .screenshot({
               path: `/tmp/forge-blog-published-${theme.toLowerCase()}.png`,
             });

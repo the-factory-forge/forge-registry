@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
@@ -21,7 +21,7 @@ void test("full-page previews fit below the showroom header and scroll when cont
       const footer = await preview.locator("footer").boundingBox();
       assert.ok(header.y >= 56, `${theme}/${path}: page header stays below showroom navigation`);
       assert.ok(footer.y + footer.height <= 1000, `${theme}/${path}: footer fits at first load`);
-      assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 1000);
+      assert.equal(await page.shell.evaluate(() => document.documentElement.scrollHeight), 1000);
     }
   }
 

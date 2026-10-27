@@ -1,5 +1,4 @@
 import type { S3Client } from "@aws-sdk/client-s3";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type {
   DriveCapabilities,
@@ -8,14 +7,9 @@ import type {
   DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
-// Structural methods accept Drizzle databases with or without a host schema.
-export type DriveTransaction = Pick<
-  PostgresJsDatabase,
-  "execute" | "select" | "insert" | "update" | "delete"
->;
-export interface DriveDatabase extends Pick<PostgresJsDatabase, "execute"> {
-  transaction<T>(action: (tx: DriveTransaction) => Promise<T>): Promise<T>;
-}
+import type { DatabaseTransaction, PluginDatabase } from "@/components/utils/database";
+export type DriveTransaction = DatabaseTransaction;
+export type DriveDatabase = PluginDatabase;
 export interface DriveStorageOptions<Context> {
   db: DriveDatabase;
   s3: S3Client;
@@ -35,7 +29,7 @@ export interface DriveStorageOptions<Context> {
     context: Context,
     scope: DriveScope,
     entryIds: string[],
-    tx: Pick<DriveTransaction, "execute">,
+    tx: DriveTransaction,
   ) => Promise<boolean>;
 }
 export type DrivePermission = keyof DriveCapabilities;

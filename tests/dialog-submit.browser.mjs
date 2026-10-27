@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
-
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Dialog submit browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -97,7 +96,7 @@ await suite("Dialog submit browser", async () => {
     const page = await preview(t, "/en/admin/menus/taxonomy", {
       viewport: { width: 390, height: 844 },
     });
-    await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+    await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("button", { name: "New category", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "New category", exact: true });
     await dialog.getByRole("textbox", { name: /Name.*English/ }).fill("Shortcut category");

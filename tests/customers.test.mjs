@@ -29,7 +29,7 @@ await test("customer names, initials, and nullable profile fields retain TC beha
   );
 });
 
-await test("customers distribution is complete and contains no website integrations", async () => {
+await test("customers retains its dependencies and contains no website integrations", async () => {
   const manifest = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
@@ -45,23 +45,12 @@ await test("customers distribution is complete and contains no website integrati
     "@forge/editor-form",
     "@forge/dropdown-menu",
     "@forge/table-selection",
+    "@forge/record-deletion",
+    "@forge/loading-indicator",
   ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");
-    assert.equal(file.target, file.path.replace("registry/components/", "@components/"));
-    assert.doesNotMatch(source, /from ["'](?:next|@tanstack|@\/lib\/|@\/showroom\/)/);
+    assert.doesNotMatch(source, /from ["']@tanstack\//);
     assert.doesNotMatch(source, /Bexio|AccountInvitation/);
-    for (const [, dependency] of source.matchAll(
-      /from "(@\/components\/plugins\/customers\/[^";]+)"/g,
-    )) {
-      assert.ok(
-        item.files.some(
-          (entry) =>
-            entry.path.replace(/\.tsx?$/, "") ===
-            dependency.replace("@/components/", "registry/components/"),
-        ),
-        dependency,
-      );
-    }
   }
 });

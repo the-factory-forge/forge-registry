@@ -5,6 +5,8 @@ import {
   assertResourceExceptions,
   assertVersion,
   availableSlots,
+  availableMonth,
+  monthAvailabilitySchema,
   bookingSchema,
   canCustomerChange,
   catalog,
@@ -13,6 +15,8 @@ import {
   parseReservationInput,
   placeReservation,
   rangeSchema,
+  reservationListQuerySchema,
+  reservationPageSize,
   reservationPolicyDefaults,
   reservationStayPolicyDefaults,
   resourceSchema,
@@ -23,6 +27,8 @@ import {
   ReservationError,
   type Reservation,
   type ReservationConfiguration,
+  type ReservationRange,
+  type ReservationListQuery,
   type ReservationManagementClient,
   type ReservationsAdminClient,
   type ReservationsPublicClient,
@@ -204,6 +210,11 @@ export function createReservationsMock() {
     );
   }
   const publicClient: ReservationsPublicClient = {
+    monthAvailability: async (input) => {
+      const query = parseReservationInput(monthAvailabilitySchema, input);
+      await check();
+      return availableMonth(config, reservations, query, currentTime());
+    },
     catalog: async () => {
       await check();
       return structuredClone(catalog(config));
@@ -214,7 +225,42 @@ export function createReservationsMock() {
     },
     book: (input) => book(input),
   };
+  function readRows(query: ReservationRange | ReservationListQuery) {
+    return structuredClone(
+      reservations
+        .filter(
+          (r) =>
+            (!("from" in query) || (r.startsAt < query.to && r.occupiedEnd > query.from)) &&
+            (!query.resourceId || r.resourceId === query.resourceId) &&
+            (!query.serviceId || r.serviceId === query.serviceId) &&
+            (!query.status || r.status === query.status),
+        )
+        .sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.id.localeCompare(b.id))
+        .slice(
+          "page" in query ? (query.page - 1) * reservationPageSize : 0,
+          "page" in query ? query.page * reservationPageSize + 1 : undefined,
+        )
+        .map((r) => ({
+          ...r,
+          emailFailed: false,
+          outsideHours:
+            activeReservation(r) &&
+            !fitsResource(
+              config.resources.find((v) => v.id === r.resourceId)!,
+              r.occupiedStart,
+              r.occupiedEnd,
+              config.settings.timeZone,
+              r.mode,
+            ),
+        })),
+    );
+  }
   const adminClient: ReservationsAdminClient = {
+    monthAvailability: async (input) => {
+      const query = parseReservationInput(monthAvailabilitySchema, input);
+      await check();
+      return availableMonth(config, reservations, query, currentTime(), { staff: true });
+    },
     configuration: async () => {
       await check();
       return structuredClone(config);
@@ -222,30 +268,16 @@ export function createReservationsMock() {
     list: async (input) => {
       await check();
       const query = parseReservationInput(rangeSchema, input);
-      return structuredClone(
-        reservations
-          .filter(
-            (r) =>
-              r.startsAt < query.to &&
-              r.occupiedEnd > query.from &&
-              (!query.resourceId || r.resourceId === query.resourceId) &&
-              (!query.serviceId || r.serviceId === query.serviceId) &&
-              (!query.status || r.status === query.status),
-          )
-          .map((r) => ({
-            ...r,
-            emailFailed: false,
-            outsideHours:
-              activeReservation(r) &&
-              !fitsResource(
-                config.resources.find((v) => v.id === r.resourceId)!,
-                r.occupiedStart,
-                r.occupiedEnd,
-                config.settings.timeZone,
-                r.mode,
-              ),
-          })),
-      );
+      return readRows(query);
+    },
+    listPage: async (input) => {
+      await check();
+      const query = parseReservationInput(reservationListQuerySchema, input);
+      const rows = readRows(query);
+      return {
+        items: rows.slice(0, reservationPageSize),
+        hasMore: rows.length > reservationPageSize,
+      };
     },
     availability: async (query) => {
       await check();
@@ -375,6 +407,37 @@ export function createReservationsMock() {
     },
     get generation() {
       return generation;
+    },
+    populateList() {
+      seed();
+      const sample = reservations[0];
+      reservations = Array.from({ length: 25 }, (_, index) => {
+        const shifted = (value: string) =>
+          Temporal.Instant.from(value)
+            .toZonedDateTimeISO(sample.timeZone)
+            .add({ days: (index - 12) * 7 })
+            .toInstant()
+            .toString();
+        return {
+          ...sample,
+          id: crypto.randomUUID(),
+          customer: { ...sample.customer, name: `Guest ${String(index + 1).padStart(2, "0")}` },
+          startsAt: shifted(sample.startsAt),
+          endsAt: shifted(sample.endsAt),
+          occupiedStart: shifted(sample.occupiedStart),
+          occupiedEnd: shifted(sample.occupiedEnd),
+          cancellationDeadline: shifted(sample.cancellationDeadline),
+          departureDate: sample.departureDate
+            ? Temporal.PlainDate.from(sample.departureDate)
+                .add({ days: (index - 12) * 7 })
+                .toString()
+            : undefined,
+          status: (["confirmed", "pending", "cancelled", "rejected"] as const)[index % 4],
+        };
+      });
+      generation++;
+      managementClients.clear();
+      emit();
     },
     setFail(value: boolean) {
       fail = value;

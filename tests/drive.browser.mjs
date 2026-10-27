@@ -3,9 +3,10 @@ import { readFile } from "node:fs/promises";
 import { after, before, test, suite } from "node:test";
 
 import { unzipSync, strFromU8 } from "fflate";
-import { chromium } from "playwright";
 
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
+import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Drive browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -26,8 +27,9 @@ await suite("Drive browser", async () => {
     t.after(() => assert.deepEqual(errors, []));
     await page.goto(`${baseURL}${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
+    await openPreviewControls(page);
     if (options.colorScheme === "dark")
-      await page.getByRole("button", { name: "Dark mode", exact: true }).click();
+      await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     return page;
   }
   async function folder(page, name) {
@@ -37,7 +39,10 @@ await suite("Drive browser", async () => {
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
     await closeDriveNavigation(page);
-    await page.getByRole("link", { name, exact: true }).waitFor();
+    await page
+      .getByRole("link", { name, exact: true })
+      .and(page.locator('[aria-disabled="false"]'))
+      .waitFor();
   }
   async function driveNavigation(page, name) {
     const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
@@ -52,7 +57,45 @@ await suite("Drive browser", async () => {
   });
   const row = (page, name) => page.getByRole("row").filter({ hasText: name });
 
-  await test("embedded Drive omits its redundant root heading and keeps folder navigation", async (t) => {
+  await test("child folder navigation retains the page and expanded sidebar", async (t) => {
+    const page = await preview(t, "/en/drive/project/portal", {
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: "reduce",
+    });
+    await folder(page, "Sibling");
+    await folder(page, "Child");
+    const sidebar = page.getByRole("navigation", { name: "Drive navigation", exact: true });
+    await sidebar.getByRole("button", { name: "Expand folder: Sibling", exact: true }).click();
+    await sidebar.locator('[aria-busy="true"]').first().waitFor({ state: "hidden" });
+    const node = await sidebar.elementHandle();
+    await page.evaluate(() => {
+      window.driveNavigationDocument = true;
+    });
+    await row(page, "Child").getByRole("link", { name: "Child", exact: true }).click();
+    await page.getByText("This folder is empty.", { exact: true }).waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    assert.equal(await page.evaluate(() => window.driveNavigationDocument), true);
+    assert.equal(
+      await sidebar.getByRole("button", { name: "Collapse folder: Sibling", exact: true }).count(),
+      1,
+    );
+    await sidebar.getByRole("link", { name: "Customer portal", exact: true }).click();
+    await row(page, "Child").waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    assert.equal(
+      await sidebar.getByRole("button", { name: "Collapse folder: Sibling", exact: true }).count(),
+      1,
+    );
+    await page.goBack();
+    await page.getByText("This folder is empty.", { exact: true }).waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    await page.goForward();
+    await row(page, "Child").waitFor();
+    assert.equal(await node.evaluate((element) => element.isConnected), true);
+    await page.screenshot({ path: "/tmp/drive-stable-navigation.png" });
+  });
+
+  await test("embedded Drive keeps folder navigation separate from its panel heading", async (t) => {
     for (const colorScheme of ["light", "dark"])
       for (const width of [390, 1440]) {
         const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001", {
@@ -69,6 +112,10 @@ await suite("Drive browser", async () => {
         await folder(page, "Photos");
         await page.getByRole("link", { name: "Photos", exact: true }).press("Enter");
         await breadcrumbs.getByRole("heading", { name: "Photos", exact: true }).waitFor();
+        await page
+          .locator('[aria-busy="false"] > header')
+          .getByRole("heading", { name: "Photos", exact: true })
+          .waitFor();
         await breadcrumbs
           .getByRole("link", { name: "Burrata with tomatoes", exact: true })
           .press("Enter");
@@ -87,6 +134,41 @@ await suite("Drive browser", async () => {
       .getByRole("navigation", { name: "Folder navigation", exact: true })
       .getByRole("heading", { name: "Customer portal", exact: true })
       .waitFor();
+  });
+
+  await test("Drive folder and trash titles sit inside their content panels", async (t) => {
+    for (const colorScheme of ["light", "dark"])
+      for (const width of [390, 1440]) {
+        const page = await preview(t, "/en/drive/project/portal", {
+          viewport: { width, height: 900 },
+          colorScheme,
+          reducedMotion: "reduce",
+        });
+        await row(page, "Annual report.txt").waitFor();
+        const panel = page
+          .locator("div[aria-busy]")
+          .filter({ has: page.getByRole("table") })
+          .last();
+        for (const title of ["Customer portal", "Trash"]) {
+          if (title === "Trash") await driveNavigation(page, "Trash");
+          const heading = panel
+            .locator(":scope > header")
+            .getByRole("heading", { name: title, exact: true });
+          await heading.waitFor();
+          const bounds = await panel.boundingBox();
+          const titleBounds = await heading.boundingBox();
+          assert.ok(titleBounds.x > bounds.x && titleBounds.y > bounds.y);
+          assert.ok(titleBounds.x + titleBounds.width < bounds.x + bounds.width);
+          assert.equal(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            true,
+          );
+          await panel.screenshot({
+            path: `/tmp/drive-panel-${title === "Trash" ? "trash" : "folder"}-${width}-${colorScheme}.png`,
+          });
+        }
+        await page.close();
+      }
   });
 
   await test("Drive confirmation stays available while its preview loads", async (t) => {
@@ -301,7 +383,10 @@ await suite("Drive browser", async () => {
     await page
       .getByRole("link", { name: "Open linked record: Studio website", exact: true })
       .click();
-    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Project sections", exact: true })
+      .getByRole("link", { name: "Drive", exact: true })
+      .click();
     await page.getByRole("link", { name: "Assets", exact: true }).click();
     await page.getByRole("link", { name: "Nested", exact: true }).waitFor();
     await page.getByLabel("Directory state").selectOption("error");
@@ -535,6 +620,7 @@ await suite("Drive browser", async () => {
     const page = await preview(t, "/en/drive/project/website");
     await folder(page, "Documents");
     await page.getByRole("link", { name: "Documents", exact: true }).click();
+    await page.locator('input[type="file"]:enabled').waitFor({ state: "attached" });
     await page.locator('input[type="file"]').setInputFiles(file("nested.txt"));
     await row(page, "nested.txt").waitFor();
     await page
@@ -550,6 +636,11 @@ await suite("Drive browser", async () => {
       exact: true,
     });
     await dialog.getByText(/including 1 file\(s\) and 1 folder\(s\)/).waitFor();
+    const closeTooltip = page.getByRole("tooltip", { name: "Close", exact: true });
+    await closeTooltip.waitFor();
+    await page.keyboard.press("Escape");
+    await closeTooltip.waitFor({ state: "hidden" });
+    assert.equal(await dialog.isVisible(), true, "Escape dismisses the Close tooltip first");
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
     assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
@@ -880,6 +971,7 @@ await suite("Drive browser", async () => {
         for (const path of ["/en/drive", "/en/drive/project/portal", "/en/drive/project/website"]) {
           await page.goto(`${baseURL}${path}`);
           await page.locator('[data-preview-ready="true"]').waitFor();
+          await openPreviewControls(page);
           const table = page.getByRole("table");
           await page.locator('[aria-busy="false"] table').waitFor();
           const panel = table.locator("../..");
@@ -972,19 +1064,18 @@ await suite("Drive browser", async () => {
             .evaluate((element) => element.getBoundingClientRect().top + scrollY),
           top,
         );
+        const loadedHeadings = await table.getByRole("columnheader").allTextContents();
         await row(page, "Annual report.txt")
           .getByRole("button", { name: "Rename", exact: true })
           .click();
         const dialog = page.getByRole("dialog", { name: "Rename", exact: true });
         await page.getByLabel("Directory state").selectOption("loading");
-        assert.equal(
-          await dialog.getByRole("button", { name: "Save", exact: true }).isDisabled(),
-          true,
-        );
-        await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+        // Changing the preview state replaces the client and retires its rename dialog.
+        await dialog.waitFor({ state: "hidden" });
         await page.getByLabel("Directory state").selectOption("error");
         await table.getByRole("alert").waitFor();
-        assert.equal(await table.getByRole("columnheader").count(), 5);
+        assert.deepEqual(await table.getByRole("columnheader").allTextContents(), loadedHeadings);
+        assert.equal(await row(page, "Annual report.txt").isVisible(), true);
         await page.close();
       }
   });
@@ -1008,6 +1099,7 @@ await suite("Drive browser", async () => {
         ]) {
           await page.goto(`${baseURL}${path}`);
           await page.locator('[data-preview-ready="true"]').waitFor();
+          await openPreviewControls(page);
           if (query) {
             await page.getByRole("button", { name: searchLabel, exact: true }).click();
             await page.getByRole("searchbox", { name: searchLabel, exact: true }).fill(query);
@@ -1081,6 +1173,17 @@ await suite("Drive browser", async () => {
           name: "Open linked record: Customer portal",
           exact: true,
         });
+        const unavailableRecord = page.getByRole("button", {
+          name: "Open linked record: Team handbook",
+          exact: true,
+        });
+        assert.equal(await unavailableRecord.isVisible(), true);
+        assert.equal(await unavailableRecord.isDisabled(), true);
+        const folderActions = await page
+          .getByRole("link", { name: /^Open folder: / })
+          .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().x));
+        assert.equal(folderActions.length, 3);
+        assert.ok(folderActions.every((x) => x === folderActions[0]));
         assert.equal(await openRecord.innerText(), "");
         const target = await openRecord.boundingBox();
         assert.ok(target.width >= (width < 768 ? 40 : 32));
@@ -1245,7 +1348,10 @@ await suite("Drive browser", async () => {
     await page
       .getByRole("link", { name: "Open linked record: Customer portal", exact: true })
       .click();
-    await page.getByRole("link", { name: "Drive", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Project sections", exact: true })
+      .getByRole("link", { name: "Drive", exact: true })
+      .click();
     await row(page, "Annual report.txt").waitFor();
     assert.equal(
       await row(page, "Annual report.txt").getByRole("cell").nth(4).innerText(),
@@ -1278,6 +1384,7 @@ await suite("Drive browser", async () => {
           .getByRole("link")
           .nth(1)
           .click();
+        await row(page, "Design brief.txt").waitFor();
         await page
           .locator('input[type="file"]')
           .setInputFiles(file("Annual report.txt", "new bytes"));
@@ -1342,7 +1449,10 @@ await suite("Drive browser", async () => {
         await driveNavigation(page, "Customer portal");
         await row(page, "Annual report.txt").waitFor();
         await page.getByRole("link", { name: "Destination", exact: true }).click();
-        await page.getByRole("link", { name: "Nested", exact: true }).click();
+        await page
+          .getByRole("link", { name: "Nested", exact: true })
+          .and(page.locator('[aria-disabled="false"]'))
+          .click();
         await row(page, "Recovered report.txt").waitFor();
         await page.close();
       }
@@ -1393,7 +1503,10 @@ await suite("Drive browser", async () => {
     assert.equal((await page.getByRole("table").boundingBox()).y, tableBefore.y);
     await sidebar.getByRole("link", { name: "Customer portal", exact: true }).waitFor();
     await page.getByLabel("Simulate action failures").evaluate((node) => node.click());
-    await nav.locator("input:not([readonly])").waitFor();
+    // Switching failure mode replaces the client, so start a new rename session.
+    await input.waitFor({ state: "hidden" });
+    await title.click();
+    await input.fill("Client portal");
     await input.press("Enter");
     await input.waitFor({ state: "hidden" });
     await nav.getByRole("button", { name: "Rename: Client portal", exact: true }).waitFor();
@@ -1427,10 +1540,16 @@ await suite("Drive browser", async () => {
 
   await test("breadcrumb title keeps pending saves locked and ignores IME confirmation", async (t) => {
     const page = await preview(t, "/en/drive/project/portal");
+    // Folder renames keep the client; root renames replace the host project directory.
+    await folder(page, "Assets");
+    const created = page.getByRole("dialog", { name: "Changes saved.", exact: true });
+    await created.getByRole("button", { name: "Close", exact: true }).click();
+    await created.waitFor({ state: "hidden" });
+    await page.getByRole("link", { name: "Assets", exact: true }).click();
     const nav = page.getByRole("navigation", { name: "Folder navigation" });
-    await nav.getByRole("button", { name: "Rename: Customer portal", exact: true }).click();
+    await nav.getByRole("button", { name: "Rename: Assets", exact: true }).click();
     const input = nav.getByRole("textbox");
-    await input.fill("Client portal");
+    await input.fill("Shared assets");
     await input.dispatchEvent("keydown", { key: "Enter", isComposing: true });
     assert.equal(await input.isVisible(), true);
     assert.equal(await input.getAttribute("readonly"), null);
@@ -1450,7 +1569,7 @@ await suite("Drive browser", async () => {
     );
     assert.equal(
       await nav
-        .getByRole("button", { name: "Rename: Client portal", exact: true })
+        .getByRole("button", { name: "Rename: Shared assets", exact: true })
         .evaluate((node) => node === document.activeElement),
       true,
     );
@@ -1509,7 +1628,7 @@ await suite("Drive browser", async () => {
     await page.locator('input[type="file"]:enabled').setInputFiles(file("leaving.txt"));
     const toast = page.getByRole("dialog", { name: "Uploads", exact: true });
     await toast.waitFor();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await page.clock.resume();
     await toast.waitFor({ state: "hidden" });
   });
@@ -1528,7 +1647,7 @@ await suite("Drive browser", async () => {
       exact: true,
     });
     await toast.getByRole("button", { name: "Undo", exact: true }).waitFor();
-    await page.getByRole("link", { name: "All components", exact: true }).click();
+    await page.shell.getByRole("link", { name: "All components", exact: true }).click();
     await toast.waitFor({ state: "hidden" });
   });
 
@@ -1622,6 +1741,7 @@ await suite("Drive browser", async () => {
     await panel.dispatchEvent("dragenter", { dataTransfer: text });
     await panel.dispatchEvent("dragover", { dataTransfer: text });
     assert.equal(await overlay.count(), 0);
+    await page.locator("#factory-showroom-preview").focus();
     for (const event of ["escape", "dragend", "blur", "drop"]) {
       await panel.dispatchEvent("dragenter", { dataTransfer: files });
       await overlay.waitFor();
@@ -1656,8 +1776,8 @@ await suite("Drive browser", async () => {
 
   async function folderMenu(page, name) {
     const navigation = page.getByRole("navigation", { name: "Drive navigation", exact: true });
-    if (!(await navigation.isVisible()))
-      await page.getByRole("button", { name: "Drive navigation", exact: true }).click();
+    const toggle = page.getByRole("button", { name: "Drive navigation", exact: true });
+    if ((await toggle.isVisible()) && !(await navigation.isVisible())) await toggle.click();
     const trigger = navigation.getByRole("button", { name: `Actions: ${name}`, exact: true });
     await trigger.click();
     return trigger;
@@ -1677,7 +1797,10 @@ await suite("Drive browser", async () => {
     await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Nested");
     await dialog.getByRole("button", { name: "Create", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
-    await page.getByRole("link", { name: "Nested", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Nested", exact: true })
+      .and(page.locator('[aria-disabled="false"]'))
+      .click();
     await page.getByText("This folder is empty.", { exact: true }).waitFor();
     await folderMenu(page, "Customer portal");
     await page.getByRole("menuitem", { name: "Add", exact: true }).click();

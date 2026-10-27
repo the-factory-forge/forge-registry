@@ -19,7 +19,7 @@ Read each applicable `AGENTS.md`, the affected registry item guides, and shared
 `registry-distribution`, `site-template`, `plugins` and relevant UI contracts.
 Use existing site sync/install notes and `forge-spec/consumers/` evidence; read a
 site adoption record if present. The proposed `factory/adoption.yaml` format is
-not assumed to exist. The [adoption design](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/changes/track-customer-source-adoption/design.md)
+not assumed to exist. The [adoption design](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/changes/track-customer-source-adoption/design.md)
 describes a future rollout, not permission to create records across customer sites.
 
 Record the customer's starting commit, branch and dirty changes. Use an isolated

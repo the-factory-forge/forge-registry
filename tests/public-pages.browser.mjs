@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 await suite("Public pages browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -169,7 +169,7 @@ await suite("Public pages browser", async () => {
     await page.getByLabel("Contact details", { exact: true }).uncheck();
     assert.equal(await page.locator('main a[href^="mailto:"]').count(), 0);
     for (const theme of ["Light", "Dark"]) {
-      const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+      const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
       if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
         await toggle.click();
       for (const width of [1440, 375]) {

@@ -1,5 +1,10 @@
 # Blogs
 
+Hosts must await the [migration and blog readiness checks](./persistence.md#required-startup-checks)
+before enabling updated blog services or cleanup workers. The storage companion
+exports `assertBlogStorageReady(db)` and exposes `storage.preflight()`; missing or
+stale projections block operations until the reviewed backfill is complete.
+
 `@forge/blogs` provides administration, a Markdown editor with a live TanStack
 Markdown preview, category management, and public listing/article components.
 `@forge/blogs-storage` stores Markdown in PostgreSQL and uploaded images in private S3.
@@ -89,19 +94,23 @@ deleted editor. When deleting the last row on a later page, navigate to the last
 remaining page with the current search preserved.
 
 An article groups linked translations. Each has its own title, slug, summary,
-Markdown, image alternative text, draft, and publication. Thumbnail, banner, and
-category assignments are shared. Publishing one language captures the current
-shared settings for that language only; other live translations remain unchanged.
+Markdown, image alternative text, draft, publication, thumbnail, banner and
+category assignments. Draft settings live in `translation.shared`, falling back
+to `article.shared` for older documents. The article's designated management
+author stays in `article.shared.author`; captured language signatures are separate.
+Publishing one language leaves the other drafts and live translations unchanged.
 
 Creation and editing use language tabs, matching the back-office menu editor.
 Save drafts explicitly before switching language or publishing. Failed saves and
 ordinary prop rerenders preserve local values. Switching articles resets the
-form. The host owns navigation; add its router's unsaved-change guard if protection
-against leaving the editor entirely is required.
+form. Connect the host router to the editor’s navigation guard as described below
+for browser Back/Forward and other route changes.
 
 Editor IDs/names come from authenticated server context and dates from the server.
-Saving and publishing record the acting editor. Public credit comes from the
-publication, never a later unpublished draft. The original publication date stays
+Saving and publishing record the acting editor separately from `shared.author`.
+Public credit comes from the publication's author, never its last editor or a
+later unpublished draft. Legacy publications without an author retain their
+recorded editor attribution until explicitly migrated. The original publication date stays
 stable across updates; publishing after an unpublish starts a new publication date.
 
 Slugs use lowercase ASCII words separated by hyphens and are unique per language.
@@ -112,6 +121,10 @@ have no public language fallback.
 Categories form one translated tree with at most two levels. The post editor
 nests child checkboxes beneath their parent with indentation and a connecting guide.
 Selecting a child also selects its parent; clearing a parent clears its children.
+Pass `BlogEditPage.categoriesHref` to show a pencil link beside Categories for
+users with `manageCategories`. It opens the host's category management page and
+uses the editor's save/discard/cancel guard when the draft has unsaved changes.
+Existing integrations can omit the prop to keep their current navigation.
 Parent filters count each article once. Category slugs
 are unique per language. Publication requires names in that language for every
 selected category. Existing labels cannot be removed. Categories in use cannot
@@ -126,8 +139,10 @@ All object reads and cleanup remain within that prefix.
 
 The companion exports `createBlogsStorage`, configuration/database types, and
 `blogsArticles`, `blogsCategories`, `blogsObjects`, and `blogsMutations` Drizzle
-tables. Review `server/migration.sql` and apply it through the host migration
-workflow. Installation does not apply migrations.
+tables, plus `blogsHistory`, `blogsTranslations` and `blogsPublicationCategories`.
+Compose them with `pluginLocks` in the host schema, then generate and review a
+project migration. Follow the [persistence guide](./persistence.md), including
+projection backfill and stopped-writer cutover. Installation does not migrate.
 
 For Infomaniak, use its built-in encryption for all images; see
 [Storage encryption and access](./plugins.md#storage-encryption-and-access) for
@@ -167,7 +182,7 @@ Configured provider failures still return `STORAGE`. Image reads/publication nee
 configured storage, and hosts should schedule maintenance only when it is configured.
 
 The host must implement real authorization for `read`, `create`, `edit`,
-`publish`, `delete`, `upload`, and `manageCategories`. Grant `read` with write
+`publish`, `delete`, `upload`, `changeAuthor`, and `manageCategories`. Grant `read` with write
 permissions so mutation responses can return the refreshed article. Administrative
 listing checks both list-level and per-article permissions. UI capabilities hide
 controls but never authorize server operations.
@@ -179,6 +194,8 @@ failed database commit leaves cleanup metadata. Request IDs make retries safe;
 article versions reject stale writes. Preserve the request ID on uncertain
 transport retries and use a new one when changing input. Resolve version conflicts
 explicitly without silently overwriting a local draft or advancing its version.
+The editor's **Refresh article** action explicitly adopts the latest version for
+the next save while retaining unsaved content, settings and history origin.
 
 Writes, consistent reads, and maintenance use a shared PostgreSQL advisory lock.
 Administrative permission filtering examines matching metadata before pagination;
@@ -209,6 +226,38 @@ cleanup. No schema migration or existing-object rename is required. This source
 update changes future uploads only; live consumer adoption remains separate.
 
 ## Updating consumers
+
+The Blog editor module in `editor.tsx` owns article and category forms, draft
+sessions, history reads, save acceptance and unsaved-change protection. Its private
+draft hook reuses the existing action/retry and publication helpers. Blog editing
+stays separate from the Menu editor. Install the complete `@forge/blogs` item when
+updating; `BlogEditPage` props, existing admin exports and `BlogsClient` are unchanged.
+The former private `use-draft.ts` is no longer used and can be removed after adoption.
+Same-article prop updates preserve the active session; changing article or language
+starts a new one. Clients without `BlogsClient.history` retain direct publication.
+
+Every editor operation accepts results and feedback only while its originating
+article/language and client remain current. Leaving the editor or replacing its
+client suppresses late success/error feedback, callbacks, navigation, uploads and
+publication confirmations. Already-submitted server writes may still finish.
+Replacing only the client preserves unsaved text, settings and category inputs,
+clears obsolete pending state and confirmations, and uses the new client for later
+attempts. Unchanged retries within that client retain their request IDs; a replacement
+client starts fresh attempts. Version checks still apply to writes that finish late.
+Hosts must close or reset the editor when switching accounts or workspaces.
+Keep client objects stable across ordinary rerenders. Keep the editor mounted
+through deletion completion so its accepted callback can navigate; removing it
+early in response to a cache update intentionally invalidates that callback.
+
+This protection ships in `@forge/blogs`; `blogs-storage` depends on that item but
+has no server changes or migration for this update. L’Aspic and Osthoepathie Seebach
+are recorded consumers requiring separate adoption review. Their installed adapters
+and deployments were not updated here; other installations remain uninspected.
+
+The pure draft-save module now exposes `saveBlogDraft` in `model.ts` instead of
+`saveArticle` and `recordBlogSave`. Update Blogs and its storage adapter together;
+see the [draft-save adoption handoff](./HANDOFF-blog-save-module.md) for direct
+callers and the pending L’Aspic/Seebach upgrades. `BlogsClient.save` is unchanged.
 
 Follow [HANDOFF: blog storage adoption](./HANDOFF-blogs-storage.md) when adopting
 this revision. The owner confirmed no website used the former S3 Markdown flow,
@@ -265,9 +314,10 @@ unnecessary because transfers use the host endpoint.
 
 ## Crop new thumbnail and banner uploads
 
-`BlogEditPage` accepts optional `imageDimensions` for `thumbnail` and `banner`,
-for example `{ thumbnail: { width: 1200, height: 675 } }`. These are host choices,
-not registry defaults. For a configured field, selecting a new image opens
+`BlogEditPage` crops thumbnail and banner images by default at 1200×900 and
+1600×900 respectively. Override `imageDimensions`, for example
+`{ thumbnail: { width: 1200, height: 675 } }`, to crop only those configured fields,
+or pass `false` to retain original uploads. Selecting a configured image opens
 [`ImageCropDialog`](./image-crop.md). Nothing reaches `client.upload` until
 the editor confirms; it receives a `.webp` File at the requested dimensions.
 Cancel preserves the current image. Upload failures retain the crop for retry.
@@ -299,8 +349,10 @@ its submit event for client-side navigation.
 The public listing places categories above the posts on narrow screens, in a
 compact disclosure that starts closed and supports keyboard toggling. At the
 desktop breakpoint, categories remain expanded in the right sidebar.
-Main categories use stronger text; child categories are indented with a vertical
-guide. The current category uses the primary color at either level.
+Main categories use semibold foreground text; child categories use muted text
+and indentation with a vertical guide. The current category uses the primary
+color at either level, including its child guide. Preserve translated labels,
+post counts, filtering and visible keyboard focus in both themes.
 
 Call `storage.listPublished({ locale, search, categoryId, page, pageSize })` and
 `storage.getPublished(locale, slug)` in server loaders. `publicCategories()`
@@ -344,11 +396,11 @@ through candidates so referenced old objects cannot starve later cleanup.
 
 Unreferenced image objects, including those of deleted articles, have a 24-hour grace
 period to outlive interrupted transfers; attach uploads to saved
-drafts within that period. All current draft/publication references protect objects.
+drafts within that period. Current states and every retained history reference protect objects.
 Article deletion immediately removes public visibility and leaves the image
 ledger for retryable byte deletion. Never configure an S3 expiry rule over the
 final object prefix. No external automation is created by installation. Mutation
-records remain for retry safety; there is no user-facing revision/restore history.
+records remain for retry safety; they are separate from editorial history.
 
 Showroom routes are `/en/blogs`, `/en/admin/blogs`, and `/fr/blogs`. A dedicated
 provider shares in-memory state across navigation; full reloads reset it. Controls
@@ -358,7 +410,7 @@ The integration harness uses dedicated Docker volumes and fixed test-only
 credentials on localhost ports 55440/19040. It never reads host credentials:
 
 ```sh
-docker compose -f tests/blogs-storage/compose.yaml up -d --wait
+docker compose -f tests/blogs-storage/compose.yaml up -d --build --wait
 pnpm test:blogs-storage
 docker compose -f tests/blogs-storage/compose.yaml restart
 docker compose -f tests/blogs-storage/compose.yaml up -d --wait
@@ -366,6 +418,9 @@ BLOGS_TEST_PHASE=restart pnpm test:blogs-storage
 # Remove disposable integration data when finished:
 docker compose -f tests/blogs-storage/compose.yaml down --volumes
 ```
+
+The fixture builds MinIO from the pinned upstream source tag rather than relying
+on the unavailable vendor image. Its credentials and volumes are local test data.
 
 Run `pnpm test`, the browser suite with `TEST_BASE_URL` set to the showroom URL,
 and repository lint/type/build checks. Generate endpoints with `pnpm registry:sync`
@@ -385,3 +440,226 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Authors, collaboration and account changes
+
+Creation sets the creator as `BlogShared.author`. `BlogEditPage.authors` supplies
+eligible choices; the list shows Author and Last modified by separately. Public
+components use the publication's author, falling back to its historical editor
+only for older documents with no explicit author. Custom SEO and feeds must use
+the same attribution.
+
+Use `blogCapabilities(actor, storedAuthorId)` and `canAccessBlog` for the shared
+staff policy: staff can read/edit/upload; author or admin can publish, unpublish,
+delete or change author; only admins manage categories. A non-null actor means
+freshly authenticated, active staff, not any signed-in customer. The host owns
+eligibility and repeats permission checks on the server. Use `capabilitiesForArticle`
+for table actions and bulk selection. Never substitute the last editor's ID for a
+missing author ID when calculating permissions.
+
+`resolveAuthor(context, id, tx)` resolves eligible assignment identities and trusted
+account names inside writes. Browser-supplied names are ignored. Existing deleted
+identities retain their signature; assignment to a missing identity is rejected.
+
+Configure `resolveAuthorNames(ids, tx)` for current account names on admin and public
+reads. It returns only public-safe `{ id, name }` values for the requested IDs and
+omits missing accounts. It is batched per response and needs no viewer session.
+Renames update bylines in every language without changing published text, revisions,
+publication dates or the last editor. Draft reassignment changes management rights;
+public languages retain their own author ID until republished. Without this optional
+resolver, compatibility callers continue displaying stored signatures.
+
+Before removing an account while keeping its articles, call
+`storage.snapshotAuthorName(tx, { id, name })` with its last trusted account name
+inside the host's authorized deletion transaction. It updates matching current
+and retained history signatures, preserving versions, dates and editors. It does not
+remove the account or commit the transaction. The host must check fresh admin
+permissions, lock/recheck the account and affected records, then atomically apply
+its retention choices and account removal. Do not expose this server-only method
+directly as a browser endpoint. Reassignment/deletion still belong to the host's
+related-data adapter. Invalidate admin/public blog caches after account renames,
+reassignment and deletion; source installation does not configure cache hooks.
+
+Legacy articles remain readable, but direct publication fails with `AUTHOR_REQUIRED`
+until an administrator explicitly selects and saves an eligible author. Saving a
+colleague's draft without that selection leaves it unconfirmed. The selector starts
+empty, so saving unrelated text cannot silently confirm the previous editor.
+Use the stored optional author ID in `authorize`; only admins can assign or manage
+legacy records under the shared policy. Custom storage adapters must enforce the
+same guard. This does not recover unknown historical authors or import Seebach's
+site-specific attribution repair. Stop old writers that discard the new fields.
+
+`tests/blog-collaboration.browser.mjs` covers colleague drafts, author/admin
+controls and explicit legacy attribution. The storage integration suite verifies
+multilingual current names, unchanged publication metadata, transaction rollback,
+retained names after departure and public-safe author projections. Run it against
+a disposable database; account lookup, cache invalidation and deletion remain host
+integrations to verify when adopting the source.
+
+## Localized history transport
+
+`BlogsClient.history` is optional. Existing custom clients keep their current
+editor until they supply its authorized `list`, `get`, `plan`, `publish` and
+`delete` methods. The storage companion supplies them through `storage.client`.
+Hosts own HTTP/action schemas, fresh session checks and query invalidation.
+Never import server code into the browser or treat a browser-supplied snapshot,
+actor name or deletion list as authoritative.
+
+Each language retains five publications and eight saved drafts across all
+reprises. Changed saves create a complete snapshot; unchanged saves preserve
+content identity and modification metadata. Publication promotes an existing
+identity and clears pending drafts for that language. Numbering never resets
+after deletion or pruning. Keep these values distinct:
+
+| Field                                              | Meaning                                                    |
+| -------------------------------------------------- | ---------------------------------------------------------- |
+| `article.version`                                  | Optimistic concurrency token for article mutations         |
+| `BlogHistoryHeader.number`                         | Visible version number within one language                 |
+| `BlogHistoryHeader.id`                             | Stable UUID used as `versionId` in history requests        |
+| `repriseId`                                        | Identity of an independent start and its subsequent drafts |
+| `sourcePublicationId` and `sourcePublicationOrder` | Return point, retained even if its snapshot is pruned      |
+
+Start from a publication by saving with
+`origin: { versionId: publication.id, repriseId: crypto.randomUUID() }`.
+Generate a fresh reprise ID for each start, including repeated starts from the
+same publication. Editing a retained draft uses `origin: { versionId: draft.id }`.
+Ordinary saves continue the current draft. Merely reading a snapshot creates
+nothing. Only the current article author or an administrator may resume,
+republish or delete history; staff may inspect it and edit the ordinary draft.
+Hosts adopting history must authorize `reviewLegacyAuthor` for administrators
+only. An unknown historical signature remains unconfirmed when resumed; assigning
+its author requires this permission even if the caller currently owns the article.
+
+`history.list({ id, locale })` returns bounded headers without bodies.
+`history.get({ id, locale, versionId })` loads one authorized snapshot. Ordinary
+article/list responses carry current states and small history cursors only.
+Keep historical bodies out of host list caches and mutation acknowledgements.
+
+Before publishing a selected history version, request a server-derived plan:
+
+```ts
+const target = { id: article.id, version: article.version, locale, versionId };
+const plan = await client.history!.plan(target);
+// Show plan.discarded and plan.missingAssetIds, then await user confirmation.
+const updated = await client.history!.publish({
+  ...plan.target,
+  requestId: crypto.randomUUID(),
+  token: plan.token,
+  omitMissingImages: false,
+});
+```
+
+A historical return discards later publications and pending drafts only inside
+the successful publication transaction. A changed article or plan returns
+`CONFLICT`; obtain and confirm a new plan. The ordinary `publish` method rejects
+historical returns with `HISTORY_CONFIRMATION_REQUIRED`, so old clients and table
+badges cannot bypass confirmation. Individual deletion uses
+`history.delete({ ...target, requestId })` after confirmation; the live version
+is protected. Deleting the selected draft falls back to the latest draft, then
+the live state, then empty unsaved input, while preserving allocation counters.
+
+Set `omitMissingImages` to true only after the user confirms the plan's missing
+illustrations. The effective publication excludes their image IDs and covers;
+the Markdown renderer only loads its permitted asset IDs. Historical payloads
+retain the original references. Timeouts, access errors and missing buckets are
+provider failures to retry, not permission to omit images. Foreign image IDs
+remain forbidden. Maintenance protects references across current states and all
+retained snapshots; pruning only makes unreferenced bytes eligible after the
+existing grace period. No image is copied for a content version.
+
+## History interface
+
+Pass the history-enabled client to both `BlogEditPage` and `BlogsPage`. The table
+still requires its existing `onSetPublished` callback for interactive badges;
+`client.history` lets publication obtain the same server plan as the editor.
+Existing hosts without the optional client retain ordinary controls. The server
+rejects a historical return sent through the old publish method until the host
+wires confirmation, so hiding history cannot bypass deletion protection.
+
+The editor uses [`@forge/content-sidebar-layout`](./content-sidebar-layout.md),
+included by the Blogs registry dependency. On desktop, the comparison and History buttons stick with the right-hand panel,
+below the host's `--intranet-top-offset` (default `0rem`). Long timelines scroll
+inside the panel. On mobile, the controls and expanded history stay in page flow.
+
+The right-hand panel reads headers and loads only the selected body. Selection
+is read-only; Save, Discard and Cancel protect dirty work before inspection,
+resumption, language changes and the editor's Back link. Reloading or leaving the
+page also uses the browser's native warning while a draft is dirty or an operation
+is pending. Confirmed Save or Discard departures clear that warning synchronously.
+
+For browser Back/Forward and other SPA navigation, pass a stable
+`onNavigationStateChange` callback receiving `{ dirty, pending }` to the host router.
+Reject route changes while pending; for dirty drafts, block before unmounting and
+pass `blockedNavigation: { proceed, reset }` to the editor. Its existing dialog
+resumes the original transition after successful Save or Discard, and resets it
+on Cancel or validation failure. Storage errors keep the draft and dialog for retry.
+The optional `onDirtyChange` callback remains supported for existing integrations.
+
+`BlogCategoriesPage` accepts the same `onNavigationStateChange` and
+`blockedNavigation` props. Connect them to the same router guard to protect category
+names, slugs, translations and parent changes. Save category persists new or edited
+categories before resuming the blocked transition; Cancel keeps the form and failed
+saves remain available for retry. The category form also warns on native unload
+while dirty or saving.
+
+`src/showroom/blogs-preview.tsx` uses `useShowroomEditorGuard` from
+`src/showroom/routing.tsx`, sharing the TanStack Router adapter with the Menu editor.
+It guards pathname changes without adding history entries.
+The editor owns native unload protection, so the adapter disables the router's
+additional `beforeunload` handler. A successful, explicitly confirmed deletion
+bypasses blocking when returning to the list. Other hosts must wire their router;
+installing the component alone cannot intercept SPA history transitions.
+
+Every saved reprise has its own lane, including independent starts from the
+same live publication. Continued drafts retain their lane. Unsaved input has a
+preview without a saved number. The active 3px path paints above 1px inactive
+paths with a background gap at crossings. Mobile starts collapsed and returns
+focus to the selected content. Each saved version has a right-aligned actions menu
+with Compare and, when permitted, Delete. Selecting the row opens its read preview;
+Compare opens that version against the live publication. Deletion still requires
+confirmation. Version deletion is disabled while unsaved work
+is present and always protects the live row.
+
+The unified comparison uses the declared `diff` dependency to compare paragraphs
+and words as React text. Changed words carry stronger semantic backgrounds and
+explicit added/removed markers. Comparison work is bounded; unusually expensive
+input falls back to complete removed/added text. Read previews replace failed
+illustrations with a placeholder. A publication with confirmed missing images
+requires the explicit omission checkbox; transient storage errors remain errors.
+
+The showroom's **Load history example** control replaces the open article's demo
+content and history in both English and French. Each language receives its own
+localized text, five publications and four distinct reprises, including articles
+without an existing French translation. Other articles stay unchanged.
+**Simulate concurrent correction** changes the open article as another writer,
+deliberately making its next save conflict. **History transport** demonstrates an
+existing custom client without history; **Simulate missing illustrations**
+exercises confirmed omission. All example data is in memory and resets on reload.
+
+## History migration and rollback
+
+Generate and review the host migration from the exported schema. Hosts adopting
+history from older schemas then call the server-only
+`storage.backfillHistory(tx)` followed by `backfillBlogProjections(tx)` inside a
+reviewed migration transaction with writers stopped. History backfill seeds the
+actual current states, reuses an identity for identical draft/publication inputs,
+and preserves existing article/revision/image IDs and publication metadata.
+Repeating it is a no-op; it cannot recover earlier discarded text or unknown
+authors. Do not expose it as a browser action or run it at every startup.
+
+Stop incompatible writers before adopting the schema, companion and host
+transport together. Current projections stay in `blogs_article.document`;
+`blogs_history` stores separate JSONB headers and full payloads with an indexed
+article/language/number key. Reads load headers or a selected body, and writes
+keep small mutation results. Source/reprise references do not cascade when their
+source version is removed. Deleting an article removes its history; image
+objects retain the existing retryable cleanup flow.
+
+For rollback, disable history controls and keep the additive schema/data and a
+compatible writer. Do not downgrade to code that discards localized settings or
+history counters. Prepare backups and migration commands through the host's
+reviewed process; source installation does not run a migration or deployment.
+
+`tests/blogs-storage/history.integration.mjs` uses a disposable schema and bucket
+for retention, confirmation, authorization, rollback, image lifecycle, migration
+and fresh-process persistence. Run it with the companion's storage suite.

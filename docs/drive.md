@@ -27,7 +27,13 @@ at a time and loads children when expanded. While a listing loads, its parent
 folder icon becomes a spinner, with loading text available only to screen readers.
 The icon keeps its size and stops spinning for reduced-motion users. Listing
 errors keep their visible retry feedback.
-The root and folder links use `getFolderHref` and the host link adapter. Trash
+The root and folder links use `getFolderHref` and the host link adapter. Within a
+space, changing folders keeps the browser and sidebar mounted, preserving expanded
+branches and loaded tree pages. Only the destination listing loads; mutations and
+client replacement still refresh the tree. Supply a router link adapter for client-side
+navigation and keep the host browser instance mounted across folder URLs. Folder
+changes reset folder-specific controls, cancel pending uploads and close folder-bound
+Undo controls. Trash
 keeps the existing recovery flow and only appears with all required trash methods.
 
 Folder links show an open folder on hover or keyboard focus. Expanded and active
@@ -220,6 +226,29 @@ also close when their browser unmounts; ordinary confirmations can remain in the
 host queue across navigation.
 Form loading, validation and listing errors remain inline with the affected controls.
 
+The private Drive recovery module in `recovery.tsx` owns Undo, restore attempts,
+conflict drafts and their folder lifetime. The browser supplies listing refresh
+and optimistic Files updates; views do not manage recovery lifetimes.
+Trash filters and the shared Deletion session remain mounted across Files/Trash
+switches, with the table hidden while Files is selected. Recovery dialogs remain
+available independently of that table. Search, sorting and view changes do not cancel submitted recovery.
+Conflicts still offer the destination/name dialog, even after switching to Files,
+and failed attempts retain their recovery choices for retry. Unconfirmed bulk
+selections clear on view changes; confirmed batches retain the shared Deletion
+session behavior.
+
+Changing folders/spaces or leaving Drive closes Undo controls. Submitted writes
+may finish on the server, but their late completions cannot refresh the departed
+view, create notifications or reopen recovery. Replacing a client within the same
+browser preserves recovery: future Undo and restore retries use the latest client,
+while each submitted write finishes through its original client. Hosts must still
+reset Drive when authenticated identity changes. No storage migration is required;
+installed consumers need a separate reviewed source update.
+
+Install the complete `@forge/drive` item when adopting this refactor. The former
+private `trash.tsx` is replaced by `recovery.tsx` and can be removed after checking
+for host imports. Public Drive props and storage contracts are unchanged.
+
 Dragging files over the upload-enabled table shows an overlay with the translated
 `dropActive` instruction and file-size limit. The overlay covers only the drop
 area, keeps the table in place and clears on leave, drop, cancellation or loss of
@@ -250,6 +279,26 @@ loading and empty/error feedback use a row spanning all five columns. Background
 requests retain loaded rows, upload guidance and known controls; actions are
 disabled until the request finishes. Guidance space is reserved before permissions
 arrive and on read-only views, without displaying upload instructions there.
+
+Spaces, folder contents, trash, restore destinations and the folder tree share a
+private listing lifecycle. New reads cancel previous reads and ignore late
+responses even when the adapter ignores cancellation. Failed reads retain the last successful rows
+or destination options, with mutations and pagination disabled and Retry available.
+`FORBIDDEN` and `NOT_FOUND` clear that listing instead. Table reads replace the
+snapshot; tree cursor pages append ready folders without repeating existing IDs.
+Tree retries keep the failed cursor. A refresh or client replacement restarts the
+tree at its first page, replacing retained folders once that read succeeds.
+Only accepted successful reads update the timestamp used for trash expiry.
+Refreshes do not reset pending optimistic mutations.
+
+Keep the client stable between renders. Changing it triggers a read while retaining
+the previous snapshot. Hosts must unmount or key Drive by authenticated identity
+when the user changes; replacing the client alone is not a session reset. Space
+navigation remounts the scoped browser; folder navigation preserves its expanded
+tree branches and loaded pages. URL state remains host-owned.
+
+The private `use-listing.ts` file ships with `@forge/drive`; adopt it with the
+updated browser files. `DriveClient`, public props and storage schemas are unchanged.
 
 The host can supply these optional `DriveSpace` fields:
 
@@ -344,8 +393,8 @@ Staging and final paths retain the site/plugin prefix and unique space/storage I
 with this filename appended inside the storage ID directory. Lifecycle prefixes
 remain unchanged. Display names and download filenames remain user-controlled.
 
-Existing hosts must apply the shipped `server/storage-names-migration.sql` through
-their schema workflow before adopting this version. It adds nullable `storage_name`
+Hosts predating storage names must generate an additive migration from the exported
+schema before adopting this version. It adds nullable `storage_name`
 columns to entries and upload reservations without moving objects. Deploy all
 writers and cleanup workers together; older code cannot locate new named objects.
 Legacy NULL names retain the existing keys, including pending uploads. Names are
@@ -355,11 +404,10 @@ Renaming existing bucket objects is a separate verified migration.
 
 ## Database and storage setup
 
-Copy the shipped `server/migration.sql` into the host's schema workflow and
-apply it once to initialize the database, including trash metadata and indexes.
-Installing source does **not** create database tables. Alternatively,
-include the exported table definitions in the host Drizzle schema and generate
-a reviewed migration. The three tables retain spaces, entries, and upload
+Include the exported table definitions and `pluginLocks` in the host Drizzle
+schema, then generate, review and apply a project migration, including trash
+metadata and indexes. Installing source does **not** create database tables.
+Follow the [shared persistence and cutover guide](./persistence.md). The three tables retain spaces, entries, and upload
 idempotency records. A composite parent foreign key prevents cross-space parent
 relationships; active names are unique within a folder, including its root. Names are
 case-sensitive. Do not write these tables directly from application features.
@@ -372,12 +420,12 @@ import postgres from "postgres";
 
 import { createDriveStorage } from "@/components/plugins/drive/server";
 
-const db = drizzle(
-  postgres(process.env.DATABASE_URL!, {
+const db = drizzle({
+  client: postgres(process.env.DATABASE_URL!, {
     max: 10,
     connection: { statement_timeout: 60000 },
   }),
-);
+});
 const s3 = new S3Client({
   region: process.env.S3_REGION!,
   // For compatible providers, configure endpoint and forcePathStyle as required.
@@ -460,6 +508,13 @@ included. The browser runs two transfers concurrently and uses XHR progress.
 `transferUpload` can replace the transfer for tests or a host-specific transport;
 it receives the reservation, File, AbortSignal, and progress callback.
 
+The internal upload queue owns action eligibility and aggregate batch status.
+Its UI snapshots contain names, paths, progress, status, errors and available actions;
+files, abort controllers and lifecycle flags remain private. Toasts retain translated
+labels, styling and dismissal timing. Adopt `use-uploads.ts` and its upload UI together:
+older copied UI may read `upload.file.name`, while current snapshots expose `upload.name`.
+The public Drive client and transfer interfaces are unchanged.
+
 Preparation reserves a name and returns a conditional, length-bound presigned
 PUT URL valid for at most ten minutes. A reservation expires after fifteen
 minutes. Use the **same UUID requestId** and identical input when retrying.
@@ -485,6 +540,15 @@ waits for that preview before submitting the mutation. Once confirmed, controls
 are disabled to prevent duplicate submissions; failures remain retryable from
 the same confirmation button. Hosts can translate `trashConfirmation` and
 `deleteConfirmation` for the initial description before counts arrive.
+
+Single and bulk deletion share the private `use-deletion.ts` module shipped with
+`@forge/drive`. It owns preview counts, tokens, pending preview identity and conflict
+invalidation. The host client interface is unchanged. Single-entry retries retain
+the preview after ordinary failures; after a conflict, the next confirmation
+fetches a fresh preview and submits using its token. Bulk deletion still refreshes
+only failed entries and requires confirmation again after preparation. Adopt the
+complete Drive item so both callers receive the shared module.
+
 Deletion first commits a deleting subtree, then removes objects and
 metadata from leaves upward. Writes into that subtree are blocked. Storage
 failures keep cleanup metadata and return `DELETE_PENDING`; explicit retry or
@@ -496,7 +560,7 @@ spaces, not unbounded concurrent ingestion.
 
 ## Trash and restoration
 
-The initial SQL and exported Drizzle schema both include trash metadata and
+The exported Drizzle schema includes trash metadata and
 partial indexes for active names. Storage configured without `trash` and adapters
 without the optional trash methods keep permanent deletion. `deleteEntry` always
 means permanent deletion. Enable trash when configuring the server:

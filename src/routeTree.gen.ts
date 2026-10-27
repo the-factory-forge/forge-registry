@@ -15,6 +15,7 @@ import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
+import { Route as ContentSidebarLayoutRouteImport } from './routes/content-sidebar-layout'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
 import { Route as ImageCropRouteImport } from './routes/image-crop'
@@ -71,6 +72,11 @@ const ReservationsRoute = ReservationsRouteImport.update({
 const ActionToastRoute = ActionToastRouteImport.update({
   id: '/action-toast',
   path: '/action-toast',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentSidebarLayoutRoute = ContentSidebarLayoutRouteImport.update({
+  id: '/content-sidebar-layout',
+  path: '/content-sidebar-layout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookieBannerRoute = CookieBannerRouteImport.update({
@@ -238,6 +244,7 @@ const ReservationsLocaleAdminReservationsSplatRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/action-toast': typeof ActionToastRoute
+  '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/action-toast': typeof ActionToastRoute
+  '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
@@ -313,6 +321,7 @@ export interface FileRoutesById {
   '/_plugins': typeof PluginsRouteWithChildren
   '/_reservations': typeof ReservationsRouteWithChildren
   '/action-toast': typeof ActionToastRoute
+  '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/action-toast'
+    | '/content-sidebar-layout'
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/action-toast'
+    | '/content-sidebar-layout'
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/_plugins'
     | '/_reservations'
     | '/action-toast'
+    | '/content-sidebar-layout'
     | '/cookie-banner'
     | '/icon-tooltip'
     | '/image-crop'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRouteWithChildren
   ReservationsRoute: typeof ReservationsRouteWithChildren
   ActionToastRoute: typeof ActionToastRoute
+  ContentSidebarLayoutRoute: typeof ContentSidebarLayoutRoute
   CookieBannerRoute: typeof CookieBannerRoute
   IconTooltipRoute: typeof IconTooltipRoute
   ImageCropRoute: typeof ImageCropRoute
@@ -530,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/action-toast'
       fullPath: '/action-toast'
       preLoaderRoute: typeof ActionToastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content-sidebar-layout': {
+      id: '/content-sidebar-layout'
+      path: '/content-sidebar-layout'
+      fullPath: '/content-sidebar-layout'
+      preLoaderRoute: typeof ContentSidebarLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookie-banner': {
@@ -814,6 +834,7 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRouteWithChildren,
   ReservationsRoute: ReservationsRouteWithChildren,
   ActionToastRoute: ActionToastRoute,
+  ContentSidebarLayoutRoute: ContentSidebarLayoutRoute,
   CookieBannerRoute: CookieBannerRoute,
   IconTooltipRoute: IconTooltipRoute,
   ImageCropRoute: ImageCropRoute,

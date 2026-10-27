@@ -39,6 +39,10 @@ export interface MenusLabels extends TableSelectionLabels {
   emptyItems: string;
   categories: string;
   labels: string;
+  manageLabels?: string;
+  unsavedTitle?: string;
+  unsavedDescription?: string;
+  discardChanges?: string;
   newItem: string;
   editItem: string;
   actions?: string;
@@ -46,6 +50,7 @@ export interface MenusLabels extends TableSelectionLabels {
   confirmDelete: string;
   deleteFilesFirst: string;
   cancel: string;
+  close?: string;
   save: string;
   saving: string;
   saved: string;
@@ -128,6 +133,10 @@ export const menusLabels = {
   emptyItems: "No menu items yet.",
   categories: "Categories",
   labels: "Labels",
+  manageLabels: "Manage labels",
+  unsavedTitle: "Keep your changes?",
+  unsavedDescription: "Save your changes or discard them before continuing.",
+  discardChanges: "Discard changes",
   newItem: "New item",
   editItem: "Edit item",
   actions: "Actions",
@@ -135,6 +144,7 @@ export const menusLabels = {
   confirmDelete: "Delete permanently",
   deleteFilesFirst: "Remove this item's Drive files before deleting it.",
   cancel: "Cancel",
+  close: "Close",
   save: "Save",
   saving: "Saving…",
   saved: "Saved.",

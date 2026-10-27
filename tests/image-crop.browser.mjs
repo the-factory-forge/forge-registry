@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, after, test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
@@ -157,7 +157,7 @@ void test("pending export blocks duplicate confirmation and Escape; dialog fits 
     [320, true],
   ]) {
     await page.setViewportSize({ width, height: 900 });
-    const toggle = page.getByRole("button", { name: "Dark mode", exact: true });
+    const toggle = page.shell.getByRole("button", { name: "Dark mode", exact: true });
     if ((await toggle.getAttribute("aria-pressed")) !== String(dark)) await toggle.click();
     await page.getByLabel("Image to crop", { exact: true }).setInputFiles(file);
     const dialog = page.getByRole("dialog", { name: "Crop image" });

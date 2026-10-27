@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import {
   EmployeeActions,
   type EmployeeActionCallbacks,
@@ -96,6 +97,7 @@ function EmployeesPageContent({
   labels: overrides,
   className,
 }: EmployeesPageProps) {
+  useLoadingActivity(loading);
   const [localSearch, setLocalSearch] = useState("");
   const search = controlledSearch ?? localSearch;
   const optimistic = useOptimisticAction(suppliedEmployees, `${currentUserId}:${offset}:${search}`);
@@ -254,13 +256,13 @@ function EmployeesPageContent({
                       className={cn(tableCellClass, "whitespace-nowrap")}
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-primary/20">
+                        <Avatar.Root className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border">
                           <Avatar.Image
                             className="size-full object-cover"
                             src={employee.image ?? undefined}
                             alt=""
                           />
-                          <Avatar.Fallback className="flex size-full items-center justify-center text-xs">
+                          <Avatar.Fallback>
                             {employee.name
                               .trim()
                               .split(/\s+/)

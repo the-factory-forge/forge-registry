@@ -2,18 +2,20 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
-import { Trash2Icon } from "lucide-react";
-import { useRef, useState } from "react";
+import { XIcon, Trash2Icon } from "lucide-react";
+import { createContext, useContext, useRef, useState } from "react";
 
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
+import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:bg-background disabled:text-foreground disabled:hover:bg-background disabled:hover:text-foreground dark:disabled:bg-background dark:disabled:hover:bg-background [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
 export const primaryClass = cn(
   buttonClass,
   "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
@@ -21,7 +23,7 @@ export const primaryClass = cn(
 export const outlineButtonClass = cn(buttonClass, "border border-border");
 export const iconButtonClass = cn(
   buttonClass,
-  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 md:size-8 md:min-h-8",
+  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 disabled:pointer-events-auto md:size-8 md:min-h-8",
 );
 export const inputClass = cn(
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
@@ -32,6 +34,8 @@ export const pageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";
 export function errorMessage(error: unknown, labels: BlogsLabels) {
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
   return [
+    "HISTORY_CONFIRMATION_REQUIRED",
+    "AUTHOR_REQUIRED",
     "INVALID",
     "CONFLICT",
     "FORBIDDEN",
@@ -53,29 +57,41 @@ export function Feedback({ message, error = false }: { message?: string; error?:
     </p>
   ) : null;
 }
+/** Private operation owner; replacing it invalidates completions without resetting editor inputs. */
+export const BlogEditorClient = createContext<unknown>(null);
+
 export function useBlogAction(labels: BlogsLabels) {
+  const owner = useContext(BlogEditorClient);
+  const lifetime = useActionLifetime(owner);
+  const scope = lifetime.identity;
+  const lock = useRef<typeof scope | null>(null);
+  const request = useRef<{ scope: typeof scope; key: string; id: string } | null>(null);
+  const current = lifetime.isCurrent;
   const notify = useActionToast();
   const { add } = Toast.useToastManager();
-  const lock = useRef(false);
-  const request = useRef<{ key: string; id: string } | null>(null);
-  const [pending, setPending] = useState(false),
-    [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
+  const [state, setState] = useState<{
+    scope: typeof scope;
+    pending: boolean;
+    feedback?: { message: string; error?: boolean };
+  }>({ scope, pending: false });
+  useLoadingActivity(state.scope === scope && state.pending);
   async function run<T>(
     key: string,
     action: (requestId: string) => Promise<T>,
     success?: string,
+    accept?: (result: T) => void,
   ): Promise<T | undefined> {
-    if (lock.current) return;
-    lock.current = true;
-    setPending(true);
-    setFeedback(undefined);
-    if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() };
+    if (!current() || lock.current === scope) return;
+    lock.current = scope;
+    setState({ scope, pending: true });
+    if (request.current?.scope !== scope || request.current.key !== key)
+      request.current = { scope, key, id: crypto.randomUUID() };
+    let result: T;
     try {
-      const result = await action(request.current.id);
-      request.current = null;
-      if (success) notify(success);
-      return result;
+      const id = request.current.id;
+      result = await action(id);
     } catch (error) {
+      if (!current()) return;
       const message = errorMessage(error, labels);
       if (
         error &&
@@ -85,68 +101,119 @@ export function useBlogAction(labels: BlogsLabels) {
       ) {
         add({ title: message, type: "error" });
       } else {
-        setFeedback({ message, error: true });
+        setState({ scope, pending: false, feedback: { message, error: true } });
       }
       return undefined;
     } finally {
-      lock.current = false;
-      setPending(false);
+      if (lock.current === scope) lock.current = null;
+      if (current())
+        setState((previous) =>
+          previous.scope === scope ? { ...previous, pending: false } : previous,
+        );
     }
+    if (!current()) return;
+    request.current = null;
+    if (success) notify(success);
+    accept?.(result);
+    return result;
   }
-  return { pending, feedback, run };
+  return {
+    scope,
+    isCurrent: current,
+    pending: state.scope === scope && state.pending,
+    feedback: state.scope === scope ? state.feedback : undefined,
+    run,
+  };
 }
-export function ConfirmDelete({
+export function ConfirmDelete<T>({
   labels,
   title,
   description,
   onDelete,
+  onDeleted,
   disabled = false,
   label,
+  onClose,
+  finalFocus,
 }: {
   labels: BlogsLabels;
   title: string;
   description: string;
-  onDelete: (requestId: string) => Promise<void>;
+  onDelete: (requestId: string) => Promise<T>;
+  onDeleted?: (result: T) => void;
   disabled?: boolean;
   label: string;
+  onClose?: () => void;
+  finalFocus?: Dialog.Popup.Props["finalFocus"];
 }) {
-  const [open, setOpen] = useState(false);
   const action = useBlogAction(labels);
+  const [open, setOpen] = useState(!!onClose);
+  const [scope, setScope] = useState(action.scope);
+  if (scope !== action.scope) {
+    setScope(action.scope);
+    setOpen(false);
+  }
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (!action.pending) setOpen(next);
+        if (!action.pending) {
+          setOpen(next);
+          if (!next) onClose?.();
+        }
       }}
     >
-      <IconTooltip label={label}>
-        <Dialog.Trigger
-          className={cn(
-            iconButtonClass,
-            "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
-          )}
-          aria-label={label}
-          disabled={disabled}
-        >
-          <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
-        </Dialog.Trigger>
-      </IconTooltip>
+      {!onClose && (
+        <IconTooltip label={label}>
+          <Dialog.Trigger
+            className={cn(
+              iconButtonClass,
+              "bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive focus-visible:ring-destructive/30 dark:bg-destructive/20 dark:hover:bg-destructive/30",
+            )}
+            aria-label={label}
+            disabled={disabled}
+          >
+            <Trash2Icon className="size-4 shrink-0" aria-hidden="true" />
+          </Dialog.Trigger>
+        </IconTooltip>
+      )}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
+          finalFocus={finalFocus}
           className={cn(
             cardClass,
-            "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-5 shadow-xl",
+            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",
           )}
         >
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
-          <Dialog.Description className="text-sm text-muted-foreground">
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
+              {title}
+            </Dialog.Title>
+            <IconTooltip label={labels.close ?? labels.cancel}>
+              <Dialog.Close
+                type="button"
+                aria-label={labels.close ?? labels.cancel}
+                disabled={action.pending}
+                className={iconButtonClass}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
+          <Dialog.Description className="mb-0 text-sm text-muted-foreground">
             {description}
           </Dialog.Description>
-          <div className="min-h-10">
+          <div className="min-h-5">
             <Feedback {...action.feedback} />
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          <div
+            data-dialog-footer
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+          >
             <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
               {labels.cancel}
             </Dialog.Close>
@@ -157,10 +224,10 @@ export function ConfirmDelete({
               )}
               disabled={disabled || action.pending}
               onClick={() =>
-                void action.run("delete", async (requestId) => {
-                  await onDelete(requestId);
+                void action.run("delete", onDelete, undefined, (result) => {
                   setOpen(false);
-                  return true;
+                  onClose?.();
+                  onDeleted?.(result);
                 })
               }
             >
@@ -204,3 +271,14 @@ export function Pagination({
     />
   );
 }
+
+export const blogStatusClass = {
+  published: "bg-status-success text-status-success-foreground",
+  changed: "bg-status-pending text-status-pending-foreground",
+  draft: "bg-status-not-started text-status-not-started-foreground",
+};
+export const publicationToggleClass =
+  "cursor-pointer transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+export const languageTabClass =
+  "min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 data-[active]:border-primary data-[active]:text-foreground cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";

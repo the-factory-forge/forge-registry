@@ -2,7 +2,7 @@
 
 ## Releases and source maintenance
 
-For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/workflows/release-source.md)
+For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
 `package.json` owns the release version; keep matching notes in `docs/releases/v<version>.md`.
 Preparation creates a local commit and annotated tag. Publication requires separate
@@ -46,32 +46,47 @@ dedicated to the task.
 
 Before implementation, read `../forge-spec/AGENTS.md` and the shared
 `the-forge`, `registry-distribution` and, for UI/CSS/Tailwind work, `shared-ui` specs under
-`../forge-spec/openspec/specs/`. Read `site-template` when consumer integration
-is affected. If that checkout is elsewhere, use its supplied location or the
-[canonical forge-spec repository](https://github.com/the-factory-forge/forge-spec).
+`../forge-spec/openspec/specs/`. Read `host-integration` when consumer integration
+is affected. Template application details live in
+`forge-template/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
+use its supplied location or the
+[canonical forge-specs repository](https://github.com/the-factory-forge/forge-specs).
 Report inaccessible context rather than assuming it was loaded.
 
 `openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
-Keep implementation-only changes here and shared contract changes in forge-spec,
-with one owning change root. These specs complement the repository procedures
+Keep registry-specific specs and changes here, including plugin definitions,
+plugin behavior, showroom rules and registry release checks. Only contracts that
+constrain both registry and template belong in forge-spec. Installing a plugin in
+a host does not by itself make its spec shared. Keep one owning change root.
+These specs complement the repository procedures
 below; inspect current source and report material conflicts. A sibling reference
 does not expand the task to unrelated changes in that repository.
 
-For plugin work, also read the shared [Plugins specification](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/plugins/spec.md)
+For plugin work, also read the local [Plugins specification](openspec/specs/plugins/spec.md)
 and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
 module requirement when adding or materially changing a feature.
+
+Local main specs live under `openspec/specs/`, including `plugins`, `reservations`,
+`registry-showroom` and `registry-releases`. The [Blogs storage decision](concepts/adr/0009-blog-content-and-image-storage.md)
+is registry-owned. For Mailing rendering or transport, read
+[ADR-0012](concepts/adr/0012-mailing-rendering-and-transport.md); for plugin locks,
+projections or customer identity transactions, read
+[ADR-0013](concepts/adr/0013-plugin-persistence-and-identities.md). Their linked
+shared decisions retain host branding and project migration ownership.
+Use forge-spec's installed OpenSpec CLI with this repository
+as the working directory; generated OpenSpec skills remain central.
 
 ## Filter and view state
 
 When creating or changing filters, search, sorting, pagination or calendar views,
-read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-spec/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
+read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
 Expose controlled values and change callbacks in portable UI; bind them to URL
 parameters in showroom and consumer adapters. Verify reload and Back/Forward.
 
 ## Object storage
 
 Storage companions require `<SITE_NAME>/<plugin>/` from the host; reject absent or
-unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/site-template/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
+unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
 consumer migration and lifecycle rules. Verify installed callers and fixtures when
 changing this boundary; source adoption does not imply moving deployed objects.
 
@@ -90,7 +105,7 @@ started; Unpublished changes are pending. Keep visible status text and define
 the pairs in the host theme, independently of customer brand colors.
 
 Place a card or detail summary's primary status at the top right, opposite its
-title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
+title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
 Keep translated titles and badges readable on narrow screens; status columns
 in tables keep their existing placement.
 
@@ -114,14 +129,24 @@ sections, and supporting utilities. The goal is to reuse these elements across
 different projects through shadcn's registry model. Consumers receive source
 files they can adapt; this repository is not a published runtime npm library.
 
-This registry is a reusable skeleton for generating customer websites. Keep
-shared plugins focused on their basic purpose. Site-specific fields, assignment
-rules, integrations and workflows belong in the consuming website.
-Before adding or extending behavior, check whether it serves the reusable
-skeleton or a particular site's implementation. If that boundary is unclear,
-ask the user once before implementing the disputed behavior. Reuse an explicit
-scope decision already made in the task instead of asking again. Props and
-feature flags alone do not make a site-specific feature appropriate here.
+### Barebones scope and confirmation
+
+Everything added to this library must be **barebones**: the smallest complete
+capability that most customer websites using that feature are likely to need.
+Apply this rule to components, plugins, helpers, configuration and showroom
+examples. Preserve validation, authorization, accessibility and failure recovery.
+Use neutral sample content and existing defaults. Do not add brand presets or
+brand selectors; customer identity and styling belong in the consuming website.
+Site-specific fields, assignment rules, integrations and workflows belong there
+too. Props and feature flags alone do not make an addition broadly useful.
+
+Before implementing an addition, identify its common customer use case. If it
+goes beyond barebones scope, or that boundary is unclear, tell the user exactly
+what exceeds the baseline, why it is proposed, and the smallest alternative
+(including keeping it in the host). **Wait for explicit user confirmation before
+implementing that part.** A general request to improve or extend a feature is
+not confirmation of the exception. Reuse an explicit scope decision already
+made in the task; continue independent, authorized work while awaiting a decision.
 
 The TanStack Start app in this repository is a showroom for developing and previewing
 registry elements. Work on the reusable element first; keep example content and
@@ -145,8 +170,8 @@ in `tc-website`; this registry contains reusable components for multiple custome
 ## Read first and source of truth
 
 - [README.md](./README.md): overview, inventory, distribution, and commands.
-- [GLOSSARY.md](./GLOSSARY.md): DOM ID naming and screenshot integration.
-- [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, and accessibility conventions.
+- [GLOSSARY.md](./GLOSSARY.md): domain terminology for plugin content and workflows.
+- [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, accessibility, DOM ID and screenshot conventions.
 - [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
   including layout stability and [table action alignment](./DESIGN.md#table-action-alignment).
 - `registry/registry.json`: authoritative list of shipped items and files.
@@ -189,6 +214,17 @@ Registry source imports mirror their install targets: `@/components/*`,
 to `registry/components/`; the general `@/*` alias resolves showroom files under
 `src/*`. Check `tsconfig.json` before changing imports or introducing a new source directory.
 
+## Runtime validation
+
+Always use Zod to validate external inputs at trust boundaries, including plugin
+service requests, URL parameters, form payloads and configuration. Parse before
+accessing fields or performing side effects, and use the parsed output with unknown
+fields stripped or rejected. Reuse existing schemas, preserve documented defaults
+and optional-field semantics, and map failures to the existing plugin error codes.
+Keep authorization and business rules explicit alongside schema validation. When
+adding or changing a boundary, test malformed inputs and declare Zod in every
+registry item that imports it. See [service input validation](docs/plugins.md#service-input-validation).
+
 ## Reusable component contract
 
 - Employee management is admin-only: both employee pages require the authenticated
@@ -218,19 +254,20 @@ to `registry/components/`; the general `@/*` alias resolves showroom files under
   or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`
   may be the creation ID). Do not force complex forms into dialogs or create pages
   for simple forms; tc-website's larger employee flow is an intentional page-based exception.
-- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
+- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
   for new or modified toolbars across registry plugins and host projects. Use
   Lucide's `RefreshCwIcon` for refresh/reload, `SettingsIcon` for settings/configuration,
   and `PlusIcon` for new/create/add entry points. Place the icon before the visible
   translated label with `size-4 shrink-0`, inherited color, and `aria-hidden="true"`.
-  Reuse the existing button/link styles. Icons supplement these labels;
-  do not hide visible action labels or add duplicate tooltips to text buttons.
-- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
+  Reuse the existing button/link styles. Refresh/reload controls are icon-only,
+  with a translated accessible name and `IconTooltip`. Settings and create actions
+  retain visible labels; do not add duplicate tooltips to text buttons.
+- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
   Always separate adjacent action buttons and button-styled links by at least
   `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column
   gaps when controls wrap on mobile. Configure third-party button groups too;
   do not leave touching borders or use negative margins to join the buttons.
-- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-spec/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
+- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
   Enabled buttons use `cursor-pointer`, including icon controls, calendar dates
   and third-party buttons. Disabled controls must not show a pointer; use
   `cursor-not-allowed`. Ship these styles with reusable controls instead of
@@ -301,7 +338,7 @@ for separating reusable feature code from website adapters.
 
 Wrap examples in `ShowroomPreview` from `src/showroom/showroom-preview.tsx`.
 Supply demo-specific `controls` and optional `navigation`; the shared frame owns
-spacing, the always-expanded right settings sidebar (stacked above the preview
+spacing, the toggleable right settings sidebar (stacked above the preview
 on mobile), keyboard entry, and header offsets.
 Use its standard, narrow, or full width rather than per-route viewport math.
 Light/Dark selection belongs to the shared header, persists across demos, and
@@ -312,7 +349,8 @@ out of shipped registry components.
 ## Showroom homepage requirement
 
 Every new registry UI component or module must have a working showroom example.
-Keep the homepage `examples` array in `src/routes/index.tsx` focused on composed
+Keep the shared `examples` array in `src/showroom/examples.ts`, used by the homepage
+and global search, focused on composed
 components, page sections, layouts and plugins. Basic controls and feedback helpers,
 such as native selects, icon tooltips and action toasts, must not have standalone
 homepage cards; keep their demos accessible through documentation or parent examples.

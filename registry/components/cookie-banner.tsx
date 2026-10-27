@@ -1,7 +1,9 @@
 "use client";
 
+import { XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 import { applyGoogleConsent } from "@/components/utils/consent-analytics";
 
@@ -45,6 +47,7 @@ export interface CookieBannerProps {
   acceptAllLabel: string;
   acceptSelectionLabel: string;
   cancelLabel?: string;
+  closeLabel?: string;
   confirmLabel?: string;
   policyLabel: string;
   privacyHref: string;
@@ -81,6 +84,7 @@ export function CookieBanner({
   acceptAllLabel,
   acceptSelectionLabel,
   cancelLabel = "Cancel",
+  closeLabel = "Close",
   confirmLabel = "Confirm selection",
   policyLabel,
   privacyHref,
@@ -131,7 +135,7 @@ export function CookieBanner({
   }, [consentKey, normalizeConsent, notifyConsent]);
 
   useEffect(() => {
-    // oxlint-disable-next-line react-hooks-js/set-state-in-effect -- hydrate saved consent and listen for external changes
+    // oxlint-disable-next-line react/set-state-in-effect -- hydrate saved consent and listen for external changes
     evaluate();
     const onStorage = (event: StorageEvent) => {
       if (event.key === consentKey || event.key === null) evaluate();
@@ -183,10 +187,23 @@ export function CookieBanner({
       <div className="container-premium">
         <div
           className={cn(
-            "flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-3 shadow-lg",
+            "relative flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-3 pr-16 shadow-lg",
             !customizing && "sm:flex-row sm:items-center",
           )}
         >
+          <IconTooltip label={closeLabel}>
+            <button
+              type="button"
+              aria-label={closeLabel}
+              className="absolute top-3 right-3 inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8"
+              onClick={() => {
+                cancelSelection();
+                setVisible(false);
+              }}
+            >
+              <XIcon className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          </IconTooltip>
           <p className="min-w-0 flex-1 text-sm leading-relaxed text-foreground">
             {text}{" "}
             <a

@@ -19,6 +19,8 @@ export interface BlogCategory {
   translations: Record<string, { name: string; slug: string }>;
 }
 export interface BlogShared {
+  /** Optional only for documents written before separate authorship was installed. */
+  author?: BlogEditor;
   thumbnailId: string | null;
   bannerId: string | null;
   categoryIds: string[];
@@ -40,18 +42,79 @@ export interface BlogRevision extends BlogContent {
 export interface BlogPublication extends BlogRevision {
   shared: BlogShared;
   publishedAt: string;
+  omittedAssetIds?: string[];
+}
+export interface BlogHistoryState {
+  lastNumber: number;
+  lastPublicationOrder: number;
+  currentId: string | null;
+  publishedId: string | null;
+}
+export interface BlogTranslation {
+  draft: BlogRevision;
+  published: BlogPublication | null;
+  /** Legacy documents fall back to article.shared until migration or their next save. */
+  shared?: BlogShared;
+  history?: BlogHistoryState;
+}
+export interface BlogHistoryHeader {
+  id: string;
+  number: number;
+  locale: string;
+  state: "draft" | "publication";
+  savedAt: string;
+  savedBy: BlogEditor;
+  author?: BlogEditor;
+  repriseId: string | null;
+  sourcePublicationId: string | null;
+  sourcePublicationOrder: number | null;
+  publicationOrder: number | null;
+  publishedAt: string | null;
+  omittedAssetIds: string[];
+}
+export interface BlogHistoryVersion extends BlogHistoryHeader {
+  content: BlogRevision;
+  shared: BlogShared;
+}
+export interface BlogHistoryOrigin {
+  versionId: string;
+  /** A fresh identity for each start from a publication; drafts retain theirs. */
+  repriseId?: string;
+}
+export interface BlogHistoryTarget {
+  id: string;
+  version: number;
+  locale: string;
+  versionId: string;
+}
+export interface BlogHistoryPlan {
+  target: BlogHistoryTarget;
+  discarded: BlogHistoryHeader[];
+  missingAssetIds: string[];
+  historicalReturn: boolean;
+  token: string;
+}
+export interface BlogsHistoryClient {
+  list(input: { id: string; locale: string }): Promise<BlogHistoryHeader[]>;
+  get(input: { id: string; locale: string; versionId: string }): Promise<BlogHistoryVersion>;
+  plan(input: BlogHistoryTarget): Promise<BlogHistoryPlan>;
+  publish(
+    input: BlogHistoryTarget & BlogMutation & { token: string; omitMissingImages: boolean },
+  ): Promise<BlogArticle>;
+  delete(input: BlogHistoryTarget & BlogMutation): Promise<BlogArticle>;
 }
 export interface BlogArticle {
   id: string;
   version: number;
   shared: BlogShared;
-  translations: Record<string, { draft: BlogRevision; published: BlogPublication | null }>;
+  translations: Record<string, BlogTranslation>;
   editor: BlogEditor;
   createdAt: string;
   updatedAt: string;
 }
 export interface BlogListItem {
   id: string;
+  author?: BlogEditor;
   title: string;
   categoryNames?: string[];
   editor: BlogEditor;
@@ -88,6 +151,8 @@ export interface BlogPublicPage extends BlogPage<Omit<BlogPost, "markdown">> {
   categoryCounts: Record<string, number>;
 }
 export interface BlogCapabilities {
+  changeAuthor?: boolean;
+  reviewLegacyAuthor?: boolean;
   create: boolean;
   edit: boolean;
   publish: boolean;
@@ -106,6 +171,7 @@ export interface BlogSaveInput extends BlogPostMutation {
   locale: string;
   content: BlogContent;
   shared: BlogShared;
+  origin?: BlogHistoryOrigin;
 }
 export interface BlogPublishInput extends BlogPostMutation {
   locale: string;
@@ -118,6 +184,8 @@ export interface BlogCategoryInput extends BlogMutation {
 }
 /** The host supplies authenticated transport. Actor identities never come from these inputs. */
 export interface BlogsClient {
+  /** Optional so existing host transports keep their current editor. */
+  history?: BlogsHistoryClient;
   list(query: BlogQuery): Promise<BlogPage<BlogListItem>>;
   get(id: string): Promise<BlogArticle>;
   categories(): Promise<BlogCategory[]>;

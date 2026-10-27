@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileTextIcon, HomeIcon, UsersIcon, UserRoundIcon } from "lucide-react";
+import { FileTextIcon, HomeIcon, UsersIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
+import { pluginIcons } from "@/components/utils/plugin-icons";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
+
+import { version } from "../../package.json";
 
 const groups: IntranetNavGroup[] = [
   {
@@ -27,10 +30,21 @@ const groups: IntranetNavGroup[] = [
     ],
   },
   {
-    id: "account",
-    label: "My account",
+    id: "plugins",
+    label: "Plugins",
     items: [
-      { id: "profile", label: "Profile settings", href: "#profile", icon: <UserRoundIcon /> },
+      {
+        id: "drive",
+        label: "Drive",
+        href: "#drive",
+        icon: <pluginIcons.drive />,
+        badge: (
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-pending px-2 py-0.5 text-xs font-medium text-status-pending-foreground">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />3
+            <span className="sr-only"> unreviewed changes</span>
+          </span>
+        ),
+      },
     ],
   },
 ];
@@ -89,7 +103,7 @@ function IntranetExample() {
         groups={groups}
         pathname={pathname}
         profileHref="#profile"
-        version="v1.0.0"
+        version={`v${version}`}
         showTopbar={showTopbar}
         topbar={<span className="text-sm font-medium">Team workspace</span>}
         renderTopbar={
@@ -133,6 +147,7 @@ function IntranetExample() {
           <p className="text-sm text-muted-foreground">
             Current destination: <code>{pathname}</code>
           </p>
+          <p className="text-sm text-muted-foreground">Drive shows 3 sample unreviewed changes.</p>
           {signedOut && <output className="block text-sm">The demo session has ended.</output>}
         </section>
         <p className="text-sm text-muted-foreground">

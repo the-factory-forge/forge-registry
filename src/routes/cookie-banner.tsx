@@ -17,7 +17,7 @@ function CookieBannerPage() {
   const [loadError, setLoadError] = useState(false);
   const [eventResult, setEventResult] = useState("");
   // The factory stores loadScript; it reads the ref only after a consent event.
-  // oxlint-disable-next-line react-hooks-js/refs, react/refs
+  // oxlint-disable-next-line react/refs
   const [analytics] = useState(() =>
     createConsentAnalytics({
       measurementId: "G-SHOWROOM",

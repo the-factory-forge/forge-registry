@@ -1,12 +1,10 @@
 import type { S3Client } from "@aws-sdk/client-s3";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type { BlogEditor } from "@/components/plugins/blogs/types";
+import type { DatabaseTransaction, PluginDatabase } from "@/components/utils/database";
 
-export type BlogsTransaction = Pick<PostgresJsDatabase, "execute">;
-export interface BlogsDatabase extends BlogsTransaction {
-  transaction<T>(action: (tx: BlogsTransaction) => Promise<T>): Promise<T>;
-}
+export type BlogsTransaction = DatabaseTransaction;
+export type BlogsDatabase = PluginDatabase;
 export type BlogsPermission =
   | "read"
   | "create"
@@ -14,6 +12,8 @@ export type BlogsPermission =
   | "publish"
   | "delete"
   | "upload"
+  | "changeAuthor"
+  | "reviewLegacyAuthor"
   | "manageCategories";
 export interface BlogsStorageOptions<Context> {
   db: BlogsDatabase;
@@ -31,6 +31,18 @@ export interface BlogsStorageOptions<Context> {
     articleId?: string,
   ) => Promise<boolean>;
   resolveEditor: (context: Context) => Promise<BlogEditor>;
+  /** Public-safe current account names, batched once per read; omit missing accounts.
+   * Hosts must snapshot the latest name before account deletion and invalidate caches.
+   */
+  resolveAuthorNames?: (ids: string[], tx: BlogsTransaction) => Promise<BlogEditor[]>;
+  /** Resolve trusted account names inside the mutation transaction; null means unavailable.
+   * An unavailable current author retains their signature; a new unavailable author is rejected.
+   */
+  resolveAuthor?: (
+    context: Context,
+    id: string,
+    tx: BlogsTransaction,
+  ) => Promise<BlogEditor | null>;
 }
 export interface BlogImageInput {
   id: string;

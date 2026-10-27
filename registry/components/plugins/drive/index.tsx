@@ -13,7 +13,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -22,14 +22,12 @@ import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import { DriveFolderMenu } from "@/components/plugins/drive/folder-menu";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
-import { TrashBrowser } from "@/components/plugins/drive/trash";
+import { useDriveRecovery } from "@/components/plugins/drive/recovery";
 import type {
   DriveBrowserProps,
   DriveClient,
   DriveEntry,
-  DriveFolderResult,
   DrivePageProps,
-  DrivePageResult,
   DriveSpace,
   DriveSort,
 } from "@/components/plugins/drive/types";
@@ -41,17 +39,18 @@ import {
   DriveOwner,
   DriveSize,
   DriveToasts,
+  DriveMutationOwner,
   DriveTitle,
   SortHeading,
   EntryDialog,
   iconButtonClass,
   messageFor,
 } from "@/components/plugins/drive/ui";
+import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
 import {
   DEFAULT_MAX_FILE_BYTES,
   DriveError,
-  errorCode,
   safeDownloadUrl,
   scopeKey,
 } from "@/components/plugins/drive/utils";
@@ -97,35 +96,11 @@ export function DrivePage({
     setCursors([]);
   };
   const [revision, setRevision] = useState(0);
-  const request = useMemo(
-    () => ({ client, search, cursor, sort, revision }),
-    [client, search, cursor, sort, revision],
+  const load = useCallback(
+    (signal: AbortSignal) => client.listSpaces({ search, cursor, sort, signal }),
+    [client, search, cursor, sort],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DrivePageResult<DriveSpace>;
-    error?: unknown;
-  }>();
-  const loading = result?.request !== request;
-  const data = result?.data;
-  const error = loading ? undefined : result?.error;
-  useEffect(() => {
-    const controller = new AbortController();
-    void request.client
-      .listSpaces({
-        search: request.search,
-        cursor: request.cursor,
-        sort: request.sort,
-        signal: controller.signal,
-      })
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ request, data });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setResult({ request, error });
-      });
-    return () => controller.abort();
-  }, [request]);
+  const { data, loading, error } = useDriveListing(load, revision);
   return (
     <section
       className={cn("space-y-6 p-4 text-foreground md:p-8", className)}
@@ -240,7 +215,7 @@ export function DrivePage({
                           <FolderOpenIcon className="size-4 shrink-0" aria-hidden="true" />
                         </HostLink>
                       </IconTooltip>
-                      {space.href && (
+                      {space.href ? (
                         <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
                           <HostLink
                             href={space.href}
@@ -249,6 +224,17 @@ export function DrivePage({
                           >
                             <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
                           </HostLink>
+                        </IconTooltip>
+                      ) : (
+                        <IconTooltip label={`${labels.openRecord}: ${space.name}`}>
+                          <button
+                            type="button"
+                            disabled
+                            className={iconButtonClass}
+                            aria-label={`${labels.openRecord}: ${space.name}`}
+                          >
+                            <Link2Icon className="size-4 shrink-0" aria-hidden="true" />
+                          </button>
                         </IconTooltip>
                       )}
                     </div>
@@ -265,7 +251,7 @@ export function DrivePage({
           nextLabel={labels.next}
           previousDisabled={cursors.length === 0}
           nextDisabled={!!error || !data?.nextCursor}
-          disabled={loading}
+          disabled={loading || !!error}
           onPrevious={() => setCursors(cursors.slice(0, -1))}
           onNext={() => {
             if (data?.nextCursor) setCursors([...cursors, data.nextCursor]);
@@ -277,12 +263,17 @@ export function DrivePage({
 }
 
 export function DriveBrowser(props: DriveBrowserProps) {
+  const { type, id } = props.scope;
+  const scope = useMemo(() => ({ type, id }), [type, id]);
+  const owner = useMemo(
+    () => ({ client: props.client, scope, parentId: props.parentId }),
+    [props.client, scope, props.parentId],
+  );
   return (
-    <ActionToastProvider
-      key={`${scopeKey(props.scope)}:${props.parentId ?? "root"}`}
-      closeLabel={props.labels?.close}
-    >
-      <Browser {...props} />
+    <ActionToastProvider key={scopeKey(scope)} closeLabel={props.labels?.close}>
+      <DriveMutationOwner value={owner}>
+        <Browser {...props} scope={scope} />
+      </DriveMutationOwner>
     </ActionToastProvider>
   );
 }
@@ -316,73 +307,66 @@ function Browser({
   const [trashView, setTrashView] = useState(false);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
-  const request = useMemo(
-    () => ({ client, scope, parentId, search, cursor, sort, revision }),
-    [client, scope, parentId, search, cursor, sort, revision],
+  const load = useCallback(
+    async (signal: AbortSignal) => ({
+      ...(await client.listEntries({ scope, parentId, search, cursor, sort, signal })),
+      parentId,
+    }),
+    [client, scope, parentId, search, cursor, sort],
   );
-  const [result, setResult] = useState<{
-    request: typeof request;
-    data?: DriveFolderResult;
-    error?: unknown;
-  }>();
-  const loading = result?.request !== request;
+  const listing = useDriveListing(load, revision);
+  const { loading, error } = listing;
   const mutationScope = useMemo(
     () => ({ client, scope, parentId, search, cursor, sort }),
     [client, scope, parentId, search, cursor, sort],
   );
-  const optimistic = useOptimisticAction(result?.data, mutationScope);
+  const folderData = useMemo(
+    () =>
+      listing.data && listing.data.parentId !== parentId
+        ? { ...listing.data, items: [], breadcrumbs: [] }
+        : listing.data,
+    [listing.data, parentId],
+  );
+  const optimistic = useOptimisticAction(folderData, mutationScope);
   const data = optimistic.value;
-  const error = loading ? undefined : result?.error;
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean }>();
   const toastManager = Toast.useToastManager();
   const notify = useActionToast();
-  const undoToasts = useRef(new Set<string>());
-  const { close: closeToast } = toastManager;
-  useEffect(() => {
-    const ids = undoToasts.current;
-    return () => {
-      for (const id of ids) closeToast(id);
-    };
-  }, [closeToast]);
-  const currentClient = useRef(client);
-  useEffect(() => {
-    currentClient.current = client;
-  }, [client]);
   const [downloading, setDownloading] = useState(false);
   const downloadLock = useRef(false);
   const downloadController = useRef<AbortController | null>(null);
-  useEffect(() => () => downloadController.current?.abort(), []);
+  useEffect(() => () => downloadController.current?.abort(), [parentId]);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadDestination = useRef(parentId);
+  useLayoutEffect(() => {
+    uploadDestination.current = parentId;
+  }, [parentId]);
   const menuTrigger = useRef<HTMLElement | null>(null);
   const [folderAction, setFolderAction] = useState<{
     entry: DriveEntry | DriveSpace;
     action: "create" | "rename" | "duplicate" | "trash";
   }>();
+  const [previousClient, setPreviousClient] = useState(client);
+  if (previousClient !== client) {
+    setPreviousClient(client);
+    if (folderAction?.action !== "trash") setFolderAction(undefined);
+  }
   const [removedFolder, setRemovedFolder] = useState<DriveEntry>();
+  const [previousParentId, setPreviousParentId] = useState(parentId);
+  if (previousParentId !== parentId) {
+    setPreviousParentId(parentId);
+    setSearch("");
+    setCursors([]);
+    setSort({ field: "name", direction: "asc" });
+    setTrashView(false);
+    setFeedback(undefined);
+    setFolderAction(undefined);
+    setRemovedFolder(undefined);
+  }
   const refresh = () => {
     setRevision((value) => value + 1);
   };
   const queue = useUploads(client, scope, parentId, refresh, transferUpload);
-  useEffect(() => {
-    const controller = new AbortController();
-    void request.client
-      .listEntries({
-        scope: request.scope,
-        parentId: request.parentId,
-        search: request.search,
-        cursor: request.cursor,
-        sort: request.sort,
-        signal: controller.signal,
-      })
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ request, data });
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setResult({ request, error });
-      });
-    return () => controller.abort();
-  }, [request]);
   const capabilities = data?.space.capabilities;
   const selectable = capabilities?.delete
     ? (data?.items ?? []).filter((entry) => !entry.id.startsWith("pending-"))
@@ -477,75 +461,35 @@ function Browser({
         (current) => current && { ...current, space: { ...current.space, name } },
         () => onRenameSpace(name),
       ));
-  function deleted(entry: DriveEntry) {
-    if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
-    refresh();
-    setFeedback(undefined);
-    const trashed = trashEnabled && entry.state === "ready";
-    let pending = false;
-    const actionProps = { children: labels.undo, onClick: () => void undo() };
-    const id = toastManager.add({
-      title: trashed ? labels.trashed : labels.deleted,
-      data: { closeLabel: labels.close },
-      type: "success",
-      actionProps: trashed && capabilities?.restore ? actionProps : undefined,
-      onRemove: () => {
-        undoToasts.current.delete(id);
-      },
-    });
-    if (trashed && capabilities?.restore) undoToasts.current.add(id);
-    async function undo() {
-      if (pending) return;
-      pending = true;
-      toastManager.update(id, {
-        title: labels.restoring,
-        type: "loading",
-        timeout: 0,
-        description: undefined,
-        actionProps: { ...actionProps, disabled: true, "aria-busy": true },
-      });
-      try {
-        await optimistic.run(
-          (current) =>
-            current && {
-              ...current,
-              items:
-                entry.parentId !== parentId || current.items.some((row) => row.id === entry.id)
-                  ? current.items
-                  : [...current.items, entry],
-            },
-          () => currentClient.current.restoreEntry!({ scope, entryId: entry.id }),
-        );
-        setRemovedFolder(undefined);
-        refresh();
-        toastManager.update(id, {
-          title: labels.restored,
-          type: "success",
-          description: undefined,
-          actionProps: undefined,
-          timeout: 5000,
-        });
-      } catch (reason) {
-        const conflict = errorCode(reason) === "RESTORE_CONFLICT";
-        toastManager.update(id, {
-          title: labels.trashed,
-          type: "error",
-          description: conflict ? labels.undoConflict : messageFor(reason, labels),
-          actionProps: conflict
-            ? {
-                children: labels.trash,
-                onClick: () => {
-                  toastManager.close(id);
-                  setTrashView(true);
-                },
-              }
-            : actionProps,
-        });
-      } finally {
-        pending = false;
-      }
-    }
-  }
+  const recovery = useDriveRecovery({
+    client,
+    scope,
+    parentId,
+    labels,
+    locale,
+    visible: trashView,
+    refreshKey: revision,
+    onChanged: refresh,
+    onDeleted: (entry) => {
+      if (data?.breadcrumbs.some((crumb) => crumb.id === entry.id)) setRemovedFolder(entry);
+      setFeedback(undefined);
+    },
+    onUndo: (entry, restore) =>
+      optimistic.run(
+        (current) =>
+          current && {
+            ...current,
+            items:
+              entry.parentId !== parentId || current.items.some((row) => row.id === entry.id)
+                ? current.items
+                : [...current.items, entry],
+          },
+        restore,
+      ),
+    onUndoRestored: () => setRemovedFolder(undefined),
+    onOpenTrash: () => setTrashView(true),
+  });
+  const deleted = (entry: DriveEntry) => recovery.deleted(entry, !!capabilities?.restore);
   async function download(entry: DriveEntry | DriveSpace) {
     if (actionsDisabled || downloadLock.current) return;
     downloadLock.current = true;
@@ -722,6 +666,7 @@ function Browser({
                               if (crumb.id)
                                 await actionClient.rename({ scope, entryId: crumb.id, name });
                               else await renameSpace!(name);
+                              if (!optimistic.isCurrent()) return;
                               refresh();
                               setFeedback(undefined);
                               notify(labels.saved);
@@ -794,7 +739,7 @@ function Browser({
                           !event.altKey
                         ) {
                           setTrashView(false);
-                          refresh();
+                          if (parentId === null) refresh();
                           closeNavigation();
                         }
                       }}
@@ -849,19 +794,8 @@ function Browser({
           ]}
         />
         <div className="min-w-0 flex-1 space-y-5">
-          {trashView && trashEnabled ? (
-            <>
-              <h2 className="text-base font-semibold">{labels.trash}</h2>
-              <TrashBrowser
-                client={client}
-                scope={scope}
-                labels={labels}
-                locale={locale}
-                refreshKey={revision}
-                onChanged={refresh}
-              />
-            </>
-          ) : removedFolder ? (
+          {recovery.trash}
+          {trashView && trashEnabled ? null : removedFolder ? (
             <div className={tablePanelClass}>
               <p className="mb-3 text-sm">{labels.trashed}</p>
               <HostLink href={getFolderHref(removedFolder.parentId)} className={buttonClass}>
@@ -925,16 +859,22 @@ function Browser({
                     </span>
                   </output>
                 )}
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <p
-                    className={cn(
-                      "text-sm text-muted-foreground",
-                      !capabilities?.upload && "invisible",
-                    )}
-                    aria-hidden={!capabilities?.upload}
-                  >
-                    {labels.drop} {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
-                  </p>
+                <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 space-y-1.5">
+                    <h2 className="text-base font-semibold wrap-anywhere">
+                      {data?.breadcrumbs.at(-1)?.name ?? data?.space.name ?? labels.title}
+                    </h2>
+                    <p
+                      className={cn(
+                        "text-sm text-muted-foreground",
+                        !capabilities?.upload && "invisible",
+                      )}
+                      aria-hidden={!capabilities?.upload}
+                    >
+                      {labels.drop}{" "}
+                      {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
+                    </p>
+                  </div>
                   <TableSearch
                     className="ml-auto"
                     value={search}
@@ -945,7 +885,7 @@ function Browser({
                       setCursors([]);
                     }}
                   />
-                </div>
+                </header>
                 <div className="relative overflow-x-auto">
                   <table
                     aria-label={data?.space.name ?? labels.title}
@@ -985,6 +925,7 @@ function Browser({
                             {labels.actions}
                             {capabilities?.delete && (
                               <DriveBulkDelete
+                                key={parentId ?? "root"}
                                 client={client}
                                 scope={scope}
                                 selection={selection}
@@ -1031,7 +972,7 @@ function Browser({
                       {data &&
                         retainRemovedItems(
                           data.items,
-                          result?.data?.items ?? [],
+                          folderData?.items ?? [],
                           optimistic.pending,
                         ).map((entry) => (
                           <tr

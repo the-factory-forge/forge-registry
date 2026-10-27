@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { test } from "node:test";
 
-import { chromium } from "playwright";
+import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
@@ -20,6 +21,7 @@ void test("every password field has a keyboard-accessible eye suffix without cha
     await page.goto(`${baseURL}/en/${path}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
     if (path === "account") {
+      await openPreviewControls(page);
       await page.getByLabel("Email and password account").check();
       await page.getByRole("tab", { name: "Security", exact: true }).click();
     }

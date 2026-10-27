@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 const {
   availableSlots,
+  availableMonth,
+  monthAvailabilitySchema,
   assertResourceExceptions,
   canCustomerChange,
   placeReservation,
@@ -10,6 +12,7 @@ const {
   resourceSchema,
   bookingSchema,
   loadReservationCalendar,
+  reservationDayCounts,
   rangeSchema,
   serviceSchema,
   reservationPolicyDefaults,
@@ -62,6 +65,85 @@ const input = {
 };
 const booking = () =>
   placeReservation(config, [], input, now, "40000000-0000-4000-8000-000000000001");
+
+await test("month overview matches daily appointment rules across month and clock changes", () => {
+  for (const month of ["2026-03-01", "2026-10-01", "2028-02-01"]) {
+    const at = `${month}T06:00:00.000Z`;
+    const c = structuredClone(config);
+    c.resources[0].weeklyHours[7] = [{ start: "01:00", end: "05:00" }];
+    c.resources[0].exceptions[`${month.slice(0, 7)}-09`] = [];
+    c.services[0].noticeMinutes = 1440;
+    c.services[0].horizonDays = 30;
+    for (const staff of [false, true]) {
+      for (const publicBookingEnabled of [false, true]) {
+        c.settings.publicBookingEnabled = publicBookingEnabled;
+        for (const selectedResource of [
+          undefined,
+          resourceId,
+          "10000000-0000-4000-8000-000000000099",
+        ]) {
+          const query = { serviceId, resourceId: selectedResource, month };
+          const result = availableMonth(c, [booking()], query, at, { staff });
+          const dates = Object.keys(result);
+          assert.equal(dates.length, 42);
+          assert.equal(new Date(`${dates[0]}T12:00:00Z`).getUTCDay(), 1);
+          assert.equal((Date.parse(dates.at(-1)) - Date.parse(dates[0])) / 86400000, 41);
+          for (const date of dates) {
+            assert.equal(
+              result[date],
+              availableSlots(
+                c,
+                [booking()],
+                { serviceId, resourceId: selectedResource, date },
+                at,
+                { staff },
+              ).length > 0,
+            );
+          }
+        }
+      }
+    }
+  }
+  assert.throws(
+    () => availableMonth({ ...config, mode: "stay" }, [], { serviceId, month: "2026-10-01" }, now),
+    { code: "MODE_MISMATCH" },
+  );
+});
+
+await test("month overview accepts one calendar month and strips caller policy overrides", () => {
+  const query = { serviceId, month: "2026-10-01" };
+  assert.deepEqual(
+    parseReservationInput(monthAvailabilitySchema, {
+      ...query,
+      staff: true,
+      reservationId: "other",
+      dates: ["2099-01-01"],
+    }),
+    query,
+  );
+  for (const month of [
+    undefined,
+    null,
+    10,
+    "2026-10",
+    "2026-10-02",
+    "2026-13-01",
+    "2026-10-01T00:00:00Z",
+    ["2026-10-01", "2026-11-01"],
+  ]) {
+    assert.throws(() => parseReservationInput(monthAvailabilitySchema, { ...query, month }), {
+      code: "INVALID",
+    });
+  }
+  for (const input of [
+    null,
+    {},
+    { ...query, serviceId: "invalid" },
+    { ...query, resourceId: "invalid" },
+  ]) {
+    assert.throws(() => parseReservationInput(monthAvailabilitySchema, input), { code: "INVALID" });
+  }
+});
 
 await test("duration, buffers, breaks, adjacency, closures and resource assignment", () => {
   const r = booking();
@@ -530,4 +612,72 @@ void test("optimistic moves use the supplied slot and preserve authority and the
   assert.equal(movedStay.nights, 2);
   assert.equal(movedStay.resourceId, "room");
   assert.equal(movedStay.departureDate, "2026-10-26");
+});
+
+await test("month and year counts share local stay boundaries, leap days and midnight checkout", () => {
+  const stay = {
+    ...booking(),
+    mode: "stay",
+    startsAt: "2028-02-28T23:30:00Z",
+    endsAt: "2028-03-01T10:00:00Z",
+    occupiedEnd: "2028-03-02T10:00:00Z",
+  };
+  assert.deepEqual(
+    [...reservationDayCounts([stay], "Europe/Zurich")],
+    [
+      ["2028-02-29", 1],
+      ["2028-03-01", 1],
+    ],
+  );
+  assert.deepEqual(
+    [...reservationDayCounts([{ ...stay, endsAt: "2028-02-29T23:00:00Z" }], "Europe/Zurich")],
+    [["2028-02-29", 1]],
+  );
+  assert.deepEqual(
+    [...reservationDayCounts([{ ...stay, mode: "appointment" }], "Europe/Zurich")],
+    [["2028-02-29", 1]],
+  );
+  assert.deepEqual([...reservationDayCounts([], "Europe/Zurich")], []);
+});
+
+await test("all-date list pages validate input, retain all statuses and filter before paging", async () => {
+  const { createReservationsMock } = await import("../src/showroom/reservations-mock.ts");
+  const mock = createReservationsMock();
+  mock.populateList();
+  const first = await mock.adminClient.listPage({ page: 1 });
+  const second = await mock.adminClient.listPage({ page: 2 });
+  assert.equal(first.items.length, 20);
+  assert.equal(first.hasMore, true);
+  assert.equal(second.items.length, 5);
+  assert.equal(second.hasMore, false);
+  const all = [...first.items, ...second.items];
+  assert.equal(new Set(all.map((row) => row.id)).size, 25);
+  assert.equal(new Set(all.map((row) => row.status)).size, 4);
+  assert.ok(all[0].startsAt < new Date().toISOString());
+  assert.ok(all.at(-1).startsAt > new Date().toISOString());
+  assert.deepEqual(
+    all.map((row) => row.startsAt),
+    all.map((row) => row.startsAt).sort((a, b) => a.localeCompare(b)),
+  );
+  const filtered = await mock.adminClient.listPage({
+    page: 1,
+    status: "pending",
+    resourceId,
+    serviceId,
+  });
+  assert.equal(filtered.items.length, 6);
+  assert.ok(filtered.items.every((row) => row.status === "pending"));
+  assert.deepEqual(await mock.adminClient.listPage({ page: 3 }), { items: [], hasMore: false });
+  for (const query of [
+    {},
+    { page: 0 },
+    { page: -1 },
+    { page: 1.5 },
+    { page: 1_000_001 },
+    { page: "1" },
+    { page: 1, status: "invalid" },
+    { page: 1, resourceId: "invalid" },
+  ]) {
+    await assert.rejects(mock.adminClient.listPage(query), { code: "INVALID" });
+  }
 });

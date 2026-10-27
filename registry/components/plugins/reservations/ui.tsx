@@ -1,11 +1,12 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { XIcon, ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Temporal } from "temporal-polyfill";
 
 import { IconTooltip } from "@/components/icon-tooltip";
+import { useLoadingActivity } from "@/components/loading-indicator";
 import type { ReservationLabels } from "@/components/plugins/reservations/labels";
 import {
   ReservationError,
@@ -14,10 +15,11 @@ import {
 } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
-import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { useActionLifetime, useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+export const iconButtonClass = cn(buttonClass, "size-10 shrink-0 p-0 md:size-8");
 export const primaryClass = cn(
   buttonClass,
   "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
@@ -46,20 +48,31 @@ export function message(error: unknown, labels: ReservationLabels) {
 
 export function useReservationLoad<T>(load: () => Promise<T>) {
   const [revision, setRevision] = useState(0);
+  const owner = useMemo(() => ({ load, revision }), [load, revision]);
+  const lifetime = useActionLifetime(owner);
+  const sequence = useRef(0);
   const [result, setResult] = useState<{
     load: () => Promise<T>;
     revision: number;
     value?: T;
+    previousValue?: T;
     error?: unknown;
   }>();
   useEffect(() => {
     let current = true;
+    const request = ++sequence.current;
     void load().then(
       (value) => {
-        if (current) setResult({ load, revision, value });
+        if (current && request === sequence.current) setResult({ load, revision, value });
       },
       (error: unknown) => {
-        if (current) setResult({ load, revision, error });
+        if (current && request === sequence.current)
+          setResult((previous) => ({
+            load,
+            revision,
+            error,
+            previousValue: previous?.value ?? previous?.previousValue,
+          }));
       },
     );
     return () => {
@@ -67,30 +80,36 @@ export function useReservationLoad<T>(load: () => Promise<T>) {
     };
   }, [load, revision]);
   const current = result?.load === load && result.revision === revision ? result : undefined;
+  useLoadingActivity(!current);
   return {
     value: result?.load === load ? result.value : undefined,
+    previousValue: result?.value ?? result?.previousValue,
+    loading: !current,
     error: current?.error,
-    reload: () => setRevision((v) => v + 1),
-    setValue: (update: (value: T) => T) =>
+    reload: () => {
+      sequence.current++;
+      setRevision((v) => v + 1);
+    },
+    setValue: (update: (value: T) => T) => {
+      if (!lifetime.isCurrent()) return;
+      sequence.current++;
       setResult((previous) =>
         previous?.load === load && previous.value !== undefined
-          ? { ...previous, value: update(previous.value) }
+          ? { load, revision, value: update(previous.value) }
           : previous,
-      ),
+      );
+    },
   };
 }
 
-export function useReservationAction() {
-  const action = useOptimisticAction(undefined);
-  async function run(callback: () => Promise<void>) {
-    if (action.pending) return;
-    try {
-      await action.run(() => undefined, callback);
-    } catch {
-      // The mutation retains its error for the existing inline feedback.
-    }
-  }
-  return { busy: action.pending, error: action.error, run };
+export function useReservationAction(scope?: unknown) {
+  const action = useMutationAction(scope);
+  return {
+    busy: action.pending,
+    error: action.error,
+    run: action.run,
+    isCurrent: action.isCurrent,
+  };
 }
 
 export function ErrorNotice({ error, labels }: { error: unknown; labels: ReservationLabels }) {
@@ -116,12 +135,14 @@ export function Modal({
   children,
   onClose,
   busy = false,
+  closeLabel = "Close",
 }: {
   title: string;
   description: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  closeLabel?: string;
 }) {
   return (
     <Dialog.Root
@@ -134,9 +155,26 @@ export function Modal({
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
           onKeyDownCapture={submitDialogOnShortcut}
-          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+          className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl"
         >
-          <Dialog.Title className="text-xl font-semibold">{title}</Dialog.Title>
+          <div
+            data-dialog-header
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+          >
+            <Dialog.Title className="min-w-0 flex-1 text-xl font-semibold break-words">
+              {title}
+            </Dialog.Title>
+            <IconTooltip label={closeLabel}>
+              <Dialog.Close
+                type="button"
+                aria-label={closeLabel}
+                disabled={busy}
+                className={iconButtonClass}
+              >
+                <XIcon className="size-4 shrink-0" aria-hidden="true" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
           <Dialog.Description className="text-sm text-muted-foreground">
             {description}
           </Dialog.Description>
@@ -226,6 +264,22 @@ export function ReservationSummary({
   );
 }
 
+export interface DatePickerProps {
+  date: string;
+  onChange: (date: string) => void;
+  locale: string;
+  labels: ReservationLabels;
+  minDate?: string;
+  range?: { from: string; to: string };
+  showInput?: boolean;
+  availability?: (date: string) => Promise<ReservationSlot[]>;
+  monthAvailability?: (month: string) => Promise<Record<string, boolean>>;
+  month?: string;
+  onMonthChange?: (month: string) => void;
+  counts?: ReadonlyMap<string, number>;
+  className?: string;
+}
+
 export function DatePicker({
   date,
   onChange,
@@ -235,21 +289,24 @@ export function DatePicker({
   range,
   showInput = true,
   availability,
-}: {
-  date: string;
-  onChange: (date: string) => void;
-  locale: string;
-  labels: ReservationLabels;
-  minDate?: string;
-  range?: { from: string; to: string };
-  showInput?: boolean;
-  availability?: (date: string) => Promise<ReservationSlot[]>;
-}) {
+  monthAvailability,
+  month: controlledMonth,
+  onMonthChange,
+  counts,
+  className,
+}: DatePickerProps) {
   const selected = Temporal.PlainDate.from(date);
-  const [month, setMonth] = useState(() => selected.with({ day: 1 }).toString());
+  const [localMonth, setLocalMonth] = useState(() => selected.with({ day: 1 }).toString());
+  const month = controlledMonth ?? localMonth;
+  const setMonth = (value: string) => {
+    setLocalMonth(value);
+    onMonthChange?.(value);
+  };
   const start = Temporal.PlainDate.from(month);
   const gridStart = start.subtract({ days: start.dayOfWeek - 1 });
+  const checksAvailability = !!(availability || monthAvailability);
   const loadDates = useCallback(async () => {
+    if (monthAvailability) return monthAvailability(month);
     if (!availability) return {};
     const first = Temporal.PlainDate.from(month);
     const from = first.subtract({ days: first.dayOfWeek - 1 });
@@ -261,7 +318,7 @@ export function DatePicker({
         }),
       ),
     );
-  }, [availability, month]);
+  }, [availability, monthAvailability, month]);
   const dates = useReservationLoad(loadDates);
   const monthLabel = new Intl.DateTimeFormat(locale, {
     month: "long",
@@ -269,7 +326,7 @@ export function DatePicker({
     timeZone: "UTC",
   }).format(new Date(`${month}T12:00:00Z`));
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", className)} data-reservation-month>
       <div className="flex items-center justify-between gap-2">
         <IconTooltip label={labels.previous}>
           <button
@@ -297,7 +354,7 @@ export function DatePicker({
       </div>
       <div
         className="grid grid-cols-7 gap-1"
-        aria-busy={!!availability && !dates.value && !dates.error}
+        aria-busy={checksAvailability && !dates.value && !dates.error}
       >
         {Array.from({ length: 7 }, (_, i) => (
           <span key={i} className="py-1 text-center text-xs text-muted-foreground">
@@ -313,15 +370,21 @@ export function DatePicker({
             <button
               type="button"
               key={value}
+              data-date={value}
               disabled={
                 (!!minDate && value < minDate && (!range || value >= range.from)) ||
-                (!!availability && !dates.value?.[value])
+                (checksAvailability && !dates.value?.[value])
               }
               aria-pressed={range ? value >= range.from && value <= range.to : date === value}
-              aria-label={new Intl.DateTimeFormat(locale, {
-                dateStyle: "full",
-                timeZone: "UTC",
-              }).format(new Date(`${value}T12:00:00Z`))}
+              aria-label={
+                new Intl.DateTimeFormat(locale, {
+                  dateStyle: "full",
+                  timeZone: "UTC",
+                }).format(new Date(`${value}T12:00:00Z`)) +
+                (counts
+                  ? ` · ${labels.calendar}: ${new Intl.NumberFormat(locale).format(counts.get(value) ?? 0)}`
+                  : "")
+              }
               className={cn(
                 "min-h-10 cursor-pointer rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-30 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                 day.month !== start.month && "text-muted-foreground",
@@ -334,6 +397,14 @@ export function DatePicker({
               onClick={() => onChange(value)}
             >
               {day.day}
+              {counts && (
+                <span
+                  aria-hidden="true"
+                  className="block min-h-4 text-xs font-semibold tabular-nums"
+                >
+                  {counts.get(value) || ""}
+                </span>
+              )}
             </button>
           );
         })}
@@ -354,14 +425,20 @@ export function DatePicker({
           />
         </Field>
       )}
-      {availability && (
+      {checksAvailability && (
         <div className="flex min-h-10 flex-wrap items-center gap-2">
           <ErrorNotice error={dates.error} labels={labels} />
           {dates.error ? (
-            <button type="button" className={buttonClass} onClick={dates.reload}>
-              <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
-              {labels.refresh}
-            </button>
+            <IconTooltip label={labels.refresh}>
+              <button
+                aria-label={labels.refresh}
+                type="button"
+                className={iconButtonClass}
+                onClick={dates.reload}
+              >
+                <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
+              </button>
+            </IconTooltip>
           ) : !dates.value ? (
             <output className="text-sm text-muted-foreground">{labels.loading}</output>
           ) : null}
@@ -398,28 +475,6 @@ export function StayDatePicker({
   };
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(["arrival", "departure"] as const).map((part) => (
-          <Field key={part} label={part === "arrival" ? labels.arrivalDate : labels.departureDate}>
-            <input
-              type="date"
-              required
-              className={fieldClass}
-              ref={part === "departure" ? departureInput : arrivalInput}
-              value={part === "arrival" ? arrival : departure}
-              min={
-                part === "departure"
-                  ? Temporal.PlainDate.from(arrival).add({ days: minNights }).toString()
-                  : undefined
-              }
-              onFocus={() => setEndpoint(part)}
-              onChange={(event) => {
-                if (event.target.value) choose(event.target.value, part);
-              }}
-            />
-          </Field>
-        ))}
-      </div>
       <DatePicker
         key={endpoint + (endpoint === "arrival" ? arrival.slice(0, 7) : departure.slice(0, 7))}
         date={endpoint === "arrival" ? arrival : departure}
@@ -443,6 +498,28 @@ export function StayDatePicker({
         range={{ from: arrival, to: departure }}
         showInput={false}
       />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {(["arrival", "departure"] as const).map((part) => (
+          <Field key={part} label={part === "arrival" ? labels.arrivalDate : labels.departureDate}>
+            <input
+              type="date"
+              required
+              className={fieldClass}
+              ref={part === "departure" ? departureInput : arrivalInput}
+              value={part === "arrival" ? arrival : departure}
+              min={
+                part === "departure"
+                  ? Temporal.PlainDate.from(arrival).add({ days: minNights }).toString()
+                  : undefined
+              }
+              onFocus={() => setEndpoint(part)}
+              onChange={(event) => {
+                if (event.target.value) choose(event.target.value, part);
+              }}
+            />
+          </Field>
+        ))}
+      </div>
     </div>
   );
 }

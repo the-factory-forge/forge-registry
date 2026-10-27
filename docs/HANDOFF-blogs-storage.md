@@ -1,3 +1,8 @@
+> Current migration workflow: [project-owned Drizzle persistence](./persistence.md).
+> This historical handoff references SQL files that have been removed. For new
+> installations, compose the current Drizzle schemas and generate host migrations
+> using the workflow above.
+
 # HANDOFF: blog Markdown in PostgreSQL, images in S3
 
 Use this handoff from a consuming website's chat, including a website that installs
@@ -13,9 +18,10 @@ Suggested invocation:
 
 ## Target and source
 
-`@forge/blogs-storage` keeps full draft/publication Markdown in `blogs_article.document`.
-Only uploaded image bytes go to private S3. The `BlogsClient` contract and stable
-image IDs remain unchanged. PostgreSQL also owns categories, versions and retry
+`@forge/blogs-storage` keeps current draft/publication Markdown in `blogs_article.document`.
+Retained snapshots use `blogs_history`; only uploaded image bytes go to private S3.
+Existing client methods and stable image IDs remain usable; history adds an optional
+transport. PostgreSQL also owns categories, versions and retry
 records. `storage.maintenance(100)` cleans unreferenced image objects after the
 existing 24-hour grace period.
 
@@ -68,6 +74,26 @@ transport so an upload attempt shows the plugin's error toast without losing the
 draft. Adopt the updated UI labels/error mapping together with the companion.
 Older local action-toast renderers must support the error type; retain the host's
 layout while adding that support if needed.
+
+## History adoption
+
+For history adoption on an existing image-only companion, register
+`server/history-migration.sql` separately from the fresh-install SQL. In the
+host's reviewed migration transaction, call `storage.backfillHistory(tx)` to
+seed the actual current states without inventing older versions. Repeating it
+does not add versions. Adopt the companion and host validation together; the
+optional `BlogsClient.history` methods need authenticated transport and cache
+invalidation. Ordinary clients stay usable without history controls.
+
+History publication obtains a server plan and confirms its discarded versions.
+Only confirmed missing illustrations may be omitted; provider failures require
+retry. Keep source references and all retained image references protected during
+cleanup. Account-deletion signature snapshots include retained history. See the
+[history integration guide](./blogs.md#localized-history-transport).
+
+For rollback, disable history controls while retaining the new data and a
+compatible writer. Do not drop history or start a writer that discards its
+counters. Source adoption, migration and deployment remain separate operations.
 
 ## 3. Migrate a custom database image adapter
 

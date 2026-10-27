@@ -40,7 +40,8 @@ The directory receives `projects`, `customers`, optional `assignees`, controlled
 `getProjectHref`, optional `getCustomerHref`, optional `onDelete(id)`, and optional `onStatusChange(id, status)`.
 The host searches/fetches records. `customerId` additionally scopes the supplied
 projects and hides Owner. Missing create/delete props hide those controls.
-Customer company names take precedence over contact names.
+Customer company names take precedence over contact names. Project lists and
+detail summaries do not display website URLs.
 
 Detail receives `project`, `backHref`, `sectionHrefs: { details, drive }`,
 `section` (default `details`), `onSave(values)`, optional `onDelete(id)`, and
@@ -103,7 +104,7 @@ the host; there is no Drive dependency today.
 ## Form and ownership contract
 
 `Project` requires `id`, `name`, `ownerId`, and `status`; nullable optional fields
-are `description`, `url`, `posterImage`, and `assigneeId`. Status values are
+are `description`, `posterImage`, and `assigneeId`. Status values are
 `requested`, `prospect`, `under-construction`, and `production`, with creation
 defaulting to `requested`. All status labels are overridable.
 
@@ -115,7 +116,7 @@ summary may still display metadata supplied by the host.
 When creating from a customer, take its ID from authorized host context and add
 it in `onCreate`. A standalone creation route must collect or resolve that context
 outside the shared form. For updates, merge the three submitted fields into the
-existing record so ownership, URL and assignment are preserved. Never infer a
+existing record so ownership and assignment are preserved. Never infer a
 reassignment from a customer query parameter.
 
 The host must enforce customer ownership again on every server write. An
@@ -127,7 +128,7 @@ migrations or database entries are created by this plugin.
 `ProjectFormValues` contains `name`, `status`, and `description`. Name is trimmed
 and required; description is trimmed and limited to 5,000 characters. Empty
 descriptions submit as empty strings; translate to database null in the host if
-needed. Persisted website URLs retain the existing safe-link checks for display.
+needed.
 
 ### Updating existing hosts
 
@@ -135,7 +136,10 @@ This narrows the form callback contract. Stop reading `url`, `ownerId` and
 `assigneeId` from `onCreate` or `onSave` values. Remove `ProjectDirectoryProps` and
 the former directory props, including `defaultOwnerId` and `lockOwner`, from form
 page adapters. Supply ownership in the host create callback and preserve existing
-metadata on update. Remove obsolete picker/field label overrides. No database
+metadata on update. Remove obsolete picker/field label overrides, including
+`website`, `visit` and `noWebsite`, and stop using `safeProjectUrl`. `Project` no
+longer declares `url`. The persistence schema retains its legacy `url` column to
+preserve stored data; the shared service does not write it. No database
 migration or stored-data deletion is part of this change.
 
 Drafts survive same-project rerenders and failed saves. Switching project ID
@@ -175,3 +179,25 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Optional persistence companion
+
+Install `@forge/projects-storage` for `createProjectsSchema(customers)`,
+`createProjectsService(options)`, validation/options and inferred `ProjectRecord`.
+Compose the customer profile from `customers-storage` and follow the
+[persistence guide](./persistence.md). The service offers `list(ownerId, query)`,
+`get`, `create(ownerId, input)`, `update`, `setStatus` and `remove` through
+`client(context)`. Hosts supply the authorized owner from trusted context.
+
+The `authorize(context, action, ownerId, projectId)` callback checks persisted
+ownership for reads and mutations. Ordinary edits accept only name, status and
+description; URL, poster, assignee and ownership remain intact. Foreign keys
+restrict account/profile deletion while projects remain. Map `ProjectsError.code`
+(`INVALID`, `FORBIDDEN`, `NOT_FOUND`, `IN_USE`, `STORAGE`) to safe host responses.
+Routing, invitations, assignment editors and external integrations stay host-owned.
+
+The list query is `{ search?, pageSize?, cursor? }` and returns `{ items, nextCursor }`.
+Pages default to 50 candidates, cap at 100 and authorize persisted ownership and
+each returned project. An empty authorized page can still have a next cursor.
+Compose `TablePagination` without an unfiltered total and retain URL-owned search,
+owner and page state. See the [bounded directory contract](./persistence.md#bounded-customer-and-project-directories).
