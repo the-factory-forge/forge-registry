@@ -97,6 +97,38 @@ void test("history controls and panel stay together below the header while scrol
   await panel(page).waitFor();
 });
 
+void test("history stays readable in small and medium desktop previews without losing edits", async (t) => {
+  const page = await preview(t, false);
+  const title = page.getByRole("textbox", { name: "Title", exact: true });
+  await title.fill("Keep this working draft");
+  const previewBounds = () => page.locator("#factory-showroom-preview").boundingBox();
+  for (const size of ["small", "medium", "big"]) {
+    await page.getByRole("button", { name: new RegExp(`switch to ${size}$`) }).click();
+    const content = await page.getByRole("heading", { level: 1 }).boundingBox();
+    const history = await panel(page).boundingBox();
+    const bounds = await previewBounds();
+    assert.ok(content.width >= 200, `${size}: the editor title stays readable`);
+    assert.ok((await title.boundingBox()).width >= 200, `${size}: title input stays usable`);
+    assert.ok(
+      (await page.getByRole("textbox", { name: "Markdown", exact: true }).boundingBox()).width >=
+        200,
+      `${size}: Markdown stays usable`,
+    );
+    assert.ok(
+      (await page.getByRole("region", { name: "Preview", exact: true }).boundingBox()).width >= 200,
+      `${size}: the Markdown preview stays readable`,
+    );
+    assert.ok(history.x >= bounds.x && history.x + history.width <= bounds.x + bounds.width);
+    if (size !== "big")
+      assert.ok(
+        history.y + history.height <= content.y,
+        `${size}: History stacks above the editor`,
+      );
+    assert.equal(await title.inputValue(), "Keep this working draft");
+    assert.equal(await page.evaluate(() => innerWidth), 1440);
+  }
+});
+
 void test("history trigger distinguishes open and closed states in both themes and layouts", async (t) => {
   for (const width of [1440, 390]) {
     for (const theme of ["light", "dark"]) {

@@ -28,7 +28,7 @@ The layout exports `ContentSidebarLayoutProps` and accepts:
 | `sidebar`   | Optional supporting content; omit it to use full-width main content. |
 | `className` | Classes merged onto the outer grid.                                  |
 
-At the large breakpoint (64rem with the default Tailwind theme), content uses a
+When the layout has at least 64rem of available width, content uses a
 flexible left column and the supporting panel uses a 22rem right column. The
 panel and toolbar stick 1rem below `--intranet-top-offset`, defaulting to `0rem`.
 Set that existing variable on an ancestor when the host has a fixed or sticky
@@ -37,7 +37,7 @@ remains visible. Leave ancestor overflow visible so page scrolling controls the
 sticky position; a deliberately nested scroll container needs its own compatible
 height and offset arrangement.
 
-Below that breakpoint, toolbar, panel and content stack in normal page flow. The
+Below that container width, toolbar, panel and content stack in normal page flow. The
 panel expands to its content height. Without a panel, the toolbar stays above
 full-width content; without either slot, only the content wrapper remains.
 

@@ -685,7 +685,7 @@ function EditorForm({
         <div
           ref={contentArea}
           tabIndex={-1}
-          className="flex min-w-0 flex-col gap-6 focus-visible:outline-2 focus-visible:outline-ring"
+          className="@container/blog-editor flex min-w-0 flex-col gap-6 focus-visible:outline-2 focus-visible:outline-ring"
         >
           {(selectedId || compareWorking) && (
             <div className="flex min-h-80 flex-1 flex-col" aria-busy={bodyLoading}>
@@ -803,7 +803,7 @@ function EditorForm({
             >
               <fieldset
                 disabled={pending || readOnly}
-                className={cn(cardClass, "grid min-w-0 gap-5 md:grid-cols-2")}
+                className={cn(cardClass, "grid min-w-0 gap-5 @min-[32rem]/blog-editor:grid-cols-2")}
               >
                 <label className="space-y-2 text-sm font-medium">
                   <span>{labels.title}</span>
@@ -830,7 +830,7 @@ function EditorForm({
                   />
                   {fields.message(`${id}-slug`)}
                 </label>
-                <label className="space-y-2 text-sm font-medium md:col-span-2">
+                <label className="space-y-2 text-sm font-medium @min-[32rem]/blog-editor:col-span-2">
                   <span>{labels.summary}</span>
                   <textarea
                     rows={3}
@@ -892,7 +892,7 @@ function EditorForm({
                     </span>
                   )}
                 </label>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6 @min-[32rem]/blog-editor:grid-cols-2">
                   {imageField("thumbnailId", "thumbnailAlt", labels.thumbnail)}
                   {imageField("bannerId", "bannerAlt", labels.banner)}
                 </div>
@@ -928,7 +928,7 @@ function EditorForm({
                       )}
                     </span>
                   </legend>
-                  <ul className="grid gap-4 sm:grid-cols-2">
+                  <ul className="grid gap-4 @min-[32rem]/blog-editor:grid-cols-2">
                     {categories
                       .filter((category) => !category.parentId)
                       .map((parent) => {
@@ -1005,7 +1005,7 @@ function EditorForm({
                     )}
                   </fieldset>
                 </div>
-                <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+                <div className="grid min-w-0 gap-6 @min-[40rem]/blog-editor:grid-cols-2">
                   <div className="min-w-0 space-y-2">
                     <textarea
                       ref={textarea}
