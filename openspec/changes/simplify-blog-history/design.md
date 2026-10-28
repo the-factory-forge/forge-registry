@@ -14,7 +14,7 @@ Preserve public interfaces and existing modules. No new editor, versioning frame
 
 `saveBlogDraft` remains the shared calculation for article state, snapshot and removed IDs. Replace the draft, pointers and image projections atomically, preserving fresh revision IDs, increasing numbers and no-op/idempotent saves.
 
-Update `historyHeaders` bounds with the model and mock. Verify superseded rows and references are removed, not hidden by the read limit. Previous draft saves do not enter publication history.
+Update `historyHeaders` bounds with the model and mock. Verify superseded rows and references are removed, not hidden by the read limit. Previous draft saves do not enter publication history. Keep their existing internal allocation separate from the visible publication counter. Drafts have no visible version; publishing a new draft allocates the next publication number. Republishing an unchanged publication keeps its number.
 
 The editing projection can contain live content without a separate draft row. Preserve the specified deletion fallback and counters without manufacturing a replacement snapshot.
 
@@ -30,7 +30,7 @@ Stop requiring `repriseId` branches or retention based on `sourcePublicationOrde
 
 ### 3. Publish the current draft without truncating later history
 
-`publishBlogVersion` promotes the draft's identity into publication order without source-based truncation. Retain server-derived removal plans, missing-image confirmation, locks, projections and retry results.
+`publishBlogVersion` promotes the draft's identity into publication order without source-based truncation. Prune the oldest publication automatically at the limit, including for ordinary clients. Retain server-derived plans, missing-image confirmation, locks, projections and retry results.
 
 Replace direct historical publication with resume/save/publish; reject old publication targets. Preserve ordinary editor/table publication and no-history clients. Keep operation names where possible and update affected callers together.
 
@@ -38,7 +38,7 @@ Replace direct historical publication with resume/save/publish; reject old publi
 
 Replace lane drawing in `history.tsx` with chronological rows and the optional draft. Keep `content-sidebar-layout`, responsive controls, metadata, previews, menus and deletion safeguards. Unsaved work gets no committed number.
 
-Reuse `BlogHistoryReader` and `history-diff.ts` against the live language publication, including unsaved draft comparison. Keep paragraph/word changes, whitespace, context, the 50 ms bound, full-text fallback and all field/image comparisons specified in the delta. Preserve safe rendering and the no-live-publication state.
+Reuse `BlogHistoryReader` and `history-diff.ts` against the live language publication, including unsaved draft comparison. Show both comparison endpoints and explicit Read/Compare controls. Use the existing removed/added semantic colors with −/+ on endpoints and changed metadata. Explain that unchanged metadata fields are hidden. Preserve the existing diff algorithm, safe rendering and the no-live-publication state.
 
 The mockup approves layout and warnings only. Preserve real editor features; reconcile the surface brief's lanes without changing global design or its stale sidecar.
 
@@ -49,6 +49,8 @@ Keep localized snapshots in `blogs_history`, private S3 images, validation, read
 Retained references across languages protect images. Preserve cleanup eligibility and retries without starting a new grace period at removal. Distinguish missing images from provider failures and reject foreign assets.
 
 Seed five publications and one draft per English/French translation through `loadHistoryExample`. Preserve article scope and reset behavior. Update `blogs-preview.tsx` help and retain its existing simulations.
+
+Keep complete FR/DE/IT interface dictionaries in the showroom, including crop-dialog overrides. English remains the portable default; hosts own translated labels. Admin routes retain the interface locale independently of the example’s English/French article translations.
 
 Keep `registry/registry.json` ownership, `@components/plugins/blogs` targets, UI/CSS dependencies and `diff`. Update both items together, regenerate endpoints and check a disposable install. Do not distribute showroom code.
 

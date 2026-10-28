@@ -4,7 +4,8 @@
 
 Accepted on 2026-10-10 by the owner for the registry, template guidance and clinic.
 Reconciled on 2026-10-26 with the implemented localized history and Drizzle
-persistence. This is a registry-owned decision; consumer adoption is separate.
+persistence. Simplified on 2026-10-28 to one draft per language.
+This is a registry-owned decision; consumer adoption is separate.
 
 ## Context
 
@@ -18,13 +19,18 @@ for that unused format is unnecessary.
 
 Store current draft/publication Markdown in PostgreSQL JSONB article documents
 and complete localized snapshots in the separate, indexed `blogs_history` table.
-Keep five publications and eight saved drafts per language, with stable version
-numbers and independent reprise provenance. Header lists load no snapshot bodies;
+Keep five publications, including live, and one saved draft per language, with
+stable publication numbers. Drafts display their translated label, while internal
+snapshot allocations remain separate from publication numbering. Changed saves replace the draft; resumed historical
+content becomes a new draft before publication. Publishing preserves newer
+publications and prunes only the oldest when the limit is exceeded. Header lists load no snapshot bodies;
 selected bodies load on demand after authorization. Retained text remains private.
 
 Use the existing transaction and plugin lock for article changes, history,
-retention, query projections and small idempotency results. Historical publication
-rechecks a version-bound plan and confirms the exact discarded states. Failure
+retention, query projections and small idempotency results. Resumption confirms
+replacement of a saved draft before editing; only successful Save replaces it.
+History publication rechecks a version-bound plan and confirms missing-image
+omission when needed. Limit pruning removes the oldest publication automatically. Failure
 preserves live content and history. Designated authors remain separate from
 saving actors; current article ownership governs management, while trusted name
 resolution and account-deletion transactions maintain captured signatures.
@@ -39,6 +45,9 @@ from the effective public projection while its source snapshot retains the
 original reference. Foreign assets remain forbidden; timeouts, access errors
 and missing buckets remain failures to retry. Cleanup requires the final
 reference to disappear and the existing grace period to expire.
+
+The owner confirmed no existing history data requires migration for the one-draft
+change; it reuses the schema.
 
 Hosts compose the exported Drizzle schema and generate their own additive
 migrations. With incompatible writers stopped, run history backfill followed by

@@ -148,7 +148,7 @@ await test("localized history uses transactional PostgreSQL and private image re
     });
 
     await t.test(
-      "draft limits span independent reprises and retain separate language counters",
+      "one draft replaces prior rows and retains separate language counters",
       async () => {
         let article = await save(alice, await create("Retention"), "Source");
         article = await publish(alice, article);
@@ -158,12 +158,12 @@ await test("localized history uses transactional PostgreSQL and private image re
             origin: { versionId: sourceId, repriseId: randomUUID() },
           });
         const english = await headers(alice, article);
-        assert.equal(english.filter((header) => header.state === "draft").length, 8);
+        assert.equal(english.filter((header) => header.state === "draft").length, 1);
         assert.equal(
           new Set(
             english.filter((header) => header.state === "draft").map((header) => header.repriseId),
           ).size,
-          8,
+          1,
         );
         assert.equal(
           english.some((header) => header.number === 2),
@@ -171,8 +171,11 @@ await test("localized history uses transactional PostgreSQL and private image re
         );
         article = await save(alice, article, "French draft", { locale: "fr" });
         assert.equal(article.translations.fr.history.lastNumber, 1);
-        assert.equal((await headers(alice, article)).length, 9);
+        assert.equal((await headers(alice, article)).length, 2);
         assert.equal((await headers(alice, article, "fr")).length, 1);
+        const [stored] =
+          await pool`select count(*)::int as count from blogs_history where article_id=${article.id} and locale='en'`;
+        assert.equal(stored.count, 2);
       },
     );
 
@@ -194,7 +197,7 @@ await test("localized history uses transactional PostgreSQL and private image re
     );
 
     await t.test(
-      "historical return requires a current plan at every publish entrypoint",
+      "historical resumption preserves successors and publication requires a current plan",
       async () => {
         let article = await save(alice, await create("Return"), "Before");
         article = await publish(alice, article);
@@ -205,13 +208,13 @@ await test("localized history uses transactional PostgreSQL and private image re
         article = await save(alice, article, "Reworked before", {
           origin: { versionId: source, repriseId: randomUUID() },
         });
-        await rejected(publish(alice, article), "HISTORY_CONFIRMATION_REQUIRED");
+        await rejected(alice.history.plan(target(article, source)), "INVALID");
         const pending = await headers(alice, article);
         const plan = await alice.history.plan(target(article));
         assert.deepEqual(await headers(alice, article), pending);
         assert.deepEqual(
           plan.discarded.map((header) => header.id),
-          [later],
+          [],
         );
         assert.equal(
           (await storage.getPublished("en", article.translations.en.published.slug)).title,
@@ -239,7 +242,7 @@ await test("localized history uses transactional PostgreSQL and private image re
         const replay = await alice.history.publish(input);
         assert.equal(replay.version, article.version);
         assert.deepEqual(await headers(alice, article), after);
-        assert.ok(!after.some((header) => header.id === later));
+        assert.ok(after.some((header) => header.id === later));
         assert.equal(article.translations.en.published.title, "Changed while confirming");
         assert.equal(article.translations.en.history.lastNumber, 4);
       },
@@ -256,11 +259,13 @@ await test("localized history uses transactional PostgreSQL and private image re
             article = await save(alice, article, `Successor ${index}`);
             article = await publish(alice, article);
           }
-          article = await save(alice, article, "Next publication");
+          article = historical
+            ? await save(alice, article, "Original", { origin: { versionId: original } })
+            : await save(alice, article, "Next publication");
           const before = await alice.get(article.id);
           const retained = await headers(alice, article);
           const live = await storage.getPublished("en", before.translations.en.published.slug);
-          const plan = historical ? await alice.history.plan(target(article, original)) : null;
+          const plan = historical ? await alice.history.plan(target(article)) : null;
           const input = {
             id: article.id,
             version: article.version,
@@ -271,7 +276,7 @@ await test("localized history uses transactional PostgreSQL and private image re
             ? () =>
                 alice.history.publish({
                   ...input,
-                  versionId: original,
+                  versionId: before.translations.en.history.currentId,
                   token: plan.token,
                   omitMissingImages: false,
                 })
@@ -295,10 +300,10 @@ await test("localized history uses transactional PostgreSQL and private image re
           assert.deepEqual(await storage.getPublished("en", live.slug), live);
           const published = await commit();
           const after = await headers(alice, article);
-          assert.equal(after.length, historical ? 1 : 5);
+          assert.equal(after.length, 5);
           assert.equal(
             (await storage.getPublished("en", published.translations.en.published.slug)).revisionId,
-            historical ? original : before.translations.en.history.currentId,
+            before.translations.en.history.currentId,
           );
           assert.deepEqual(await commit(), published);
           assert.deepEqual(await headers(alice, article), after);
@@ -330,9 +335,15 @@ await test("localized history uses transactional PostgreSQL and private image re
         assert.equal(article.shared.author.id, "bob");
         assert.equal(article.shared.author.name, "Bob");
         await rejected(alice.history.plan(target(article, original)), "FORBIDDEN");
-        const plan = await bob.history.plan(target(article, original));
+        await rejected(bob.history.plan(target(article, original)), "INVALID");
+        const source = await snapshot(bob, article, original);
+        article = await save(bob, article, source.content.title, {
+          origin: { versionId: original },
+          shared: source.shared,
+        });
+        const plan = await bob.history.plan(target(article));
         article = await bob.history.publish({
-          ...target(article, original),
+          ...target(article),
           ...request(),
           token: plan.token,
           omitMissingImages: false,
@@ -439,7 +450,7 @@ await test("localized history uses transactional PostgreSQL and private image re
         assert.equal(continued.sourcePublicationId, source);
         assert.equal(continued.sourcePublicationOrder, draft.sourcePublicationOrder);
         assert.ok(
-          (await alice.history.plan(target(article))).discarded.some(
+          !(await alice.history.plan(target(article))).discarded.some(
             (header) => header.id === later,
           ),
         );
@@ -454,7 +465,7 @@ await test("localized history uses transactional PostgreSQL and private image re
       ]);
       assert.equal(result.filter((entry) => entry.status === "fulfilled").length, 1);
       assert.equal(result.find((entry) => entry.status === "rejected").reason.code, "CONFLICT");
-      assert.equal((await headers(alice, article)).length, 2);
+      assert.equal((await headers(alice, article)).length, 1);
     });
 
     await t.test(

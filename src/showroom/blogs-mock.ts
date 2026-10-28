@@ -337,6 +337,7 @@ export function createBlogsMock() {
       };
       const article = current(input);
       const version = historyVersion(input);
+      assertBlog(version.id === article.translations[input.locale]?.history?.currentId, "INVALID");
       assertBlog(version.shared.author, "AUTHOR_REQUIRED");
       const result = blogPublicationDiscard(version, historyHeaders(input.id, input.locale));
       const missingAssetIds = config.missingImages
@@ -542,7 +543,6 @@ export function createBlogsMock() {
           assertBlog(versionId, "NOT_FOUND");
           const target = { ...input, versionId },
             latest = plan(target);
-          assertBlog(!latest.historicalReturn, "HISTORY_CONFIRMATION_REQUIRED");
           assertBlog(!latest.missingAssetIds.length, "INVALID");
           return publishVersion(target);
         }),
@@ -688,10 +688,10 @@ export function createBlogsMock() {
         const original = structuredClone(article.translations[locale].draft);
         const settings = structuredClone(article.translations[locale].shared ?? article.shared);
         settings.author ??= initialEditor;
-        const retained: BlogHistoryVersion[] = [];
+        let retained: BlogHistoryVersion[] = [];
         article.translations[locale].history = {
           lastNumber: 17,
-          lastPublicationOrder: 0,
+          lastPublicationOrder: 17,
           currentId: null,
           publishedId: null,
         };
@@ -705,7 +705,7 @@ export function createBlogsMock() {
             locale,
             content: { ...original, markdown },
             shared: settings,
-            origin: source ? { versionId: source.id, repriseId: crypto.randomUUID() } : undefined,
+            origin: source ? { versionId: source.id } : undefined,
           };
           const previous = article,
             currentId = article.translations[locale].history!.currentId;
@@ -722,6 +722,7 @@ export function createBlogsMock() {
             source: current,
           });
           article = result.article;
+          retained = retained.filter((version) => !result.removedIds.includes(version.id));
           if (result.saved) retained.push(result.saved);
         };
         for (const word of french
@@ -744,7 +745,7 @@ export function createBlogsMock() {
           retained[retained.length - 1] = result.saved;
         }
         const publications = [...retained];
-        for (const source of [publications[0], publications[2], publications[4], publications[4]])
+        for (const source of [publications[0]])
           save(
             source.content.markdown.replace(
               french ? "un instant" : "a moment",

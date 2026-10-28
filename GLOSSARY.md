@@ -11,8 +11,8 @@ be explored. This language describes the content and staff workflows those featu
 The staff workspace for preparing article translations and managing blog categories.
 
 **Blog draft**:
-The saved, editable version of one article translation, separate from the
-publication readers see.
+The single saved, editable version of one article translation. Each save replaces
+its previous draft; readers keep seeing the current publication until publication.
 _Avoid_: Publication, live article
 
 **Unsaved blog changes**:

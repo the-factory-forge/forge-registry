@@ -36,17 +36,27 @@ async function actions(page, number, locale = "EN") {
   if (!(await panel(page, locale).isVisible()))
     await page.getByRole("button", { name: "History", exact: true }).click();
   await panel(page, locale)
-    .getByRole("button", { name: `Actions: v${number}`, exact: true })
+    .getByRole("button", {
+      name: `Actions: ${typeof number === "number" ? `v${number}` : number}`,
+      exact: true,
+    })
     .click();
-  return page.getByRole("menu", { name: `Actions: v${number}`, exact: true });
+  return page.getByRole("menu", {
+    name: `Actions: ${typeof number === "number" ? `v${number}` : number}`,
+    exact: true,
+  });
 }
 async function select(page, number, locale = "EN") {
   if (!(await panel(page, locale).isVisible()))
     await page.getByRole("button", { name: "History", exact: true }).click();
   await panel(page, locale)
-    .getByRole("button", { name: new RegExp(`^v${number}\\b`) })
+    .getByRole("button", {
+      name: typeof number === "number" ? new RegExp(`^v${number}\\b`) : /^Draft\b/,
+    })
     .click();
-  await page.getByRole("heading", { name: `v${number}`, exact: true }).waitFor();
+  await page
+    .getByRole("heading", { name: typeof number === "number" ? `v${number}` : number, exact: true })
+    .waitFor();
 }
 async function save(page) {
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
@@ -55,7 +65,7 @@ async function save(page) {
 async function counts(page, pubs, drafts, locale = "EN") {
   await panel(page, locale).locator('ol[aria-busy="false"]').waitFor();
   await panel(page, locale)
-    .getByText(`Publications ${pubs} / 5 · Drafts ${drafts} / 8`, { exact: true })
+    .getByText(`Publications ${pubs} / 5 · Drafts ${drafts} / 1`, { exact: true })
     .waitFor();
 }
 
@@ -176,7 +186,7 @@ void test("history trigger distinguishes open and closed states in both themes a
         await panel(page).waitFor();
         assert.deepEqual(await appearance(), open);
         if (width < 1024) {
-          await select(page, 26);
+          await select(page, "Draft");
           assert.equal(await trigger.getAttribute("aria-expanded"), "false");
           assert.deepEqual(await appearance(), closed);
         }
@@ -215,10 +225,35 @@ for (const width of [1440, 390]) {
       const bounds = await page.getByRole("menu").boundingBox();
       assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
       await page.keyboard.press("Enter");
-      await page.getByRole("heading", { name: "v18", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "v22 (live) → v18", exact: true }).waitFor();
       await page.locator('mark[data-change="added"]').waitFor();
-      assert.equal(await page.getByRole("button", { name: "Compare", exact: true }).count(), 0);
+      const heading = page.getByRole("heading", { name: "v22 (live) → v18", exact: true });
+      const colors = (locator) =>
+        locator.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return [style.color, style.backgroundColor];
+        });
+      const before = await colors(heading.locator('[data-diff-side="before"]'));
+      const after = await colors(heading.locator('[data-diff-side="after"]'));
+      assert.notDeepEqual(before, after, "comparison endpoints have distinct treatments");
+      for (const [kind, tone] of [
+        ["removed", before],
+        ["added", after],
+      ]) {
+        const row = page.locator(`mark[data-change="${kind}"]`).first().locator("../..");
+        assert.deepEqual(await colors(row), tone, `${kind} rows match their endpoint`);
+      }
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Compare", exact: true })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
       if (width < 1024) assert.equal(await panel(page).isVisible(), false);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
       await page.getByRole("button", { name: "Read", exact: true }).click();
       assert.equal(await page.locator('mark[data-change="added"]').count(), 0);
       await (
@@ -248,7 +283,7 @@ for (const width of [1440, 390]) {
       await dialog.waitFor({ state: "hidden" });
       await trigger.and(page.locator(":focus")).waitFor();
       assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
-      await counts(page, 5, 4);
+      await counts(page, 5, 1);
       await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
       await page.getByRole("textbox", { name: "Title", exact: true }).fill("Unsaved title");
       const menu = await actions(page, 18);
@@ -274,7 +309,7 @@ void test("history examples target every open post and give English and French i
     await page.locator('[data-preview-ready="true"]').waitFor();
     const title = await page.getByRole("textbox", { name: "Title", exact: true }).inputValue();
     await loadExample(page);
-    await counts(page, 5, 4);
+    await counts(page, 5, 1);
     assert.equal(
       await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
       title,
@@ -282,7 +317,7 @@ void test("history examples target every open post and give English and French i
     const english = await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue();
     assert.match(english, /Good ideas start/);
     await page.getByRole("tab", { name: "Français", exact: true }).click();
-    await counts(page, 5, 4, "FR");
+    await counts(page, 5, 1, "FR");
     assert.match(
       await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
       /Les bonnes idées commencent/,
@@ -298,7 +333,7 @@ void test("history examples target every open post and give English and French i
     assert.equal(await page.getByRole("button", { name: "Compare draft", exact: true }).count(), 0);
     await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
     await page.getByRole("tab", { name: "English", exact: true }).click();
-    await counts(page, 5, 4);
+    await counts(page, 5, 1);
     assert.equal(
       await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
       english,
@@ -321,24 +356,24 @@ void test("concurrent correction targets the open post and preserves its unsaved
   await page.locator('[data-preview-ready="true"]').waitFor();
   await loadExample(page);
   const frenchHistory = page.getByRole("complementary", { name: "Historique · FR", exact: true });
-  await frenchHistory.getByText("Publications 5 / 5 · Brouillons 4 / 8", { exact: true }).waitFor();
-  await page.getByRole("textbox", { name: "Title", exact: true }).fill("Ma correction à conserver");
+  await frenchHistory.getByText("Publications 5 / 5 · Brouillons 1 / 1", { exact: true }).waitFor();
+  await page.getByRole("textbox", { name: "Titre", exact: true }).fill("Ma correction à conserver");
   await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click();
   await page
     .locator("form")
     .getByRole("alert")
-    .filter({ hasText: "This record changed" })
+    .filter({ hasText: "Cet article a changé" })
     .waitFor();
   assert.equal(
-    await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
+    await page.getByRole("textbox", { name: "Titre", exact: true }).inputValue(),
     "Ma correction à conserver",
   );
 });
 
 void test("inspection preserves the working draft; dirty work offers save, discard and cancel", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
+  await counts(page, 5, 1);
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Unsaved title");
   await panel(page)
     .getByRole("button", { name: /^v18\b/ })
@@ -372,60 +407,110 @@ void test("inspection preserves the working draft; dirty work offers save, disca
   );
 });
 
-void test("all reprise paths stay distinct, selection does not move them and continued saves keep their path", async (t) => {
-  const page = await preview(t);
-  await counts(page, 5, 4);
-  const paths = () => panel(page).locator("g[data-reprise-id]");
-  assert.equal(await paths().count(), 4);
-  const geometry = async () =>
-    paths().evaluateAll((groups) =>
-      Object.fromEntries(
-        groups.map((group) => [group.dataset.repriseId, group.lastElementChild.getAttribute("d")]),
-      ),
-    );
-  const initial = await geometry();
-  await select(page, 23);
-  assert.deepEqual(await geometry(), initial);
-  const active = panel(page).locator('g[data-active="true"]');
-  assert.equal(await active.locator("path").last().getAttribute("stroke-width"), "3");
-  assert.equal(await active.evaluate((node) => node === node.parentElement.lastElementChild), true);
-  await select(page, 22);
+async function resume(page, number) {
+  await select(page, number);
   await page.getByRole("button", { name: "Resume as draft", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Markdown", exact: true })
-    .fill("A third independent reprise from the live publication.");
-  await save(page);
-  await counts(page, 5, 5);
-  assert.equal(await paths().count(), 5);
-  const continued = await panel(page)
-    .locator('g[data-active="true"]')
-    .getAttribute("data-reprise-id");
-  await select(page, 27);
-  await page.getByRole("button", { name: "Edit this draft", exact: true }).click();
-  await page
-    .getByRole("textbox", { name: "Title", exact: true })
-    .fill("Continuing the same reprise");
-  await save(page);
-  await counts(page, 5, 6);
-  assert.equal(await paths().count(), 5);
+  const replacement = page.getByRole("dialog", { name: "Replace the current draft?", exact: true });
+  await replacement.getByRole("button", { name: "Replace draft", exact: true }).click();
+}
+
+void test("the single draft is replaced only after confirmation and successful save", async (t) => {
+  const page = await preview(t);
+  await counts(page, 5, 1);
+  assert.equal(await panel(page).locator("svg g[data-reprise-id]").count(), 0);
+  const originalDraftId = await panel(page)
+    .locator("li[data-history-id]")
+    .first()
+    .getAttribute("data-history-id");
+  const original = await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue();
+  await select(page, 18);
+  await page.getByRole("button", { name: "Resume as draft", exact: true }).click();
+  const replacement = page.getByRole("dialog", { name: "Replace the current draft?", exact: true });
+  await replacement.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
   assert.equal(
-    await panel(page).locator('g[data-active="true"]').getAttribute("data-reprise-id"),
-    continued,
+    await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
+    original,
   );
-  for (let index = 0; index < 3; index++) {
-    await page.getByRole("textbox", { name: "Title", exact: true }).fill(`Continuing ${index}`);
-    await save(page);
-  }
-  await panel(page)
-    .getByRole("button", { name: /^v31\b/ })
+  await resume(page, 18);
+  const resumed = await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue();
+  assert.notEqual(resumed, original);
+  await page.getByLabel("Simulate action failures", { exact: true }).check();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await replacement.getByRole("button", { name: "Replace draft", exact: true }).click();
+  await page
+    .locator("form")
+    .getByRole("alert")
+    .filter({ hasText: "Storage is unavailable" })
     .waitFor();
-  await counts(page, 5, 8);
   assert.equal(
-    await panel(page)
-      .getByRole("button", { name: /^v23\b/ })
-      .count(),
+    await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
+    resumed,
+  );
+  await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
+  await counts(page, 5, 1);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await replacement.getByRole("button", { name: "Replace draft", exact: true }).click();
+  await actionToast(page, "Draft saved.");
+  await counts(page, 5, 1);
+  assert.equal(await panel(page).locator(`li[data-history-id="${originalDraftId}"]`).count(), 0);
+  await select(page, "Draft");
+  await page.getByRole("button", { name: "Edit this draft", exact: true }).click();
+  await page.getByRole("textbox", { name: "Title", exact: true }).fill("Continue the same draft");
+  await save(page);
+  assert.equal(await replacement.count(), 0);
+  await counts(page, 5, 1);
+  await panel(page).getByRole("button", { name: "Actions: Draft", exact: true }).waitFor();
+});
+
+void test("resuming without a saved draft needs no replacement warning", async (t) => {
+  const page = await preview(t);
+  await (
+    await actions(page, "Draft")
+  )
+    .getByRole("menuitem", { name: "Delete draft", exact: true })
+    .click();
+  const deletion = page.getByRole("dialog", { name: "Delete draft", exact: true });
+  await deletion.getByRole("button", { name: "Delete permanently", exact: true }).click();
+  await deletion.waitFor({ state: "hidden" });
+  await counts(page, 5, 0);
+  await select(page, 18);
+  await page.getByRole("button", { name: "Resume as draft", exact: true }).click();
+  await page.getByRole("textbox", { name: "Markdown", exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole("dialog", { name: "Replace the current draft?", exact: true }).count(),
     0,
   );
+  await save(page);
+  await counts(page, 5, 1);
+  await panel(page)
+    .getByRole("button", { name: /^v22\b/ })
+    .getByText("Live", { exact: true })
+    .waitFor();
+});
+
+void test("refreshing after a conflicting historical replacement requires new consent", async (t) => {
+  const page = await preview(t);
+  await resume(page, 18);
+  const markdown = page.getByRole("textbox", { name: "Markdown", exact: true });
+  const resumed = await markdown.inputValue();
+  await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page
+    .locator("form")
+    .getByRole("alert")
+    .filter({ hasText: "This record changed" })
+    .waitFor();
+  await page.getByRole("button", { name: "Refresh article", exact: true }).click();
+  assert.equal(await markdown.inputValue(), resumed);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  const replacement = page.getByRole("dialog", { name: "Replace the current draft?", exact: true });
+  await replacement.getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal(await markdown.inputValue(), resumed);
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await replacement.getByRole("button", { name: "Replace draft", exact: true }).click();
+  await actionToast(page, "Draft saved.");
+  await counts(page, 5, 1);
 });
 
 void test("unified diff marks changed words, keeps insertions single and renders markup as text", async (t) => {
@@ -449,44 +534,261 @@ void test("unified diff marks changed words, keeps insertions single and renders
   assert.match(await page.locator('mark[data-change="added"]').textContent(), /<script>/);
 });
 
-void test("historical publication lists exact deletions, cancel preserves them and success isolates French", async (t) => {
+void test("comparison identifies both sides, includes changed fields and draft saves do not skip publications", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
-  await select(page, 18);
-  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
-  await dialog.waitFor();
-  assert.deepEqual(await dialog.locator("li span:first-child").allTextContents(), [
-    "v26",
-    "v25",
-    "v24",
-    "v23",
-    "v22",
-    "v21",
-    "v20",
-    "v19",
-  ]);
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  await counts(page, 5, 4);
-  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
-  await dialog.getByRole("button", { name: "Publish", exact: true }).click();
+  const title = page.getByRole("textbox", { name: "Title", exact: true });
+  const slug = page.getByRole("textbox", { name: "Slug", exact: true });
+  const summary = page.getByRole("textbox", { name: "Summary", exact: true });
+  const beforeTitle = await title.inputValue();
+  const beforeSlug = await slug.inputValue();
+  const beforeSummary = await summary.inputValue();
+  for (let index = 0; index < 3; index++) {
+    await title.fill(`Revised title ${index}`);
+    await slug.fill("revised-history-comparison");
+    await summary.fill("A revised summary.");
+    await save(page);
+    await counts(page, 5, 1);
+    assert.equal(
+      await panel(page)
+        .getByRole("button", { name: /^v23\b/ })
+        .count(),
+      0,
+    );
+  }
+  await page.getByRole("button", { name: "Compare draft", exact: true }).click();
+  await page.getByRole("heading", { name: "v22 (live) → Draft", exact: true }).waitFor();
+  const reader = page.getByRole("region", { name: "v22 (live) → Draft", exact: true });
+  await reader
+    .getByRole("region", { name: "Markdown", exact: true })
+    .getByRole("heading", { name: "Markdown", level: 3, exact: true })
+    .waitFor();
+  for (const [label, before, after] of [
+    ["Title", beforeTitle, "Revised title 2"],
+    ["Slug", beforeSlug, "revised-history-comparison"],
+    ["Summary", beforeSummary, "A revised summary."],
+  ]) {
+    const field = reader
+      .locator("dl > div")
+      .filter({ has: page.locator("dt").getByText(label, { exact: true }) });
+    assert.equal(await field.locator("del").textContent(), before);
+    assert.equal(await field.locator("ins").textContent(), after);
+    assert.equal(await field.locator("dt").textContent(), label);
+    for (const side of ["before", "after"]) {
+      const colors = (locator) =>
+        locator.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return [style.color, style.backgroundColor];
+        });
+      const endpoint = reader.locator(`h2 [data-diff-side="${side}"]`);
+      const value = field.locator(`[data-diff-side="${side}"]`);
+      assert.deepEqual(await colors(value), await colors(endpoint));
+      assert.ok((await value.textContent()).startsWith(side === "before" ? "−" : "+"));
+    }
+  }
+  const read = page.getByRole("button", { name: "Read", exact: true });
+  const compare = page.getByRole("button", { name: "Compare", exact: true });
+  await read.click();
+  await page.getByRole("heading", { name: "Draft", exact: true }).waitFor();
+  assert.equal(await read.getAttribute("aria-pressed"), "true");
+  await compare.click();
+  await page.getByRole("heading", { name: "v22 (live) → Draft", exact: true }).waitFor();
+  assert.equal(await compare.getAttribute("aria-pressed"), "true");
+  await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published");
-  await counts(page, 1, 0);
+  await counts(page, 5, 0);
   await panel(page)
-    .getByRole("button", { name: /^v18\b/ })
+    .getByRole("button", { name: /^v23\b/ })
     .getByText("Live", { exact: true })
     .waitFor();
+});
+
+for (const ui of [
+  {
+    locale: "fr",
+    content: "FR",
+    title: "Titre",
+    summary: "Résumé",
+    changed: "Modifications non publiées",
+    draft: "Brouillon",
+    history: "Historique",
+    actions: "Actions",
+    compareDraft: "Comparer le brouillon",
+    read: "Lire",
+    compare: "Comparer",
+    live: "en ligne",
+    back: "Retour aux articles",
+    save: "Enregistrer le brouillon",
+    saved: "Brouillon enregistré.",
+    returnToDraft: "Revenir au brouillon",
+    resume: "Reprendre comme brouillon",
+    replaceTitle: "Remplacer le brouillon courant ?",
+    cancel: "Annuler",
+    upload: "Importer une image — Miniature",
+    crop: "Recadrer l’image",
+    useImage: "Utiliser l’image",
+    error: "Une erreur est survenue. Veuillez réessayer.",
+    publicTitle: "Notre blog",
+  },
+  {
+    locale: "de",
+    content: "EN",
+    title: "Titel",
+    summary: "Zusammenfassung",
+    changed: "Unveröffentlichte Änderungen",
+    draft: "Entwurf",
+    history: "Verlauf",
+    actions: "Aktionen",
+    compareDraft: "Entwurf vergleichen",
+    read: "Lesen",
+    compare: "Vergleichen",
+    live: "online",
+    back: "Zurück zu den Beiträgen",
+    save: "Entwurf speichern",
+    saved: "Entwurf gespeichert.",
+    returnToDraft: "Zurück zum Entwurf",
+    resume: "Als Entwurf übernehmen",
+    replaceTitle: "Aktuellen Entwurf ersetzen?",
+    cancel: "Abbrechen",
+    upload: "Bild hochladen — Vorschaubild",
+    crop: "Bild zuschneiden",
+    useImage: "Bild verwenden",
+    error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    publicTitle: "Unser Blog",
+  },
+  {
+    locale: "it",
+    content: "EN",
+    title: "Titolo",
+    summary: "Riepilogo",
+    changed: "Modifiche non pubblicate",
+    draft: "Bozza",
+    history: "Cronologia",
+    actions: "Azioni",
+    compareDraft: "Confronta bozza",
+    read: "Leggi",
+    compare: "Confronta",
+    live: "online",
+    back: "Torna agli articoli",
+    save: "Salva bozza",
+    saved: "Bozza salvata.",
+    returnToDraft: "Torna alla bozza",
+    resume: "Riprendi come bozza",
+    replaceTitle: "Sostituire la bozza attuale?",
+    cancel: "Annulla",
+    upload: "Carica immagine — Miniatura",
+    crop: "Ritaglia immagine",
+    useImage: "Usa immagine",
+    error: "Si è verificato un errore. Riprova.",
+    publicTitle: "Il nostro blog",
+  },
+]) {
+  void test(`Blogs fields, actions, dialogs and routes follow the ${ui.locale} interface`, async (t) => {
+    const page = await preview(t, false);
+    await page.goto(`${base}/${ui.locale}/admin/blogs/${article}`);
+    await loadExample(page);
+    const history = page.getByRole("complementary", {
+      name: `${ui.history} · ${ui.content}`,
+      exact: true,
+    });
+    await history
+      .getByRole("button", { name: `${ui.actions}: ${ui.draft}`, exact: true })
+      .waitFor();
+    await page.getByRole("textbox", { name: ui.summary, exact: true }).waitFor();
+    await page.getByText(ui.changed, { exact: true }).waitFor();
+    await page.getByRole("textbox", { name: ui.title, exact: true }).fill(`Localized ${ui.locale}`);
+    await page.getByRole("button", { name: ui.save, exact: true }).click();
+    await actionToast(page, ui.saved);
+    await page.getByRole("button", { name: ui.compareDraft, exact: true }).click();
+    const heading = `v22 (${ui.live}) → ${ui.draft}`;
+    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+    await page
+      .getByRole("region", { name: "Markdown", exact: true })
+      .getByRole("heading", { name: "Markdown", level: 3, exact: true })
+      .waitFor();
+    await page.getByRole("button", { name: ui.read, exact: true }).click();
+    await page.getByRole("heading", { name: ui.draft, exact: true }).waitFor();
+    await page.getByRole("button", { name: ui.compare, exact: true }).click();
+    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+    await history.getByRole("button", { name: /^v18\b/ }).click();
+    await page.getByRole("button", { name: ui.resume, exact: true }).click();
+    const replacement = page.getByRole("dialog", { name: ui.replaceTitle, exact: true });
+    await replacement.getByRole("button", { name: ui.cancel, exact: true }).click();
+    await page.getByRole("button", { name: ui.returnToDraft, exact: true }).click();
+    await page.getByLabel(ui.upload, { exact: true }).setInputFiles({
+      name: "localized.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6f4sAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+    const crop = page.getByRole("dialog", { name: ui.crop, exact: true });
+    await crop.getByRole("button", { name: ui.useImage, exact: true }).waitFor();
+    await crop.getByRole("button", { name: ui.cancel, exact: true }).click();
+    await page.getByRole("link", { name: `← ${ui.back}`, exact: true }).click();
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    assert.equal(new URL(page.url()).pathname, `/${ui.locale}/admin/blogs`);
+    await page
+      .getByRole("link", {
+        name: new RegExp(
+          `^${ui.locale === "fr" ? "Modifier" : ui.locale === "de" ? "Bearbeiten" : "Modifica"}:`,
+        ),
+      })
+      .first()
+      .waitFor();
+    await page.getByRole("link", { name: "Public blog", exact: true }).click();
+    await page.getByRole("heading", { name: ui.publicTitle, exact: true }).waitFor();
+    await page.locator('[data-preview-ready="true"]').waitFor();
+    const settings = page.getByRole("button", { name: "Settings", exact: true });
+    if ((await settings.getAttribute("aria-expanded")) === "false") await settings.click();
+    await page.getByLabel("Directory state", { exact: true }).selectOption("error");
+    await page.getByRole("alert").filter({ hasText: ui.error }).waitFor();
+  });
+}
+
+void test("publishing an unedited historical draft prunes only the oldest publication and isolates French", async (t) => {
+  const page = await preview(t);
+  await counts(page, 5, 1);
+  await select(page, 18);
+  assert.equal(await page.getByRole("button", { name: "Publish draft", exact: true }).count(), 0);
+  await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
+  await resume(page, 18);
+  await save(page);
+  await counts(page, 5, 1);
+  await panel(page)
+    .getByRole("button", { name: /^v22\b/ })
+    .getByText("Live", { exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await actionToast(page, "This language is now published");
+  assert.equal(
+    await page.getByRole("dialog", { name: "Review publication", exact: true }).count(),
+    0,
+  );
+  await counts(page, 5, 0);
+  await panel(page)
+    .getByRole("button", { name: /^v23\b/ })
+    .getByText("Live", { exact: true })
+    .waitFor();
+  for (const number of [19, 20, 21, 22])
+    await panel(page)
+      .getByRole("button", {
+        name: `Actions: ${typeof number === "number" ? `v${number}` : number}`,
+        exact: true,
+      })
+      .waitFor();
   await page.getByRole("tab", { name: "Français", exact: true }).click();
-  await counts(page, 5, 4, "FR");
+  await counts(page, 5, 1, "FR");
   assert.equal(
     await page.getByRole("textbox", { name: "Title", exact: true }).inputValue(),
     "Faire de la place aux idées",
   );
   await page.getByRole("tab", { name: "English", exact: true }).click();
   await loadExample(page);
-  await counts(page, 5, 4);
+  await counts(page, 5, 1);
   await page.getByRole("tab", { name: "Français", exact: true }).click();
-  await counts(page, 5, 4, "FR");
+  await counts(page, 5, 1, "FR");
 });
 
 void test("missing illustrations require explicit omission, failures remain retryable and public rendering omits them", async (t) => {
@@ -518,15 +820,12 @@ void test("missing illustrations require explicit omission, failures remain retr
 
 void test("staff inspect history but current author and admin retain management", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
+  await counts(page, 5, 1);
   await page.getByLabel("Administrator", { exact: true }).uncheck();
   await page.getByLabel("Editor", { exact: true }).selectOption("alex");
   await select(page, 18);
   assert.equal(await page.getByRole("button", { name: "Resume as draft", exact: true }).count(), 0);
-  assert.equal(
-    await page.getByRole("button", { name: "Publish this version", exact: true }).count(),
-    0,
-  );
+  assert.equal(await page.getByRole("button", { name: "Publish draft", exact: true }).count(), 0);
   const staffMenu = await actions(page, 18);
   assert.equal(
     await staffMenu.getByRole("menuitem", { name: "Delete version", exact: true }).count(),
@@ -537,7 +836,7 @@ void test("staff inspect history but current author and admin retain management"
   await page.getByRole("button", { name: "Return to working draft", exact: true }).click();
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Colleague correction");
   await save(page);
-  await counts(page, 5, 5);
+  await counts(page, 5, 1);
   await page.getByLabel("Editor", { exact: true }).selectOption("jordan");
   const live = (await actions(page, 22)).getByRole("menuitem", {
     name: "Delete version",
@@ -546,21 +845,20 @@ void test("staff inspect history but current author and admin retain management"
   assert.equal(await live.isDisabled(), true);
   await page.keyboard.press("Escape");
   await (
-    await actions(page, 27)
+    await actions(page, "Draft")
   )
-    .getByRole("menuitem", { name: "Delete version", exact: true })
+    .getByRole("menuitem", { name: "Delete draft", exact: true })
     .click();
-  const dialog = page.getByRole("dialog", { name: "Delete version v27", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Delete draft", exact: true });
   await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
-  await counts(page, 5, 4);
+  await counts(page, 5, 0);
 });
 
-void test("table badges also confirm a saved historical return", async (t) => {
+void test("table badges publish a saved historical draft with automatic retention", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
-  await select(page, 18);
-  await page.getByRole("button", { name: "Resume as draft", exact: true }).click();
+  await counts(page, 5, 1);
+  await resume(page, 18);
   await page
     .getByRole("textbox", { name: "Markdown", exact: true })
     .fill("A historical correction.");
@@ -573,13 +871,6 @@ void test("table badges also confirm a saved historical return", async (t) => {
   await badge.click();
   await actionToast(page, "This language is no longer public");
   await badge.click();
-  const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
-  await dialog.waitFor();
-  assert.equal(await dialog.locator("li").count(), 8);
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  assert.equal(await badge.getAttribute("aria-pressed"), "false");
-  await badge.click();
-  await dialog.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published");
   assert.equal(await badge.getAttribute("aria-pressed"), "true");
 });
@@ -603,11 +894,13 @@ void test("ordinary clients keep editing and comparison names the absence of a l
   );
 });
 
-void test("a stale removal plan refreshes and requires confirmation again", async (t) => {
+void test("a stale missing-image plan refreshes and requires confirmation again", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
-  await select(page, 18);
-  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  await counts(page, 5, 1);
+  await resume(page, 18);
+  await save(page);
+  await page.getByLabel("Simulate missing illustrations", { exact: true }).check();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Review publication", exact: true });
   await dialog.waitFor();
   // The fixture acts as a second writer while the current user's dialog stays open.
@@ -618,28 +911,30 @@ void test("a stale removal plan refreshes and requires confirmation again", asyn
       includeHidden: true,
     })
     .dispatchEvent("click");
+  await dialog.getByLabel("Publish without the missing illustrations", { exact: true }).check();
   await dialog.getByRole("button", { name: "Publish", exact: true }).click();
   await dialog.getByRole("alert").filter({ hasText: "This record changed" }).waitFor();
-  assert.equal(await dialog.locator("li").count(), 8);
+  assert.equal(await dialog.locator("li").count(), 1);
   await dialog.getByRole("button", { name: "Refresh confirmation", exact: true }).click();
   await dialog
     .getByText("The confirmation now uses the latest article state. Review it before publishing.", {
       exact: true,
     })
     .waitFor();
-  assert.equal(await dialog.locator("li").count(), 9);
+  assert.equal(await dialog.locator("li").count(), 1);
+  await dialog.getByLabel("Publish without the missing illustrations", { exact: true }).check();
   await dialog.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published");
-  await counts(page, 1, 0);
+  await counts(page, 5, 0);
 });
 
 void test("a pruned selection recovers to the actual latest draft without losing unsaved input", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
-  await select(page, 23);
+  await counts(page, 5, 1);
+  await select(page, "Draft");
   for (let index = 0; index < 9; index++)
     await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
-  await page.getByRole("button", { name: "Publish this version", exact: true }).click();
+  await page.getByRole("button", { name: "Publish draft", exact: true }).click();
   await page.getByRole("alert").filter({ hasText: "This record changed" }).waitFor();
   await page.getByRole("button", { name: "Refresh article", exact: true }).click();
   await page
@@ -653,7 +948,7 @@ void test("a pruned selection recovers to the actual latest draft without losing
     await page.getByRole("textbox", { name: "Summary", exact: true }).inputValue(),
     /^Concurrent correction /,
   );
-  await counts(page, 5, 8);
+  await counts(page, 5, 1);
   await page.getByRole("textbox", { name: "Title", exact: true }).fill("Retain this unsaved title");
   await page.getByRole("button", { name: "Simulate concurrent correction", exact: true }).click();
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
@@ -671,14 +966,14 @@ void test("a pruned selection recovers to the actual latest draft without losing
 
 void test("history keeps loaded rows during read failure and a new article explains its empty history", async (t) => {
   const page = await preview(t);
-  await counts(page, 5, 4);
+  await counts(page, 5, 1);
   await page.getByLabel("Simulate action failures", { exact: true }).check();
   await panel(page).getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
-  assert.equal(await panel(page).locator("li[data-history-id]").count(), 9);
+  assert.equal(await panel(page).locator("li[data-history-id]").count(), 6);
   await panel(page).getByRole("button", { name: "Retry", exact: true }).click();
   await panel(page).getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
-  await counts(page, 5, 4);
+  await counts(page, 5, 1);
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
   await page.getByRole("link", { name: "New post", exact: true }).click();
   await page.getByRole("textbox", { name: "Title *", exact: true }).fill("Empty history example");

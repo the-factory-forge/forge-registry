@@ -155,7 +155,7 @@ export function publishArticle(
 }
 
 export const BLOG_PUBLICATION_LIMIT = 5;
-export const BLOG_DRAFT_LIMIT = 8;
+export const BLOG_DRAFT_LIMIT = 1;
 
 export function sameBlogInputs(
   left: Pick<BlogHistoryVersion, "content" | "shared">,
@@ -207,18 +207,10 @@ export function saveBlogDraft(
   if (input.origin) {
     assertBlog(source && source.id === input.origin.versionId, "NOT_FOUND");
     assertBlog(source.locale === input.locale, "NOT_FOUND");
-    if (source.state === "publication") {
-      validId(input.origin.repriseId);
-      assertBlog(
-        !headers.some((header) => header.repriseId === input.origin!.repriseId),
-        "CONFLICT",
-      );
-    } else {
-      assertBlog(!input.origin.repriseId || input.origin.repriseId === source.repriseId);
-    }
+    if (input.origin.repriseId !== undefined) validId(input.origin.repriseId);
   }
   if (input.origin && source && !input.shared.author) shared.author = source.shared.author;
-  const base = source ?? {
+  const base = {
     content: previous.translations[input.locale]?.draft ?? {
       ...emptyContent,
       revisionId: null,
@@ -280,30 +272,17 @@ export function saveBlogDraft(
 
 export function blogPublicationDiscard(target: BlogHistoryHeader, headers: BlogHistoryHeader[]) {
   headers = headers.filter((header) => header.locale === target.locale);
-  const sourceOrder =
-    target.state === "publication" ? target.publicationOrder : target.sourcePublicationOrder;
-  const later = headers.filter(
-    (header) =>
-      header.state === "publication" &&
-      sourceOrder !== null &&
-      header.publicationOrder! > sourceOrder &&
-      header.id !== target.id,
-  );
   const publications = headers
-    .filter(
-      (header) =>
-        header.state === "publication" && !later.includes(header) && header.id !== target.id,
-    )
+    .filter((header) => header.state === "publication" && header.id !== target.id)
     .sort((left, right) => right.publicationOrder! - left.publicationOrder!);
   const removed = new Set([
-    ...later.map((header) => header.id),
     ...publications.slice(BLOG_PUBLICATION_LIMIT - 1).map((header) => header.id),
     ...headers
       .filter((header) => header.state === "draft" && header.id !== target.id)
       .map((header) => header.id),
   ]);
   return {
-    historicalReturn: later.length > 0,
+    historicalReturn: false,
     discarded: headers
       .filter((header) => removed.has(header.id))
       .sort((left, right) => right.number - left.number),
@@ -322,6 +301,7 @@ export function publishBlogVersion(
 ) {
   const translation = article.translations[target.locale];
   assertBlog(translation && translation.history, "NOT_FOUND");
+  assertBlog(target.id === translation.history.currentId, "INVALID");
   const plan = blogPublicationDiscard(target, headers);
   const prepared = {
     ...article,
@@ -345,7 +325,7 @@ export function publishBlogVersion(
     publication.shared.thumbnailId = null;
   if (publication.shared.bannerId && omitted.has(publication.shared.bannerId))
     publication.shared.bannerId = null;
-  const publicationOrder = translation.history.lastPublicationOrder + 1;
+  const publicationOrder = target.publicationOrder ?? translation.history.lastPublicationOrder + 1;
   current.history = {
     ...translation.history,
     currentId: target.id,

@@ -756,10 +756,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
         assertBlog(targetId);
         const target = await historyVersion(tx, input.id, input.locale, targetId);
         const headers = await historyHeaders(tx, input.id, input.locale);
-        assertBlog(
-          !blogPublicationDiscard(target, headers).historicalReturn,
-          "HISTORY_CONFIRMATION_REQUIRED",
-        );
         const missing = await inspectHistoryImages(tx, input.id, target);
         assertBlog(!missing.length, "NOT_FOUND");
         return commitPublication(tx, article, target, headers, editor, now, []);
@@ -824,6 +820,7 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
     locale(input.locale);
     const article = await current(tx, input);
     const target = await historyVersion(tx, input.id, input.locale, input.versionId);
+    assertBlog(target.id === article.translations[input.locale]?.history?.currentId, "INVALID");
     assertBlog(target.shared.author && article.shared.author, "AUTHOR_REQUIRED");
     validateContent(target.content, maxMarkdown, true);
     const headers = await historyHeaders(tx, input.id, input.locale);

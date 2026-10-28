@@ -40,7 +40,7 @@ import {
   BlogHistoryReader,
   useHistoryPublication,
 } from "@/components/plugins/blogs/history";
-import { blogsLabels, type BlogsLabels } from "@/components/plugins/blogs/labels";
+import { blogHistoryLabel, blogsLabels, type BlogsLabels } from "@/components/plugins/blogs/labels";
 import { BlogMarkdown } from "@/components/plugins/blogs/public";
 import type {
   BlogArticle,
@@ -195,15 +195,21 @@ function BlogLeaveDialog({
   onCancel,
   onDiscard,
   onSave,
+  title,
+  description,
+  discardLabel,
 }: {
   open: boolean;
   pending: boolean;
   labels: typeof blogsLabels;
   feedback?: { message: string; error?: boolean };
-  saveLabel: string;
+  saveLabel?: string;
+  title?: string;
+  description?: string;
+  discardLabel?: string;
   onCancel: () => void;
   onDiscard: () => void;
-  onSave: () => void;
+  onSave?: () => void;
 }) {
   return (
     <Dialog.Root
@@ -225,7 +231,7 @@ function BlogLeaveDialog({
             className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
           >
             <Dialog.Title className="min-w-0 flex-1 font-semibold break-words">
-              {labels.unsavedTitle}
+              {title ?? labels.unsavedTitle}
             </Dialog.Title>
             <IconTooltip label={labels.close ?? labels.cancel}>
               <Dialog.Close
@@ -239,7 +245,7 @@ function BlogLeaveDialog({
             </IconTooltip>
           </div>
           <Dialog.Description className="text-sm text-muted-foreground">
-            {labels.unsavedDescription}
+            {description ?? labels.unsavedDescription}
           </Dialog.Description>
           <Feedback {...feedback} />
           <div
@@ -255,11 +261,13 @@ function BlogLeaveDialog({
               disabled={pending}
               onClick={onDiscard}
             >
-              {labels.discardChanges}
+              {discardLabel ?? labels.discardChanges}
             </button>
-            <button type="button" className={primaryClass} disabled={pending} onClick={onSave}>
-              {pending ? labels.pending : saveLabel}
-            </button>
+            {onSave && (
+              <button type="button" className={primaryClass} disabled={pending} onClick={onSave}>
+                {pending ? labels.pending : saveLabel}
+              </button>
+            )}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
@@ -590,6 +598,16 @@ function EditorForm({
     <>
       {publication.dialog}
       <BlogLeaveDialog
+        open={draft.replacement.requested}
+        pending={pending}
+        labels={labels}
+        title={labels.replaceDraftTitle}
+        description={labels.replaceDraftDescription}
+        discardLabel={labels.replaceDraft}
+        onCancel={draft.replacement.cancel}
+        onDiscard={draft.replacement.confirm}
+      />
+      <BlogLeaveDialog
         open={draft.leave.requested}
         pending={pending}
         labels={labels}
@@ -707,7 +725,7 @@ function EditorForm({
                   mode={historyMode}
                   onModeChange={history.changeMode}
                   publication={base.translations[locale]?.published}
-                  liveLabel={liveHeader ? labels.versionLabel(liveHeader.number) : labels.live}
+                  liveLabel={liveHeader ? blogHistoryLabel(liveHeader, labels) : labels.live}
                   labels={labels}
                   categories={categories}
                   assetUrl={assetUrl}
@@ -718,6 +736,8 @@ function EditorForm({
                   onResume={selected && capabilities.publish ? () => resume(selected) : undefined}
                   onPublish={
                     selected &&
+                    selected.state === "draft" &&
+                    selected.id === base.translations[locale]?.history?.currentId &&
                     capabilities.publish &&
                     selected.id !== base.translations[locale]?.history?.publishedId
                       ? () =>
@@ -739,8 +759,9 @@ function EditorForm({
                 {labels.unsavedDraft} ·{" "}
                 {labels.resumedFrom(
                   headers.find((header) => header.id === origin.versionId)
-                    ? labels.versionLabel(
-                        headers.find((header) => header.id === origin.versionId)!.number,
+                    ? blogHistoryLabel(
+                        headers.find((header) => header.id === origin.versionId)!,
+                        labels,
                       )
                     : labels.sourceUnavailable,
                 )}
@@ -748,7 +769,9 @@ function EditorForm({
             )}
             {currentHeader && !dirty && (
               <p className="text-sm text-muted-foreground">
-                {labels.currentDraft} · {labels.versionLabel(currentHeader.number)}
+                {currentHeader.state === "draft"
+                  ? labels.draft
+                  : blogHistoryLabel(currentHeader, labels)}
               </p>
             )}
             {crop && !readOnly && capabilities.upload && (
@@ -1311,6 +1334,8 @@ function useBlogDraft({
 }) {
   const action = useBlogAction(labels);
   const [base, setBase] = useState(article);
+  const baseRef = useRef(base);
+  baseRef.current = base;
   const [content, setContent] = useState<BlogContent>(() => ({
     ...emptyContent,
     ...article.translations[locale]?.draft,
@@ -1320,6 +1345,12 @@ function useBlogDraft({
   );
   const [dirty, setDirty] = useState(false);
   const [origin, setOrigin] = useState<BlogHistoryOrigin>();
+  const replacementConsent = useRef<{ version: number; scope: typeof action.scope } | null>(null);
+  const [replacement, setReplacement] = useState<{
+    version: number;
+    scope: typeof action.scope;
+    next: () => void;
+  } | null>(null);
   const [leave, setLeave] = useState<(() => void) | null>(null);
   const [historyResult, setHistoryResult] = useState<{
     client?: BlogsClient;
@@ -1457,6 +1488,9 @@ function useBlogDraft({
     setCompareWorking(false);
   }
   function accept(result: BlogArticle) {
+    baseRef.current = result;
+    replacementConsent.current = null;
+    setReplacement(null);
     setOrigin(undefined);
     returnToDraft();
     setBase(result);
@@ -1465,8 +1499,19 @@ function useBlogDraft({
     setDirty(false);
     onSaved?.(result);
   }
+  function requestReplacement(next: () => void) {
+    setReplacement({ version: baseRef.current.version, scope: action.scope, next });
+  }
   async function save(continueNavigation = false) {
     if (pending) return false;
+    if (
+      origin &&
+      (replacementConsent.current?.version !== base.version ||
+        replacementConsent.current.scope !== action.scope)
+    ) {
+      requestReplacement(() => void save(continueNavigation));
+      return false;
+    }
     const next = continueNavigation ? (blockedNavigation?.proceed ?? leave) : null;
     setOptimisticStatus({
       scope: action.scope,
@@ -1567,6 +1612,23 @@ function useBlogDraft({
         onUploaded,
       );
     },
+    replacement: {
+      requested:
+        !!replacement && replacement.scope === action.scope && replacement.version === base.version,
+      cancel: () => setReplacement(null),
+      confirm: () => {
+        if (
+          pending ||
+          !replacement ||
+          replacement.scope !== action.scope ||
+          replacement.version !== base.version
+        )
+          return;
+        replacementConsent.current = { version: base.version, scope: action.scope };
+        setReplacement(null);
+        replacement.next();
+      },
+    },
     leave: {
       requested: !!leave || !!blockedNavigation,
       cancel: () => {
@@ -1617,16 +1679,30 @@ function useBlogDraft({
       },
       resume: (version: BlogHistoryVersion, onEntered: () => void) => {
         navigationRef.current(() => {
-          setContent({ ...version.content });
-          setShared(structuredClone(version.shared));
-          setOrigin(
-            version.state === "publication"
-              ? { versionId: version.id, repriseId: crypto.randomUUID() }
-              : { versionId: version.id },
+          if (version.state === "draft") {
+            returnToDraft();
+            onEntered();
+            return;
+          }
+          const apply = () => {
+            setContent({ ...version.content });
+            setShared(structuredClone(version.shared));
+            setOrigin({ versionId: version.id });
+            replacementConsent.current = { version: baseRef.current.version, scope: action.scope };
+            returnToDraft();
+            setDirty(true);
+            onEntered();
+          };
+          const translation = baseRef.current.translations[locale];
+          const current = historyResult.headers.find(
+            (header) => header.id === translation?.history?.currentId,
           );
-          returnToDraft();
-          setDirty(true);
-          onEntered();
+          const hasDraft = current
+            ? current.state === "draft"
+            : !!translation?.history?.currentId &&
+              translation.history.currentId !== translation.history.publishedId;
+          if (hasDraft) requestReplacement(apply);
+          else apply();
         });
       },
       accept,

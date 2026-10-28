@@ -128,8 +128,10 @@ including its live publication, with chronological history and the existing deta
 
 An explicit save of changed publication inputs SHALL create one saved draft
 version that replaces the previous saved draft. Unchanged saves and publishing a saved state SHALL NOT create duplicate
-content versions. Visible version numbers SHALL be stable and increase within
-the article language; deletion or pruning SHALL NOT reuse numbers. Unsaved edits
+content versions. Drafts SHALL use their translated draft label without a visible
+version number. Only publishing a new draft SHALL allocate the next visible
+publication number, using the existing publication counter. Visible publication
+numbers SHALL be stable and increase within the article language; deletion or pruning SHALL NOT reuse numbers. Unsaved edits
 SHALL remain distinguishable from saved versions.
 
 #### Scenario: Saving and publishing one edit
@@ -137,14 +139,15 @@ SHALL remain distinguishable from saved versions.
 - **WHEN** an editor saves changed text, author or other captured inputs
 - **THEN** one new saved version is recorded
 - **AND** repeating an unchanged save or retrying the same request creates no additional version
-- **AND** publishing that state preserves its version identity
+- **AND** publishing that state preserves its snapshot identity and assigns the next publication number
 - **AND** changing only an account's current name does not create a content version
 
 #### Scenario: Saving after a historical return
 
-- **WHEN** the largest allocated number was v40 and an earlier publication is resumed or a retained state is removed
-- **THEN** the next changed save receives a number greater than 40
-- **AND** optimistic concurrency versions remain independent of visible history numbers
+- **WHEN** v40 was the latest allocated publication and an earlier publication is resumed or a retained state is removed
+- **THEN** subsequent changed saves remain labeled Draft and the next new publication is v41
+- **AND** deleting a draft or republishing an unchanged existing publication does not consume or reset publication numbers
+- **AND** optimistic concurrency versions and internal snapshot allocations remain independent of visible publication numbers
 
 #### Scenario: Saving resumed content without another edit
 
@@ -180,7 +183,7 @@ author reassignment SHALL retain their existing policy.
 
 ### Requirement: Blog history inspection and comparison
 
-The editor SHALL offer a right-side history panel with version numbers, authors,
+The editor SHALL offer a right-side history panel with publication numbers, a translated unnumbered draft, authors,
 times, states and separate publication/draft counts in one chronological list
 without reprise lanes. Selection SHALL show a
 read-only state. A unified diff against the live language publication SHALL show
@@ -197,6 +200,15 @@ comparison empty state.
 - **AND** changed captured fields are distinguishable without relying only on color
 - **AND** Markdown and diff text cannot execute supplied markup or scripts
 
+#### Scenario: Switching reading and comparison
+
+- **WHEN** staff inspect a saved state or compare their current draft
+- **THEN** Read and Compare are both available as explicit selected modes
+- **AND** comparison names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
+- **AND** the reference endpoint uses the same red semantic treatment and minus marker as removed values, while the selected endpoint uses the green treatment and plus marker of added values
+- **AND** switching to Read and back to Compare preserves the selection and working content
+- **AND** title, slug, summary, author, categories and image differences remain included, with an explanation that unchanged fields are hidden
+
 #### Scenario: Inspecting on a narrow screen
 
 - **WHEN** a user opens history on mobile or uses the keyboard in either theme
@@ -210,6 +222,8 @@ comparison empty state.
 - **THEN** the reference remains the live publication in the selected language
 - **AND** the existing paragraph/word diff, whitespace handling and bounded fallback remain available
 - **AND** comparison covers title, slug, summary, signature, thumbnail, banner, their alternative text, categories and Markdown
+- **AND** changed metadata uses separate removed/added rows with the same semantic colors as Markdown changes, minus/plus markers and accessible removed/added descriptions
+- **AND** each displayed field and the Markdown block has a visible label identifying what is compared, with the Markdown heading also naming its accessible section
 - **AND** before/after images, loading and retry feedback, read previews and return to draft remain available
 - **AND** comparison does not overwrite or save the working draft
 
@@ -272,9 +286,9 @@ a content version. Languages SHALL retain independent limits.
 #### Scenario: Publishing a sixth publication
 
 - **WHEN** publishing the current saved draft would retain six publications
-- **THEN** confirmation identifies the oldest publication that will be removed
+- **THEN** publishing automatically removes the oldest publication without a retention confirmation
 - **AND** success leaves five publications, makes the promoted draft live and removes its separate draft entry
-- **AND** cancellation, stale confirmation or failure preserves the previous live state, draft and publications
+- **AND** a stale request or failure preserves the previous live state, draft and publications
 
 #### Scenario: A history contains fewer than six entries
 
@@ -286,8 +300,10 @@ a content version. Languages SHALL retain independent limits.
 
 Publication SHALL atomically publish the current saved draft, preserve its identity
 and retain publications subject only to the five-publication limit. Historical
-content SHALL first be resumed into the draft. Actions removing retained content
-SHALL confirm a server-derived removal plan. Authorization, validation, concurrency,
+content SHALL first be resumed into the draft. Publication-limit pruning SHALL
+be automatic, including for clients without history controls. Explicit deletion,
+draft replacement and missing-image omission SHALL retain their confirmations.
+Server-derived plans SHALL remain version-bound. Authorization, validation, concurrency,
 image recovery and idempotency SHALL remain enforced.
 
 #### Scenario: Reworking v18 before publication
@@ -301,7 +317,7 @@ image recovery and idempotency SHALL remain enforced.
 
 #### Scenario: A stale or failed confirmation
 
-- **WHEN** article state changes after a removal plan was displayed, or authorization, validation, image checking or persistence fails
+- **WHEN** article state changes after a missing-image plan was displayed, or authorization, validation, image checking or persistence fails
 - **THEN** the prior live content, saved draft and retained history remain intact
 - **AND** the UI preserves selected content and unsaved input for correction or retry
 - **AND** a stale article version or plan token returns `CONFLICT` and requires a fresh plan and confirmation
@@ -376,6 +392,14 @@ text display.
 - **AND** History transport, concurrent-correction, missing-illustration, permission and failure controls continue to exercise their intended behavior
 - **AND** detailed comparison remains available for selected versions and unsaved draft content
 - **AND** settings retain their existing responsive visibility, keyboard behavior and values when collapsed
+
+#### Scenario: Choosing the Blogs interface language
+
+- **WHEN** a reviewer opens Blogs in French, German or Italian
+- **THEN** the showroom supplies complete translated plugin labels for fields, statuses, history, actions, errors, confirmations and the image-crop dialog
+- **AND** English continues to use the plugin’s default labels
+- **AND** admin navigation retains the interface locale even when the article’s selected translation is English or French
+- **AND** changing the interface language does not create, publish or silently translate article content
 
 ## REMOVED Requirements
 

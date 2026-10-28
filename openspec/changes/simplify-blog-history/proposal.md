@@ -9,7 +9,8 @@ Blogs keeps eight drafts per language, parallel reprise paths and historical ret
 - **BREAKING:** keep one latest draft per article language. Ordinary saves replace it without a warning.
 - Keep five publications, including the live version, plus the optional draft. Replace branches with a chronological list.
 - Resume a publication into the draft, confirming replacement of an existing draft. Live content changes only after Publish succeeds.
-- **BREAKING:** publish resumed content as a new publication instead of deleting the publications after its source. Keep confirmation for removals caused by the five-publication limit.
+- **BREAKING:** publish resumed content as a new publication instead of deleting the publications after its source. Prune the oldest publication automatically when exceeding the five-publication limit.
+- Reserve visible version numbers for publications, label the draft in the active language, and make both comparison endpoints and Read/Compare modes explicit.
 - Preserve the detailed comparator and existing safeguards. Update the showroom's examples and options to match.
 
 ## Capabilities
