@@ -1,7 +1,7 @@
 # Verification
 
 Verified locally on 2026-10-28 against implementation baseline
-`1cce6342d576a548011f4d5ce69c6a70bd8570b8`. Changes remain uncommitted.
+`1cce6342d576a548011f4d5ce69c6a70bd8570b8`. Implementation committed as `7e4e4e7`.
 
 The owner's final decision is automatic publication retention: publishing v6
 removes v1 without a warning. Resuming a publication still confirms replacement
@@ -67,7 +67,7 @@ remain inert for source compatibility.
 
 L’Aspic and Seebach source adoption, release publication, database actions and
 deployment remain separate work. These local checks establish no deployed state.
-The main Plugins spec still requires the normal completion/archive reconciliation.
+The rules are integrated into `openspec/specs/plugins/spec.md`.
 
 ## Owner feedback 14–17
 

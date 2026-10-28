@@ -4,12 +4,12 @@
 
 ### Requirement: Blogs plugin
 
-`@forge/blogs` SHALL provide article administration, language tabs, Markdown
-editing/preview, categories and public list/article components. Its Blog editor
-module SHALL own article and category editing, saved state, asynchronous completion
-and unsaved-change protection independently of the Menu editor, preserving the existing page interfaces.
-Each article language SHALL have at most one saved draft and five publications,
-including its live publication, with chronological history and the existing detailed comparison.
+`@forge/blogs` SHALL provide article/category administration, language tabs,
+Markdown editing/preview and public list/article pages. Its editor SHALL own
+editing, saved state, asynchronous completion and unsaved-change protection
+independently of the Menu editor, preserving existing page interfaces. Each
+language SHALL retain at most one draft and five publications, including live,
+with chronological history and detailed comparison.
 
 #### Scenario: Rejecting malformed service requests
 
@@ -126,12 +126,11 @@ including its live publication, with chronological history and the existing deta
 
 ### Requirement: Stable blog version identity
 
-An explicit save of changed publication inputs SHALL create one saved draft
-version that replaces the previous saved draft. Unchanged saves and publishing a saved state SHALL NOT create duplicate
-content versions. Drafts SHALL use their translated draft label without a visible
-version number. Only publishing a new draft SHALL allocate the next visible
-publication number, using the existing publication counter. Visible publication
-numbers SHALL be stable and increase within the article language; deletion or pruning SHALL NOT reuse numbers. Unsaved edits
+Changed saves SHALL replace the saved draft. Unchanged saves and publication
+SHALL NOT duplicate content versions. Drafts SHALL use a translated label without
+a version number. Only publishing a new draft SHALL assign the next number from
+the existing publication counter. Publication numbers SHALL stay stable and
+increase per language; deletion or pruning SHALL NOT reuse them. Unsaved edits
 SHALL remain distinguishable from saved versions.
 
 #### Scenario: Saving and publishing one edit
@@ -183,14 +182,17 @@ author reassignment SHALL retain their existing policy.
 
 ### Requirement: Blog history inspection and comparison
 
-The editor SHALL offer a right-side history panel with publication numbers, a translated unnumbered draft, authors,
-times, states and separate publication/draft counts in one chronological list
-without reprise lanes. Selection SHALL show a
-read-only state. A unified diff against the live language publication SHALL show
-unchanged context once and emphasize changed words within subtle removed and
-added rows. Comparison work SHALL be bounded, falling back to complete removed
-and added text for expensive inputs. Missing live content SHALL have an explicit
-comparison empty state.
+The editor SHALL provide chronological history in a right-side panel and
+read-only inspection. A bounded unified diff against the live language publication
+SHALL show context once and emphasize changed words in subtle removed/added rows.
+Expensive inputs SHALL fall back to complete removed/added text. Missing live
+content SHALL have an explicit comparison empty state.
+
+#### Scenario: Reading the history list
+
+- **WHEN** staff open the history panel
+- **THEN** one chronological list shows publication numbers, a translated unnumbered draft, authors, times, states and separate publication/draft counts
+- **AND** no reprise lanes appear
 
 #### Scenario: Comparing a small text change
 
@@ -298,13 +300,12 @@ a content version. Languages SHALL retain independent limits.
 
 ### Requirement: Confirmed atomic blog history publication
 
-Publication SHALL atomically publish the current saved draft, preserve its identity
-and retain publications subject only to the five-publication limit. Historical
-content SHALL first be resumed into the draft. Publication-limit pruning SHALL
-be automatic, including for clients without history controls. Explicit deletion,
-draft replacement and missing-image omission SHALL retain their confirmations.
-Server-derived plans SHALL remain version-bound. Authorization, validation, concurrency,
-image recovery and idempotency SHALL remain enforced.
+Publication SHALL atomically promote the current saved draft, preserve its
+identity and retain publications up to the five-publication limit. Historical
+content SHALL first be resumed as a draft. All clients SHALL prune excess
+publications automatically. Deletion, draft replacement and missing-image omission
+SHALL require confirmation. Plans SHALL be server-derived and version-bound.
+Authorization, validation, concurrency, image recovery and idempotency SHALL remain enforced.
 
 #### Scenario: Reworking v18 before publication
 

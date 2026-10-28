@@ -18,7 +18,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## References
 
-The owning change is `openspec/changes/simplify-blog-history/`. DESIGN.md and the existing Registry UI control production styling. No global design-system change is requested. The pre-existing sidecar drift must not be repaired as part of this extension.
+Archived change: `openspec/changes/archive/2026-10-28-simplify-blog-history/`. DESIGN.md and the existing Registry UI control production styling. No global design-system change is requested. The pre-existing sidecar drift must not be repaired as part of this extension.
 
 ## Finish evidence
 

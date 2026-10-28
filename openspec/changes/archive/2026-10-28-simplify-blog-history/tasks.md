@@ -43,7 +43,7 @@
 - [x] 6.3 Reconcile the delta, guides and surface brief, regenerate distribution and verify an installed consumer; run focused regressions, repository checks and separate Standards/Spec reviews before transferring only this feedback diff to the existing branch.
 - [x] 6.4 Give every displayed comparison block a visible label, including a Markdown heading matching the existing field labels; reuse translated labels and verify metadata, localized modes, both themes and narrow screens, then regenerate and check the shipped item.
 
-## Workflow follow-up
+## Completion and follow-up
 
-- After implementation review and verification, reconcile this delta into `openspec/specs/plugins/spec.md` through the normal OpenSpec completion/archive workflow.
+- The delta is integrated into `openspec/specs/plugins/spec.md` and archived after implementation review and verification.
 - Customer source adoption, any database action, release publication and deployment remain separately authorized work.

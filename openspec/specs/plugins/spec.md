@@ -1239,10 +1239,12 @@ drafts within the current folder browser, independently of the selected view.
 
 ### Requirement: Blogs plugin
 
-`@forge/blogs` SHALL provide article administration, language tabs, Markdown
-editing/preview, categories and public list/article components. Its Blog editor
-module SHALL own article and category editing, saved state, asynchronous completion
-and unsaved-change protection independently of the Menu editor, preserving the existing page interfaces.
+`@forge/blogs` SHALL provide article/category administration, language tabs,
+Markdown editing/preview and public list/article pages. Its editor SHALL own
+editing, saved state, asynchronous completion and unsaved-change protection
+independently of the Menu editor, preserving existing page interfaces. Each
+language SHALL retain at most one draft and five publications, including live,
+with chronological history and detailed comparison.
 
 #### Scenario: Rejecting malformed service requests
 
@@ -1617,10 +1619,11 @@ account-name resolution and departure-signature retention SHALL remain supported
 
 ### Requirement: Stable blog version identity
 
-An explicit save of changed publication inputs SHALL create one saved draft
-version. Unchanged saves and publishing a saved state SHALL NOT create duplicate
-content versions. Visible version numbers SHALL be stable and increase within
-the article language; deletion or pruning SHALL NOT reuse numbers. Unsaved edits
+Changed saves SHALL replace the saved draft. Unchanged saves and publication
+SHALL NOT duplicate content versions. Drafts SHALL use a translated label without
+a version number. Only publishing a new draft SHALL assign the next number from
+the existing publication counter. Publication numbers SHALL stay stable and
+increase per language; deletion or pruning SHALL NOT reuse them. Unsaved edits
 SHALL remain distinguishable from saved versions.
 
 #### Scenario: Saving and publishing one edit
@@ -1628,89 +1631,157 @@ SHALL remain distinguishable from saved versions.
 - **WHEN** an editor saves changed text, author or other captured inputs
 - **THEN** one new saved version is recorded
 - **AND** repeating an unchanged save or retrying the same request creates no additional version
-- **AND** publishing that state preserves its version identity
+- **AND** publishing that state preserves its snapshot identity and assigns the next publication number
 - **AND** changing only an account's current name does not create a content version
 
 #### Scenario: Saving after a historical return
 
-- **WHEN** the largest allocated number was v40 and later states are discarded
-- **THEN** the next changed save receives a number greater than 40
-- **AND** optimistic concurrency versions remain independent of visible history numbers
+- **WHEN** v40 was the latest allocated publication and an earlier publication is resumed or a retained state is removed
+- **THEN** subsequent changed saves remain labeled Draft and the next new publication is v41
+- **AND** deleting a draft or republishing an unchanged existing publication does not consume or reset publication numbers
+- **AND** optimistic concurrency versions and internal snapshot allocations remain independent of visible publication numbers
+
+#### Scenario: Saving resumed content without another edit
+
+- **WHEN** staff resume a publication whose captured inputs differ from the current working state and save it without further edits
+- **THEN** a distinct current draft is saved even though its inputs match the historical source
+- **AND** the source publication retains its original identity and content
+- **AND** publishing preserves the new draft identity rather than moving the source publication into the live position
 
 ### Requirement: Independent blog history limits
 
 Each article language SHALL retain at most five publications, including its live
-publication, and eight saved drafts, including its latest draft, across all
-reprises. Exceeding either limit SHALL prune the oldest state in that group.
-Successful publication SHALL clear pending drafts for that language without
-duplicating the promoted state. Unpublishing SHALL preserve retained history and
-allocate no new saved content version. Other languages SHALL retain their own limits.
+publication, and one saved draft. Changed saves SHALL replace the previous draft.
+Successful publication SHALL promote the current saved draft without duplication
+and clear the pending draft. Only exceeding the publication limit SHALL prune the
+oldest publication. Unpublishing SHALL preserve retained history without allocating
+a content version. Languages SHALL retain independent limits.
 
 #### Scenario: Saving a ninth draft
 
-- **WHEN** eight drafts are retained and a changed draft is saved on any reprise
-- **THEN** the oldest saved draft is pruned and eight remain
-- **AND** publications are preserved and the limit does not restart for the new reprise
+- **WHEN** staff continue editing and perform a ninth changed save in the selected language
+- **THEN** only the latest saved draft remains, without a replacement warning for ordinary continuation
+- **AND** publications are preserved and unchanged saves or retries create no duplicate entry
 
 #### Scenario: Publishing a sixth publication
 
-- **WHEN** normal publication would retain six publications
-- **THEN** the oldest non-live publication is pruned and five remain
-- **AND** the promoted version is live and pending drafts in that language are cleared
-- **AND** a failed publication performs neither cleanup nor pruning
+- **WHEN** publishing the current saved draft would retain six publications
+- **THEN** publishing automatically removes the oldest publication without a retention confirmation
+- **AND** success leaves five publications, makes the promoted draft live and removes its separate draft entry
+- **AND** a stale request or failure preserves the previous live state, draft and publications
 
-### Requirement: Independent blog reprises
+#### Scenario: A history contains fewer than six entries
 
-Starting from a publication SHALL create a distinct reprise on its first changed
-save, even when another reprise has the same source. Editing a saved draft SHALL
-continue its reprise. Reprise identity and source publication identity SHALL
-survive pruning of earlier draft states. Merely selecting history SHALL NOT
-create a reprise or overwrite a saved draft.
-
-#### Scenario: Starting twice from one publication
-
-- **WHEN** an editor starts from v18, saves v38, then starts again from v18 and saves v42
-- **THEN** v38 and v42 belong to independent reprises with the same source
-- **AND** modifying v38 and saving again continues the first reprise
-- **AND** neither save discards later publications
-
-#### Scenario: Continuing after the first draft was pruned
-
-- **WHEN** an earlier saved member of a reprise has been pruned
-- **THEN** its remaining drafts retain their source and reprise identity
-- **AND** a removed source is identified as unavailable without inventing another source
-- **AND** selecting a publication or canceling unsaved work creates no saved node
+- **WHEN** a language has fewer than five publications or no pending saved draft
+- **THEN** only existing states appear, without placeholder versions or duplicate live/draft entries
+- **AND** another language's states and limits remain unchanged
 
 ### Requirement: Confirmed atomic blog history publication
 
-Historical publication SHALL atomically publish the selected state and discard
-later publications and pending drafts. Every historical-return entrypoint SHALL
-confirm a server-derived plan bound to article version, language, target,
-discarded states and missing images. Authorization, validation, concurrency,
-retention and idempotency SHALL remain enforced. History actions SHALL also
-confirm ordinary publication plans that discard retained states.
+Publication SHALL atomically promote the current saved draft, preserve its
+identity and retain publications up to the five-publication limit. Historical
+content SHALL first be resumed as a draft. All clients SHALL prune excess
+publications automatically. Deletion, draft replacement and missing-image omission
+SHALL require confirmation. Plans SHALL be server-derived and version-bound.
+Authorization, validation, concurrency, image recovery and idempotency SHALL remain enforced.
 
 #### Scenario: Reworking v18 before publication
 
-- **WHEN** an authorized user resumes v18 while v22, v26, v36 and v37 are retained
-- **THEN** saving the derived draft preserves those publications, subject only to the independent draft limit
+- **WHEN** an authorized user resumes v18 while v22, v26, v36 and live v37 are retained
+- **THEN** the resumed content becomes the working draft while v37 stays live
+- **AND** saving preserves all five publications and replaces only the previous draft after the required confirmation
 - **WHEN** the user publishes the saved draft
-- **THEN** confirmation names the later publications and pending drafts to discard
-- **AND** success makes the selected state live and removes exactly the confirmed states
-- **AND** the same truncation applies when v18 is republished without editing
+- **THEN** it becomes a new live publication and v18 is removed only because it is the oldest of six publications
+- **AND** v22, v26, v36 and v37 remain retained, with no additional deletion caused by the source's age
 
 #### Scenario: A stale or failed confirmation
 
-- **WHEN** article state changes after the deletion plan was displayed, or authorization, validation, image checking or persistence fails
-- **THEN** publication leaves the prior live content and retained history intact
-- **AND** the UI retains the selected state and unsaved input for correction or retry
-- **AND** a stale article version or plan token returns `CONFLICT` and must be refreshed and confirmed again
-- **AND** replaying a successful request does not repeat deletions or allocate a new version
+- **WHEN** article state changes after a missing-image plan was displayed, or authorization, validation, image checking or persistence fails
+- **THEN** the prior live content, saved draft and retained history remain intact
+- **AND** the UI preserves selected content and unsaved input for correction or retry
+- **AND** a stale article version or plan token returns `CONFLICT` and requires a fresh plan and confirmation
+- **AND** replaying a successful request does not repeat deletion or allocate another version
+
+#### Scenario: A historical publication is submitted directly
+
+- **WHEN** a caller attempts to activate a historical publication in place without first saving it as the current draft
+- **THEN** the request is rejected without changing live content or retained states
+- **AND** editor, table and transport entrypoints cannot bypass the draft-first workflow
+
+### Requirement: Confirmed single blog draft resumption
+
+Resuming a retained publication SHALL prepare its complete content in the single
+draft without changing live content. Replacing an existing draft SHALL require
+explicit confirmation naming the loss. Cancellation SHALL preserve the draft.
+Reading history SHALL remain read-only. Unsaved-change, failure and concurrency
+protections SHALL continue to apply.
+
+#### Scenario: Continuing the current draft
+
+- **WHEN** v3 is live and staff continue editing and saving the draft derived from v3
+- **THEN** the latest saved content replaces that draft without a replacement warning
+- **AND** v3 remains live until publication succeeds
+
+#### Scenario: Resuming v1 while a draft from v3 exists
+
+- **WHEN** v3 is live, a draft derived from v3 exists, and staff only inspect v1
+- **THEN** no draft is replaced and the existing unsaved-change guard still protects departure from dirty work
+- **WHEN** staff choose to resume v1
+- **THEN** confirmation states that the current draft and its changes will be replaced
+- **AND** cancel retains the current saved and unsaved work
+- **AND** confirming prepares v1 as the sole working draft while v3 stays live
+- **AND** the prior saved draft is replaced atomically only when the resumed content is successfully saved
+- **AND** failed saves retain the prior saved draft and the resumed local input for retry
+
+#### Scenario: Resuming with no pending draft
+
+- **WHEN** v3 is live and staff resume either v2 or v1 with no pending draft or unsaved work
+- **THEN** the selected version becomes the working draft without a false loss warning
+- **AND** v3 is not moved into the draft and publications remain unchanged until Publish succeeds
+- **AND** republication requires a distinct saved draft, even when the source content was not edited
+
+#### Scenario: Another editor changes the draft after confirmation
+
+- **WHEN** another editor saves after replacement was confirmed but before the resumed draft is saved
+- **THEN** the stale save returns `CONFLICT` without overwriting that newer draft
+- **AND** staff must review the refreshed state and reconfirm replacement before retrying historical resumption
+
+### Requirement: Simplified blog history showroom
+
+The Blogs showroom SHALL demonstrate the one-draft, five-publication workflow with
+localized examples and controls matching the shipped model. Existing permission,
+transport, concurrency, missing-image and failure simulations SHALL remain usable.
+It SHALL demonstrate the actual comparator rather than the mockup's simplified
+text display.
+
+#### Scenario: Loading the history example
+
+- **WHEN** a reviewer loads the history example for the open article
+- **THEN** English and French each receive five publications and one draft with their own content
+- **AND** the live publication counts among the five and no parallel reprise branches appear
+- **AND** unrelated articles remain unchanged and no obsolete eight-draft or multi-reprise help remains
+
+#### Scenario: Exercising replacement and preserved controls
+
+- **WHEN** a reviewer resumes an older version while the example has a draft
+- **THEN** confirmation supports cancellation and successful continuation
+- **AND** repeated ordinary draft saves do not request replacement confirmation
+- **AND** History transport, concurrent-correction, missing-illustration, permission and failure controls continue to exercise their intended behavior
+- **AND** detailed comparison remains available for selected versions and unsaved draft content
+- **AND** settings retain their existing responsive visibility, keyboard behavior and values when collapsed
+
+#### Scenario: Choosing the Blogs interface language
+
+- **WHEN** a reviewer opens Blogs in French, German or Italian
+- **THEN** the showroom supplies complete translated plugin labels for fields, statuses, history, actions, errors, confirmations and the image-crop dialog
+- **AND** English continues to use the plugin’s default labels
+- **AND** admin navigation retains the interface locale even when the article’s selected translation is English or French
+- **AND** changing the interface language does not create, publish or silently translate article content
 
 ### Requirement: Authorized blog history management
 
 Active staff SHALL be able to inspect history. Only the current designated author
-or an administrator SHALL resume historical states, republish them or delete
+or an administrator SHALL resume historical states for republication or delete
 history. Authorization SHALL use the current article before restoration, not the
 selected historical author. Ordinary collaborative draft editing and explicit
 author reassignment SHALL retain their existing policy.
@@ -1718,29 +1789,33 @@ author reassignment SHALL retain their existing policy.
 #### Scenario: A historical author attempts to take control
 
 - **WHEN** a caller owns the selected old signature but lacks current management rights
-- **THEN** direct resume, historical publication and deletion requests are rejected
+- **THEN** direct historical resumption and deletion requests are rejected
 - **AND** selecting the old version does not change ownership
 
 #### Scenario: Managing a signature and deleting a version
 
 - **WHEN** the current author or an administrator resumes a state
-- **THEN** its designated author is retained and the existing author selector remains available
+- **THEN** the resumed draft retains its designated author and the existing author selector remains available
 - **AND** an explicit saved reassignment changes current management rights under the existing article-wide authorship policy
 - **AND** other languages' saved signatures and live publications remain unchanged
 - **WHEN** an authorized user confirms deletion of a non-live retained version
 - **THEN** only that version is removed, without renumbering or changing live content
 - **AND** the live publication cannot be individually deleted from history
-- **AND** deleting the current saved draft selects the latest remaining draft, then the live state, then an empty unsaved state without resetting allocation counters
+- **AND** deleting the sole saved draft returns to the live state, or an empty unsaved state if nothing is live, without resetting allocation counters or creating another saved draft
 
 ### Requirement: Blog history inspection and comparison
 
-The editor SHALL offer a right-side history panel with version numbers, authors,
-times, states and separate publication/draft counts. Selection SHALL show a
-read-only state. A unified diff against the live language publication SHALL show
-unchanged context once and emphasize changed words within subtle removed and
-added rows. Comparison work SHALL be bounded, falling back to complete removed
-and added text for expensive inputs. Missing live content SHALL have an explicit
-comparison empty state.
+The editor SHALL provide chronological history in a right-side panel and
+read-only inspection. A bounded unified diff against the live language publication
+SHALL show context once and emphasize changed words in subtle removed/added rows.
+Expensive inputs SHALL fall back to complete removed/added text. Missing live
+content SHALL have an explicit comparison empty state.
+
+#### Scenario: Reading the history list
+
+- **WHEN** staff open the history panel
+- **THEN** one chronological list shows publication numbers, a translated unnumbered draft, authors, times, states and separate publication/draft counts
+- **AND** no reprise lanes appear
 
 #### Scenario: Comparing a small text change
 
@@ -1750,6 +1825,15 @@ comparison empty state.
 - **AND** changed captured fields are distinguishable without relying only on color
 - **AND** Markdown and diff text cannot execute supplied markup or scripts
 
+#### Scenario: Switching reading and comparison
+
+- **WHEN** staff inspect a saved state or compare their current draft
+- **THEN** Read and Compare are both available as explicit selected modes
+- **AND** comparison names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
+- **AND** the reference endpoint uses the same red semantic treatment and minus marker as removed values, while the selected endpoint uses the green treatment and plus marker of added values
+- **AND** switching to Read and back to Compare preserves the selection and working content
+- **AND** title, slug, summary, author, categories and image differences remain included, with an explanation that unchanged fields are hidden
+
 #### Scenario: Inspecting on a narrow screen
 
 - **WHEN** a user opens history on mobile or uses the keyboard in either theme
@@ -1757,21 +1841,16 @@ comparison empty state.
 - **AND** leaving dirty work requests an explicit save or discard decision
 - **AND** historical inspection does not mutate article content, attribution or permissions
 
-### Requirement: Simultaneous blog reprise paths
+#### Scenario: Comparing a working draft and captured fields
 
-History SHALL show every retained reprise on a distinct path, including reprises
-from the live publication and independent starts from the same source. Selecting
-a version SHALL NOT move nodes to another path or hide other reprises. The active
-path SHALL be visibly thicker and remain continuous above crossing paths, with
-text identifying its source independently of color.
-
-#### Scenario: Inspecting three simultaneous reprises
-
-- **WHEN** v38 comes from v18, v39 from v22 and v40 from live v37
-- **THEN** all three paths remain visible beside the publication chronology
-- **AND** selecting v38 accentuates its path without reassigning v39 or v40
-- **AND** two reprises from v18 remain distinct and continued saves use their existing path
-- **AND** unsaved resumed work has a clearly unsaved preview rather than a committed version number
+- **WHEN** staff compare the current draft, including unsaved edits, or a selected history version
+- **THEN** the reference remains the live publication in the selected language
+- **AND** the existing paragraph/word diff, whitespace handling and bounded fallback remain available
+- **AND** comparison covers title, slug, summary, signature, thumbnail, banner, their alternative text, categories and Markdown
+- **AND** changed metadata uses separate removed/added rows with the same semantic colors as Markdown changes, minus/plus markers and accessible removed/added descriptions
+- **AND** each displayed field and the Markdown block has a visible label identifying what is compared, with the Markdown heading also naming its accessible section
+- **AND** before/after images, loading and retry feedback, read previews and return to draft remain available
+- **AND** comparison does not overwrite or save the working draft
 
 ### Requirement: Blog history image recovery
 
@@ -1820,7 +1899,7 @@ session checks, cache invalidation and coordinated migration.
 - **AND** content, saved signatures, image IDs, URLs and publication metadata are preserved
 - **AND** repeating migration creates no duplicate versions
 - **AND** identical current draft/publication inputs share one initial history identity
-- **AND** existing clients remain usable for ordinary publication without history controls, while the server rejects historical returns without confirmation
+- **AND** existing clients remain usable for ordinary publication without history controls, while the server rejects direct activation of a historical publication
 - **AND** history-enabled hosts wire authorized `list`, `get`, `plan`, `publish` and `delete` operations while preserving their adapters
 - **AND** migration-journal and Blogs readiness checks pass before traffic is served
 - **AND** source installation runs no migration and does not establish deployment
@@ -1830,6 +1909,12 @@ session checks, cache invalidation and coordinated migration.
 - **WHEN** a host rolls back the history interface
 - **THEN** it retains the additive schema, history data and compatible writers
 - **AND** it does not downgrade to writers that discard localized settings or history counters
+
+#### Scenario: Installing the simplified workflow
+
+- **WHEN** a host installs source for the simplified history workflow
+- **THEN** installation does not run a data migration, remove deployed records or alter objects
+- **AND** existing schema, authorized transport and startup-readiness requirements still apply
 
 ### Requirement: Menus plugin
 
