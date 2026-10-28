@@ -35,6 +35,7 @@ function ContentSidebarLayoutExample() {
         width; on narrow screens, the panel sits above the content.
       </ShowroomIntro>
       <ContentSidebarLayout
+        className="flex-1"
         toolbar={
           <div className="flex flex-wrap justify-end gap-2">
             <button
