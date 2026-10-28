@@ -1,30 +1,19 @@
 # Mailing
 
-`@forge/mailing` is a service plugin shared by features that send transactional
-email. It uses React Email components to render branded HTML and matching plain text. It has no administration
-screen, database, subscription list or runtime plugin loader.
+`@forge/mailing` renders transactional HTML and matching plain text. See
+[ADR-0012](../concepts/adr/0012-mailing-rendering-and-transport.md) for the architecture.
 
 [Preview account and reservation emails](/mailing).
 
-Each sample has a direct showroom link:
+| Section      | Examples                                                                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account      | [Verification](/mailing/verify-email), [password reset](/mailing/reset-password), [invitation](/mailing/invitation), [email change](/mailing/email-change)                                                                                                                            |
+| Reservations | [Request](/mailing/reservation-booked), [confirmation](/mailing/reservation-confirmation), [rescheduling](/mailing/reservation-rescheduled), [rejection](/mailing/reservation-rejected), [cancellation](/mailing/reservation-cancelled), [management link](/mailing/reservation-link) |
 
-- [Verify your email](/mailing/verify-email)
-- [Reset your password](/mailing/reset-password)
-- [Accept your invitation](/mailing/invitation)
-- [Confirm your new email address](/mailing/email-change)
-- [Your reservation is confirmed](/mailing/reservation-confirmation)
-
-The preview navigation switches between these pages. `/mailing` opens the
-verification sample. The plain-text control stores `format=text` in the URL;
-switching examples, reloading and Back/Forward preserve the selected format.
-Missing or invalid format values show HTML.
-
-These are common transactional examples using neutral “Your website” copy and
-the renderer's defaults. There are no brand presets or brand selectors. Names,
-dates and action links are synthetic; previews neither issue tokens nor send
-mail. Hosts supply their own branding, translations and token-expiry wording.
-Keep additional examples within the
-[barebones scope rule](../AGENTS.md#barebones-scope-and-confirmation).
+`/mailing` opens verification. Expand either section to browse its samples and
+select Plain-text version to inspect `format=text`. The
+[showroom contract](../openspec/specs/registry-showroom/spec.md#requirement-barebones-mailing-examples)
+defines identity and navigation behavior. These previews never send mail.
 
 ```sh
 vpr ui add @forge/mailing
@@ -58,10 +47,6 @@ destinations, translations, preview text and optional logo, details and footer.
 There is no raw-HTML slot or tracking pixel. Brand theme values are trusted
 application configuration, never submitted user CSS.
 
-The centered card, logo, heading, action and quiet footer follow the Up4it account
-emails. Up4it code and assets are reference material only; no runtime imports or
-Up4it branding ship. L'Aspic supplies its own logo, French copy and palette.
-
 Emails use table layout and inline styles because they cannot inherit a website's
 Tailwind stylesheet or CSS variables. `brand.theme` uses the existing semantic
 roles with concrete values, including matching card and primary foregrounds.
@@ -69,6 +54,11 @@ Keep these values aligned with the host theme. Font stacks have local serif and
 sans-serif fallbacks; remote fonts are not required. The default email is light
 and remains self-contained. Inbox clients may apply their own dark-mode colors.
 Browser previews do not certify every Outlook, Gmail or Apple Mail version.
+
+Without `logoUrl`, the email shows the site's name without an image. Without
+`theme`, it uses the renderer's default palette and system fonts. A partial theme
+overrides only the supplied roles. A supplied logo still needs a URL that the
+recipient's email client can reach.
 
 ## Sending from a server
 
@@ -94,6 +84,39 @@ configuration, network errors or unsuccessful provider responses. It forwards
 safe public error handling. In particular, password recovery must retain its
 neutral public response even when delivery fails. Another provider can consume
 the rendered content without this Resend helper.
+
+## Change and preview a site's emails
+
+In Seebach, [template.ts](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.ts)
+sets the clinic name, logo, colors, translated text and action links. Keep these
+site settings outside installed Registry source.
+
+To see the emails without sending them, run this from the Seebach checkout:
+
+```sh
+vp run preview:mailing
+```
+
+Open the generated `.cache/mailing/*.html` files in a browser and their `.txt`
+alternatives in an editor. The [preview test](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/mailing/template.test.ts)
+lists the messages and languages to generate. It uses fake settings and tokens;
+it needs no database or email credentials. Each site provides its own preview
+command. Generated files stay ignored by Git and outside public routes.
+
+The [Seebach preview instructions](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/docs/mailing.md#preview-without-sending)
+show how to serve the files locally so the logo appears too.
+
+The [sender](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/auth/verification-email.ts)
+calls the same function as the preview, so both use the same layout and text.
+The sender handles recipients, account tokens and delivery errors.
+
+The [delivery test](https://github.com/the-factory-forge/osthoepathie-seebach/blob/968ecf0627d1f426c2e054c5108cba91a6abe20c/src/intranet/e2e/mailing-locales.spec.ts)
+intercepts outgoing mail instead of delivering it. It compares every message and
+language with the preview function and checks the recipient and action URL.
+
+To check a logo in Gmail, its HTTPS address must be public. A `.localhost` image
+can appear in your browser but not in Gmail. Check the logo again after deployment
+and keep activation links pointed at the environment you are testing.
 
 ## Plugin integration and adoption
 
