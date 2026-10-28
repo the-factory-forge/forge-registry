@@ -7,6 +7,7 @@ import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropLabels, type ImageCropSize } from "@/components/image-crop";
 import { outlineButtonClass } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
+import { storageFilename } from "@/components/utils/storage-filename";
 
 export const employeePhotoLabels = {
   label: "Employee photo",
@@ -90,7 +91,11 @@ export function EmployeePhotoField({
           labels={cropLabels}
           onCancel={() => setFile(null)}
           onConfirm={async (cropped) => {
-            await onUpload(cropped);
+            await onUpload(
+              new File([cropped], storageFilename(cropped.name, "employee", "webp"), {
+                type: cropped.type,
+              }),
+            );
             setFile(null);
           }}
         />

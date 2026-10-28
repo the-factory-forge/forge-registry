@@ -783,7 +783,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -1539,6 +1539,11 @@
           "path": "registry/components/plugins/employees/employee-photo-field.tsx",
           "type": "registry:component",
           "target": "@components/plugins/employees/employee-photo-field.tsx"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/storage-filename.ts"
         }
       ],
       "registryDependencies": [

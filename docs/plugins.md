@@ -60,6 +60,9 @@ Storage companions rebuild `[asset_name]-[type]-[modifier].[extension]` object
 filenames under their existing UUID directories and site/plugin prefixes. Hyphens
 separate fields; underscores join words within a field. Blogs replaces the type
 with `blog`; Drive uses its scope type, normalized to `menu_item` for Menus media.
+Employees uses `employee` and retains the source asset name through cropping and
+the host upload callback. Host-managed image uploads follow this same convention;
+their server adapters validate bytes before choosing the extension.
 Existing modifiers are retained, except `original`; absent modifiers stay absent. See
 [Drive migration and naming](./drive.md#object-filenames) and
 [Blog naming](./blogs.md#object-filenames) before adopting the server companions.

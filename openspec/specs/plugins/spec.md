@@ -1426,12 +1426,13 @@ the original data until recovery is verified.
 
 ### Requirement: Readable storage object filenames
 
-Drive and Blogs SHALL rebuild `[asset_name]-[type]-[modifier].[extension]` under
-unique site/plugin directories. Hyphens SHALL separate fields; underscores SHALL
-join words within a field. The first uploaded field SHALL supply the asset name;
-the host context SHALL replace the type. Existing modifier fields SHALL be retained,
-except `original`. Missing modifiers SHALL stay absent; uploads SHALL NOT invent
-transformations. Fields SHALL use safe lowercase letters, digits and underscores.
+Drive, Blogs and employee/custom photos SHALL rebuild
+`[asset_name]-[type]-[modifier].[extension]` in unique site/plugin directories.
+Hyphens SHALL separate fields; underscores SHALL join words. The first upload
+field SHALL supply the asset name; host context SHALL replace the type. Modifiers
+except `original` SHALL remain; absent modifiers SHALL stay absent. Uploads SHALL
+NOT invent transformations. Fields SHALL use safe lowercase letters, digits and
+underscores.
 
 #### Scenario: Recognizing an uploaded object
 
@@ -1440,6 +1441,13 @@ transformations. Fields SHALL use safe lowercase letters, digits and underscores
 - **AND** UUID directories prevent same-name uploads from overwriting each other
 - **WHEN** a blog upload called `Cover.JPG` contains validated PNG bytes
 - **THEN** its object name is `cover-blog.png`
+
+#### Scenario: Preserving an employee photo's source name
+
+- **WHEN** an employee selects `Mia Portrait.JPG` and confirms its WebP crop
+- **THEN** the photo callback receives `mia_portrait-employee.webp`
+- **AND** the host validates the bytes and applies the same naming rule before storing the object
+- **AND** an existing stored photo keeps its original key during later employee edits
 
 #### Scenario: Rebuilding a structured asset name
 

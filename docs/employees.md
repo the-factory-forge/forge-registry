@@ -29,6 +29,15 @@ keeps asset metadata and durable object references, not file bytes or signed URL
 Use [site/module-scoped keys](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage)
 and authorize reads on the server before exposing a photo.
 
+Photo uploads follow the same filename convention as Drive and Blogs:
+`[asset_name]-employee-[modifier].[extension]`. The cropper preserves the source
+asset name; `EmployeePhotoField` passes the rebuilt WebP name to `onUpload`.
+Hosts must retain that name when storing the image and derive the extension from
+validated bytes. Use `storageFilename(file.name, "employee", extension)` in the
+server adapter too, since callers can bypass the picker. The `employees` item
+ships this helper. Keep unique asset directories and existing stored keys; names
+remain immutable when employee information changes.
+
 Missing or unavailable S3 must reject uploads with a translated error, preserve
 the crop, previous photo and other edits, and allow retry or cancellation. Never
 fall back to storing new bytes in PostgreSQL. Employee management stays usable

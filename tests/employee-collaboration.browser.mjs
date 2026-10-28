@@ -115,8 +115,19 @@ void test("optional employee photos crop to WebP and preserve the editor on inva
     mimeType: "image/png",
     buffer: Buffer.from(bytes, "base64"),
   });
+  await page.evaluate(() => {
+    const read = Object.getOwnPropertyDescriptor(FileReader.prototype, "readAsDataURL").value;
+    FileReader.prototype.readAsDataURL = function (file) {
+      if (file instanceof File) window.employeeUploadedFilename = file.name;
+      return Reflect.apply(read, this, [file]);
+    };
+  });
   await crop.getByRole("button", { name: "Use image", exact: true }).click();
   await crop.waitFor({ state: "hidden" });
+  assert.equal(
+    await page.evaluate(() => window.employeeUploadedFilename),
+    "portrait-employee.webp",
+  );
   const image = editor.getByRole("img", { name: "Employee photo", exact: true });
   await image.waitFor();
   assert.equal(
