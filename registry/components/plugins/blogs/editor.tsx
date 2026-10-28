@@ -22,7 +22,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
   type SubmitEvent,
   useSyncExternalStore,
   type RefObject,
@@ -1166,7 +1165,7 @@ function BlogCategoryEditorContent({
     action.pending,
     onNavigationStateChange,
   );
-  async function submit(event?: FormEvent, leaving = false) {
+  async function submit(event?: SubmitEvent<HTMLFormElement>, leaving = false) {
     event?.preventDefault();
     if (action.pending || disabled) return;
     if (!form.current?.checkValidity()) {
