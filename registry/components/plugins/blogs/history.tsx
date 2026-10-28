@@ -11,7 +11,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useId, useMemo, useRef, useState } from "react";
 
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ import {
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image, type ImageProps } from "@/components/image";
 import { blogTextDiff } from "@/components/plugins/blogs/history-diff";
-import type { BlogsLabels } from "@/components/plugins/blogs/labels";
+import { blogHistoryLabel, type BlogsLabels } from "@/components/plugins/blogs/labels";
 import { BlogMarkdown } from "@/components/plugins/blogs/public";
 import type {
   BlogArticle,
@@ -49,6 +49,9 @@ import {
 import { safeAssetUrl } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
 import { editorActionsClass } from "@/components/utils/editor-form";
+
+const removedTone = "bg-status-canceled/40 text-status-canceled-foreground";
+const addedTone = "bg-status-success/40 text-status-success-foreground";
 
 export function useHistoryPublication(
   client: BlogsClient | undefined,
@@ -97,8 +100,7 @@ export function useHistoryPublication(
       (result) => {
         setOmit(false);
         setRefreshed(false);
-        if (result.historicalReturn || result.discarded.length || result.missingAssetIds.length)
-          setPlan(result);
+        if (result.missingAssetIds.length) setPlan(result);
         else publishing = execute(result, false);
       },
     );
@@ -155,7 +157,7 @@ export function useHistoryPublication(
                         key={version.id}
                         className="flex flex-wrap justify-between gap-2 border-b border-border pb-2"
                       >
-                        <span className="font-medium">{labels.versionLabel(version.number)}</span>
+                        <span className="font-medium">{blogHistoryLabel(version, labels)}</span>
                         <span>{version.state === "draft" ? labels.draft : labels.publication}</span>
                       </li>
                     ))}
@@ -203,6 +205,9 @@ export function useHistoryPublication(
                               const latest = await client!.get(plan.target.id);
                               return client!.history!.plan({
                                 ...plan.target,
+                                versionId:
+                                  latest.translations[plan.target.locale]?.history?.currentId ??
+                                  plan.target.versionId,
                                 version: latest.version,
                               });
                             },
@@ -283,17 +288,10 @@ export function BlogHistoryPanel<T = void>({
     setPreviousOwner(owner);
     setDeleting(null);
   }
-  const [geometry, setGeometry] = useState<{
-    height: number;
-    width: number;
-    points: Record<string, number>;
-  }>({
-    height: 0,
-    width: 0,
-    points: {},
-  });
   const rows = useMemo(() => {
-    const ordered = [...headers].sort((a, b) => b.number - a.number);
+    const ordered = headers
+      .filter((header) => !working || header.state !== "draft")
+      .sort((a, b) => b.number - a.number);
     if (working) {
       const source =
         headers.find((header) => header.id === working.origin?.versionId) ?? working.header;
@@ -316,40 +314,6 @@ export function BlogHistoryPanel<T = void>({
     }
     return ordered;
   }, [headers, working]);
-  const paths = [
-    ...new Set(rows.filter((row) => row.state === "draft").map((row) => row.repriseId!)),
-  ];
-  const [assignedLanes, setAssignedLanes] = useState<Map<string, number>>(() => new Map());
-  let lanes = assignedLanes;
-  if (paths.length !== assignedLanes.size || paths.some((key) => !assignedLanes.has(key))) {
-    lanes = new Map([...assignedLanes].filter(([key]) => paths.includes(key)));
-    for (const key of paths.toReversed())
-      if (!lanes.has(key)) {
-        let lane = 1;
-        while ([...lanes.values()].includes(lane)) lane++;
-        lanes.set(key, lane);
-      }
-    setAssignedLanes(lanes);
-  }
-  const laneGap = geometry.width > 0 && geometry.width < 280 ? 8 : 14;
-  const gutter = 22 + Math.max(0, ...lanes.values()) * laneGap;
-  const active = rows.find(
-    (row) => row.id === (working && !selectedId ? "working" : (selectedId ?? currentId)),
-  );
-  useEffect(() => {
-    const element = list.current;
-    if (!element) return;
-    const measure = () => {
-      const points: Record<string, number> = {};
-      for (const node of element.querySelectorAll<HTMLElement>("[data-history-id]"))
-        points[node.dataset.historyId!] = node.offsetTop + 24;
-      setGeometry({ height: element.offsetHeight, width: element.clientWidth, points });
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    measure();
-    return () => observer.disconnect();
-  }, [rows]);
   const sourceOf = (row: BlogHistoryHeader) =>
     headers.find((header) => header.id === row.sourcePublicationId);
   return (
@@ -388,85 +352,14 @@ export function BlogHistoryPanel<T = void>({
       {!loading && !error && !rows.length && (
         <p className="py-8 text-sm text-muted-foreground">{labels.historyEmpty}</p>
       )}
-      <ol ref={list} className="relative isolate" aria-busy={loading}>
-        <svg
-          className="pointer-events-none absolute inset-0 -z-10 h-full w-full overflow-visible"
-          aria-hidden="true"
-          height={geometry.height}
-        >
-          {(() => {
-            const publications = rows
-              .filter((row) => row.state === "publication")
-              .map((row) => geometry.points[row.id])
-              .filter((y) => y !== undefined);
-            return publications.length > 1 ? (
-              <path
-                d={`M 10 ${Math.min(...publications)} V ${Math.max(...publications)}`}
-                fill="none"
-                className="stroke-muted-foreground"
-                strokeWidth={1}
-              />
-            ) : null;
-          })()}
-          {paths
-            .sort((a, b) => Number(a === active?.repriseId) - Number(b === active?.repriseId))
-            .map((key) => {
-              const members = rows.filter((row) => row.repriseId === key && row.state === "draft");
-              const ys = members
-                .map((row) => geometry.points[row.id])
-                .filter((y) => y !== undefined);
-              if (!ys.length) return null;
-              const sourceY = members[0].sourcePublicationId
-                ? geometry.points[members[0].sourcePublicationId!]
-                : undefined;
-              const top = Math.min(...ys),
-                bottom = Math.max(...ys),
-                x = 10 + lanes.get(key)! * laneGap;
-              const d =
-                sourceY === undefined
-                  ? `M ${x} ${bottom + 12} V ${top}`
-                  : `M 10 ${sourceY} C ${x} ${sourceY} ${x} ${sourceY - 12} ${x} ${sourceY - 26} V ${top}`;
-              return (
-                <g key={key} data-reprise-id={key} data-active={key === active?.repriseId}>
-                  {key === active?.repriseId && (
-                    <path d={d} fill="none" className="stroke-card" strokeWidth={7} />
-                  )}
-                  <path
-                    d={d}
-                    fill="none"
-                    className={
-                      key === active?.repriseId ? "stroke-primary" : "stroke-muted-foreground"
-                    }
-                    strokeWidth={key === active?.repriseId ? 3 : 1}
-                  />
-                </g>
-              );
-            })}
-        </svg>
+      <ol ref={list} className="space-y-2" aria-busy={loading}>
         {rows.map((row) => {
           const source = sourceOf(row),
             isWorking = row.id === "working",
             isLive = row.id === publishedId;
           const chosen = row.id === (selectedId ?? (working ? "working" : currentId));
-          const x = 10 + (row.state === "draft" ? (lanes.get(row.repriseId!) ?? 0) * laneGap : 0);
           return (
-            <li
-              key={row.id}
-              data-history-id={row.id}
-              className="relative mb-2 flex min-w-0 items-start gap-2"
-              style={{ paddingInlineStart: gutter }}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none absolute top-[19px] size-2.5 -translate-x-1/2 rounded-full border-2 bg-card",
-                  chosen
-                    ? "border-primary bg-primary"
-                    : isLive
-                      ? "border-status-success-foreground bg-status-success"
-                      : "border-muted-foreground",
-                )}
-                style={{ left: x }}
-              />
+            <li key={row.id} data-history-id={row.id} className="flex min-w-0 items-start gap-2">
               <button
                 type="button"
                 disabled={disabled || isWorking}
@@ -479,7 +372,7 @@ export function BlogHistoryPanel<T = void>({
               >
                 <span className="flex flex-wrap items-start justify-between gap-2">
                   <strong className="tabular-nums">
-                    {isWorking ? labels.unsavedDraft : labels.versionLabel(row.number)}
+                    {isWorking ? labels.unsavedDraft : blogHistoryLabel(row, labels)}
                   </strong>
                   <span
                     className={cn(
@@ -512,23 +405,19 @@ export function BlogHistoryPanel<T = void>({
                   <span className="block text-xs text-muted-foreground">
                     {row.sourcePublicationId
                       ? labels.resumedFrom(
-                          source ? labels.versionLabel(source.number) : labels.sourceUnavailable,
+                          source ? blogHistoryLabel(source, labels) : labels.sourceUnavailable,
                         )
-                      : labels.newPost}{" "}
-                    ·{" "}
-                    {isWorking && !headers.some((header) => header.repriseId === row.repriseId)
-                      ? labels.unsavedDraft
-                      : labels.repriseLabel(String(lanes.get(row.repriseId!) ?? ""))}
+                      : labels.newPost}
                   </span>
                 )}
               </button>
               {!isWorking && (
                 <div className="shrink-0 pt-2">
                   <DropdownMenu>
-                    <IconTooltip label={`${labels.actions}: ${labels.versionLabel(row.number)}`}>
+                    <IconTooltip label={`${labels.actions}: ${blogHistoryLabel(row, labels)}`}>
                       <DropdownMenuTrigger
                         className={iconButtonClass}
-                        aria-label={`${labels.actions}: ${labels.versionLabel(row.number)}`}
+                        aria-label={`${labels.actions}: ${blogHistoryLabel(row, labels)}`}
                         disabled={disabled}
                         onFocus={(event) => {
                           actionTrigger.current = event.currentTarget;
@@ -557,7 +446,7 @@ export function BlogHistoryPanel<T = void>({
                           onClick={() => setDeleting(row)}
                         >
                           <Trash2Icon aria-hidden="true" />
-                          {labels.deleteVersion}
+                          {row.state === "draft" ? labels.deleteDraft : labels.deleteVersion}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -571,9 +460,17 @@ export function BlogHistoryPanel<T = void>({
       {deleting && onDelete && (
         <ConfirmDelete
           labels={labels}
-          title={`${labels.deleteVersion} ${labels.versionLabel(deleting.number)}`}
+          title={
+            deleting.state === "draft"
+              ? labels.deleteDraft
+              : `${labels.deleteVersion} ${blogHistoryLabel(deleting, labels)}`
+          }
           description={labels.historyDeleteDescription}
-          label={`${labels.deleteVersion} ${labels.versionLabel(deleting.number)}`}
+          label={
+            deleting.state === "draft"
+              ? labels.deleteDraft
+              : `${labels.deleteVersion} ${blogHistoryLabel(deleting, labels)}`
+          }
           disabled={disabled || deleteDisabled || deleting.id === publishedId}
           onDelete={(requestId) => onDelete(deleting, requestId)}
           onDeleted={onDeleted}
@@ -635,6 +532,7 @@ export function BlogHistoryReader({
   onModeChange: (mode: "read" | "compare") => void;
 }) {
   const labelsId = `factory-blog-history-view-${useId()}`;
+  const selectedLabel = working ? labels.unsavedDraft : blogHistoryLabel(version, labels);
   const diff = useMemo(
     () => blogTextDiff(publication?.markdown ?? "", version.content.markdown),
     [publication?.markdown, version.content.markdown],
@@ -702,9 +600,40 @@ export function BlogHistoryReader({
     <HistoryImageContext.Provider value={{ imageComponent, unavailable: labels.imageUnavailable }}>
       <section aria-labelledby={labelsId} className="flex min-w-0 flex-1 flex-col gap-6">
         <header className="space-y-3">
-          <h2 id={labelsId} className="flex items-center gap-2 font-semibold">
+          <h2
+            id={labelsId}
+            aria-label={
+              mode === "compare" && publication
+                ? labels.comparisonTitle(liveLabel, selectedLabel)
+                : undefined
+            }
+            className="flex flex-wrap items-center gap-2 font-semibold"
+          >
             <HistoryIcon className="size-4" aria-hidden="true" />
-            {working ? labels.unsavedDraft : labels.versionLabel(version.number)}
+            {mode === "compare" && publication ? (
+              <>
+                <span
+                  data-diff-side="before"
+                  className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1", removedTone)}
+                >
+                  <span aria-hidden="true">−</span>
+                  {liveLabel}
+                  {liveLabel !== labels.live && (
+                    <span className="font-normal">({labels.live})</span>
+                  )}
+                </span>
+                <span aria-hidden="true">→</span>
+                <span
+                  data-diff-side="after"
+                  className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1", addedTone)}
+                >
+                  <span aria-hidden="true">+</span>
+                  {selectedLabel}
+                </span>
+              </>
+            ) : (
+              selectedLabel
+            )}
           </h2>
           <p className="text-sm text-muted-foreground">{!working && labels.historyReadOnly}</p>
         </header>
@@ -714,14 +643,22 @@ export function BlogHistoryReader({
             type="button"
             aria-pressed={mode === "read"}
             className={mode === "read" ? primaryClass : outlineButtonClass}
+            disabled={disabled}
             onClick={() => onModeChange("read")}
           >
             <FileTextIcon aria-hidden="true" />
             {labels.read}
           </button>
-          {mode === "compare" && publication && (
-            <span className="text-sm text-muted-foreground">{labels.compareWith(liveLabel)}</span>
-          )}
+          <button
+            type="button"
+            aria-pressed={mode === "compare"}
+            className={mode === "compare" ? primaryClass : outlineButtonClass}
+            disabled={disabled}
+            onClick={() => onModeChange("compare")}
+          >
+            <GitCompareArrowsIcon aria-hidden="true" />
+            {labels.compare}
+          </button>
         </fieldset>
         <dl className="grid gap-4 border-y border-border py-4 text-sm sm:grid-cols-2">
           <div>
@@ -742,19 +679,39 @@ export function BlogHistoryReader({
             <p className="py-8 text-sm text-muted-foreground">{labels.noLiveComparison}</p>
           ) : (
             <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">{labels.comparedFields}</p>
               {!!changes.length && (
                 <dl className="space-y-4 text-sm">
                   {changes.map(([label, before, after]) => (
                     <div key={label} className="space-y-1">
                       <dt className="font-medium">{label}</dt>
-                      <dd className="wrap-anywhere">
-                        <span className="sr-only">{labels.removed}: </span>
-                        <del>{fieldValue(label, before)}</del>
-                        <span className="mx-2" aria-hidden="true">
-                          →
-                        </span>
-                        <span className="sr-only">{labels.added}: </span>
-                        <ins>{fieldValue(label, after)}</ins>
+                      <dd className="space-y-1">
+                        <div
+                          data-diff-side="before"
+                          className={cn(
+                            "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 px-3 py-2 wrap-anywhere",
+                            removedTone,
+                          )}
+                        >
+                          <span aria-hidden="true">−</span>
+                          <span>
+                            <span className="sr-only">{labels.removed}: </span>
+                            <del>{fieldValue(label, before)}</del>
+                          </span>
+                        </div>
+                        <div
+                          data-diff-side="after"
+                          className={cn(
+                            "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 px-3 py-2 wrap-anywhere",
+                            addedTone,
+                          )}
+                        >
+                          <span aria-hidden="true">+</span>
+                          <span>
+                            <span className="sr-only">{labels.added}: </span>
+                            <ins className="no-underline">{fieldValue(label, after)}</ins>
+                          </span>
+                        </div>
                       </dd>
                     </div>
                   ))}
@@ -763,54 +720,59 @@ export function BlogHistoryReader({
               {!changes.length && diff.every((row) => row.kind === "context") && (
                 <p className="text-sm text-muted-foreground">{labels.noChanges}</p>
               )}
-              <div aria-label={labels.compare} className="space-y-0.5 text-sm leading-7">
-                {diff.map((row, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 px-3 py-2",
-                      row.kind === "removed"
-                        ? "bg-status-canceled/40 text-status-canceled-foreground"
-                        : row.kind === "added"
-                          ? "bg-status-success/40 text-status-success-foreground"
-                          : "text-muted-foreground",
-                    )}
-                  >
-                    <span
-                      aria-label={
+              <section aria-labelledby={`${labelsId}-markdown`} className="space-y-1 text-sm">
+                <h3 id={`${labelsId}-markdown`} className="font-medium">
+                  {labels.markdown}
+                </h3>
+                <div aria-label={labels.compare} className="space-y-0.5 leading-7">
+                  {diff.map((row, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 px-3 py-2",
                         row.kind === "removed"
-                          ? labels.removed
+                          ? removedTone
                           : row.kind === "added"
-                            ? labels.added
-                            : undefined
-                      }
-                      aria-hidden={row.kind === "context"}
-                    >
-                      {row.kind === "removed" ? "−" : row.kind === "added" ? "+" : ""}
-                    </span>
-                    <span className="wrap-anywhere whitespace-pre-wrap">
-                      {row.parts.map((part, partIndex) =>
-                        part.added || part.removed ? (
-                          <mark
-                            key={partIndex}
-                            data-change={part.removed ? "removed" : "added"}
-                            className={cn(
-                              "rounded-sm px-0.5 font-semibold text-inherit",
-                              part.removed ? "bg-status-canceled" : "bg-status-success",
-                            )}
-                          >
-                            {part.value}
-                          </mark>
-                        ) : (
-                          <span key={partIndex} className="text-muted-foreground">
-                            {part.value}
-                          </span>
-                        ),
+                            ? addedTone
+                            : "text-muted-foreground",
                       )}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                    >
+                      <span
+                        aria-label={
+                          row.kind === "removed"
+                            ? labels.removed
+                            : row.kind === "added"
+                              ? labels.added
+                              : undefined
+                        }
+                        aria-hidden={row.kind === "context"}
+                      >
+                        {row.kind === "removed" ? "−" : row.kind === "added" ? "+" : ""}
+                      </span>
+                      <span className="wrap-anywhere whitespace-pre-wrap">
+                        {row.parts.map((part, partIndex) =>
+                          part.added || part.removed ? (
+                            <mark
+                              key={partIndex}
+                              data-change={part.removed ? "removed" : "added"}
+                              className={cn(
+                                "rounded-sm px-0.5 font-semibold text-inherit",
+                                part.removed ? "bg-status-canceled" : "bg-status-success",
+                              )}
+                            >
+                              {part.value}
+                            </mark>
+                          ) : (
+                            <span key={partIndex} className="text-muted-foreground">
+                              {part.value}
+                            </span>
+                          ),
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           )
         ) : (

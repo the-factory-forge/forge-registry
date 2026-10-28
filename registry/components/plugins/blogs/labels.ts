@@ -1,3 +1,4 @@
+import type { BlogHistoryHeader } from "@/components/plugins/blogs/types";
 import { tableSelectionLabels } from "@/components/utils/table-selection-labels";
 
 export const blogsLabels = {
@@ -132,8 +133,13 @@ export const blogsLabels = {
   sourceUnavailable: "Source unavailable",
   newReprise: "Resume as draft",
   continueDraft: "Edit this draft",
-  publishVersion: "Publish this version",
+  replaceDraftTitle: "Replace the current draft?",
+  replaceDraftDescription:
+    "Resuming this version will replace the current draft. Its changes will be lost when you save. Live content stays unchanged.",
+  replaceDraft: "Replace draft",
+  publishVersion: "Publish draft",
   deleteVersion: "Delete version",
+  deleteDraft: "Delete draft",
   versionDeleted: "Version deleted.",
   versionMissing:
     "This version is no longer available. Return to your draft or select another version.",
@@ -159,11 +165,23 @@ export const blogsLabels = {
   discardChanges: "Discard changes",
   versionLabel: (number: number) => `v${number}`,
   historyCounts: (publications: number, drafts: number) =>
-    `Publications ${publications} / 5 · Drafts ${drafts} / 8`,
+    `Publications ${publications} / 5 · Drafts ${drafts} / 1`,
   resumedFrom: (source: string) => `From ${source}`,
   repriseLabel: (version: string) => `Reprise ${version}`,
   compareWith: (version: string) => `Compared with live ${version}`,
+  comparisonTitle: (live: string, selected: string) => `${live} (live) → ${selected}`,
+  comparedFields:
+    "Title, slug, summary, author, categories and illustrations are compared. Unchanged fields are hidden.",
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
 export type BlogsLabels = Omit<typeof blogsLabels, "close"> & { close?: string };
+
+export function blogHistoryLabel(
+  version: Pick<BlogHistoryHeader, "state" | "publicationOrder" | "number">,
+  labels: BlogsLabels,
+) {
+  return version.state === "draft"
+    ? labels.draft
+    : labels.versionLabel(version.publicationOrder ?? version.number);
+}

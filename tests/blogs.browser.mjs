@@ -515,7 +515,7 @@ await suite("Blogs browser", async () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.waitForURL(`${baseURL}/fr/blogs`);
-    await page.getByRole("heading", { name: "Our blog", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Notre blog", exact: true }).waitFor();
     await page.screenshot({ path: "/tmp/forge-blogs-desktop-light.png", fullPage: true });
   });
   await test("create, retained failures, duplicate prevention, drafts, attribution, and public navigation", async (t) => {
@@ -643,7 +643,10 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Directory state", { exact: true }).selectOption("loading");
     await page.getByRole("status").filter({ hasText: "Loading" }).waitFor();
     await page.getByLabel("Directory state", { exact: true }).selectOption("error");
-    await page.getByRole("alert").filter({ hasText: "Unable to load blog posts." }).waitFor();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "Something went wrong. Please try again." })
+      .waitFor();
     await page.getByRole("button", { name: "Retry", exact: true }).click();
     await page.getByRole("link", { name: "An idea for tomorrow", exact: true }).click();
     await page.getByRole("button", { name: "Publish", exact: true }).click();

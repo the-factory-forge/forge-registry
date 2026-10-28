@@ -23,6 +23,7 @@ const adapter = mock.client({
   admin: true,
   readOnly: false,
   fail: false,
+  missingImages: new URLSearchParams(location.search).has("missing-images"),
   consumeUploadFailure: () => {},
 });
 type Kind =
@@ -142,7 +143,8 @@ function Fixture() {
         if (value) held.add(kind);
         else held.delete(kind);
       },
-      replaceClient: (generation) => setGeneration((value) => generation ?? value + 1),
+      replaceClient: (generation) =>
+        flushSync(() => setGeneration((value) => generation ?? value + 1)),
       correct: () => mock.applyConcurrentCorrection(id),
       rerenderArticle: () => setArticle(mock.get(id)),
       switchArticle: (index = 1) => setArticle(mock.all()[index]),

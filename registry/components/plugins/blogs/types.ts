@@ -45,7 +45,9 @@ export interface BlogPublication extends BlogRevision {
   omittedAssetIds?: string[];
 }
 export interface BlogHistoryState {
+  /** Internal snapshot allocation; draft saves do not allocate publication numbers. */
   lastNumber: number;
+  /** Last visible publication number, retained after pruning or deletion. */
   lastPublicationOrder: number;
   currentId: string | null;
   publishedId: string | null;
@@ -78,7 +80,7 @@ export interface BlogHistoryVersion extends BlogHistoryHeader {
 }
 export interface BlogHistoryOrigin {
   versionId: string;
-  /** A fresh identity for each start from a publication; drafts retain theirs. */
+  /** Optional legacy provenance; drafts no longer form independent branches. */
   repriseId?: string;
 }
 export interface BlogHistoryTarget {

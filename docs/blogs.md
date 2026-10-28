@@ -505,42 +505,48 @@ Hosts own HTTP/action schemas, fresh session checks and query invalidation.
 Never import server code into the browser or treat a browser-supplied snapshot,
 actor name or deletion list as authoritative.
 
-Each language retains five publications and eight saved drafts across all
-reprises. Changed saves create a complete snapshot; unchanged saves preserve
-content identity and modification metadata. Publication promotes an existing
-identity and clears pending drafts for that language. Numbering never resets
-after deletion or pruning. Keep these values distinct:
+Each language retains five publications, including the live version, and at most
+one saved draft. Changed saves replace that draft atomically; unchanged saves
+preserve content identity and modification metadata. Publication promotes the
+current saved draft and clears its draft entry. Numbering never resets after
+deletion or pruning. Keep these values distinct:
 
-| Field                                              | Meaning                                                    |
-| -------------------------------------------------- | ---------------------------------------------------------- |
-| `article.version`                                  | Optimistic concurrency token for article mutations         |
-| `BlogHistoryHeader.number`                         | Visible version number within one language                 |
-| `BlogHistoryHeader.id`                             | Stable UUID used as `versionId` in history requests        |
-| `repriseId`                                        | Identity of an independent start and its subsequent drafts |
-| `sourcePublicationId` and `sourcePublicationOrder` | Return point, retained even if its snapshot is pruned      |
+| Field                      | Meaning                                             |
+| -------------------------- | --------------------------------------------------- |
+| `article.version`          | Optimistic concurrency token for article mutations  |
+| `BlogHistoryHeader.number` | Internal snapshot allocation within one language    |
+| `BlogHistoryHeader.id`     | Stable UUID used as `versionId` in history requests |
+| `sourcePublicationId`      | Captured source, which may later be pruned          |
 
-Start from a publication by saving with
-`origin: { versionId: publication.id, repriseId: crypto.randomUUID() }`.
-Generate a fresh reprise ID for each start, including repeated starts from the
-same publication. Editing a retained draft uses `origin: { versionId: draft.id }`.
-Ordinary saves continue the current draft. Merely reading a snapshot creates
-nothing. Only the current article author or an administrator may resume,
-republish or delete history; staff may inspect it and edit the ordinary draft.
-Hosts adopting history must authorize `reviewLegacyAuthor` for administrators
-only. An unknown historical signature remains unconfirmed when resumed; assigning
-its author requires this permission even if the caller currently owns the article.
+Only publications display a version number, taken from `publicationOrder`.
+Draft saves keep their internal snapshot allocation but display Draft, translated
+by the host. After v22, any number of draft saves still publishes as v23.
+Unpublishing and republishing an unchanged publication preserves its number.
+
+Resume a publication by saving with `origin: { versionId: publication.id }`.
+Even without further edits, historical inputs differing from current work create
+a distinct draft. Ordinary saves continue that draft. Legacy `repriseId` and
+source-order fields remain accepted metadata; they do not create branches or
+determine retention. Reading a snapshot creates nothing. Only the current article
+author or an administrator may resume or delete history and publish. Staff may
+inspect history and edit the ordinary draft. Hosts adopting history must authorize
+`reviewLegacyAuthor` for administrators only. An unknown historical signature
+remains unconfirmed when resumed; assigning its author requires this permission
+even if the caller currently owns the article.
 
 `history.list({ id, locale })` returns bounded headers without bodies.
 `history.get({ id, locale, versionId })` loads one authorized snapshot. Ordinary
 article/list responses carry current states and small history cursors only.
 Keep historical bodies out of host list caches and mutation acknowledgements.
 
-Before publishing a selected history version, request a server-derived plan:
+Resume historical content into the draft and save it before publishing. Request
+a server-derived plan for the current saved state:
 
 ```ts
+const versionId = article.translations[locale].history!.currentId!;
 const target = { id: article.id, version: article.version, locale, versionId };
 const plan = await client.history!.plan(target);
-// Show plan.discarded and plan.missingAssetIds, then await user confirmation.
+// Confirm missing-image omission when needed. Limit pruning is automatic.
 const updated = await client.history!.publish({
   ...plan.target,
   requestId: crypto.randomUUID(),
@@ -549,14 +555,14 @@ const updated = await client.history!.publish({
 });
 ```
 
-A historical return discards later publications and pending drafts only inside
-the successful publication transaction. A changed article or plan returns
-`CONFLICT`; obtain and confirm a new plan. The ordinary `publish` method rejects
-historical returns with `HISTORY_CONFIRMATION_REQUIRED`, so old clients and table
-badges cannot bypass confirmation. Individual deletion uses
-`history.delete({ ...target, requestId })` after confirmation; the live version
-is protected. Deleting the selected draft falls back to the latest draft, then
-the live state, then empty unsaved input, while preserving allocation counters.
+Publication preserves all successors of a resumed source. Only exceeding five
+publications removes the oldest one automatically, without a warning. This also
+applies to ordinary clients without history controls. A changed article or plan
+returns `CONFLICT`; refresh and retry, reconfirming any missing-image omission. Direct activation of an older publication is invalid.
+Individual deletion uses `history.delete({ ...target, requestId })` after
+confirmation; the live version is protected. Deleting the sole draft falls back
+to the live state, or empty unsaved input when nothing is live, while preserving
+allocation counters.
 
 Set `omitMissingImages` to true only after the user confirms the plan's missing
 illustrations. The effective publication excludes their image IDs and covers;
@@ -572,9 +578,8 @@ existing grace period. No image is copied for a content version.
 Pass the history-enabled client to both `BlogEditPage` and `BlogsPage`. The table
 still requires its existing `onSetPublished` callback for interactive badges;
 `client.history` lets publication obtain the same server plan as the editor.
-Existing hosts without the optional client retain ordinary controls. The server
-rejects a historical return sent through the old publish method until the host
-wires confirmation, so hiding history cannot bypass deletion protection.
+Existing hosts without the optional client retain ordinary controls. Historical publication targets are rejected by the server. Resumption always
+uses the ordinary draft save before publication.
 
 The editor uses [`@forge/content-sidebar-layout`](./content-sidebar-layout.md),
 included by the Blogs registry dependency. On desktop, the comparison and History buttons stick with the right-hand panel,
@@ -610,15 +615,30 @@ additional `beforeunload` handler. A successful, explicitly confirmed deletion
 bypasses blocking when returning to the list. Other hosts must wire their router;
 installing the component alone cannot intercept SPA history transitions.
 
-Every saved reprise has its own lane, including independent starts from the
-same live publication. Continued drafts retain their lane. Unsaved input has a
-preview without a saved number. The active 3px path paints above 1px inactive
-paths with a background gap at crossings. Mobile starts collapsed and returns
-focus to the selected content. Each saved version has a right-aligned actions menu
-with Compare and, when permitted, Delete. Selecting the row opens its read preview;
-Compare opens that version against the live publication. Deletion still requires
-confirmation. Version deletion is disabled while unsaved work
-is present and always protects the live row.
+History shows numbered publications and the optional unnumbered draft in
+chronological order. The editor labels Read and Compare as explicit modes.
+Comparison names both endpoints, for example v22 (live) to Draft. It compares
+title, slug, summary, author, categories and images along with Markdown; unchanged
+fields remain hidden and the interface states that rule.
+The reference endpoint and removed values share the red semantic treatment and
+minus marker; the selected endpoint and added values share green and plus.
+Changed metadata, including title, slug and summary, uses two stacked rows with
+the same treatments as Markdown. Accessible removed/added text supplements color.
+Every comparison block has a visible label; the Markdown block has its own
+heading and accessible section name, using the existing translated Markdown label.
+Unsaved input has a preview without a saved number. Mobile starts collapsed and
+returns focus to the selected content. Each saved version has a right-aligned
+actions menu with Compare and, when permitted, Delete. Selecting a row opens its
+read preview; Compare opens that version against the live publication. The
+working draft can also be compared before saving. Deletion requires confirmation,
+is disabled while unsaved work is present and always protects the live row.
+
+Resuming a publication asks for confirmation when a saved draft exists, even
+when it is clean. Cancel preserves that draft. Confirm prepares local input; only
+a successful Save replaces the persisted draft. Failure keeps both the saved
+state and local input for retry. After a conflicting refresh or client replacement,
+Save requires new consent before replacing a newer draft. Continuing the same
+draft does not show this warning. Publish becomes available after saving.
 
 The unified comparison uses the declared `diff` dependency to compare paragraphs
 and words as React text. Changed words carry stronger semantic backgrounds and
@@ -629,14 +649,25 @@ requires the explicit omission checkbox; transient storage errors remain errors.
 
 The showroom's **Load history example** control replaces the open article's demo
 content and history in both English and French. Each language receives its own
-localized text, five publications and four distinct reprises, including articles
+localized text, five publications and one draft, including articles
 without an existing French translation. Other articles stay unchanged.
 **Simulate concurrent correction** changes the open article as another writer,
 deliberately making its next save conflict. **History transport** demonstrates an
 existing custom client without history; **Simulate missing illustrations**
 exercises confirmed omission. All example data is in memory and resets on reload.
 
+The Blogs interface uses complete English, French, German and Italian labels in
+the showroom, including fields, statuses, errors, confirmations and image cropping.
+These dictionaries stay in `src/showroom/blogs-labels.ts`; consumers continue to
+supply their own `labels` and `imageCropLabels`. Admin routes retain the chosen
+interface language while the demo article content remains English/French. The
+showroom’s shared developer settings keep their existing English labels.
+
 ## History migration and rollback
+
+The one-draft simplification reuses the existing schema. The owner confirmed
+that no existing history data needs migration for this change. The adoption
+procedure below still applies to hosts that have not installed history storage.
 
 Generate and review the host migration from the exported schema. Hosts adopting
 history from older schemas then call the server-only

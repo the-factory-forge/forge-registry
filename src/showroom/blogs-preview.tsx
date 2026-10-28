@@ -23,6 +23,8 @@ import {
   blogCapabilities,
 } from "@/components/plugins/blogs";
 import { articleListItem } from "@/components/plugins/blogs/utils";
+import { isLocale } from "@/lib/i18n/config";
+import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 import {
   ShowroomLink as Link,
@@ -169,7 +171,7 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               </button>
               <p id={`${selectId}-history-example`} className="text-xs text-muted-foreground">
                 {article
-                  ? "Replaces this post’s demo content and history in English and French."
+                  ? "Loads five publications and one draft per language for this post."
                   : "Open a post in Manage posts to load its history example."}
               </p>
             </div>
@@ -248,7 +250,7 @@ export function BlogsAdminPreview() {
     setLastArticle(currentArticle);
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
-  const root = `/${locale}/admin/blogs`,
+  const root = `/${routeLocale}/admin/blogs`,
     actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
     capabilities = blogCapabilities(actor);
   const common = {
@@ -257,35 +259,7 @@ export function BlogsAdminPreview() {
     linkComponent: Link,
     client: state.client,
     capabilities,
-    labels:
-      locale === "fr"
-        ? {
-            history: "Historique",
-            closeHistory: "Fermer l’historique",
-            read: "Lire",
-            compare: "Comparer",
-            compareDraft: "Comparer le brouillon",
-            currentDraft: "Brouillon courant",
-            returnToDraft: "Revenir au brouillon",
-            unsavedDraft: "Brouillon non enregistré",
-            historyReadOnly: "Lecture seule. Votre brouillon reste conservé.",
-            historyEmpty: "Aucune version enregistrée dans cette langue.",
-            live: "En ligne",
-            publication: "Publication",
-            signature: "Signature de l’article",
-            savedBy: "Enregistrée par",
-            newReprise: "Reprendre comme brouillon",
-            continueDraft: "Modifier ce brouillon",
-            publishVersion: "Publier cette version",
-            deleteVersion: "Supprimer la version",
-            sourceUnavailable: "Source indisponible",
-            historyCounts: (publications: number, drafts: number) =>
-              `Publications ${publications} / 5 · Brouillons ${drafts} / 8`,
-            resumedFrom: (source: string) => `Depuis ${source}`,
-            repriseLabel: (version: string) => `Reprise ${version}`,
-            compareWith: (version: string) => `Comparaison avec la publication ${version}`,
-          }
-        : undefined,
+    labels: blogsPreviewLabels[isLocale(routeLocale) ? routeLocale : "en"],
   };
   if (segments[0] === "new")
     return (
@@ -315,12 +289,12 @@ export function BlogsAdminPreview() {
     if (!article)
       return (
         <p role="alert" className="p-8">
-          Article unavailable.{" "}
+          {common.labels.NOT_FOUND}{" "}
           <Link
             href={root}
             className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
           >
-            Back to posts
+            {common.labels.back}
           </Link>
         </p>
       );
@@ -340,6 +314,7 @@ export function BlogsAdminPreview() {
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
             : false
         }
+        imageCropLabels={blogsPreviewCropLabels[isLocale(routeLocale) ? routeLocale : "en"]}
         article={article}
         categories={state.mock.categories()}
         assets={state.mock.assets(article.id)}
@@ -396,7 +371,7 @@ export function BlogsAdminPreview() {
       newHref={`${root}/new`}
       categoriesHref={`${root}/categories`}
       loading={state.state === "loading"}
-      error={state.state === "error" ? "Unable to load blog posts." : undefined}
+      error={state.state === "error" ? common.labels.error : undefined}
       onRetry={() => state.setState("ready")}
     />
   );
@@ -415,6 +390,7 @@ export function BlogsPublicPreview() {
     assetUrl: state.mock.assetUrl,
     linkComponent: Link,
     categories: state.mock.categories(),
+    labels: blogsPreviewLabels[isLocale(locale) ? locale : "en"],
   };
   function href(next: { page?: number; category?: string | null }) {
     const query = new URLSearchParams();
@@ -430,12 +406,12 @@ export function BlogsPublicPreview() {
     if (!post)
       return (
         <p role="alert" className="p-8">
-          This translation is not published.{" "}
+          {common.labels.NOT_FOUND}{" "}
           <Link
             href={root}
             className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
           >
-            Back to posts
+            {common.labels.back}
           </Link>
         </p>
       );
@@ -480,7 +456,7 @@ export function BlogsPublicPreview() {
         categoryHref={(id) => href({ category: id })}
         pageHref={(next) => href({ page: next })}
         loading={state.state === "loading"}
-        error={state.state === "error" ? "Unable to load blog posts." : undefined}
+        error={state.state === "error" ? common.labels.error : undefined}
       />
     </div>
   );

@@ -241,6 +241,26 @@ await test("saving a draft leaves caller-owned article, history and input unchan
   assert.deepEqual({ article, input, context }, before);
 });
 
+await test("draft saves have no visible version and only a new publication advances it", async () => {
+  const { blogHistoryLabel, blogsLabels } =
+    await import("../registry/components/plugins/blogs/labels.ts");
+  const fixture = historyFixture();
+  const first = fixture.save("First").saved;
+  assert.equal(blogHistoryLabel(first, blogsLabels), "Draft");
+  const live = fixture.publish(first.id).saved;
+  assert.equal(blogHistoryLabel(live, blogsLabels), "v1");
+  for (let index = 0; index < 3; index++) {
+    const draft = fixture.save(`Draft ${index}`).saved;
+    assert.equal(blogHistoryLabel(draft, blogsLabels), "Draft");
+    assert.equal(blogHistoryLabel(draft, { ...blogsLabels, draft: "Brouillon" }), "Brouillon");
+    assert.equal(fixture.article.translations.en.history.lastPublicationOrder, 1);
+  }
+  const published = fixture.publish(fixture.article.translations.en.history.currentId).saved;
+  assert.equal(blogHistoryLabel(published, blogsLabels), "v2");
+  assert.equal(fixture.publish(published.id).saved.publicationOrder, 2);
+  assert.equal(fixture.article.translations.en.history.lastPublicationOrder, 2);
+});
+
 await test("changed saves allocate stable history numbers and unchanged saves keep concurrency state", () => {
   const fixture = historyFixture();
   const first = fixture.save("First").saved;
@@ -283,120 +303,83 @@ await test("account renames do not create versions and ordinary language edits d
   assert.equal(fixture.article.translations.en.shared.author.id, actor.id);
 });
 
-await test("starts from the same publication stay independent and continued drafts retain their source", () => {
+await test("changed saves replace the sole draft and keep publication provenance", () => {
   const fixture = historyFixture();
   const source = fixture.save("Source").saved;
   fixture.publish(source.id);
-  const first = fixture.save("First path", { versionId: source.id, repriseId: randomUUID() }).saved;
-  const second = fixture.save("First path", {
-    versionId: source.id,
-    repriseId: randomUUID(),
-  }).saved;
-  assert.notEqual(first.repriseId, second.repriseId);
-  assert.equal(first.content.markdown, second.content.markdown);
-  assert.equal(first.sourcePublicationId, source.id);
-  assert.equal(second.sourcePublicationId, source.id);
-  const continued = fixture.save("First path continued", { versionId: first.id }).saved;
-  assert.equal(continued.repriseId, first.repriseId);
-  assert.equal(continued.sourcePublicationId, source.id);
-  assert.equal(fixture.versions.filter((version) => version.state === "publication").length, 1);
-  assert.throws(
-    () => fixture.save("Invalid reuse", { versionId: source.id, repriseId: first.repriseId }),
-    { code: "CONFLICT" },
-  );
-});
-
-await test("eight drafts are retained across reprises and pruning never resets numbering or provenance", () => {
-  const fixture = historyFixture();
-  const source = fixture.save("Source").saved;
-  fixture.publish(source.id);
+  let latest;
   for (let index = 0; index < 9; index++)
-    fixture.save(`Path ${index}`, { versionId: source.id, repriseId: randomUUID() });
-  const drafts = fixture.versions.filter((version) => version.state === "draft");
-  assert.equal(drafts.length, 8);
-  assert.equal(
-    drafts.some((version) => version.number === 2),
-    false,
-  );
-  assert.throws(() => fixture.delete(source.id), { code: "IN_USE" });
-  fixture.publish(drafts.at(-1).id);
-  const reprise = fixture.save("Surviving path", {
-    versionId: source.id,
-    repriseId: randomUUID(),
-  }).saved;
-  fixture.delete(source.id);
-  const continued = fixture.save("Continued without source", { versionId: reprise.id }).saved;
+    latest = fixture.save(`Draft ${index}`, { versionId: source.id }).saved;
+  assert.equal(fixture.versions.length, 2);
+  assert.equal(fixture.versions.filter((v) => v.state === "draft").length, 1);
+  assert.equal(latest.number, 10);
+  assert.equal(latest.sourcePublicationId, source.id);
+  assert.equal(fixture.save("Draft 8").saved, null);
+  const continued = fixture.save("Continued").saved;
   assert.equal(continued.sourcePublicationId, source.id);
-  assert.equal(continued.sourcePublicationOrder, reprise.sourcePublicationOrder);
-  assert.equal(continued.repriseId, reprise.repriseId);
-  assert.ok(continued.number > 10);
+  assert.equal(continued.number, 11);
+  assert.throws(() => fixture.delete(source.id), { code: "IN_USE" });
 });
 
-await test("draft retention and visible counters are independent for each language", () => {
+await test("draft retention and counters are independent for each language", () => {
   const fixture = historyFixture();
   for (let index = 0; index < 8; index++) fixture.save(`Francais ${index}`, undefined, "fr");
   for (let index = 0; index < 9; index++) fixture.save(`English ${index}`);
-  assert.equal(fixture.versions.filter((version) => version.locale === "fr").length, 8);
-  assert.equal(fixture.versions.filter((version) => version.locale === "en").length, 8);
+  assert.equal(fixture.versions.filter((v) => v.locale === "fr").length, 1);
+  assert.equal(fixture.versions.filter((v) => v.locale === "en").length, 1);
   assert.equal(fixture.article.translations.fr.history.lastNumber, 8);
   assert.equal(fixture.article.translations.en.history.lastNumber, 9);
 });
 
-await test("historical publication discards only later publications and pending drafts in its language", () => {
+await test("an unedited historical resumption saves a new draft without truncating publications", () => {
   const fixture = historyFixture();
   const first = fixture.save("First").saved;
   fixture.publish(first.id);
+  const original = structuredClone(fixture.versions.find((v) => v.id === first.id));
   const second = fixture.save("Second").saved;
   fixture.publish(second.id);
   const french = fixture.save("Francais", undefined, "fr").saved;
   fixture.publish(french.id);
-  const reprise = fixture.save("Reworked first", {
-    versionId: first.id,
-    repriseId: randomUUID(),
-  }).saved;
-  const result = fixture.publish(reprise.id);
-  assert.equal(result.historicalReturn, true);
+  const resumed = fixture.save("First", { versionId: first.id }).saved;
+  assert.ok(resumed);
+  assert.notEqual(resumed.id, first.id);
+  assert.equal(fixture.article.translations.en.published.markdown, "Second");
   assert.deepEqual(
-    result.discarded.map((version) => version.id),
-    [second.id],
+    fixture.versions.find((v) => v.id === first.id),
+    original,
   );
-  assert.equal(fixture.article.translations.en.published.markdown, "Reworked first");
+  const result = fixture.publish(resumed.id);
+  assert.equal(result.historicalReturn, false);
+  assert.deepEqual(result.discarded, []);
+  assert.equal(fixture.article.translations.en.published.markdown, "First");
   assert.equal(fixture.article.translations.fr.published.markdown, "Francais");
-  assert.equal(
-    fixture.versions.some((version) => version.id === french.id),
-    true,
-  );
-  assert.ok(fixture.save("After rollback").saved.number > reprise.number);
+  assert.ok(fixture.versions.some((v) => v.id === second.id));
+  assert.ok(fixture.save("After resumption").saved.number > resumed.number);
 });
 
-await test("publication retention keeps five publications and direct reactivation keeps its content identity", () => {
+await test("publication retention keeps five and rejects direct historical activation", () => {
   const fixture = historyFixture();
   const ids = [];
   for (let index = 0; index < 6; index++) {
     const saved = fixture.save(`Publication ${index}`).saved;
     ids.push(saved.id);
-    fixture.publish(saved.id);
+    const result = fixture.publish(saved.id);
+    assert.deepEqual(
+      result.discarded.map((v) => v.id),
+      index === 5 ? [ids[0]] : [],
+    );
   }
   assert.equal(fixture.versions.length, 5);
-  assert.equal(
-    fixture.versions.some((version) => version.id === ids[0]),
-    false,
-  );
-  const original = structuredClone(fixture.versions.find((version) => version.id === ids[1]));
-  fixture.publish(ids[1]);
-  assert.equal(fixture.versions.length, 1);
-  assert.equal(fixture.versions[0].id, original.id);
-  assert.deepEqual(fixture.versions[0].content, original.content);
-  assert.equal(fixture.article.translations.en.history.lastNumber, 6);
+  const before = structuredClone({ article: fixture.article, versions: fixture.versions });
+  assert.throws(() => fixture.publish(ids[1]), { code: "INVALID" });
+  assert.deepEqual({ article: fixture.article, versions: fixture.versions }, before);
 });
 
-await test("deleting the selected draft falls back to the latest draft, live state, then empty input", () => {
+await test("deleting the sole draft falls back to live content or empty input", () => {
   const fixture = historyFixture();
-  const first = fixture.save("First").saved;
+  fixture.save("First");
   const second = fixture.save("Second").saved;
   fixture.delete(second.id);
-  assert.equal(fixture.article.translations.en.draft.title, "First");
-  fixture.delete(first.id);
   assert.equal(fixture.article.translations.en.draft.revisionId, null);
   assert.equal(fixture.article.translations.en.history.lastNumber, 2);
   const published = fixture.save("Live").saved;
@@ -406,7 +389,8 @@ await test("deleting the selected draft falls back to the latest draft, live sta
   assert.equal(fixture.article.translations.en.draft.title, "Live");
   assert.throws(() => fixture.delete(published.id), { code: "IN_USE" });
 });
-await test("restoring or deleting a current state does not leave stale shared image references", () => {
+
+await test("restoring or deleting a draft does not leave stale image references", () => {
   const oldImage = randomUUID(),
     newImage = randomUUID();
   const fixture = historyFixture(new Set([oldImage, newImage]));
@@ -420,7 +404,8 @@ await test("restoring or deleting a current state does not leave stale shared im
     thumbnailId: newImage,
   }).saved;
   fixture.publish(second.id);
-  fixture.publish(first.id);
+  const restored = fixture.save("Old image", { versionId: first.id }, "en", first.shared).saved;
+  fixture.publish(restored.id);
   assert.equal(fixture.article.shared.thumbnailId, oldImage);
   const empty = historyFixture(new Set([oldImage]));
   const only = empty.save("Only image", undefined, "en", {
