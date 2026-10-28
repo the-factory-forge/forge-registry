@@ -1736,6 +1736,7 @@ function useBlogEditorState(
     const unload = (event: BeforeUnloadEvent) => {
       if (state.current.dirty || state.current.pending) {
         event.preventDefault();
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the unsaved-draft warning in legacy browsers.
         event.returnValue = "";
       }
     };
