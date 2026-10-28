@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type SubmitEvent,
   useSyncExternalStore,
   type RefObject,
 } from "react";
@@ -391,7 +392,7 @@ function EditorForm({
     }
     return fields.validate(issues);
   }
-  async function save(event?: FormEvent, continueNavigation = false) {
+  async function save(event?: SubmitEvent<HTMLFormElement>, continueNavigation = false) {
     event?.preventDefault();
     if (pending) return false;
     if (!validate()) {
