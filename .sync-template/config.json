@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "projectRepository": "https://github.com/the-factory-forge/forge-registry",
+  "template": {
+    "url": "https://github.com/mugnavo/cove",
+    "ref": "refs/heads/main"
+  },
+  "lastReconciled": {
+    "commit": "ebd3e81a9fa91ba2f4c040012e3f3925352c16bf",
+    "version": null,
+    "date": "2026-10-03T14:31:50Z",
+    "evidence": "Migrated from .cove.jsonc, corroborated by docs/showroom.md. Source commit is present in the verified upstream main history; current showroom remains independent of forge-template."
+  },
+  "lastCompared": {
+    "commit": "211766d1d22932ce51f36bbb85a7dc4626541573",
+    "version": null,
+    "date": "2026-10-29",
+    "evidence": "Remote default branch verified with git ls-remote; comparison uses the exact committed source tree and the destination working tree.",
+    "remoteVerified": true
+  },
+  "deviations": [
+    {
+      "area": "Showroom uses simulated services",
+      "paths": [
+        "src/routes/",
+        "src/showroom/",
+        "src/lib/",
+        "package.json"
+      ],
+      "decision": "Keep mock authentication/data and showroom providers. Exclude upstream live auth, application database, Query integration, Varlock, logging, React Compiler, devtools and test-runner conversion.",
+      "reason": "Cove supplies the framework foundation; the showroom previews portable components without those application services. Better Auth/Drizzle dependencies used by server companions remain.",
+      "evidence": "docs/showroom.md, .cove.jsonc and inspected showroom source."
+    },
+    {
+      "area": "Portable registry and showroom identity",
+      "paths": [
+        "registry/",
+        "registry.json",
+        "src/showroom/",
+        "src/styles/",
+        "src/lib/i18n/",
+        "public/",
+        "tests/"
+      ],
+      "decision": "Preserve portable registry items/companions, framework shims, demo routes, themes, translations and Node tests.",
+      "reason": "Registry source and its separate showroom are project-owned capabilities, not upstream starter features.",
+      "evidence": "AGENTS.md and docs/showroom.md; current registry and showroom paths."
+    },
+    {
+      "area": "Registry delivery and development",
+      "paths": [
+        "package.json",
+        "Dockerfile",
+        "vite.config.ts",
+        "scripts/"
+      ],
+      "decision": "Keep Portless, Nitro deployment and official shadcn generation/consumer verification.",
+      "reason": "The registry owns its distribution workflow and runtime configuration.",
+      "evidence": "AGENTS.md and docs/showroom.md."
+    }
+  ]
+}

@@ -47,9 +47,10 @@ harnesses remain separate from the showroom.
 
 ## Updating from Cove
 
-Use the revision in [`.cove.jsonc`](../.cove.jsonc) as the start of the next
-upstream comparison. It records the last revision reviewed and reconciled with
-this repository, including intentionally excluded changes.
+Use the shared [sync-template skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/sync-template/SKILL.md)
+and [project config](../.sync-template/config.json) for the next comparison. The
+[HTML report](../.sync-template/report.html) records differences, exclusions and
+history, including the original `.cove.jsonc` marker. Cove remains the direct parent.
 
 1. Compare that revision with a fixed Cove commit and review its dependency,
    configuration and source changes. Keep the work in one registry-owned
@@ -66,8 +67,9 @@ this repository, including intentionally excluded changes.
 4. Update affected registry dependency declarations and regenerate `public/r/`
    through `pnpm registry:sync`. Validate a clean consumer installation as well
    as the showroom, production server, Portless and relevant storage suites.
-5. After verification, advance `.cove.jsonc` to the reviewed commit and record
-   the checks and remaining limitations in the owning change.
+5. After successful reconciliation and verification, advance the config’s
+   `lastReconciled` revision and refresh the HTML report. Partial or failed work
+   keeps the previous baseline and records outstanding work.
 
 Vite+ 1.3 pins its Vite core alias through the pnpm catalog. Its own Vitest 5
 dependency does not replace the repository's Node tests. Better Auth 1.7.12
