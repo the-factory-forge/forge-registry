@@ -28,6 +28,15 @@ requested items against actual imports, routes and wiring. Include companions an
 dependencies only as required; a plugin's presence is not permission to install
 every optional companion or re-enable absent intranet/auth.
 
+For each selected item, identify the expected customer behavior and trace its
+installed source, host callbacks/transport, authorization, cache updates and data
+prerequisites. An optional client method can preserve compatibility while leaving
+a requested feature invisible. Its optional type, or an earlier agent's exclusion
+note alone, is not evidence that the customer chose to exclude that behavior.
+Preserve confirmed product exclusions; complete missing integration within the
+authorized scope or report the behavior as pending. Ask only when a product choice
+is genuinely unresolved, not to reconfirm work already authorized.
+
 Resolve a selected published release to its verified full commit SHA. Use explicit
 user targets when supplied. If no release exists or an unreleased target is
 requested, record the exact commit and its unreleased status. A configured `main`
@@ -61,6 +70,12 @@ behavior/paths against current customer and incoming source, preserving explicit
 uncertainty. Do not invent a base, bulk-overwrite a file/tree, or use automatic
 ours/theirs resolution. Review renames/deletions and cleanly merged changes too.
 
+When source already matches the selected target, retain it and reconcile the
+missing host integration. Reuse verified retained installation inputs where they
+cover the same target, item closure and transformations; install again when they
+do not. A repeated sync may correctly produce no application changes. Do not
+overwrite newer host fixes or invent changes to demonstrate that the sync ran.
+
 Keep customer branding, translations, routes, authorization, persistence and
 business rules, including deliberate changes inside installed source. Preserve
 host shims/adapters and newer site-owned fixes. Check incoming new files, imports,
@@ -82,12 +97,28 @@ translations, layout/themes and optional-feature boundaries as applicable. A
 textually clean merge, JSON parse or showroom preview does not prove the site's
 behavior. Do not send production email or use production data to validate.
 
+Exercise the actual host adapter and visible customer journey, not only the
+portable source or persistence companion. For a missing integration, first
+reproduce the absent behavior, then verify it works through that same host path.
+Include relevant access refusals and failure recovery. Record skipped fixtures
+and checks as unverified; a passing command with the affected test skipped is not
+evidence for that behavior. Inspect existing check/test scripts and PR workflows;
+report unwired checks without creating unrelated CI work unless authorized.
+
 Update the existing site sync record, or use `docs/registry-sync.md` when none
 exists. Record target, base evidence and retained baseline inputs, item/companion
 scope, path transformations, exclusions, local deviations, passed/blocked checks
 and outstanding work. A partial update advances only its proven scope; unknown
 baselines remain unknown. Do not mark an entire plugin current after one backport.
 Update any existing adoption record consistently without assuming the future schema.
+
+In that same record, distinguish source installed, host integration connected,
+journey verified, intentionally excluded with decision evidence, and pending work
+for each expected capability. Record data preparation separately from source
+adoption. State the tested customer commit or exact pre-commit tree. Later runtime
+changes require affected checks again; documentation-only changes may reuse tests
+when the relevant runtime files are proved unchanged. Surface missing expected
+behavior in the handoff, not only in a linked technical report.
 
 Refresh the central inventory's dated evidence and update status for the authorized
 site, preserving unrelated follow-ups. Failed/incomplete work stays pending; local
