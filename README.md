@@ -13,7 +13,7 @@ for version choice, required checks, publication and recovery.
 
 Use the shared [release skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md)
 to prepare the version in `package.json`, [release notes](docs/releases/), and a local
-commit and annotated tag. [Release configuration](.agents/.release.json) keeps
+commit and annotated tag. [Release configuration](.agents/configs/.release/config.json) keeps
 these review files in source and enables direct GitHub publication after an
 authorized `--push`; `--local` keeps preparation local. Inspect remote release history before publication; verified
 tags and their full commit SHA identify published source. Releasing source does not

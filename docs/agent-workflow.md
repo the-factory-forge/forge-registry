@@ -32,7 +32,7 @@ dedicated to the task.
 
 For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
-Read [.agents/.release.json](../.agents/.release.json) for version files, tagging,
+Read [.agents/configs/.release/config.json](../.agents/configs/.release/config.json) for version files, tagging,
 note storage and publication defaults. `package.json` owns the version; keep
 reviewed notes in `docs/releases/v<version>.md`. Preparation creates a local
 commit and annotated tag; `--push` also completes configured GitHub publication,
