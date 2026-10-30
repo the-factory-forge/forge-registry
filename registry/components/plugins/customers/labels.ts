@@ -12,7 +12,7 @@ export const customerLabels = {
   searchPlaceholder: "Search customers…",
   loading: "Loading customers…",
   empty: "No customers found.",
-  create: "Create customer",
+  create: "Create",
   newTitle: "New customer",
   newDescription: "Add a customer and their contact details.",
   back: "Back to customers",

@@ -55,7 +55,7 @@ await test("device control changes only the main page CSS width without frames o
   assert.deepEqual(documents, []);
   await control.click();
   await control.click();
-  await page.getByRole("link", { name: "Create project", exact: true }).click();
+  await page.getByRole("link", { name: "Create", exact: true }).click();
   await page.waitForURL(/\/en\/projects\/new/);
   assert.equal(await main.evaluate((element) => element.getBoundingClientRect().width), 768);
   await page.goBack();

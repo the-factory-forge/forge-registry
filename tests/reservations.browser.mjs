@@ -392,7 +392,7 @@ await suite("Reservations browser", async () => {
     await page.waitForURL((url) => url.searchParams.get("date") === date);
     await page.reload();
     await grid.locator(`[data-date="${date}"][aria-pressed="true"]`).waitFor();
-    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByLabel("Date", { exact: true }).waitFor();
     assert.equal(await page.getByLabel("Date", { exact: true }).inputValue(), date);
     await page.goBack();
@@ -497,7 +497,11 @@ await suite("Reservations browser", async () => {
 
   await test("settings editors, server-style failures, new resources, closures and shared state", async (t) => {
     const page = await preview(t, "/en/admin/reservations/settings");
-    await page.getByRole("link", { name: "New resource", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Resources", exact: true })
+      .locator("..")
+      .getByRole("link", { name: "Create", exact: true })
+      .click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Jordan");
     await page.getByRole("checkbox", { name: "Active", exact: true }).check();
     const monday = page.getByRole("group", { name: "Monday", exact: true });
@@ -514,7 +518,11 @@ await suite("Reservations browser", async () => {
     await page.getByRole("button", { name: "Archive", exact: true }).waitFor();
     await page.getByRole("link", { name: "Back", exact: true }).click();
     await page.getByText("Jordan", { exact: true }).waitFor();
-    await page.getByRole("link", { name: "New service", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Services", exact: true })
+      .locator("..")
+      .getByRole("link", { name: "Create", exact: true })
+      .click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Consultation");
     await page.getByRole("spinbutton", { name: "Duration (minutes)", exact: true }).fill("30");
     await page.getByRole("checkbox", { name: "Alex", exact: true }).check();
@@ -654,14 +662,14 @@ await suite("Reservations browser", async () => {
     for (const suffix of ["", "?view=listWeek&status=pending&ref=shared#factory-preview"]) {
       const page = await preview(t, `/en/admin/reservations${suffix}`);
       const calendarUrl = page.url();
-      await page.getByRole("link", { name: "New reservation", exact: true }).click();
+      await page.getByRole("link", { name: "Create", exact: true }).click();
       await page.waitForURL((url) => url.pathname.endsWith("/new"));
       const creationUrl = page.url();
       await page.getByLabel("Date", { exact: true }).waitFor();
       await page.reload();
       await page.goBack();
       await page.waitForURL(calendarUrl);
-      await page.getByRole("link", { name: "New reservation", exact: true }).waitFor();
+      await page.getByRole("link", { name: "Create", exact: true }).waitFor();
       await page.goForward();
       await page.waitForURL(creationUrl);
       await page.getByRole("heading", { name: "New reservation", exact: true }).waitFor();
@@ -675,7 +683,7 @@ await suite("Reservations browser", async () => {
       "/en/admin/reservations?view=listWeek&status=pending&ref=shared#factory-preview",
     );
     const calendarUrl = page.url();
-    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.waitForURL((url) => url.pathname.endsWith("/new"));
     const creationUrl = page.url();
     assert.equal(new URL(creationUrl).search, new URL(calendarUrl).search);
@@ -692,7 +700,7 @@ await suite("Reservations browser", async () => {
     await page.waitForURL(creationUrl);
     await page.getByRole("link", { name: "Back", exact: true }).click();
     await page.waitForURL(calendarUrl);
-    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByRole("button", { name: /^09:00(?: AM)?$/ }).click();
     await page.getByLabel("Name", { exact: true }).fill("Page Guest");
     await page.getByLabel("Email", { exact: true }).fill("page@example.test");
@@ -734,7 +742,7 @@ await suite("Reservations browser", async () => {
   await test("staff create, filter, reschedule and reject a manual request", async (t) => {
     const page = await preview(t, "/en/admin/reservations");
     await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("clinic");
-    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.waitForURL(/\/new(?:\?|$)/);
     assert.equal(await page.getByRole("dialog").count(), 0);
     const form = page.locator("form");
@@ -1020,7 +1028,11 @@ await suite("Reservations browser", async () => {
   await test("staff configures stay policy and creates a manually approved stay", async (t) => {
     const page = await preview(t, "/en/admin/reservations/settings");
     await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
-    await page.getByRole("link", { name: "New service", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Services", exact: true })
+      .locator("..")
+      .getByRole("link", { name: "Create", exact: true })
+      .click();
     assert.equal(await page.getByLabel("Duration (minutes)", { exact: true }).count(), 0);
     assert.equal(await page.getByLabel("Earliest arrival", { exact: true }).inputValue(), "");
     assert.equal(await page.getByLabel("Checkout time", { exact: true }).inputValue(), "");
@@ -1036,7 +1048,7 @@ await suite("Reservations browser", async () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.waitForURL(/\/services\/(?!new)[^/]+$/);
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
-    await page.getByRole("link", { name: "New reservation", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     const form = page.locator("form");
     await form
       .getByRole("combobox", { name: "Stay offering", exact: true })
@@ -1104,7 +1116,11 @@ await suite("Reservations browser", async () => {
 
     await page.getByRole("link", { name: "Staff calendar", exact: true }).click();
     await page.getByRole("link", { name: "Settings", exact: true }).click();
-    await page.getByRole("link", { name: "New resource", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Resources", exact: true })
+      .locator("..")
+      .getByRole("link", { name: "Create", exact: true })
+      .click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Night shift");
     await page.getByRole("checkbox", { name: "Active", exact: true }).check();
     const sunday = page.getByRole("group", { name: "Sunday", exact: true });
@@ -1114,7 +1130,11 @@ await suite("Reservations browser", async () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.getByRole("button", { name: "Archive", exact: true }).waitFor();
     await page.getByRole("link", { name: "Back", exact: true }).click();
-    await page.getByRole("link", { name: "New service", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Services", exact: true })
+      .locator("..")
+      .getByRole("link", { name: "Create", exact: true })
+      .click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Night appointment");
     await page.getByRole("spinbutton", { name: "Duration (minutes)", exact: true }).fill("30");
     await page.getByRole("checkbox", { name: "Night shift", exact: true }).check();

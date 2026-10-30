@@ -308,12 +308,12 @@ export function ReservationsCalendar({
             (config.value?.services.some((s) => s.active && !s.archived) ? (
               <HostLink className={primaryClass} href={newHref}>
                 <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.newBooking}
+                {labels.createAction ?? labels.newBooking}
               </HostLink>
             ) : (
               <button type="button" className={primaryClass} disabled>
                 <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.newBooking}
+                {labels.createAction ?? labels.newBooking}
               </button>
             ))}
         </div>

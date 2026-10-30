@@ -218,8 +218,14 @@ a shortcut to destructive confirmations or standalone page forms. The
 `@forge/dialog-submit` utility ships with Drive, Employees, Menus and Reservations;
 their existing showroom examples demonstrate it.
 
-Default action and field labels use sentence case, such as **Create customer**
-and **Save changes**. Employee account actions use **employee** consistently.
+Default action and field labels use sentence case, such as **Create** and
+**Save changes**. Primary actions omit the resource already named by their
+section: **Invite** in Employees and **Create** in resource lists. Keep the
+object when it distinguishes actions, such as **New folder** beside file uploads.
+Form headings and destructive confirmations remain descriptive. Translate
+`createAction` for Blogs, Menus and Reservations, and `addTitle` for the employee
+invitation dialog, alongside existing label overrides. Employee account actions
+use **employee** consistently.
 Success messages name the completed action without an added “successfully”.
 Brief save, update and action confirmations use fixed, dismissible
 [`@forge/action-toast`](./action-toast.md) notifications. Validation errors and

@@ -186,7 +186,8 @@ function ReservationSettingsPageContent({
                   href={kind === "service" ? getServiceHref("new") : getResourceHref("new")}
                 >
                   <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                  {kind === "service" ? labels.newService : labels.newResource}
+                  {labels.createAction ??
+                    (kind === "service" ? labels.newService : labels.newResource)}
                 </HostLink>
               </div>
               <ul className="divide-y divide-border">

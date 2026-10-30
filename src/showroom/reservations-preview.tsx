@@ -118,6 +118,7 @@ const french: ReservationLabels = {
   saving: "Enregistrement…",
   all: "Tous",
   status: "Statut",
+  createAction: "Créer",
   newBooking: "Nouvelle réservation",
   outsideHours: "En dehors des horaires actuels",
   emailFailed: "Échec de l'envoi de l'e-mail",

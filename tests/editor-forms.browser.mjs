@@ -132,8 +132,8 @@ void test("publishing points to a selected category missing its translation", as
 });
 
 for (const [path, action, name] of [
-  ["/en/customers/new", "Create customer", "Full name *"],
-  ["/en/projects/new", "Create project", "Name *"],
+  ["/en/customers/new", "Create", "Full name *"],
+  ["/en/projects/new", "Create", "Name *"],
 ]) {
   void test(`${path} uses shared correction focus and sticky actions`, async (t) => {
     const page = await open(t, path, 390);

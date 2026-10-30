@@ -311,7 +311,7 @@ function AgentKeysContent({
         onOpenChange={(open) => {
           if (!lock.current) setCreating(open);
         }}
-        title={labels.createKey}
+        title={labels.newKey}
         description={labels.createDescription}
       >
         <form

@@ -975,7 +975,7 @@ void test("history keeps loaded rows during read failure and a new article expla
   await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
   await counts(page, 5, 1);
   await page.getByRole("link", { name: "Manage posts", exact: true }).click();
-  await page.getByRole("link", { name: "New post", exact: true }).click();
+  await page.getByRole("link", { name: "Create", exact: true }).click();
   await page.getByRole("textbox", { name: "Title *", exact: true }).fill("Empty history example");
   await page.getByRole("button", { name: "Create draft", exact: true }).click();
   await page.getByText("No saved versions in this language yet.", { exact: true }).waitFor();

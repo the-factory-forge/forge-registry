@@ -27,7 +27,7 @@ async function editor(t, create = false) {
   await page.goto(base + directory);
   await page
     .getByRole("link", {
-      name: create ? "New item" : "Edit item: Burrata with tomatoes",
+      name: create ? "Create" : "Edit item: Burrata with tomatoes",
       exact: true,
     })
     .click();

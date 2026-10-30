@@ -59,7 +59,7 @@ await suite("Projects browser", async () => {
       await page.getByRole("button", { name: "Delete project", exact: true }).count(),
       0,
     );
-    assert.equal(await page.getByRole("link", { name: "Create project", exact: true }).count(), 0);
+    assert.equal(await page.getByRole("link", { name: "Create", exact: true }).count(), 0);
     const row = page.getByRole("row").filter({ hasText: "Studio website" });
     assert.equal(await page.getByRole("columnheader", { name: "Website", exact: true }).count(), 0);
     assert.equal(await row.getByRole("cell").count(), 5);
@@ -69,7 +69,7 @@ await suite("Projects browser", async () => {
 
   await test("create validates basic inputs, host ownership, failures and duplicate submission", async (t) => {
     const page = await preview(t, "/en/projects/new");
-    const submit = page.getByRole("button", { name: "Create project", exact: true });
+    const submit = page.getByRole("button", { name: "Create", exact: true });
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a project name" }).waitFor();
     await page.getByLabel("Name *", { exact: true }).fill("   ");
@@ -128,11 +128,11 @@ await suite("Projects browser", async () => {
     await page.getByLabel("Projects integration", { exact: true }).check();
     await page.getByText("No projects found.", { exact: true }).waitFor();
     assert.equal(await page.getByRole("columnheader", { name: "Owner", exact: true }).count(), 0);
-    await page.getByRole("link", { name: "Create project", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await assertBasicFields(page);
     assert.equal(await page.getByLabel("Customer for this host example").count(), 0);
     await page.getByLabel("Name *", { exact: true }).fill("Sam's project");
-    await page.getByRole("button", { name: "Create project", exact: true }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await page.getByRole("heading", { name: "Sam's project", exact: true }).waitFor();
     await assertBasicFields(page);
     await page.getByLabel("Drive integration", { exact: true }).uncheck();
@@ -264,7 +264,7 @@ await suite("Projects browser", async () => {
         for (const [view, link] of [
           ["detail", null],
           ["list", "Back to projects"],
-          ["new", "Create project"],
+          ["new", "Create"],
         ]) {
           if (link) await page.getByRole("link", { name: link, exact: true }).click();
           if (view === "list")

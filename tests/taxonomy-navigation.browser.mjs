@@ -25,7 +25,7 @@ const cases = [
     save: "Save category",
     open: async (page, create) => {
       await page
-        .getByRole("button", { name: create ? "New category" : "Ideas & practice", exact: true })
+        .getByRole("button", { name: create ? "Create" : "Ideas & practice", exact: true })
         .click();
     },
     input: (page) =>
@@ -43,7 +43,13 @@ const cases = [
     original: "Vegetarian",
     save: "Save",
     open: async (page, create) => {
-      if (create) await page.getByRole("button", { name: "New label", exact: true }).click();
+      if (create)
+        await page
+          .locator("section")
+          .filter({ has: page.getByRole("heading", { name: "Labels", exact: true }) })
+          .last()
+          .getByRole("button", { name: "Create", exact: true })
+          .click();
       else
         await page
           .getByRole("listitem")

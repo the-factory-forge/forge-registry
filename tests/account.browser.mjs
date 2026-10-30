@@ -57,7 +57,7 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   await page.getByText("You signed in with GitHub", { exact: true }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Reset password", exact: true }).count(), 0);
   await page.getByRole("cell", { name: "Expired", exact: true }).waitFor();
-  await page.getByRole("button", { name: "Create key", exact: true }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   const dialog = page.getByRole("dialog");
   const expiry = dialog.getByLabel("Expiry date and time");
   const { defaultLifetime, maxLifetime, max } = await expiry.evaluate((input) => ({
@@ -69,12 +69,12 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   assert.ok(maxLifetime > 89 * 86400000 && maxLifetime <= 90 * 86400000);
   await dialog.getByLabel("Name", { exact: true }).fill("Integration");
   await dialog.getByLabel("Expiry date and time").fill("2020-01-01T12:00");
-  await dialog.getByRole("button", { name: "Create key", exact: true }).click();
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await dialog.getByRole("alert").waitFor();
   assert.equal(await page.getByTestId("callback-count").textContent(), "2");
   for (const offset of [60000, 86400000]) {
     await expiry.fill(new Date(Date.parse(`${max}Z`) + offset).toISOString().slice(0, 16));
-    await dialog.getByRole("button", { name: "Create key", exact: true }).click();
+    await dialog.getByRole("button", { name: "Create", exact: true }).click();
     assert.equal(await expiry.evaluate((input) => input.validity.rangeOverflow), true);
     assert.equal(await page.getByTestId("callback-count").textContent(), "2");
   }
@@ -83,7 +83,7 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   await dialog.getByLabel("Expiry date and time").fill(future.toISOString().slice(0, 16));
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Create key", exact: true }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   await dialog.getByLabel("Name", { exact: true }).fill("Integration");
   await dialog.locator("form").evaluate((form) => {
     form.requestSubmit();
@@ -94,10 +94,10 @@ void test("account preserves failed drafts, blocks duplicate callbacks, and clea
   assert.equal(await dialog.getByLabel("Name", { exact: true }).inputValue(), "Integration");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByLabel("Simulate action failures").uncheck();
-  await page.getByRole("button", { name: "Create key", exact: true }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   await dialog.getByLabel("Name", { exact: true }).fill("Integration");
   await expiry.fill(await expiry.getAttribute("max"));
-  await dialog.getByRole("button", { name: "Create key", exact: true }).click();
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
   await page.getByRole("heading", { name: "Key created", exact: true }).waitFor();
   assert.match(await page.getByLabel("New agent key").inputValue(), /^forge_key_preview/);
   await page.getByRole("button", { name: "Done", exact: true }).click();
@@ -138,7 +138,7 @@ void test("account retries loading, resets credential passwords, and revokes onl
   assert.equal(await page.getByRole("button", { name: "Sign out", exact: true }).count(), 0);
   await page.getByLabel("Simulate load failure").check();
   await page
-    .getByRole("button", { name: "Create key", exact: true })
+    .getByRole("button", { name: "Create", exact: true })
     .isDisabled()
     .then((value) => assert.equal(value, true));
   await page.getByRole("button", { name: "Try again", exact: true }).first().click();
@@ -165,7 +165,7 @@ void test("host account content replaces default panels and creation remains a h
   await page.getByLabel("Simulate action failures").uncheck();
   await page.getByLabel("Allow key creation").uncheck();
   await page.getByRole("tab", { name: "Security", exact: true }).click();
-  assert.equal(await page.getByRole("button", { name: "Create key", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Create", exact: true }).count(), 0);
   await page.getByRole("button", { name: "Delete Expired integration", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
   await page

@@ -18,7 +18,7 @@ export type AccountLabels = typeof accountLabels;
 export const securityLabels = {
   keys: "Agent keys",
   keysDescription: "Manage keys for integrations enabled on this site.",
-  createKey: "Create key",
+  createKey: "Create",
   loadingKeys: "Loading keys…",
   keysError: "Could not load your keys. Please try again.",
   retry: "Try again",

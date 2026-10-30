@@ -75,7 +75,7 @@ await suite("Dialog submit browser", async () => {
 
   await test("employee creation and editing support both platform shortcuts", async (t) => {
     const page = await preview(t, "/en/employees");
-    await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+    await page.getByRole("button", { name: "Invite", exact: true }).click();
     const create = page.getByRole("dialog", { name: "Invite employee", exact: true });
     await create.getByRole("textbox", { name: "Name", exact: true }).fill("Shortcut Employee");
     await create.getByRole("textbox", { name: "Email", exact: true }).fill("shortcut@example.test");
@@ -97,7 +97,12 @@ await suite("Dialog submit browser", async () => {
       viewport: { width: 390, height: 844 },
     });
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
-    await page.getByRole("button", { name: "New category", exact: true }).click();
+    await page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Categories", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create", exact: true })
+      .click();
     const dialog = page.getByRole("dialog", { name: "New category", exact: true });
     await dialog.getByRole("textbox", { name: /Name.*English/ }).fill("Shortcut category");
     await page.screenshot({ path: "/tmp/forge-modal-shortcut-mobile-dark.png" });

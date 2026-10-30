@@ -60,12 +60,22 @@ void test("late mutations from an old client cannot change or refresh the curren
   await page.getByText("B category", { exact: true }).waitFor();
   await calls(page, 5);
   assert.equal(
-    await page.getByRole("button", { name: "New category", exact: true }).isEnabled(),
+    await page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Categories", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create", exact: true })
+      .isEnabled(),
     true,
   );
   await page.evaluate(() => window.taxonomyTest.holdReads(true));
   await resolve(page, 2);
-  await page.getByRole("button", { name: "New category", exact: true }).waitFor();
+  await page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Categories", exact: true }) })
+    .last()
+    .getByRole("button", { name: "Create", exact: true })
+    .waitFor();
   assert.equal(await page.getByText("B category", { exact: true }).isVisible(), true);
   assert.equal(await page.getByText("Saved A", { exact: true }).count(), 0);
   assert.equal(await page.evaluate(() => window.taxonomyTest.calls.length), 5);
@@ -95,7 +105,12 @@ void test("returning to the same client starts a new session and ignores its old
   await reject(page, 4);
   assert.equal(await page.getByText("A label (dietary)", { exact: true }).isVisible(), true);
   assert.equal(
-    await page.getByRole("button", { name: "New label", exact: true }).isEnabled(),
+    await page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Labels", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create", exact: true })
+      .isEnabled(),
     true,
   );
   assert.equal(await page.getByRole("alert").count(), 0);
@@ -112,7 +127,12 @@ void test("canonical saves stay visible while refresh gates the next write and r
   await calls(page, 5);
   await page.getByText("Saved category", { exact: true }).waitFor();
   assert.equal(
-    await page.getByRole("button", { name: "New label", exact: true }).isDisabled(),
+    await page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Labels", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create", exact: true })
+      .isDisabled(),
     true,
   );
   assert.equal(
@@ -166,7 +186,11 @@ void test("deletion retains its confirmation and row on failure, then refreshes 
 for (const kind of ["category", "label"]) {
   void test(`creating a ${kind} replaces its temporary row with the canonical ID`, async (t) => {
     const page = await fixture(t);
-    await page.getByRole("button", { name: `New ${kind}`, exact: true }).click();
+    await page
+      .getByRole("heading", { name: kind === "category" ? "Categories" : "Labels", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Create", exact: true })
+      .click();
     const form = dialog(page, `New ${kind}`);
     await form.getByRole("textbox").fill("Created");
     await form.getByRole("button", { name: "Save", exact: true }).click();

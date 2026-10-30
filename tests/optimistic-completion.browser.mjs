@@ -94,7 +94,7 @@ void test("an obsolete optimistic attempt cannot accept or unlock the replacemen
 for (const success of [true, false])
   void test(`employee completion after permission replacement stays silent (${success})`, async (t) => {
     const page = await fixture(t, "employee");
-    await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+    await page.getByRole("button", { name: "Invite", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
     await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("New employee");
     await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("employee@example.test");

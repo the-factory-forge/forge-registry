@@ -6,7 +6,7 @@ export const projectLabels = {
   title: "Projects",
   description: "Manage your projects, owners, and assignees.",
   customerDescription: "Projects owned by this customer.",
-  create: "Create project",
+  create: "Create",
   newTitle: "New project",
   newDescription: "Add the project name, status, and description.",
   detailsTitle: "Project details",

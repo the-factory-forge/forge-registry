@@ -201,7 +201,7 @@ function MenuItemsPageContent({
             )}
             <HostLink href={newHref} className={primary}>
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-              {labels.newItem}
+              {labels.createAction ?? labels.newItem}
             </HostLink>
           </div>
         </header>

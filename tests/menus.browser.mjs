@@ -51,7 +51,12 @@ await suite("Menus browser", async () => {
     await page.keyboard.press("Enter");
     await page.waitForURL("**/en/admin/menus/taxonomy");
     await page.getByRole("heading", { name: "Labels", exact: true }).waitFor();
-    await page.getByRole("button", { name: "New label", exact: true }).waitFor();
+    await page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Labels", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create", exact: true })
+      .waitFor();
   });
 
   await test("homepage links, public visibility, sold out labels, language fallback, and themes", async (t) => {
@@ -231,7 +236,7 @@ await suite("Menus browser", async () => {
 
   await test("staff creates, edits, and publishes an item; failure retains the draft", async (t) => {
     const page = await preview(t, "/en/admin/menus");
-    await page.getByRole("link", { name: "New item" }).click();
+    await page.getByRole("link", { name: "Create" }).click();
     const frenchTab = page.getByRole("tab", { name: "Français" });
     await frenchTab.click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Soupe de saison");
@@ -508,7 +513,7 @@ await suite("Menus browser", async () => {
     await actionToast(page, "Saved.");
     assert.deepEqual(await names(), ["House pasta", "Burrata with tomatoes", "Homemade lemonade"]);
     await touch.detach();
-    await page.getByRole("link", { name: "New item", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     assert.equal(
       await page.getByRole("spinbutton", { name: "Display order", exact: true }).count(),
       0,
@@ -656,7 +661,7 @@ await suite("Menus browser", async () => {
   await test("staff saves translated size prices and guests select sizes with keyboard controls", async (t) => {
     const page = await preview(t, "/en/admin/menus");
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("link", { name: "New item", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByRole("textbox", { name: "Name *", exact: true }).fill("Margherita pizza");
     await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("22.00");
     await page.getByRole("button", { name: "Add size", exact: true }).click();
@@ -786,7 +791,11 @@ await suite("Menus browser", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("link", { name: "Categories / Labels" }).click();
-    const addLabel = page.getByRole("button", { name: "New label" });
+    const addLabel = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Labels", exact: true }) })
+      .last()
+      .getByRole("button", { name: "Create" });
     await addLabel.focus();
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog", { name: "New label" });

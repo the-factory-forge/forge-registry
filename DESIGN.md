@@ -277,6 +277,9 @@ to the shared preview frame, which owns positioning and responsive behavior.
 ShowroomIntro supplies consistent demo headings and instructions where the component
 has none. Notices below controls explain sample-data resets or simulated actions.
 Action and field labels use sentence case throughout the administrative plugins.
+Primary actions use a short verb when their section already names the resource:
+Invite in Employees and Create in resource lists. Keep objects that distinguish
+actions, descriptive form headings and explicit destructive confirmations.
 
 ## Do's and Don'ts
 

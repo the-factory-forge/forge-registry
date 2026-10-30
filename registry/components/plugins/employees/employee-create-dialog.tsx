@@ -85,7 +85,7 @@ export function EmployeeCreateDialog({
           >
             <div className="flex items-start justify-between gap-3">
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
-                {labels.add}
+                {labels.addTitle ?? labels.add}
               </Dialog.Title>
               <IconTooltip label={labels.close}>
                 <Dialog.Close

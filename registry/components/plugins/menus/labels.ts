@@ -43,6 +43,7 @@ export interface MenusLabels extends TableSelectionLabels {
   unsavedTitle?: string;
   unsavedDescription?: string;
   discardChanges?: string;
+  createAction?: string;
   newItem: string;
   editItem: string;
   actions?: string;
@@ -137,6 +138,7 @@ export const menusLabels = {
   unsavedTitle: "Keep your changes?",
   unsavedDescription: "Save your changes or discard them before continuing.",
   discardChanges: "Discard changes",
+  createAction: "Create",
   newItem: "New item",
   editItem: "Edit item",
   actions: "Actions",

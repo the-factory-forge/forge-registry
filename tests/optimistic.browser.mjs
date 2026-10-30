@@ -138,7 +138,7 @@ void test("blog publication state changes immediately and rolls back", async (t)
 void test("employee creation appears immediately and disappears on failure without losing inputs", async (t) => {
   const page = await preview(t, "/en/employees");
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  await page.getByRole("button", { name: "Invite", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Optimistic employee");
   await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("optimistic@example.test");

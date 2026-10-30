@@ -118,13 +118,10 @@ await test("employee pages show content only to administrators", async (t) => {
     await page.getByLabel("Preview as").selectOption(role);
     await page.getByRole("table").waitFor({ state: "hidden" });
     assert.equal(await page.getByText("alex@example.test", { exact: true }).count(), 0);
-    assert.equal(
-      await page.getByRole("button", { name: "Invite employee", exact: true }).count(),
-      0,
-    );
+    assert.equal(await page.getByRole("button", { name: "Invite", exact: true }).count(), 0);
   }
   await page.getByLabel("Preview as").selectOption("admin");
-  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  await page.getByRole("button", { name: "Invite", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await dialog.getByRole("textbox", { name: "Email", exact: true }).waitFor();
   assert.equal(new URL(page.url()).hash, "");
@@ -133,7 +130,7 @@ await test("employee pages show content only to administrators", async (t) => {
   assert.equal(await dialog.locator('input[type="password"]').count(), 0);
   await dialog.getByRole("button", { name: "Send invitation", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  await page.getByRole("button", { name: "Invite", exact: true }).click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByText("taylor@example.test", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Edit Taylor Jordan", exact: true }).click();
@@ -160,7 +157,7 @@ await test("a delivery failure keeps the account available for resend without re
   await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/en/employees`);
   await page.locator('[data-preview-ready="true"]').waitFor();
   await page.getByLabel("Simulate invitation delivery failure", { exact: true }).check();
-  await page.getByRole("button", { name: "Invite employee", exact: true }).click();
+  await page.getByRole("button", { name: "Invite", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Invite employee", exact: true });
   await dialog.getByRole("textbox", { name: "Name", exact: true }).fill("Pending invitee");
   await dialog.getByRole("textbox", { name: "Email", exact: true }).fill("pending@example.test");

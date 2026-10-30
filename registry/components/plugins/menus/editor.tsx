@@ -790,14 +790,14 @@ export function MenuTaxonomyEditor({
         <Dialog.Trigger
           disabled={disabled}
           className={existing ? iconButton : primary}
-          aria-label={title}
+          aria-label={existing ? title : undefined}
         >
           {existing ? (
             <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
           ) : (
             <>
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-              {title}
+              {labels.createAction ?? title}
             </>
           )}
         </Dialog.Trigger>

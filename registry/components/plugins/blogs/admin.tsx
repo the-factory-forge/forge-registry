@@ -240,7 +240,7 @@ function BlogsPageContent({
             {capabilities.create && (
               <BlogLink href={newHref} className={primaryClass}>
                 <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.newPost}
+                {labels.createAction ?? labels.newPost}
               </BlogLink>
             )}
           </div>
@@ -621,7 +621,7 @@ function BlogCategoriesPageContent({
             onClick={() => setSelected(null)}
           >
             <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.newCategory}
+            {labels.createAction ?? labels.newCategory}
           </button>
         )}
       </header>

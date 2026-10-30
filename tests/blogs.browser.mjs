@@ -67,7 +67,7 @@ await suite("Blogs browser", async () => {
     await link.click();
     await page.waitForURL("**/en/admin/blogs/categories");
     await page.getByRole("heading", { name: "Categories", exact: true }).waitFor();
-    await page.getByRole("button", { name: "New category", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Create", exact: true }).waitFor();
   });
   await test("editor publication badge saves immediately and protects drafts on failure", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`, {
@@ -520,7 +520,7 @@ await suite("Blogs browser", async () => {
   });
   await test("create, retained failures, duplicate prevention, drafts, attribution, and public navigation", async (t) => {
     const page = await preview(t, "/en/admin/blogs");
-    await page.getByRole("link", { name: "New post", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByLabel("Title *", { exact: true }).fill("A browser-created post");
     await page.getByRole("button", { name: "Create draft", exact: true }).dblclick();
     await page
@@ -711,7 +711,7 @@ await suite("Blogs browser", async () => {
     });
 
     await page.getByRole("link", { name: "Manage posts", exact: true }).click();
-    await page.getByRole("link", { name: "New post", exact: true }).click();
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     const newTitle = page.getByRole("textbox", { name: "Title *", exact: true });
     await french.click();
     await newTitle.fill("Un nouveau brouillon");

@@ -133,14 +133,14 @@ await suite("Customers browser", async () => {
     await name.fill("Alex Morgan");
     await email.fill("alex@example.com");
     await page.getByLabel("Simulate action failures").check();
-    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "The action failed" }).waitFor();
     await header.getByText("AM", { exact: true }).waitFor();
   });
 
   await test("creation validates contact fields without collecting a password", async (t) => {
     const page = await preview(t, "/new");
-    const submit = page.getByRole("button", { name: "Create customer", exact: true });
+    const submit = page.getByRole("button", { name: "Create", exact: true });
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a full name" }).waitFor();
     await page.getByLabel("Full name *", { exact: true }).fill("   ");
@@ -177,19 +177,19 @@ await suite("Customers browser", async () => {
     await page.getByRole("link", { name: "Back to customers" }).click();
     await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
     assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);
-    await page.getByRole("link", { name: "Create customer" }).click();
+    await page.getByRole("link", { name: "Create" }).click();
     assert.equal(await page.locator('input[type="password"]').count(), 0);
   });
 
   await test("customer creation requires email and never collects credentials", async (t) => {
     const page = await preview(t, "/new");
     await page.getByLabel("Full name *", { exact: true }).fill("Offline Contact");
-    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Enter a valid email" }).waitFor();
     assert.equal(await page.getByLabel("Email *", { exact: true }).getAttribute("required"), "");
     assert.equal(await page.locator('input[type="password"]').count(), 0);
     await page.getByLabel("Email *", { exact: true }).fill("contact@example.test");
-    await page.getByRole("button", { name: "Create customer", exact: true }).click();
+    await page.getByRole("button", { name: "Create", exact: true }).click();
     await page.getByRole("heading", { name: "Offline Contact", exact: true }).waitFor();
   });
 
@@ -278,7 +278,7 @@ await suite("Customers browser", async () => {
           path: `/tmp/forge-customers-list-${name}-${colorScheme}.png`,
           fullPage: true,
         });
-        await page.getByRole("link", { name: "Create customer", exact: true }).click();
+        await page.getByRole("link", { name: "Create", exact: true }).click();
         await page.getByRole("heading", { name: "New customer", exact: true }).waitFor();
         await page.getByLabel("Full name *", { exact: true }).fill("Alex Morgan");
         await page.locator("form header").getByText("AM", { exact: true }).waitFor();

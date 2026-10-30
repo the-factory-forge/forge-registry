@@ -91,6 +91,7 @@ export const reservationLabels = {
   saving: "Saving…",
   all: "All",
   status: "Status",
+  createAction: "Create",
   newBooking: "New reservation",
   outsideHours: "Outside current working hours",
   emailFailed: "Email delivery failed",
@@ -139,7 +140,9 @@ export const reservationLabels = {
   weekday6: "Saturday",
   weekday7: "Sunday",
 };
-export type ReservationLabels = typeof reservationLabels;
+export type ReservationLabels = Omit<typeof reservationLabels, "createAction"> & {
+  createAction?: string;
+};
 
 export function getReservationLabels(
   overrides: Partial<ReservationLabels> | undefined,

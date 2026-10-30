@@ -6,7 +6,8 @@ export const employeeLabels = {
   title: "Employees",
   search: "Search employees",
   noMatches: "No employees match your search.",
-  add: "Invite employee",
+  add: "Invite",
+  addTitle: "Invite employee",
   name: "Name",
   email: "Email",
   role: "Role",
@@ -69,4 +70,4 @@ export const employeeLabels = {
   chooseReplacement: "Choose a replacement",
   reloadRelatedData: "Reload related data",
 };
-export type EmployeeLabels = typeof employeeLabels;
+export type EmployeeLabels = Omit<typeof employeeLabels, "addTitle"> & { addTitle?: string };

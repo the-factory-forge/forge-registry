@@ -6,6 +6,7 @@ export const blogsLabels = {
   clearSearch: "Clear search",
   blogs: "Blog posts",
   publicTitle: "Our blog",
+  createAction: "Create",
   newPost: "New post",
   create: "Create draft",
   edit: "Edit",
@@ -175,7 +176,10 @@ export const blogsLabels = {
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
-export type BlogsLabels = Omit<typeof blogsLabels, "close"> & { close?: string };
+export type BlogsLabels = Omit<typeof blogsLabels, "close" | "createAction"> & {
+  close?: string;
+  createAction?: string;
+};
 
 export function blogHistoryLabel(
   version: Pick<BlogHistoryHeader, "state" | "publicationOrder" | "number">,
