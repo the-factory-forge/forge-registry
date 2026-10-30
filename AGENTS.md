@@ -4,9 +4,11 @@
 
 For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
 and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
-`package.json` owns the release version; keep matching notes in `docs/releases/v<version>.md`.
-Preparation creates a local commit and annotated tag. Publication requires separate
-authorization and verified remote evidence; it never updates customers.
+Read [.agents/.release.json](.agents/.release.json) for version files, tagging,
+note storage and publication defaults. `package.json` owns the version; keep
+reviewed notes in `docs/releases/v<version>.md`. Preparation creates a local
+commit and annotated tag; `--push` also completes configured GitHub publication,
+while `--local` stays local. Publication never updates customers.
 
 When a user asks to promote a discussed customer improvement upstream, use
 [sync-to-forge-registry](.agents/skills/sync-to-forge-registry/SKILL.md). Promote only that

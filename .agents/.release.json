@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "repository": "the-factory-forge/forge-registry",
+  "versionFiles": ["package.json"],
+  "tag": {
+    "create": true,
+    "prefix": "v"
+  },
+  "push": {
+    "automatic": false,
+    "remote": "origin",
+    "branch": "main"
+  },
+  "notes": {
+    "storage": "repository",
+    "path": "docs/releases/{tag}.md"
+  },
+  "github": {
+    "mode": "direct",
+    "automatic": true,
+    "latest": "stable"
+  },
+  "guides": ["AGENTS.md", "openspec/specs/registry-releases/spec.md"]
+}
