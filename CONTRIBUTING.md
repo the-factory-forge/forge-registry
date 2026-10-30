@@ -9,24 +9,10 @@ Before extending the library or its demos, follow the
 
 ## Shared color contract
 
-Use the same semantic color names across forge-registry, forge-template, and
-tc-website: background/foreground, card, popover, primary, secondary, muted,
-accent, destructive and their foreground pairs; border, input, ring, chart-1
-through chart-5, and sidebar colors. Keep the dark-surface pair `--dark` and
-`--dark-foreground` for image overlays and permanently dark sections.
-
-Define the default palette in the application's stylesheet with `light-dark()`
-pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
-light dark` on `:root` and explicit light/dark classes so system preferences,
-saved modes, native controls, and production CSS agree. Native checkbox/radio
-accents use `--primary`. New components use semantic utilities and must not
-introduce separate palettes, inline color overrides, or dependencies on TC's
-private `--brand-*` aliases. Those aliases remain local to tc-website.
-
-The default palette matches TC: deep teal `#13343a` in light mode and pale blue
-`#badede` in dark mode. Customer sites can change values without renaming tokens.
-Keep typography, spacing, and radii independent of color changes. Verify both
-modes, saved choices, system preferences, and portaled dialogs after theme edits.
+For theme, color or status changes, read the shared [UI contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md).
+The host stylesheet owns palette values; components consume semantic roles.
+Verify light/dark modes, saved choices, system preferences and portaled dialogs.
+Keep typography, spacing and radii independent of color changes.
 
 ## Formatting and validation
 
@@ -144,7 +130,13 @@ renamed IDs; their custom selectors must be updated alongside that refresh.
 Create and edit in a modal or dialog when the form is short enough to complete
 comfortably without navigation. Use a dedicated `/{resource}/:id` page when the
 flow has many inputs, sections, nested data, or multiple steps; `new` may be used
-as the creation ID. Keep one form implementation for either presentation.
+as the creation ID. Keep one form implementation for either presentation. TC's larger employee flow
+is an intentional page-based exception.
+
+Mark required labels with a visible `*` (`aria-hidden="true"`), preserving native
+`required` or `aria-required`; leave optional fields unmarked. Keep UI copy brief
+and helper text limited to constraints, consequences or recovery that the control
+does not explain. Keep implementation details out of the user flow.
 
 ## Client/Server
 
@@ -161,7 +153,9 @@ Prefer Server Components. Add `"use client"` only when the component uses:
 Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
 when creating or modifying action toolbars. Refresh/reload uses `RefreshCwIcon`,
 settings/configuration uses `SettingsIcon`, and new/create/add entry points use
-`PlusIcon`, all from Lucide. Put the icon before the translated visible label.
+`PlusIcon`, all from Lucide. Refresh controls are icon-only with a translated accessible name
+and `IconTooltip`. Settings and create controls keep their translated visible
+label, with the icon before it; omit duplicate tooltips for text buttons.
 Use `size-4 shrink-0`, inherit the control's text color, and set `aria-hidden="true"`.
 Keep existing button/link variants, focus styles and responsive wrapping.
 
@@ -277,7 +271,7 @@ pinned official shadcn CLI. Consumers use the `@forge` namespace documented in
 - [ ] Accessible (semantic HTML, aria, focus rings, keyboard nav)
 - [ ] Registry entry added to `registry/registry.json`
 - [ ] Working showroom example added with representative interactions
-- [ ] Composed components, page sections, layouts and plugins listed in `examples` in `src/routes/index.tsx`; basic controls and feedback helpers stay out of the homepage list
+- [ ] Composed components, page sections, layouts and plugins listed in `examples` in `src/showroom/examples.ts`; basic controls and feedback helpers stay out of the homepage list
 - [ ] Homepage entry, when applicable, checked under All and its category filter, and its demo link verified
 - [ ] Basic control and feedback demos linked from documentation or parent examples
 - [ ] Non-visual helpers and server companions documented with the parent component's linked example
@@ -291,3 +285,37 @@ Use the [plugin guide](./docs/plugins.md) and registry-owned [Plugins specificat
 for the feature definition, module capabilities and host boundaries. Keep them
 aligned with exported contracts, the manifest and each integration guide when
 adding or changing a plugin.
+
+## Runtime validation
+
+Always use Zod to validate external inputs at trust boundaries, including plugin
+service requests, URL parameters, form payloads and configuration. Parse before
+accessing fields or performing side effects, and use the parsed output with unknown
+fields stripped or rejected. Reuse existing schemas, preserve documented defaults
+and optional-field semantics, and map failures to the existing plugin error codes.
+Keep authorization and business rules explicit alongside schema validation. When
+adding or changing a boundary, test malformed inputs and declare Zod in every
+registry item that imports it. See [service input validation](docs/plugins.md#service-input-validation).
+
+## Host and security boundaries
+
+Employee pages require authenticated `currentUserRole` and render nothing for
+non-admins. Hosts guard routes before loading data, hide employee navigation from
+non-admins and keep reads/mutations behind fresh-session admin authorization.
+UI checks never replace `createEmployeeService`'s server guard. Omit the employee
+enable/disable access action from the list; retain deletion confirmation.
+
+Every visible Corner attribution, including auth screens, uses the exact
+non-translatable copy `Forged by The Corner Factory SA`, with the official `c`
+logo on its left. Reuse `https://assets.the-corner.io/logos/the_corner-icon.svg`
+with decorative alt text and contrast in both themes.
+
+Keep framework imports out of shared UI. Use `ui-shims` for Link, Image, Script
+and pathname access. Hosts adapt these to their framework without changing
+exported names or props. Keep browser globals out of render for SSR compatibility.
+
+Declare every source file, stylesheet, asset and dependency needed by the item;
+packages in the showroom's `package.json` do not install into consumers. Account
+for `container-premium`, `section-padding`, fonts and tokens. Showroom global CSS
+is not distributed as a registry item. Follow [layout stability](DESIGN.md#layout-stability)
+for pending, empty, error and feedback states, and verify persistent element positions.

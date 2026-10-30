@@ -1,137 +1,21 @@
 # Project context for AI contributors
 
-## Releases and source maintenance
-
-For release preparation, follow the [shared release procedure](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/workflows/release-source.md)
-and use [release](https://github.com/the-factory-forge/forge-skills/blob/main/skills/release/SKILL.md) from `forge-skills`.
-Read [.agents/.release.json](.agents/.release.json) for version files, tagging,
-note storage and publication defaults. `package.json` owns the version; keep
-reviewed notes in `docs/releases/v<version>.md`. Preparation creates a local
-commit and annotated tag; `--push` also completes configured GitHub publication,
-while `--local` stays local. Publication never updates customers.
-
-When a user asks to promote a discussed customer improvement upstream, use
-[sync-to-forge-registry](.agents/skills/sync-to-forge-registry/SKILL.md). Promote only that
-behavior against current registry source, preserving unrelated customer drift and
-newer registry changes. This skill is also usable from consumer checkouts.
-
-For selected registry updates into a customer site, use
-[sync-from-forge-registry](.agents/skills/sync-from-forge-registry/SKILL.md).
-Both registry sync directions are maintained here. Package maintenance uses
-[update-dependencies](https://github.com/the-factory-forge/forge-skills/blob/main/skills/update-dependencies/SKILL.md) from `forge-skills`.
+This repository owns reusable registry source, plugin behavior and the showroom.
+Consumers receive source they can adapt; this is not a runtime npm library.
+Read [README.md](README.md) for setup and distribution and [GLOSSARY.md](GLOSSARY.md)
+for domain terms. `registry/registry.json` owns shipped items and dependencies;
+`package.json`, `vite.config.ts` and `tsconfig.json` own tooling and aliases.
 
 ## Git worktree workflow
 
-Use an isolated Git worktree for every task that changes files, including
-documentation. This applies to delegated agents too. Reuse a worktree already
-dedicated to the task.
+Before changing any file, including documentation, follow the
+[isolated worktree procedure](docs/agent-workflow.md#git-worktree-workflow).
+Reuse a worktree dedicated to the task. Transfer only the task's verified diff
+back to the original checkout, leave it uncommitted and preserve existing edits.
+Remove the worktree only after verification; keep it if transfer is blocked.
+Push only when explicitly requested. These rules also apply to delegated agents.
 
-1. Record the original checkout path, its current branch and commit, and existing
-   staged, unstaged and untracked changes. Create the worktree from that branch's
-   current commit. Use `codex/<task>` for a temporary branch; do not assume the
-   destination branch is `main`.
-2. Make changes and run the required checks in the worktree. If the task depends
-   on uncommitted work in the original checkout, copy only the needed files and
-   record that baseline so those edits are not mistaken for your own.
-3. When the task is complete, apply only your task's diff back to the original
-   checkout on the recorded branch, including added and deleted files, assets and
-   generated output. Leave the transferred changes uncommitted. Preserve existing
-   edits and staged contents. Recheck the branch and overlapping edits before
-   transferring; resolve conflicts without overwriting someone else's work.
-4. Review the transferred diff and run the relevant checks in the original
-   checkout. Only then remove the task's worktree and any temporary branch you
-   created. Preserve any needed ignored files before cleanup. If transfer or
-   verification is blocked, keep the worktree and report what remains.
-5. Do not push unless the user explicitly requests it.
-
-## Shared Forge specifications
-
-Before implementation, read `../forge-spec/AGENTS.md` and the shared
-`the-forge`, `registry-distribution` and, for UI/CSS/Tailwind work, `shared-ui` specs under
-`../forge-spec/openspec/specs/`. Read `host-integration` when consumer integration
-is affected. Template application details live in
-`forge-template/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
-use its supplied location or the
-[canonical forge-specs repository](https://github.com/the-factory-forge/forge-specs).
-Report inaccessible context rather than assuming it was loaded.
-
-`openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
-Keep registry-specific specs and changes here, including plugin definitions,
-plugin behavior, showroom rules and registry release checks. Only contracts that
-constrain both registry and template belong in forge-spec. Installing a plugin in
-a host does not by itself make its spec shared. Keep one owning change root.
-These specs complement the repository procedures
-below; inspect current source and report material conflicts. A sibling reference
-does not expand the task to unrelated changes in that repository.
-
-For plugin work, also read the local [Plugins specification](openspec/specs/plugins/spec.md)
-and [local plugin guide](./docs/plugins.md). Update the plugin definition and its
-module requirement when adding or materially changing a feature.
-
-Local main specs live under `openspec/specs/`, including `plugins`, `reservations`,
-`registry-showroom` and `registry-releases`. The [Blogs storage decision](concepts/adr/0009-blog-content-and-image-storage.md)
-is registry-owned. For Mailing rendering or transport, read
-[ADR-0012](concepts/adr/0012-mailing-rendering-and-transport.md); for plugin locks,
-projections or customer identity transactions, read
-[ADR-0013](concepts/adr/0013-plugin-persistence-and-identities.md). Their linked
-shared decisions retain host branding and project migration ownership.
-Use forge-spec's installed OpenSpec CLI with this repository
-as the working directory; generated OpenSpec skills remain central.
-
-## Filter and view state
-
-When creating or changing filters, search, sorting, pagination or calendar views,
-read [ADR-0008: URL-owned filters and view state](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md).
-Expose controlled values and change callbacks in portable UI; bind them to URL
-parameters in showroom and consumer adapters. Verify reload and Back/Forward.
-
-## Object storage
-
-Storage companions require `<SITE_NAME>/<plugin>/` from the host; reject absent or
-unscoped prefixes. Follow [the shared contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) for object operations,
-consumer migration and lifecycle rules. Verify installed callers and fixtures when
-changing this boundary; source adoption does not imply moving deployed objects.
-
-## Shared color contract
-
-Use the same semantic color names across forge-registry, forge-template, and
-tc-website: background/foreground, card, popover, primary, secondary, muted,
-accent, destructive and their foreground pairs; border, input, ring, chart-1
-through chart-5, and sidebar colors. Keep the dark-surface pair `--dark` and
-`--dark-foreground` for image overlays and permanently dark sections.
-
-Status labels use `status-success` (green), `status-pending` (orange),
-`status-not-started` (gray), `status-canceled` (red), and `status-info` (blue),
-each with its `-foreground` pair. Published is successful; Draft is not
-started; Unpublished changes are pending. Keep visible status text and define
-the pairs in the host theme, independently of customer brand colors.
-
-Place a card or detail summary's primary status at the top right, opposite its
-title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
-Keep translated titles and badges readable on narrow screens; status columns
-in tables keep their existing placement.
-
-Define the default palette in the application's stylesheet with `light-dark()`
-pairs and expose colors through `@theme inline` mappings. Keep `color-scheme:
-light dark` on `:root` and explicit light/dark classes so system preferences,
-saved modes, native controls, and production CSS agree. Native checkbox/radio
-accents use `--primary`. New components use semantic utilities and must not
-introduce separate palettes, inline color overrides, or dependencies on TC's
-private `--brand-*` aliases. Those aliases remain local to tc-website.
-
-The default palette matches TC: deep teal `#13343a` in light mode and pale blue
-`#badede` in dark mode. Customer sites can change values without renaming tokens.
-Keep typography, spacing, and radii independent of color changes. Verify both
-modes, saved choices, system preferences, and portaled dialogs after theme edits.
-
-## Purpose and scope
-
-`forge-registry` is a shared source registry for reusable React components, page
-sections, and supporting utilities. The goal is to reuse these elements across
-different projects through shadcn's registry model. Consumers receive source
-files they can adapt; this repository is not a published runtime npm library.
-
-### Barebones scope and confirmation
+## Barebones scope and confirmation
 
 Everything added to this library must be **barebones**: the smallest complete
 capability that most customer websites using that feature are likely to need.
@@ -150,293 +34,41 @@ implementing that part.** A general request to improve or extend a feature is
 not confirmation of the exception. Reuse an explicit scope decision already
 made in the task; continue independent, authorized work while awaiting a decision.
 
-The TanStack Start app in this repository is a showroom for developing and previewing
-registry elements. Work on the reusable element first; keep example content and
-site integration in the showroom or consuming project.
+## Shared Forge specifications
 
-The showroom follows upstream Cove directly (see [docs/showroom.md](./docs/showroom.md)).
-Do not import, link, or synchronize its foundation from forge-template: templates
-consume this registry, so depending on them here would create a circular relationship.
+Resolve actual provider checkouts from the workspace or Git remotes; `forge-specs`
+may be named `forge-spec` locally. Follow the
+[specification guide](docs/agent-workflow.md#shared-forge-specifications) before
+implementation; use canonical links if local sources are unavailable and report
+missing context. Registry-only specs and ADRs stay here. Contracts constraining
+both registry and template belong to Forge Specs. Keep one owning change root.
+Reading another repository does not authorize unrelated changes there.
 
-The attached sibling `../tc-website` is a reference and a source of components
-for future extractions. Its presence is not a request to migrate components now.
-When asked to extract one, implement the reusable version here. Changes to the
-source website belong to tasks that request them. There is no workspace package
-dependency between the two repositories; never import from the sibling project.
-`intranet-sidebar` is extracted here and consumed by `tc-website` through
-generated source files. See its guide before changing the shared contract.
-Use `intranet` for the complete internal website layout. `intranet-shell`
-composes the shared sidebar. TC-specific components, styles, and branding belong
-in `tc-website`; this registry contains reusable components for multiple customers.
+## Task guides
 
-## Read first and source of truth
+| Task                                              | Read before editing                                                                                                                                                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reusable source or components                     | [CONTRIBUTING.md](CONTRIBUTING.md), the affected item and its imports/consumers; preserve names and public props unless a breaking change is requested                                                                                                                    |
+| Plugin behavior                                   | [Plugins spec](openspec/specs/plugins/spec.md), [plugin guide](docs/plugins.md) and the module's guide; update its definition and requirement with material behavior changes                                                                                              |
+| UI, theme, layout or accessibility                | [DESIGN.md](DESIGN.md), contribution conventions and shared [UI contracts](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md)                                                                                                   |
+| Filters, search, sorting, pagination or calendars | [ADR-0008](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0008-url-owned-filters-and-view-state.md); portable controls expose values/callbacks, host adapters bind URL state; verify reload and Back/Forward                                     |
+| Storage operations or adoption                    | [Scoped storage contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage); verify callers/fixtures and keep deployed-object migration separate from source adoption |
+| Showroom previews or homepage                     | [Showroom guide](docs/showroom.md) and [component checklist](CONTRIBUTING.md#component-checklist)                                                                                                                                                                         |
+| Shell or sidebar integration                      | [Intranet](docs/intranet.md) and [sidebar](docs/intranet-sidebar.md)                                                                                                                                                                                                      |
+| Extracting TC components                          | [Extraction workflow](docs/agent-workflow.md#extracting-a-component-from-tc-website)                                                                                                                                                                                      |
+| Adding a plugin                                   | [TC listing requirement](docs/agent-workflow.md#tc-intranet-plugin-listing)                                                                                                                                                                                               |
+| Distribution or consumer adoption                 | [Distribution and validation](docs/agent-workflow.md#distribution-and-validation)                                                                                                                                                                                         |
+| Releases or maintenance                           | [Provider procedures](docs/agent-workflow.md#releases-and-source-maintenance) and [.agents/.release.json](.agents/.release.json)                                                                                                                                          |
 
-- [README.md](./README.md): overview, inventory, distribution, and commands.
-- [GLOSSARY.md](./GLOSSARY.md): domain terminology for plugin content and workflows.
-- [CONTRIBUTING.md](./CONTRIBUTING.md): component, styling, accessibility, DOM ID and screenshot conventions.
-- [DESIGN.md](./DESIGN.md#layout-stability): design guidance loaded by Impeccable,
-  including layout stability and [table action alignment](./DESIGN.md#table-action-alignment).
-- `registry/registry.json`: authoritative list of shipped items and files.
-- `package.json`: build, validation, and formatting commands with pinned tool versions.
-- `vite.config.ts`: Vite Plus lint and format settings; TanStack Start, React, Tailwind, and Nitro plugins run the showroom.
-- [docs/intranet-sidebar.md](./docs/intranet-sidebar.md): sidebar props,
-  toggle placement, Better Auth integration, and consumer updates.
-- [docs/intranet.md](./docs/intranet.md): shell composition and host integration.
-- [MECHANICS.md](./MECHANICS.md): historical notes and known gaps; verify claims
-  against current code. Those notes are not an instruction to fix every gap.
+The showroom follows Cove directly; keep its foundation independent of
+`forge-template`. Customer branding, data and adapters stay in the host. Shared
+UI must ship its own dependencies and use framework shims; a working showroom
+alone does not prove consumer portability. Treat [MECHANICS.md](MECHANICS.md) as
+historical context to verify, not an instruction to fix every recorded gap.
 
-Inspect the existing item, its imports, and its consumers before adding a new
-abstraction or duplicating a component. Preserve existing item names and public
-props unless the requested change calls for a breaking change.
+## Validation
 
-## Repository map
-
-| Path                                             | Role                                                                                      |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `registry/components/`                           | Rendered UI components installed at `@components/*`                                       |
-| `registry/components/pages/`                     | Page-building sections with `page-*` names, installed at `@components/pages/*`            |
-| `registry/components/layouts/`                   | Compositions that arrange other elements, installed at `@components/layouts/*`            |
-| `registry/components/utils/`                     | Non-visual helpers, data, hooks, providers, and styles installed at `@components/utils/*` |
-| `registry/registry.json`                         | Editable source manifest                                                                  |
-| `vite.config.ts`                                 | Vite Plus lint/format configuration                                                       |
-| `public/r/registry.json`, `public/r/{name}.json` | Generated shadcn catalog and item endpoints; do not hand-edit                             |
-| `src/lib/`                                       | Internal i18n and providers and showroom helpers; never published                         |
-| `src/showroom/`                                  | Internal preview controls, theme control, and layout frame; never published               |
-| `src/routes/`                                    | TanStack Router showroom demos                                                            |
-| `src/styles/globals.css`                         | Showroom tokens, typography, animations, and layout utilities                             |
-| `src/start.ts`                                   | Showroom-only Start request middleware                                                    |
-
-The local stack is React 19, TypeScript strict, Tailwind CSS 4, Base UI, Lucide,
-and Motion, hosted in TanStack Start with Nitro. Use the pnpm version pinned in `package.json`.
-Vite Plus 1.3.0 provides Vite, Oxlint, and Oxfmt through `vite.config.ts`;
-`dev` and `build` use Start/Vite, and `start` runs `.output/server/index.mjs`. Lint settings enable type-aware rules and
-type checking. `pnpm typecheck` remains the separate `tsc --noEmit` check.
-Registry source imports mirror their install targets: `@/components/*`,
-`@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*`. TypeScript maps all four
-to `registry/components/`; the general `@/*` alias resolves showroom files under
-`src/*`. Check `tsconfig.json` before changing imports or introducing a new source directory.
-
-## Runtime validation
-
-Always use Zod to validate external inputs at trust boundaries, including plugin
-service requests, URL parameters, form payloads and configuration. Parse before
-accessing fields or performing side effects, and use the parsed output with unknown
-fields stripped or rejected. Reuse existing schemas, preserve documented defaults
-and optional-field semantics, and map failures to the existing plugin error codes.
-Keep authorization and business rules explicit alongside schema validation. When
-adding or changing a boundary, test malformed inputs and declare Zod in every
-registry item that imports it. See [service input validation](docs/plugins.md#service-input-validation).
-
-## Reusable component contract
-
-- Employee management is admin-only: both employee pages require the authenticated
-  `currentUserRole` and render nothing for non-admins. Consumers must also guard all
-  employee routes before loading data, hide employee navigation for non-admins, and
-  keep reads and mutations behind fresh-session admin authorization. UI checks never
-  replace the existing `createEmployeeService` server guard.
-- Pass site content, links, images, labels, and integration callbacks as props.
-  Keep branding, dictionaries, API calls, auth, and business data in the consumer.
-  Default UI labels to English and allow translation through props.
-- Use the exact, non-translatable attribution copy `Forged by The Corner Factory SA`
-  whenever a footer credits The Corner Factory. Place the official Corner `c` logo
-  to its left in every visible agency credit, including authentication screens.
-  Reuse `https://assets.the-corner.io/logos/the_corner-icon.svg`, with decorative
-  alt text and sufficient contrast on both light and dark backgrounds.
-- Export the component and its props type. Support `className` where applicable;
-  merge classes with `cn` from `@/components/utils/cn`. Reuse `SectionVariant` for themed sections.
-- Use semantic Tailwind/shadcn tokens and existing Base UI primitives. Preserve
-  keyboard interaction, focus states, semantic HTML, and responsive behavior.
-- Mark required form labels with a visible `*` (`aria-hidden="true"`), retaining
-  native `required` or `aria-required` semantics. Leave optional fields unmarked.
-  Keep UI copy brief: use clear labels and show helper text only for essential
-  constraints, consequences or recovery that the control itself cannot explain.
-  Omit routine instructions and implementation details, such as how uploads are processed.
-- Use a modal or dialog for create/edit forms that remain short and easy to complete
-  without navigation. When the form grows into many inputs, sections, nested data,
-  or a multi-step workflow, use a dedicated `/{resource}/:id` page instead (`new`
-  may be the creation ID). Do not force complex forms into dialogs or create pages
-  for simple forms; tc-website's larger employee flow is an intentional page-based exception.
-- Follow the shared [action icon contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-consistent-action-icons)
-  for new or modified toolbars across registry plugins and host projects. Use
-  Lucide's `RefreshCwIcon` for refresh/reload, `SettingsIcon` for settings/configuration,
-  and `PlusIcon` for new/create/add entry points. Place the icon before the visible
-  translated label with `size-4 shrink-0`, inherited color, and `aria-hidden="true"`.
-  Reuse the existing button/link styles. Refresh/reload controls are icon-only,
-  with a translated accessible name and `IconTooltip`. Settings and create actions
-  retain visible labels; do not add duplicate tooltips to text buttons.
-- Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).
-  Always separate adjacent action buttons and button-styled links by at least
-  `gap-1`; prefer `gap-2` in toolbars and form actions. Keep both row and column
-  gaps when controls wrap on mobile. Configure third-party button groups too;
-  do not leave touching borders or use negative margins to join the buttons.
-- Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
-  Enabled buttons use `cursor-pointer`, including icon controls, calendar dates
-  and third-party buttons. Disabled controls must not show a pointer; use
-  `cursor-not-allowed`. Ship these styles with reusable controls instead of
-  relying on showroom CSS. Preserve keyboard focus and disabled behavior.
-- Across all plugins, render edit/modify/rename actions with Lucide's `PencilIcon`
-  and delete/remove actions with `Trash2Icon`, as icon-only controls using the
-  existing button styles. Delete triggers keep their confirmation dialogs.
-  Keep a translated `aria-label`, hide the decorative icon with `aria-hidden="true"`,
-  and preserve visible keyboard focus and a usable hit area. Omit the employee
-  enable/disable access action from the list. Use links for navigation and buttons
-  for in-place actions. Form headings and save/confirmation buttons retain their
-  visible text.
-- Every icon-only button or action link, including edit, delete, close, navigation
-  and toolbar controls, must use [`IconTooltip`](./docs/icon-tooltip.md) from
-  `@/components/icon-tooltip`. Reuse its translated accessible name as the tooltip
-  label; retain `aria-label`, decorative `aria-hidden` icons, keyboard focus,
-  disabled behavior and confirmation. Tooltips must open on hover and keyboard
-  focus and dismiss with Escape. Do not use native `title` as the only tooltip or
-  wrap controls in another button. Controls with visible action text do not need
-  duplicate tooltips. Declare `@forge/icon-tooltip` for each registry item importing it.
-- Keep components compatible with server rendering. Add `"use client"` where
-  hooks, events, or browser APIs require it; do not access browser globals during render.
-- Avoid layout shifts during loading, empty results, errors and action feedback.
-  Follow [Layout stability](./DESIGN.md#layout-stability): preserve established
-  structure and loaded content, reserve feedback space, and disable pending
-  actions instead of hiding them. Verify persistent element positions during
-  asynchronous transitions as part of visual checks.
-- Keep framework imports out of shared UI. Use the `ui-shims` item for Link,
-  Image, Script, and pathname access. Consumers adapt these implementations to
-  their framework while preserving the registry's exported names and props
-  (for example, mapping `href` to a router's `to`).
-- Include every required source file, stylesheet, and asset in an item's files
-  or declared registry dependencies. Declare external packages in `dependencies`;
-  having them in this repository's `package.json` does not install them for consumers.
-- Account for CSS dependencies such as `container-premium`, `section-padding`,
-  font utilities, and theme tokens. The showroom's global CSS is not currently
-  distributed as a registry item; a successful preview alone does not prove portability.
-
-## Extracting a component from tc-website
-
-Start in `../tc-website/src/components/` for shared compositions (for example,
-`public-page-header.tsx`, `public-section-heading.tsx`, and `pill-badge.tsx`),
-`src/components/ui/` for primitives, and `src/routes/` for usage. Inspect
-`src/hooks/`, `src/styles.css`, `src/css/`, and `public/` for supporting code and
-assets. Larger application modules live in `src/features/` and can require
-substantial host integration; do not treat them as standalone UI automatically.
-`../tc-website/registry/forge-bexio-customers/README.md` is an existing reference
-for separating reusable feature code from website adapters.
-
-1. Read that repository's `AGENTS.md` and the selected component, imports,
-   callers, and relevant styles. Its stack is React 19 with TanStack Start/Router,
-   Tailwind 4, and shadcn Base UI (`base-rhea`, `rsc: false`). Its router APIs and
-   source aliases are different from this registry's.
-2. Check this registry for an existing equivalent. Extend it when appropriate,
-   or add a distinct item when the requested component serves a different purpose.
-3. Extract the requested visual structure and behavior. Replace company copy,
-   brand colors, route data, auth/server functions, and asset paths with props,
-   semantic tokens, or consumer callbacks. Trace custom tokens in
-   `../tc-website/src/styles.css`; do not copy its entire theme or app infrastructure.
-4. Convert site imports to `@/components/...`, `@/components/pages/...`, `@/components/layouts/...`, or `@/components/utils/...` and framework APIs to the shim
-   contract. Reuse the local Base UI primitives; preserve supported composition
-   APIs such as `render` when adapting source components.
-5. Register the complete dependency set, provide representative demo usage, and
-   validate the result as described below. The reusable result must work without
-   access to `tc-website`'s files, services, or providers.
-
-## Shared showroom layout
-
-Wrap examples in `ShowroomPreview` from `src/showroom/showroom-preview.tsx`.
-Supply demo-specific `controls` and optional `navigation`; the shared frame owns
-spacing, the toggleable right settings sidebar (stacked above the preview
-on mobile), keyboard entry, and header offsets.
-Use its standard, narrow, or full width rather than per-route viewport math.
-Light/Dark selection belongs to the shared header, persists across demos, and
-has no System option. Do not restore the removed font control/provider. Use the
-showroom guide for className overrides on portable pages; keep these concerns
-out of shipped registry components.
-
-## Showroom homepage requirement
-
-Every new registry UI component or module must have a working showroom example.
-Keep the shared `examples` array in `src/showroom/examples.ts`, used by the homepage
-and global search, focused on composed
-components, page sections, layouts and plugins. Basic controls and feedback helpers,
-such as native selects, icon tooltips and action toasts, must not have standalone
-homepage cards; keep their demos accessible through documentation or parent examples.
-For items that belong on the homepage, add the entry with the component and give
-it an accurate title, category, description, and link to its example.
-
-Verify the entry appears under All and its category filter, and that its link
-opens the demo. Include representative interactions and error states where
-applicable. Document non-visual helpers and server companions with their parent
-component's linked example; never import server modules into browser previews.
-
-## TC intranet plugin listing
-
-Every newly created plugin must also be listed on `tc-website`'s public
-`/forge/intranet` page as part of the same work. Update the `intranetModules` list
-in `src/routes/_public/{-$lang}/forge/intranet/index.tsx` in that repository and
-the translations in `src/lib/i18n/content.ts` for all supported locales. Include
-an accurate description, availability status, and the matching icon from
-`registry/components/utils/plugin-icons.ts`. List storage/server companions with
-their parent plugin rather than as separate modules.
-
-Locate the actual `tc-website` checkout instead of assuming a sibling path. If it
-is unavailable, report the pending listing update explicitly in the handoff.
-
-## Distribution and validation
-
-`pnpm registry:sync` runs the pinned official CLI:
-`shadcn build registry/registry.json --output public/r`. Only declared files
-and dependencies ship.
-
-`public/r/registry.json` and `public/r/{name}.json` are official shadcn catalog
-and item output. The manifest declares `@components/`, `@components/pages/`, `@components/layouts/`, and
-`@components/utils/` targets and `@forge/item-name` registry dependencies.
-Source imports match those locations; shadcn resolves the consumer's configured
-aliases. Showroom i18n and providers live in `src/lib/`
-and are not registry items. Shared components must not import from `src/lib/`
-or `src/showroom/`. Consumers own locale routing, dictionaries, and themes.
-
-After the first source release, use its verified full commit SHA for the whole
-`@forge` namespace, following [registry installation](README.md#installing-from-the-registry). Before that, the current
-development namespace in `components.json` is
-`https://raw.githubusercontent.com/the-factory-forge/forge-registry/main/public/r/{name}.json`.
-Install with `shadcn add @forge/item-name`. To test locally, run
-`pnpm registry:sync` and `PORTLESS=0 pnpm dev`, then temporarily set the consumer's `@forge`
-URL to `http://localhost:3000/r/{name}.json`. This also routes dependencies to the
-local server; no build environment override is required. Restore the published
-namespace URL before committing consumer configuration.
-
-`pnpm dev` normally uses Portless at `https://forge-registry.localhost`, with
-branch subdomains for linked worktrees. See `docs/showroom.md` for proxy setup
-and browser test URLs. `PORTLESS=0` bypasses the proxy for direct-port workflows.
-
-The legacy aggregate endpoint (`public/registry/registry.json`) and
-`registry:pull` workflow are retired. Consumers still using them must migrate to standard `@forge` shadcn installs.
-`forge-template` uses the namespace for FAQ and Contact pages; review its
-`registry:public-pages` command and host adapters when updating those items. `tc-website` already provides
-`pnpm registry:sidebar`, which runs its pinned shadcn CLI with
-`add @forge/intranet-sidebar --yes --overwrite`. Fix shared behavior here,
-publish the generated artifacts, then update and validate each consumer before
-deploying. Source distribution does not push fixes into running websites
-automatically. Keep host adapters outside registry-managed component paths so updates preserve them. See the
-[official shadcn registry guide](https://ui.shadcn.com/docs/registry/getting-started).
-
-For implementation changes, run `pnpm format && pnpm lint:fix` and review the
-automatic edits. When registry source or its manifest changes, run
-`pnpm registry:sync` after formatting; generated `public/r/` JSON is excluded
-from the formatter and linter and must come from the official builder. Run
-`pnpm registry:check`, `pnpm typecheck`, and `pnpm check` before handoff.
-`pnpm check` combines formatting, linting, and type checks; `pnpm fix` applies
-its available fixes. Use `pnpm build` when changes affect application code or
-integration, and inspect relevant demo states for visual changes.
-
-`registry:check` only parses JSON; it does not validate the shadcn schema,
-dependency completeness, or installation in another project. When changing
-distribution behavior, also check a shadcn consumer install. Report checks
-actually run and any blockers. Documentation-only changes need formatting, a
-diff, and factual/link review, without dependency installation or app builds.
-
-Known limitations and integration boundaries to verify when touching affected items:
-
-- Locale routing, dictionaries, and theme configuration belong to each consumer.
-- Framework packages belong to the showroom only. Declare `@forge/ui-shims`
-  for components using the shared Link/Image/Script/location contract; never add
-  Next.js or TanStack runtime dependencies to framework-neutral registry items.
-- Keep internal i18n, providers under `src/lib/`, with
-  showroom controls under `src/showroom/`; do not register them.
-  Shared helpers needed by consumers stay under `registry/components/utils/`.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md#formatting-and-validation) for implementation
+checks and [distribution checks](docs/agent-workflow.md#distribution-and-validation)
+when shipped source changes. Documentation changes need formatting, diff and
+factual/link review. Report actual checks and remaining consumer work.
