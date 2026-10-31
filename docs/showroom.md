@@ -147,6 +147,10 @@ legal pages use loader data. `src/showroom/seo.ts` formats canonical URLs and
 Open Graph and Twitter metadata for `https://registry.the-corner.io`. The root
 route owns document assets and fallback metadata for missing pages.
 
+Social and chat previews share `public/social-preview.png`, a 1200 × 630 crop of
+the supplied Corner pattern on an opaque white background. The metadata includes
+the absolute image URL, dimensions and alternative text, with a large Twitter card.
+
 Descriptions use English, matching the showroom navigation, and identify the
 content as component demos. Locale prefixes select
 demo translations; sample company details and legal text are not showroom facts.
