@@ -40,8 +40,8 @@ function Home() {
           Components Showcase
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
-          Preview reusable React components, page layouts, and intranet plugins. Install editable
-          source in your project through the Forge shadcn registry.
+          Preview reusable React components, page layouts, intranet plugins, and connectors. Install
+          editable source in your project through the Forge shadcn registry.
         </p>
       </header>
 

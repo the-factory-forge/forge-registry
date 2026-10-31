@@ -205,6 +205,16 @@ Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers 
 
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
+### Connectors
+
+[Connectors](./docs/connectors.md) are optional source for one relationship,
+with provider and host adapters. Both appear under **Connector** in the showroom.
+
+| Item                                                                  | Purpose                                                                      |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [customers-bexio / customers-bexio-server](./docs/customers-bexio.md) | Customer links, automatic sync, bulk import and recoverable account creation |
+| [projects-drive](./docs/projects-drive.md)                            | Project-scoped Drive composition                                             |
+
 ### Layouts
 
 | Name                                                       | Description                                                                                     |

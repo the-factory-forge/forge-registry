@@ -289,3 +289,14 @@ more room than the available viewport.
    plugins and a few layouts, while the registry ships fifty items. Add grouped
    examples for existing page sections and primitive controls so shared CSS changes
    can be checked in light/dark, narrow layouts, and keyboard flows.
+
+## Connector examples
+
+The directory and global search include a **Connector** category.
+`/connectors/customers-bexio` and `/connectors/projects-drive` compose existing
+plugins with mock adapters. Their **Adapters and installation** sections name
+the contracts and link setup guides. Searches and folder navigation are URL-owned;
+read-only and failure controls stay local to the preview. No live services or
+credentials are used. The Bexio example includes bulk import and automatic sync
+after saving About, including a warning when the provider fails after the save.
+See [connectors](./connectors.md).

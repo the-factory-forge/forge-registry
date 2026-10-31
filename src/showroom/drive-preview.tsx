@@ -2,6 +2,7 @@
 
 import { useSearch } from "@tanstack/react-router";
 
+import { ProjectDrive } from "@/components/connectors/projects-drive";
 import { DriveBrowser, DrivePage, type DriveScope } from "@/components/plugins/drive";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
@@ -19,11 +20,11 @@ export function EmbeddedDrivePreview({
   const query = useSearch({ strict: false });
   const { locale } = useShowroomParams();
   return (
-    <DriveBrowser
+    <ProjectDrive
+      project={{ id: scope.id }}
       locale={locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
-      scope={scope}
       onRenameSpace={
         scope.type === "project" ? (name) => state.renameDriveSpace(scope, name) : undefined
       }

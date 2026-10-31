@@ -141,6 +141,7 @@
   --showroom-category-foreground: var(--showroom-page-foreground);
 }
 
+[data-showroom-category="Connector"],
 [data-showroom-category="Plugin"] {
   --showroom-category: var(--showroom-plugin);
   --showroom-category-foreground: var(--showroom-plugin-foreground);

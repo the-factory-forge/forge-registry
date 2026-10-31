@@ -20,6 +20,11 @@ provide optimistic UI changes through TanStack Query while hosts retain authorit
 data and transport. Ordinary asynchronous completion belongs to the submitting view.
 Site-specific fields, assignment rules and workflows belong in the consuming website.
 
+A **connector** is optional editable source connecting a specific plugin to another
+plugin, library or external service. An **adapter** implements its provider or host
+interface. Connectors do not require a runtime loader or shared sync engine.
+See the [connector guide](../../../docs/connectors.md).
+
 A **service plugin** provides a shared application capability without its own
 user-facing screen. Mailing is a service plugin used by features that send email.
 Its renderer and server transport remain separate entrypoints.
@@ -2675,3 +2680,89 @@ usable mobile target. It SHALL follow existing dismissal and pending guards.
 - **AND** bottom actions are fully visible before scrolling even when preceding content fills a short viewport
 - **AND** scrolling content stays behind opaque header and action surfaces
 - **AND** fields remain reachable with keyboard and pointer input, actions wrap on narrow screens, and existing submit and pending behavior is preserved
+
+### Requirement: Optional connectors
+
+Connectors SHALL install independently with complete dependencies under
+`@components/connectors/{name}`. Base plugins SHALL NOT depend on their connectors.
+Host adapters SHALL retain credentials, routes, authorization and database configuration.
+Connectors MAY supply reusable persistence implementations and schema factories.
+Server implementations SHALL use separate server-only entrypoints and items.
+
+#### Scenario: Discovering and installing a connector
+
+- **WHEN** a developer browses the showroom's Connector category or searches for an adapter
+- **THEN** Customers–Bexio and Projects–Drive appear with working mock examples
+- **AND** each example explains its adapter interfaces and installation
+- **AND** installation neither activates provider access nor applies migrations
+
+### Requirement: Customers–Bexio connector
+
+The connector SHALL support person and optional company links, contact creation,
+manual and post-save sync, bulk/reviewed import and local unlinking. Server actions
+SHALL validate inputs and authorize the host actor before data access. Writes
+SHALL use host locks. The server companion SHALL supply unique person-link
+storage and transactional account provisioning.
+
+#### Scenario: Recovering from an incomplete push
+
+- **WHEN** a remote ID or person update succeeds before another request fails
+- **THEN** the completed ID or agreed email is saved before continuing
+- **AND** links remain available for explicit retry without repeating contact creation
+- **AND** uncertain creation is resolved by searching and linking an existing contact
+
+#### Scenario: Reviewing a remote contact import
+
+- **WHEN** staff confirm a preview
+- **THEN** the connector refetches and checks selected IDs, emails and reviewed values
+- **AND** the host atomically validates the expected local email and account rules
+- **AND** changed previews or identity collisions reject without reassigning an account
+
+#### Scenario: Synchronizing a committed save automatically
+
+- **WHEN** the host calls `syncSavedCustomer` after committing a customer save
+- **THEN** the connector runs its guarded push once and returns a safe warning on failure
+- **AND** the saved customer and existing links remain available for explicit retry
+- **AND** no initial remote contact is provisioned for an unlinked customer
+
+#### Scenario: Importing all Bexio contacts
+
+- **WHEN** an authorized actor requests bulk import
+- **THEN** one installation lock excludes every other connector writer before contacts are read
+- **AND** existing links, exact email matches and new customers are processed in that order
+- **AND** ambiguous identities and existing login-email changes require review
+- **AND** successful records survive partial failures and retries do not recreate them
+- **AND** the result and showcase expose counts and record issues
+
+#### Scenario: Concurrent person links
+
+- **WHEN** different customers attempt to claim the same Bexio person in one installation
+- **THEN** the shipped database constraint allows only one link, including direct database writes
+- **AND** a rejected replacement preserves the previous link
+- **AND** null person IDs, shared companies and separate installations remain supported
+
+#### Scenario: Recovering customer provisioning
+
+- **WHEN** the shipped provisioner fails between identity and profile creation or before commit
+- **THEN** both records roll back through the transaction-bound auth adapter
+- **AND** a retry can create a complete customer without an orphan identity
+- **AND** after a successful commit but lost response or failed link, a new bulk service reuses the persisted customer
+- **AND** unrelated/ambiguous accounts are rejected and invitation failure permits authorized resend
+
+#### Scenario: Keeping customer policies local
+
+- **WHEN** a host installs Customers–Bexio
+- **THEN** authentication policy, transaction-bound auth configuration, routing and migrations remain host-owned
+- **AND** unlinking or local deletion never deletes a Bexio contact
+
+### Requirement: Projects–Drive connector
+
+The connector SHALL embed Drive with a project scope, retaining the existing
+Drive client, capabilities, labels, upload and navigation contracts.
+
+#### Scenario: Switching projects
+
+- **WHEN** the host changes the supplied project ID
+- **THEN** the browser remounts for that project's scope
+- **AND** host server authorization still validates the project for every operation
+- **AND** no customer file space, storage migration or new schema is introduced

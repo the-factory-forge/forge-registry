@@ -1,8 +1,16 @@
-import { BoxIcon, FileTextIcon, PanelsTopLeftIcon, PlugIcon, type LucideIcon } from "lucide-react";
+import {
+  CableIcon,
+  BoxIcon,
+  FileTextIcon,
+  PanelsTopLeftIcon,
+  PlugIcon,
+  type LucideIcon,
+} from "lucide-react";
 
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
 export const categoryIcons = {
+  Connector: CableIcon,
   Page: FileTextIcon,
   Plugin: PlugIcon,
   Component: BoxIcon,
@@ -13,6 +21,33 @@ export type Category = keyof typeof categoryIcons;
 
 export const examples = (
   [
+    {
+      href: "/connectors/customers-bexio",
+      category: "Connector",
+      title: "Customers–Bexio",
+      description:
+        "Link Bexio contacts, automatically sync saved customers, and import contacts in bulk.",
+      tags: ["External API", "Host adapters"],
+      keywords: [
+        "connector",
+        "adapter",
+        "bexio",
+        "customers",
+        "sync",
+        "contacts",
+        "bulk",
+        "import",
+        "automatic",
+      ],
+    },
+    {
+      href: "/connectors/projects-drive",
+      category: "Connector",
+      title: "Projects–Drive",
+      description: "Project file spaces using Drive, with host-controlled navigation and access.",
+      tags: ["Plugin composition", "Host adapters"],
+      keywords: ["connector", "adapter", "projects", "drive", "files", "scope"],
+    },
     {
       href: "/content-sidebar-layout",
       category: "Layout",

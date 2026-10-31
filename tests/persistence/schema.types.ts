@@ -1,6 +1,11 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 
+import type { ForgeCustomerBulkImportAdapter } from "../../registry/components/connectors/customers-bexio/contracts.ts";
+import {
+  createBexioCustomerProvisioner,
+  createBexioContactLinkStore,
+} from "../../registry/components/connectors/customers-bexio/server/index.ts";
 import type { BlogsDatabase } from "../../registry/components/plugins/blogs/server/types.ts";
 import { createCustomersService } from "../../registry/components/plugins/customers/server/index.ts";
 import type {
@@ -25,6 +30,38 @@ export async function checkHostTypes() {
     headers: () => new Headers(),
     authorize: async () => true,
     sendInvitation: async () => {},
+  });
+  const provisioning = createBexioCustomerProvisioner({
+    db,
+    users: schema.user,
+    customers: schema.customers,
+    context: undefined,
+    authForTransaction: (tx) => createAuth(tx).api,
+    headers: () => new Headers(),
+    authorize: async () => true,
+    sendInvitation: async () => {},
+    mapCustomer: (customer) => ({
+      localCustomerId: customer.id,
+      fullName: customer.name,
+      email: customer.email,
+      language: "en",
+      companyName: customer.companyName ?? null,
+      phone: customer.phoneNumber ?? null,
+      street: customer.street ?? null,
+      city: customer.city ?? null,
+      addressComplement: customer.addressComplement ?? null,
+      countryCode: null,
+      postalCode: null,
+    }),
+  });
+  const importAdapter: ForgeCustomerBulkImportAdapter = {
+    ...provisioning,
+    updateCustomer: (id) => provisioning.getCustomer(id),
+  };
+  const linkStore = createBexioContactLinkStore({
+    db,
+    links: schema.bexioLinks,
+    installationId: "fixture",
   });
   const projects = createProjectsService({
     db,
@@ -58,5 +95,5 @@ export async function checkHostTypes() {
     // @ts-expect-error Callbacks cannot fall back to untyped runtime SQL.
     shared.execute("select 1");
   });
-  return { drive, blogs, customers, names };
+  return { drive, blogs, customers, names, importAdapter, linkStore };
 }

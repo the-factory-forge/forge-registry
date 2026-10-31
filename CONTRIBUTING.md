@@ -92,7 +92,11 @@ independent of the customer's primary color and readable in both themes.
 Internal i18n helpers, locale dictionaries, and their
 providers belong in `src/lib/`. Showroom controls belong in
 `src/showroom/`. Neither directory may be listed in `registry/registry.json` or
-imported by shared registry components. Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in
+imported by shared registry components. Reusable connector source and provider adapters live under `registry/components/connectors/{name}/`
+and install at `@components/connectors/{name}/*`. List connectors in the showroom
+under **Connector**; server companions stay with their parent example.
+Host adapters remain in the consuming website.
+Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in
 `registry/components/utils/`.
 
 ## DOM IDs

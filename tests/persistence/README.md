@@ -50,3 +50,8 @@ invitation preservation on profile-only edits, bounded pages and per-record
 authorization including empty pages with continuations. The Drive suite checks
 a wide subtree, bounded query parameters/results and rollback after a later
 mutation batch fails.
+
+Customers–Bexio uses the same composed fixture to verify its installation-scoped
+unique person constraint, competing database connections, rollback after auth
+creation and before commit, invitation resend, and bulk recovery after losing a
+committed account response. Bexio calls are mocked; auth and PostgreSQL are real.

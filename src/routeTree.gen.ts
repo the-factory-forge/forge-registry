@@ -36,6 +36,7 @@ import { Route as LocaleIntranetRouteImport } from './routes/$locale.intranet'
 import { Route as LocaleIntranetSidebarRouteImport } from './routes/$locale.intranet-sidebar'
 import { Route as LocaleLoginRouteImport } from './routes/$locale.login'
 import { Route as LocaleResetPasswordRouteImport } from './routes/$locale.reset-password'
+import { Route as ConnectorsConnectorRouteImport } from './routes/connectors.$connector'
 import { Route as MailingSplatRouteImport } from './routes/mailing.$'
 import { Route as LocaleLegalDocumentRouteImport } from './routes/$locale.legal.$document'
 import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$locale.blogs.$'
@@ -179,6 +180,11 @@ const LocaleResetPasswordRoute = LocaleResetPasswordRouteImport.update({
   path: '/$locale/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnectorsConnectorRoute = ConnectorsConnectorRouteImport.update({
+  id: '/connectors/$connector',
+  path: '/connectors/$connector',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MailingSplatRoute = MailingSplatRouteImport.update({
   id: '/mailing/$',
   path: '/mailing/$',
@@ -265,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
@@ -301,6 +308,7 @@ export interface FileRoutesByTo {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/$locale/intranet-sidebar': typeof LocaleIntranetSidebarRoute
   '/$locale/login': typeof LocaleLoginRoute
   '/$locale/reset-password': typeof LocaleResetPasswordRoute
+  '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
   '/_blogs/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
     | '/$locale/blogs/$'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/$locale/intranet-sidebar'
     | '/$locale/login'
     | '/$locale/reset-password'
+    | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
     | '/_blogs/$locale/blogs/$'
@@ -497,6 +509,7 @@ export interface RootRouteChildren {
   LocaleIntranetSidebarRoute: typeof LocaleIntranetSidebarRoute
   LocaleLoginRoute: typeof LocaleLoginRoute
   LocaleResetPasswordRoute: typeof LocaleResetPasswordRoute
+  ConnectorsConnectorRoute: typeof ConnectorsConnectorRoute
   MailingSplatRoute: typeof MailingSplatRoute
   LocaleLegalDocumentRoute: typeof LocaleLegalDocumentRoute
 }
@@ -692,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connectors/$connector': {
+      id: '/connectors/$connector'
+      path: '/connectors/$connector'
+      fullPath: '/connectors/$connector'
+      preLoaderRoute: typeof ConnectorsConnectorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mailing/$': {
       id: '/mailing/$'
       path: '/mailing/$'
@@ -855,6 +875,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocaleIntranetSidebarRoute: LocaleIntranetSidebarRoute,
   LocaleLoginRoute: LocaleLoginRoute,
   LocaleResetPasswordRoute: LocaleResetPasswordRoute,
+  ConnectorsConnectorRoute: ConnectorsConnectorRoute,
   MailingSplatRoute: MailingSplatRoute,
   LocaleLegalDocumentRoute: LocaleLegalDocumentRoute,
 }

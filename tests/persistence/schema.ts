@@ -11,3 +11,6 @@ import { user } from "./auth.schema.fixture.ts";
 
 export const customers = createCustomersSchema(user);
 export const projects = createProjectsSchema(customers);
+
+import { createBexioContactLinksSchema } from "../../registry/components/connectors/customers-bexio/server/schema.ts";
+export const bexioLinks = createBexioContactLinksSchema(customers);

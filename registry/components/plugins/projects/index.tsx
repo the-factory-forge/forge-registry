@@ -356,7 +356,7 @@ function ProjectDetailPageContent({
       </ProjectLink>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
         <ProjectAvatar name={project.name} image={project.posterImage} large />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-40">
           <h1 className="text-xl font-semibold break-words">{project.name}</h1>
         </div>
         <div className="ml-auto self-start">

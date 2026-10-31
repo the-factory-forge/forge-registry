@@ -7,6 +7,11 @@ Site-specific fields and workflows belong in the consuming website. Project
 forms, for example, edit only name, status and description; host adapters own
 ownership and assignment.
 
+A [connector](./connectors.md) combines a plugin with another plugin, library or
+external service. It is separately installable; its adapters implement provider
+and host interfaces. Customers–Bexio supplies unique link storage and recoverable
+account provisioning; Projects–Drive composes existing project storage.
+
 A service plugin provides a shared application capability without its own screen.
 Mailing supplies transactional email rendering and a separate server transport
 for plugins that need to send messages.

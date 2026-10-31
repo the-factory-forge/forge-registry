@@ -67,7 +67,7 @@ export async function assertRegistryDistribution(root) {
       const [directory] = relative.split("/");
       if (relative.includes("/"))
         assert.ok(
-          ["layouts", "pages", "plugins", "utils"].includes(directory),
+          ["connectors", "layouts", "pages", "plugins", "utils"].includes(directory),
           `${item.name}: unsupported directory ${directory}`,
         );
       if (directory === "pages") {

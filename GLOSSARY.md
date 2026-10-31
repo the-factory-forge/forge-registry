@@ -5,6 +5,17 @@ be explored. This language describes the content and staff workflows those featu
 
 ## Language
 
+### Connectors
+
+**Connector**:
+An optional relationship that lets a Forge plugin work with another plugin,
+library or external service, with behavior specific to that pair.
+_Avoid_: Universal sync engine
+
+**Adapter**:
+The implementation that connects a connector's required interface to a provider
+or host website.
+
 ### Blogs
 
 **Blog editor**:

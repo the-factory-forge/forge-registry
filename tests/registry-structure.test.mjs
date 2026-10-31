@@ -14,7 +14,7 @@ await test("every registry item ships complete portable source and current gener
     .map((entry) => entry.name)
     .sort();
 
-  assert.deepEqual(directories, ["layouts", "pages", "plugins", "utils"]);
+  assert.deepEqual(directories, ["connectors", "layouts", "pages", "plugins", "utils"]);
 
   await assertRegistryDistribution(new URL("../", import.meta.url));
 });

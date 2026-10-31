@@ -1,0 +1,26 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "projects-drive",
+  "title": "Projects–Drive connector",
+  "description": "Embed Drive with a project scope and host-owned navigation and permissions.",
+  "dependencies": [],
+  "registryDependencies": [
+    "@forge/projects",
+    "@forge/drive"
+  ],
+  "files": [
+    {
+      "path": "registry/components/connectors/projects-drive/index.tsx",
+      "content": "import { DriveBrowser, type DriveBrowserProps } from \"@/components/plugins/drive\";\nimport type { Project } from \"@/components/plugins/projects\";\n\nimport { projectDriveScope } from \"./scope\";\n\nexport { projectDriveScope } from \"./scope\";\nexport type ProjectDriveProps = Omit<DriveBrowserProps, \"scope\"> & { project: Pick<Project, \"id\"> };\n\n/** Embed in ProjectDetailPage.driveContent; the host still authorizes every Drive operation. */\nexport function ProjectDrive({ project, ...props }: ProjectDriveProps) {\n  return <DriveBrowser key={project.id} {...props} scope={projectDriveScope(project)} />;\n}\n",
+      "type": "registry:component",
+      "target": "@components/connectors/projects-drive/index.tsx"
+    },
+    {
+      "path": "registry/components/connectors/projects-drive/scope.ts",
+      "content": "import type { DriveScope } from \"@/components/plugins/drive/types\";\nimport type { Project } from \"@/components/plugins/projects/types\";\n\nexport function projectDriveScope(project: Pick<Project, \"id\">): DriveScope {\n  return { type: \"project\", id: project.id };\n}\n",
+      "type": "registry:component",
+      "target": "@components/connectors/projects-drive/scope.ts"
+    }
+  ],
+  "type": "registry:block"
+}

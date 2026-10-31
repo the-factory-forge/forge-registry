@@ -21,6 +21,11 @@ const { createProjectsService } =
   await import("../../registry/components/plugins/projects/server/index.ts");
 const { createEmployeeService } =
   await import("../../registry/components/plugins/employees/server/employees.server.ts");
+const {
+  createBexioContactLinkStore,
+  createBexioCustomerProvisioner,
+  createBexioBulkImportService,
+} = await import("../../registry/components/connectors/customers-bexio/server/index.ts");
 import { assertMigrationsApplied } from "../../registry/components/utils/database-migrations.ts";
 import { lockPlugin } from "../../registry/components/utils/database.ts";
 
@@ -408,6 +413,204 @@ await test("composed migrations, Better Auth customers, employee membership and 
       assert.deepEqual((await projectPages.list(ownerId, { search: "%_" })).items, []);
     },
   );
+
+  await t.test("Bexio uniqueness and account recovery use durable database state", async () => {
+    const mapCustomer = (customer) => ({
+      localCustomerId: customer.id,
+      fullName: customer.name,
+      email: customer.email,
+      language: "en",
+      companyName: customer.companyName,
+      phone: customer.phoneNumber,
+    });
+    const provision = (overrides = {}) =>
+      createBexioCustomerProvisioner({ ...options, context: "admin", mapCustomer, ...overrides });
+    const input = (email) => ({ fullName: "Contact", email, companyName: "Acme", phone: null });
+    const store = (installationId = "fixture") =>
+      createBexioContactLinkStore({ db, links: schema.bexioLinks, installationId });
+    const values = (id, person = 101, company = 202) => ({
+      localCustomerId: id,
+      bexioPersonId: person,
+      bexioCompanyId: company,
+      lastSyncedEmail: null,
+      syncStatus: "linked",
+      lastSyncedAt: null,
+      lastError: null,
+    });
+    const first = await provision().createCustomer(input("bexio-first@example.test"));
+    const second = await provision().createCustomer(input("bexio-second@example.test"));
+    const competing = await Promise.allSettled([
+      store().upsert(values(first.localCustomerId)),
+      store().upsert(values(second.localCustomerId)),
+    ]);
+    assert.equal(competing.filter((result) => result.status === "fulfilled").length, 1);
+    assert.match(
+      competing.find((result) => result.status === "rejected").reason.message,
+      /already linked/,
+    );
+    const [winner] = await store().list();
+    const loser = winner.localCustomerId === first.localCustomerId ? second : first;
+    await assert.rejects(
+      db
+        .insert(schema.bexioLinks)
+        .values({ ...values(loser.localCustomerId), installationId: "fixture" }),
+      (error) => error.cause?.code === "23505",
+    );
+    await store().upsert(values(loser.localCustomerId, 102));
+    await assert.rejects(store().upsert(values(winner.localCustomerId, 102)), /already linked/);
+    assert.equal((await store().getByLocalCustomerId(winner.localCustomerId)).bexioPersonId, 101);
+    await store().upsert(values(first.localCustomerId, null));
+    await store().upsert(values(second.localCustomerId, null));
+    assert.equal(
+      (await store().list()).length,
+      2,
+      "Null people and shared companies are permitted",
+    );
+    await store("other").upsert(values(first.localCustomerId));
+    await store().deleteByLocalCustomerId(first.localCustomerId);
+    assert.ok(await store("other").getByLocalCustomerId(first.localCustomerId));
+    await store().upsert(values(first.localCustomerId));
+    assert.equal((await store().list()).filter((link) => link.bexioPersonId === 101).length, 1);
+    assert.equal((await store("other").list()).length, 1);
+    await assert.rejects(store().upsert(values(first.localCustomerId, -1)));
+    assert.throws(() => store(" "));
+
+    const match = await provision().findCustomersByEmails([first.email, "ADMIN@example.test"]);
+    assert.equal(match.get(first.email).customer.localCustomerId, first.localCustomerId);
+    assert.equal(match.get("admin@example.test").status, "conflict");
+    await rejected(
+      provision({ context: "guest" }).findCustomersByEmails([first.email]),
+      "FORBIDDEN",
+    );
+    await rejected(
+      provision({ context: "guest" }).createCustomer(input("denied@example.test")),
+      "FORBIDDEN",
+    );
+    const ambiguousEmail = "ambiguous-bexio@example.test";
+    await db.insert(schema.user).values([
+      { id: "ambiguous-bexio-1", name: "One", email: ambiguousEmail, role: "user" },
+      { id: "ambiguous-bexio-2", name: "Two", email: ambiguousEmail.toUpperCase(), role: "user" },
+    ]);
+    await db
+      .insert(schema.customers)
+      .values([{ id: "ambiguous-bexio-1" }, { id: "ambiguous-bexio-2" }]);
+    assert.equal(
+      (await provision().findCustomersByEmails([ambiguousEmail])).get(ambiguousEmail).status,
+      "conflict",
+    );
+    await rejected(
+      provision({
+        authForTransaction: (tx) => {
+          const api = createAuth(tx).api;
+          return {
+            ...api,
+            createUser: async (input) => {
+              const result = await api.createUser(input);
+              assert.equal(
+                (await tx.select().from(schema.user).where(eq(schema.user.id, result.user.id)))
+                  .length,
+                1,
+              );
+              throw new Error("Interrupted after identity creation, before profile creation");
+            },
+          };
+        },
+      }).createCustomer(input("partial-bexio@example.test")),
+      "STORAGE",
+    );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.user)
+          .where(eq(schema.user.email, "partial-bexio@example.test"))
+      ).length,
+      0,
+    );
+    assert.ok(
+      await provision().createCustomer(input("partial-bexio@example.test")),
+      "Retry after rollback creates a complete account",
+    );
+    await rejected(
+      provision({ db: failingDb }).createCustomer(input("commit-bexio@example.test")),
+      "STORAGE",
+    );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.user)
+          .where(eq(schema.user.email, "commit-bexio@example.test"))
+      ).length,
+      0,
+    );
+
+    let invitations = 0;
+    const pending = await provision({
+      sendInvitation: async () => {
+        throw new Error("Mail unavailable");
+      },
+    }).createCustomer(input("invite-bexio@example.test"));
+    const resumed = provision({
+      sendInvitation: async () => {
+        invitations++;
+      },
+    });
+    assert.equal(
+      (await resumed.findCustomersByEmails([pending.email])).get(pending.email).customer
+        .localCustomerId,
+      pending.localCustomerId,
+    );
+    assert.equal((await resumed.resendInvitation(pending.localCustomerId)).invitationSent, true);
+    assert.equal(invitations, 1);
+
+    const remote = {
+      id: 333,
+      contact_type_id: 2,
+      name_1: "Recovered",
+      mail: "lost-response-bexio@example.test",
+      user_id: 1,
+      owner_id: 1,
+    };
+    const contactClient = {
+      listContacts: async () => [remote],
+      listRelations: async () => [],
+      ensureRelation: async () => {},
+    };
+    const host = { authorize: async () => true, runExclusive: async (_, operation) => operation() };
+    let creates = 0;
+    const bulk = (loseResponse) => {
+      const adapter = provision();
+      return createBexioBulkImportService({
+        contactClient,
+        host,
+        linkStore: store("bulk"),
+        customerAdapter: adapter,
+        customerImportAdapter: {
+          ...adapter,
+          createCustomer: async (value) => {
+            creates++;
+            const customer = await adapter.createCustomer(value);
+            if (loseResponse) throw new Error("Response lost after commit");
+            return customer;
+          },
+          updateCustomer: async (id) => adapter.getCustomer(id),
+        },
+      });
+    };
+    assert.equal((await bulk(true).syncAllContacts()).failed, 1);
+    assert.equal((await store("bulk").list()).length, 0);
+    assert.equal((await bulk(false).syncAllContacts()).linked, 1);
+    assert.equal(
+      creates,
+      1,
+      "A fresh connector instance recovers the committed account without creating another",
+    );
+    assert.equal((await bulk(false).syncAllContacts()).updated, 1);
+    assert.equal((await store("bulk").list()).length, 1);
+    await customers.remove(pending.localCustomerId);
+    assert.equal((await resumed.findCustomersByEmails([pending.email])).size, 0);
+  });
 
   await t.test("named locks serialize independent connections and survive rollback", async () => {
     let release;

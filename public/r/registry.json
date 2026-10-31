@@ -783,7 +783,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -1864,6 +1864,102 @@
           "path": "registry/components/plugins/projects/server/service.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/projects/server/service.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "customers-bexio",
+      "type": "registry:block",
+      "title": "Customers\u2013Bexio connector",
+      "description": "Customer links, automatic synchronization after saving, and bulk Bexio import with reviewed identity changes.",
+      "dependencies": ["zod", "@tanstack/react-query", "lucide-react"],
+      "registryDependencies": [
+        "@forge/customers",
+        "@forge/cn",
+        "@forge/icon-tooltip",
+        "@forge/action-toast",
+        "@forge/loading-indicator",
+        "@forge/optimistic-action"
+      ],
+      "files": [
+        {
+          "path": "registry/components/connectors/customers-bexio/contracts.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/customers-bexio/contracts.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/index.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/customers-bexio/index.tsx"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/bulk-import.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/customers-bexio/bulk-import.tsx"
+        }
+      ]
+    },
+    {
+      "name": "customers-bexio-server",
+      "type": "registry:lib",
+      "title": "Customers\u2013Bexio server",
+      "description": "Guarded Bexio client, automatic sync, bulk import, unique contact links and transactional customer provisioning.",
+      "dependencies": ["zod", "drizzle-orm@1.0.0-rc.4"],
+      "registryDependencies": [
+        "@forge/customers-bexio",
+        "@forge/database",
+        "@forge/customers-storage"
+      ],
+      "files": [
+        {
+          "path": "registry/components/connectors/customers-bexio/server/client.server.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/client.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/server/index.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/index.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/server/service.server.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/server/schema.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/schema.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/server/store.server.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/store.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/customers-bexio/server/provisioning.server.ts",
+          "type": "registry:file",
+          "target": "@components/connectors/customers-bexio/server/provisioning.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "projects-drive",
+      "type": "registry:block",
+      "title": "Projects\u2013Drive connector",
+      "description": "Embed Drive with a project scope and host-owned navigation and permissions.",
+      "dependencies": [],
+      "registryDependencies": ["@forge/projects", "@forge/drive"],
+      "files": [
+        {
+          "path": "registry/components/connectors/projects-drive/index.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/projects-drive/index.tsx"
+        },
+        {
+          "path": "registry/components/connectors/projects-drive/scope.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/projects-drive/scope.ts"
         }
       ]
     }
