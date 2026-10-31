@@ -330,7 +330,9 @@ await suite("Showroom browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     assert.equal(await search.inputValue(), specialSearch);
     assert.equal(await cards.count(), 0);
-    await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+    assert.equal(await page.getByRole("button", { name: "Reset filters", exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Clear search examples", exact: true }).click();
+    await page.getByRole("button", { name: "All", exact: true }).click();
     await page.waitForURL((url) => !url.search);
     assert.equal(await search.inputValue(), "");
     assert.equal(await cards.count(), allCount);

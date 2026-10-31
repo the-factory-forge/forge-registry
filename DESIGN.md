@@ -251,8 +251,8 @@ soft fills; selected filters reverse the pair for a solid fill with contrasting
 text. Hover adds a border without changing size; keyboard focus retains the
 separate ring. All keeps the primary pair. Labels and icons retain their meaning
 without color. These tokens stay private to the showroom and do not change plugin
-status colors or customer themes. Results show a live
-count and a reset action that clears both filters and returns focus to All. Status labels use
+status colors or customer themes. Results show a live count. Clear the search and
+select All to show every example. Status labels use
 the appropriate status pair and visible text with a small decorative dot; they are
 not buttons by default. Verification labels that already carry an icon retain it.
 Place a summary's primary status opposite its title at the top right. Table status

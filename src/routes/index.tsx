@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRightIcon, SearchIcon } from "lucide-react";
-import { useRef } from "react";
 
 import { TableSearch } from "@/components/table-search";
 import { categoryIcons, examples, type Category } from "@/showroom/examples";
@@ -17,7 +16,6 @@ function Home() {
   const { category, search = "" } = Route.useSearch();
   const navigate = Route.useNavigate();
   const type = types.find((option) => option === category) ?? "All";
-  const allFilterRef = useRef<HTMLButtonElement>(null);
   const query = search.trim().toLowerCase();
   const visibleExamples = examples.filter(
     (example) =>
@@ -56,7 +54,6 @@ function Home() {
             return (
               <button
                 key={option}
-                ref={option === "All" ? allFilterRef : undefined}
                 type="button"
                 aria-pressed={type === option}
                 data-showroom-category={option === "All" ? undefined : option}
@@ -97,18 +94,6 @@ function Home() {
           {" of "}
           {examples.length} examples
         </output>
-        {(type !== "All" || search) && (
-          <button
-            type="button"
-            onClick={() => {
-              updateFilters({ category: undefined, search: undefined });
-              allFilterRef.current?.focus();
-            }}
-            className="min-h-9 cursor-pointer rounded-lg px-3 text-sm font-medium text-primary underline-offset-4 hover:bg-primary/5 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Reset filters
-          </button>
-        )}
       </div>
 
       <section aria-label="Examples" className="grid gap-4 pb-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,7 +104,7 @@ function Home() {
               No examples found.
             </output>
             <p className="mt-2 text-sm text-muted-foreground">
-              Try another keyword or reset the filters to see all examples.
+              Try another keyword, or clear the search and select All.
             </p>
           </div>
         )}
