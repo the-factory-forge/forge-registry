@@ -48,8 +48,8 @@ harnesses remain separate from the showroom.
 ## Updating from Cove
 
 Use the shared [sync-template skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/sync-template/SKILL.md)
-and [project config](../.sync-template/config.json) for the next comparison. The
-[HTML report](../.sync-template/report.html) records differences, exclusions and
+and [project config](../.agents/configs/.sync-template/config.json) for the next comparison. The
+[HTML report](../.agents/configs/.sync-template/report.html) records differences, exclusions and
 history, including the original `.cove.jsonc` marker. Cove remains the direct parent.
 
 1. Compare that revision with a fixed Cove commit and review its dependency,
