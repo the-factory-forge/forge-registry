@@ -204,7 +204,7 @@ await suite("Showroom browser", async () => {
 
   await test("Start serves deep links, SSR documents, locale redirects, and registry endpoints", async () => {
     for (const [path, heading] of [
-      ["/", "Components Showcase"],
+      ["/", "Showcase"],
       ["/en/projects/new?customerId=acme", "New project"],
       ["/en/projects/website/drive", "Studio website"],
       ["/en/customers/acme/projects", "Acme Studio"],
@@ -359,7 +359,7 @@ await suite("Showroom browser", async () => {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(baseURL);
-    await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+    await page.getByRole("heading", { name: "Showcase" }).waitFor();
     await page.locator('[data-preview-ready="true"]').waitFor();
     await page.getByRole("button", { name: "Plugin", exact: true }).click();
     assert.equal(await page.locator('main a[href="/en/login"]').count(), 1);
@@ -424,7 +424,7 @@ await suite("Showroom browser", async () => {
       }
       assert.deepEqual(await header.boundingBox(), original, href);
       await header.getByRole("link", { name: "All components" }).click();
-      await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+      await page.getByRole("heading", { name: "Showcase" }).waitFor();
     }
     assert.deepEqual(errors, []);
   });

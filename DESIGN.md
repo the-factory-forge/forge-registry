@@ -244,7 +244,7 @@ their height; they expand to 288px, capped by the available space.
 ### Chips and status labels
 
 Directory category controls are 44px high with visible labels, counts, and optional
-leading icons. Component uses blue, Layout violet, Page teal and Plugin gold.
+leading icons. Component uses blue, Connector pink, Layout violet, Page teal and Plugin gold.
 Filters, directory badges and global search badges share the showroom category
 surface/foreground pairs from the stylesheet. Inactive filters and badges use
 soft fills; selected filters reverse the pair for a solid fill with contrasting

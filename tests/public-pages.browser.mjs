@@ -61,7 +61,7 @@ await suite("Public pages browser", async () => {
     const home = preview.getByRole("link", { name: "All components", exact: true });
     await home.focus();
     await page.keyboard.press("Enter");
-    await page.getByRole("heading", { name: "Components Showcase" }).waitFor();
+    await page.getByRole("heading", { name: "Showcase" }).waitFor();
   });
 
   await test("FAQ categories close answers and preserve keyboard navigation", async (t) => {

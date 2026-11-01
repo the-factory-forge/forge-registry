@@ -37,7 +37,7 @@ function Home() {
     <ShowroomPreview>
       <header className="max-w-3xl pt-4 pb-8 sm:pt-8 sm:pb-10">
         <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl">
-          Components Showcase
+          Showcase
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
           Preview reusable React components, page layouts, intranet plugins, and connectors. Install

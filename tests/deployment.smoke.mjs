@@ -5,7 +5,7 @@ const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
 
 await test("the deployed showroom serves public demos, assets and registry JSON without auth", async () => {
   for (const [path, heading] of [
-    ["/", "Components Showcase"],
+    ["/", "Showcase"],
     ["/en/login", "Example workspace"],
     ["/en/employees", "Employees"],
     ["/en/projects/new?customerId=acme", "New project"],
