@@ -28,6 +28,7 @@ import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
 import { Route as LocaleAccessDeniedRouteImport } from './routes/$locale.access-denied'
 import { Route as LocaleAccountRouteImport } from './routes/$locale.account'
+import { Route as LocaleAgentsRouteImport } from './routes/$locale.agents'
 import { Route as LocaleContactRouteImport } from './routes/$locale.contact'
 import { Route as LocaleEmployeesRouteImport } from './routes/$locale.employees'
 import { Route as LocaleFaqRouteImport } from './routes/$locale.faq'
@@ -138,6 +139,11 @@ const LocaleAccessDeniedRoute = LocaleAccessDeniedRouteImport.update({
 const LocaleAccountRoute = LocaleAccountRouteImport.update({
   id: '/$locale/account',
   path: '/$locale/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleAgentsRoute = LocaleAgentsRouteImport.update({
+  id: '/$locale/agents',
+  path: '/$locale/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LocaleContactRoute = LocaleContactRouteImport.update({
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
+  '/$locale/agents': typeof LocaleAgentsRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -300,6 +307,7 @@ export interface FileRoutesByTo {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
+  '/$locale/agents': typeof LocaleAgentsRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/table-search': typeof TableSearchRoute
   '/$locale/access-denied': typeof LocaleAccessDeniedRoute
   '/$locale/account': typeof LocaleAccountRoute
+  '/$locale/agents': typeof LocaleAgentsRoute
   '/$locale/contact': typeof LocaleContactRoute
   '/$locale/employees': typeof LocaleEmployeesRoute
   '/$locale/faq': typeof LocaleFaqRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
+    | '/$locale/agents'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
+    | '/$locale/agents'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/table-search'
     | '/$locale/access-denied'
     | '/$locale/account'
+    | '/$locale/agents'
     | '/$locale/contact'
     | '/$locale/employees'
     | '/$locale/faq'
@@ -501,6 +513,7 @@ export interface RootRouteChildren {
   TableSearchRoute: typeof TableSearchRoute
   LocaleAccessDeniedRoute: typeof LocaleAccessDeniedRoute
   LocaleAccountRoute: typeof LocaleAccountRoute
+  LocaleAgentsRoute: typeof LocaleAgentsRoute
   LocaleContactRoute: typeof LocaleContactRoute
   LocaleEmployeesRoute: typeof LocaleEmployeesRoute
   LocaleFaqRoute: typeof LocaleFaqRoute
@@ -647,6 +660,13 @@ declare module '@tanstack/react-router' {
       path: '/$locale/account'
       fullPath: '/$locale/account'
       preLoaderRoute: typeof LocaleAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/agents': {
+      id: '/$locale/agents'
+      path: '/$locale/agents'
+      fullPath: '/$locale/agents'
+      preLoaderRoute: typeof LocaleAgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$locale/contact': {
@@ -867,6 +887,7 @@ const rootRouteChildren: RootRouteChildren = {
   TableSearchRoute: TableSearchRoute,
   LocaleAccessDeniedRoute: LocaleAccessDeniedRoute,
   LocaleAccountRoute: LocaleAccountRoute,
+  LocaleAgentsRoute: LocaleAgentsRoute,
   LocaleContactRoute: LocaleContactRoute,
   LocaleEmployeesRoute: LocaleEmployeesRoute,
   LocaleFaqRoute: LocaleFaqRoute,

@@ -300,3 +300,13 @@ read-only and failure controls stay local to the preview. No live services or
 credentials are used. The Bexio example includes bulk import and automatic sync
 after saving About, including a warning when the provider fails after the save.
 See [connectors](./connectors.md).
+
+## Agents example
+
+`/{locale}/agents` uses a deterministic browser-only mock with sample records.
+Operation and conversation selection are validated URL state. Saved chats and
+private demo attachments survive reload in the current browser session; no model,
+production data or live plugin service is connected. Controls simulate transport
+failure and read-only tools. The example includes the seven plugin operations and
+one neutral host-defined workflow. See [Agents integration](./agents.md) for the
+server runtime, approval, persistence and storage contracts.

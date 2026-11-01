@@ -5,6 +5,20 @@ be explored. This language describes the content and staff workflows those featu
 
 ## Language
 
+### Agents
+
+**Agent operation**:
+The plugin or host-defined workflow selected before starting a conversation. It
+supplies trusted instructions and an explicit set of permitted tools.
+
+**Agent action proposal**:
+A saved description of one requested change awaiting the user's approval,
+including its target, values, file references and side effects.
+
+**Unresolved agent action**:
+An approved write whose outcome must be checked by the host before continuing.
+_Avoid_: Failed write, safe to retry
+
 ### Connectors
 
 **Connector**:

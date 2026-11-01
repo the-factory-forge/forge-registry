@@ -33,3 +33,11 @@ live Bexio/S3 services. Demo controls remain showroom code.
 These connectors add no template configuration or shared host contract. Their
 behavior and specification belong to this repository. They do not change the
 existing TC Bexio installation or any deployed project's storage.
+
+## Agents connectors
+
+The seven `agents-{plugin}-server` items connect Agents to existing Blogs,
+Employees, Customers, Projects, Drive, Menus and Reservations services. They are
+server-only relationships, documented with the [Agents plugin](./agents.md), and
+share its showroom rather than adding seven independent UI demos. Install only
+the relationships used by the host; the base plugins do not depend on Agents.

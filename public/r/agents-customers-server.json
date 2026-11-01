@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "agents-customers-server",
+  "title": "Agents–Customers",
+  "description": "Authorized customers tools for Agents, using existing plugin services.",
+  "dependencies": [
+    "zod@4.6.7"
+  ],
+  "registryDependencies": [
+    "@forge/agents-server",
+    "@forge/customers-storage"
+  ],
+  "files": [
+    {
+      "path": "registry/components/connectors/agents-customers/server/index.ts",
+      "content": "import { z } from \"zod\";\n\nimport {\n  agentRecord,\n  agentTools,\n  agentOperation,\n  type AgentConnectorOptions,\n} from \"@/components/plugins/agents/server/tools\";\nimport {\n  createCustomersService,\n  customerInputSchema,\n} from \"@/components/plugins/customers/server/service.server\";\nimport { directoryQuerySchema } from \"@/components/utils/database\";\n\ntype Client<Context> = ReturnType<ReturnType<typeof createCustomersService<Context>>[\"client\"]>;\nexport function createCustomersAgentOperation<Context>(\n  options: AgentConnectorOptions<Context, Client<Context>>,\n) {\n  const { read, write } = agentTools<Context>();\n  const values = customerInputSchema.extend(\n    Object.fromEntries(\n      [\"companyName\", \"phoneNumber\", \"street\", \"city\", \"addressComplement\"].map((key) => [\n        key,\n        z.string().trim().max(2000),\n      ]),\n    ),\n  );\n  const query = directoryQuerySchema.extend({\n    cursor: z\n      .string()\n      .regex(/^(0|[1-9]\\d*)$/)\n      .max(16)\n      .optional(),\n  });\n  const before = (c: Context, i: { id: string }) => options.client(c).get(i.id);\n  return agentOperation(\"customers\", \"Customers\", options.authorize, [\n    read(\"customers_list\", query, (c, i) => options.client(c).list(i)),\n    read(\"customers_get\", agentRecord, (c, i) => options.client(c).get(i.id)),\n    write(\"customers_create\", values, {\n      before: async () => null,\n      run: (c, i) => options.client(c).create(i),\n      effects: [\n        \"Creates an account and sends an invitation. Delivery can fail after account creation.\",\n      ],\n    }),\n    write(\"customers_update\", agentRecord.extend({ values }), {\n      before,\n      run: (c, i) => options.client(c).update(i.id, i.values),\n    }),\n    write(\"customers_set_verified\", agentRecord.extend({ verified: z.boolean() }), {\n      before,\n      run: (c, i) => options.client(c).setVerified(i.id, i.verified),\n      effects: [\"Changes the account's email verification status.\"],\n    }),\n    write(\"customers_invite\", agentRecord, {\n      before,\n      run: (c, i) => options.client(c).resendInvitation(i.id),\n      effects: [\"Sends a single-use invitation email.\"],\n    }),\n    write(\"customers_delete\", agentRecord, {\n      before,\n      run: (c, i) => options.client(c).remove(i.id),\n      effects: [\"Deletes this customer account. Linked projects can prevent deletion.\"],\n    }),\n  ]);\n}\n",
+      "type": "registry:component",
+      "target": "@components/connectors/agents-customers/server/index.ts"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1962,6 +1962,194 @@
           "target": "@components/connectors/projects-drive/scope.ts"
         }
       ]
+    },
+    {
+      "name": "agents",
+      "type": "registry:component",
+      "title": "Agents",
+      "description": "Operation-based staff chat with saved conversations, attachments and per-action approvals.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": [
+        "@forge/action-toast",
+        "@forge/icon-tooltip",
+        "@forge/image-crop",
+        "@forge/loading-indicator",
+        "@forge/native-select",
+        "@forge/cn",
+        "@forge/ui-shims"
+      ],
+      "files": [
+        {
+          "path": "registry/components/plugins/agents/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/agents/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/types.ts"
+        },
+        {
+          "path": "registry/components/utils/plugin-icons.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/plugin-icons.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-server",
+      "type": "registry:component",
+      "title": "Agents server",
+      "description": "Provider-independent orchestration, durable approvals and PostgreSQL conversations.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/agents", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/agents/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/service.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/store.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/store.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/tools.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/tools.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/agents/server/types.ts"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:component",
+          "target": "@components/utils/storage-filename.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-blogs-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Blogs",
+      "description": "Authorized blogs tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/blogs-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-blogs/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-blogs/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-employees-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Employees",
+      "description": "Authorized employees tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/employees-server"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-employees/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-employees/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-customers-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Customers",
+      "description": "Authorized customers tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/customers-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-customers/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-customers/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-projects-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Projects",
+      "description": "Authorized projects tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/projects-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-projects/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-projects/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-drive-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Drive",
+      "description": "Authorized drive tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/drive-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-drive/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-drive/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-menus-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Menus",
+      "description": "Authorized menus tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/menus-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-menus/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-menus/server/index.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-reservations-server",
+      "type": "registry:component",
+      "title": "Agents\u2013Reservations",
+      "description": "Authorized reservations tools for Agents, using existing plugin services.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-server", "@forge/reservations-storage"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-reservations/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-reservations/server/index.ts"
+        }
+      ]
     }
   ]
 }

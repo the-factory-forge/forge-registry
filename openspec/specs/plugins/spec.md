@@ -46,17 +46,18 @@ belong to the host Drizzle schema, separately from Better Auth configuration.
 
 ## Available plugins
 
-| Plugin       | What it does                                                                                       | Server companion                              | Integration guide                                       |
-| ------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| Auth         | Account profile/security, sign-in/out, password recovery/change and access-denied UI               | Host authentication provider                  | [Auth](../../../docs/intranet-auth.md)                  |
-| Employees    | Admin-only employee directory, creation, editing, verification and account deletion                | `@forge/employees-server`                     | [Employees](../../../docs/intranet-auth.md#employee-ui) |
-| Customers    | Customer records, editable verification badges and optional Projects and Sync sections             | `@forge/customers-storage`                    | [Customers](../../../docs/customers.md)                 |
-| Projects     | Basic project forms, editable status badges and Details/Drive composition                          | `@forge/projects-storage`                     | [Projects](../../../docs/projects.md)                   |
-| Drive        | Entity-scoped spaces, folder actions, directory uploads, duplication, opt-in trash and restoration | `@forge/drive-storage`                        | [Drive](../../../docs/drive.md)                         |
-| Blogs        | Multilingual Markdown articles, categories, draft/publish workflow and public pages                | `@forge/blogs-storage`                        | [Blogs](../../../docs/blogs.md)                         |
-| Menus        | Restaurant menu items, prices, categories, labels, public menus and A4/A5 printing                 | `@forge/menus-storage`                        | [Menus](../../../docs/menus.md)                         |
-| Mailing      | Branded transactional HTML and plain-text email shared by other plugins                            | Separate server transport in `@forge/mailing` | [Mailing](../../../docs/mailing.md)                     |
-| Reservations | Fixed-duration appointments or overnight stays, calendars, policies and private guest management   | `@forge/reservations-storage`                 | [Reservations](../../../docs/reservations.md)           |
+| Plugin       | What it does                                                                                                         | Server companion                              | Integration guide                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| Agents       | Private operation-based staff chat with saved conversations, file attachments and individually approved plugin tools | `@forge/agents-server`                        | [Agents](../../../docs/agents.md)                       |
+| Auth         | Account profile/security, sign-in/out, password recovery/change and access-denied UI                                 | Host authentication provider                  | [Auth](../../../docs/intranet-auth.md)                  |
+| Employees    | Admin-only employee directory, creation, editing, verification and account deletion                                  | `@forge/employees-server`                     | [Employees](../../../docs/intranet-auth.md#employee-ui) |
+| Customers    | Customer records, editable verification badges and optional Projects and Sync sections                               | `@forge/customers-storage`                    | [Customers](../../../docs/customers.md)                 |
+| Projects     | Basic project forms, editable status badges and Details/Drive composition                                            | `@forge/projects-storage`                     | [Projects](../../../docs/projects.md)                   |
+| Drive        | Entity-scoped spaces, folder actions, directory uploads, duplication, opt-in trash and restoration                   | `@forge/drive-storage`                        | [Drive](../../../docs/drive.md)                         |
+| Blogs        | Multilingual Markdown articles, categories, draft/publish workflow and public pages                                  | `@forge/blogs-storage`                        | [Blogs](../../../docs/blogs.md)                         |
+| Menus        | Restaurant menu items, prices, categories, labels, public menus and A4/A5 printing                                   | `@forge/menus-storage`                        | [Menus](../../../docs/menus.md)                         |
+| Mailing      | Branded transactional HTML and plain-text email shared by other plugins                                              | Separate server transport in `@forge/mailing` | [Mailing](../../../docs/mailing.md)                     |
+| Reservations | Fixed-duration appointments or overnight stays, calendars, policies and private guest management                     | `@forge/reservations-storage`                 | [Reservations](../../../docs/reservations.md)           |
 
 ## Requirements
 
@@ -2774,3 +2775,77 @@ Drive client, capabilities, labels, upload and navigation contracts.
 - **THEN** the browser remounts for that project's scope
 - **AND** host server authorization still validates the project for every operation
 - **AND** no customer file space, storage migration or new schema is introduced
+
+### Requirement: Agents plugin
+
+`@forge/agents` SHALL provide a dedicated staff chat page requiring an operation
+selection before starting a conversation. Each private saved conversation SHALL
+belong to one authenticated user and one installed or host-defined operation.
+Hosts SHALL own the model runtime, credentials, transport, authorization, URL
+state, object storage and reviewed project migrations.
+
+#### Scenario: Selecting an operation and returning to a conversation
+
+- **WHEN** staff select an operation from a card showing its title and description
+  or from the selector, and create or reopen a chat
+- **THEN** only that user's conversations for the operation are listed
+- **AND** reload and Back/Forward restore operation and conversation selection
+- **AND** switching chats preserves drafts and invalidates departed async UI results
+- **AND** the first Send creates the chat for the selected operation and submits the message once
+- **AND** New conversation opens an unsaved draft without a separate Start action
+- **AND** explicit file staging preserves the draft and existing private upload/crop behavior
+- **AND** operation cards remain visible in new empty chats, including after reload
+- **AND** the selected card has a persistent active state
+- **AND** chat titles carry the plugin icon and the first message locks the operation selector
+- **AND** choosing another card before the first message leaves the empty chat without changing it
+- **AND** leaving for All operations preserves the saved chat's operation
+- **AND** labels, keyboard controls, both themes and narrow layouts remain usable
+
+#### Scenario: Viewing history without an operation filter
+
+- **WHEN** no operation is selected
+- **THEN** the sidebar combines the user's private chats from all currently accessible operations
+- **AND** the most recently updated chats appear first with their plugin icons
+- **AND** selecting a chat restores its saved operation and conversation URL
+- **AND** selecting an operation filters the history to that operation
+
+#### Scenario: Executing plugin actions
+
+- **WHEN** a runtime requests a registered read or mutation
+- **THEN** the server validates its input and uses the existing authorized plugin service
+- **AND** reads execute directly while each mutation requires its own stored proposal
+- **AND** approval displays the exact target, requested changes, attachments and side effects
+- **AND** fresh authorization and preview validation precede execution of the stored payload
+- **AND** rejection, duplicate requests and repeated approvals cannot repeat a mutation
+- **AND** successful actions can link to a record through a host-derived local route
+- **AND** result links survive reload and cannot be supplied through approvals or model output
+- **AND** uncertain outcomes block further execution until trusted host reconciliation
+
+#### Scenario: Installing selected integrations
+
+- **WHEN** a host installs Agents
+- **THEN** the base UI and server companion do not install every business plugin
+- **AND** separately installable server connectors cover Blogs, Employees, Customers,
+  Projects, Drive, Menus and Reservations through their existing service contracts
+- **AND** employee administration retains administrator checks and retention adapters
+- **AND** Auth owns sessions while Mailing remains behind configured notification actions
+- **AND** host-defined workflows use trusted instructions and explicit allowed tools
+- **AND** no background workflow runner or workflow builder is introduced
+
+#### Scenario: Handling a private attachment
+
+- **WHEN** staff select a file or approve its use by a plugin
+- **THEN** chat files use host-supplied private site/plugin-scoped object storage
+- **AND** messages store metadata and stable references, never file bytes or signed URLs
+- **AND** file access checks ownership, operation access, size and byte integrity
+- **AND** existing image crop and destination-plugin validation remain in force
+- **AND** applying a file to a plugin requires individual approval with its final preview
+- **AND** failed uploads and chat deletion retain retryable cleanup records
+
+#### Scenario: Recovering from interrupted generation
+
+- **WHEN** generation is stopped, fails, or a view is replaced
+- **THEN** submitted messages and available partial output remain saved
+- **AND** retry uses server-owned history without accepting forged roles or tool results
+- **AND** cancellation does not imply rollback of an already-started approved write
+- **AND** stale executing writes are marked unresolved rather than replayed

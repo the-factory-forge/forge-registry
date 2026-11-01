@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "agents-menus-server",
+  "title": "Agents–Menus",
+  "description": "Authorized menus tools for Agents, using existing plugin services.",
+  "dependencies": [
+    "zod@4.6.7"
+  ],
+  "registryDependencies": [
+    "@forge/agents-server",
+    "@forge/menus-storage"
+  ],
+  "files": [
+    {
+      "path": "registry/components/connectors/agents-menus/server/index.ts",
+      "content": "import { z } from \"zod\";\n\nimport {\n  agentId,\n  agentVersion,\n  agentRecord,\n  agentTools,\n  agentOperation,\n  agentFile,\n  type AgentConnectorOptions,\n} from \"@/components/plugins/agents/server/tools\";\nimport { AgentsError } from \"@/components/plugins/agents/types\";\nimport {\n  menuItemInputSchema,\n  menuCategoryInputSchema,\n  menuLabelInputSchema,\n  menuOrderSchema,\n} from \"@/components/plugins/menus/model\";\nimport type { MenusClient } from \"@/components/plugins/menus/types\";\n\nexport interface MenusAgentOptions<Context> extends AgentConnectorOptions<Context, MenusClient> {\n  /** Use the existing menu-item Drive scope, validate bytes and return the completed entry ID. */\n  uploadImage?(\n    context: Context,\n    itemId: string,\n    file: File,\n    requestId: string,\n  ): Promise<{ imageEntryId: string }>;\n}\nexport function createMenusAgentOperation<Context>(options: MenusAgentOptions<Context>) {\n  const { read, write } = agentTools<Context>();\n  const before = (c: Context, i: { id: string }) => options.client(c).get(i.id);\n  const tools = [\n    read(\"menus_list\", z.object({}), (c) => options.client(c).list()),\n    read(\"menus_get\", agentRecord, (c, i) => options.client(c).get(i.id)),\n    read(\"menus_categories\", z.object({}), (c) => options.client(c).categories()),\n    read(\"menus_labels\", z.object({}), (c) => options.client(c).labels()),\n    write(\"menus_create\", menuItemInputSchema, {\n      before: async () => null,\n      run: (c, i) => options.client(c).create(i),\n    }),\n    write(\n      \"menus_save\",\n      agentRecord.extend({ version: agentVersion, values: menuItemInputSchema }),\n      {\n        before,\n        run: (c, i) => options.client(c).save(i.id, i.version, i.values),\n        effects: [\"Visible item changes affect public menus.\"],\n      },\n    ),\n    write(\"menus_delete\", agentRecord, {\n      before,\n      run: (c, i) => options.client(c).remove(i.id),\n      effects: [\"Deletes this menu item.\"],\n    }),\n    write(\"menus_reorder\", z.object({ order: menuOrderSchema }), {\n      before: (c) => options.client(c).list(),\n      run: (c, i) => {\n        const client = options.client(c);\n        if (!client.reorder) throw new AgentsError(\"FORBIDDEN\");\n        return client.reorder(i.order);\n      },\n    }),\n    write(\"menus_save_category\", menuCategoryInputSchema.extend({ id: agentId.optional() }), {\n      before: (c) => options.client(c).categories(),\n      run: (c, i) => options.client(c).saveCategory(i),\n    }),\n    write(\"menus_delete_category\", agentRecord, {\n      before: (c) => options.client(c).categories(),\n      run: (c, i) => options.client(c).removeCategory(i.id),\n      effects: [\"Deletes the selected category.\"],\n    }),\n    write(\"menus_save_label\", menuLabelInputSchema.extend({ id: agentId.optional() }), {\n      before: (c) => options.client(c).labels(),\n      run: (c, i) => options.client(c).saveLabel(i),\n    }),\n    write(\"menus_delete_label\", agentRecord, {\n      before: (c) => options.client(c).labels(),\n      run: (c, i) => options.client(c).removeLabel(i.id),\n      effects: [\"Deletes the selected label.\"],\n    }),\n  ];\n  if (options.uploadImage)\n    tools.push(\n      write(\"menus_upload_image\", agentRecord.extend({ attachmentId: agentId }), {\n        before,\n        attachments: (i) => [i.attachmentId],\n        run: async (c, i, files, requestId) =>\n          options.uploadImage!(c, i.id, await agentFile(files, i.attachmentId), requestId),\n        effects: [\n          \"Uploads into the menu item's Drive space. Selecting it on the item requires a separate save.\",\n        ],\n      }),\n    );\n  return agentOperation(\"menus\", \"Menus\", options.authorize, tools);\n}\n",
+      "type": "registry:component",
+      "target": "@components/connectors/agents-menus/server/index.ts"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -203,6 +203,8 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 
 Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
 
+[Agents](./docs/agents.md) adds private operation-based staff chat through `@forge/agents` and `@forge/agents-server`. Separately installable server connectors reuse Blogs, Employees, Customers, Projects, Drive, Menus and Reservations; hosts supply their model runtime and approve each change.
+
 Plugins install under `@components/plugins/{name}`; their supporting files ship together.
 
 ### Connectors

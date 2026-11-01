@@ -22,6 +22,16 @@ export type Category = keyof typeof categoryIcons;
 export const examples = (
   [
     {
+      href: "/en/agents",
+      category: "Plugin",
+      title: "Agents",
+      icon: pluginIcons.agents,
+      description:
+        "Operation-based staff chat with private saved conversations, attachments and approved actions.",
+      tags: ["Chat", "Action approval", "Host runtime"],
+      keywords: ["agents", "ai", "chat", "assistant", "workflow", "approval", "tools"],
+    },
+    {
       href: "/connectors/customers-bexio",
       category: "Connector",
       title: "Customers–Bexio",

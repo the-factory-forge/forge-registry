@@ -1,4 +1,5 @@
 import {
+  BotMessageSquareIcon,
   CalendarDaysIcon,
   FolderKanbanIcon,
   HardDriveIcon,
@@ -12,6 +13,7 @@ import {
 
 /** Shared plugin identities for titles and host-owned navigation. */
 export const pluginIcons = {
+  agents: BotMessageSquareIcon,
   auth: ShieldCheckIcon,
   blogs: NewspaperIcon,
   customers: UserRoundIcon,
