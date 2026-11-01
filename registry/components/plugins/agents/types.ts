@@ -4,6 +4,22 @@ export interface AgentOperation {
   description: string;
   attachmentOptions?: { label: string; crop?: { width: number; height: number } }[];
 }
+export type AgentModelProvider = "openai" | "anthropic" | "deepseek";
+export interface AgentModelSettings {
+  provider: AgentModelProvider;
+  model: string;
+}
+export interface AgentModelOption {
+  id: string;
+  label: string;
+}
+/** Admin-only host transport. Never return the saved API key to the browser. */
+export interface AgentsSettingsClient {
+  get(): Promise<AgentModelSettings | null>;
+  models(input: { provider: AgentModelProvider; token?: string }): Promise<AgentModelOption[]>;
+  save(input: AgentModelSettings & { token?: string }): Promise<void>;
+  remove(): Promise<void>;
+}
 export interface AgentAttachment {
   id: string;
   name: string;
@@ -84,6 +100,7 @@ export interface AgentsClient {
   download?(conversationId: string, messageId: string): Promise<{ url: string; name: string }>;
 }
 export type AgentErrorCode =
+  | "NOT_CONFIGURED"
   | "INVALID"
   | "FORBIDDEN"
   | "NOT_FOUND"

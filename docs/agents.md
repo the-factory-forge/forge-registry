@@ -3,7 +3,8 @@
 `@forge/agents` supplies an operation-first staff chat page. Conversations belong
 to one user and one operation. `@forge/agents-server` supplies provider-independent
 orchestration and PostgreSQL/Drizzle persistence. The host supplies fresh staff
-sessions, its model runtime, transport and private object storage.
+sessions, transport and private object storage. It can supply its own model runtime
+or use the optional website connection for OpenAI, Anthropic or DeepSeek.
 
 [Try the deterministic showroom](https://registry.the-corner.io/en/agents).
 Its browser-session mock is not production storage or authorization.
@@ -90,13 +91,88 @@ continue a failed/stopped turn or a completed approval without inventing a user
 message. The page exposes this as Continue/Retry.
 
 Keep `AgentsClient` identity stable while its authenticated scope is unchanged.
-Replacing it clears drafts and aborts old UI requests. Changing operation or chat
+Keep the optional settings client stable too. Replacing either client clears drafts
+and aborts old UI requests, including pending settings results. Changing operation or chat
 aborts the departed stream; late results cannot update the new view.
+
+## Administrator-managed model connection
+
+Pass an `AgentsSettingsClient` as `AgentsPage.settings` only for website
+administrators. The header Settings button opens a provider, API key and model
+form. Following [VS Code’s bring-your-own-key flow](https://code.visualstudio.com/docs/agent-customization/language-models),
+choose OpenAI, Anthropic or DeepSeek, enter the provider key, load its available
+models, select one and Save. One active connection serves the website's staff;
+this is not a per-user key collection. Existing chats keep their operations and
+approval records. Saved settings are used on subsequent model requests.
+
+`@forge/agents-server` exports `createAgentsModelConnection`,
+`createAgentsConnectionStore` and the additive `agentsModelConnection` table.
+Compose that table into the host schema and generate/review its migration before
+enabling settings. Each website must use its own database, as with the other
+plugin tables. Set a stable, random 32-byte encryption key in server-only secret
+configuration, separate from PostgreSQL. Do not regenerate it on process startup;
+back it up with the deployment's secrets. Losing or replacing it requires entering
+the provider key again. Stored API keys use AES-256-GCM, bound to the provider and
+model. They are never returned by settings reads or stored in chat history.
+
+```ts
+// Server only: resolve fresh administrator access, never a browser role flag.
+const connection = createAgentsModelConnection({
+  store: createAgentsConnectionStore(db),
+  encryptionKey: Buffer.from(env.AGENTS_ENCRYPTION_KEY, "base64"),
+  authorize: async (context) => (await resolveStaff(context))?.role === "admin",
+});
+const agents = createAgentsService({
+  store: createAgentsStore(db),
+  runtime: connection.runtime,
+  actor: resolveStaff,
+  operations,
+  attachments: privateAgentObjects,
+});
+
+// Bind both clients to authenticated host endpoints; do not pass server objects
+// or credentials into a browser bundle.
+const chatServer = agents.client(requestContext);
+const settingsServer = connection.client(requestContext);
+```
+
+Expose `get`, `models`, `save` and `remove` through the host's authenticated
+settings transport. Use POST bodies for key submissions, retain CSRF protection,
+redact request bodies from logs, and apply the host's quotas/rate limits. All four
+methods recheck administrator access on the server, independently of button
+visibility. Save verifies the key and selected model against the provider's model
+list before replacing the saved connection. An omitted key keeps the current key
+only when the provider is unchanged. Disconnect deletes the connection without
+removing chats. Failed requests preserve the previous configuration and return
+sanitized errors. Settings reads return only provider and model.
+
+The supplied runtime calls fixed provider endpoints on the server, streams text,
+and reconstructs tool-call/result history through the existing Agents service.
+It never invokes mutation tools directly: individual approvals remain required.
+Models are discovered from the account rather than a hardcoded catalog; select a
+text model supporting tool calls. Model listing does not certify that every listed
+model supports this protocol. Unsupported models or exhausted provider accounts
+produce a retryable chat error. Provider calls have a 90-second timeout; model
+listing has a 15-second timeout. DeepSeek thinking is disabled because this
+baseline history does not persist reasoning blocks. Files retain the existing
+metadata-only model contract; image inference is not added.
+
+The adapters use [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),
+[Anthropic Messages streaming](https://platform.claude.com/docs/en/build-with-claude/streaming)
+and [DeepSeek Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/).
+Hosts may continue supplying a custom `AgentRuntime` instead. Adoption does not
+configure hosting secrets, apply migrations, publish routes or deploy a website.
+
+The showroom accepts only the literal sample key `demo` and persists only sample
+provider/model metadata in browser-session storage. Its next scripted response
+names that sample model; it never calls providers or saves real API keys.
 
 ## Page and navigation
 
 `AgentsPage` accepts `client`, controlled `operationId` and `conversationId`,
-`onSelectionChange`, translated `labels`, optional `cropLabels` and `className`.
+`onSelectionChange`, translated `labels`, optional administrator-only `settings`,
+`cropLabels` and `className`. Settings replaces the former header operation selector;
+operation cards and All operations retain selection and navigation.
 Hosts parse operation/conversation IDs at their route boundary and bind selections
 to URL history. Missing selection shows selectable operation cards with titles
 and descriptions. The cards also remain visible in new, empty chats, with the
@@ -107,7 +183,7 @@ there is no separate Start action. New conversation opens an unsaved draft.
 Explicit file selection may create a chat to stage private attachments before
 its first message, preserving the typed draft through upload and crop recovery.
 A conversation's operation cannot be changed. Its plugin icon identifies each
-chat in the history, and the operation selector locks after the first message.
+chat in the history. After the first message, All operations returns to the chooser.
 Choosing a different card before then leaves the empty chat and selects the new
 operation; it never changes the saved conversation's operation.
 All operations leaves the current chat to choose another operation; it does not
@@ -234,7 +310,7 @@ scheduler, runtime plugin discovery or background job engine.
 
 ## Verification
 
-Run `node --test tests/agents.test.mjs tests/agents-connectors.test.mjs` for the
+Run `node --test tests/agents.test.mjs tests/agents-connectors.test.mjs tests/agents-models.test.mjs` for the
 core and connector contracts. With the existing Drive PostgreSQL/MinIO test
 containers running, use `node --test tests/agents/storage.integration.mjs` for
 generated migrations, durable approvals, concurrent clients and private files.

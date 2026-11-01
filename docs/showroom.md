@@ -308,5 +308,8 @@ Operation and conversation selection are validated URL state. Saved chats and
 private demo attachments survive reload in the current browser session; no model,
 production data or live plugin service is connected. Controls simulate transport
 failure and read-only tools. The example includes the seven plugin operations and
-one neutral host-defined workflow. See [Agents integration](./agents.md) for the
+one neutral host-defined workflow. Header Settings demonstrates the website model
+connection using only the sample key `demo`; it persists provider/model metadata
+and names the chosen sample model in subsequent scripted replies. Real API keys
+are rejected and no provider requests are made. Read-only preview hides Settings. See [Agents integration](./agents.md) for the
 server runtime, approval, persistence and storage contracts.

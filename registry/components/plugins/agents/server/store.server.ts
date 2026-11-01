@@ -1,12 +1,35 @@
 import { and, desc, eq } from "drizzle-orm";
 
+import type { AgentsConnectionStore } from "@/components/plugins/agents/server/connection.server";
 import {
+  agentsModelConnection,
   agentsAttachments as attachments,
   agentsConversations as conversations,
 } from "@/components/plugins/agents/server/schema";
 import type { AgentsStore } from "@/components/plugins/agents/server/types";
 import { AgentsError } from "@/components/plugins/agents/types";
 import type { PluginDatabase } from "@/components/utils/database";
+
+export function createAgentsConnectionStore(db: PluginDatabase): AgentsConnectionStore {
+  return {
+    async get() {
+      const [row] = await db
+        .select()
+        .from(agentsModelConnection)
+        .where(eq(agentsModelConnection.id, "website"));
+      return row?.document ?? null;
+    },
+    async set(document) {
+      await db
+        .insert(agentsModelConnection)
+        .values({ id: "website", document })
+        .onConflictDoUpdate({ target: agentsModelConnection.id, set: { document } });
+    },
+    async remove() {
+      await db.delete(agentsModelConnection).where(eq(agentsModelConnection.id, "website"));
+    },
+  };
+}
 
 export function createAgentsStore(db: PluginDatabase): AgentsStore {
   const owner = (id: string, ownerId: string) =>

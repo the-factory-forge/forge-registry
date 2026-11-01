@@ -80,6 +80,14 @@ function AgentsPreview() {
       ) : (
         <AgentsPage
           client={mock.client}
+          settings={readOnly ? undefined : mock.settings}
+          labels={{
+            settingsDescription:
+              "Demo only. Enter “demo” as the API key, load a sample model and save it. No AI provider is contacted.",
+            keyHelp: "Use the sample key “demo”. Real API keys are rejected and never saved.",
+            settingsSaved:
+              "Demo settings saved. The next sample response will show the selected model.",
+          }}
           operationId={search.operation ?? null}
           conversationId={search.conversation ?? null}
           onSelectionChange={({ operationId, conversationId }) => {

@@ -1,6 +1,13 @@
 import { index, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 
+import type { AgentStoredConnection } from "@/components/plugins/agents/server/connection.server";
 import type { AgentRecord, AgentStoredAttachment } from "@/components/plugins/agents/server/types";
+
+/** One website-level connection; the API key is authenticated ciphertext. */
+export const agentsModelConnection = pgTable("agents_model_connection", {
+  id: text("id").primaryKey(),
+  document: jsonb("document").$type<AgentStoredConnection>().notNull(),
+});
 
 /** Compose with the host schema; user deletion must call the service's removeOwner first. */
 export const agentsConversations = pgTable(

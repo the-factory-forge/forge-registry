@@ -35,25 +35,22 @@ await test("Agents: operation selection, individual approvals, saved history and
   await page.keyboard.press("Enter");
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get("operation"), "blogs");
-  assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).inputValue(),
-    "blogs",
-  );
+  assert.equal(new URL(page.url()).searchParams.get("operation"), "blogs");
   assert.equal(await operationCard.getAttribute("aria-pressed"), "true");
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
   await operationCard.waitFor();
   assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).isDisabled(),
-    false,
+    await page
+      .getByRole("region", { name: "Agents", exact: true })
+      .getByRole("button", { name: "Settings", exact: true })
+      .isEnabled(),
+    true,
   );
   await page.getByRole("textbox", { name: "Message", exact: true }).fill("Updated article");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
   assert.equal(await operationCard.count(), 0);
-  assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).isDisabled(),
-    true,
-  );
+  assert.equal(await page.getByRole("combobox", { name: "Operation", exact: true }).count(), 0);
   assert.equal(await page.getByText("Updated article", { exact: true }).count(), 3);
   assert.equal(await page.getByRole("link", { name: "Open record", exact: true }).count(), 0);
   await page.getByRole("button", { name: "Approve", exact: true }).click();
@@ -87,10 +84,7 @@ await test("Agents: operation selection, individual approvals, saved history and
   await page.goForward();
   await page.goForward();
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
-  assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).inputValue(),
-    "employees",
-  );
+  assert.equal(new URL(page.url()).searchParams.get("operation"), "employees");
   await page.goto(`${baseURL}/en/agents?operation=blogs&conversation=malformed`);
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
   assert.deepEqual(errors, []);
@@ -245,6 +239,9 @@ await test("Agents: operation cards remain visible in drafts and the first messa
   await page.getByRole("button", { name: "Employees", exact: true }).click();
   assert.equal(new URL(page.url()).searchParams.get("operation"), "employees");
   assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
+  await page.getByRole("button", { name: "All operations", exact: true }).click();
+  assert.equal(new URL(page.url()).searchParams.has("operation"), false);
+  await page.goBack();
   await page.goBack();
   await blogs.waitFor();
   assert.equal(page.url(), emptyURL);
@@ -252,10 +249,7 @@ await test("Agents: operation cards remain visible in drafts and the first messa
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
   assert.equal(await blogs.count(), 0);
-  assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).isDisabled(),
-    true,
-  );
+  assert.equal(await page.getByRole("combobox", { name: "Operation", exact: true }).count(), 0);
   await page.getByRole("button", { name: "New conversation", exact: true }).click();
   await blogs.waitFor();
   assert.equal(await blogs.getAttribute("aria-pressed"), "true");
@@ -345,9 +339,113 @@ await test("Agents: unfiltered history lists all plugins and opens each chat in 
     .filter({ hasText: "list employee records" })
     .waitFor();
   assert.equal(page.url(), employeesURL);
+  assert.equal(new URL(page.url()).searchParams.get("operation"), "employees");
+});
+await test("Agents: administrator model settings save, reload and drive the demo chat", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  const providerRequests = [];
+  page.on("request", (request) => {
+    if (/api\.(openai|anthropic|deepseek)\.com/.test(request.url()))
+      providerRequests.push(request.url());
+  });
+  await page.goto(`${baseURL}/en/agents`);
+  const settings = page
+    .getByRole("region", { name: "Agents", exact: true })
+    .getByRole("button", { name: "Settings", exact: true });
+  await settings.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Model settings", exact: true });
+  const key = dialog.getByLabel("API key", { exact: true });
+  await key.fill("demo");
+  assert.equal(await key.getAttribute("type"), "password");
+  await dialog.getByRole("button", { name: "Show API key", exact: true }).click();
+  assert.equal(await key.getAttribute("type"), "text");
+  await dialog.getByRole("button", { name: "Load models", exact: true }).click();
+  await dialog.getByLabel("Model", { exact: true }).selectOption("demo-openai");
+  await key.focus();
+  await page.keyboard.press("Control+Enter");
+  await page
+    .getByText("Demo settings saved. The next sample response will show the selected model.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(await key.inputValue(), "");
+  assert.equal(await key.getAttribute("type"), "password");
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+  await page.reload();
+  await settings.click();
+  assert.equal(await dialog.getByLabel("Model", { exact: true }).inputValue(), "demo-openai");
+  await dialog.getByLabel("Provider", { exact: true }).selectOption("anthropic");
+  await key.fill("not-a-real-key");
+  await dialog.getByRole("button", { name: "Load models", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  assert.equal(await key.inputValue(), "not-a-real-key");
   assert.equal(
-    await page.getByRole("combobox", { name: "Operation", exact: true }).inputValue(),
-    "employees",
+    await page.evaluate(() =>
+      sessionStorage.getItem("forge-agents-preview-v1").includes("not-a-real-key"),
+    ),
+    false,
   );
+  await key.fill("demo");
+  await dialog.getByRole("button", { name: "Load models", exact: true }).click();
+  await dialog.getByLabel("Model", { exact: true }).selectOption("demo-anthropic");
+  const directory = process.env.AGENTS_SCREENSHOT_DIR;
+  if (directory) await mkdir(directory, { recursive: true });
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((theme) => {
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.classList.toggle("light", theme === "light");
+        document.documentElement.style.colorScheme = theme;
+      }, theme);
+      const beforeFeedback = await dialog.getByLabel("Provider", { exact: true }).boundingBox();
+      await key.fill("invalid-example-key");
+      await dialog.getByRole("button", { name: "Load models", exact: true }).click();
+      await dialog.getByRole("alert").waitFor();
+      const afterFeedback = await dialog.getByLabel("Provider", { exact: true }).boundingBox();
+      assert.equal(
+        afterFeedback.y,
+        beforeFeedback.y,
+        "error feedback must not move the provider field",
+      );
+      await key.fill("demo");
+      await dialog.getByRole("button", { name: "Load models", exact: true }).click();
+      await dialog.getByLabel("Model", { exact: true }).selectOption("demo-anthropic");
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+      if (directory)
+        await page.screenshot({
+          path: `${directory}/settings-${width}-${theme}.png`,
+          fullPage: true,
+        });
+    }
+  }
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await page
+    .getByText("Demo settings saved. The next sample response will show the selected model.", {
+      exact: true,
+    })
+    .waitFor();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Blogs", exact: true }).click();
+  await page.getByRole("textbox", { name: "Message", exact: true }).fill("list");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByText(/Demo model: demo-anthropic\. The sample record/).waitFor();
+  await settings.click();
+  await dialog.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await dialog.getByRole("button", { name: "Confirm disconnect", exact: true }).click();
+  await page
+    .getByText("Model disconnected. Saved conversations are unchanged.", { exact: true })
+    .waitFor();
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByLabel("Read-only tools", { exact: true }).check();
+  assert.equal(await settings.count(), 0);
+  assert.deepEqual(providerRequests, []);
 });
 await browser.close();

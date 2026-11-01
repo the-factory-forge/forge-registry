@@ -1,5 +1,33 @@
 export const agentsLabels = {
   title: "Agents",
+  settings: "Settings",
+  modelSettings: "Model settings",
+  settingsDescription:
+    "Choose the AI provider and model for this website. Saved changes apply to the next chat request for all staff.",
+  provider: "Provider",
+  apiKey: "API key",
+  keyHelp: "Enter your provider’s API key. It is saved securely on the server.",
+  savedKey: "An API key is saved. Leave this blank to keep it, or enter a replacement.",
+  showKey: "Show API key",
+  hideKey: "Hide API key",
+  loadModels: "Load models",
+  model: "Model",
+  chooseModel: "Select a model",
+  modelHelp:
+    "Choose a text model that supports tool calling. Availability and usage charges depend on your provider account.",
+  noModels: "No models are available for this key. Check your provider account and try again.",
+  save: "Save",
+  settingsSaved: "Model settings saved. The next chat request will use this connection.",
+  settingsLoadError: "Settings could not be loaded. Close and reopen Settings to retry.",
+  settingsError:
+    "Could not connect. Check your key, model and provider access, then retry. Saved settings are unchanged.",
+  disconnect: "Disconnect",
+  confirmDisconnect: "Confirm disconnect",
+  disconnectDescription:
+    "Disconnect this website’s AI model? Staff will need a new connection to continue chatting. Saved conversations remain.",
+  disconnected: "Model disconnected. Saved conversations are unchanged.",
+  modelNotConfigured:
+    "No AI model is connected. Ask a website administrator to configure it in Settings.",
   operation: "Operation",
   chooseOperation: "Select an operation",
   chooseFirst: "Select an operation to start.",

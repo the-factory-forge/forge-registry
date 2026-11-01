@@ -1972,6 +1972,7 @@
       "registryDependencies": [
         "@forge/action-toast",
         "@forge/icon-tooltip",
+        "@forge/dialog-submit",
         "@forge/image-crop",
         "@forge/loading-indicator",
         "@forge/native-select",
@@ -2043,6 +2044,16 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:component",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/connection.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/agents/server/connection.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/models.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/agents/server/models.server.ts"
         }
       ]
     },

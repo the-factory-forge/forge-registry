@@ -4,6 +4,8 @@ import {
   type AgentConversation,
   type AgentOperation,
   type AgentsClient,
+  type AgentModelSettings,
+  type AgentsSettingsClient,
 } from "@/components/plugins/agents/types";
 
 const operations: AgentOperation[] = [
@@ -34,6 +36,7 @@ type State = {
   chats: Record<string, AgentConversation>;
   files: Record<string, { conversationId: string; attachment: AgentAttachment }>;
   names: Record<string, string>;
+  connection?: AgentModelSettings;
 };
 const storageKey = "forge-agents-preview-v1";
 function fileStorage(id: string, value?: Blob | null): Promise<Blob | undefined> {
@@ -172,6 +175,10 @@ export function createAgentsMock(basePath = "/en/agents") {
           : reading
             ? `The sample record is “${load().names[chat.operationId] ?? "Sample record"}”. No records were changed.`
             : "Review the proposed change below. The sample record changes only after you approve.";
+        if (load().connection) {
+          answer.text = `Demo model: ${load().connection!.model}. `;
+          yield { type: "text", text: answer.text };
+        }
         chat.messages.push(answer);
         for (const part of text.match(/.{1,12}/g) ?? []) {
           signal.throwIfAborted();
@@ -254,8 +261,35 @@ export function createAgentsMock(basePath = "/en/agents") {
       return blob;
     },
   };
+  const modelSettings: AgentsSettingsClient = {
+    async get() {
+      if (settings.readOnly) throw new AgentsError("FORBIDDEN");
+      if (settings.fail) throw new AgentsError("RUNTIME");
+      return load().connection ?? null;
+    },
+    async models({ provider, token }) {
+      if (settings.readOnly) throw new AgentsError("FORBIDDEN");
+      if (settings.fail) throw new AgentsError("RUNTIME");
+      if (token !== "demo" && !(token === undefined && load().connection?.provider === provider))
+        throw new AgentsError("INVALID");
+      return [{ id: `demo-${provider}`, label: `Example ${provider} model` }];
+    },
+    async save(input) {
+      const models = await modelSettings.models(input);
+      if (!models.some((model) => model.id === input.model)) throw new AgentsError("INVALID");
+      load().connection = { provider: input.provider, model: input.model };
+      save();
+    },
+    async remove() {
+      if (settings.readOnly) throw new AgentsError("FORBIDDEN");
+      if (settings.fail) throw new AgentsError("RUNTIME");
+      delete load().connection;
+      save();
+    },
+  };
   return {
     client,
+    settings: modelSettings,
     async record(id: string) {
       const operation = operations.find((operation) => operation.id === id);
       const name = load().names[id];

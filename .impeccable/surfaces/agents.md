@@ -31,8 +31,11 @@ FORM: A history rail and flexible main conversation on desktop; stacked on
 mobile. Proposal cards show the target, before/after values, final attachment,
 side effects and individual actions. Errors stay with their recovery controls.
 The composer stays available below a bounded scrolling transcript. Chat titles
-carry their plugin icon; the operation selector locks after the first message, with
-All operations returning to the chooser. Without an operation filter, the
+carry their plugin icon. Settings replaces the header operation selector for
+administrators; All operations returns to the chooser. The settings dialog uses
+the existing form and dialog styles for provider, masked API key and model, with
+load, save, error and confirmed-disconnect states. One website connection serves
+all staff; ordinary staff do not receive settings controls. Without an operation filter, the
 history rail combines accessible plugin conversations with their icons, most
 recent first; opening a chat restores its saved operation. Completed actions expose a translated
 link icon when the host provides the record destination.

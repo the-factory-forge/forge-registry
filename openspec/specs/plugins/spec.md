@@ -46,18 +46,18 @@ belong to the host Drizzle schema, separately from Better Auth configuration.
 
 ## Available plugins
 
-| Plugin       | What it does                                                                                                         | Server companion                              | Integration guide                                       |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| Agents       | Private operation-based staff chat with saved conversations, file attachments and individually approved plugin tools | `@forge/agents-server`                        | [Agents](../../../docs/agents.md)                       |
-| Auth         | Account profile/security, sign-in/out, password recovery/change and access-denied UI                                 | Host authentication provider                  | [Auth](../../../docs/intranet-auth.md)                  |
-| Employees    | Admin-only employee directory, creation, editing, verification and account deletion                                  | `@forge/employees-server`                     | [Employees](../../../docs/intranet-auth.md#employee-ui) |
-| Customers    | Customer records, editable verification badges and optional Projects and Sync sections                               | `@forge/customers-storage`                    | [Customers](../../../docs/customers.md)                 |
-| Projects     | Basic project forms, editable status badges and Details/Drive composition                                            | `@forge/projects-storage`                     | [Projects](../../../docs/projects.md)                   |
-| Drive        | Entity-scoped spaces, folder actions, directory uploads, duplication, opt-in trash and restoration                   | `@forge/drive-storage`                        | [Drive](../../../docs/drive.md)                         |
-| Blogs        | Multilingual Markdown articles, categories, draft/publish workflow and public pages                                  | `@forge/blogs-storage`                        | [Blogs](../../../docs/blogs.md)                         |
-| Menus        | Restaurant menu items, prices, categories, labels, public menus and A4/A5 printing                                   | `@forge/menus-storage`                        | [Menus](../../../docs/menus.md)                         |
-| Mailing      | Branded transactional HTML and plain-text email shared by other plugins                                              | Separate server transport in `@forge/mailing` | [Mailing](../../../docs/mailing.md)                     |
-| Reservations | Fixed-duration appointments or overnight stays, calendars, policies and private guest management                     | `@forge/reservations-storage`                 | [Reservations](../../../docs/reservations.md)           |
+| Plugin       | What it does                                                                                                           | Server companion                              | Integration guide                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| Agents       | Private operation-based chat, administrator-managed AI connection, saved conversations, attachments and approved tools | `@forge/agents-server`                        | [Agents](../../../docs/agents.md)                       |
+| Auth         | Account profile/security, sign-in/out, password recovery/change and access-denied UI                                   | Host authentication provider                  | [Auth](../../../docs/intranet-auth.md)                  |
+| Employees    | Admin-only employee directory, creation, editing, verification and account deletion                                    | `@forge/employees-server`                     | [Employees](../../../docs/intranet-auth.md#employee-ui) |
+| Customers    | Customer records, editable verification badges and optional Projects and Sync sections                                 | `@forge/customers-storage`                    | [Customers](../../../docs/customers.md)                 |
+| Projects     | Basic project forms, editable status badges and Details/Drive composition                                              | `@forge/projects-storage`                     | [Projects](../../../docs/projects.md)                   |
+| Drive        | Entity-scoped spaces, folder actions, directory uploads, duplication, opt-in trash and restoration                     | `@forge/drive-storage`                        | [Drive](../../../docs/drive.md)                         |
+| Blogs        | Multilingual Markdown articles, categories, draft/publish workflow and public pages                                    | `@forge/blogs-storage`                        | [Blogs](../../../docs/blogs.md)                         |
+| Menus        | Restaurant menu items, prices, categories, labels, public menus and A4/A5 printing                                     | `@forge/menus-storage`                        | [Menus](../../../docs/menus.md)                         |
+| Mailing      | Branded transactional HTML and plain-text email shared by other plugins                                                | Separate server transport in `@forge/mailing` | [Mailing](../../../docs/mailing.md)                     |
+| Reservations | Fixed-duration appointments or overnight stays, calendars, policies and private guest management                       | `@forge/reservations-storage`                 | [Reservations](../../../docs/reservations.md)           |
 
 ## Requirements
 
@@ -2781,13 +2781,14 @@ Drive client, capabilities, labels, upload and navigation contracts.
 `@forge/agents` SHALL provide a dedicated staff chat page requiring an operation
 selection before starting a conversation. Each private saved conversation SHALL
 belong to one authenticated user and one installed or host-defined operation.
-Hosts SHALL own the model runtime, credentials, transport, authorization, URL
-state, object storage and reviewed project migrations.
+Hosts SHALL own credentials, transport, authorization, URL state, object storage
+and reviewed project migrations. Hosts MAY supply a custom runtime or opt into
+the server companion’s administrator-managed website model connection.
 
 #### Scenario: Selecting an operation and returning to a conversation
 
 - **WHEN** staff select an operation from a card showing its title and description
-  or from the selector, and create or reopen a chat
+  and create or reopen a chat
 - **THEN** only that user's conversations for the operation are listed
 - **AND** reload and Back/Forward restore operation and conversation selection
 - **AND** switching chats preserves drafts and invalidates departed async UI results
@@ -2796,10 +2797,24 @@ state, object storage and reviewed project migrations.
 - **AND** explicit file staging preserves the draft and existing private upload/crop behavior
 - **AND** operation cards remain visible in new empty chats, including after reload
 - **AND** the selected card has a persistent active state
-- **AND** chat titles carry the plugin icon and the first message locks the operation selector
+- **AND** chat titles carry the plugin icon and a saved conversation retains its operation
 - **AND** choosing another card before the first message leaves the empty chat without changing it
 - **AND** leaving for All operations preserves the saved chat's operation
 - **AND** labels, keyboard controls, both themes and narrow layouts remain usable
+
+#### Scenario: Configuring the website model
+
+- **WHEN** an administrator opens Settings in the chat header
+- **THEN** Settings replaces the operation selector and offers OpenAI, Anthropic and DeepSeek
+- **AND** the administrator supplies an API key, loads account models and saves one model for the website
+- **AND** settings reads, model listing, saving and disconnecting require fresh server-side administrator authorization
+- **AND** provider keys are encrypted on the server with a separate host secret and never returned to the browser or stored in chats, URLs or browser storage
+- **AND** saving validates the key and model before replacing the previous connection
+- **AND** omitting the key retains it only for the same provider
+- **AND** subsequent model requests use the saved connection through the existing approval-gated chat service
+- **AND** failed updates preserve the saved connection; disconnecting preserves conversations
+- **AND** ordinary staff retain chat access without configuration access
+- **AND** the showroom accepts only a sample key and never calls a live provider
 
 #### Scenario: Viewing history without an operation filter
 

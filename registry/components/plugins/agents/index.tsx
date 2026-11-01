@@ -3,11 +3,14 @@
 import { Dialog } from "@base-ui/react/dialog";
 import {
   DownloadIcon,
+  EyeIcon,
+  EyeOffIcon,
   LinkIcon,
   PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
   SendHorizontalIcon,
+  SettingsIcon,
   SquareIcon,
   Trash2Icon,
   XIcon,
@@ -35,10 +38,15 @@ import type {
   AgentConversation,
   AgentConversationSummary,
   AgentOperation,
+  AgentModelOption,
+  AgentModelProvider,
+  AgentModelSettings,
   AgentsClient,
+  AgentsSettingsClient,
 } from "@/components/plugins/agents/types";
 import { safeAgentResultHref } from "@/components/plugins/agents/types";
 import { cn } from "@/components/utils/cn";
+import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
 export type * from "@/components/plugins/agents/types";
@@ -54,6 +62,8 @@ const field =
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** Supply only for website administrators; the host must also authorize server requests. */
+  settings?: AgentsSettingsClient;
   operationId: string | null;
   conversationId: string | null;
   onSelectionChange: (selection: {
@@ -65,10 +75,14 @@ export interface AgentsPageProps {
   className?: string;
 }
 export function AgentsPage(props: AgentsPageProps) {
-  const [identity, setIdentity] = useState({ client: props.client, version: 0 });
+  const [identity, setIdentity] = useState({
+    client: props.client,
+    settings: props.settings,
+    version: 0,
+  });
   const [drafts, setDrafts] = useState<AgentDrafts>({});
-  if (identity.client !== props.client) {
-    setIdentity({ client: props.client, version: identity.version + 1 });
+  if (identity.client !== props.client || identity.settings !== props.settings) {
+    setIdentity({ client: props.client, settings: props.settings, version: identity.version + 1 });
     setDrafts({});
   }
   return (
@@ -101,7 +115,295 @@ function failure(error: unknown, labels: AgentsLabels) {
   if (code === "LIMIT") return labels.limit;
   if (code === "INVALID") return labels.invalid;
   if (code === "STORAGE") return labels.storage;
+  if (code === "NOT_CONFIGURED") return labels.modelNotConfigured;
   return labels.error;
+}
+
+function ModelSettings({ client, labels }: { client: AgentsSettingsClient; labels: AgentsLabels }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(open) => {
+        if (!busy) setOpen(open);
+      }}
+    >
+      <Dialog.Trigger className={outline}>
+        <SettingsIcon className="size-4" aria-hidden="true" />
+        {labels.settings}
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-dark/50" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-border bg-popover p-6 text-popover-foreground">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <Dialog.Title className="text-lg font-semibold">{labels.modelSettings}</Dialog.Title>
+            <IconTooltip label={labels.close}>
+              <Dialog.Close aria-label={labels.close} disabled={busy} className={button}>
+                <XIcon aria-hidden="true" className="size-4" />
+              </Dialog.Close>
+            </IconTooltip>
+          </div>
+          <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
+            {labels.settingsDescription}
+          </Dialog.Description>
+          {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function ModelSettingsForm({
+  client,
+  labels,
+  setBusy,
+}: {
+  client: AgentsSettingsClient;
+  labels: AgentsLabels;
+  setBusy: (busy: boolean) => void;
+}) {
+  const id = `factory-agent-settings-${useId()}`;
+  const [saved, setSaved] = useState<AgentModelSettings | null>(null);
+  const [provider, setProvider] = useState<AgentModelProvider>("openai");
+  const [model, setModel] = useState("");
+  const [models, setModels] = useState<AgentModelOption[]>([]);
+  const [token, setToken] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const notify = useActionToast();
+  useLoadingActivity(loading || pending);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const active = useRef(true);
+  const locked = useRef(false);
+  const keepToken = saved?.provider === provider;
+  useEffect(() => {
+    active.current = true;
+    let disposed = false;
+    void client
+      .get()
+      .then((value) => {
+        if (disposed) return;
+        setSaved(value);
+        if (value) {
+          setProvider(value.provider);
+          setModel(value.model);
+          setModels([{ id: value.model, label: value.model }]);
+        }
+      })
+      .catch(() => {
+        if (!disposed) setError(labels.settingsLoadError);
+      })
+      .finally(() => {
+        if (!disposed) setLoading(false);
+      });
+    return () => {
+      disposed = true;
+      active.current = false;
+      setBusy(false);
+    };
+  }, [client, labels.settingsLoadError, setBusy]);
+  async function run(action: () => Promise<() => void>) {
+    if (locked.current) return;
+    locked.current = true;
+    setPending(true);
+    setBusy(true);
+    setError("");
+    try {
+      const update = await action();
+      if (active.current) update();
+    } catch {
+      if (active.current) setError(labels.settingsError);
+    } finally {
+      locked.current = false;
+      if (active.current) {
+        setPending(false);
+        setBusy(false);
+      }
+    }
+  }
+  const credentials = { provider, ...(token.trim() ? { token: token.trim() } : {}) };
+  return (
+    <form
+      onKeyDownCapture={submitDialogOnShortcut}
+      method="post"
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void run(async () => {
+          await client.save({ ...credentials, model });
+          return () => {
+            setSaved({ provider, model });
+            setToken("");
+            setVisible(false);
+            notify(labels.settingsSaved);
+          };
+        });
+      }}
+    >
+      <fieldset disabled={loading || pending} className="space-y-4">
+        <div className="space-y-1">
+          <label htmlFor={`${id}-provider`} className="text-sm font-medium">
+            {labels.provider}
+          </label>
+          <NativeSelect
+            id={`${id}-provider`}
+            value={provider}
+            className={field}
+            onChange={(event) => {
+              setProvider(event.target.value as AgentModelProvider);
+              setToken("");
+              setVisible(false);
+              setModel("");
+              setModels([]);
+              setError("");
+              setDisconnecting(false);
+            }}
+          >
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="deepseek">DeepSeek</option>
+          </NativeSelect>
+        </div>
+        <div className="space-y-1">
+          <label htmlFor={`${id}-token`} className="text-sm font-medium">
+            {labels.apiKey}
+          </label>
+          <div className="relative">
+            <input
+              id={`${id}-token`}
+              name="token"
+              type={visible ? "text" : "password"}
+              autoComplete="new-password"
+              spellCheck={false}
+              maxLength={4096}
+              required={!keepToken}
+              className={cn(field, "pe-12")}
+              value={token}
+              aria-describedby={`${id}-key-help`}
+              onChange={(event) => {
+                setToken(event.target.value);
+                setModels([]);
+                setModel("");
+                setError("");
+              }}
+            />
+            <IconTooltip label={visible ? labels.hideKey : labels.showKey}>
+              <button
+                type="button"
+                className={cn(button, "absolute inset-y-0 end-0")}
+                aria-label={visible ? labels.hideKey : labels.showKey}
+                aria-pressed={visible}
+                aria-controls={`${id}-token`}
+                onClick={() => setVisible(!visible)}
+              >
+                {visible ? (
+                  <EyeOffIcon className="size-4" aria-hidden="true" />
+                ) : (
+                  <EyeIcon className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </IconTooltip>
+          </div>
+          <p id={`${id}-key-help`} className="min-h-10 text-xs leading-5 text-muted-foreground">
+            {keepToken ? labels.savedKey : labels.keyHelp}
+          </p>
+        </div>
+        <button
+          type="button"
+          className={outline}
+          disabled={!token.trim() && !keepToken}
+          onClick={() =>
+            void run(async () => {
+              const choices = await client.models(credentials);
+              return () => {
+                setModels(choices);
+                setModel(choices.some((choice) => choice.id === model) ? model : "");
+                if (!choices.length) setError(labels.noModels);
+              };
+            })
+          }
+        >
+          {labels.loadModels}
+        </button>
+        <div className="space-y-1">
+          <label htmlFor={`${id}-model`} className="text-sm font-medium">
+            {labels.model}
+          </label>
+          <NativeSelect
+            id={`${id}-model`}
+            className={field}
+            value={model}
+            required
+            disabled={!models.length}
+            onChange={(event) => {
+              setModel(event.target.value);
+            }}
+          >
+            <option value="">{labels.chooseModel}</option>
+            {models.map((choice) => (
+              <option key={choice.id} value={choice.id}>
+                {choice.label}
+              </option>
+            ))}
+          </NativeSelect>
+          <div className="min-h-20 pt-1">
+            {error ? (
+              <p role="alert" className="text-sm leading-5 text-destructive">
+                {error}
+              </p>
+            ) : (
+              <p className="text-xs leading-5 text-muted-foreground">{labels.modelHelp}</p>
+            )}
+          </div>
+        </div>
+        {disconnecting && <p className="text-sm">{labels.disconnectDescription}</p>}
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+          {saved && (
+            <button
+              type="button"
+              className={outline}
+              onClick={() => {
+                if (!disconnecting) {
+                  setDisconnecting(true);
+                  return;
+                }
+                void run(async () => {
+                  await client.remove();
+                  return () => {
+                    setSaved(null);
+                    setToken("");
+                    setVisible(false);
+                    setModels([]);
+                    setModel("");
+                    setDisconnecting(false);
+                    notify(labels.disconnected);
+                  };
+                });
+              }}
+            >
+              {disconnecting ? labels.confirmDisconnect : labels.disconnect}
+            </button>
+          )}
+          {disconnecting ? (
+            <button type="button" className={outline} onClick={() => setDisconnecting(false)}>
+              {labels.cancel}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={primary}
+              disabled={!model || (!token.trim() && !keepToken)}
+            >
+              {labels.save}
+            </button>
+          )}
+        </div>
+      </fieldset>
+    </form>
+  );
 }
 function AttachmentView({
   client,
@@ -271,6 +573,7 @@ function ActionView({
 }
 function AgentsContent({
   client,
+  settings,
   operationId,
   conversationId,
   onSelectionChange,
@@ -495,27 +798,7 @@ function AgentsContent({
             {operation?.description ?? labels.chooseFirst}
           </p>
         </div>
-        <div className="w-full max-w-72 space-y-1">
-          <label className="text-sm font-medium" htmlFor={`${uid}-operation`}>
-            {labels.operation}
-          </label>
-          <NativeSelect
-            id={`${uid}-operation`}
-            value={operationId ?? ""}
-            className={field}
-            disabled={started || blocked}
-            onChange={(event) =>
-              onSelectionChange({ operationId: event.target.value || null, conversationId: null })
-            }
-          >
-            <option value="">{labels.chooseOperation}</option>
-            {operations.map((op) => (
-              <option key={op.id} value={op.id}>
-                {op.label}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+        {settings && <ModelSettings client={settings} labels={labels} />}
       </header>
       <div className="grid min-h-0 flex-1 md:grid-cols-[14rem_minmax(0,1fr)]">
         <nav
@@ -556,7 +839,7 @@ function AgentsContent({
             <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
             {labels.newConversation}
           </button>
-          {conversationId && (
+          {(operationId || conversationId) && (
             <button
               type="button"
               className={cn(outline, "w-full")}
