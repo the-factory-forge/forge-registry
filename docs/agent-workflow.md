@@ -54,15 +54,15 @@ Before implementation, resolve `forge-specs` from the workspace or Git remotes.
 Read its `AGENTS.md`, `the-forge`, `registry-distribution` and, for UI/CSS/Tailwind
 work, `shared-ui` specs under its `openspec/specs/`. Read `host-integration` when consumer integration
 is affected. Template application details live in
-`forge-template/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
+`forge-specs/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
 use its supplied location or the
 [canonical forge-specs repository](https://github.com/the-factory-forge/forge-specs).
 Report inaccessible context rather than assuming it was loaded.
 
 `openspec/config.yaml` supplies Forge context for OpenSpec artifact generation.
 Keep registry-specific specs and changes here, including plugin definitions,
-plugin behavior, showroom rules and registry release checks. Only contracts that
-constrain both registry and template belong in forge-spec. Installing a plugin in
+plugin behavior, showroom rules and registry release checks. Shared contracts and
+template specs and change history belong in forge-specs. Installing a plugin in
 a host does not by itself make its spec shared. Keep one owning change root.
 These specs complement the repository procedures
 below; inspect current source and report material conflicts. A sibling reference

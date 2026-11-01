@@ -39,9 +39,9 @@ Registry-owned specs cover [Plugins](openspec/specs/plugins/spec.md),
 [Reservations](openspec/specs/reservations/spec.md),
 [showroom discovery](openspec/specs/registry-showroom/spec.md) and
 [registry releases](openspec/specs/registry-releases/spec.md). Their changes live in
-this repository's `openspec/changes/`. Only contracts constraining both registry and
-template live in `forge-spec`; consumer installation alone does not make a plugin
-spec shared.
+this repository's `openspec/changes/`. Shared contracts and template specs and
+change history live in `forge-specs`; consumer installation alone does not move
+plugin spec ownership.
 
 Changes that also modify a shared contract keep one root in `forge-spec` and
 name each delta's destination. Relocated archives retain their original repository

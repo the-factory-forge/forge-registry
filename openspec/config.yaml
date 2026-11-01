@@ -5,7 +5,7 @@ context: |
   Read AGENTS.md and ../forge-spec/AGENTS.md, then the-forge, registry-distribution
   and relevant shared-ui/host-integration specs in ../forge-spec/openspec/specs/.
   Read local openspec/specs/plugins, reservations, registry-showroom and registry-releases
-  for registry-specific behavior. Template application specs live in forge-template.
+  for registry-specific behavior. Template specs and change history live in forge-specs.
   For Blogs storage, Mailing rendering/transport or plugin persistence, read the local
   concepts/adr decisions. Their linked host-branding and project-migration contracts
   remain shared in forge-spec; template router and deployment decisions remain in forge-template.
@@ -20,8 +20,8 @@ context: |
   Read CONTRIBUTING.md, item docs, package scripts, imports and consumers.
   Include generated output and a reviewed consumer install when distribution
   changes. Source updates do not automatically update installed consumers.
-  Keep registry-specific specs and changes in this root. Use forge-spec only for
-  contracts constraining both registry and template; consumer installation alone
+  Keep registry-specific specs and changes in this root. Shared contracts and
+  template specs and change history live in forge-specs; consumer installation alone
   does not make a plugin spec shared. Name each cross-repository delta's main-spec
   destination and reconcile there without duplicating proposals or main specs.
 
