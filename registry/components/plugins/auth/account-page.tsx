@@ -18,6 +18,7 @@ import {
   accountInputClass,
 } from "@/components/plugins/auth/account-styles";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 export interface AccountTab {
   id: string;
@@ -148,6 +149,7 @@ function DefaultAccountSections({
       </div>
       <Tabs.Panel value="about" keepMounted className="data-hidden:hidden">
         <form
+          onKeyDownCapture={submitFormOnShortcut}
           className="grid gap-4"
           aria-busy={pending}
           onSubmit={async (event) => {

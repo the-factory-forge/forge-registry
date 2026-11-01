@@ -217,12 +217,16 @@ and reserves space between the selected text and arrow. Its native control prese
 keyboard selection, labels, validation and disabled states. The dependency ships
 with affected plugins; see the [native select guide](./native-select.md).
 
-Create/edit modal forms support Cmd+Enter on macOS and Ctrl+Enter on Windows/Linux.
-The shortcut activates the existing submit button, preserving validation, disabled
-states and failure handling. It stays inside the active dialog and does not add
-a shortcut to destructive confirmations or standalone page forms. The
-`@forge/dialog-submit` utility ships with Drive, Employees, Menus and Reservations;
-their existing showroom examples demonstrate it.
+Forms support Cmd+Enter on macOS and Ctrl+Enter on Windows/Linux, including
+standalone editors, account forms, the Agents composer and modal forms. The
+shortcut activates the existing submit button, preserving validation, disabled
+states, confirmation steps and failure handling. Ordinary Enter keeps its usual
+behavior, including newlines in multiline fields. Repeated keys, composition and
+nested portal events do not submit the enclosing form.
+
+`@forge/dialog-submit` exports `submitFormOnShortcut` for a form's `onKeyDownCapture`;
+its existing `submitDialogOnShortcut` export remains available for dialog popups.
+Affected items declare this dependency. There is no host-wide listener or provider.
 
 Default action and field labels use sentence case, such as **Create** and
 **Save changes**. Primary actions omit the resource already named by their

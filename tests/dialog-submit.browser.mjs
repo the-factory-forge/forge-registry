@@ -27,7 +27,7 @@ await suite("Dialog submit browser", async () => {
     return page;
   }
 
-  await test("Drive shortcuts validate, create once, retain failed edits, and exclude delete dialogs", async (t) => {
+  await test("Drive shortcuts validate, create once, retain failed edits, and submit an open deletion confirmation", async (t) => {
     const page = await preview(t, "/en/projects/portal/drive");
     await openDriveFolderDialog(page);
     const create = page.getByRole("dialog", { name: "New folder", exact: true });
@@ -68,9 +68,8 @@ await suite("Dialog submit browser", async () => {
     await deleting.locator('button[type="submit"]').waitFor();
     await deleting.focus();
     await page.keyboard.press("Meta+Enter");
-    assert.equal(await deleting.isVisible(), true);
-    await deleting.getByRole("button", { name: "Cancel", exact: true }).click();
-    await renamed.waitFor();
+    await deleting.waitFor({ state: "hidden" });
+    await renamed.waitFor({ state: "hidden" });
   });
 
   await test("employee creation and editing support both platform shortcuts", async (t) => {

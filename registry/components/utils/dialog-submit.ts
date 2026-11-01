@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from "react";
 
-export function submitDialogOnShortcut(event: KeyboardEvent<HTMLElement>) {
+export function submitFormOnShortcut(event: KeyboardEvent<HTMLElement>) {
   if (
     event.key !== "Enter" ||
     !(event.metaKey || event.ctrlKey) ||
@@ -21,3 +21,5 @@ export function submitDialogOnShortcut(event: KeyboardEvent<HTMLElement>) {
   event.stopPropagation();
   if (!event.repeat && !submit.matches(':disabled, [aria-disabled="true"]')) submit.click();
 }
+
+export { submitFormOnShortcut as submitDialogOnShortcut };

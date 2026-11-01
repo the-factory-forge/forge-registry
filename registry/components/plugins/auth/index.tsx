@@ -15,6 +15,7 @@ import { Link, type LinkProps } from "@/components/link";
 import { GoogleSignInButton, useAuthAction } from "@/components/plugins/auth/auth-controls";
 import { loginLabels, type LoginLabels } from "@/components/plugins/auth/labels";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 export {
   GoogleSignInButton,
@@ -152,6 +153,7 @@ function LoginFormContent({
         </p>
       )}
       <form
+        onKeyDownCapture={submitFormOnShortcut}
         method="post"
         onSubmit={(event) => {
           event.preventDefault();

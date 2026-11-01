@@ -571,7 +571,7 @@ export function EntryDialog({
         <Dialog.Popup
           initialFocus={deleting || disabled ? undefined : nameRef}
           finalFocus={returnFocus}
-          onKeyDownCapture={deleting ? undefined : submitDialogOnShortcut}
+          onKeyDownCapture={submitDialogOnShortcut}
           className={cn(
             cardClass,
             "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto py-0 shadow-xl",

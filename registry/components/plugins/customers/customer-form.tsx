@@ -21,6 +21,7 @@ import {
 import { customerDisplayName, customerFormValues } from "@/components/plugins/customers/utils";
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
 export interface CustomerFormProps {
@@ -137,6 +138,7 @@ function CustomerFormContent({
 
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       ref={formRef}
       tabIndex={-1}
       noValidate

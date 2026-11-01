@@ -20,6 +20,7 @@ import {
   primaryButtonClass,
 } from "@/components/plugins/customers/ui";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export type {
@@ -346,6 +347,7 @@ function ContactSection({
       ) : (
         <>
           <form
+            onKeyDownCapture={submitFormOnShortcut}
             className="flex flex-wrap gap-2"
             onSubmit={(event) => {
               event.preventDefault();

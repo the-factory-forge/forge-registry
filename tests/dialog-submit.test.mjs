@@ -42,7 +42,7 @@ await test("dialog submission accepts platform shortcuts and respects disabled a
   assert.deepEqual(press({}, { hasSubmit: false }), { clicks: 0, prevented: false });
 });
 
-await test("modal plugins ship the shared shortcut dependency", async () => {
+await test("forms ship the shared shortcut dependency", async () => {
   const { items } = JSON.parse(await readFile("registry/registry.json", "utf8"));
   const item = items.find((item) => item.name === "dialog-submit");
   const published = JSON.parse(await readFile("public/r/dialog-submit.json", "utf8"));
@@ -51,7 +51,20 @@ await test("modal plugins ship the shared shortcut dependency", async () => {
       published.files.find((entry) => entry.path === file.path).content,
       await readFile(file.path, "utf8"),
     );
-  for (const name of ["drive", "employees", "menus", "reservations"])
+  for (const name of [
+    "drive",
+    "employees",
+    "menus",
+    "reservations",
+    "agents",
+    "auth",
+    "blogs",
+    "customers",
+    "projects",
+    "customers-bexio",
+    "footer",
+    "newsletter",
+  ])
     assert.ok(
       items
         .find((item) => item.name === name)

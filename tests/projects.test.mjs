@@ -53,6 +53,7 @@ await test("projects installs customers without creating a reverse dependency or
     "@forge/table-selection",
     "@forge/record-deletion",
     "@forge/loading-indicator",
+    "@forge/dialog-submit",
   ]);
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");

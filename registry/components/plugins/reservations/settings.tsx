@@ -39,6 +39,7 @@ import {
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export interface ReservationSettingsPageProps {
@@ -256,6 +257,7 @@ function BusinessSettings({
   const action = useReservationAction(client);
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       className={cn(panelClass, "space-y-4")}
       onSubmit={(e) => {
         e.preventDefault();
@@ -373,6 +375,7 @@ function ServiceEditor({
   };
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
@@ -651,6 +654,7 @@ function ResourceEditor({
   };
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();

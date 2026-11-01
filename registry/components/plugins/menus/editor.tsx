@@ -42,7 +42,7 @@ import {
   DeleteControl,
 } from "@/components/plugins/menus/ui";
 import { cn } from "@/components/utils/cn";
-import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
+import { submitDialogOnShortcut, submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 const editorLocales = (locales: readonly { code: string; name: string }[], baseLocale: string) =>
   locales.some((locale) => locale.code === baseLocale)
@@ -289,6 +289,7 @@ function MenuItemEditorPageContent({
         onSave={() => void submit(true)}
       />
       <form
+        onKeyDownCapture={submitFormOnShortcut}
         ref={formRef}
         noValidate
         onChange={(event) => fields.clear(event.target.id)}

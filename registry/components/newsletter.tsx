@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 export type NewsletterProps = Omit<React.ComponentPropsWithoutRef<"section">, "onSubmit"> & {
   title?: string;
@@ -117,7 +118,12 @@ export function Newsletter({
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
 
-      <form className="mt-4" onSubmit={handleSubmit} noValidate>
+      <form
+        onKeyDownCapture={submitFormOnShortcut}
+        className="mt-4"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <label className="mb-2 block text-sm font-medium" htmlFor={inputId}>
           {emailLabel}
         </label>

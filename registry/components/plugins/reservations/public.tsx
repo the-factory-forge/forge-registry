@@ -43,6 +43,7 @@ import {
   useReservationLoad,
 } from "@/components/plugins/reservations/ui";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 
 export interface ReservationBookingPageProps {
@@ -176,6 +177,7 @@ export function BookingForm({
   if (!service) return <output className="block">{labels.emptyServices}</output>;
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
@@ -628,6 +630,7 @@ export function RescheduleDialog({
       busy={action.busy}
     >
       <form
+        onKeyDownCapture={submitFormOnShortcut}
         className="contents space-y-4"
         onSubmit={(e) => {
           e.preventDefault();

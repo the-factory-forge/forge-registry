@@ -82,11 +82,11 @@ for (const width of [1440, 390]) {
     await save.click();
     await actionToast(page, "Draft saved.");
     await publish.click();
-    await page
-      .getByRole("dialog", { name: "Review publication", exact: true })
-      .getByRole("button", { name: "Publish", exact: true })
-      .click();
     await actionToast(page, "This language is now published.");
+    assert.equal(
+      await page.getByRole("button", { name: "Publication status", exact: true }).textContent(),
+      "Published",
+    );
   });
 }
 

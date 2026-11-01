@@ -46,7 +46,7 @@ import type {
 } from "@/components/plugins/agents/types";
 import { safeAgentResultHref } from "@/components/plugins/agents/types";
 import { cn } from "@/components/utils/cn";
-import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
 export type * from "@/components/plugins/agents/types";
@@ -227,7 +227,7 @@ function ModelSettingsForm({
   const credentials = { provider, ...(token.trim() ? { token: token.trim() } : {}) };
   return (
     <form
-      onKeyDownCapture={submitDialogOnShortcut}
+      onKeyDownCapture={submitFormOnShortcut}
       method="post"
       className="space-y-4"
       onSubmit={(event) => {
@@ -1070,6 +1070,7 @@ function AgentsContent({
             )}
           </div>
           <form
+            onKeyDownCapture={submitFormOnShortcut}
             className={cn(
               "space-y-3 border-t border-border bg-background pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
               started && "sticky bottom-0",

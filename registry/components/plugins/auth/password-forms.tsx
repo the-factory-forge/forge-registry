@@ -16,6 +16,7 @@ import { Link, type LinkProps } from "@/components/link";
 import { useHydrated } from "@/components/plugins/auth/auth-controls";
 import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 const inputClass =
   "h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm";
@@ -120,6 +121,7 @@ export function ForgotPasswordForm({
         </output>
       ) : (
         <form
+          onKeyDownCapture={submitFormOnShortcut}
           method="post"
           className="grid gap-5"
           aria-busy={state.pending}
@@ -206,6 +208,7 @@ function PasswordFormContent({
       )}
       {!(reset && state.succeeded) && (
         <form
+          onKeyDownCapture={submitFormOnShortcut}
           method="post"
           className="grid gap-5"
           aria-busy={state.pending}

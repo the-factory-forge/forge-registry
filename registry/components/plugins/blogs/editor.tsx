@@ -86,6 +86,7 @@ import {
 } from "@/components/plugins/blogs/utils";
 import { emptyContent } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 function subscribeHistoryDesktop(callback: () => void) {
   const query = window.matchMedia("(min-width: 1024px)");
   query.addEventListener("change", callback);
@@ -818,6 +819,7 @@ function EditorForm({
               {readOnly && <Feedback message={labels.readOnly} />}
             </header>
             <form
+              onKeyDownCapture={submitFormOnShortcut}
               ref={formRef}
               noValidate
               onSubmit={(e) => void save(e)}
@@ -1212,7 +1214,12 @@ function BlogCategoryEditorContent({
         }}
         onSave={() => void submit(undefined, true)}
       />
-      <form ref={form} onSubmit={(e) => void submit(e)} className={cn(cardClass, "space-y-5")}>
+      <form
+        onKeyDownCapture={submitFormOnShortcut}
+        ref={form}
+        onSubmit={(e) => void submit(e)}
+        className={cn(cardClass, "space-y-5")}
+      >
         <header className="flex items-start justify-between gap-3">
           <h2 className="min-w-0 text-lg font-semibold">
             {base ? labels.edit : labels.newCategory}

@@ -15,6 +15,7 @@ import type {
 } from "@/components/plugins/blogs/types";
 import { assetIdFromUrl, MAX_MARKDOWN_BYTES, safeAssetUrl } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 export interface BlogMarkdownProps extends Pick<
   BlogsAppearanceProps,
@@ -152,6 +153,7 @@ export function BlogIndexPage({
           {labels.publicTitle}
         </h1>
         <form
+          onKeyDownCapture={submitFormOnShortcut}
           action={actionHref}
           method="get"
           className="ml-auto max-w-lg"

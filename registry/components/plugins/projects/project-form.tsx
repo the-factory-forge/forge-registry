@@ -20,6 +20,7 @@ import {
 } from "@/components/plugins/projects/utils";
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 
 export interface ProjectFormProps {
@@ -102,6 +103,7 @@ function ProjectFormContent({
   return (
     <div className={className}>
       <form
+        onKeyDownCapture={submitFormOnShortcut}
         ref={formRef}
         tabIndex={-1}
         noValidate

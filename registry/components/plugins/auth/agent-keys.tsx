@@ -18,6 +18,7 @@ import {
 } from "@/components/plugins/auth/account-styles";
 import { useTableSelection, type TableDeletionOptions } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { tableActionCellClass, tableActionHeaderClass } from "@/components/utils/table-styles";
 
 export interface AgentKey {
@@ -315,6 +316,7 @@ function AgentKeysContent({
         description={labels.createDescription}
       >
         <form
+          onKeyDownCapture={submitFormOnShortcut}
           className="contents"
           aria-busy={pending}
           onSubmit={async (event) => {

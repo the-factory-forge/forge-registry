@@ -57,6 +57,7 @@ import {
   useTableSelection,
 } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -488,7 +489,11 @@ function BlogNewPageContent({
         ← {labels.back}
       </BlogLink>
       <h1 className="font-serif text-3xl font-semibold">{labels.newPost}</h1>
-      <form onSubmit={(e) => void submit(e)} className={cn(cardClass, "max-w-2xl space-y-5")}>
+      <form
+        onKeyDownCapture={submitFormOnShortcut}
+        onSubmit={(e) => void submit(e)}
+        className={cn(cardClass, "max-w-2xl space-y-5")}
+      >
         <fieldset disabled={action.pending || !capabilities.create} className="space-y-5">
           <Tabs.Root value={locale} onValueChange={(value) => setLocale(value as string)}>
             <Tabs.List

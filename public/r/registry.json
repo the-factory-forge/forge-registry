@@ -34,7 +34,7 @@
       "name": "dialog-submit",
       "type": "registry:lib",
       "title": "Dialog submit shortcut",
-      "description": "Cmd+Enter and Ctrl+Enter submit modal forms through their existing save buttons.",
+      "description": "Submit forms with Cmd+Enter or Ctrl+Enter while preserving validation and disabled states.",
       "files": [
         {
           "path": "registry/components/utils/dialog-submit.ts",
@@ -450,7 +450,7 @@
           "target": "@components/newsletter-example.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn"]
+      "registryDependencies": ["@forge/cn", "@forge/dialog-submit"]
     },
     {
       "name": "cookie-banner",
@@ -537,7 +537,8 @@
         "@forge/social-icons",
         "@forge/manage-cookies-button",
         "@forge/ui-shims",
-        "@forge/icon-tooltip"
+        "@forge/icon-tooltip",
+        "@forge/dialog-submit"
       ]
     },
     {
@@ -937,7 +938,8 @@
         "@forge/dropdown-menu",
         "@forge/table-selection",
         "@forge/record-deletion",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/dialog-submit"
       ]
     },
     {
@@ -991,7 +993,8 @@
         "@forge/editor-form",
         "@forge/table-selection",
         "@forge/record-deletion",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/dialog-submit"
       ]
     },
     {
@@ -1167,7 +1170,8 @@
         "@forge/image-crop",
         "@forge/table-selection",
         "@forge/content-sidebar-layout",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/dialog-submit"
       ],
       "files": [
         {
@@ -1485,7 +1489,8 @@
         "@forge/icon-tooltip",
         "@forge/table-selection",
         "@forge/loading-indicator",
-        "@forge/table-styles"
+        "@forge/table-styles",
+        "@forge/dialog-submit"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },
@@ -1879,7 +1884,8 @@
         "@forge/icon-tooltip",
         "@forge/action-toast",
         "@forge/loading-indicator",
-        "@forge/optimistic-action"
+        "@forge/optimistic-action",
+        "@forge/dialog-submit"
       ],
       "files": [
         {
@@ -1972,12 +1978,12 @@
       "registryDependencies": [
         "@forge/action-toast",
         "@forge/icon-tooltip",
-        "@forge/dialog-submit",
         "@forge/image-crop",
         "@forge/loading-indicator",
         "@forge/native-select",
         "@forge/cn",
-        "@forge/ui-shims"
+        "@forge/ui-shims",
+        "@forge/dialog-submit"
       ],
       "files": [
         {

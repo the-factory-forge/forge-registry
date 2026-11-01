@@ -10,6 +10,7 @@ import {
 } from "@/components/plugins/auth/account-styles";
 import { useHydrated } from "@/components/plugins/auth/auth-controls";
 import { cn } from "@/components/utils/cn";
+import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 
 export const emailChangeLabels = {
   title: "Change email",
@@ -42,6 +43,7 @@ export function AccountEmailChange({
   const lock = useRef(false);
   return (
     <form
+      onKeyDownCapture={submitFormOnShortcut}
       method="post"
       className={cn(accountCardClass, "mt-6 grid gap-4", className)}
       aria-busy={status === "pending"}

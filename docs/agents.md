@@ -179,7 +179,9 @@ and descriptions. The cards also remain visible in new, empty chats, with the
 current operation marked as selected. Unknown or unauthorized selections show
 unavailable feedback. Once an operation is selected, staff can type and send
 immediately. The first Send creates the saved chat and submits that message;
-there is no separate Start action. New conversation opens an unsaved draft.
+there is no separate Start action. Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux)
+activates Send; Enter inserts a newline. The shortcut respects disabled and pending
+states and never approves an agent proposal. New conversation opens an unsaved draft.
 Explicit file selection may create a chat to stage private attachments before
 its first message, preserving the typed draft through upload and crop recovery.
 A conversation's operation cannot be changed. Its plugin icon identifies each
