@@ -49,7 +49,7 @@ export function Lightbox({
             width={!fill ? width : undefined}
             height={!fill ? height : undefined}
             sizes={sizes}
-            className="object-cover transition-transform duration-500 group-hover/lightbox:scale-105"
+            className="object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover/lightbox:scale-105"
           />
         )}
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-foreground/0 transition-colors group-hover/lightbox:bg-foreground/10">

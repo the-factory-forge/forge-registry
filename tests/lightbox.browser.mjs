@@ -22,6 +22,23 @@ await test("lightbox traps focus, preserves image clicks and restores focus afte
   await page.locator('[data-preview-ready="true"]').waitFor();
   const trigger = page.getByRole("button", { name: "Click to enlarge : Forge logo" });
   const dialog = page.getByRole("dialog", { name: "Forge logo", exact: true });
+  const image = trigger.getByRole("img", { name: "Forge logo" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await trigger.hover();
+  assert.deepEqual(
+    await image.evaluate((node) => ({
+      scale: getComputedStyle(node).scale,
+      transition: getComputedStyle(node).transitionDuration,
+    })),
+    { scale: "none", transition: "0s" },
+    "Reduced motion must disable the hover zoom, not just the transform property",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.waitForFunction(
+    (node) => Number.parseFloat(getComputedStyle(node).scale) > 1.04,
+    await image.elementHandle(),
+  );
+  await page.mouse.move(0, 0);
   for (const [width, dark] of [
     [1440, false],
     [320, true],
