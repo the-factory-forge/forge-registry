@@ -306,6 +306,14 @@ profile/security components (`AccountPage`, `AccountSecurity`, `AgentKeys`).
   The host SHALL own sessions, OAuth, password policy, reset-token validation,
   email delivery, rate limiting and navigation. Auth SHALL NOT install a provider.
 
+#### Scenario: Authentication before hydration
+
+- **WHEN** authentication forms or sign-in/out controls are server-rendered before their client handlers are ready
+- **THEN** their inputs and action buttons remain disabled until hydration completes
+- **AND** authentication forms declare POST so native submission cannot put credentials in a URL
+- **AND** after hydration, host callbacks, validation, duplicate prevention and failure recovery remain available
+- **AND** this behavior does not require a host router or framework-specific hook
+
 #### Scenario: Password recovery
 
 - **WHEN** a visitor requests password recovery

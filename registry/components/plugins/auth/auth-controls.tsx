@@ -1,16 +1,27 @@
 "use client";
 
 import { LoaderCircleIcon, LogOutIcon } from "lucide-react";
-import { useRef, useState, type ComponentProps } from "react";
+import { useRef, useState, useSyncExternalStore, type ComponentProps } from "react";
 
 import { cn } from "@/components/utils/cn";
 
+const emptySubscribe = () => () => {};
+
+export function useHydrated() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 /** Share one action across mutually exclusive controls, such as password and Google sign-in. */
 export function useAuthAction() {
+  const hydrated = useHydrated();
   const lock = useRef(false);
   const [status, setStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   async function run(action: () => Promise<void>) {
-    if (lock.current) return;
+    if (!hydrated || lock.current) return;
     lock.current = true;
     setStatus("pending");
     try {
@@ -26,7 +37,7 @@ export function useAuthAction() {
     pending: status === "pending",
     failed: status === "error",
     completed: status === "success",
-    disabled: status === "pending" || status === "success",
+    disabled: !hydrated || status === "pending" || status === "success",
   };
 }
 
@@ -57,11 +68,12 @@ export function GoogleSignInButton({
   className,
   ...props
 }: AuthControlProps) {
+  const hydrated = useHydrated();
   return (
     <button
       {...props}
       type="button"
-      disabled={disabled || pending}
+      disabled={!hydrated || disabled || pending}
       aria-busy={pending}
       className={cn(buttonClass, className)}
     >
@@ -80,11 +92,12 @@ export function SignOutButton({
   className,
   ...props
 }: AuthControlProps) {
+  const hydrated = useHydrated();
   return (
     <button
       {...props}
       type="button"
-      disabled={disabled || pending}
+      disabled={!hydrated || disabled || pending}
       aria-busy={pending}
       className={cn(buttonClass, className)}
     >

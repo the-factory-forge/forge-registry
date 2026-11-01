@@ -152,6 +152,7 @@ function LoginFormContent({
         </p>
       )}
       <form
+        method="post"
         onSubmit={(event) => {
           event.preventDefault();
           const data = new FormData(event.currentTarget);
@@ -185,7 +186,7 @@ function LoginFormContent({
             placeholder="name@example.com"
             className={inputClass}
             readOnly={action.disabled}
-            disabled={!enabled}
+            disabled={action.disabled || !enabled}
             aria-describedby={failed ? `${id}-error` : undefined}
             required
           />
@@ -206,7 +207,7 @@ function LoginFormContent({
               onClick={(event) => setCapsLock(event.getModifierState("CapsLock"))}
               onBlur={() => setCapsLock(false)}
               readOnly={action.disabled}
-              disabled={!enabled}
+              disabled={action.disabled || !enabled}
               aria-describedby={
                 [failed && `${id}-error`, capsLock && `${id}-caps-lock`]
                   .filter(Boolean)

@@ -8,6 +8,7 @@ import {
   accountButtonClass,
   accountPrimaryClass,
 } from "@/components/plugins/auth/account-styles";
+import { useHydrated } from "@/components/plugins/auth/auth-controls";
 import { cn } from "@/components/utils/cn";
 
 export const emailChangeLabels = {
@@ -33,6 +34,7 @@ export function AccountEmailChange({
   labels: overrides,
   className,
 }: AccountEmailChangeProps) {
+  const hydrated = useHydrated();
   const labels = { ...emailChangeLabels, ...overrides };
   const id = `factory-email-change-${useId()}`;
   const [value, setValue] = useState("");
@@ -40,11 +42,13 @@ export function AccountEmailChange({
   const lock = useRef(false);
   return (
     <form
+      method="post"
       className={cn(accountCardClass, "mt-6 grid gap-4", className)}
       aria-busy={status === "pending"}
       onSubmit={async (event) => {
         event.preventDefault();
         if (
+          !hydrated ||
           lock.current ||
           !event.currentTarget.reportValidity() ||
           value.trim().toLowerCase() === email.toLowerCase()
@@ -76,6 +80,7 @@ export function AccountEmailChange({
         required
         value={value}
         readOnly={status === "pending"}
+        disabled={!hydrated}
         className={accountInputClass}
         onChange={(event) => {
           setValue(event.target.value);
@@ -99,6 +104,7 @@ export function AccountEmailChange({
       <button
         type="submit"
         disabled={
+          !hydrated ||
           status === "pending" ||
           !value.trim() ||
           value.trim().toLowerCase() === email.toLowerCase()

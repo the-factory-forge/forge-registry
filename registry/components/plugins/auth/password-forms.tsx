@@ -13,6 +13,7 @@ import { useId, useRef, useState, type ComponentType, type ReactNode } from "rea
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
+import { useHydrated } from "@/components/plugins/auth/auth-controls";
 import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
 
@@ -62,12 +63,13 @@ type PasswordFormProps = ChangePasswordFormProps & {
 };
 
 function useSubmission() {
+  const hydrated = useHydrated();
   const lock = useRef(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
   async function submit(action: () => Promise<void>, form: HTMLFormElement) {
-    if (lock.current) return;
+    if (!hydrated || lock.current) return;
     lock.current = true;
     setPending(true);
     setFailed(false);
@@ -83,7 +85,7 @@ function useSubmission() {
       setPending(false);
     }
   }
-  return { pending, failed, succeeded, submit };
+  return { pending, disabled: !hydrated || pending, failed, succeeded, submit };
 }
 
 export function ForgotPasswordForm({
@@ -118,12 +120,13 @@ export function ForgotPasswordForm({
         </output>
       ) : (
         <form
+          method="post"
           className="grid gap-5"
           aria-busy={state.pending}
           onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
-            if (state.pending || !form.reportValidity()) return;
+            if (state.disabled || !form.reportValidity()) return;
             const email = new FormData(form).get("email");
             if (typeof email === "string")
               void state.submit(() => onRequestReset(email.trim()), form);
@@ -141,6 +144,7 @@ export function ForgotPasswordForm({
               className={inputClass}
               required
               readOnly={state.pending}
+              disabled={state.disabled}
               aria-describedby={state.failed ? `${id}-error` : undefined}
             />
           </div>
@@ -149,7 +153,7 @@ export function ForgotPasswordForm({
               {labels.resetRequestError}
             </p>
           )}
-          <button type="submit" className={buttonClass} disabled={state.pending}>
+          <button type="submit" className={buttonClass} disabled={state.disabled}>
             {state.pending && (
               <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />
             )}
@@ -202,13 +206,14 @@ function PasswordFormContent({
       )}
       {!(reset && state.succeeded) && (
         <form
+          method="post"
           className="grid gap-5"
           aria-busy={state.pending}
           onReset={() => setVisiblePasswords({ currentPassword: false, newPassword: false })}
           onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
-            if (state.pending || !form.reportValidity()) return;
+            if (state.disabled || !form.reportValidity()) return;
             const data = new FormData(form);
             const currentPassword = reset ? "" : data.get("currentPassword");
             const newPassword = data.get("newPassword");
@@ -239,6 +244,7 @@ function PasswordFormContent({
                     maxLength={isNew ? maxLength : undefined}
                     required
                     readOnly={state.pending}
+                    disabled={state.disabled}
                     aria-describedby={
                       isNew
                         ? state.failed
@@ -255,7 +261,7 @@ function PasswordFormContent({
                       onClick={() =>
                         setVisiblePasswords({ ...visiblePasswords, [name]: !showPassword })
                       }
-                      disabled={state.pending}
+                      disabled={state.disabled}
                       aria-label={showPassword ? labels.hidePassword : labels.showPassword}
                       aria-controls={`${id}-${name}`}
                       aria-pressed={showPassword}
@@ -284,7 +290,7 @@ function PasswordFormContent({
             <button
               type="submit"
               className={cn(buttonClass, !reset && !fullWidthSubmit && "justify-self-start")}
-              disabled={state.pending}
+              disabled={state.disabled}
             >
               {state.pending && (
                 <LoaderCircleIcon className="size-4 animate-spin" aria-hidden="true" />

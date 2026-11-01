@@ -114,6 +114,12 @@ authentication server confirms sign-out.
 
 ## Password recovery and changes
 
+Auth forms and sign-in/out controls stay disabled during server rendering and
+initial hydration, then enable when their React handlers are ready. Forms declare
+POST to keep credentials out of native submission URLs. This protection ships
+with Auth; hosts do not need a router-specific hydration guard. Client JavaScript
+is required for these callback-based controls.
+
 Place the recovery forms inside `AuthLayout` or the host's authentication layout.
 Embed `ChangePasswordForm` directly in the account's security section.
 `ChangePasswordPage` remains exported for existing host integrations; the showroom
