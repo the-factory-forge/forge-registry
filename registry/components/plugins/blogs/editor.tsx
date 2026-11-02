@@ -22,7 +22,7 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
+  type SubmitEvent,
   useSyncExternalStore,
   type RefObject,
 } from "react";
@@ -392,7 +392,7 @@ function EditorForm({
     }
     return fields.validate(issues);
   }
-  async function save(event?: FormEvent, continueNavigation = false) {
+  async function save(event?: SubmitEvent<HTMLFormElement>, continueNavigation = false) {
     event?.preventDefault();
     if (pending) return false;
     if (!validate()) {
@@ -1167,7 +1167,7 @@ function BlogCategoryEditorContent({
     action.pending,
     onNavigationStateChange,
   );
-  async function submit(event?: FormEvent, leaving = false) {
+  async function submit(event?: SubmitEvent<HTMLFormElement>, leaving = false) {
     event?.preventDefault();
     if (action.pending || disabled) return;
     if (!form.current?.checkValidity()) {
@@ -1743,6 +1743,7 @@ function useBlogEditorState(
     const unload = (event: BeforeUnloadEvent) => {
       if (state.current.dirty || state.current.pending) {
         event.preventDefault();
+        // oxlint-disable-next-line typescript/no-deprecated -- Preserve the unsaved-draft warning in legacy browsers.
         event.returnValue = "";
       }
     };

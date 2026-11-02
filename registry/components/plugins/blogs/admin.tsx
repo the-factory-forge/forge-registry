@@ -9,7 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type FormEvent,
+  type SubmitEvent,
 } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
@@ -473,7 +473,7 @@ function BlogNewPageContent({
     id = `factory-blog-form-${useId()}`;
   const [title, setTitle] = useState(""),
     [locale, setLocale] = useState(defaultLocale);
-  async function submit(event: FormEvent) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const result = await action.run(JSON.stringify([title, locale]), (requestId) =>
       client.create({ title, locale, requestId }),
