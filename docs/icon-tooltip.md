@@ -27,7 +27,7 @@ replacement. Keep `aria-label` or screen-reader text on the control, decorative
 icons hidden, and disabled controls disabled. Touch users retain the accessible
 name and normal activation without a required tooltip step.
 
-The [showroom example](https://registry.the-corner.io/icon-tooltip) covers a button,
+The [showroom example](https://registry.the-corner.swiss/icon-tooltip) covers a button,
 link, disabled action and dialog trigger/close controls. Existing plugin demos
 cover translated edit/delete actions, password toggles, search and navigation.
 Install updated items and review host adapters to adopt these tooltips in a site;

@@ -237,7 +237,7 @@ export function createBlogsMock() {
     revision = 0,
     failUpload = false;
   const urls = new Map(
-    initial.assets.map((a) => [a.id, `https://assets.the-corner.io/images/${a.name}`]),
+    initial.assets.map((a) => [a.id, `https://assets.the-corner.swiss/images/${a.name}`]),
   );
   const listeners = new Set<() => void>();
   const requests = new Map<string, { fingerprint: string; result: unknown }>();

@@ -388,7 +388,7 @@ await suite("Blogs browser", async () => {
         if ((await toggle.getAttribute("aria-pressed")) !== String(theme === "Dark"))
           await toggle.click();
         for (const image of await page
-          .locator('article img[src^="https://assets.the-corner.io/images/"]')
+          .locator('article img[src^="https://assets.the-corner.swiss/images/"]')
           .all()) {
           await image.scrollIntoViewIfNeeded();
           await image.evaluate((node) => node.decode());

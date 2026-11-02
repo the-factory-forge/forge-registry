@@ -39,7 +39,7 @@ and set its translated Close label. Full page loads clear notifications.
 Projects, Customers, Blogs, Menus, reservation settings, employee verification
 and password changes use this component. Drive joins the same queue, including
 when embedded in another plugin. Booking receipts, reset instructions, loading and empty
-states remain in the page. The [showroom example](https://registry.the-corner.io/action-toast)
+states remain in the page. The [showroom example](https://registry.the-corner.swiss/action-toast)
 includes success, repeated saves, background loading and simulated failures.
 
 ## Shared layout and background operations

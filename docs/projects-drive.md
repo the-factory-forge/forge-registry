@@ -43,7 +43,7 @@ grants access. Reuse `@forge/drive-storage` when suitable, following its existin
 [storage and adoption guide](./drive.md); installation applies no migration and
 moves no deployed objects.
 
-The [showcase](https://registry.the-corner.io/connectors/projects-drive) uses the
+The [showcase](https://registry.the-corner.swiss/connectors/projects-drive) uses the
 existing in-memory Drive adapter. It demonstrates folder creation, navigation,
 read-only access and action failure recovery in a project detail. The original
 Projects showroom also uses the connector. Both previews reset on reload.

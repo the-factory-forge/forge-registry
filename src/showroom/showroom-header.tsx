@@ -35,11 +35,11 @@ export function ShowroomHeader() {
         </a>
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           <a
-            href="https://the-corner.io/forge/intranet"
+            href="https://the-corner.swiss/forge/intranet"
             className="inline-flex shrink-0 cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <img
-              src="https://assets.the-corner.io/logos/the_corner-icon.svg"
+              src="https://assets.the-corner.swiss/logos/the_corner-icon.svg"
               alt="The Corner"
               width={32}
               height={32}

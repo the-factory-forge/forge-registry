@@ -6,7 +6,7 @@ orchestration and PostgreSQL/Drizzle persistence. The host supplies fresh staff
 sessions, transport and private object storage. It can supply its own model runtime
 or use the optional website connection for OpenAI, Anthropic or DeepSeek.
 
-[Try the deterministic showroom](https://registry.the-corner.io/en/agents).
+[Try the deterministic showroom](https://registry.the-corner.swiss/en/agents).
 Its browser-session mock is not production storage or authorization.
 
 ## Installation and composition

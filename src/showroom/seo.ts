@@ -1,5 +1,5 @@
 // This identity belongs to the showroom, never to distributed registry source.
-const siteUrl = "https://registry.the-corner.io";
+const siteUrl = "https://registry.the-corner.swiss";
 const siteName = "Forge Registry";
 const socialImage = `${siteUrl}/social-preview.png`;
 const socialImageAlt = "The Corner logo surrounded by illustrated factory machinery";

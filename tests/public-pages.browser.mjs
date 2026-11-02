@@ -138,8 +138,8 @@ await suite("Public pages browser", async () => {
     await page.locator('main a[href="/en/contact"]').click();
     await page.getByRole("heading", { name: "Contact us", exact: true }).waitFor();
     assert.equal(
-      await page.getByRole("link", { name: "support@the-corner.io" }).getAttribute("href"),
-      "mailto:support@the-corner.io",
+      await page.getByRole("link", { name: "support@the-corner.swiss" }).getAttribute("href"),
+      "mailto:support@the-corner.swiss",
     );
     assert.equal(
       await page.getByRole("link", { name: "+41 79 963 47 74" }).getAttribute("href"),

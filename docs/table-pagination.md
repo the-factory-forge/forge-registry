@@ -36,7 +36,7 @@ loading and disable unavailable actions. The page indicator announces changes.
 The component uses Tailwind 4 utilities and installs `cn` and `table-styles`;
 it does not depend on showroom CSS or change host data or authorization.
 
-The [showroom example](https://registry.the-corner.io/table-pagination) includes
+The [showroom example](https://registry.the-corner.swiss/table-pagination) includes
 a multi-column post table with sticky edit/delete actions, numbered and cursor
 paging, and loading, empty and error states. Scroll the table horizontally on a
 narrow screen: the Actions heading and row controls stay pinned at the right edge.

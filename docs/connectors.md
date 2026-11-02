@@ -6,10 +6,10 @@ external service. An **adapter** implements one of the connector's interfaces
 for its provider or host. Connectors install through `@forge`, like plugins;
 there is no runtime loader or universal synchronization protocol.
 
-| Item              | Connects                            | Example                                                               | Guide                         |
-| ----------------- | ----------------------------------- | --------------------------------------------------------------------- | ----------------------------- |
-| `customers-bexio` | Customers and the Bexio contact API | [Showcase](https://registry.the-corner.io/connectors/customers-bexio) | [Setup](./customers-bexio.md) |
-| `projects-drive`  | Projects and Forge Drive            | [Showcase](https://registry.the-corner.io/connectors/projects-drive)  | [Setup](./projects-drive.md)  |
+| Item              | Connects                            | Example                                                                  | Guide                         |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------- |
+| `customers-bexio` | Customers and the Bexio contact API | [Showcase](https://registry.the-corner.swiss/connectors/customers-bexio) | [Setup](./customers-bexio.md) |
+| `projects-drive`  | Projects and Forge Drive            | [Showcase](https://registry.the-corner.swiss/connectors/projects-drive)  | [Setup](./projects-drive.md)  |
 
 Install only the relationship needed by a website. The connector declares both
 its own files and the existing items it uses. Base plugins do not acquire a

@@ -34,7 +34,7 @@ import {
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 const previewClassName =
-  "showroom-page [&_img[src^='https://assets.the-corner.io/images/']]:object-contain [&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-multiply dark:[&_img[src^='https://assets.the-corner.io/images/']]:mix-blend-screen dark:[&_img[src^='https://assets.the-corner.io/images/']]:invert";
+  "showroom-page [&_img[src^='https://assets.the-corner.swiss/images/']]:object-contain [&_img[src^='https://assets.the-corner.swiss/images/']]:mix-blend-multiply dark:[&_img[src^='https://assets.the-corner.swiss/images/']]:mix-blend-screen dark:[&_img[src^='https://assets.the-corner.swiss/images/']]:invert";
 
 function usePreview() {
   const [mock] = useState(createBlogsMock),

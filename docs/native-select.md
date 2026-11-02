@@ -14,7 +14,7 @@ follows the host's text direction. Disabled fields dim the arrow; forced-colors
 mode restores the native indicator. Multiple selections and visible listboxes
 retain native presentation without the decorative arrow.
 
-The [showroom example](https://registry.the-corner.io/native-select) demonstrates
+The [showroom example](https://registry.the-corner.swiss/native-select) demonstrates
 selection, long labels and disabled fields. The homepage lists it under Component.
 Employees, Projects, Drive, Blogs, Menus and Reservations use the same item;
 refresh their source installs to receive it. Existing deployed sites need their

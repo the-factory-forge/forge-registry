@@ -15,7 +15,7 @@ await test("showroom route metadata keeps canonical and social URLs consistent a
   assert.match(meta(contact, "description"), /React contact page.*sample contact details/);
   assert.equal(meta(contact, "og:description"), meta(contact, "description"));
   assert.equal(meta(contact, "twitter:description"), meta(contact, "description"));
-  assert.equal(contact.links[0].href, "https://registry.the-corner.io/en/contact");
+  assert.equal(contact.links[0].href, "https://registry.the-corner.swiss/en/contact");
   for (const locale of ["fr", "en", "de", "it"]) {
     assert.equal(
       showroomHead({
@@ -23,7 +23,7 @@ await test("showroom route metadata keeps canonical and social URLs consistent a
         description: "React authentication components.",
         path: `/${locale}/login`,
       }).links[0].href,
-      `https://registry.the-corner.io/${locale}/login`,
+      `https://registry.the-corner.swiss/${locale}/login`,
     );
   }
   const head = showroomHead({

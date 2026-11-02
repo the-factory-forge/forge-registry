@@ -107,7 +107,7 @@ export function AuthLayout({
         <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-6 py-6 text-center text-xs text-muted-foreground!">
           <span className="inline-flex items-center gap-1.5">
             <img
-              src="https://assets.the-corner.io/logos/the_corner-icon.svg"
+              src="https://assets.the-corner.swiss/logos/the_corner-icon.svg"
               alt=""
               width={16}
               height={16}

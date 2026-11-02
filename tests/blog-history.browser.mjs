@@ -793,7 +793,7 @@ void test("publishing an unedited historical draft prunes only the oldest public
 
 void test("missing illustrations require explicit omission, failures remain retryable and public rendering omits them", async (t) => {
   const page = await preview(t, false);
-  await page.route("https://assets.the-corner.io/images/**", (route) => route.abort());
+  await page.route("https://assets.the-corner.swiss/images/**", (route) => route.abort());
   await select(page, 1);
   await page.getByText("Image unavailable", { exact: true }).first().waitFor();
   await page.getByRole("button", { name: "Return to working draft", exact: true }).click();

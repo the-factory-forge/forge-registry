@@ -1,6 +1,6 @@
 # Image crop
 
-Install `@forge/image-crop` and open the [showroom example](https://registry.the-corner.io/image-crop).
+Install `@forge/image-crop` and open the [showroom example](https://registry.the-corner.swiss/image-crop).
 This form helper stays out of the homepage directory and is also demonstrated in Blogs.
 
 ```tsx

@@ -311,7 +311,7 @@ enable/disable access action from the list; retain deletion confirmation.
 
 Every visible Corner attribution, including auth screens, uses the exact
 non-translatable copy `Forged by The Corner Factory SA`, with the official `c`
-logo on its left. Reuse `https://assets.the-corner.io/logos/the_corner-icon.svg`
+logo on its left. Reuse `https://assets.the-corner.swiss/logos/the_corner-icon.svg`
 with decorative alt text and contrast in both themes.
 
 Keep framework imports out of shared UI. Use `ui-shims` for Link, Image, Script

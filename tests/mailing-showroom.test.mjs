@@ -19,7 +19,7 @@ void test("common mailing examples use the Corner identity and theme without del
     { Account: 4, Reservations: 6 },
   );
   for (const example of mailingExamples) {
-    const logoUrl = "https://registry.the-corner.io/icon.png";
+    const logoUrl = "https://registry.the-corner.swiss/icon.png";
     const email = await renderEmail({ ...example, brand: { ...mailingBrand, logoUrl } });
     for (const value of [example.heading, ...example.paragraphs, example.action.url]) {
       assert.ok(email.html.includes(value), `${example.slug}: HTML contains ${value}`);

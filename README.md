@@ -2,7 +2,7 @@
 
 Shared registry of reusable React components, page sections, and utilities for use across different projects through shadcn's registry model. Consumers receive editable source files. The TanStack Start app in this repository is the development showroom. Its foundation follows [Cove](https://github.com/mugnavo/cove) directly; it has no dependency on forge-template. See the [showroom architecture and migration guide](./docs/showroom.md).
 
-Browse the [live showroom](https://registry.the-corner.io/) to preview the components, layouts, pages, and plugins.
+Browse the [live showroom](https://registry.the-corner.swiss/) to preview the components, layouts, pages, and plugins.
 
 The UI uses Base UI primitives, props-driven content, and framework shims. The registry also includes an intranet layout for internal websites. The showroom owns its locale configuration and dictionaries.
 
@@ -111,7 +111,7 @@ App-wide loading feedback uses [`loading-indicator`](./docs/loading-indicator.md
 with one bar beneath the navbar and a 300ms completion hold.
 
 Icon-only actions use [`icon-tooltip`](./docs/icon-tooltip.md) for translated hover
-and keyboard hints, with a [showroom example](https://registry.the-corner.io/icon-tooltip).
+and keyboard hints, with a [showroom example](https://registry.the-corner.swiss/icon-tooltip).
 
 The source of truth for this inventory is `registry/registry.json`.
 
@@ -201,7 +201,7 @@ See the [plugin definition and guide](./docs/plugins.md) for each feature, its s
 | [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                 |
 | [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                                |
 
-Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.io/en/customers).
+Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.swiss/en/customers).
 
 [Agents](./docs/agents.md) adds private operation-based staff chat through `@forge/agents` and `@forge/agents-server`. Separately installable server connectors reuse Blogs, Employees, Customers, Projects, Drive, Menus and Reservations; hosts supply their model runtime and approve each change.
 
@@ -231,8 +231,8 @@ with provider and host adapters. Both appear under **Connector** in the showroom
 
 Use **intranet** for the full internal website layout. The
 [intranet guide](./docs/intranet.md) covers the shell and host integration.
-Open the [Intranet demo](https://registry.the-corner.io/en/intranet) or the
-focused [Sidebar demo](https://registry.the-corner.io/en/intranet-sidebar).
+Open the [Intranet demo](https://registry.the-corner.swiss/en/intranet) or the
+focused [Sidebar demo](https://registry.the-corner.swiss/en/intranet-sidebar).
 
 ```bash
 pnpm dlx shadcn@4.22.1 add @forge/intranet-shell
@@ -294,7 +294,7 @@ automatically. There is no CI auto-sync or bot commit. Installs with
 
 ## VPS showroom
 
-The public showroom is hosted at [registry.the-corner.io](https://registry.the-corner.io/).
+The public showroom is hosted at [registry.the-corner.swiss](https://registry.the-corner.swiss/).
 
 Deploy with the root `Dockerfile` and `docker-compose.prod.yml`, following the
 [VPS deployment guide](./docs/deployment.md). Dokploy routes the public domain to

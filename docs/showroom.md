@@ -144,7 +144,7 @@ automatically update their installed components.
 Each page route defines its own title and description through TanStack Router's
 `head` callback. Splat routes select descriptions using their route parameters;
 legal pages use loader data. `src/showroom/seo.ts` formats canonical URLs and
-Open Graph and Twitter metadata for `https://registry.the-corner.io`. The root
+Open Graph and Twitter metadata for `https://registry.the-corner.swiss`. The root
 route owns document assets and fallback metadata for missing pages.
 
 Social and chat previews share `public/social-preview.png`, a 1200 × 630 crop of

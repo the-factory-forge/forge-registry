@@ -48,8 +48,8 @@ export interface FooterOptions {
 
 const CORNER_ATTRIBUTION = {
   text: "Forged by The Corner Factory SA",
-  href: "https://the-corner.io/portfolio/forge",
-  logo: "https://assets.the-corner.io/logos/the_corner-icon.svg",
+  href: "https://the-corner.swiss/portfolio/forge",
+  logo: "https://assets.the-corner.swiss/logos/the_corner-icon.svg",
 };
 
 /**

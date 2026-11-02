@@ -245,7 +245,7 @@ await suite("Showroom browser", async () => {
       assert.equal(await signIn.getAttribute("aria-current"), "page");
       assert.equal(
         await page.locator('link[rel="canonical"]').getAttribute("href"),
-        `https://registry.the-corner.io/${locale}/login`,
+        `https://registry.the-corner.swiss/${locale}/login`,
       );
     }
     assert.equal((await fetch(`${baseURL}/en/change-password`)).status, 404);
@@ -393,7 +393,7 @@ await suite("Showroom browser", async () => {
       await page.locator(`main a[href="${href}"]`).click();
       await page.waitForURL(baseURL + href);
       await page
-        .locator(`link[rel="canonical"][href="https://registry.the-corner.io${href}"]`)
+        .locator(`link[rel="canonical"][href="https://registry.the-corner.swiss${href}"]`)
         .waitFor({ state: "attached", timeout: 5000 });
       const title = await page.title();
       const description = await page.locator('meta[name="description"]').getAttribute("content");
@@ -410,7 +410,7 @@ await suite("Showroom browser", async () => {
       descriptions.add(description);
       assert.equal(
         await page.locator('link[rel="canonical"]').getAttribute("href"),
-        `https://registry.the-corner.io${href}`,
+        `https://registry.the-corner.swiss${href}`,
         href,
       );
       if (href === "/en/intranet-sidebar") {
@@ -491,7 +491,7 @@ await suite("Showroom browser", async () => {
         assert.equal(head.canonical, undefined, path);
       } else {
         assert.equal(response.status, 200, path);
-        assert.equal(head.canonical, `https://registry.the-corner.io${path}`, path);
+        assert.equal(head.canonical, `https://registry.the-corner.swiss${path}`, path);
       }
     }
   });

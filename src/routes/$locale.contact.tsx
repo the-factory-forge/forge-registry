@@ -48,7 +48,7 @@ function ContactPreview() {
             mapsUrl:
               "https://www.google.com/maps/place/The+Corner+Factory+SA/data=!4m2!3m1!1s0x0:0xce2ae13c0797074c",
             phone: details ? "+41 79 963 47 74" : undefined,
-            email: details ? "support@the-corner.io" : undefined,
+            email: details ? "support@the-corner.swiss" : undefined,
             hours: details
               ? [
                   { label: "Monday–Friday", value: "09:00–16:00" },
