@@ -16,6 +16,7 @@ export const agentsConversations = pgTable(
     id: text("id").primaryKey(),
     ownerId: text("owner_id").notNull(),
     operationId: text("operation_id").notNull(),
+    source: text("source").notNull().default("chat"),
     title: text("title").notNull(),
     updatedAt: text("updated_at").notNull(),
     document: jsonb("document").$type<AgentRecord>().notNull(),

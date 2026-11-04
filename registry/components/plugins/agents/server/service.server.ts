@@ -2,7 +2,17 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
+import {
+  createAgentExecutor,
+  agentSnapshot,
+  actionMessage,
+  parse,
+  toolResult,
+} from "@/components/plugins/agents/server/execution.server";
+export { agentSnapshot } from "@/components/plugins/agents/server/execution.server";
+
 import type {
+  AgentActor,
   AgentAttachmentStore,
   AgentFiles,
   AgentRecord,
@@ -10,11 +20,9 @@ import type {
   AgentServerOperation,
   AgentsStore,
   AgentStoredAttachment,
-  AgentStoredAction,
 } from "@/components/plugins/agents/server/types";
 import {
   AgentsError,
-  safeAgentResultHref,
   type AgentAttachment,
   type AgentConversation,
   type AgentEvent,
@@ -30,7 +38,6 @@ const sendInput = z.object({
   attachmentIds: z.array(id).max(10),
   resume: z.boolean().default(false),
 });
-const decisionInput = z.object({ conversationId: id, actionId: id, approve: z.boolean() });
 const attachmentInput = z.object({
   conversationId: id,
   name: z.string().min(1).max(250),
@@ -51,21 +58,6 @@ const metadata = ({ id, name, size, contentType }: AgentAttachment): AgentAttach
   size,
   contentType,
 });
-function actionMessage(action: AgentStoredAction, text: string): AgentMessage {
-  return {
-    ...message("tool", `${action.tool}: ${text}`),
-    tool: { callId: action.callId, name: action.tool, input: action.input },
-  };
-}
-export function agentSnapshot(value: unknown): string {
-  return (
-    JSON.stringify(value, (_key, item: unknown) => {
-      if (item && typeof item === "object" && !Array.isArray(item))
-        return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
-      return item;
-    }) ?? "null"
-  );
-}
 function publicConversation(record: AgentRecord): AgentConversation {
   return {
     id: record.id,
@@ -85,24 +77,12 @@ function publicConversation(record: AgentRecord): AgentConversation {
     canResume: record.canResume,
   };
 }
-function parse<T>(schema: z.ZodType<T>, input: unknown): T {
-  const result = schema.safeParse(input);
-  if (!result.success) throw new AgentsError("INVALID");
-  return result.data;
-}
-function toolResult(value: unknown): string {
-  const text = JSON.stringify(value) ?? "null";
-  return text.length > 128000
-    ? `${text.slice(0, 128000)}\n[Result shortened; request a smaller selection.]`
-    : text;
-}
-
 export interface AgentsServiceOptions<Context> {
   store: AgentsStore;
-  runtime: AgentRuntime;
+  runtime?: AgentRuntime;
   operations: readonly AgentServerOperation<Context>[];
   /** Resolve a fresh staff session. Return null for customers, anonymous or disabled accounts. */
-  actor(context: Context): Promise<{ id: string } | null>;
+  actor(context: Context): Promise<AgentActor | null>;
   attachments?: AgentAttachmentStore;
   /** Resolve a host route from a successful service result, never from model output. */
   resultHref?(
@@ -135,6 +115,9 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
     const ownerId = await owner(context);
     const record = await store.get(parse(id, conversationId), ownerId);
     if (!record) throw new AgentsError("NOT_FOUND");
+    const actor = await options.actor(context);
+    if (!actor || agentSnapshot(actor.connection) !== agentSnapshot(record.connection))
+      throw new AgentsError("NOT_FOUND");
     const operation = await permit(context, record.operationId);
     return { ownerId, operation, record };
   }
@@ -219,6 +202,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
     raw: unknown,
     signal: AbortSignal,
   ): AsyncGenerator<AgentEvent> {
+    if (!runtime) throw new AgentsError("NOT_CONFIGURED");
     const input = parse(sendInput, raw);
     const { ownerId, operation } = await access(context, input.conversationId);
     const conversationId = input.conversationId;
@@ -300,25 +284,23 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
           const callId = parse(id, event.callId ?? randomUUID());
           await flush();
           if (tool.kind === "write") {
-            const prepared = await tool.prepare(context, args, files(context, conversationId));
+            const prepared = await executor.prepare(
+              context,
+              tool,
+              args,
+              files(context, conversationId),
+              (await checkRun()).messages.at(-1)!.id,
+              callId,
+            );
             await checkRun();
             await change(conversationId, ownerId, (current) => {
               if (current.run?.id !== runId) throw new AgentsError("BUSY");
-              current.actions.push({
-                id: randomUUID(),
-                callId,
-                messageId: current.messages.at(-1)!.id,
-                tool: tool.name,
-                input: args,
-                preview: prepared.preview,
-                snapshot: agentSnapshot(prepared.snapshot),
-                status: "pending",
-              });
+              current.actions.push(prepared);
             });
             completed = true;
             return;
           }
-          const result = await tool.run(context, args, files(context, conversationId));
+          const result = await executor.read(context, tool, args, files(context, conversationId));
           await checkRun();
           await change(conversationId, ownerId, (current) => {
             if (current.run?.id !== runId) throw new AgentsError("BUSY");
@@ -353,102 +335,6 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
       });
       // Async-generator return skips further yields; the client reloads durable state on completion.
     }
-  }
-  async function decide(context: Context, raw: unknown) {
-    const input = parse(decisionInput, raw);
-    const { ownerId, operation } = await access(context, input.conversationId);
-    const runId = randomUUID();
-    const action = await change(input.conversationId, ownerId, (record) => {
-      const action = record.actions.find((candidate) => candidate.id === input.actionId);
-      if (record.deleting) throw new AgentsError("NOT_FOUND");
-      if (!action) throw new AgentsError("NOT_FOUND");
-      if (action.status !== "pending") return null;
-      if (record.run) throw new AgentsError("BUSY");
-      if (!input.approve) {
-        action.status = "rejected";
-        record.messages.push(actionMessage(action, "User rejected this action."));
-        record.canResume = true;
-        return null;
-      }
-      action.status = "executing";
-      record.run = { id: runId, startedAt: new Date().toISOString() };
-      return structuredClone(action);
-    });
-    if (!action) return get(context, input.conversationId);
-    const tool = operation.tools.find((tool) => tool.name === action.tool);
-    let started = false;
-    try {
-      if (!tool || tool.kind !== "write") throw new AgentsError("STALE");
-      const args = parse(tool.schema, action.input);
-      const prepared = await tool.prepare(context, args, files(context, input.conversationId));
-      if (
-        agentSnapshot(prepared.snapshot) !== action.snapshot ||
-        agentSnapshot(prepared.preview) !== agentSnapshot(action.preview)
-      )
-        throw new AgentsError("STALE");
-      const current = await access(context, input.conversationId);
-      if (current.record.run?.id !== runId) throw new AgentsError("BUSY");
-      started = true;
-      const result = await tool.run(
-        context,
-        args,
-        files(context, input.conversationId),
-        action.id,
-        prepared.snapshot,
-      );
-      let resultHref: string | undefined;
-      try {
-        resultHref = safeAgentResultHref(
-          options.resultHref?.(context, {
-            operationId: operation.id,
-            tool: tool.name,
-            input: args,
-            result,
-          }),
-        );
-      } catch {
-        // A navigation failure must not make a completed write retryable.
-      }
-      await change(input.conversationId, ownerId, (record) => {
-        const saved = record.actions.find((candidate) => candidate.id === action.id)!;
-        if (record.run?.id !== runId) {
-          saved.status = "unresolved";
-          saved.result =
-            "A late execution completed after request recovery. Verify the plugin state again.";
-          record.canResume = false;
-          return;
-        }
-        saved.status = "succeeded";
-        saved.result = toolResult(result);
-        saved.resultHref = resultHref;
-        record.messages.push(actionMessage(saved, saved.result));
-        record.run = null;
-        record.canResume = true;
-      });
-    } catch (error) {
-      await change(input.conversationId, ownerId, (record) => {
-        const saved = record.actions.find((candidate) => candidate.id === action.id)!;
-        if (record.run?.id !== runId) {
-          saved.status = "unresolved";
-          record.canResume = false;
-          return;
-        }
-        const uncertain = started;
-        saved.status = uncertain ? "unresolved" : "stale";
-        record.run = null;
-        record.canResume = !uncertain;
-        record.messages.push(
-          actionMessage(
-            action,
-            uncertain
-              ? "Outcome unknown. Reconcile in the host before continuing."
-              : "Proposal expired, validation failed or access changed. Prepare a new proposal.",
-          ),
-        );
-      });
-      if (error instanceof AgentsError && error.code === "FORBIDDEN") throw error;
-    }
-    return get(context, input.conversationId);
   }
   async function attach(context: Context, raw: unknown) {
     const input = parse(attachmentInput, raw);
@@ -496,7 +382,108 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
       });
     }
   }
+  const executor = createAgentExecutor({
+    access,
+    change,
+    get,
+    files,
+    resultHref: (context, action) => options.resultHref?.(context, action),
+  });
+  async function connectionActor(context: Context) {
+    const actor = await options.actor(context);
+    if (!actor?.connection) throw new AgentsError("FORBIDDEN");
+    return {
+      id: parse(id, actor.id),
+      connection: {
+        id: parse(id, actor.connection.id),
+        clientId: parse(id, actor.connection.clientId),
+      },
+    };
+  }
+  const noExternalFiles: AgentFiles = {
+    async get() {
+      throw new AgentsError("NOT_FOUND");
+    },
+  };
   return {
+    /** Trusted MCP adapter entry point. Identity and connection come only from the host. */
+    external(context: Context) {
+      async function proposal(proposalId: string) {
+        await connectionActor(context);
+        const conversation = await get(context, parse(id, proposalId));
+        const action = conversation.actions[0];
+        if (!action) throw new AgentsError("NOT_FOUND");
+        return { proposalId: conversation.id, operationId: conversation.operationId, ...action };
+      }
+      return {
+        async read(operationId: string, toolName: string, input: unknown) {
+          await connectionActor(context);
+          const operation = await permit(context, operationId);
+          const tool = operation.tools.find((tool) => tool.name === toolName);
+          if (!tool) throw new AgentsError("INVALID");
+          return executor.read(context, tool, input, noExternalFiles);
+        },
+        async propose(operationId: string, toolName: string, raw: unknown, requestId: string) {
+          const actor = await connectionActor(context);
+          const operation = await permit(context, operationId);
+          const tool = operation.tools.find((tool) => tool.name === toolName);
+          if (!tool || tool.kind !== "write") throw new AgentsError("INVALID");
+          const input = parse(tool.schema, raw);
+          const proposalId = createHash("sha256")
+            .update(JSON.stringify([actor.id, actor.connection, operationId, parse(id, requestId)]))
+            .digest("hex");
+          if (!(await store.get(proposalId, actor.id))) {
+            const messageId = randomUUID();
+            const action = await executor.prepare(
+              context,
+              tool,
+              input,
+              noExternalFiles,
+              messageId,
+              requestId,
+            );
+            action.expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+            await connectionActor(context);
+            await permit(context, operationId);
+            await store.create({
+              id: proposalId,
+              ownerId: actor.id,
+              connection: actor.connection,
+              operationId,
+              title: action.preview.title,
+              updatedAt: new Date().toISOString(),
+              messages: [],
+              actions: [action],
+              run: null,
+              requests: [requestId],
+              downloads: {},
+              canResume: false,
+            });
+          }
+          const { record } = await access(context, proposalId);
+          const existing = record.actions[0];
+          if (existing?.tool !== toolName || agentSnapshot(existing.input) !== agentSnapshot(input))
+            throw new AgentsError("INVALID");
+          return proposal(proposalId);
+        },
+        proposal,
+        async decide(raw: unknown) {
+          const input = parse(
+            z.object({ proposalId: id, approve: z.boolean(), review: z.unknown() }).strict(),
+            raw,
+          );
+          const current = await proposal(input.proposalId);
+          if (agentSnapshot(current.preview) !== agentSnapshot(input.review))
+            throw new AgentsError("INVALID");
+          await executor.decide(context, {
+            conversationId: input.proposalId,
+            actionId: current.id,
+            approve: input.approve,
+          });
+          return proposal(input.proposalId);
+        },
+      };
+    },
     client(context: Context) {
       return {
         async operations() {
@@ -517,6 +504,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         },
         async list(operationId: string) {
           const ownerId = await owner(context);
+          if ((await options.actor(context))?.connection) throw new AgentsError("FORBIDDEN");
           await permit(context, operationId);
           return (await store.list(ownerId, operationId)).map(
             ({ id, title, operationId, updatedAt }) => ({ id, title, operationId, updatedAt }),
@@ -524,6 +512,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         },
         async create(operationId: string) {
           const ownerId = await owner(context);
+          if ((await options.actor(context))?.connection) throw new AgentsError("FORBIDDEN");
           await permit(context, operationId);
           const record: AgentRecord = {
             id: randomUUID(),
@@ -543,7 +532,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         },
         get: (conversationId: string) => get(context, conversationId),
         send: (input: unknown, signal: AbortSignal) => send(context, input, signal),
-        decide: (input: unknown) => decide(context, input),
+        decide: (input: unknown) => executor.decide(context, input),
         remove: (conversationId: string) => remove(context, conversationId),
         attach: (input: unknown) => attach(context, input),
         attachment: (conversationId: string, attachmentId: string) =>
@@ -577,7 +566,9 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         if (!action || action.status !== "unresolved") throw new AgentsError("INVALID");
         action.status = "succeeded";
         action.result = result;
-        const existing = record.messages.findLast((entry) => entry.tool?.callId === action.callId);
+        const existing = [...record.messages]
+          .reverse()
+          .find((entry) => entry.tool?.callId === action.callId);
         if (existing) existing.text = `${action.tool}: Host reconciliation: ${result}`;
         else record.messages.push(actionMessage(action, `Host reconciliation: ${result}`));
         record.canResume = true;

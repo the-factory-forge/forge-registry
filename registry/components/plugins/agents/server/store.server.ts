@@ -36,14 +36,18 @@ export function createAgentsStore(db: PluginDatabase): AgentsStore {
     and(eq(conversations.id, id), eq(conversations.ownerId, ownerId));
   return {
     async create(document) {
-      await db.insert(conversations).values({
-        id: document.id,
-        ownerId: document.ownerId,
-        operationId: document.operationId,
-        title: document.title,
-        updatedAt: document.updatedAt,
-        document,
-      });
+      await db
+        .insert(conversations)
+        .values({
+          id: document.id,
+          ownerId: document.ownerId,
+          operationId: document.operationId,
+          source: document.connection ? "mcp" : "chat",
+          title: document.title,
+          updatedAt: document.updatedAt,
+          document,
+        })
+        .onConflictDoNothing({ target: conversations.id });
     },
     async get(id, ownerId) {
       const [row] = await db.select().from(conversations).where(owner(id, ownerId));
@@ -59,7 +63,13 @@ export function createAgentsStore(db: PluginDatabase): AgentsStore {
           updatedAt: conversations.updatedAt,
         })
         .from(conversations)
-        .where(and(eq(conversations.ownerId, ownerId), eq(conversations.operationId, operationId)))
+        .where(
+          and(
+            eq(conversations.ownerId, ownerId),
+            eq(conversations.operationId, operationId),
+            eq(conversations.source, "chat"),
+          ),
+        )
         .orderBy(desc(conversations.updatedAt), desc(conversations.id))
         .limit(100);
     },

@@ -78,6 +78,7 @@ export function agentTools<Context>() {
         name,
         description: name.replaceAll("_", " "),
         kind: "write",
+        requiresAttachments: !!options.attachments,
         schema,
         async prepare(context, raw, files) {
           const input = schema.parse(raw);

@@ -25,6 +25,9 @@ Use neutral sample content and existing defaults. Do not add brand presets or
 brand selectors; customer identity and styling belong in the consuming website.
 Site-specific fields, assignment rules, integrations and workflows belong there
 too. Props and feature flags alone do not make an addition broadly useful.
+Customers select optional capabilities by installing or removing their source and
+host wiring; follow [capability installation](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-optional-capabilities-through-installation)
+when considering runtime enable/disable flags.
 
 Before implementing an addition, identify its common customer use case. If it
 goes beyond barebones scope, or that boundary is unclear, tell the user exactly

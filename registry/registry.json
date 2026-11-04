@@ -784,7 +784,7 @@
       "name": "footer-helpers",
       "type": "registry:lib",
       "title": "Footer Helpers",
-      "description": "getFooterProps() \u2014 builds Footer props from site data with copyright placeholders and default The Corner attribution.",
+      "description": "getFooterProps() — builds Footer props from site data with copyright placeholders and default The Corner attribution.",
       "files": [
         {
           "path": "registry/components/utils/footer-helpers.ts",
@@ -1875,7 +1875,7 @@
     {
       "name": "customers-bexio",
       "type": "registry:block",
-      "title": "Customers\u2013Bexio connector",
+      "title": "Customers–Bexio connector",
       "description": "Customer links, automatic synchronization after saving, and bulk Bexio import with reviewed identity changes.",
       "dependencies": ["zod", "@tanstack/react-query", "lucide-react"],
       "registryDependencies": [
@@ -1908,7 +1908,7 @@
     {
       "name": "customers-bexio-server",
       "type": "registry:lib",
-      "title": "Customers\u2013Bexio server",
+      "title": "Customers–Bexio server",
       "description": "Guarded Bexio client, automatic sync, bulk import, unique contact links and transactional customer provisioning.",
       "dependencies": ["zod", "drizzle-orm@1.0.0-rc.4"],
       "registryDependencies": [
@@ -1952,7 +1952,7 @@
     {
       "name": "projects-drive",
       "type": "registry:block",
-      "title": "Projects\u2013Drive connector",
+      "title": "Projects–Drive connector",
       "description": "Embed Drive with a project scope and host-owned navigation and permissions.",
       "dependencies": [],
       "registryDependencies": ["@forge/projects", "@forge/drive"],
@@ -2060,13 +2060,33 @@
           "path": "registry/components/plugins/agents/server/models.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/agents/server/models.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/server/execution.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/agents/server/execution.server.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-mcp-server",
+      "type": "registry:lib",
+      "title": "Agents MCP server",
+      "description": "Optional authenticated Streamable HTTP tools and durable proposals, without a model provider. Hosts own OAuth and fresh permission checks.",
+      "dependencies": ["@modelcontextprotocol/server@2.4.0"],
+      "registryDependencies": ["@forge/agents-server"],
+      "files": [
+        {
+          "path": "registry/components/plugins/agents/server/mcp.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/agents/server/mcp.server.ts"
         }
       ]
     },
     {
       "name": "agents-blogs-server",
       "type": "registry:component",
-      "title": "Agents\u2013Blogs",
+      "title": "Agents–Blogs",
       "description": "Authorized blogs tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/blogs-storage"],
@@ -2081,7 +2101,7 @@
     {
       "name": "agents-employees-server",
       "type": "registry:component",
-      "title": "Agents\u2013Employees",
+      "title": "Agents–Employees",
       "description": "Authorized employees tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/employees-server"],
@@ -2096,7 +2116,7 @@
     {
       "name": "agents-customers-server",
       "type": "registry:component",
-      "title": "Agents\u2013Customers",
+      "title": "Agents–Customers",
       "description": "Authorized customers tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/customers-storage"],
@@ -2111,7 +2131,7 @@
     {
       "name": "agents-projects-server",
       "type": "registry:component",
-      "title": "Agents\u2013Projects",
+      "title": "Agents–Projects",
       "description": "Authorized projects tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/projects-storage"],
@@ -2126,7 +2146,7 @@
     {
       "name": "agents-drive-server",
       "type": "registry:component",
-      "title": "Agents\u2013Drive",
+      "title": "Agents–Drive",
       "description": "Authorized drive tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/drive-storage"],
@@ -2141,7 +2161,7 @@
     {
       "name": "agents-menus-server",
       "type": "registry:component",
-      "title": "Agents\u2013Menus",
+      "title": "Agents–Menus",
       "description": "Authorized menus tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/menus-storage"],
@@ -2156,7 +2176,7 @@
     {
       "name": "agents-reservations-server",
       "type": "registry:component",
-      "title": "Agents\u2013Reservations",
+      "title": "Agents–Reservations",
       "description": "Authorized reservations tools for Agents, using existing plugin services.",
       "dependencies": ["zod@4.6.7"],
       "registryDependencies": ["@forge/agents-server", "@forge/reservations-storage"],

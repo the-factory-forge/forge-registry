@@ -2872,3 +2872,27 @@ the server companion’s administrator-managed website model connection.
 - **AND** retry uses server-owned history without accepting forged roles or tool results
 - **AND** cancellation does not imply rollback of an already-started approved write
 - **AND** stale executing writes are marked unresolved rather than replayed
+
+### Requirement: External assistant tools reuse durable Agents execution
+
+The registry SHALL provide optional MCP tools over its shared Agents read,
+proposal and execution module, without requiring a model provider. Hosts SHALL
+supply verified connection identity, current authorization and explicit installed
+operations. Tool scopes SHALL narrow host permissions. The seven existing business
+connectors SHALL retain their service adapters; attachment-dependent operations
+SHALL remain unavailable to external clients without a separate upload capability.
+
+#### Scenario: External proposal execution
+
+- **WHEN** an authorized connection prepares a write and later supplies its identifier and unchanged review
+- **THEN** the shared executor checks ownership, current permission and the stored snapshot before applying only the stored input
+
+#### Scenario: Duplicate or interrupted execution
+
+- **WHEN** the external client retries a completed or uncertain action
+- **THEN** it receives the saved outcome or reconciliation requirement without replaying the mutation
+
+#### Scenario: Existing intranet conversation
+
+- **WHEN** a host continues to use the existing Agents chat client
+- **THEN** its approval UI, durable storage and recovery rules remain compatible and external records are excluded from its conversation list

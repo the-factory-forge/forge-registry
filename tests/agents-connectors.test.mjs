@@ -168,6 +168,41 @@ for (const name of names) {
     permitted = false;
     await assert.rejects(client.get(chat.id), { code: "FORBIDDEN" });
     assert.equal(calls.filter((call) => call.method === sample.method).length, 1);
+    permitted = true;
+    const external = fixture({
+      operations: [operation],
+      runtime: undefined,
+      actor: async () => ({ id: "staff", connection: { id: "grant", clientId: "chatgpt" } }),
+    }).service.external({});
+    await external.read(operation.id, sample.read, sample.readInput);
+    const proposed = await external.propose(
+      operation.id,
+      sample.write,
+      sample.writeInput,
+      "external-request",
+    );
+    const decision = { proposalId: proposed.proposalId, approve: true, review: proposed.preview };
+    assert.equal((await external.decide(decision)).status, "succeeded");
+    await external.decide(decision);
+    assert.equal(calls.filter((call) => call.method === sample.method).length, 2);
+    const rejected = await external.propose(
+      operation.id,
+      sample.write,
+      sample.writeInput,
+      "rejected-request",
+    );
+    assert.equal(
+      (
+        await external.decide({
+          proposalId: rejected.proposalId,
+          approve: false,
+          review: rejected.preview,
+        })
+      ).status,
+      "rejected",
+    );
+    permitted = false;
+    await assert.rejects(external.proposal(proposed.proposalId), { code: "FORBIDDEN" });
   });
 }
 

@@ -27,6 +27,8 @@ export type AgentTool<Context> = {
   name: string;
   description: string;
   schema: z.ZodType;
+  /** File staging belongs to intranet chat; external clients do not supply file bytes. */
+  requiresAttachments?: boolean;
 } & (
   | {
       kind: "read";
@@ -59,9 +61,19 @@ export interface AgentStoredAction extends AgentAction {
   tool: string;
   input: unknown;
   snapshot: string;
+  expiresAt?: string;
+}
+export interface AgentConnection {
+  id: string;
+  clientId: string;
+}
+export interface AgentActor {
+  id: string;
+  connection?: AgentConnection;
 }
 export interface AgentRecord extends Omit<AgentConversation, "actions" | "running"> {
   ownerId: string;
+  connection?: AgentConnection;
   actions: AgentStoredAction[];
   run: { id: string; startedAt: string } | null;
   requests: string[];
@@ -77,6 +89,7 @@ export interface AgentStoredAttachment extends AgentAttachment {
 }
 /** change must lock the row and commit its callback atomically. Never call a provider inside it. */
 export interface AgentsStore {
+  /** Insert only; an existing ID must never be replaced (proposal retry protection). */
   create(record: AgentRecord): Promise<void>;
   get(id: string, ownerId: string): Promise<AgentRecord | null>;
   list(ownerId: string, operationId: string): Promise<AgentConversationSummary[]>;

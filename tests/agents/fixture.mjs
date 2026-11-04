@@ -14,7 +14,7 @@ export function memoryStore() {
     records,
     attachmentRecords: attachments,
     async create(record) {
-      records.set(record.id, structuredClone(record));
+      if (!records.has(record.id)) records.set(record.id, structuredClone(record));
     },
     async get(id, ownerId) {
       const record = records.get(id);
@@ -23,7 +23,7 @@ export function memoryStore() {
     async list(ownerId, operationId) {
       return structuredClone(
         [...records.values()].filter(
-          (row) => row.ownerId === ownerId && row.operationId === operationId,
+          (row) => row.ownerId === ownerId && row.operationId === operationId && !row.connection,
         ),
       );
     },

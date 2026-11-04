@@ -319,3 +319,68 @@ generated migrations, durable approvals, concurrent clients and private files.
 `tests/agents.browser.mjs` covers the deterministic showroom. A host must separately
 verify its real provider, session/transport protection, quotas, migrations, S3
 privacy/lifecycle rules and adopted domain adapters before deployment.
+
+## External assistants (optional MCP)
+
+Install `@forge/agents-mcp-server` and the installed business connectors. It uses
+the official TypeScript MCP SDK's Streamable HTTP transport, including stateless
+legacy-client compatibility. The host supplies OAuth and fresh account/grant
+checks; passing a caller-supplied user ID is not authentication. See the shared
+[contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/agent-access/spec.md)
+and [approval decision](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0018-external-intranet-agents.md).
+
+```ts
+import { createAgentsMcpHandler } from "@/components/plugins/agents/server/mcp.server";
+
+const gateway = createAgentsMcpHandler({
+  resource: "https://intranet.example/api/mcp",
+  store,
+  operations, // Explicit installed connector registrations and existing host adapters.
+  actor: async (context) => {
+    // Verify issuer/audience, then re-read the active grant, user and permissions.
+    return resolveCurrentConnection(context);
+    // { id: userId, connection: { id: grantId, clientId }, scopes: [...] } or null.
+  },
+  audit: (_context, event) => logMetadata(event), // tool + outcome, no private payloads
+});
+// After OAuth validation and host rate limiting:
+return gateway.handle(request, trustedContext);
+```
+
+Scope names are `agents:<operation-id>:read` and `agents:<operation-id>:write`.
+Discovery and execution intersect these with each connector's current `authorize`
+and service checks. Employee administration still requires an administrator.
+Missing connectors and optional adapters produce no corresponding tools.
+Attachment-dependent tools are excluded; Drive download preparation retains its
+existing metadata behavior and does not send signed storage URLs to the model.
+
+Reads use normal named connector tools. Write tools accept `{ input, requestId }`
+and prepare a 30-minute proposal without changing business records. Keep the same
+request ID only for an identical retry. Show the complete returned `preview`, then
+call `agents_execute({ proposalId, review: preview })` or `agents_reject` with that
+unchanged review. `agents_proposal` retrieves the recorded outcome. Another grant
+or user cannot access it. A changed snapshot invalidates execution. Repeating an
+execution cannot replay a write; `unresolved` requires the existing trusted
+`reconcile` host procedure. Operation side effects, including mailing, remain in
+existing services.
+
+Execution tools have `readOnlyHint: false`. Matching review arguments are an
+integrity check, **not evidence of a separate human approval**. Claude/ChatGPT
+confirmation settings may allow unattended writes. OAuth consent authorizes the
+connection; it does not approve every subsequent action. Returned information is
+processed by the assistant provider.
+
+The shared `createAgentsService` also exposes a trusted `external(context)` API and
+makes `runtime` optional. Sending a chat message without a runtime reports
+`NOT_CONFIGURED`; external calls require no model settings. Chat calls already use
+the extracted execution module directly and keep their existing approval UI.
+External records have a connection binding and `source=mcp`; no transcript is
+synchronized. Existing rows need an additive host migration for the `source`
+column with default `chat`. Stores must implement insert-only `create`, including
+under concurrent retries. Do not replace stored proposals on ID conflict.
+
+The template reference implementation owns Better Auth, `/api/mcp`, discovery,
+consent, account Security and migrations. Installation makes it available; it registers only
+its installed Employees connector. Registry publication and installation into
+other customer sites are separate actions; no customer is enabled by this source
+change. The local client fixtures are not live Claude/ChatGPT acceptance tests.
