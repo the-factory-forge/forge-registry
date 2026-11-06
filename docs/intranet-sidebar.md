@@ -160,7 +160,7 @@ same offset. Reset it to `0rem` when printing if that header is hidden.
 | `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                |
 | `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                  |
 | Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                           |
-| `user`               | Better Auth-compatible `name`, `email`, and optional `image`; failed/missing images use initials       |
+| `user`               | Required `email`; optional nullable `name`/`image`; missing or blank names use email initials          |
 | `profileHref`        | Required profile destination; the profile menu is always present                                       |
 | `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`                    |
 | `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                              |
