@@ -17,12 +17,14 @@ import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as ContentSidebarLayoutRouteImport } from './routes/content-sidebar-layout'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
+import { Route as CopyEmailButtonRouteImport } from './routes/copy-email-button'
 import { Route as IconTooltipRouteImport } from './routes/icon-tooltip'
 import { Route as ImageCropRouteImport } from './routes/image-crop'
 import { Route as LightboxRouteImport } from './routes/lightbox'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
+import { Route as SectionAnchorRouteImport } from './routes/section-anchor'
 import { Route as SubpageSidebarRouteImport } from './routes/subpage-sidebar'
 import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
@@ -86,6 +88,11 @@ const CookieBannerRoute = CookieBannerRouteImport.update({
   path: '/cookie-banner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CopyEmailButtonRoute = CopyEmailButtonRouteImport.update({
+  id: '/copy-email-button',
+  path: '/copy-email-button',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IconTooltipRoute = IconTooltipRouteImport.update({
   id: '/icon-tooltip',
   path: '/icon-tooltip',
@@ -114,6 +121,11 @@ const NewsletterRoute = NewsletterRouteImport.update({
 const PageHeroRoute = PageHeroRouteImport.update({
   id: '/page-hero',
   path: '/page-hero',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SectionAnchorRoute = SectionAnchorRouteImport.update({
+  id: '/section-anchor',
+  path: '/section-anchor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubpageSidebarRoute = SubpageSidebarRouteImport.update({
@@ -258,12 +270,14 @@ export interface FileRoutesByFullPath {
   '/action-toast': typeof ActionToastRoute
   '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
+  '/copy-email-button': typeof CopyEmailButtonRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
   '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/section-anchor': typeof SectionAnchorRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -296,12 +310,14 @@ export interface FileRoutesByTo {
   '/action-toast': typeof ActionToastRoute
   '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
+  '/copy-email-button': typeof CopyEmailButtonRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
   '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/section-anchor': typeof SectionAnchorRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -339,12 +355,14 @@ export interface FileRoutesById {
   '/action-toast': typeof ActionToastRoute
   '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
+  '/copy-email-button': typeof CopyEmailButtonRoute
   '/icon-tooltip': typeof IconTooltipRoute
   '/image-crop': typeof ImageCropRoute
   '/lightbox': typeof LightboxRoute
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/section-anchor': typeof SectionAnchorRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -379,12 +397,14 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/content-sidebar-layout'
     | '/cookie-banner'
+    | '/copy-email-button'
     | '/icon-tooltip'
     | '/image-crop'
     | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/section-anchor'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -417,12 +437,14 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/content-sidebar-layout'
     | '/cookie-banner'
+    | '/copy-email-button'
     | '/icon-tooltip'
     | '/image-crop'
     | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/section-anchor'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -459,12 +481,14 @@ export interface FileRouteTypes {
     | '/action-toast'
     | '/content-sidebar-layout'
     | '/cookie-banner'
+    | '/copy-email-button'
     | '/icon-tooltip'
     | '/image-crop'
     | '/lightbox'
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/section-anchor'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -502,12 +526,14 @@ export interface RootRouteChildren {
   ActionToastRoute: typeof ActionToastRoute
   ContentSidebarLayoutRoute: typeof ContentSidebarLayoutRoute
   CookieBannerRoute: typeof CookieBannerRoute
+  CopyEmailButtonRoute: typeof CopyEmailButtonRoute
   IconTooltipRoute: typeof IconTooltipRoute
   ImageCropRoute: typeof ImageCropRoute
   LightboxRoute: typeof LightboxRoute
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
+  SectionAnchorRoute: typeof SectionAnchorRoute
   SubpageSidebarRoute: typeof SubpageSidebarRoute
   TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
@@ -585,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CookieBannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/copy-email-button': {
+      id: '/copy-email-button'
+      path: '/copy-email-button'
+      fullPath: '/copy-email-button'
+      preLoaderRoute: typeof CopyEmailButtonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/icon-tooltip': {
       id: '/icon-tooltip'
       path: '/icon-tooltip'
@@ -625,6 +658,13 @@ declare module '@tanstack/react-router' {
       path: '/page-hero'
       fullPath: '/page-hero'
       preLoaderRoute: typeof PageHeroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/section-anchor': {
+      id: '/section-anchor'
+      path: '/section-anchor'
+      fullPath: '/section-anchor'
+      preLoaderRoute: typeof SectionAnchorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subpage-sidebar': {
@@ -876,12 +916,14 @@ const rootRouteChildren: RootRouteChildren = {
   ActionToastRoute: ActionToastRoute,
   ContentSidebarLayoutRoute: ContentSidebarLayoutRoute,
   CookieBannerRoute: CookieBannerRoute,
+  CopyEmailButtonRoute: CopyEmailButtonRoute,
   IconTooltipRoute: IconTooltipRoute,
   ImageCropRoute: ImageCropRoute,
   LightboxRoute: LightboxRoute,
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,
+  SectionAnchorRoute: SectionAnchorRoute,
   SubpageSidebarRoute: SubpageSidebarRoute,
   TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,

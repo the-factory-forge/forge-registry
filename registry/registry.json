@@ -287,6 +287,21 @@
       "registryDependencies": ["@forge/cn"]
     },
     {
+      "name": "copy-email-button",
+      "type": "registry:ui",
+      "title": "Copy Email Button",
+      "description": "Accessible email copy icon with clipboard success and failure feedback.",
+      "files": [
+        {
+          "path": "registry/components/copy-email-button.tsx",
+          "type": "registry:component",
+          "target": "@components/copy-email-button.tsx"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": ["@forge/action-toast", "@forge/icon-tooltip", "@forge/cn"]
+    },
+    {
       "name": "share-button",
       "type": "registry:ui",
       "title": "Share Button",
@@ -299,6 +314,20 @@
         }
       ],
       "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
+      "name": "section-anchor",
+      "type": "registry:ui",
+      "title": "Section Anchor",
+      "description": "Clickable section titles with shareable URL fragments and delayed-content scroll restoration.",
+      "files": [
+        {
+          "path": "registry/components/section-anchor.tsx",
+          "type": "registry:component",
+          "target": "@components/section-anchor.tsx"
+        }
+      ],
       "registryDependencies": ["@forge/cn"]
     },
     {

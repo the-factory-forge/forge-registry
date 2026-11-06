@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "section-anchor",
+  "title": "Section Anchor",
+  "description": "Clickable section titles with shareable URL fragments and delayed-content scroll restoration.",
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/section-anchor.tsx",
+      "content": "\"use client\";\n\nimport { type ReactNode, useEffect, useRef } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface SectionAnchorProps {\n  id: string;\n  children: ReactNode;\n  className?: string;\n}\n\nexport function SectionAnchor({ id, children, className }: SectionAnchorProps) {\n  const ref = useRef<HTMLAnchorElement>(null);\n\n  useEffect(() => {\n    // Async sections can mount after the browser's initial fragment scroll.\n    const frame = requestAnimationFrame(() => {\n      try {\n        if (decodeURIComponent(window.location.hash.slice(1)) === id) {\n          ref.current?.scrollIntoView({ block: \"start\", behavior: \"instant\" });\n        }\n      } catch {\n        // Ignore malformed URL fragments.\n      }\n    });\n    return () => cancelAnimationFrame(frame);\n  }, [id]);\n\n  return (\n    <a\n      ref={ref}\n      data-section-anchor=\"\"\n      id={id}\n      href={`#${encodeURIComponent(id)}`}\n      className={cn(\n        \"inline-flex min-h-6 scroll-mt-20 items-center rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none\",\n        className,\n      )}\n    >\n      {children}\n    </a>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/section-anchor.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

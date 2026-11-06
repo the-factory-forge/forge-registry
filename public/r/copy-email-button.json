@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "copy-email-button",
+  "title": "Copy Email Button",
+  "description": "Accessible email copy icon with clipboard success and failure feedback.",
+  "dependencies": [
+    "@base-ui/react",
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/action-toast",
+    "@forge/icon-tooltip",
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/copy-email-button.tsx",
+      "content": "\"use client\";\n\nimport { Toast } from \"@base-ui/react/toast\";\nimport { CopyIcon } from \"lucide-react\";\n\nimport { actionToastButtonClass, type ActionToastData } from \"@/components/action-toast\";\nimport { IconTooltip } from \"@/components/icon-tooltip\";\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface CopyEmailButtonProps {\n  email: string;\n  label?: string;\n  copiedLabel?: string;\n  errorLabel?: string;\n  className?: string;\n}\n\nexport function CopyEmailButton({\n  email,\n  label = \"Copy email address\",\n  copiedLabel = \"Email address copied\",\n  errorLabel = \"Could not copy the email address. Select and copy it manually.\",\n  className,\n}: CopyEmailButtonProps) {\n  const { add } = Toast.useToastManager<ActionToastData>();\n\n  return (\n    <IconTooltip label={label}>\n      <button\n        type=\"button\"\n        disabled={!email}\n        aria-label={label}\n        className={cn(\n          actionToastButtonClass,\n          \"size-10 shrink-0 p-0 text-muted-foreground md:size-8\",\n          className,\n        )}\n        onClick={async () => {\n          try {\n            await navigator.clipboard.writeText(email);\n            add({ title: copiedLabel, type: \"success\" });\n          } catch {\n            add({ title: errorLabel, type: \"error\" });\n          }\n        }}\n      >\n        <CopyIcon className=\"size-4 shrink-0\" aria-hidden=\"true\" />\n      </button>\n    </IconTooltip>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/copy-email-button.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}
