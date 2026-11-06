@@ -288,7 +288,8 @@ Storage companions use a separate `plugins/{name}/server` entrypoint and registr
 Use the [plugin guide](./docs/plugins.md) and registry-owned [Plugins specification](openspec/specs/plugins/spec.md)
 for the feature definition, module capabilities and host boundaries. Keep them
 aligned with exported contracts, the manifest and each integration guide when
-adding or changing a plugin.
+adding or changing a plugin. [Plugin maintenance](registry/components/plugins/AGENTS.md)
+and each plugin's colocated `AGENTS.md` explain code flow and relevant checks.
 
 ## Runtime validation
 
@@ -302,12 +303,6 @@ adding or changing a boundary, test malformed inputs and declare Zod in every
 registry item that imports it. See [service input validation](docs/plugins.md#service-input-validation).
 
 ## Host and security boundaries
-
-Employee pages require authenticated `currentUserRole` and render nothing for
-non-admins. Hosts guard routes before loading data, hide employee navigation from
-non-admins and keep reads/mutations behind fresh-session admin authorization.
-UI checks never replace `createEmployeeService`'s server guard. Omit the employee
-enable/disable access action from the list; retain deletion confirmation.
 
 Every visible Corner attribution, including auth screens, uses the exact
 non-translatable copy `Forged by The Corner Factory SA`, with the official `c`

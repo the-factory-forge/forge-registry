@@ -24,43 +24,26 @@ The registry-owned [Plugins specification](../openspec/specs/plugins/spec.md)
 defines each feature and its boundaries. The [registry manifest](../registry/registry.json)
 is authoritative for files and dependencies.
 
-Auth reset and change forms take one new password without confirmation. Signed-in
-changes in account security also require the current password; hosts validate it
-and the session on the server. Sign-in links to email recovery. See the
-[password integration guide](./intranet-auth.md#password-recovery-and-changes).
+For source changes, start with [plugin maintenance](../registry/components/plugins/AGENTS.md)
+and the plugin's local `AGENTS.md`. Those files explain implementation flow;
+the guides below own integration details and the specs own acceptance criteria.
 
-Auth account pages also support host-supplied plugin tabs and optional confirmed
-email changes. About and plugin panels preserve form state across tab switches;
-see [account sections and email](./intranet-auth.md#account-sections-and-email).
+## Plugin index
 
-Auth agent keys use the shared [deletion session](./table-selection.md) for row selection, select-all with a mixed state, and confirmed
-bulk deletion through the existing host callback. Failed keys remain available for
-retry; see [account security](./intranet-auth.md#account-profile-and-security).
+| Plugin                                                                  | Purpose                                                                                                                                                                | Optional server item                 | Guide                                                                                 |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| [`agents`](../registry/components/plugins/agents/AGENTS.md)             | Private staff chat, administrator-managed model connection, saved conversations, attachments and reviewed plugin actions; optional external MCP tools                  | `agents-server`, `agents-mcp-server` | [Agents](./agents.md)                                                                 |
+| [`auth`](../registry/components/plugins/auth/AGENTS.md)                 | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                 | Host auth provider                   | [Auth](./intranet-auth.md)                                                            |
+| [`employees`](../registry/components/plugins/employees/AGENTS.md)       | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                               | `employees-server`                   | [Employee UI](./intranet-auth.md#employee-ui), [photos and retention](./employees.md) |
+| [`customers`](../registry/components/plugins/customers/AGENTS.md)       | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                        | `customers-storage`                  | [Customers](./customers.md)                                                           |
+| [`projects`](../registry/components/plugins/projects/AGENTS.md)         | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                 | `projects-storage`                   | [Projects](./projects.md)                                                             |
+| [`drive`](../registry/components/plugins/drive/AGENTS.md)               | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                                             | `drive-storage`                      | [Drive](./drive.md)                                                                   |
+| [`blogs`](../registry/components/plugins/blogs/AGENTS.md)               | Multilingual Markdown articles with one draft and five publications per language in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`                      | [Blogs](./blogs.md)                                                                   |
+| [`menus`](../registry/components/plugins/menus/AGENTS.md)               | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing                                    | `menus-storage`                      | [Menus](./menus.md)                                                                   |
+| [`mailing`](../registry/components/plugins/mailing/AGENTS.md)           | Branded HTML and plain-text transactional emails for other plugins                                                                                                     | Server transport included            | [Mailing](./mailing.md)                                                               |
+| [`reservations`](../registry/components/plugins/reservations/AGENTS.md) | Appointments or overnight stays, policies, calendars and dedicated staff creation                                                                                      | `reservations-storage`               | [Reservations](./reservations.md)                                                     |
 
-| Plugin         | Purpose                                                                                                                                                                | Optional server item      | Guide                                       |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
-| `agents`       | Private staff chat, administrator-managed model connection, saved conversations, attachments and individually approved plugin actions                                  | `agents-server`           | [Agents](./agents.md)                       |
-| `auth`         | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                 | Host auth provider        | [Auth](./intranet-auth.md)                  |
-| `employees`    | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                               | `employees-server`        | [Employees](./intranet-auth.md#employee-ui) |
-| `customers`    | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                        | `customers-storage`       | [Customers](./customers.md)                 |
-| `projects`     | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                 | `projects-storage`        | [Projects](./projects.md)                   |
-| `drive`        | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                                             | `drive-storage`           | [Drive](./drive.md)                         |
-| `blogs`        | Multilingual Markdown articles with one draft and five publications per language in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`           | [Blogs](./blogs.md)                         |
-| `menus`        | Restaurant menus, draggable order with previews, sizes, translations, images, editable label icons, spice levels and A4/A5 printing                                    | `menus-storage`           | [Menus](./menus.md)                         |
-| `mailing`      | Branded HTML and plain-text transactional emails for other plugins                                                                                                     | Server transport included | [Mailing](./mailing.md)                     |
-| `reservations` | Appointments or overnight stays, policies, calendars and dedicated staff creation                                                                                      | `reservations-storage`    | [Reservations](./reservations.md)           |
-
-Drive folder menus support child-folder creation and ZIP downloads alongside
-uploads, rename, duplication and trash. ZIPs use the existing authenticated reads
-with the browser size limits described in the [Drive guide](./drive.md#folder-action-menu).
-The named space root exposes uploads, folder creation, whole-space ZIP download
-and host-authorized rename through the same three-dot menu.
-The current breadcrumb title supports direct inline renaming with Enter or blur
-to save and Escape to cancel, using the existing permissions and host callback.
-
-Drive uses the shared [subpage sidebar](./subpage-sidebar.md) for the named space root, an
-expandable folder tree and optional Trash. The tree uses the existing scoped
-client reads; navigation does not grant access or change storage semantics.
+## Storage filenames
 
 Storage companions rebuild `[asset_name]-[type]-[modifier].[extension]` object
 filenames under their existing UUID directories and site/plugin prefixes. Hyphens
@@ -72,22 +55,6 @@ their server adapters validate bytes before choosing the extension.
 Existing modifiers are retained, except `original`; absent modifiers stay absent. See
 [Drive migration and naming](./drive.md#object-filenames) and
 [Blog naming](./blogs.md#object-filenames) before adopting the server companions.
-
-Blogs separates authors from editors, supplies staff collaboration permissions,
-requires review of legacy attribution and crops covers by default. Current account
-bylines and retained signatures use host name/deletion adapters; see
-[authors and collaboration](./blogs.md#authors-collaboration-and-account-changes).
-
-The Blog editor and Menu editor are separate domain modules, each owning its forms,
-save flow and unsaved-change protection. Their existing page interfaces stay stable.
-The Blog editor also owns asynchronous completion: replaced clients or departed
-editors cannot accept late results, feedback or host callbacks. Client replacement
-preserves unsaved inputs while invalidating old operations and confirmations; see
-[Blog editor adoption](./blogs.md#updating-consumers).
-Blog category and menu taxonomy editors expose the same optional router guard as
-their content editors. Hosts can offer Save, Discard and Cancel for browser
-Back/Forward while protecting pending saves; see the [Blogs](./blogs.md#history-interface)
-and [Menus](./menus.md) integration guides.
 
 ## Service input validation
 
@@ -139,10 +106,6 @@ notes that `s3.pub1` does not support S3 bucket policies; site/plugin prefixes d
 not provide access control. The companions' `verifyBucket` checks versioning,
 not public ACLs or provider encryption. Local MinIO tests prove application access
 behavior, not the live Infomaniak configuration or coverage of older objects.
-
-Employee photos are optional and use the shared crop dialog. Deletion can review
-linked records from multiple host adapters and commit their decisions atomically;
-see [employee photos and related data](./employees.md).
 
 ## Shared loading feedback
 

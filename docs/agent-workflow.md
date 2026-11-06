@@ -68,17 +68,15 @@ These specs complement the repository procedures
 below; inspect current source and report material conflicts. A sibling reference
 does not expand the task to unrelated changes in that repository.
 
-For plugin work, also read the local [Plugins specification](../openspec/specs/plugins/spec.md)
-and [local plugin guide](../docs/plugins.md). Update the plugin definition and its
-module requirement when adding or materially changing a feature.
+For plugin or connector work, use [plugin maintenance](../registry/components/plugins/AGENTS.md)
+and the affected plugin's colocated `AGENTS.md` to locate code flow, requirements
+and integration guides. Update the plugin definition and its module requirement
+when adding or materially changing a feature.
 
 Local main specs live under `openspec/specs/`, including `plugins`, `reservations`,
-`registry-showroom` and `registry-releases`. The [Blogs storage decision](../concepts/adr/0009-blog-content-and-image-storage.md)
-is registry-owned. For Mailing rendering or transport, read
-[ADR-0012](../concepts/adr/0012-mailing-rendering-and-transport.md); for plugin locks,
-projections or customer identity transactions, read
-[ADR-0013](../concepts/adr/0013-plugin-persistence-and-identities.md). Their linked
-shared decisions retain host branding and project migration ownership.
+`registry-showroom` and `registry-releases`. Plugin implementation ADRs stay here;
+the plugin maintenance files link them when relevant. Their linked shared
+decisions retain host branding and project migration ownership.
 Use forge-spec's installed OpenSpec CLI with this repository
 as the working directory; generated OpenSpec skills remain central.
 

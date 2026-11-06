@@ -46,18 +46,9 @@ belong to the host Drizzle schema, separately from Better Auth configuration.
 
 ## Available plugins
 
-| Plugin       | What it does                                                                                                           | Server companion                              | Integration guide                                       |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
-| Agents       | Private operation-based chat, administrator-managed AI connection, saved conversations, attachments and approved tools | `@forge/agents-server`                        | [Agents](../../../docs/agents.md)                       |
-| Auth         | Account profile/security, sign-in/out, password recovery/change and access-denied UI                                   | Host authentication provider                  | [Auth](../../../docs/intranet-auth.md)                  |
-| Employees    | Admin-only employee directory, creation, editing, verification and account deletion                                    | `@forge/employees-server`                     | [Employees](../../../docs/intranet-auth.md#employee-ui) |
-| Customers    | Customer records, editable verification badges and optional Projects and Sync sections                                 | `@forge/customers-storage`                    | [Customers](../../../docs/customers.md)                 |
-| Projects     | Basic project forms, editable status badges and Details/Drive composition                                              | `@forge/projects-storage`                     | [Projects](../../../docs/projects.md)                   |
-| Drive        | Entity-scoped spaces, folder actions, directory uploads, duplication, opt-in trash and restoration                     | `@forge/drive-storage`                        | [Drive](../../../docs/drive.md)                         |
-| Blogs        | Multilingual Markdown articles, categories, draft/publish workflow and public pages                                    | `@forge/blogs-storage`                        | [Blogs](../../../docs/blogs.md)                         |
-| Menus        | Restaurant menu items, prices, categories, labels, public menus and A4/A5 printing                                     | `@forge/menus-storage`                        | [Menus](../../../docs/menus.md)                         |
-| Mailing      | Branded transactional HTML and plain-text email shared by other plugins                                                | Separate server transport in `@forge/mailing` | [Mailing](../../../docs/mailing.md)                     |
-| Reservations | Fixed-duration appointments or overnight stays, calendars, policies and private guest management                       | `@forge/reservations-storage`                 | [Reservations](../../../docs/reservations.md)           |
+The [plugin index](../../../docs/plugins.md#plugin-index) lists purposes, server
+companions and integration guides, with links to each plugin's implementation
+guidance. The requirements below remain the behavioral contract.
 
 ## Requirements
 
