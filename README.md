@@ -125,7 +125,7 @@ supply their own translations and theme configuration.
 | Name                                                                            | Description                                                                   |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `consent-analytics`                                                             | Consent-driven Google Analytics and Ads loading, event gating, and retry      |
-| `cn`                                                                            | Class-name utility (re-exports `cnfast`)                                      |
+| `cn`                                                                            | Class-name utility (re-exports `cn`)                                          |
 | [optimistic-action](./docs/optimistic-actions.md)                               | TanStack Query mutations with temporary UI updates and rollback               |
 | [record-deletion](./docs/optimistic-actions.md#customers-and-projects-deletion) | Shared Customers/Projects confirmation, optimistic removal and focus recovery |
 | `table-styles`                                                                  | Shared layout classes for plugin tables                                       |
@@ -134,6 +134,12 @@ supply their own translations and theme configuration.
 | `json-ld`                                                                       | Organization, Breadcrumb, FAQ, Service schemas                                |
 | `privacy-content`                                                               | Reference privacy-policy content in fr/en/de/it for site adaptation           |
 | `footer-helpers`                                                                | Builds footer props from site data, including attribution defaults            |
+
+The `@forge/cn` helper re-exports [shadcn's `cn`](https://github.com/shadcn-ui/cn)
+for Tailwind CSS 4 and requires Node.js 22 or later. Existing consumers keep their
+helper imports when adopting the updated source. Remove `cnfast` only after all
+host and installed registry helpers have migrated; installing this item does not
+rewrite other helpers or remove the old dependency.
 
 ### UI Primitives
 

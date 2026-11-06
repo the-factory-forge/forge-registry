@@ -16,7 +16,11 @@ const { code } = await transformWithOxc(source, "native-select.tsx", {
 const resolved = code.replace(
   /"(lucide-react|@\/components\/utils\/cn|react\/jsx-runtime)"/g,
   (_, name) =>
-    JSON.stringify(import.meta.resolve(name === "@/components/utils/cn" ? "cnfast" : name)),
+    JSON.stringify(
+      import.meta.resolve(
+        name === "@/components/utils/cn" ? "../registry/components/utils/cn.ts" : name,
+      ),
+    ),
 );
 const { NativeSelect } = await import(
   `data:text/javascript;base64,${Buffer.from(resolved).toString("base64")}`

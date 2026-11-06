@@ -7,7 +7,7 @@
       "name": "cn",
       "type": "registry:lib",
       "title": "cn Utility",
-      "description": "Class name utility via cnfast.",
+      "description": "Class name utility via cn.",
       "files": [
         {
           "path": "registry/components/utils/cn.ts",
@@ -15,7 +15,7 @@
           "target": "@components/utils/cn.ts"
         }
       ],
-      "dependencies": ["cnfast"]
+      "dependencies": ["cn"]
     },
     {
       "name": "table-styles",

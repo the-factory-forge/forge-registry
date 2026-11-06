@@ -2,14 +2,14 @@
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "cn",
   "title": "cn Utility",
-  "description": "Class name utility via cnfast.",
+  "description": "Class name utility via cn.",
   "dependencies": [
-    "cnfast"
+    "cn"
   ],
   "files": [
     {
       "path": "registry/components/utils/cn.ts",
-      "content": "export { cn } from \"cnfast\";\n",
+      "content": "export { cn } from \"cn\";\n",
       "type": "registry:lib",
       "target": "@components/utils/cn.ts"
     }

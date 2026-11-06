@@ -27,7 +27,7 @@ const resolved = code.replace(
         ? tooltipUrl
         : import.meta.resolve(
             name === "@/components/utils/cn"
-              ? "cnfast"
+              ? "../registry/components/utils/cn.ts"
               : name === "@/components/utils/table-styles"
                 ? "../registry/components/utils/table-styles.ts"
                 : name,

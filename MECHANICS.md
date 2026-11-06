@@ -22,7 +22,7 @@
 
 | Category   | Item                                                             | Description                                                                    | Status |
 | ---------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------ |
-| Libs       | `cn`                                                             | Class-name utility (cnfast re-export)                                          | ✅     |
+| Libs       | `cn`                                                             | Class-name utility (cn re-export)                                              | ✅     |
 | Libs       | `section-variants`                                               | SectionVariant type + color map                                                | ✅     |
 | Libs       | `build-metadata`                                                 | Canonical, hreflang (+x-default), Open Graph, Twitter, robots                  | ✅     |
 | Libs       | `json-ld`                                                        | Organization/LocalBusiness, Breadcrumb, FAQ, Service schemas                   | ✅     |
