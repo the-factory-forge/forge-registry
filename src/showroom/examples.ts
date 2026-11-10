@@ -22,6 +22,16 @@ export type Category = keyof typeof categoryIcons;
 export const examples = (
   [
     {
+      href: "/en/intranet/supports",
+      category: "Plugin",
+      title: "Support",
+      icon: pluginIcons.supports,
+      description:
+        "Shared staff support tickets with Markdown, images, replies, and open or closed status.",
+      tags: ["Tickets", "Image attachments", "Discussion"],
+      keywords: ["supports", "support", "ticket", "bug", "feature", "help"],
+    },
+    {
       href: "/en/agents",
       category: "Plugin",
       title: "Agents",

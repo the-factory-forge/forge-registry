@@ -19,6 +19,7 @@ export * from "@/components/plugins/drive/server/schema";
 export * from "@/components/plugins/blogs/server/schema";
 export * from "@/components/plugins/menus/server/schema";
 export * from "@/components/plugins/reservations/server/schema";
+export * from "@/components/plugins/supports/server/schema";
 import { createCustomersSchema } from "@/components/plugins/customers/server/schema";
 import { createProjectsSchema } from "@/components/plugins/projects/server/schema";
 

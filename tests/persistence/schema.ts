@@ -1,4 +1,5 @@
 export * from "./auth.schema.fixture.ts";
+export * from "../../registry/components/plugins/supports/server/schema.ts";
 export * from "./agent-key.schema.fixture.ts";
 export * from "../../registry/components/plugins/drive/server/schema.ts";
 export * from "../../registry/components/plugins/blogs/server/schema.ts";

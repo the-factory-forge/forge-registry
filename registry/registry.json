@@ -2216,6 +2216,95 @@
           "target": "@components/connectors/agents-reservations/server/index.ts"
         }
       ]
+    },
+    {
+      "name": "supports",
+      "type": "registry:block",
+      "title": "Support",
+      "description": "Shared staff tickets with Markdown, image attachments, discussion and open, closed or canceled status. Host-owned authorization and routing.",
+      "files": [
+        {
+          "path": "registry/components/plugins/supports/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/composer.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/composer.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/schema.ts"
+        }
+      ],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search",
+        "@forge/table-pagination",
+        "@forge/native-select",
+        "@forge/action-toast",
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip",
+        "@forge/loading-indicator",
+        "@forge/dialog-submit",
+        "@forge/editor-form"
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7", "@tanstack/markdown@0.0.16"]
+    },
+    {
+      "name": "supports-storage",
+      "type": "registry:block",
+      "title": "Support storage",
+      "description": "Typed PostgreSQL support tickets, retry-safe discussion and private S3 images with recoverable cleanup.",
+      "files": [
+        {
+          "path": "registry/components/plugins/supports/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/storage.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/storage.server.ts"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/storage-filename.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/supports", "@forge/database"],
+      "dependencies": [
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
+        "@aws-sdk/client-s3",
+        "@aws-sdk/s3-request-presigner",
+        "zod@4.6.7"
+      ]
     }
   ]
 }

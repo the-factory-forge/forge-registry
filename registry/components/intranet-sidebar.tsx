@@ -34,6 +34,8 @@ export interface IntranetSidebarProps {
   /** Compatible with Better Auth's standard session user fields. */
   user: { name: string; email: string; image?: string | null };
   groups: IntranetNavGroup[];
+  /** Persistent secondary navigation immediately above the signed-in profile. */
+  footerItems?: IntranetNavItem[];
   pathname: string;
   profileHref: string;
   /** Call Better Auth, throw on result.error, then invalidate the host session. */
@@ -48,6 +50,7 @@ export interface IntranetSidebarProps {
 
 const defaultLabels = {
   navigation: "Side navigation",
+  footerNavigation: "Support navigation",
   toggle: "Toggle side navigation",
   close: "Close side navigation",
   expand: "Expand",
@@ -241,6 +244,7 @@ export function IntranetSidebar({
   brand,
   user,
   groups,
+  footerItems,
   pathname,
   profileHref,
   onSignOut,
@@ -291,6 +295,17 @@ export function IntranetSidebar({
         label={labels.navigation}
         labels={labels}
       />
+      {footerItems?.length ? (
+        <SidebarNavigation
+          groups={[{ id: "footer", items: footerItems }]}
+          pathname={pathname}
+          linkComponent={LinkComponent}
+          onNavigate={closeMobile}
+          label={labels.footerNavigation}
+          labels={labels}
+          className="flex-none shrink-0 py-0"
+        />
+      ) : null}
       {version && <p className="px-2 py-1 text-center text-xs text-muted-foreground">{version}</p>}
       <div className="mx-2 border-t border-sidebar-border" />
       <footer className="shrink-0 p-2">

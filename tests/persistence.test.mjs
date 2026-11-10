@@ -32,9 +32,15 @@ await test("persistence installs schema source with pinned Drizzle, never creati
   const { items } = JSON.parse(
     await readFile(new URL("../registry/registry.json", import.meta.url), "utf8"),
   );
-  const names = ["drive", "blogs", "menus", "reservations", "customers", "projects"].map(
-    (name) => `${name}-storage`,
-  );
+  const names = [
+    "drive",
+    "blogs",
+    "menus",
+    "reservations",
+    "customers",
+    "projects",
+    "supports",
+  ].map((name) => `${name}-storage`);
   for (const name of [...names, "customers-bexio-server"]) {
     const item = items.find((item) => item.name === name);
     assert.ok(item.registryDependencies.includes("@forge/database"));

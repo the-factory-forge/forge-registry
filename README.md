@@ -197,17 +197,18 @@ rewrite other helpers or remove the old dependency.
 
 See the [plugin definition and guide](./docs/plugins.md) for each feature, its server companion and shared presentation rules.
 
-| Name                                                          | Description                                                                                         |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence  |
-| [blogs / blogs-storage](./docs/blogs.md)                      | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence      |
-| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, size prices, spice levels, staff editing, and typed Drizzle persistence            |
-| [drive / drive-storage](./docs/drive.md)                      | Entity-scoped file browser and optional private S3/PostgreSQL persistence                           |
-| [projects / projects-storage](./docs/projects.md)             | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                     |
-| [customers / customers-storage](./docs/customers.md)          | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions           |
-| [auth](./docs/intranet-auth.md)                               | Account profile/security, sign-in/out, password recovery/change, access-denied page and auth layout |
-| [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                 |
-| [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                                |
+| Name                                                          | Description                                                                                           |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [reservations / reservations-storage](./docs/reservations.md) | Guest appointments and overnight stays, staff calendars, private links, and PostgreSQL persistence    |
+| [blogs / blogs-storage](./docs/blogs.md)                      | Multilingual Markdown articles, categories, publishing, and optional S3/PostgreSQL persistence        |
+| [menus / menus-storage](./docs/menus.md)                      | Restaurant menu, size prices, spice levels, staff editing, and typed Drizzle persistence              |
+| [drive / drive-storage](./docs/drive.md)                      | Entity-scoped file browser and optional private S3/PostgreSQL persistence                             |
+| [projects / projects-storage](./docs/projects.md)             | Customer-owned projects, embeddable lists, creation, and Details/Drive sections                       |
+| [customers / customers-storage](./docs/customers.md)          | Customer directory, About/Projects/Sync detail, and creation form with host-owned actions             |
+| [auth](./docs/intranet-auth.md)                               | Account profile/security, sign-in/out, password recovery/change, access-denied page and auth layout   |
+| [supports / supports-storage](./docs/supports.md)             | Staff-shared website maintenance tickets, Markdown replies, private images and PostgreSQL persistence |
+| [employees](./docs/intranet-auth.md)                          | Employee list, creation, editing, verification and account deletion                                   |
+| [employees-server](./docs/intranet-auth.md)                   | Validated Better Auth employee operations behind host authentication                                  |
 
 Install with `pnpm dlx shadcn@4.22.1 add @forge/customers`. Open the [Customers demo](https://registry.the-corner.swiss/en/customers).
 

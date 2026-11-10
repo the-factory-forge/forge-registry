@@ -14,6 +14,8 @@ import type {
 } from "../../registry/components/plugins/drive/server/types.ts";
 import { createEmployeeService } from "../../registry/components/plugins/employees/server/employees.server.ts";
 import { createProjectsService } from "../../registry/components/plugins/projects/server/index.ts";
+import { createSupportsStorage } from "../../registry/components/plugins/supports/server/storage.server.ts";
+import type { SupportsClient } from "../../registry/components/plugins/supports/types.ts";
 import { createAuth } from "./auth.fixture.ts";
 import * as schema from "./schema.ts";
 
@@ -95,5 +97,11 @@ export async function checkHostTypes() {
     // @ts-expect-error Callbacks cannot fall back to untyped runtime SQL.
     shared.execute("select 1");
   });
-  return { drive, blogs, customers, names, importAdapter, linkStore };
+  const supports: SupportsClient = createSupportsStorage({
+    db,
+    keyPrefix: "fixture/supports/",
+    resolveActor: async () => ({ id: "staff", name: "Staff", kind: "staff" }),
+    authorize: async () => true,
+  }).client(undefined);
+  return { drive, blogs, customers, names, importAdapter, linkStore, supports };
 }
