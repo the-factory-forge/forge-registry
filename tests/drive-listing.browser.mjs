@@ -300,3 +300,23 @@ for (const code of ["FORBIDDEN", "NOT_FOUND"]) {
     assert.deepEqual(await treeFolders(page).allTextContents(), ["Recovered"]);
   });
 }
+
+for (const kind of ["spaces", "folder"]) {
+  void test(`${kind} can refresh a successful listing without leaving it`, async (t) => {
+    const page = await fixture(t, kind, { viewport: { width: 390, height: 850 } });
+    await resolve(page, 0, "Initial row");
+    const row = page.getByRole("row").filter({ hasText: "Initial row" });
+    await row.waitFor();
+    const url = page.url();
+    const refresh = page.getByRole("button", { name: "Refresh listing", exact: true });
+    await refresh.focus();
+    await refresh.press("Enter");
+    await calls(page, 2);
+    assert.equal(await row.isVisible(), true);
+    assert.equal(await refresh.isDisabled(), true);
+    await resolve(page, 1, "New row");
+    await page.getByRole("row").filter({ hasText: "New row" }).waitFor();
+    assert.equal(await row.count(), 0);
+    assert.equal(page.url(), url);
+  });
+}
