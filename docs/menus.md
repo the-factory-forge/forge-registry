@@ -404,3 +404,20 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Card adoption
+
+Export `menuCards` and `menuCardSections` from the storage schema and generate a
+forward migration in the host. The same migration allows a null dish price.
+Existing numeric prices, dish identities, category links and image keys are
+preserved. The new association table starts empty until the host or staff
+creates a card and attaches categories.
+
+The host calls `cardsClient(actor)` for authorized staff writes and
+`previewCard(actor, id, locale)` for saved private previews. For card-mode
+public routes, use `publicCards(locale, date)` and `readPublicCardImage(id, date)`
+together. The host supplies the current date in its local calendar.
+Render the saved projection with `MenuCardPage` or the staff-only
+`MenuCardPreview` component. Pass a host-authorized image URL to private
+previews when staff need to see photos on unpublished cards. Existing flat
+integrations can keep their current routes and operations.

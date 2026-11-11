@@ -1339,9 +1339,15 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/table-selection",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/image-with-fallback"
       ],
       "files": [
+        {
+          "path": "registry/components/plugins/menus/card-preview.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/card-preview.tsx"
+        },
         {
           "path": "registry/components/plugins/menus/index.ts",
           "type": "registry:component",

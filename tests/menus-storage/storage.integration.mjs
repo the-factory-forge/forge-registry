@@ -85,7 +85,7 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
   }
 
   await pool.unsafe(
-    "DROP TABLE IF EXISTS menu_item, menu_label, menu_category, drive_upload, drive_entry, drive_space CASCADE",
+    "DROP TABLE IF EXISTS menu_section, restaurant_menu, menu_item, menu_label, menu_category, drive_upload, drive_entry, drive_space CASCADE",
   );
   await initializeStorage(pool, ["drive", "menus"]);
   await pool`insert into menu_category (id,position,translations) values ('schema-category',0,'{"en":"Schema"}'::jsonb)`;

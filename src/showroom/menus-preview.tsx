@@ -13,12 +13,14 @@ import {
 
 import { NativeSelect } from "@/components/native-select";
 import {
+  MenuCardPreview,
   MenuItemEditorPage,
   MenuItemsPage,
   MenuPage,
   MenuPrintPage,
   MenuTaxonomyPage,
   buildMenu,
+  buildMenuCard,
   menuLabelPresets,
   type MenuCategory,
   type MenuItem,
@@ -401,6 +403,47 @@ export function MenuAdminPreview() {
     mock.fail,
     "ready",
   );
+  if (id === "card-preview") {
+    const view = buildMenuCard(
+      {
+        id: "showroom-card",
+        version: 1,
+        position: 0,
+        translations: { en: { name: "Seasonal menu", description: "A sample dinner menu." } },
+        categoryIds: mock.categories.slice(0, 2).map((category) => category.id),
+        published: false,
+        displayMode: "photos",
+        startDate: null,
+        endDate: null,
+      },
+      mock.items,
+      mock.categories,
+      mock.labels,
+      locale,
+      baseLocale,
+    );
+    return (
+      <MenuCardPreview
+        view={view}
+        web={{
+          locale,
+          currency: "CHF",
+          imageUrl: (itemId) =>
+            mock.drive.fileUrl(
+              { type: "menu-item", id: itemId },
+              mock.items.find((entry) => entry.id === itemId)?.imageEntryId ?? "",
+            ),
+        }}
+        paper={{
+          locale,
+          currency: "CHF",
+          restaurantName: "Acme restaurant",
+          backHref: base,
+          linkComponent: Link,
+        }}
+      />
+    );
+  }
   if (id === "print")
     return (
       <MenuPrintPage

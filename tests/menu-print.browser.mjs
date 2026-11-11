@@ -41,6 +41,24 @@ await suite("Menu print browser", async () => {
     return page.locator("[data-menu-print-frame]").contentFrame();
   }
 
+  await test("a saved card has the same title and dishes in Web and Paper", async (t) => {
+    const page = await preview(t, "/en/admin/menus/card-preview");
+    const web = page.getByRole("tabpanel", { name: "Web", exact: true });
+    await web.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+    await web.getByText("A sample dinner menu.", { exact: true }).waitFor();
+    const dish = await web.locator("article h3").first().textContent();
+    assert.ok(dish);
+    await web.locator("article img").first().waitFor();
+    await page.getByRole("tab", { name: "Paper", exact: true }).click();
+    const paper = page.frameLocator("[data-menu-preview-frame]").locator("[data-menu-paper]");
+    await paper.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+    assert.equal(await paper.getByText(dish, { exact: true }).count(), 1);
+    assert.equal(await paper.getByRole("img").count(), 0);
+    assert.equal(await page.locator("[data-menu-print-frame]").count(), 0);
+    await page.getByRole("tab", { name: "Web", exact: true }).click();
+    await web.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+  });
+
   await test("paper uses A4 portrait and A5 landscape dimensions", async (t) => {
     const page = await preview(t);
     const paper = page.frameLocator("[data-menu-preview-frame]").locator("[data-menu-paper]");

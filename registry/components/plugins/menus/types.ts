@@ -32,7 +32,7 @@ export interface MenuItem {
   id: string;
   version: number;
   categoryId: string;
-  priceMinor: number;
+  priceMinor: number | null;
   sizes?: MenuItemSize[];
   position: number;
   visible: boolean;
@@ -81,4 +81,33 @@ export interface MenusClient {
   labels(): Promise<MenuLabel[]>;
   saveLabel(input: MenuLabelInput & { id?: string }): Promise<MenuLabel>;
   removeLabel(id: string): Promise<void>;
+}
+
+export interface MenuCard {
+  id: string;
+  version: number;
+  position: number;
+  translations: Record<string, MenuTranslation>;
+  categoryIds: string[];
+  published: boolean;
+  displayMode: "lines" | "photos";
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export type MenuCardInput = Omit<MenuCard, "id" | "version"> & {
+  id?: string;
+  version?: number;
+};
+
+export interface MenuCardView {
+  card: Pick<MenuCard, "id" | "displayMode" | "startDate" | "endDate"> & MenuTranslation;
+  categories: MenuViewCategory[];
+}
+
+/** The host supplies the transport and authenticates staff before calling the service. */
+export interface MenuCardsClient {
+  listCards(): Promise<MenuCard[]>;
+  saveCard(input: MenuCardInput): Promise<MenuCard>;
+  removeCard(id: string, version: number): Promise<void>;
 }

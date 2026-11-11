@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { menuLabelIcons } from "@/components/plugins/menus/label-presets";
 import type {
+  MenuCard,
+  MenuCardView,
   MenuCategory,
   MenuCategoryInput,
   MenuItem,
@@ -44,7 +46,7 @@ const translations = z.record(
 );
 export const menuItemInputSchema = z.object({
   categoryId: z.string().min(1),
-  priceMinor: price,
+  priceMinor: price.nullable(),
   sizes: z
     .array(
       z.object({
@@ -229,4 +231,50 @@ export function buildMenu(
         }),
     }))
     .filter((category) => category.items.length > 0);
+}
+
+export const menuCardInputSchema = z
+  .object({
+    id: z.uuid().optional(),
+    version: z.number().int().positive().optional(),
+    position,
+    translations,
+    categoryIds: z.array(z.uuid()).max(500),
+    published: z.boolean(),
+    displayMode: z.enum(["lines", "photos"]),
+    startDate: z.iso.date().nullable(),
+    endDate: z.iso.date().nullable(),
+  })
+  .refine((card) => Boolean(card.id) === Boolean(card.version))
+  .refine((card) => card.id !== undefined || !card.published)
+  .refine((card) => new Set(card.categoryIds).size === card.categoryIds.length)
+  .refine((card) => !card.startDate || !card.endDate || card.startDate <= card.endDate);
+
+export function isMenuCardPublic(card: MenuCard, date: string) {
+  return (
+    card.published &&
+    (!card.startDate || card.startDate <= date) &&
+    (!card.endDate || date <= card.endDate)
+  );
+}
+
+export function buildMenuCard(
+  card: MenuCard,
+  items: readonly MenuItem[],
+  categories: readonly MenuCategory[],
+  labels: readonly MenuLabel[],
+  locale: string,
+  baseLocale: string,
+): MenuCardView {
+  const byId = new Map(categories.map((category) => [category.id, category]));
+  const ordered = card.categoryIds.flatMap((id, position) => {
+    const category = byId.get(id);
+    return category ? [{ ...category, position }] : [];
+  });
+  const { id, displayMode, startDate, endDate } = card;
+  const translation = localized(card.translations, locale, baseLocale);
+  return {
+    card: { id, displayMode, startDate, endDate, ...translation },
+    categories: buildMenu(items, ordered, labels, locale, baseLocale),
+  };
 }

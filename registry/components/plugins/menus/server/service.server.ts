@@ -9,6 +9,10 @@ import type { DriveScope } from "@/components/plugins/drive/types";
 import { scopeKey } from "@/components/plugins/drive/utils";
 import {
   buildMenu,
+  buildMenuCard,
+  isMenuCardPublic,
+  menuCardInputSchema,
+  validateTranslations,
   MenuError,
   menuCategoryInputSchema,
   menuLabelInputSchema,
@@ -19,8 +23,16 @@ import {
   validateItem,
   validateLabel,
 } from "@/components/plugins/menus/model";
-import { menuItems, menuCategories, menuLabels } from "@/components/plugins/menus/server/schema";
+import {
+  menuCards,
+  menuCardSections,
+  menuItems,
+  menuCategories,
+  menuLabels,
+} from "@/components/plugins/menus/server/schema";
 import type {
+  MenuCard,
+  MenuCardsClient,
   MenuCategory,
   MenuItem,
   MenuItemInput,
@@ -76,6 +88,32 @@ async function allCategories(db: QueryDb): Promise<MenuCategory[]> {
 async function allLabels(db: QueryDb): Promise<MenuLabel[]> {
   return db.select().from(menuLabels).orderBy(menuLabels.position, menuLabels.id);
 }
+async function allCards(db: QueryDb, id?: string): Promise<MenuCard[]> {
+  const rows = await db
+    .select({ card: menuCards, categoryId: menuCardSections.categoryId })
+    .from(menuCards)
+    .leftJoin(menuCardSections, eq(menuCardSections.menuId, menuCards.id))
+    .where(id ? eq(menuCards.id, id) : undefined)
+    .orderBy(menuCards.position, menuCards.id, menuCardSections.position);
+  const cards = new Map<string, MenuCard>();
+  for (const { card, categoryId } of rows) {
+    let menu = cards.get(card.id);
+    if (!menu) {
+      menu = { ...card, categoryIds: [] };
+      cards.set(card.id, menu);
+    }
+    if (categoryId) menu.categoryIds.push(categoryId);
+  }
+  return [...cards.values()];
+}
+
+async function cardById(db: QueryDb, id: string) {
+  validId(id);
+  const [card] = await allCards(db, id);
+  if (!card) throw new MenuError("NOT_FOUND");
+  return card;
+}
+
 async function itemById(db: QueryDb, id: string) {
   validId(id);
   const [row] = await db.select().from(menuItems).where(eq(menuItems.id, id));
@@ -368,8 +406,123 @@ export function createMenusService<Context>({
         }),
     };
   }
+  function cardsClient(context: Context): MenuCardsClient {
+    return {
+      listCards: () =>
+        safe(async () => {
+          await permit(context, "read");
+          return allCards(db);
+        }),
+      saveCard: (input) =>
+        safe(async () => {
+          await permit(context, "manageTaxonomy");
+          const {
+            id: inputId,
+            version,
+            categoryIds,
+            ...card
+          } = parseMenuInput(menuCardInputSchema, input);
+          validateTranslations(card.translations, baseLocale, true);
+          return db.transaction(async (tx) => {
+            await taxonomyLock(tx);
+            const id = inputId ?? randomUUID();
+            const current = inputId ? await cardById(tx, inputId) : undefined;
+            if (current && current.version !== version) throw new MenuError("CONFLICT");
+            if (categoryIds.length) {
+              const linked = await tx
+                .select({ id: menuCategories.id })
+                .from(menuCategories)
+                .where(inArray(menuCategories.id, categoryIds));
+              if (linked.length !== categoryIds.length) throw new MenuError("INVALID");
+            }
+            const [saved] = current
+              ? await tx
+                  .update(menuCards)
+                  .set({ ...card, version: current.version + 1 })
+                  .where(eq(menuCards.id, id))
+                  .returning()
+              : await tx
+                  .insert(menuCards)
+                  .values({ ...card, id })
+                  .returning();
+            await tx.delete(menuCardSections).where(eq(menuCardSections.menuId, id));
+            if (categoryIds.length) {
+              await tx
+                .insert(menuCardSections)
+                .values(
+                  categoryIds.map((categoryId, position) => ({ menuId: id, categoryId, position })),
+                );
+            }
+            return { ...saved, categoryIds };
+          });
+        }),
+      removeCard: (id, version) =>
+        safe(async () => {
+          await permit(context, "delete");
+          parseMenuInput(z.number().int().positive(), version);
+          await db.transaction(async (tx) => {
+            await taxonomyLock(tx);
+            if ((await cardById(tx, id)).version !== version) throw new MenuError("CONFLICT");
+            await tx.delete(menuCards).where(eq(menuCards.id, id));
+          });
+        }),
+    };
+  }
+
+  async function readVisibleImage(item: MenuItem) {
+    if (!item.visible || !item.imageEntryId) throw new MenuError("NOT_FOUND");
+    const file = await drive.readTrustedFile(menuScope(item.id), item.imageEntryId, imageLimit);
+    if (!imageTypes.includes(file.contentType) || imageType(file.bytes) !== file.contentType)
+      throw new MenuError("NOT_FOUND");
+    return new Response(new Uint8Array(file.bytes), {
+      headers: {
+        "Content-Type": file.contentType,
+        "Content-Disposition": "inline",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   return {
     client,
+    cardsClient,
+    publicCards: (locale: string, date: string) =>
+      safe(async () => {
+        parseMenuInput(z.iso.date(), date);
+        const [cards, items, categories, labels] = await Promise.all([
+          allCards(db),
+          allItems(db),
+          allCategories(db),
+          allLabels(db),
+        ]);
+        return cards
+          .filter((card) => isMenuCardPublic(card, date))
+          .map((card) => buildMenuCard(card, items, categories, labels, locale, baseLocale));
+      }),
+    previewCard: (context: Context, id: string, locale: string) =>
+      safe(async () => {
+        await permit(context, "read");
+        const [card, items, categories, labels] = await Promise.all([
+          cardById(db, id),
+          allItems(db),
+          allCategories(db),
+          allLabels(db),
+        ]);
+        return buildMenuCard(card, items, categories, labels, locale, baseLocale);
+      }),
+    readPublicCardImage: (id: string, date: string) =>
+      safe(async () => {
+        parseMenuInput(z.iso.date(), date);
+        const [item, cards] = await Promise.all([itemById(db, id), allCards(db)]);
+        if (
+          !cards.some(
+            (card) => card.categoryIds.includes(item.categoryId) && isMenuCardPublic(card, date),
+          )
+        )
+          throw new MenuError("NOT_FOUND");
+        return readVisibleImage(item);
+      }),
     publicMenu: (locale: string) =>
       safe(async () => {
         locale = parseMenuInput(z.string(), locale);
@@ -381,21 +534,6 @@ export function createMenusService<Context>({
           baseLocale,
         );
       }),
-    readPublicImage: (id: string) =>
-      safe(async () => {
-        const item = await itemById(db, id);
-        if (!item.visible || !item.imageEntryId) throw new MenuError("NOT_FOUND");
-        const file = await drive.readTrustedFile(menuScope(id), item.imageEntryId, imageLimit);
-        if (!imageTypes.includes(file.contentType) || imageType(file.bytes) !== file.contentType)
-          throw new MenuError("NOT_FOUND");
-        return new Response(new Uint8Array(file.bytes), {
-          headers: {
-            "Content-Type": file.contentType,
-            "Content-Disposition": "inline",
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "no-store",
-          },
-        });
-      }),
+    readPublicImage: (id: string) => safe(async () => readVisibleImage(await itemById(db, id))),
   };
 }

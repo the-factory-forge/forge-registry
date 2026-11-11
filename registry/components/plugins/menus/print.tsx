@@ -20,6 +20,7 @@ export interface MenuPrintPageProps {
   restaurantName: string;
   logo?: Pick<ImageProps, "src" | "alt" | "width" | "height" | "srcSet" | "sizes">;
   initialTitle?: string;
+  description?: string;
   initialFooter?: string;
   backHref: string;
   linkComponent?: ComponentType<LinkProps>;
@@ -77,6 +78,7 @@ export function MenuPrintPage({
   restaurantName,
   logo,
   initialTitle,
+  description,
   initialFooter = "",
   backHref,
   linkComponent: HostLink = Link,
@@ -287,6 +289,7 @@ export function MenuPrintPage({
                   {restaurantName}
                 </p>
                 {title && <h2 className="text-[14pt] whitespace-pre-wrap">{title}</h2>}
+                {description && <p className="mt-2 whitespace-pre-wrap">{description}</p>}
               </header>
               {visibleSections.map((section) => (
                 <section key={section.id} className="mb-7">
@@ -302,7 +305,7 @@ export function MenuPrintPage({
                             {labels.soldOut}
                           </span>
                         )}
-                        {!item.sizes?.length && !item.soldOut && (
+                        {!item.sizes?.length && !item.soldOut && item.priceMinor !== null && (
                           <span className="shrink-0 tabular-nums">{price(item.priceMinor)}</span>
                         )}
                       </div>
@@ -318,7 +321,7 @@ export function MenuPrintPage({
                             </div>
                           ))}
                         </dl>
-                      ) : item.soldOut ? (
+                      ) : item.soldOut && item.priceMinor !== null ? (
                         <p className="mt-1 text-right tabular-nums">{price(item.priceMinor)}</p>
                       ) : null}
                       {(item.labels.length > 0 || !!item.spiceLevel) && (

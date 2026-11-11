@@ -114,7 +114,7 @@ function MenuItemEditorPageContent({
         }
       : {
           categoryId: categories[0]?.id ?? "",
-          priceMinor: 0,
+          priceMinor: null,
           position: 0,
           visible: false,
           soldOut: false,
@@ -138,7 +138,9 @@ function MenuItemEditorPageContent({
   const lock = useRef(false);
   const formatter = new Intl.NumberFormat(baseLocale, { style: "currency", currency });
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
-  const [price, setPrice] = useState((draft.priceMinor / 10 ** digits).toFixed(digits));
+  const [price, setPrice] = useState(
+    draft.priceMinor === null ? "" : (draft.priceMinor / 10 ** digits).toFixed(digits),
+  );
   const [sizes, setSizes] = useState(() =>
     (item?.sizes ?? []).map((size) => ({
       id: size.id,
@@ -237,7 +239,7 @@ function MenuItemEditorPageContent({
       }));
       const input = {
         ...draft,
-        priceMinor: sizePrices[0]?.priceMinor ?? parsePrice(price, digits),
+        priceMinor: sizePrices[0]?.priceMinor ?? (price.trim() ? parsePrice(price, digits) : null),
         sizes: sizePrices,
       };
       const saved = item
