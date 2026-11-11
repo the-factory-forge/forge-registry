@@ -25,7 +25,9 @@ before changing behavior.
 
 Keep author signatures after account deletion. Do not add edit/delete actions,
 provider fields, delivery queues, notifications or connector dependencies here.
-The guide records the separately planned connector behavior.
+The generic transaction hook and trusted import port are documented in the guide.
+For GitHub delivery and recovery, read [Supports–GitHub](../../../../docs/supports-github.md);
+keep its state in connector tables and imported events out of the outbound hook.
 
 ## Checks
 

@@ -2295,6 +2295,11 @@
           "path": "registry/components/utils/storage-filename.ts",
           "type": "registry:lib",
           "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/integration.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/supports/server/integration.ts"
         }
       ],
       "registryDependencies": ["@forge/supports", "@forge/database"],
@@ -2305,6 +2310,71 @@
         "@aws-sdk/s3-request-presigner",
         "zod@4.6.7"
       ]
+    },
+    {
+      "name": "supports-github",
+      "type": "registry:block",
+      "title": "Supports–GitHub",
+      "description": "GitHub issue delivery status, explicit discussion export and safe retries for Supports.",
+      "files": [
+        {
+          "path": "registry/components/connectors/supports-github/index.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/supports-github/index.tsx"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/contracts.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/contracts.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": [
+        "@forge/supports",
+        "@forge/icon-tooltip",
+        "@forge/optimistic-action",
+        "@forge/cn"
+      ]
+    },
+    {
+      "name": "supports-github-server",
+      "type": "registry:lib",
+      "title": "Supports–GitHub server",
+      "description": "Transactional private GitHub issue synchronization, signed webhooks and operator recovery.",
+      "files": [
+        {
+          "path": "registry/components/connectors/supports-github/contracts.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/contracts.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/index.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/github.server.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/github.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/markdown.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/markdown.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/schema.ts"
+        }
+      ],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod", "@tanstack/markdown@0.0.16"],
+      "registryDependencies": ["@forge/supports-storage", "@forge/database"]
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { ArrowLeftIcon, CircleHelpIcon, EyeIcon, PlusIcon, XIcon } from "lucide-react";
-import { useMemo, useRef, useState, type ComponentType } from "react";
+import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -323,6 +323,7 @@ export function SupportsPage(props: SupportsPageProps) {
   );
 }
 export interface SupportDetailPageProps extends Appearance {
+  integrationContent?: ReactNode;
   client: SupportsClient;
   ticket: SupportTicket;
   activity: readonly SupportActivity[];
@@ -333,6 +334,7 @@ export interface SupportDetailPageProps extends Appearance {
   error?: boolean;
 }
 function DetailContent({
+  integrationContent,
   client,
   ticket,
   activity,
@@ -408,6 +410,7 @@ function DetailContent({
             <time dateTime={ticket.createdAt}>{formatDate(ticket.createdAt)}</time>
           </div>
         </header>
+        {integrationContent}
         {status.error && !confirming && (
           <p role="alert" className="text-sm text-destructive">
             {supportError(status.error, labels)}

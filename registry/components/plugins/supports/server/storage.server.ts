@@ -21,6 +21,10 @@ import {
   supportQuerySchema,
   supportStatusSchema,
 } from "@/components/plugins/supports/schema";
+import type {
+  SupportMutation,
+  SupportsIntegration,
+} from "@/components/plugins/supports/server/integration";
 import {
   supportsTickets as tickets,
   supportsActivity as activity,
@@ -56,6 +60,8 @@ export interface SupportsStorageOptions<Context> {
   /** Resolve fresh membership, not merely the admin/user role. Anonymous returns null. */
   resolveActor(context: Context): Promise<(SupportAuthor & { kind: "staff" | "customer" }) | null>;
   authorize(context: Context, permission: Permission, ticketId?: string): Promise<boolean>;
+  /** Database work only: failures roll back the submission; external delivery runs after commit. */
+  onMutation?(tx: DatabaseTransaction, event: SupportMutation): Promise<void>;
 }
 export interface SupportUploadInput {
   requestId: string;
@@ -196,6 +202,12 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
       }
       await claim(tx, actor.id, input.attachmentIds, id, activityId);
       await tx.insert(mutations).values({ key, fingerprint: hash, ticketId: id });
+      await options.onMutation?.(
+        tx,
+        activityId
+          ? { kind: "comment", ticketId: id, activityId }
+          : { kind: "create", ticketId: id },
+      );
       return id;
     });
   }
@@ -383,15 +395,17 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
             await permit(context, "status", id);
             if (row.status === status) return;
             const now = new Date(Math.max(Date.now(), row.updatedAt.getTime() + 1));
+            const activityId = randomUUID();
             await tx.update(tickets).set({ status, updatedAt: now }).where(eq(tickets.id, id));
             await tx.insert(activity).values({
-              id: randomUUID(),
+              id: activityId,
               ticketId: id,
               kind: "status",
               status,
               author: actor,
               createdAt: now,
             });
+            await options.onMutation?.(tx, { kind: "status", ticketId: id, activityId });
           });
         }),
       upload: async ({ requestId, file }: { requestId: string; file: File }) => {
@@ -482,5 +496,65 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
       return { examined: rows.length, failed };
     });
   }
-  return { client, upload, maintenance };
+  const integration: SupportsIntegration<Context> = {
+    authorize: permit,
+    async lock(tx, id) {
+      await record(tx, id, true);
+    },
+    async snapshot(tx, id) {
+      const row = await record(tx, id);
+      const entries = await tx
+        .select()
+        .from(activity)
+        .where(eq(activity.ticketId, id))
+        .orderBy(asc(activity.createdAt), asc(activity.id));
+      const files = await tx
+        .select()
+        .from(attachments)
+        .where(and(eq(attachments.ticketId, id), eq(attachments.state, "attached")));
+      return {
+        ticket: ticket(
+          row,
+          files.filter((file) => !file.activityId),
+        ),
+        activity: entries.map((entry) => ({
+          ...entry,
+          createdAt: entry.createdAt.toISOString(),
+          attachments: files.filter((file) => file.activityId === entry.id).map(asset),
+        })),
+      };
+    },
+    async apply(tx, id, raw) {
+      const input = z
+        .object({
+          id: supportIdSchema,
+          author: z.object({ id: supportIdSchema, name: z.string().trim().min(1).max(200) }),
+          createdAt: z.iso.datetime(),
+          kind: z.enum(["comment", "status"]),
+          body: z.string(),
+          status: supportStatusSchema.nullable(),
+        })
+        .refine((value) =>
+          value.kind === "status"
+            ? value.status !== null
+            : value.body.trim().length > 0 && value.status === null,
+        )
+        .parse(raw);
+      const row = await record(tx, id, true);
+      const [previous] = await tx.select().from(activity).where(eq(activity.id, input.id));
+      if (previous) throw new SupportsError("CONFLICT");
+      await tx
+        .insert(activity)
+        .values({ ...input, ticketId: id, createdAt: new Date(input.createdAt) });
+      await tx
+        .update(tickets)
+        .set({
+          ...(input.kind === "status" && input.status ? { status: input.status } : {}),
+          updatedAt: new Date(Math.max(Date.now(), row.updatedAt.getTime() + 1)),
+        })
+        .where(eq(tickets.id, id));
+      // Imported activity deliberately does not invoke the local mutation hook.
+    },
+  };
+  return { client, upload, maintenance, integration };
 }

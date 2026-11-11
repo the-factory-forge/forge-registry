@@ -136,17 +136,16 @@ duplicate transitions. Browser exports SHALL not import the server companion.
 
 Core Supports SHALL remain independent of provider-specific fields, bindings,
 delivery queues and synchronization engines. External delivery is a separate
-connector phase; local success SHALL not imply external receipt. Email
+connector capability; local success SHALL not imply external receipt. Email
 notifications and unread indicators are outside this version.
 
-#### Scenario: Implementing the later connector phase
+#### Scenario: Installing a support connector
 
-- **WHEN** a host installs multiple support connectors
-- **THEN** its routing selects one private destination per ticket
-- **AND** replies and close/cancel/reopen changes synchronize in both directions
-- **AND** failed external delivery preserves local submissions with separate pending/failed state and retry
-- **AND** existing tickets transfer only after explicit operator selection
-- **AND** a newer confirmed external status blocks stale queued local status replay until a fresh staff action
+- **WHEN** a host composes a connector with the optional server mutation hook
+- **THEN** local content and outbound work commit in the same transaction
+- **AND** enqueue failure rolls back the submission while provider downtime permits local saves
+- **AND** trusted validated external imports bypass outbound hooks
+- **AND** the optional detail integration slot adds no provider dependency to Supports
 
 ### Requirement: Standalone item editor feedback
 
@@ -2983,3 +2982,61 @@ SHALL remain unavailable to external clients without a separate upload capabilit
 
 - **WHEN** a host continues to use the existing Agents chat client
 - **THEN** its approval UI, durable storage and recovery rules remain compatible and external records are excluded from its conversation list
+
+### Requirement: Supports–GitHub connector
+
+`supports-github` and `supports-github-server` SHALL connect one site's Supports
+to one host-configured private GitHub repository using a dedicated GitHub App.
+Core Supports SHALL acquire no provider fields or dependency. The host SHALL own
+credentials, staff authorization, routes, migrations, schedules and monitoring.
+The [integration and recovery guide](../../../docs/supports-github.md) defines the
+server methods, persistence, installation and production acceptance boundaries.
+
+#### Scenario: Creating and exporting discussions
+
+- **WHEN** staff create a ticket after the host installs the mutation hook
+- **THEN** a durable job automatically creates an issue after private identity/access verification
+- **AND** unrelated GitHub issues remain outside Supports
+- **WHEN** authorized staff confirm Send to GitHub for an existing ticket
+- **THEN** the original description, complete saved discussion, author attribution and current status export exactly once, including concurrent replies
+- **AND** installation itself exports no old ticket and creates no repository
+
+#### Scenario: Synchronizing replies and status
+
+- **WHEN** new local replies or close/cancel/reopen actions commit
+- **THEN** their delivery jobs commit atomically and provider outages preserve local saves
+- **WHEN** a correctly signed, validated webhook matches installation and private repository identity
+- **THEN** accepted work persists before acknowledgement and linked comments become visible to all authorized site staff
+- **AND** edits/deletions do not rewrite imported history; receipts, provider mappings and App markers suppress duplicates and echoes
+- **AND** open maps to open, closed to completed, canceled to not-planned; duplicate/not-planned closures import as canceled
+- **AND** a newer confirmed external transition supersedes stale queued intent and requires a fresh staff action; merge closure may precede deployment
+
+#### Scenario: Preserving source content boundaries
+
+- **WHEN** a message includes images, including an image-only reply
+- **THEN** filenames and authenticated source links explain that images were not copied
+- **AND** no raw HTML, image fetching or signed-URL persistence is introduced
+- **AND** active mentions retain normal notification and automation behavior
+- **WHEN** an imported reply exceeds 65,536 characters
+- **THEN** staff see an explicit failure notice and source link without silent truncation
+- **AND** the local composer remains limited to 5,000 characters
+
+#### Scenario: Delayed, uncertain or broken delivery
+
+- **WHEN** scheduled workers process bounded batches or reconcile missed events
+- **THEN** ticket leases serialize work, paginated comments advance durably, and failure/backlog results support host monitoring
+- **AND** minute/fifteen-minute schedules are defaults rather than outage delivery guarantees
+- **WHEN** a creation response or local finalization is lost
+- **THEN** marker reconciliation precedes retry; unresolved outcomes remain blocked for guarded operator recovery
+- **AND** all authorized staff may export history and retry safe failures, while operator recovery stays outside browser transport
+- **WHEN** an issue disappears/transfers, access is lost, visibility becomes public or repository configuration changes
+- **THEN** synchronization stops and retains local history and pending work until verified recovery
+- **AND** configuration changes never automatically relocate discussions
+
+#### Scenario: Operator removal and demonstration
+
+- **WHEN** an operator removes disclosed content from both systems, stored payloads and pending work
+- **THEN** retained source/job tombstones prevent reconciliation or redelivery from restoring it
+- **AND** the runbook defines explicit repository migration and uncertain-write recovery
+- **WHEN** a visitor opens the Connector showroom
+- **THEN** mocked examples demonstrate both directions, historical export, source image links, delayed delivery, failure and blocked recovery with accessible translated controls
