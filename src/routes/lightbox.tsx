@@ -5,6 +5,22 @@ import { Lightbox } from "@/components/lightbox";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
+const collection = [
+  {
+    id: "first",
+    src: "/icon.png?view=first",
+    alt: "First collection image",
+    caption: "First image in the example.",
+  },
+  {
+    id: "second",
+    src: "/icon.png?view=second",
+    alt: "Second collection image",
+    caption: "Second image in the example.",
+  },
+  { id: "missing", src: "/missing-lightbox-example.png", alt: "Unavailable collection image" },
+];
+
 function LightboxExample() {
   return (
     <ShowroomPreview width="narrow">
@@ -15,6 +31,14 @@ function LightboxExample() {
         <Lightbox
           src="/icon.png"
           alt="Forge logo"
+          width={320}
+          height={320}
+          className="flex justify-center rounded-xl border border-border bg-muted p-8"
+        />
+        <Lightbox
+          src={collection[1].src}
+          alt={collection[1].alt}
+          images={collection}
           width={320}
           height={320}
           className="flex justify-center rounded-xl border border-border bg-muted p-8"
