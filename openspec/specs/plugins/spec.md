@@ -986,6 +986,12 @@ the optimistic mutation isolation requirement.
 - **AND** parsed objects exclude unknown fields while existing authorization and business rules remain enforced
 - **AND** optional inputs retain their documented omission semantics
 
+#### Scenario: Refresh the current Drive listing
+
+- **WHEN** a user activates Refresh listing in Drive
+- **THEN** the active listing reloads with its current search, sort, and pagination
+- **AND** the user stays in the same space or folder
+
 #### Scenario: Integrating the scoped Drive browser
 
 - **WHEN** a host connects the Drive browser to an entity scope

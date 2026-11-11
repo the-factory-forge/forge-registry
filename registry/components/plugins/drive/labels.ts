@@ -14,6 +14,7 @@ export const driveLabels = {
   loading: "Loading…",
   error: "The operation failed. Please try again.",
   retry: "Retry",
+  refreshListing: "Refresh listing",
   back: "Back to drive",
   root: "All files",
   breadcrumbs: "Folder navigation",
