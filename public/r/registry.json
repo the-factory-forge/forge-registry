@@ -363,7 +363,7 @@
       "name": "lightbox",
       "type": "registry:ui",
       "title": "Lightbox",
-      "description": "Click-to-enlarge image overlay with Escape and click-outside dismiss.",
+      "description": "Image enlargement and optional collection navigation with keyboard and touch support.",
       "files": [
         {
           "path": "registry/components/lightbox.tsx",
