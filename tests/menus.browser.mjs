@@ -28,6 +28,11 @@ await suite("Menus browser", async () => {
     return page;
   }
 
+  async function selectLanguage(container, name) {
+    await container.getByRole("tab", { name, exact: true }).click();
+    await container.locator('[role="tabpanel"][inert]').waitFor({ state: "hidden" });
+  }
+
   await test("stacked menus share one editable category and preview their own dishes", async (t) => {
     const page = await preview(t, "/en/admin/menus");
     const stage = page.getByRole("main", { name: "Component preview" });
@@ -43,7 +48,7 @@ await suite("Menus browser", async () => {
     await lunch.getByRole("button", { name: "Edit shared category" }).click();
     await lunch.getByRole("button", { name: "Actions for Soft drinks", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit category", exact: true }).click();
-    await lunch.getByRole("textbox", { name: "Name · English" }).fill("Cold drinks");
+    await lunch.getByRole("textbox", { name: "Name", exact: true }).fill("Cold drinks");
     await lunch.getByRole("button", { name: "Save", exact: true }).click();
     await drinks.getByRole("region", { name: "Cold drinks", exact: true }).waitFor();
     await drinks.getByRole("link", { name: "Preview", exact: true }).click();
@@ -193,18 +198,161 @@ await suite("Menus browser", async () => {
     assert.equal(await origin.getByText("Tomato soup", { exact: true }).count(), 0);
   });
 
-  await test("create menu control opens the three menu types and saves a set menu", async (t) => {
+  await test("manager creates a set menu with translations preserved across language tabs", async (t) => {
     const page = await preview(t, "/en/admin/menus");
-    await page.getByRole("link", { name: "Create menu", exact: true }).click();
+    assert.equal(await page.getByRole("link", { name: "Create menu", exact: true }).count(), 0);
     const stage = page.getByRole("main", { name: "Component preview" });
+    await stage.getByRole("button", { name: "Menu", exact: true }).click();
     await stage.getByRole("radio", { name: "Weekly menu", exact: true }).waitFor();
     await stage.getByRole("radio", { name: "Set menu", exact: true }).check();
-    await stage.getByRole("textbox", { name: "Name · English" }).fill("Dinner for two");
-    await stage.getByRole("textbox", { name: "Description · English" }).fill("88 CHF per person");
+    await selectLanguage(stage, "Français");
+    await stage.getByRole("textbox", { name: "Name", exact: true }).fill("Dîner pour deux");
+    await stage
+      .getByRole("textbox", { name: "Description", exact: true })
+      .fill("88 CHF par personne");
+    await stage.getByRole("button", { name: "Save", exact: true }).click();
+    await stage
+      .getByRole("alert")
+      .filter({ hasText: "Enter a name in the base language." })
+      .waitFor();
+    await page
+      .getByRole("tabpanel", { name: "Français", exact: true })
+      .waitFor({ state: "hidden" });
+    assert.equal(
+      await stage.getByRole("tab", { name: "English", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(
+      await stage
+        .getByRole("textbox", { name: "Name", exact: true })
+        .evaluate((input) => input === document.activeElement),
+      true,
+    );
+    await stage.getByRole("textbox", { name: "Name", exact: true }).fill("Dinner for two");
+    await stage
+      .getByRole("textbox", { name: "Description", exact: true })
+      .fill("88 CHF per person");
+    await stage.getByRole("tab", { name: "English", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Space");
+    await stage
+      .getByRole("tabpanel", { name: "English", exact: true })
+      .waitFor({ state: "hidden" });
+    assert.equal(
+      await stage.getByRole("tab", { name: "Français", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(
+      await stage.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+      "Dîner pour deux",
+    );
     await stage.getByRole("button", { name: "Save", exact: true }).click();
     const menu = stage.getByRole("region", { name: "Dinner for two", exact: true });
     await menu.getByRole("heading", { name: "Dinner for two", exact: true }).waitFor();
     assert.equal(await menu.getByRole("switch").getAttribute("aria-checked"), "false");
+    await menu.getByRole("button", { name: "Settings", exact: true }).click();
+    const settings = page.getByRole("dialog", {
+      name: "Menu settings · Dinner for two",
+      exact: true,
+    });
+    assert.equal(
+      await settings.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+      "Dinner for two",
+    );
+    await selectLanguage(settings, "Français");
+    assert.equal(
+      await settings.getByRole("textbox", { name: "Description", exact: true }).inputValue(),
+      "88 CHF par personne",
+    );
+    await settings.getByRole("textbox", { name: "Description", exact: true }).fill("Café compris");
+    await settings.getByRole("button", { name: "Save", exact: true }).click();
+    await settings.waitFor({ state: "hidden" });
+    await menu.getByRole("button", { name: "Settings", exact: true }).click();
+    await selectLanguage(settings, "Français");
+    assert.equal(
+      await settings.getByRole("textbox", { name: "Description", exact: true }).inputValue(),
+      "Café compris",
+    );
+    await page.setViewportSize({ width: 390, height: 900 });
+    assert.equal(
+      await settings.evaluate((dialog) => dialog.scrollWidth <= dialog.clientWidth),
+      true,
+    );
+  });
+
+  await test("category language tabs keep translations and require the base name", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const seasonal = page.getByRole("region", { name: "Seasonal menu", exact: true });
+    await seasonal.getByRole("button", { name: "+ Category", exact: true }).click();
+    for (const name of ["Create a category", "Add an existing category"]) {
+      await page.getByRole("menuitem", { name, exact: true }).waitFor();
+      assert.equal(
+        await page
+          .getByRole("menuitem", { name, exact: true })
+          .locator('svg[aria-hidden="true"]')
+          .count(),
+        1,
+      );
+    }
+    await page.getByRole("menuitem", { name: "Create a category", exact: true }).click();
+    const form = seasonal.locator("form");
+    await selectLanguage(form, "Français");
+    await form.getByRole("textbox", { name: "Name", exact: true }).fill("Suggestions");
+    await form.getByRole("textbox", { name: "Description", exact: true }).fill("Selon la saison.");
+    await form.getByRole("button", { name: "Save", exact: true }).click();
+    await form
+      .getByRole("alert")
+      .filter({ hasText: "Enter a name in the base language." })
+      .waitFor();
+    await page
+      .getByRole("tabpanel", { name: "Français", exact: true })
+      .waitFor({ state: "hidden" });
+    assert.equal(
+      await form.getByRole("tab", { name: "English", exact: true }).getAttribute("aria-selected"),
+      "true",
+    );
+    assert.equal(
+      await form
+        .getByRole("textbox", { name: "Name", exact: true })
+        .evaluate((input) => input === document.activeElement),
+      true,
+    );
+    await form.getByRole("textbox", { name: "Name", exact: true }).fill("Seasonal specials");
+    await form.getByRole("button", { name: "Save", exact: true }).click();
+    const section = seasonal.getByRole("region", { name: "Seasonal specials", exact: true });
+    await section
+      .getByRole("button", { name: "Actions for Seasonal specials", exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: "Edit category", exact: true }).click();
+    const editor = section.locator("form");
+    await selectLanguage(editor, "Français");
+    assert.equal(
+      await editor.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+      "Suggestions",
+    );
+    assert.equal(
+      await editor.getByRole("textbox", { name: "Description", exact: true }).inputValue(),
+      "Selon la saison.",
+    );
+    await editor
+      .getByRole("textbox", { name: "Description", exact: true })
+      .fill("Suggestion du chef.");
+    await selectLanguage(editor, "English");
+    assert.equal(
+      await editor.getByRole("textbox", { name: "Name", exact: true }).inputValue(),
+      "Seasonal specials",
+    );
+    assert.equal(
+      await editor.getByRole("textbox", { name: "Description", exact: true }).inputValue(),
+      "",
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
+    );
+    await editor.getByRole("button", { name: "Save", exact: true }).click();
+    await editor.waitFor({ state: "hidden" });
   });
 
   await test("grouped search belongs to one menu and survives reload", async (t) => {
@@ -233,7 +381,7 @@ await suite("Menus browser", async () => {
     const page = await preview(t, "/en/admin/menus/create-menu");
     const stage = page.getByRole("main", { name: "Component preview" });
     await stage.getByRole("radio", { name: "Weekly menu", exact: true }).check();
-    await stage.getByRole("textbox", { name: "Name · English" }).fill("Weekly specials");
+    await stage.getByRole("textbox", { name: "Name", exact: true }).fill("Weekly specials");
     await stage.getByLabel("From", { exact: true }).fill("2026-11-02");
     await stage.getByLabel("To", { exact: true }).fill("2026-11-03");
     for (const day of ["Wednesday", "Thursday", "Friday"])
@@ -491,6 +639,9 @@ await suite("Menus browser", async () => {
       .getByRole("alert")
       .filter({ hasText: "Enter a name in the base language." })
       .waitFor();
+    await page
+      .getByRole("tabpanel", { name: "Français", exact: true })
+      .waitFor({ state: "hidden" });
     assert.equal(
       await page.getByRole("tab", { name: "English" }).getAttribute("aria-selected"),
       "true",

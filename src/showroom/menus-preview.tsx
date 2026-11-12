@@ -663,7 +663,6 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
         }
         controls={
           <>
-            <Link href={`/${locale}/admin/menus/create-menu`}>Create menu</Link>
             {current === "items" && (
               <div className="grid gap-2">
                 <label htmlFor="factory-menu-directory-state">Directory state</label>

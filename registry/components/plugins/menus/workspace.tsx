@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Menu as Dropdown } from "@base-ui/react/menu";
+import { Tabs } from "@base-ui/react/tabs";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownIcon,
@@ -725,6 +726,48 @@ function Actions({
   );
 }
 
+function MenuLanguageTabs({
+  value,
+  onValueChange,
+  disabled,
+  children,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  disabled: boolean;
+  children: (locale: string) => ReactNode;
+}) {
+  const { copy, locales, baseLocale } = useWorkspace();
+  const languages = locales.some(({ code }) => code === baseLocale)
+    ? locales
+    : [{ code: baseLocale, name: baseLocale }, ...locales];
+  return (
+    <Tabs.Root value={value} onValueChange={(next) => onValueChange(next as string)}>
+      <Tabs.List
+        aria-label={copy("Language")}
+        className="flex gap-1 overflow-x-auto border-b border-border"
+      >
+        {languages.map(({ code, name }) => (
+          <Tabs.Tab
+            key={code}
+            value={code}
+            type="button"
+            disabled={disabled}
+            className="min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed data-[active]:border-primary data-[active]:text-foreground"
+          >
+            {name}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      {languages.map(({ code }) => (
+        <Tabs.Panel key={code} value={code} className="space-y-4 pt-4">
+          {children(code)}
+        </Tabs.Panel>
+      ))}
+    </Tabs.Root>
+  );
+}
+
 function MenuSettings({
   menu,
   onSave,
@@ -738,11 +781,18 @@ function MenuSettings({
   onSave: (input: MenuCardInput) => Promise<unknown>;
   onCancel: () => void;
 }) {
-  const { copy, locales, currency, baseLocale } = useWorkspace();
+  const { copy, currency, baseLocale } = useWorkspace();
   const [draft, setDraft] = useState(menu ?? emptyMenu);
+  const [selectedLocale, setSelectedLocale] = useState(baseLocale);
+  const baseNameInput = useRef<HTMLInputElement>(null);
   const id = `factory-menu-settings-${useId()}`;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (selectedLocale === baseLocale && error === copy("Enter a name in the base language.")) {
+      baseNameInput.current?.focus();
+    }
+  }, [error, selectedLocale, baseLocale, copy]);
   useEffect(() => onPendingChange?.(pending), [pending, onPendingChange]);
   useMenuDraftGuard(JSON.stringify(draft) !== JSON.stringify(menu ?? emptyMenu), pending);
   return (
@@ -751,6 +801,7 @@ function MenuSettings({
       onSubmit={(event) => {
         event.preventDefault();
         if (!draft.translations[baseLocale]?.name.trim()) {
+          setSelectedLocale(baseLocale);
           setError(copy("Enter a name in the base language."));
           return;
         }
@@ -806,26 +857,33 @@ function MenuSettings({
             </p>
           </fieldset>
         )}
-        <div className="@container sm:col-span-2">
-          <div className="grid gap-4 @min-[36rem]:grid-cols-3">
-            {locales.map((locale) => (
-              <div key={locale.code} className="space-y-3">
+        <div className="min-w-0 sm:col-span-2">
+          <MenuLanguageTabs
+            value={selectedLocale}
+            onValueChange={setSelectedLocale}
+            disabled={pending}
+          >
+            {(locale) => (
+              <>
                 <label className="grid gap-1 text-sm">
-                  {copy("Name ·")} {locale.name}
+                  <span>
+                    {copy("Name")}
+                    {locale === baseLocale && <span aria-hidden="true"> *</span>}
+                  </span>
                   <input
+                    ref={locale === baseLocale ? baseNameInput : undefined}
                     className={field}
-
-                    required={locale.code === baseLocale}
+                    required={locale === baseLocale}
                     maxLength={200}
-                    value={draft.translations[locale.code]?.name ?? ""}
+                    value={draft.translations[locale]?.name ?? ""}
                     onChange={(event) =>
                       setDraft({
                         ...draft,
                         translations: {
                           ...draft.translations,
-                          [locale.code]: {
+                          [locale]: {
                             name: event.target.value,
-                            description: draft.translations[locale.code]?.description ?? "",
+                            description: draft.translations[locale]?.description ?? "",
                           },
                         },
                       })
@@ -833,19 +891,19 @@ function MenuSettings({
                   />
                 </label>
                 <label className="grid gap-1 text-sm">
-                  {copy("Description ·")} {locale.name}
+                  {copy("Description")}
                   <textarea
                     className={field}
-                    rows={2}
+                    rows={4}
                     maxLength={2000}
-                    value={draft.translations[locale.code]?.description ?? ""}
+                    value={draft.translations[locale]?.description ?? ""}
                     onChange={(event) =>
                       setDraft({
                         ...draft,
                         translations: {
                           ...draft.translations,
-                          [locale.code]: {
-                            name: draft.translations[locale.code]?.name ?? "",
+                          [locale]: {
+                            name: draft.translations[locale]?.name ?? "",
                             description: event.target.value,
                           },
                         },
@@ -853,9 +911,9 @@ function MenuSettings({
                     }
                   />
                 </label>
-              </div>
-            ))}
-          </div>
+              </>
+            )}
+          </MenuLanguageTabs>
         </div>
         {draft.kind !== "weekly" && (
           <div className="grid content-start gap-1 text-sm">
@@ -963,12 +1021,19 @@ function CategoryForm({
   ) => Promise<unknown>;
   onCancel: () => void;
 }) {
-  const { copy, locales, baseLocale } = useWorkspace();
+  const { copy, baseLocale } = useWorkspace();
+  const [selectedLocale, setSelectedLocale] = useState(baseLocale);
+  const baseNameInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<
     Omit<MenuCategory, "id" | "version"> & { id?: string; version?: number }
   >(category ?? { position: 0, translations: { [baseLocale]: "" }, descriptions: {} });
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (selectedLocale === baseLocale && error === copy("Enter a name in the base language.")) {
+      baseNameInput.current?.focus();
+    }
+  }, [error, selectedLocale, baseLocale, copy]);
   useMenuDraftGuard(
     JSON.stringify(draft) !==
       JSON.stringify(
@@ -978,59 +1043,70 @@ function CategoryForm({
   );
   return (
     <form
-      className="my-4 grid gap-4 rounded-xl border border-border p-4 sm:grid-cols-3"
+      className="my-4 min-w-0 space-y-4 rounded-xl border border-border p-4"
       onSubmit={(event) => {
         event.preventDefault();
+        if (!draft.translations[baseLocale]?.trim()) {
+          setSelectedLocale(baseLocale);
+          setError(copy("Enter a name in the base language."));
+          return;
+        }
         setPending(true);
-        setError(false);
+        setError("");
         void onSave(draft)
           .then(onCancel)
-          .catch(() => setError(true))
+          .catch(() => setError(copy("Could not save. Reload if the category has changed.")))
           .finally(() => setPending(false));
       }}
     >
-      {locales.map((locale) => (
-        <div className="space-y-3" key={locale.code}>
-          <label className="grid gap-1 text-sm">
-            {copy("Name ·")} {locale.name}
-            <input
-              disabled={pending}
-              className={field}
-              required={locale.code === baseLocale}
-              maxLength={120}
-              value={draft.translations[locale.code] ?? ""}
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  translations: { ...draft.translations, [locale.code]: event.target.value },
-                })
-              }
-            />
-          </label>
-          <label className="grid gap-1 text-sm">
-            {copy("Description ·")} {locale.name}
-            <textarea
-              disabled={pending}
-              className={field}
-              rows={2}
-              maxLength={2000}
-              value={draft.descriptions?.[locale.code] ?? ""}
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  descriptions: { ...draft.descriptions, [locale.code]: event.target.value },
-                })
-              }
-            />
-          </label>
-        </div>
-      ))}
+      <MenuLanguageTabs value={selectedLocale} onValueChange={setSelectedLocale} disabled={pending}>
+        {(locale) => (
+          <>
+            <label className="grid gap-1 text-sm">
+              <span>
+                {copy("Name")}
+                {locale === baseLocale && <span aria-hidden="true"> *</span>}
+              </span>
+              <input
+                ref={locale === baseLocale ? baseNameInput : undefined}
+                disabled={pending}
+                className={field}
+                required={locale === baseLocale}
+                maxLength={120}
+                value={draft.translations[locale] ?? ""}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    translations: { ...draft.translations, [locale]: event.target.value },
+                  })
+                }
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              {copy("Description")}
+              <textarea
+                disabled={pending}
+                className={field}
+                rows={4}
+                maxLength={2000}
+                value={draft.descriptions?.[locale] ?? ""}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    descriptions: { ...draft.descriptions, [locale]: event.target.value },
+                  })
+                }
+              />
+            </label>
+          </>
+        )}
+      </MenuLanguageTabs>
       {error && (
-        <p role="alert" className="text-sm text-destructive sm:col-span-3">
-          {copy("Could not save. Reload if the category has changed.")}
+        <p role="alert" className="text-sm text-destructive">
+          {error}
         </p>
       )}
-      <div className="flex gap-2 sm:col-span-3">
+      <div className="flex flex-wrap gap-2">
         <button className={primary} disabled={pending}>
           {copy("Save")}
         </button>
@@ -1240,9 +1316,11 @@ function MenuWorkspaceSection({
           {menu.kind !== "weekly" && (
             <Actions label={copy("+ Category")}>
               <Dropdown.Item onClick={() => setAdding("new")}>
+                <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
                 {copy("Create a category")}
               </Dropdown.Item>
               <Dropdown.Item onClick={() => setAdding("existing")}>
+                <LinkIcon className="size-4 shrink-0" aria-hidden="true" />
                 {copy("Add an existing category")}
               </Dropdown.Item>
             </Actions>

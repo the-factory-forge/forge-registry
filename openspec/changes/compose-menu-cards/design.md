@@ -4,7 +4,7 @@
 
 A menu orders categories. A category owns its dishes, even when several menus use it. An edit to a shared category affects every menu that uses it, so staff see those menus before editing. Detaching leaves the category and its dishes intact. Deleting a category keeps its dishes by default, so reorganizing menus does not destroy reusable content. Staff can reassign them from the bottom of the workspace. An explicit delete-all option still checks the existing file protections. Shared and weekly categories remain protected.
 
-The workspace keeps actions next to the current menu's heading and keeps edits attached to their original record. Menu and dish moves use version checks and save atomically. Category deletion verifies the complete dish/version snapshot before changing anything. Older callers without deletion options remain empty-only. Hosts choose how to link to each menu and load later sections.
+The workspace keeps actions next to the current menu's heading and keeps edits attached to their original record. Menu and dish moves use version checks and save atomically. Category deletion verifies the complete dish/version snapshot before changing anything. Older callers without deletion options remain empty-only. Hosts choose how to link to each menu and load later sections. Language tabs use the dish editor’s pattern in menu and category forms, so translations stay manageable on narrow screens.
 
 ## Three menu types, one set of dishes
 

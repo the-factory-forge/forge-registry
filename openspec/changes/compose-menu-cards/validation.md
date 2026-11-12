@@ -8,6 +8,8 @@ Verified on 12 November 2026, including the unassigned-dishes follow-up.
 - **Distribution:** a named shadcn install of Menus, Menus Storage, Agents Menus and Action Toast compiles in a disposable host. Generated items match their source.
 - **Originating site:** Terminal60 separately passes 55 unit tests, 35 intranet and 20 public browser journeys, two menu database tests and the seed test. Registry sources have not been reinstalled there.
 
+Language-tab follow-up: all 20 menu browser tests pass, including saved translations, missing-base-name focus and keyboard tabs. Desktop/mobile screenshots were reviewed in both themes. The 179 unit tests, code checks and build pass; persistence and installation checks above were not rerun for this UI-only change.
+
 Consumers adopting the schema need a forward migration. Google integration,
 physical devices/printers and production remain untested. No deployment or object
 relocation was performed.
