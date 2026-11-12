@@ -8,9 +8,15 @@ export interface MenuSpiceBadgeProps {
   level: MenuSpiceLevel;
   labels?: Partial<MenusLabels>;
   className?: string;
+  iconOnly?: boolean;
 }
 
-export function MenuSpiceBadge({ level, labels: overrides, className }: MenuSpiceBadgeProps) {
+export function MenuSpiceBadge({
+  level,
+  labels: overrides,
+  className,
+  iconOnly = false,
+}: MenuSpiceBadgeProps) {
   if (level === 0) return null;
   const labels = { ...menusLabels, ...overrides };
   const text = level === 1 ? labels.mildSpice : level === 2 ? labels.mediumSpice : labels.hotSpice;
@@ -18,6 +24,7 @@ export function MenuSpiceBadge({ level, labels: overrides, className }: MenuSpic
     <span
       className={cn(
         "inline-flex max-w-full items-center gap-1.5 rounded-full bg-status-pending px-2.5 py-1 text-xs font-medium text-status-pending-foreground",
+        iconOnly && "print:[print-color-adjust:exact]",
         className,
       )}
     >
@@ -26,7 +33,7 @@ export function MenuSpiceBadge({ level, labels: overrides, className }: MenuSpic
           <FlameIcon key={index} className="size-4" aria-hidden="true" />
         ))}
       </span>
-      <span className="min-w-0 wrap-anywhere">{text}</span>
+      <span className={iconOnly ? "sr-only" : "min-w-0 wrap-anywhere"}>{text}</span>
     </span>
   );
 }

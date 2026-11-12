@@ -62,16 +62,28 @@ _Avoid_: Permanent deletion
 
 ### Menus
 
+**Menu**:
+A named collection of ordered categories presented together to restaurant guests.
+_Avoid_: Menu card in user-facing copy
+
 **Menu editor**:
 The staff workspace for editing menu items, categories and labels.
 
 **Menu item**:
-A dish or drink with translated content, prices, a category and optional labels,
+A dish or drink with translated content, optional prices, an optional category and labels,
 with its own visibility, availability and position in the menu.
 
 **Menu taxonomy**:
 The categories that organize dishes and the reusable allergen and dietary labels
 assigned to them, with names for each supported language.
+
+**Menu label catalogue**:
+The common allergen and dietary labels available to every menu. Each dish has its
+own selection.
+
+**Menu preview**:
+A private view of saved menu content in Web or Paper, including unpublished content.
+_Avoid_: Publication
 
 ### Reservations
 

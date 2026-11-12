@@ -492,6 +492,8 @@ await test("private Drive persistence and storage recovery", async (t) => {
       const value = await reserve("Notes.txt");
       const duplicate = await client.prepareUpload(value.input);
       assert.equal(duplicate.id, value.ticket.id);
+      assert.equal(duplicate.entryId, value.ticket.entryId);
+      assert.notEqual(duplicate.entryId, duplicate.id);
       assert.equal(
         (await list()).items.some((entry) => entry.name === "Notes.txt"),
         false,
@@ -501,7 +503,11 @@ await test("private Drive persistence and storage recovery", async (t) => {
       await Promise.all([complete(value), complete(value)]);
       const rows = (await list()).items.filter((entry) => entry.name === "Notes.txt");
       assert.equal(rows.length, 1);
-      assert.equal((await client.prepareUpload(value.input)).completed, true);
+      assert.deepEqual(await client.prepareUpload(value.input), {
+        id: value.ticket.id,
+        entryId: rows[0].id,
+        completed: true,
+      });
       const { url } = await client.getDownload({ scope: a, entryId: rows[0].id });
       assert.equal(new URL(url).searchParams.get("X-Amz-Expires"), "300");
       const response = await fetch(url);

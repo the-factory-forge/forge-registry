@@ -72,7 +72,7 @@ await test("Drive UI ships independently; only the companion contains storage de
     const actual = (
       await readdir(new URL(`../${directory}/`, import.meta.url), { withFileTypes: true })
     )
-      .filter((entry) => entry.isFile())
+      .filter((entry) => entry.isFile() && entry.name !== "AGENTS.md")
       .map((entry) => `${directory}/${entry.name}`)
       .sort();
     if (item === server) actual.push("registry/components/utils/storage-filename.ts");

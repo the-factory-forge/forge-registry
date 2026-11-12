@@ -42,8 +42,9 @@ database or S3 errors.
 
 ## Menu data and pages
 
-One `MenuItem` belongs to one category and has a default price stored in minor
-currency units, with optional sizes that each have their own price. The website supplies one ISO currency code to the UI. Each
+One `MenuItem` belongs to at most one category. Its individual price is optional;
+amounts use minor currency units, including sizes with their own prices. The
+website supplies the currency label to the UI. Each
 item has translated name and description, display order, visibility, sold out
 status, optional image, spice level, and label IDs. Categories and labels have translated
 names. An empty or absent requested translation falls back to `baseLocale` for
@@ -51,7 +52,7 @@ that whole entity. The base language name is required. Menu data remains in the
 restaurant's database; no menu copy or branding ships in the registry.
 
 Call `service.publicMenu(locale)` in the public route's server loader and pass
-the result to `MenuPage`. It includes only visible items, grouped in display
+the result to `MenuPage`. It includes only visible items assigned to a category, grouped in display
 order. Sold out items stay on the menu with a label. Supply `locale`, `currency`,
 and a stable `imageUrl(itemId)` from the host. `MenuPage` server-renders the full
 menu and provides browser filters only for labels assigned to its supplied
@@ -237,16 +238,19 @@ name uses `labels.categories`. Hosts with a fixed header can set
 Use `MenuItemsPage` for the staff directory, `MenuItemEditorPage` on dedicated
 `/menus/new` and `/menus/:id` routes, and `MenuTaxonomyPage` for short category
 and label forms. Supply the host's `MenusClient`, language options, destinations,
-and optional router Link adapter. English UI labels are overridable. Creating an
-item saves it hidden and without an image. Navigate to its edit route in
-`onSaved`; there the Drive browser can upload a photo in its private item space.
-The editor accepts ready JPEG, PNG, or WebP files up to 10 MB as a selected photo.
-The server validates the bytes again before saving. Unselect an image before
-deleting its Drive file. Remove all Drive files before deleting an item.
+and optional router Link adapter. Use `labelsOnly` for a workspace’s shared
+allergen and dietary catalogue. Flat item creation defaults to hidden. For a
+grouped editor, opt into `visibleOnCreate` and authorize both create and edit.
+
+The editor can crop an optional photo before the first save. It saves the dish,
+then uploads and associates the photo in its private Drive space. Forward the
+optional upload ticket `entryId` so retries reuse the same file. Unselect an
+image before deleting its Drive file. Remove all Drive files before deleting a
+dish.
 
 The public image route calls `service.readPublicImage(itemId)` and returns its
-`Response`. It checks that the item is currently visible and references a ready
-image file in its own Drive space. The response has `Cache-Control: no-store`
+`Response`. It checks that the item is currently visible, belongs to a category and references
+a ready image file in its own Drive space. The response has `Cache-Control: no-store`
 and never exposes a signed Drive URL. Do not place a cache in front of this
 route unless hiding an item also invalidates that cache. Existing in-flight
 responses cannot be revoked.
@@ -370,16 +374,16 @@ failure keeps the settings and allows retry. Empty menus cannot be printed.
 
 The browser dialog supplies final pagination and PDF saving. Select the matching
 paper size, orientation and 100% scale, and disable browser headers and footers. Menus flow
-onto additional pages; headings and dishes stay together where they fit.
+onto additional pages. Categories share a page when they fit; a category longer
+than one page can continue on the next. Headings stay with their first dish.
 An individual dish longer than a page may split. A5 means individual pages,
 not booklet imposition. There is no saved menu, direct PDF endpoint, or layout
 editor. The screen preview adapts to narrow screens; the print dialog shows the
 actual page breaks. Hosts own authorization and must guard the print route
 before loading staff data.
 
-Preview `/en/admin/menus/print` or `/fr/admin/menus/print`. The Menus homepage
-entry includes a searchable Menu printer tag; open it and follow Menu printer
-in the preview navigation. Print labels are optional additions to `MenusLabels` with
+In the showroom, open a menu’s **Preview**, then **Paper**. The legacy **Item
+list** still has its own **Print menu** action. Print labels are optional additions to `MenusLabels` with
 English defaults. Override them together with existing sold-out and spice labels
 for the host's language.
 
@@ -404,3 +408,48 @@ translate its Close label. Existing callback and label props are unchanged.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Menu adoption
+
+Export `menuCards` and `menuCardSections` from the storage schema and generate a
+forward migration in the host. Include nullable dish prices and category IDs,
+category versions and descriptions, and menu type, weekly and currency fields.
+Remove the dish category’s `NOT NULL` constraint before enabling category deletion
+that preserves dishes; do not rewrite migrations already applied to a host. Existing
+prices, dish identities, category links and image keys are preserved. The
+association table starts empty until staff attach categories to a menu.
+
+Wire `MenuWorkspace` to the authenticated Menus and menu clients. The host
+provides menu and dish links and today’s date in the restaurant’s time zone.
+Bind `search` and `onSearchChange` to host URL state for per-menu dish search.
+Use `cardsClient(actor)` for staff writes, and `previewCard(actor, id, locale)`
+for saved private previews. Public routes use `publicCards(locale, date)` and
+`readPublicCardImage(id, date)` together.
+Render the saved projection with `MenuCardPage` or the staff-only
+`MenuCardPreview` component. Pass a host-authorized image URL to private
+previews when staff need to see photos on unpublished cards. Existing flat
+integrations can keep their current routes and operations.
+
+## Unassigned dishes and category deletion
+
+The workspace keeps unassigned dishes below the menus, alongside the existing
+unattached-category section. Staff can find a preserved dish and assign it through
+the item editor. No separate directory is needed for that recovery path. Unassigned
+dishes and their photos are excluded from public menus and print, even if the dish
+was previously visible. Their private files and labels remain available to staff.
+
+Deleting a category keeps its dishes by default. The confirmation can explicitly
+include its dishes; existing file guards still apply and failure changes nothing.
+Shared and weekly categories cannot be deleted through this action.
+
+`removeCategory(id, menu, options)` accepts `deleteItems` and an `items` snapshot of
+IDs and versions. For a nonempty category, the snapshot must match its complete
+current contents. This prevents a confirmation from affecting dishes added or
+edited by another staff member. Omit `deleteItems` to preserve the dishes. Older
+callers omitting `options` retain empty-only deletion. `listUnassigned()` is optional
+on host clients; the workspace can use `list()` and filter by a null category.
+
+Custom Drive adapters need the optional `deleteSpaces()` operation only for
+deleting a category and all its dishes atomically. `createDriveStorage` provides
+it. Older adapters can still preserve dishes; delete-all fails safely with a
+storage error until the adapter supports that operation.

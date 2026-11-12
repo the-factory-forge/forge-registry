@@ -1,4 +1,10 @@
-export { menuCategories, menuItems, menuLabels } from "@/components/plugins/menus/server/schema";
+export {
+  menuCards,
+  menuCardSections,
+  menuCategories,
+  menuItems,
+  menuLabels,
+} from "@/components/plugins/menus/server/schema";
 export {
   createMenusService,
   menuImageDeleteGuard,

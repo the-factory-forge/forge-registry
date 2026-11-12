@@ -1,3 +1,4 @@
+import type { ImageCropLabels } from "@/components/image-crop";
 import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
 import {
   tableSelectionLabels,
@@ -13,6 +14,8 @@ export interface MenusLabels extends TableSelectionLabels {
   print?: string;
   preparingPrint?: string;
   printSettings?: string;
+  printLegend?: string;
+  paperLandscape?: string;
   paperSize?: string;
   menuTitle?: string;
   footerText?: string;
@@ -23,6 +26,7 @@ export interface MenusLabels extends TableSelectionLabels {
   emptyMenu: string;
   soldOut: string;
   allergens: string;
+  allergensAndPreferences?: string;
   dietary: string;
   spiceLevel?: string;
   notSpicy?: string;
@@ -61,6 +65,7 @@ export interface MenusLabels extends TableSelectionLabels {
   name: string;
   description: string;
   category: string;
+  unassignedCategory?: string;
   price: string;
   sizes?: string;
   addSize?: string;
@@ -77,6 +82,15 @@ export interface MenusLabels extends TableSelectionLabels {
   photo: string;
   selectPhoto: string;
   removePhoto: string;
+  photoOptional?: string;
+  choosePhoto?: string;
+  photoHelp?: string;
+  photoInvalid?: string;
+  noPhoto?: string;
+  supplementaryPhotos?: string;
+  supplementaryPhotoHelp?: string;
+  photoSettings?: string;
+  photoCrop?: Partial<ImageCropLabels>;
   language: string;
   baseNameRequired: string;
   priceInvalid?: string;
@@ -96,6 +110,7 @@ export interface MenusLabels extends TableSelectionLabels {
 }
 
 export const menusLabels = {
+  unassignedCategory: "Unassigned",
   ...tableSelectionLabels,
   clearSearch: "Clear search",
   search: "Search menu items",
@@ -172,6 +187,14 @@ export const menusLabels = {
   photo: "Photo",
   selectPhoto: "Use as photo",
   removePhoto: "Remove photo",
+  photoOptional: "(optional)",
+  choosePhoto: "Add or replace the photo",
+  photoHelp: "Drop an image here or choose a file. Crop it before saving.",
+  photoInvalid: "Choose a JPG, PNG or WebP image up to 10 MB.",
+  noPhoto: "No photo",
+  supplementaryPhotos: "Additional private images",
+  supplementaryPhotoHelp: "Use a file as the main photo, then save your changes.",
+  photoSettings: "Menu presentation settings",
   language: "Language",
   priceInvalid: "Enter a valid, non-negative price within the allowed range.",
   baseNameRequired: "Enter a name in the base language.",

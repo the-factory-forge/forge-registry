@@ -115,6 +115,27 @@ await test("all Menu request methods reject malformed inputs before storage", as
     await invalid(() => client.create(input));
   await invalid(() => client.saveCategory({ id: 42, position: 0, translations: { en: "Lunch" } }));
   await invalid(() => client.saveLabel({ position: 0, translations: {}, kind: "unknown" }));
+  for (const scope of [
+    null,
+    {},
+    { categoryId: id, version: 1 },
+    { categoryId: null, version: 0 },
+    { menuId: 42, version: 1 },
+  ])
+    await invalid(() => client.remove(id, scope));
+  for (const options of [
+    null,
+    { deleteItems: "yes" },
+    { items: null },
+    { items: [{ id, version: 0 }] },
+    {
+      items: [
+        { id, version: 1 },
+        { id, version: 1 },
+      ],
+    },
+  ])
+    await invalid(() => client.removeCategory(id, undefined, options));
   assertUntouched();
 });
 
@@ -136,6 +157,7 @@ await test("Menu validation strips extra fields without changing normalization o
   assert.equal(input.sizes, undefined);
   assert.equal(input.spiceLevel, undefined);
   assert.deepEqual(input, snapshot);
+  assert.equal(validateItem({ ...item, categoryId: null }, "en").categoryId, null);
   for (const validate of [validateCategory, validateLabel])
     for (const input of [null, undefined, [], {}])
       assert.throws(() => validate(input, "en"), { code: "INVALID" });
@@ -184,6 +206,8 @@ await test("all Drive request methods reject malformed inputs before storage", a
   await invalid(() => drive.readTrustedFile(null, id, 100));
   await invalid(() => drive.assertSpaceEmpty(null, null));
   await invalid(() => drive.deleteSpace(null, null));
+  for (const scopes of [null, [], [null], [scope, scope]])
+    await invalid(() => drive.deleteSpaces(null, scopes));
   for (const input of [null, [], { limit: "1" }, { limit: 0 }])
     await invalid(() => drive.maintenance(input));
   assertUntouched();
