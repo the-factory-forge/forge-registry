@@ -6,19 +6,22 @@ Read the [integration guide](../../../../docs/menus.md) and
 
 ## Logic and ownership
 
-- `admin.tsx` composes staff pages. `editor.tsx`, `use-menu-items.ts` and
+- `workspace.tsx` composes the grouped manager and its unassigned sections;
+  `admin.tsx` keeps the flat directory and taxonomy pages. `editor.tsx`, `use-menu-items.ts` and
   `use-categories-and-labels.ts` own distinct editor, list and taxonomy lifetimes.
   Replacing the client starts a new session; departed completions cannot update it.
   Saving snapshots the editor and preserves typing made while the save is pending.
 - `model.ts` validates inputs and builds menu views. Prices use integer minor
   units; the host supplies currency. Missing translations fall back to the base
   locale for the whole entity. Hidden items leave public views; sold-out items stay.
-- `public.tsx` applies allergen exclusions and required dietary labels.
+- `public.tsx` keeps the flat visitor view; `composed-public.tsx` and `weekly.tsx`
+  render composed menus with allergen exclusions and required dietary labels.
   `print.tsx` handles A4/A5 output. `label-presets.ts` owns shared label/icon data;
   customer menu copy and visual branding remain host-owned.
 - `server/service.server.ts` checks authorization, versions and taxonomy relations.
-  Reordering validates the complete item/version list and commits positions
-  atomically without changing categories. Stale/missing/duplicate rows reject it.
+  Reordering validates complete item/version lists. Grouped moves update both
+  categories atomically; category deletion checks the complete dish snapshot.
+  Stale/missing/duplicate rows reject the write.
 - The storage companion uses Drive for item images. The host resolves `menu-item`
   scopes and installs `menuImageDeleteGuard`; selected images cannot be removed or
   trashed. Public image access checks the visible item's exact current reference.

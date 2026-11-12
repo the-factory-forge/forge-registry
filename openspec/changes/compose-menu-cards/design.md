@@ -1,70 +1,29 @@
 # Design
 
-## Context
+## Menus reuse categories
 
-See [proposal.md](proposal.md). Current `@forge/menus` exports flat categories/items and `MenusClient`; its storage companion owns typed Drizzle tables and versioned mutations. Drive owns private file bytes. Terminal60 uses relocated installed copies and site-owned routing, query invalidation, translations and Infomaniak transport. Registry main has newer Menus lifecycle rules than the customer's installed baseline; preserve those rules rather than copying its editor wholesale.
+A menu orders categories. A category owns its dishes, even when several menus use it. An edit to a shared category affects every menu that uses it, so staff see those menus before editing. Detaching leaves the category and its dishes intact. Deleting a category keeps its dishes by default, so reorganizing menus does not destroy reusable content. Staff can reassign them from the bottom of the workspace. An explicit delete-all option still checks the existing file protections. Shared and weekly categories remain protected.
 
-## Goals / Non-Goals
+The workspace keeps actions next to the current menu's heading and keeps edits attached to their original record. Menu and dish moves use version checks and save atomically. Category deletion verifies the complete dish/version snapshot before changing anything. Older callers without deletion options remain empty-only. Hosts choose how to link to each menu and load later sections.
 
-Add the common restaurant case of multiple cards and reusable sections with the least change to existing integrations. Preserve current APIs until explicit card adoption. Weekly scheduling UI, import data, recursive taxonomies, album persistence and storage-key migrations remain outside this reusable change.
+## Three menu types, one set of dishes
 
-## Decisions
+Standard and set menus use the same categories and dishes. A set menu can state a shared price in its description. The currency label applies to the whole menu and does not convert amounts. Weekly menus group dishes by day and course. Starting next week copies the structure and selected days into an independent, unpublished menu so last week’s dishes cannot accidentally go live.
 
-### Additive card records and explicit adoption
+## One saved menu, two previews
 
-Add card records and ordered card/category associations alongside existing category/item IDs. Categories gain optional translated descriptions and a concurrency version for shared edits. Card period/publication and display mode are card attributes; the host supplies its effective date/clock policy. Keep existing flat methods functional and add explicit card operations instead of silently changing the meaning of `publicMenu(locale)` for old callers. Once a host opts into card mode, all public menu and photo reads use the same eligibility projection.
+Web uses the visitor layout with saved content, including when the menu is unpublished. Paper uses the same menu, keeps the print settings and omits dish photos. The weekly layout uses a grid on wide screens and in print, and stacks days on phones. Printing starts from Paper. Preview changes neither publication nor the saved content.
 
-Ordering belongs to the card/category association and the category's dish list. Atomic operations use existing typed transactions and durable locks, complete expected membership and versions. Moving between categories locks/checks both source and destination. Detaching keeps the category and its dishes. An empty category can be deleted only when no other card uses it. Staff can find unassigned categories in a dedicated view.
+Anonymous menu and photo reads use the same publication, date and dish-visibility rules. Unassigned dishes remain private and are absent from paper output. The host supplies the date and serves authorized staff image URLs for private previews. A missing price differs from zero; a set price goes in the menu or category description.
 
-### Keep editing responsibilities together
+## Photos use private Drive scopes
 
-Extend the existing editor/list lifecycle modules and exported pages rather than adding a parallel management application. Shared categories render read-only within cards, expose their participating cards and open an explicit common editing context. Card/category descriptions are optional. Collapsible sections use the existing accessible controls; reorder retains pointer/touch and keyboard support with a menu action for non-drag movement. Expose global labels management through a host link independent of the current card.
+Save the dish, then upload and associate its optional cropped photo. A failed upload can retry against the saved dish without duplicating it or replacing the current photo. Supplementary files remain private. Public reads check the exact selected image, and the selected image is protected from deletion.
 
-Keep minor-unit prices and existing priced sizes, but allow a dish without an individual price. Absence is distinct from zero, which remains a real price. A genuinely different offer uses independent categories; this change does not introduce per-card item overrides or a second dish-assignment model.
+The [shared storage contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/host-integration/spec.md#requirement-site-and-plugin-scoped-object-storage) puts Drive-managed media under `<SITE_NAME>/drive/`. Terminal60 has its own adapter and separate dish-media prefix. Adopting Registry menus must preserve that adapter and existing image keys. Standardizing the physical prefix would require a separate change to the shared contract.
 
-### Confirmed team review
+## Adoption is explicit
 
-Terminal60's review placed card actions beside the sticky heading. Support an ordered collection of cards, with the current card's sticky heading replaced by the next rather than stacked. Preview and settings sit beside their card title; Printing is reached through Preview, not a duplicate card action. Keep pending edits associated with their owning record when the viewport changes. The host owns sidebar links, current-section URL state and progressive loading; do not add a router dependency to reusable controls.
+Existing flat integrations keep their APIs. Hosts that adopt menus apply a forward migration, allowing a dish to have no category, and connect the new public menu and image reads together. Applied migrations and stored dish identities stay intact. Installation does not move objects or seed customer data. Public copy uses **Menu**; existing technical identifiers in this draft remain unchanged.
 
-Use one clickable publication status per card, without duplicate Publish/Unpublish buttons. Keep explicit publication, eligible dates, failure recovery and immediate updates after saving visible dishes. Reuse the Blogs publication control where it fits. Menus saves current content directly.
-
-Expose one global label-catalogue destination for all cards; every dish keeps its own assignments. Group allergens and dietary preferences within that common management surface rather than creating one catalogue per card. Terminal60 owns installing the existing editable presets; installation must not assert labels on dishes. Keep the existing spice values 0, 1, 2 and 3, presented as a labeled four-stop slider.
-
-### Simple set-menu content
-
-The user accepted the existing Card / Category / Dish structure for set-menu examples: categories can be named "Menu I" and "Menu II". A forfait such as "88 CHF per person" belongs in the existing translated card description, or a category description when offers differ. Dishes can omit their price. Descriptions must appear in both web and paper views. Do not infer totals, included/free status or choices from that text, and do not add a Formula entity, price inheritance or ordering engine.
-
-Optional prices widen a previously required contract. Review types, model validation, persistence, editor parsing, public/print formatting, agents connector and host consumers together. Preserve all stored numeric prices and require a reviewed forward migration; an empty field must never silently become zero. Source compatibility and migration guidance must name affected consumers rather than promising unchanged nullable types.
-
-### Host-owned choices
-
-Registry ships neutral labels and configurable locales. Terminal60 owns its FR/EN/DE text, weekly layout, formula presentation, seed and storage paths.
-
-### Main photo uses existing Drive storage
-
-Reuse `ImageCrop`, current byte validation and selected-entry deletion guard. Keep a single optional main-image preview in the form, accepting local file selection before item creation. Save once, keep the canonical identity/version, then upload to that item's private scope and associate the result. Preserve failed/pending state and edits across retry. Supplementary files remain private and can still be managed through the existing Drive surface. No folder API is removed, no Gallery dependency is added and no storage prefix changes.
-
-### Public display and printing
-
-Use a shared card projection and renderer for public and staff preview data, with staff access able to inspect saved unpublished cards. Preview never publishes or exposes an anonymous preview URL. Public eligibility checks card publication, host-evaluated period and item visibility; selected images use that same rule at request time. Keep no-store image responses. Portable controls expose view/filter values and callbacks, with a compatible uncontrolled fallback for older callers. Hosts bind URL state.
-
-Rows use text, optional image and price columns, with a reserved image slot and the same base row height/spacing in photo mode even without an image. Long content must remain readable without clipping. Reuse the existing printer, passing one card projection instead of the global menu. Keep its isolated iframe, loading/error recovery and photo-free content. Specialized weekly matrices belong in the host.
-
-There is one Preview entry with Web and Paper views for the same saved card. Web uses the guest-facing renderer; Paper uses the existing print preview, retains its settings and exposes Print. Only Print opens the browser's confirmation/cancellation dialog. Switching views has no publication or print side effects. Do not add another application confirmation or a separate View on site action for unpublished cards.
-
-### Distribution and consumers
-
-Trace and update `menus` and `menus-storage` manifest files/dependencies, plugin definition, English labels and neutral showroom adapters. Inspect `agents-menus-server` for changed method assumptions without installing Agents in Terminal60. `drive-storage`, crop controls and shared UI remain existing dependencies; alter them only if an acceptance check proves a common defect. Regenerate `public/r` with the official builder and test named-item installation in a disposable consumer.
-
-Terminal60 is the recorded Menus consumer; the template does not install Menus. Verify the inventory and reverse dependencies before source changes. Record unknown consumers as pending. Promotion uses the bounded `sync-to-forge-registry` procedure; other customer sites are not part of this rollout.
-
-## Risks / Trade-offs
-
-- Additive compatibility temporarily supports flat and card reads. Keep explicit adoption and test both interfaces rather than using a runtime feature switch.
-- Shared writes can affect multiple views. Versions, atomic membership checks and the common editor prevent silent overwrites.
-- Photo upload spans storage and metadata. Preserve item identity and retryable cleanup instead of promising an impossible cross-store transaction.
-- Unpublishing can change image access. Test no eligible cards, one remaining live card, unavailable bytes and unauthorized staff operations.
-
-## Migration Plan
-
-Ship schema exports and migration guidance, not automatic SQL execution. Hosts generate their own incremental history, backfill existing categories into an explicit card and test fresh/populated upgrades before adoption. Do not rewrite previous SQL, move S3 objects or seed production records. Reconcile completed deltas into registry `menu-cards` and `plugins`, then archive only after implementation and distribution checks pass.
+See the [requirements](specs/menu-cards/spec.md), [photo workflow](specs/plugins/spec.md) and [tasks](tasks.md) for acceptance checks and distribution.

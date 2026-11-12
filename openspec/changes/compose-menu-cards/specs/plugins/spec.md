@@ -6,9 +6,9 @@ The Menus editor SHALL offer an optional main-photo field with a preview during 
 
 #### Scenario: Create with a cropped photo
 
-- **WHEN** staff select a valid image, adjust its crop and save a new dish
+- **WHEN** staff select or drop a valid image, adjust its crop and save a new dish
 - **THEN** the accepted image is uploaded and selected without another "Use this photo" step
-- **AND** staff see the selected photo in the form
+- **AND** staff see the selected photo in the form, and any open dish file list updates without a manual refresh
 - **AND** the general Drive folder interface remains available for existing non-photo file-management uses
 
 #### Scenario: Upload or association fails
@@ -23,16 +23,17 @@ The Menus editor SHALL offer an optional main-photo field with a preview during 
 - **WHEN** a client supplies an oversized, malformed, unready or foreign-scope image
 - **THEN** server validation rejects it before public association
 - **AND** selected images remain protected from Drive deletion and no signed private URL becomes a canonical public reference
+- **AND** preserving a dish while deleting its category keeps the file private and denies anonymous image reads until the dish belongs to an eligible category again
 - **AND** replacing or removing an image retains existing conflict checks and recoverable cleanup
 
 ### Requirement: Explicit dish visibility at creation
 
-The Menus editor SHALL make dish visibility selectable before the first save, with an unchecked default. A successful save SHALL retain that choice. Card publication and availability SHALL independently control public access in card mode. Sold-out dishes SHALL remain visible when otherwise eligible.
+The Menus editor SHALL make dish visibility selectable before the first save, with an unchecked default. A successful save SHALL retain that choice. Menu publication and availability SHALL independently control public access in menu mode. Sold-out dishes SHALL remain visible when otherwise eligible.
 
 #### Scenario: Choose visibility before creating
 
 - **WHEN** staff create a dish with visibility selected
 - **THEN** the service accepts that explicit choice and the saved editor shows it
-- **AND** an unpublished card does not become public as a side effect
+- **AND** an unpublished menu does not become public as a side effect
 - **WHEN** staff leave visibility unchecked
 - **THEN** the new dish stays hidden until an explicit saved change
