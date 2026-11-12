@@ -12,7 +12,7 @@ after(async () => {
   await browser?.close();
 });
 
-await test("lightbox traps focus, preserves image clicks and restores focus after dismissal", async (t) => {
+void test("lightbox traps focus, preserves image clicks and restores focus after dismissal", async (t) => {
   const page = await browser.newPage();
   page.setDefaultTimeout(10000);
   t.after(() => page.close());
@@ -76,4 +76,35 @@ await test("lightbox traps focus, preserves image clicks and restores focus afte
   const placeholder = page.getByRole("figure", { name: "Missing photo" });
   assert.match(await placeholder.textContent(), /Photo coming soon/);
   assert.deepEqual(errors, []);
+});
+
+void test("collection keeps navigation usable across touch, keyboard and image failures", async (t) => {
+  const page = await browser.newPage({ hasTouch: true, viewport: { width: 390, height: 844 } });
+  t.after(() => page.close());
+  await page.goto(`${baseURL}/lightbox`);
+  const trigger = page.getByRole("button", { name: "Click to enlarge : Second collection image" });
+  await trigger.click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("img", { name: "Second collection image" }).waitFor();
+  assert.equal(await dialog.locator("output").textContent(), "2 / 3");
+  assert.equal(await dialog.getByText("Second image in the example.").isVisible(), true);
+  await page.keyboard.press("ArrowRight");
+  await dialog.getByText("This image could not be loaded.").waitFor();
+  await dialog.getByRole("button", { name: "Next image" }).click();
+  const first = dialog.getByRole("img", { name: "First collection image" });
+  await first.waitFor();
+  const bounds = await first.boundingBox();
+  assert.ok(bounds && bounds.width > 72);
+  const touch = await page.context().newCDPSession(page);
+  const point = { x: bounds.x + bounds.width * 0.8, y: bounds.y + bounds.height / 2 };
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [point] });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ ...point, x: point.x - 68 }],
+  });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await dialog.getByRole("img", { name: "Second collection image" }).waitFor();
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+  await trigger.and(page.locator(":focus")).waitFor();
 });

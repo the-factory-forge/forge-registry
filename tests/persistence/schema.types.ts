@@ -6,6 +6,7 @@ import {
   createBexioCustomerProvisioner,
   createBexioContactLinkStore,
 } from "../../registry/components/connectors/customers-bexio/server/index.ts";
+import { createSupportsGithub } from "../../registry/components/connectors/supports-github/server/index.ts";
 import type { BlogsDatabase } from "../../registry/components/plugins/blogs/server/types.ts";
 import { createCustomersService } from "../../registry/components/plugins/customers/server/index.ts";
 import type {
@@ -97,11 +98,22 @@ export async function checkHostTypes() {
     // @ts-expect-error Callbacks cannot fall back to untyped runtime SQL.
     shared.execute("select 1");
   });
-  const supports: SupportsClient = createSupportsStorage({
+  const supportStorage = createSupportsStorage({
     db,
     keyPrefix: "fixture/supports/",
     resolveActor: async () => ({ id: "staff", name: "Staff", kind: "staff" }),
     authorize: async () => true,
-  }).client(undefined);
-  return { drive, blogs, customers, names, importAdapter, linkStore, supports };
+    onMutation: (tx, event): Promise<void> => github.enqueue(tx, event),
+  });
+  const github = createSupportsGithub({
+    db,
+    supports: supportStorage.integration,
+    repository: { id: 1, installationId: 2, botUserId: 3, owner: "example", name: "site" },
+    getAccessToken: async () => "unused",
+    webhookSecret: "unused-fixture-webhook-secret",
+    ticketUrl: (id) => `https://example.com/supports/${id}`,
+    authorizeOperator: async () => false,
+  });
+  const supports: SupportsClient = supportStorage.client(undefined);
+  return { drive, blogs, customers, names, importAdapter, linkStore, supports, github };
 }

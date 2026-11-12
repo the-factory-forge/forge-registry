@@ -11,8 +11,14 @@ import { createDriveMock } from "@/showroom/drive-mock";
 import { ShowroomLink } from "@/showroom/routing";
 import { showroomHead } from "@/showroom/seo";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
+import { SupportsGithubPreview } from "@/showroom/supports-github-preview";
 
 const connectors = {
+  "supports-github": {
+    title: "Supports–GitHub",
+    description: "Synchronize staff support discussions with private GitHub issues.",
+    adapters: [],
+  },
   "customers-bexio": {
     title: "Customers–Bexio",
     description:
@@ -58,6 +64,7 @@ export const Route = createFileRoute("/connectors/$connector")({
 });
 function ConnectorRoute() {
   const { connector } = Route.useParams();
+  if (connector === "supports-github") return <SupportsGithubPreview />;
   return <ConnectorExample key={connector} connector={connector as keyof typeof connectors} />;
 }
 function ConnectorExample({ connector }: { connector: keyof typeof connectors }) {

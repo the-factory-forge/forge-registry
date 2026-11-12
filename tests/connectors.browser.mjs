@@ -27,10 +27,11 @@ await suite("Connector showcase", async () => {
   await test("connectors are discoverable in the directory and adapter search", async (t) => {
     const page = await open(t, "/?category=Connector");
     const examples = page.getByRole("region", { name: "Examples", exact: true });
-    assert.equal(await examples.getByRole("link").count(), 2);
+    assert.equal(await examples.getByRole("link").count(), 3);
     for (const [name, slug] of [
       ["Customers–Bexio", "customers-bexio"],
       ["Projects–Drive", "projects-drive"],
+      ["Supports–GitHub", "supports-github"],
     ]) {
       assert.equal(
         await examples.getByRole("link", { name: new RegExp(name) }).getAttribute("href"),
@@ -38,9 +39,9 @@ await suite("Connector showcase", async () => {
       );
     }
     await page.reload();
-    assert.equal(await examples.getByRole("link").count(), 2);
+    assert.equal(await examples.getByRole("link").count(), 3);
     await page.getByRole("searchbox", { name: "Search examples" }).fill("adapter");
-    assert.equal(await examples.getByRole("link").count(), 2);
+    assert.equal(await examples.getByRole("link").count(), 3);
     await examples.getByRole("link", { name: /Customers–Bexio/ }).click();
     await page.getByRole("heading", { name: "Bexio contacts" }).waitFor();
     await page.getByText("Adapters and installation", { exact: true }).click();

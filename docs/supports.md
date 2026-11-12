@@ -181,21 +181,20 @@ retries. `cancelUpload` marks an unattached image for cleanup before object dele
 Installation does not create a scheduler. Do not apply a bucket expiry rule to the
 final Supports object prefix or remove metadata for failed cleanup.
 
-## Deferred connector contract
+## Optional integration
 
-Connector source will own credentials, bindings, delivery queues and synchronization
-metadata. Core Supports has no provider fields or runtime connector registry.
-The agreed second phase allows multiple installed connectors but selects one private
-destination per ticket through host routing. Public destinations are excluded.
+[Supports–GitHub](./supports-github.md) supplies private issue delivery through
+separately installed connector source. Core Supports has no provider fields or
+connector dependency. Its optional server `onMutation(transaction, event)` commits
+connector work alongside creates, replies and status changes. Enqueue failure
+rolls back the local submission; remote delivery happens after commit.
 
-Ticket creation, replies and close/cancel/reopen actions will synchronize both ways.
-Failed delivery must preserve the local request, expose a separate pending/failed
-delivery state and offer retry. Connecting a destination must not export old
-tickets automatically: an authorized operator selects the backlog. If external
-status changes while an older local change is queued, adopt the newer confirmed
-status and require a fresh staff action instead of silently replaying stale intent.
-Provider webhooks, external authors, loop prevention, relative Markdown links and
-private attachment transfer belong to that connector implementation.
+The trusted server `integration` port exposes authorization, transaction locking,
+complete history snapshots and validated external reply/status imports. Imports
+skip the outbound mutation hook. Keep this port out of browser transport.
+`SupportDetailPage.integrationContent` hosts a connector card; local submission
+success never implies external receipt. See the connector guide for explicit
+historical export, staff visibility, media links, delivery and operator recovery.
 
 ## Verification and adoption
 

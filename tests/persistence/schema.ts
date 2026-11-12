@@ -15,3 +15,5 @@ export const projects = createProjectsSchema(customers);
 
 import { createBexioContactLinksSchema } from "../../registry/components/connectors/customers-bexio/server/schema.ts";
 export const bexioLinks = createBexioContactLinksSchema(customers);
+
+export * from "../../registry/components/connectors/supports-github/server/schema.ts";
