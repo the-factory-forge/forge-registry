@@ -32,7 +32,7 @@ export interface IntranetSidebarProps {
   /** Use a compact symbol-only logo; the site name is rendered separately. */
   brand: { name: string; href: string; logo?: React.ReactNode };
   /** Compatible with Better Auth's standard session user fields. */
-  user: { name: string; email: string; image?: string | null };
+  user: { name?: string | null; email: string; image?: string | null };
   groups: IntranetNavGroup[];
   /** Persistent secondary navigation immediately above the signed-in profile. */
   footerItems?: IntranetNavItem[];
@@ -218,7 +218,7 @@ export function IntranetSidebarInset({
 
 function UserAvatar({ user }: Pick<IntranetSidebarProps, "user">) {
   const [failedImage, setFailedImage] = React.useState<string>();
-  const initials = (user.name.trim() || user.email)
+  const initials = (user.name?.trim() || user.email)
     .split(/\s+/)
     .slice(0, 2)
     .map((word) => word[0])
