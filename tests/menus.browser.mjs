@@ -28,6 +28,250 @@ await suite("Menus browser", async () => {
     return page;
   }
 
+  await test("stacked menus share one editable category and preview their own dishes", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const stage = page.getByRole("main", { name: "Component preview" });
+    const lunch = stage.getByRole("region", { name: "Lunch menu", exact: true });
+    const drinks = stage.getByRole("region", { name: "Drinks menu", exact: true });
+    await stage.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+    await lunch.getByRole("region", { name: "Soft drinks", exact: true }).waitFor();
+    await drinks.getByRole("region", { name: "Soft drinks", exact: true }).waitFor();
+    assert.equal(await stage.getByRole("combobox", { name: "Sample menu" }).count(), 0);
+    await lunch.getByText("Shared by 2 menus", { exact: true }).click();
+    await lunch.getByText("Drinks menu", { exact: true }).waitFor();
+    await lunch.getByText("Shared by 2 menus", { exact: true }).click();
+    await lunch.getByRole("button", { name: "Edit shared category" }).click();
+    await lunch.getByRole("button", { name: "Actions for Soft drinks", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Edit category", exact: true }).click();
+    await lunch.getByRole("textbox", { name: "Name · English" }).fill("Cold drinks");
+    await lunch.getByRole("button", { name: "Save", exact: true }).click();
+    await drinks.getByRole("region", { name: "Cold drinks", exact: true }).waitFor();
+    await drinks.getByRole("link", { name: "Preview", exact: true }).click();
+    const web = page.getByRole("tabpanel", { name: "Web", exact: true });
+    await web.getByRole("heading", { name: "Drinks menu", exact: true }).waitFor();
+    await web.getByRole("heading", { name: "Espresso", exact: true }).waitFor();
+    assert.equal(
+      await web.getByRole("heading", { name: "Burrata with tomatoes", exact: true }).count(),
+      0,
+    );
+    await page.getByRole("tab", { name: "Paper", exact: true }).click();
+    const paper = page.frameLocator("[data-menu-preview-frame]");
+    await paper.getByRole("heading", { name: "Drinks menu", exact: true }).waitFor();
+    await paper.getByRole("heading", { name: "Cold drinks", exact: true }).waitFor();
+  });
+
+  await test("deleting a category keeps hidden dishes that staff can reassign or delete", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const stage = page.getByRole("main", { name: "Component preview" });
+    const lunch = stage.getByRole("region", { name: "Lunch menu", exact: true });
+    await lunch.getByRole("region", { name: "Small plates", exact: true }).waitFor();
+    await lunch.getByRole("button", { name: "Actions for Small plates", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Delete category", exact: true }).click();
+    const confirmation = page.getByRole("dialog", {
+      name: "Delete category · Small plates",
+      exact: true,
+    });
+    const deleteDishes = confirmation.getByRole("checkbox", {
+      name: "Also delete the 3 dishes",
+      exact: true,
+    });
+    await deleteDishes.waitFor();
+    assert.equal(await deleteDishes.isChecked(), false);
+    await confirmation.getByRole("button", { name: "Delete category", exact: true }).click();
+    await confirmation.waitFor({ state: "hidden" });
+    assert.equal(await lunch.getByRole("region", { name: "Small plates", exact: true }).count(), 0);
+    const orphanSection = stage
+      .locator("details")
+      .filter({ has: page.locator("summary", { hasText: "Unassigned dishes" }) });
+    await orphanSection.locator("summary").click();
+    await orphanSection.getByText("Tomato soup", { exact: true }).waitFor();
+    await orphanSection
+      .getByRole("link", { name: "Choose a category · Tomato soup", exact: true })
+      .click();
+    assert.equal(
+      await page.getByRole("combobox", { name: "Category", exact: true }).inputValue(),
+      "",
+    );
+    assert.equal(
+      await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).isChecked(),
+      true,
+    );
+    await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).uncheck();
+    await page
+      .getByRole("combobox", { name: "Category", exact: true })
+      .selectOption({ label: "Lunch plates" });
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await actionToast(page, "Saved.");
+    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await lunch.getByText("Tomato soup", { exact: true }).waitFor();
+    assert.equal(
+      await lunch
+        .getByRole("button", { name: "Dish visibility · Tomato soup", exact: true })
+        .getAttribute("aria-pressed"),
+      "false",
+    );
+    await orphanSection.locator("summary").click();
+    await orphanSection.getByText("Green salad", { exact: true }).waitFor();
+    assert.equal(await orphanSection.getByText("Tomato soup", { exact: true }).count(), 0);
+    await orphanSection
+      .getByRole("button", { name: "Delete dish · Green salad", exact: true })
+      .click();
+    const deleteDish = page.getByRole("dialog", { name: "Delete dish · Green salad", exact: true });
+    await deleteDish.getByRole("button", { name: "Delete dish", exact: true }).click();
+    await deleteDish.waitFor({ state: "hidden" });
+    await orphanSection.getByText("Green salad", { exact: true }).waitFor({ state: "hidden" });
+    await orphanSection.getByText("Marinated olives", { exact: true }).waitFor();
+  });
+
+  await test("category deletion protects dish files and requires an explicit delete-all choice", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const stage = page.getByRole("main", { name: "Component preview" });
+    const seasonal = stage.getByRole("region", { name: "Seasonal menu", exact: true });
+    await seasonal.getByRole("button", { name: "Actions for Starters", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Delete category", exact: true }).click();
+    const guarded = page.getByRole("dialog", { name: "Delete category · Starters", exact: true });
+    await guarded.getByRole("checkbox", { name: "Also delete the 2 dishes", exact: true }).check();
+    await guarded.getByRole("button", { name: "Delete category and dishes", exact: true }).click();
+    await guarded.getByRole("alert").waitFor();
+    assert.match(await guarded.getByRole("alert").textContent(), /photos and files/);
+    await guarded.getByRole("button", { name: "Cancel", exact: true }).click();
+    await seasonal.getByText("Burrata with tomatoes", { exact: true }).waitFor();
+    await seasonal.getByText("Roasted beet salad", { exact: true }).waitFor();
+
+    const drinks = stage.getByRole("region", { name: "Drinks menu", exact: true });
+    await drinks.getByRole("button", { name: "Actions for Hot drinks", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Delete category", exact: true }).click();
+    const deletion = page.getByRole("dialog", {
+      name: "Delete category · Hot drinks",
+      exact: true,
+    });
+    await deletion.getByRole("checkbox", { name: "Also delete the 2 dishes", exact: true }).check();
+    await deletion.getByRole("button", { name: "Delete category and dishes", exact: true }).click();
+    await deletion.waitFor({ state: "hidden" });
+    assert.equal(await drinks.getByRole("region", { name: "Hot drinks", exact: true }).count(), 0);
+    const orphanSection = stage
+      .locator("details")
+      .filter({ has: page.locator("summary", { hasText: "Unassigned dishes" }) });
+    await orphanSection.locator("summary").click();
+    await orphanSection.getByText("No unassigned dishes.", { exact: true }).waitFor();
+    await drinks.getByRole("button", { name: "Actions for Soft drinks", exact: true }).click();
+    assert.equal(
+      await page.getByRole("menuitem", { name: "Delete category", exact: true }).count(),
+      0,
+    );
+  });
+
+  await test("a grouped drag previews a move but never drops into a locked shared category", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    await page.setViewportSize({ width: 1440, height: 1350 });
+    const lunch = page.getByRole("region", { name: "Lunch menu", exact: true });
+    await lunch.evaluate((element) => element.scrollIntoView({ block: "start" }));
+    const origin = lunch.getByRole("region", { name: "Small plates", exact: true });
+    const destination = lunch.getByRole("region", { name: "Lunch plates", exact: true });
+    const shared = lunch.getByRole("region", { name: "Soft drinks", exact: true });
+    const move = origin.getByRole("button", { name: "Move Tomato soup", exact: true });
+    const movePointer = async (locator) => {
+      const box = await locator.boundingBox();
+      assert.ok(box);
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    };
+    const hoverDestination = async () => {
+      await movePointer(move);
+      await page.mouse.down();
+      await movePointer(destination.getByText("Grilled cheese", { exact: true }));
+      await destination.locator("[data-menu-drag-placeholder]").waitFor();
+    };
+    await hoverDestination();
+    await movePointer(shared.getByText("Homemade lemonade", { exact: true }));
+    await page.mouse.up();
+    await page.locator("[data-menu-drag-preview]").waitFor({ state: "hidden" });
+    assert.equal(await origin.getByText("Tomato soup", { exact: true }).count(), 1);
+    await hoverDestination();
+    await page.mouse.up();
+    await page.locator("[data-menu-drag-preview]").waitFor({ state: "hidden" });
+    await destination.getByRole("button", { name: "Move Tomato soup", exact: true }).waitFor();
+    assert.equal(await origin.getByText("Tomato soup", { exact: true }).count(), 0);
+  });
+
+  await test("create menu control opens the three menu types and saves a set menu", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    await page.getByRole("link", { name: "Create menu", exact: true }).click();
+    const stage = page.getByRole("main", { name: "Component preview" });
+    await stage.getByRole("radio", { name: "Weekly menu", exact: true }).waitFor();
+    await stage.getByRole("radio", { name: "Set menu", exact: true }).check();
+    await stage.getByRole("textbox", { name: "Name · English" }).fill("Dinner for two");
+    await stage.getByRole("textbox", { name: "Description · English" }).fill("88 CHF per person");
+    await stage.getByRole("button", { name: "Save", exact: true }).click();
+    const menu = stage.getByRole("region", { name: "Dinner for two", exact: true });
+    await menu.getByRole("heading", { name: "Dinner for two", exact: true }).waitFor();
+    assert.equal(await menu.getByRole("switch").getAttribute("aria-checked"), "false");
+  });
+
+  await test("grouped search belongs to one menu and survives reload", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const stage = page.getByRole("main", { name: "Component preview" });
+    const lunch = stage.getByRole("region", { name: "Lunch menu", exact: true });
+    await lunch.getByRole("button", { name: "Search dishes", exact: true }).click();
+    await lunch.getByRole("searchbox", { name: "Search dishes", exact: true }).fill("lentil");
+    await lunch.getByText("Lentil bowl", { exact: true }).waitFor();
+    await lunch.getByText("Tomato soup", { exact: true }).waitFor({ state: "hidden" });
+    assert.match(page.url(), /menuQuery=lentil/);
+    await page.reload();
+    await lunch.getByRole("searchbox", { name: "Search dishes", exact: true }).waitFor();
+    assert.equal(
+      await lunch.getByRole("searchbox", { name: "Search dishes", exact: true }).inputValue(),
+      "lentil",
+    );
+    const drinks = stage.getByRole("region", { name: "Drinks menu", exact: true });
+    await drinks.scrollIntoViewIfNeeded();
+    await drinks.getByText("Espresso", { exact: true }).waitFor();
+    await lunch.getByRole("searchbox", { name: "Search dishes", exact: true }).press("Escape");
+    await lunch.getByText("Tomato soup", { exact: true }).waitFor();
+  });
+
+  await test("weekly menus preview a grid and copy only the structure to the next week", async (t) => {
+    const page = await preview(t, "/en/admin/menus/create-menu");
+    const stage = page.getByRole("main", { name: "Component preview" });
+    await stage.getByRole("radio", { name: "Weekly menu", exact: true }).check();
+    await stage.getByRole("textbox", { name: "Name · English" }).fill("Weekly specials");
+    await stage.getByLabel("From", { exact: true }).fill("2026-11-02");
+    await stage.getByLabel("To", { exact: true }).fill("2026-11-03");
+    for (const day of ["Wednesday", "Thursday", "Friday"])
+      await stage.getByRole("checkbox", { name: day, exact: true }).uncheck();
+    await stage.getByRole("button", { name: "Save", exact: true }).click();
+    const weekly = stage.getByRole("region", { name: "Weekly specials", exact: true });
+    const monday = weekly
+      .getByRole("button", { name: /^Monday · Starters/ })
+      .locator("xpath=ancestor::section[1]");
+    await monday.getByRole("link", { name: "Dish", exact: true }).click();
+    await page.getByRole("textbox", { name: "Name *", exact: true }).fill("Carrot soup");
+    await page.getByRole("checkbox", { name: "Visible on menu" }).check();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.getByRole("heading", { name: "Edit item", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await weekly.getByRole("link", { name: "Preview", exact: true }).click();
+    await page.getByRole("columnheader", { name: "Monday", exact: true }).waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("heading", { name: "Monday", exact: true }).waitFor();
+    await page
+      .getByRole("tabpanel", { name: "Web", exact: true })
+      .getByText("Carrot soup", { exact: true })
+      .last()
+      .waitFor();
+    await page.getByRole("tab", { name: "Paper", exact: true }).click();
+    assert.equal(await page.getByLabel("Paper size", { exact: true }).inputValue(), "A4 landscape");
+    await page
+      .frameLocator("[data-menu-preview-frame]")
+      .getByRole("columnheader", { name: "Tuesday", exact: true })
+      .waitFor();
+    await page.getByRole("link", { name: "Back to menu", exact: true }).click();
+    await weekly.getByRole("button", { name: "Create next week’s menu", exact: true }).click();
+    const next = weekly.filter({ hasText: "2026-11-09" });
+    await next.getByText(/2026-11-09.*2026-11-10/).waitFor();
+    assert.equal(await next.getByRole("switch").getAttribute("aria-checked"), "false");
+    assert.equal(await next.getByText("Carrot soup", { exact: true }).count(), 0);
+  });
+
   await test("editor label shortcut opens label management with a keyboard tooltip", async (t) => {
     const page = await preview(t, "/en/admin/menus/30000000-0000-4000-8000-000000000001");
     const link = page.getByRole("link", { name: "Manage labels", exact: true });
@@ -72,7 +316,7 @@ await suite("Menus browser", async () => {
     await image.evaluate((element) => element.decode());
     assert.equal(await page.locator("article img").count(), 1);
     assert.equal(await image.getAttribute("src"), "/showroom/menus/burrata-with-tomatoes.png");
-    await page.getByRole("link", { name: "Manage menu" }).click();
+    await page.getByRole("link", { name: "Item list" }).click();
     await page.getByRole("heading", { name: "Menu items" }).waitFor();
     await page.getByRole("link", { name: "Public menu" }).click();
     await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
@@ -102,8 +346,9 @@ await suite("Menus browser", async () => {
     await actionToast(page, "Saved.");
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
     assert.equal(await page.locator("article img").count(), 0);
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
+    await page.getByText("Additional private images", { exact: true }).click();
     await page
       .getByRole("row")
       .filter({ hasText: "burrata-with-tomatoes.png" })
@@ -116,9 +361,10 @@ await suite("Menus browser", async () => {
       await page.locator("article img").getAttribute("src"),
       "/showroom/menus/burrata-with-tomatoes.png",
     );
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.getByText("Additional private images", { exact: true }).click();
+    await page.locator('details input[type="file"]').setInputFiles({
       name: "replacement.png",
       mimeType: "image/png",
       buffer: Buffer.from(
@@ -195,7 +441,7 @@ await suite("Menus browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("link", { name: "Manage menu" }).click();
+    await page.getByRole("link", { name: "Item list" }).click();
     await page.getByRole("link", { name: "Categories / Labels" }).click();
     await page
       .getByRole("listitem")
@@ -235,8 +481,8 @@ await suite("Menus browser", async () => {
   });
 
   await test("staff creates, edits, and publishes an item; failure retains the draft", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
-    await page.getByRole("link", { name: "Create" }).click();
+    const page = await preview(t, "/en/admin/menus/items");
+    await page.getByRole("link", { name: "Create", exact: true }).click();
     const frenchTab = page.getByRole("tab", { name: "Français" });
     await frenchTab.click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Soupe de saison");
@@ -393,7 +639,7 @@ await suite("Menus browser", async () => {
         .allTextContents(),
       ["Végétalien", "Végétarien"],
     );
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
     const editorLabels = page.getByRole("group", { name: "Labels Manage labels", exact: true });
     await editorLabels.waitFor();
@@ -407,7 +653,7 @@ await suite("Menus browser", async () => {
       .getByRole("checkbox", { name: "Pescétarien", exact: true });
     await pescatarian.check();
     assert.equal(await page.locator("article").count(), 1);
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
     await editorLabels.getByRole("checkbox", { name: "Pescatarian", exact: true }).uncheck();
     await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -418,7 +664,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("staff reorders rows by dragging and keyboard, with persistence and failed-save recovery", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     await page.getByRole("link", { name: "Edit item: House pasta", exact: true }).click();
     assert.equal(
       await page.getByRole("spinbutton", { name: "Display order", exact: true }).count(),
@@ -465,7 +711,7 @@ await suite("Menus browser", async () => {
       "House pasta",
       "Burrata with tomatoes",
     ]);
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await burrata.waitFor();
     assert.deepEqual(await names(), ["House pasta", "Homemade lemonade", "Burrata with tomatoes"]);
     await page.setViewportSize({ width: 390, height: 844 });
@@ -521,7 +767,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("drag preview marks exact insertion edges and clears on canceled or invalid drops", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     const names = () => page.locator("tbody tr td:nth-child(2)").allTextContents();
     const original = ["Burrata with tomatoes", "House pasta", "Homemade lemonade"];
     const rows = page.locator("tbody tr[data-menu-item]");
@@ -598,7 +844,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("staff sets independent spice levels with one, two or three flames and can clear them", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     await page.setViewportSize({ width: 390, height: 844 });
     for (const [level, text] of [
       [1, "Mildly spicy"],
@@ -606,9 +852,11 @@ await suite("Menus browser", async () => {
       [3, "Extremely spicy"],
     ]) {
       await page.getByRole("link", { name: "Edit item: House pasta" }).click();
-      const spices = page.getByRole("group", { name: "Spice level", exact: true });
-      assert.equal(await spices.getByRole("radio").count(), 4);
-      await spices.getByRole("radio", { name: text, exact: true }).check();
+      const spices = page.getByRole("slider", { name: "Spice level", exact: true });
+      assert.equal(await spices.getAttribute("max"), "3");
+      await spices.press("Home");
+      for (let step = 0; step < level; step++) await spices.press("ArrowRight");
+      assert.equal(await spices.getAttribute("aria-valuetext"), text);
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await actionToast(page, "Saved.");
       await page.getByRole("link", { name: "Public menu", exact: true }).click();
@@ -627,7 +875,7 @@ await suite("Menus browser", async () => {
           .count(),
         0,
       );
-      await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+      await page.getByRole("link", { name: "Item list", exact: true }).click();
     }
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
     await page.getByRole("link", { name: "French menu", exact: true }).click();
@@ -644,13 +892,12 @@ await suite("Menus browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: House pasta" }).click();
-    assert.equal(
-      await page.getByRole("radio", { name: "Extremely spicy", exact: true }).isChecked(),
-      true,
-    );
-    await page.getByRole("radio", { name: "Not spicy", exact: true }).check();
+    const spices = page.getByRole("slider", { name: "Spice level", exact: true });
+    assert.equal(await spices.getAttribute("aria-valuetext"), "Extremely spicy");
+    await spices.press("Home");
+    assert.equal(await spices.getAttribute("aria-valuetext"), "Not spicy");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await actionToast(page, "Saved.");
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
@@ -659,7 +906,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("staff saves translated size prices and guests select sizes with keyboard controls", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByRole("textbox", { name: "Name *", exact: true }).fill("Margherita pizza");
@@ -751,7 +998,7 @@ await suite("Menus browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: Margherita pizza", exact: true }).click();
     assert.equal(
       await page.getByRole("textbox", { name: "Price (CHF) 2", exact: true }).inputValue(),
@@ -787,7 +1034,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("staff taxonomy and nested photo folders work with keyboard navigation on mobile", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByRole("link", { name: "Categories / Labels" }).click();
@@ -812,13 +1059,17 @@ await suite("Menus browser", async () => {
       .waitFor();
     await page.getByRole("link", { name: "Back to items" }).click();
     await page.getByRole("link", { name: "Edit item: Burrata with tomatoes" }).click();
+    await page.getByText("Additional private images", { exact: true }).click();
     await openDriveFolderDialog(page);
     const folderDialog = page.getByRole("dialog", { name: "New folder" });
     await folderDialog.getByRole("textbox", { name: "Name" }).fill("Photos");
     await folderDialog.getByRole("button", { name: "Create" }).click();
     await folderDialog.waitFor({ state: "hidden" });
     await closeDriveNavigation(page);
-    await page.getByRole("link", { name: "Photos", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Photos", exact: true })
+      .and(page.locator('a[aria-disabled="false"]'))
+      .press("Enter");
     await page
       .getByRole("navigation", { name: "Folder navigation" })
       .getByRole("heading", { name: "Photos", exact: true })
@@ -831,7 +1082,7 @@ await suite("Menus browser", async () => {
   });
 
   await test("label icons preview, retain failed edits, reach item and public views, and reset", async (t) => {
-    const page = await preview(t, "/en/admin/menus");
+    const page = await preview(t, "/en/admin/menus/items");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
     const vegetarian = page.getByRole("listitem").filter({ hasText: "Vegetarian (dietary)" });
@@ -866,11 +1117,13 @@ await suite("Menus browser", async () => {
       .locator("svg.lucide-sprout")
       .waitFor();
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
+    await page.getByRole("group", { name: "Exclude allergens", exact: true }).waitFor();
     const filter = page
+      .getByRole("group", { name: "Dietary", exact: true })
       .locator("label")
       .filter({ has: page.getByRole("checkbox", { name: "Vegetarian", exact: true }) });
     await filter.locator("svg.lucide-sprout").waitFor();
-    assert.equal(await filter.locator(".bg-status-success").count(), 1);
+    assert.match(await filter.getAttribute("class"), /\bbg-status-success\b/);
     await page
       .locator("article")
       .filter({ hasText: "Burrata with tomatoes" })
@@ -883,7 +1136,7 @@ await suite("Menus browser", async () => {
       .locator("svg.lucide-sprout")
       .waitFor();
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
-    await page.getByRole("link", { name: "Manage menu", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
     await page.getByRole("link", { name: "Categories / Labels", exact: true }).click();
     await vegetarian.getByRole("button", { name: "Edit label", exact: true }).click();
     assert.equal(await selector.inputValue(), "sprout");

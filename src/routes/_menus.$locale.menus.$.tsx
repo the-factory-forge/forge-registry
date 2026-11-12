@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_menus/$locale/menus/$")({
         "Preview a reusable React restaurant menu with sample dishes, categories, prices, dietary and allergen labels, and translated content.",
       path: match.pathname,
       canonicalPath: `/${params.locale}/menus`,
-      noIndex: match.status !== "success",
+      noIndex: Boolean(params._splat) || match.status !== "success",
     }),
   component: MenuPublicPreview,
 });
