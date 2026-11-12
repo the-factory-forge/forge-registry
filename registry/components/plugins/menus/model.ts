@@ -1,18 +1,22 @@
 import { z } from "zod";
 
 import { menuLabelIcons } from "@/components/plugins/menus/label-presets";
+import { menuKinds, weeklyCourses } from "@/components/plugins/menus/types";
 import type {
   MenuCard,
   MenuCardView,
   MenuCategory,
   MenuCategoryInput,
   MenuItem,
+  MenuItemGroupOrder,
   MenuItemInput,
   MenuLabel,
   MenuLabelInput,
   MenuTranslation,
   MenuViewCategory,
 } from "@/components/plugins/menus/types";
+
+export { menuKinds, weeklyCourses };
 
 export type MenuErrorCode =
   | "INVALID"
@@ -45,7 +49,7 @@ const translations = z.record(
   }),
 );
 export const menuItemInputSchema = z.object({
-  categoryId: z.string().min(1),
+  categoryId: z.string().min(1).nullable(),
   priceMinor: price.nullable(),
   sizes: z
     .array(
@@ -69,8 +73,14 @@ export const menuItemInputSchema = z.object({
   labelIds: z.array(z.string().min(1)).max(40),
   translations,
 });
-export const menuCategoryInputSchema = z.object({ position, translations: names });
-export const menuLabelInputSchema = menuCategoryInputSchema.extend({
+export const menuCategoryInputSchema = z.object({
+  position,
+  translations: names,
+  descriptions: z.record(localeSchema, z.string().trim().max(2000)).optional(),
+});
+export const menuLabelInputSchema = z.object({
+  position,
+  translations: names,
   kind: z.enum(["allergen", "dietary"]),
   icon: z.enum(menuLabelIcons).nullish(),
 });
@@ -80,6 +90,11 @@ export const menuOrderSchema = z.array(
     version: z.number().int().positive(),
   }),
 );
+export const menuItemGroupOrderSchema = z
+  .array(z.object({ categoryId: z.string().min(1), items: menuOrderSchema.max(1500) }))
+  .min(1)
+  .max(2)
+  .refine((groups) => new Set(groups.map((group) => group.categoryId)).size === groups.length);
 export function parseMenuInput<T>(schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);
   if (!result.success) throw new MenuError("INVALID");
@@ -147,6 +162,33 @@ export function reorderMenuItems(
   });
 }
 
+export function placeMenuItems(
+  items: readonly MenuItem[],
+  groups: readonly MenuItemGroupOrder[],
+): MenuItem[] {
+  groups = parseMenuInput(menuItemGroupOrderSchema, groups);
+  const categoryIds = new Set(groups.map((group) => group.categoryId));
+  const affected = items.filter(
+    (item) => item.categoryId !== null && categoryIds.has(item.categoryId),
+  );
+  const order = groups.flatMap((group) => group.items);
+  if (
+    order.length !== affected.length ||
+    new Set(order.map((item) => item.id)).size !== order.length
+  )
+    throw new MenuError("CONFLICT");
+  const byId = new Map(affected.map((item) => [item.id, item]));
+  return groups.flatMap(({ categoryId, items }) =>
+    items.map(({ id, version }, position) => {
+      const item = byId.get(id);
+      if (!item || item.version !== version) throw new MenuError("CONFLICT");
+      return item.categoryId === categoryId && item.position === position
+        ? item
+        : { ...item, categoryId, position, version: version + 1 };
+    }),
+  );
+}
+
 export function validateLabel(input: MenuLabelInput, baseLocale: string) {
   const value = parseMenuInput(menuLabelInputSchema, input);
   return {
@@ -192,6 +234,9 @@ export function buildMenu(
     .map((category) => ({
       id: category.id,
       name: localized(category.translations, locale, baseLocale),
+      ...(category.descriptions && {
+        description: localized(category.descriptions, locale, baseLocale),
+      }),
       items: items
         .filter((item) => item.visible && item.categoryId === category.id)
         .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
@@ -233,6 +278,8 @@ export function buildMenu(
     .filter((category) => category.items.length > 0);
 }
 
+const weekdaysSchema = z.array(z.number().int().min(0).max(6)).max(7);
+
 export const menuCardInputSchema = z
   .object({
     id: z.uuid().optional(),
@@ -244,18 +291,64 @@ export const menuCardInputSchema = z
     displayMode: z.enum(["lines", "photos"]),
     startDate: z.iso.date().nullable(),
     endDate: z.iso.date().nullable(),
+    kind: z.enum(menuKinds).optional(),
+    weekdays: weekdaysSchema.optional(),
+    weeklySections: z
+      .array(
+        z.object({
+          categoryId: z.uuid(),
+          day: z.number().int().min(0).max(6),
+          course: z.enum(weeklyCourses),
+        }),
+      )
+      .max(21)
+      .optional(),
+    currencyLabel: z.string().trim().min(1).max(16).optional(),
   })
   .refine((card) => Boolean(card.id) === Boolean(card.version))
   .refine((card) => card.id !== undefined || !card.published)
   .refine((card) => new Set(card.categoryIds).size === card.categoryIds.length)
+  .refine((card) => !card.weekdays || new Set(card.weekdays).size === card.weekdays.length)
   .refine((card) => !card.startDate || !card.endDate || card.startDate <= card.endDate);
 
+export function menuCardStatus(
+  card: Pick<MenuCard, "published" | "startDate" | "endDate">,
+  date: string,
+): "unpublished" | "scheduled" | "live" | "ended" {
+  if (!card.published) return "unpublished";
+  if (card.startDate && date < card.startDate) return "scheduled";
+  if (card.endDate && date > card.endDate) return "ended";
+  return "live";
+}
+
 export function isMenuCardPublic(card: MenuCard, date: string) {
-  return (
-    card.published &&
-    (!card.startDate || card.startDate <= date) &&
-    (!card.endDate || date <= card.endDate)
+  return menuCardStatus(card, date) === "live";
+}
+
+export function nextWeekDates(endDate: string, weekdays: readonly number[]) {
+  const value = parseMenuInput(z.iso.date(), endDate);
+  const days = parseMenuInput(weekdaysSchema.min(1), weekdays);
+  const end = new Date(`${value}T12:00:00Z`);
+  const monday = end.getUTCDate() + 7 - ((end.getUTCDay() + 6) % 7);
+  const offsets = days.map((day) => (day + 6) % 7);
+  const dateAt = (offset: number) => {
+    const date = new Date(end);
+    date.setUTCDate(monday + offset);
+    return date.toISOString().slice(0, 10);
+  };
+  return { startDate: dateAt(Math.min(...offsets)), endDate: dateAt(Math.max(...offsets)) };
+}
+
+export function visibleMenuCategoryIds(
+  card: Pick<MenuCard, "kind" | "categoryIds" | "weekdays" | "weeklySections">,
+) {
+  if (card.kind !== "weekly") return card.categoryIds;
+  const active = new Set(
+    card.weeklySections
+      ?.filter(({ day }) => card.weekdays?.includes(day))
+      .map(({ categoryId }) => categoryId),
   );
+  return card.categoryIds.filter((id) => active.has(id));
 }
 
 export function buildMenuCard(
@@ -267,14 +360,25 @@ export function buildMenuCard(
   baseLocale: string,
 ): MenuCardView {
   const byId = new Map(categories.map((category) => [category.id, category]));
-  const ordered = card.categoryIds.flatMap((id, position) => {
+  const ordered = visibleMenuCategoryIds(card).flatMap((id, position) => {
     const category = byId.get(id);
     return category ? [{ ...category, position }] : [];
   });
-  const { id, displayMode, startDate, endDate } = card;
+  const { id, displayMode, startDate, endDate, kind, weekdays, weeklySections, currencyLabel } =
+    card;
   const translation = localized(card.translations, locale, baseLocale);
   return {
-    card: { id, displayMode, startDate, endDate, ...translation },
+    card: {
+      id,
+      displayMode,
+      startDate,
+      endDate,
+      kind,
+      weekdays,
+      weeklySections,
+      currencyLabel,
+      ...translation,
+    },
     categories: buildMenu(items, ordered, labels, locale, baseLocale),
   };
 }

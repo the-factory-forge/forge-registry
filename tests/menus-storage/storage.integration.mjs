@@ -185,19 +185,27 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
 
   const scope = { type: "menu-item", id: item.id };
   const driveClient = drive.client("staff");
-  const ticket = await driveClient.prepareUpload({
+  const uploadInput = {
     scope,
     parentId: null,
     requestId: crypto.randomUUID(),
     name: "burrata.png",
     size: image.length,
     contentType: "image/png",
-  });
+  };
+  const ticket = await driveClient.prepareUpload(uploadInput);
   const upload = await fetch(ticket.url, { method: "PUT", headers: ticket.headers, body: image });
   assert.equal(upload.status, 200, await upload.text());
   await driveClient.completeUpload({ scope, uploadId: ticket.id });
   const [entry] = (await driveClient.listEntries({ scope, parentId: null })).items;
   assert.ok(entry);
+  assert.equal(ticket.entryId, entry.id);
+  assert.notEqual(ticket.id, ticket.entryId);
+  assert.deepEqual(await driveClient.prepareUpload(uploadInput), {
+    id: ticket.id,
+    entryId: ticket.entryId,
+    completed: true,
+  });
 
   const published = await staff.save(item.id, 1, {
     ...input,
@@ -210,7 +218,7 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
       { ...sizes[0], priceMinor: 1000 },
       { ...sizes[1], priceMinor: 1650 },
     ],
-    imageEntryId: entry.id,
+    imageEntryId: ticket.entryId,
   });
   assert.equal(published.id, item.id);
   assert.equal(published.version, 2);
@@ -240,6 +248,26 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
   assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.equal(response.headers.get("Content-Type"), "image/png");
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), image);
+
+  const cards = menus.cardsClient("staff");
+  const today = "2026-11-12";
+  const draft = await cards.saveCard({
+    position: 0,
+    translations: { en: { name: "Lunch", description: "" } },
+    categoryIds: [category.id],
+    published: false,
+    displayMode: "photos",
+    startDate: today,
+    endDate: today,
+  });
+  await rejected(menus.readPublicCardImage(item.id, today), "NOT_FOUND");
+  const live = await cards.saveCard({ ...draft, published: true });
+  await rejected(menus.readPublicCardImage(item.id, "2026-11-11"), "NOT_FOUND");
+  await rejected(menus.readPublicCardImage(item.id, "2026-11-13"), "NOT_FOUND");
+  const cardImage = await menus.readPublicCardImage(item.id, today);
+  assert.equal(cardImage.headers.get("Content-Type"), "image/png");
+  assert.deepEqual(Buffer.from(await cardImage.arrayBuffer()), image);
+
   const preview = await driveClient.previewDelete({ scope, entryId: entry.id });
   await rejected(
     driveClient.trashEntry({ scope, entryId: entry.id, token: preview.token }),
@@ -260,6 +288,8 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
   assert.deepEqual(hidden.sizes, []);
   assert.equal(hidden.priceMinor, 1450);
   await rejected(menus.readPublicImage(item.id), "NOT_FOUND");
+  await rejected(menus.readPublicCardImage(item.id, today), "NOT_FOUND");
+  await cards.removeCard(live.id, live.version);
   await staff.save(item.id, hidden.version, input);
   await driveClient.trashEntry({ scope, entryId: entry.id, token: preview.token });
   const current = await staff.get(item.id);
@@ -302,6 +332,253 @@ await test("menus, Better Auth-shaped authorization, and private Drive images", 
   );
   await staff.remove(first.id);
   await staff.remove(second.id);
+
+  await t.test(
+    "category deletion preserves dishes and images, with exact scope and version checks",
+    async () => {
+      const section = await staff.saveCategory({ position: 1, translations: { en: "Seasonal" } });
+      const dish = await staff.create({ ...input, categoryId: section.id });
+      const dishScope = { type: "menu-item", id: dish.id };
+      const photo = await driveClient.prepareUpload({
+        ...uploadInput,
+        scope: dishScope,
+        requestId: crypto.randomUUID(),
+      });
+      assert.equal(
+        (await fetch(photo.url, { method: "PUT", headers: photo.headers, body: image })).status,
+        200,
+      );
+      await driveClient.completeUpload({ scope: dishScope, uploadId: photo.id });
+      const selected = await staff.save(dish.id, dish.version, {
+        ...dish,
+        visible: true,
+        imageEntryId: photo.entryId,
+      });
+      const { id: _oldId, version: _oldVersion, ...cardInput } = draft;
+      const card = await cards.saveCard({ ...cardInput, categoryIds: [section.id] });
+      const shared = await cards.saveCard({ ...cardInput, categoryIds: [section.id], position: 2 });
+      const snapshot = [selected];
+      await rejected(staff.removeCategory(section.id, card, { items: snapshot }), "IN_USE");
+      await cards.removeCard(shared.id, shared.version);
+      await rejected(staff.removeCategory(section.id, card), "IN_USE");
+      await rejected(staff.removeCategory(section.id, card, { items: [] }), "CONFLICT");
+      await rejected(staff.removeCategory(section.id, card, { items: [dish] }), "CONFLICT");
+      await rejected(
+        staff.removeCategory(section.id, card, { items: snapshot, deleteItems: true }),
+        "IN_USE",
+      );
+      const taxonomyOnly = createMenusService({
+        db,
+        drive,
+        baseLocale: "en",
+        authorize: async (_actor, action) => action === "manageTaxonomy",
+      }).client("staff");
+      await rejected(
+        taxonomyOnly.removeCategory(section.id, card, { items: snapshot }),
+        "FORBIDDEN",
+      );
+      await rejected(
+        taxonomyOnly.removeCategory(section.id, card, { items: snapshot, deleteItems: true }),
+        "FORBIDDEN",
+      );
+      assert.equal((await staff.get(dish.id)).categoryId, section.id);
+      const emptySpace = await staff.create({ ...input, categoryId: section.id });
+      const currentSnapshot = [selected, emptySpace];
+      const legacyStaff = createMenusService({
+        db,
+        drive: {
+          readTrustedFile: (...args) => drive.readTrustedFile(...args),
+          deleteSpace: (...args) => drive.deleteSpace(...args),
+        },
+        baseLocale: "en",
+        authorize: async (actor) => actor === "staff",
+      }).client("staff");
+      await legacyStaff.removeCategory(section.id, card, { items: currentSnapshot });
+      const orphan = await staff.get(dish.id);
+      assert.equal(orphan.categoryId, null);
+      assert.equal(orphan.version, selected.version + 1);
+      assert.equal(orphan.visible, true);
+      assert.equal(orphan.imageEntryId, photo.entryId);
+      assert.deepEqual(orphan.labelIds, selected.labelIds);
+      assert.deepEqual(
+        new Set((await staff.listUnassigned()).map(({ id }) => id)),
+        new Set([dish.id, emptySpace.id]),
+      );
+      await rejected(menus.client("visitor").listUnassigned(), "FORBIDDEN");
+      assert.equal(
+        (await menus.publicMenu("en"))
+          .flatMap(({ items }) => items)
+          .some(({ id }) => id === dish.id),
+        false,
+      );
+      assert.deepEqual((await cards.listCards()).find(({ id }) => id === card.id).categoryIds, []);
+      await rejected(menus.readPublicImage(dish.id), "NOT_FOUND");
+      await rejected(menus.readPublicCardImage(dish.id, today), "NOT_FOUND");
+      assert.equal(
+        (await driveClient.listEntries({ scope: dishScope, parentId: null })).items[0].id,
+        photo.entryId,
+      );
+      assert.deepEqual(
+        Buffer.from((await drive.readTrustedFile(dishScope, photo.entryId, 1000)).bytes),
+        image,
+      );
+      const reassigned = await staff.save(emptySpace.id, emptySpace.version + 1, {
+        ...emptySpace,
+        categoryId: category.id,
+      });
+      await rejected(
+        staff.remove(reassigned.id, { categoryId: null, version: reassigned.version }),
+        "CONFLICT",
+      );
+      await staff.remove(reassigned.id);
+      const noPhoto = await staff.save(orphan.id, orphan.version, {
+        ...orphan,
+        imageEntryId: null,
+      });
+      const deletePhoto = await driveClient.previewDelete({
+        scope: dishScope,
+        entryId: photo.entryId,
+      });
+      await driveClient.deleteEntry({
+        scope: dishScope,
+        entryId: photo.entryId,
+        token: deletePhoto.token,
+      });
+      await rejected(
+        staff.remove(noPhoto.id, { categoryId: null, version: orphan.version }),
+        "CONFLICT",
+      );
+      await staff.remove(noPhoto.id, { categoryId: null, version: noPhoto.version });
+      assert.deepEqual(await staff.listUnassigned(), []);
+      const remaining = (await cards.listCards()).find(({ id }) => id === card.id);
+      await cards.removeCard(remaining.id, remaining.version);
+    },
+  );
+
+  await t.test(
+    "delete-all is atomic when any dish space has files, folders, trash, or pending uploads",
+    async () => {
+      const section = await staff.saveCategory({ position: 1, translations: { en: "Temporary" } });
+      const dishes = await Promise.all(
+        [0, 1].map((position) => staff.create({ ...input, categoryId: section.id, position })),
+      );
+      const scopes = dishes
+        .map(({ id }) => ({ type: "menu-item", id }))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const request = { items: dishes, deleteItems: true };
+      const assertRetained = async () => {
+        assert.equal(
+          (await staff.list()).filter(({ categoryId }) => categoryId === section.id).length,
+          2,
+        );
+        assert.equal(
+          (await staff.categories()).some(({ id }) => id === section.id),
+          true,
+        );
+      };
+      let singleDeletes = 0;
+      const legacyStaff = createMenusService({
+        db,
+        drive: {
+          readTrustedFile: (...args) => drive.readTrustedFile(...args),
+          deleteSpace: async (...args) => {
+            singleDeletes++;
+            return drive.deleteSpace(...args);
+          },
+        },
+        baseLocale: "en",
+        authorize: async (actor) => actor === "staff",
+      }).client("staff");
+      await assert.rejects(legacyStaff.removeCategory(section.id, undefined, request), {
+        name: "MenuError",
+        code: "STORAGE",
+      });
+      assert.equal(singleDeletes, 0);
+      assert.deepEqual(
+        (await staff.list()).filter(({ categoryId }) => categoryId === section.id),
+        dishes,
+      );
+      await assertRetained();
+      await driveClient.createFolder({ scope: scopes[0], parentId: null, name: "Temporary" });
+      const [firstFolder] = (await driveClient.listEntries({ scope: scopes[0], parentId: null }))
+        .items;
+      const firstDelete = await driveClient.previewDelete({
+        scope: scopes[0],
+        entryId: firstFolder.id,
+      });
+      await driveClient.deleteEntry({
+        scope: scopes[0],
+        entryId: firstFolder.id,
+        token: firstDelete.token,
+      });
+      // The first scope is empty, but its metadata must survive a later scope's failure.
+      const [firstSpace] = await pool`select id from drive_space where entity_id=${scopes[0].id}`;
+      await driveClient.createFolder({ scope: scopes[1], parentId: null, name: "Keep" });
+      const [folder] = (await driveClient.listEntries({ scope: scopes[1], parentId: null })).items;
+      await rejected(staff.removeCategory(section.id, undefined, request), "IN_USE");
+      await assertRetained();
+      assert.equal((await pool`select id from drive_space where id=${firstSpace.id}`).length, 1);
+      const folderPreview = await driveClient.previewDelete({
+        scope: scopes[1],
+        entryId: folder.id,
+      });
+      await driveClient.trashEntry({
+        scope: scopes[1],
+        entryId: folder.id,
+        token: folderPreview.token,
+      });
+      await rejected(staff.removeCategory(section.id, undefined, request), "IN_USE");
+      await assertRetained();
+      const purgeFolder = await driveClient.previewDelete({ scope: scopes[1], entryId: folder.id });
+      await driveClient.deleteEntry({
+        scope: scopes[1],
+        entryId: folder.id,
+        token: purgeFolder.token,
+      });
+      const pending = await driveClient.prepareUpload({
+        ...uploadInput,
+        scope: scopes[1],
+        requestId: crypto.randomUUID(),
+      });
+      await rejected(staff.removeCategory(section.id, undefined, request), "IN_USE");
+      await assertRetained();
+      assert.equal(
+        (await fetch(pending.url, { method: "PUT", headers: pending.headers, body: image })).status,
+        200,
+      );
+      await driveClient.completeUpload({ scope: scopes[1], uploadId: pending.id });
+      await rejected(staff.removeCategory(section.id, undefined, request), "IN_USE");
+      await assertRetained();
+      const removePhoto = await driveClient.previewDelete({
+        scope: scopes[1],
+        entryId: pending.entryId,
+      });
+      await driveClient.deleteEntry({
+        scope: scopes[1],
+        entryId: pending.entryId,
+        token: removePhoto.token,
+      });
+      const edited = await staff.save(dishes[0].id, dishes[0].version, {
+        ...dishes[0],
+        priceMinor: 1800,
+      });
+      await rejected(staff.removeCategory(section.id, undefined, request), "CONFLICT");
+      await assertRetained();
+      assert.equal((await pool`select id from drive_space where id=${firstSpace.id}`).length, 1);
+      await staff.removeCategory(section.id, undefined, {
+        deleteItems: true,
+        items: [edited, dishes[1]],
+      });
+      await rejected(staff.get(dishes[0].id), "NOT_FOUND");
+      await rejected(staff.get(dishes[1].id), "NOT_FOUND");
+      assert.equal(
+        (
+          await pool`select id from drive_space where entity_id in (${scopes[0].id},${scopes[1].id})`
+        ).length,
+        0,
+      );
+    },
+  );
 
   const durable = await staff.create({
     ...input,
