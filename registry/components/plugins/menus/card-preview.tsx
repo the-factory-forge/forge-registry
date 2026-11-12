@@ -2,25 +2,47 @@
 
 import { Tabs } from "@base-ui/react/tabs";
 
+import {
+  ComposedMenuPage,
+  type ComposedMenuPageProps,
+} from "@/components/plugins/menus/composed-public";
 import { MenuPrintPage, type MenuPrintPageProps } from "@/components/plugins/menus/print";
-import { MenuPage, type MenuPageProps } from "@/components/plugins/menus/public";
 import type { MenuCardView } from "@/components/plugins/menus/types";
+import { WeeklyMenu } from "@/components/plugins/menus/weekly";
+import { cn } from "@/components/utils/cn";
 
 export interface MenuCardPageProps extends Omit<
-  MenuPageProps,
+  ComposedMenuPageProps,
   "sections" | "title" | "description" | "displayMode"
 > {
   view: MenuCardView;
 }
 
 export function MenuCardPage({ view, ...props }: MenuCardPageProps) {
+  if (view.card.kind === "weekly") {
+    const { startDate, endDate } = view.card;
+    const dates = new Intl.DateTimeFormat(props.locale, { dateStyle: "medium", timeZone: "UTC" });
+    return (
+      <section className={cn("mx-auto max-w-6xl space-y-5 px-4 py-8 sm:px-6", props.className)}>
+        <h2 className="font-serif text-3xl font-semibold">{view.card.name}</h2>
+        {startDate && endDate && (
+          <p className="text-muted-foreground">
+            {dates.formatRange(new Date(startDate), new Date(endDate))}
+          </p>
+        )}
+        {view.card.description && <p className="whitespace-pre-wrap">{view.card.description}</p>}
+        <WeeklyMenu data={view} {...props} />
+      </section>
+    );
+  }
   return (
-    <MenuPage
+    <ComposedMenuPage
       {...props}
       sections={view.categories}
       title={view.card.name}
       description={view.card.description}
       displayMode={view.card.displayMode}
+      currencyLabel={view.card.currencyLabel ?? props.currencyLabel}
     />
   );
 }
@@ -28,7 +50,7 @@ export function MenuCardPage({ view, ...props }: MenuCardPageProps) {
 export interface MenuCardPreviewProps {
   view: MenuCardView;
   web: Omit<MenuCardPageProps, "view">;
-  paper: Omit<MenuPrintPageProps, "sections" | "initialTitle" | "description">;
+  paper: Omit<MenuPrintPageProps, "sections" | "initialTitle" | "description" | "view">;
   webLabel?: string;
   paperLabel?: string;
 }
@@ -61,6 +83,7 @@ export function MenuCardPreview({
           key={view.card.id}
           {...paper}
           sections={view.categories}
+          view={view}
           initialTitle={view.card.name}
           description={view.card.description}
         />

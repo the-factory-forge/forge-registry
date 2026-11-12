@@ -1352,6 +1352,26 @@
       ],
       "files": [
         {
+          "path": "registry/components/plugins/menus/composed-public.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/composed-public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/weekly.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/weekly.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/print-labels.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/print-labels.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/size-prices.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/size-prices.tsx"
+        },
+        {
           "path": "registry/components/plugins/menus/save-with-photo.ts",
           "type": "registry:lib",
           "target": "@components/plugins/menus/save-with-photo.ts"
@@ -1365,6 +1385,11 @@
           "path": "registry/components/plugins/menus/label-options.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/label-options.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/price.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/price.ts"
         },
         {
           "path": "registry/components/plugins/menus/card-preview.tsx",
