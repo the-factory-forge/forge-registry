@@ -45,6 +45,7 @@ import {
   EntryDialog,
   iconButtonClass,
   messageFor,
+  outlineButtonClass,
 } from "@/components/plugins/drive/ui";
 import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
@@ -1068,7 +1069,7 @@ function Browser({
                                   (!isSelectableFile || isSelectableFile(entry)) && (
                                     <button
                                       type="button"
-                                      className={buttonClass}
+                                      className={outlineButtonClass}
                                       disabled={actionsDisabled}
                                       onClick={() => onSelectFile(entry)}
                                     >
