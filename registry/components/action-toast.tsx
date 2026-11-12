@@ -68,7 +68,7 @@ function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
     <Toast.Portal>
       <Toast.Viewport
         style={({ expanded }) => ({ height: expanded ? expandedHeight : undefined })}
-        className="fixed right-0 bottom-0 z-60 flex h-[calc(var(--toast-frontmost-height,0px)+4rem)] max-h-dvh w-full max-w-[26rem] flex-col-reverse p-4 outline-none empty:h-0 empty:p-0 data-expanded:overflow-x-hidden data-expanded:overflow-y-auto sm:right-2 sm:bottom-2 sm:max-h-[calc(100dvh-1rem)]"
+        className="pointer-events-none fixed right-0 bottom-0 z-60 flex h-[calc(var(--toast-frontmost-height,0px)+4rem)] max-h-dvh w-full max-w-[26rem] flex-col-reverse p-4 outline-none empty:h-0 empty:p-0 data-expanded:overflow-x-hidden data-expanded:overflow-y-auto sm:right-2 sm:bottom-2 sm:max-h-[calc(100dvh-1rem)]"
       >
         {toasts.map((toast) => {
           const dismissible = toast.data?.dismissible !== false;
@@ -83,7 +83,7 @@ function ActionToastViewport({ closeLabel }: { closeLabel: string }) {
                 if (!dismissible && event.key === "Escape") event.stopPropagation();
               }}
               className={cn(
-                "absolute inset-x-4 bottom-4 z-[calc(1000-var(--toast-index))] h-(--height) origin-bottom overflow-hidden rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border dark:border-border dark:shadow-none",
+                "pointer-events-auto absolute inset-x-4 bottom-4 z-[calc(1000-var(--toast-index))] h-(--height) origin-bottom overflow-hidden rounded-xl bg-popover p-3 text-popover-foreground shadow-lg outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border dark:border-border dark:shadow-none",
                 // Match shadcn's Base UI motion while keeping every recovery toast in the queue.
                 "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+var(--toast-index)*var(--gap)*-1+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(1-var(--stack-index)*0.1)] [--shrink:calc(1-var(--scale))] [--stack-index:min(var(--toast-index),2)]",
                 "[transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-var(--stack-index)*var(--peek)-var(--shrink)*var(--height)))_scale(var(--scale))] motion-safe:[transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
