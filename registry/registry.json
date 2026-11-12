@@ -1324,8 +1324,14 @@
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",
-      "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, allergen and dietary filters, staff editors, and branded A4/A5 printing.",
-      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
+      "description": "Restaurant menu management with shared categories, dish photos, dietary filters, weekly menus, and web and paper previews.",
+      "dependencies": [
+        "@base-ui/react",
+        "@tanstack/react-query",
+        "lucide-react",
+        "motion",
+        "zod@4.6.7"
+      ],
       "registryDependencies": [
         "@forge/cn",
         "@forge/ui-shims",
@@ -1340,9 +1346,26 @@
         "@forge/editor-form",
         "@forge/table-selection",
         "@forge/loading-indicator",
-        "@forge/image-with-fallback"
+        "@forge/image-with-fallback",
+        "@forge/image-crop",
+        "@forge/lightbox"
       ],
       "files": [
+        {
+          "path": "registry/components/plugins/menus/save-with-photo.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/save-with-photo.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/dish-photo.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/dish-photo.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/label-options.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/label-options.tsx"
+        },
         {
           "path": "registry/components/plugins/menus/card-preview.tsx",
           "type": "registry:component",

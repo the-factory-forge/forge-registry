@@ -19,11 +19,18 @@ import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
-import { MenuLabelBadge, MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
+import { DishPhotoField } from "@/components/plugins/menus/dish-photo";
+import { MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
+import { MenuLabelOptions } from "@/components/plugins/menus/label-options";
 import { menuLabelIcons, type MenuLabelIcon } from "@/components/plugins/menus/label-presets";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
-import { parsePrice } from "@/components/plugins/menus/model";
-import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
+import { localized, parsePrice } from "@/components/plugins/menus/model";
+import {
+  dishPhotoMaxBytes,
+  dishPhotoMimeTypes,
+  saveDishWithPhoto,
+  type PendingDishPhoto,
+} from "@/components/plugins/menus/save-with-photo";
 import type {
   MenuCategory,
   MenuItem,
@@ -57,7 +64,12 @@ export interface MenuItemEditorPageProps {
   labelsData: readonly MenuLabel[];
   locales: readonly { code: string; name: string }[];
   baseLocale: string;
+  displayLocale?: string;
   currency: string;
+  currencyLabel?: string;
+  initialCategoryId?: string;
+  /** Let a staff member explicitly make a new dish visible from this form. */
+  visibleOnCreate?: boolean;
   backHref: string;
   /** Host route for label management; omit when unavailable to this user. */
   labelsHref?: string;
@@ -65,10 +77,12 @@ export interface MenuItemEditorPageProps {
   blockedNavigation?: { proceed: () => void; reset: () => void };
   /** Host routers use this state for history blocking and native unload protection. */
   onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
-  onSaved: (item: MenuItem) => void;
+  onSaved: (item: MenuItem, photoAdded: boolean) => void;
   driveClient?: DriveClient;
   driveTransfer?: DriveTransfer;
   photoFolderId?: string | null;
+  getPhotoUrl?: (itemId: string, entryId: string) => string | undefined;
+  photoSettingsHref?: string;
   getFolderHref?: (folderId: string | null) => string;
   linkComponent?: ComponentType<LinkProps>;
   labels?: Partial<MenusLabels>;
@@ -82,7 +96,11 @@ function MenuItemEditorPageContent({
   labelsData,
   locales,
   baseLocale,
+  displayLocale = baseLocale,
   currency,
+  currencyLabel = currency,
+  initialCategoryId,
+  visibleOnCreate = false,
   backHref,
   labelsHref,
   blockedNavigation,
@@ -91,6 +109,8 @@ function MenuItemEditorPageContent({
   driveClient,
   driveTransfer,
   photoFolderId,
+  getPhotoUrl,
+  photoSettingsHref,
   getFolderHref,
   linkComponent: HostLink = Link,
   labels: overrides,
@@ -113,7 +133,10 @@ function MenuItemEditorPageContent({
           translations: { ...item.translations },
         }
       : {
-          categoryId: categories[0]?.id ?? "",
+          categoryId:
+            categories.find((category) => category.id === initialCategoryId)?.id ??
+            categories[0]?.id ??
+            null,
           priceMinor: null,
           position: 0,
           visible: false,
@@ -125,16 +148,19 @@ function MenuItemEditorPageContent({
         },
   );
   const [selectedLocale, setSelectedLocale] = useState(baseLocale);
-  const sortedLabels = [...labelsData].sort((a, b) =>
-    a.translations[baseLocale].localeCompare(b.translations[baseLocale], baseLocale, {
-      sensitivity: "base",
-    }),
-  );
+  const sortedLabels = labelsData
+    .map((label) => ({ ...label, name: localized(label.translations, displayLocale, baseLocale) }))
+    .sort((a, b) => a.name.localeCompare(b.name, displayLocale, { sensitivity: "base" }));
   const [pending, setPending] = useState(false);
   const notify = useActionToast();
   const [feedback, setFeedback] = useState<{ error: boolean; text: string }>();
   const [photoName, setPhotoName] = useState("");
-  const [savedVersion, setSavedVersion] = useState(item?.version);
+  const [photo, setPhoto] = useState<PendingDishPhoto>();
+  const [savedPhotoEntryId, setSavedPhotoEntryId] = useState(item?.imageEntryId);
+  const [photoItemId, setPhotoItemId] = useState(item?.id);
+  const [extrasOpen, setExtrasOpen] = useState(!!photoFolderId);
+  const saveState = useRef({ item });
+  const upload = useRef<AbortController>(null);
   const lock = useRef(false);
   const formatter = new Intl.NumberFormat(baseLocale, { style: "currency", currency });
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
@@ -148,13 +174,14 @@ function MenuItemEditorPageContent({
       translations: { ...size.translations },
     })),
   );
-  const snapshot = JSON.stringify([draft, price, sizes]);
+  const snapshot = JSON.stringify([draft, price, sizes, photo?.requestId]);
   const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const navigation = useRef<string | null>(null);
   useEffect(() => {
     return () => {
       navigation.current = null;
+      upload.current?.abort();
     };
   }, []);
   const editor = useMenuEditorState(snapshot !== savedSnapshot, pending, onNavigationStateChange);
@@ -214,7 +241,9 @@ function MenuItemEditorPageContent({
     }
     for (const [key, value] of sizes.length
       ? sizes.map((size) => [`${id}-price-${size.id}`, size.price])
-      : [[`${id}-price`, price]]) {
+      : price.trim()
+        ? [[`${id}-price`, price]]
+        : []) {
       try {
         parsePrice(value, digits);
       } catch {
@@ -229,6 +258,8 @@ function MenuItemEditorPageContent({
       return;
     }
     lock.current = true;
+    const controller = new AbortController();
+    upload.current = controller;
     setPending(true);
     setFeedback(undefined);
     try {
@@ -242,28 +273,48 @@ function MenuItemEditorPageContent({
         priceMinor: sizePrices[0]?.priceMinor ?? (price.trim() ? parsePrice(price, digits) : null),
         sizes: sizePrices,
       };
-      const saved = item
-        ? await client.save(item.id, savedVersion ?? item.version, input)
-        : await client.create(input);
+      const photoAdded = !!(
+        photo ||
+        (draft.imageEntryId && draft.imageEntryId !== savedPhotoEntryId)
+      );
+      const saved = await saveDishWithPhoto({
+        client,
+        drive: driveClient,
+        state: saveState.current,
+        input,
+        photo,
+        visibleOnCreate,
+        transfer: driveTransfer,
+        signal: controller.signal,
+      });
       if (!editor.isActive()) return;
       const href = continueNavigation ? navigation.current : null;
       const proceed =
         continueNavigation && editor.isActive() ? blockedNavigation?.proceed : undefined;
-      setSavedSnapshot(snapshot);
-      setSavedVersion(saved.version);
+      setDraft((current) => ({ ...current, imageEntryId: saved.imageEntryId }));
+      setSavedSnapshot(
+        JSON.stringify([{ ...draft, imageEntryId: saved.imageEntryId }, price, sizes, null]),
+      );
+      setSavedPhotoEntryId(saved.imageEntryId);
+      setPhotoItemId(saved.id);
+      setPhoto(undefined);
       notify(labels.saved);
       if (href || proceed) {
         navigation.current = null;
         setLeaveOpen(false);
         editor.resume(() => {
-          onSaved(saved);
+          onSaved(saved, photoAdded);
           if (proceed) proceed();
           else if (href) window.location.assign(href);
         });
-      } else onSaved(saved);
+      } else onSaved(saved, photoAdded);
     } catch {
-      if (editor.isActive()) setFeedback({ error: true, text: labels.error });
+      if (editor.isActive()) {
+        setPhotoItemId(saveState.current.item?.id);
+        setFeedback({ error: true, text: labels.error });
+      }
     } finally {
+      upload.current = null;
       lock.current = false;
       if (editor.isActive()) setPending(false);
     }
@@ -285,7 +336,6 @@ function MenuItemEditorPageContent({
         pending={pending}
         labels={labels}
         error={feedback?.error ? feedback.text : undefined}
-        saveDisabled={!categories.length}
         onCancel={cancelNavigation}
         onDiscard={discardAndLeave}
         onSave={() => void submit(true)}
@@ -308,13 +358,13 @@ function MenuItemEditorPageContent({
               className={field}
               {...fields.field(`${id}-category`)}
               aria-label={labels.category}
-              value={draft.categoryId}
-              onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
-              required
+              value={draft.categoryId ?? ""}
+              onChange={(event) => setDraft({ ...draft, categoryId: event.target.value || null })}
             >
+              <option value="">{labels.unassignedCategory}</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.translations[baseLocale]}
+                  {localized(category.translations, displayLocale, baseLocale)}
                 </option>
               ))}
             </NativeSelect>
@@ -323,16 +373,15 @@ function MenuItemEditorPageContent({
           {sizes.length === 0 ? (
             <label className="space-y-1">
               <span>
-                {labels.price} ({currency})
+                {labels.price} ({currencyLabel})
               </span>
               <input
                 className={field}
                 inputMode="decimal"
                 {...fields.field(`${id}-price`)}
-                aria-label={`${labels.price} (${currency})`}
+                aria-label={`${labels.price} (${currencyLabel})`}
                 value={price}
                 onChange={(event) => setPrice(event.target.value)}
-                required
               />
               {fields.message(`${id}-price`)}
             </label>
@@ -434,13 +483,13 @@ function MenuItemEditorPageContent({
                 </label>
                 <label className="min-w-0 space-y-1">
                   <span>
-                    {labels.price} ({currency}) {index + 1}
+                    {labels.price} ({currencyLabel}) {index + 1}
                   </span>
                   <input
                     className={field}
                     inputMode="decimal"
                     {...fields.field(`${id}-price-${size.id}`)}
-                    aria-label={`${labels.price} (${currency}) ${index + 1}`}
+                    aria-label={`${labels.price} (${currencyLabel}) ${index + 1}`}
                     value={size.price}
                     required
                     onChange={(event) =>
@@ -482,76 +531,76 @@ function MenuItemEditorPageContent({
             {labels.addSize}
           </button>
         </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="font-medium">{labels.spiceLevel}</legend>
-          <div className="flex flex-wrap gap-2">
-            {([0, 1, 2, 3] as const).map((level) => (
-              <label
-                key={level}
-                className={cn(
-                  "inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2",
-                  draft.spiceLevel === level && "ring-2 ring-ring",
+        <label className="block max-w-xl font-medium">
+          <span>{labels.spiceLevel}</span>
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="1"
+            value={draft.spiceLevel ?? 0}
+            aria-label={labels.spiceLevel}
+            aria-valuetext={
+              [labels.notSpicy, labels.mildSpice, labels.mediumSpice, labels.hotSpice][
+                draft.spiceLevel ?? 0
+              ]
+            }
+            className="block min-h-11 w-full accent-primary"
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                spiceLevel: Number(event.target.value) as 0 | 1 | 2 | 3,
+              }))
+            }
+          />
+          <span
+            aria-hidden="true"
+            className="flex justify-between gap-2 text-xs font-normal text-muted-foreground"
+          >
+            <span>{labels.notSpicy}</span>
+            <span>{labels.mildSpice}</span>
+            <span>{labels.mediumSpice}</span>
+            <span>{labels.hotSpice}</span>
+          </span>
+        </label>
+        {(sortedLabels.length > 0 || labelsHref) && (
+          <fieldset className="min-w-0 space-y-3">
+            <legend className="font-medium">
+              <span className="inline-flex items-center gap-2">
+                {labels.labels}
+                {labelsHref && (
+                  <IconTooltip label={labels.manageLabels}>
+                    <HostLink
+                      href={labelsHref}
+                      className={cn(iconButton, "aria-disabled:opacity-50")}
+                      aria-label={labels.manageLabels}
+                      aria-disabled={pending || undefined}
+                      onClick={(event) => guardNavigation(event, labelsHref)}
+                    >
+                      <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
+                    </HostLink>
+                  </IconTooltip>
                 )}
-              >
-                <input
-                  type="radio"
-                  name="spiceLevel"
-                  value={level}
-                  checked={draft.spiceLevel === level}
-                  className="size-4 shrink-0 cursor-pointer accent-primary focus-visible:ring-2 focus-visible:ring-ring"
-                  onChange={() => setDraft((current) => ({ ...current, spiceLevel: level }))}
-                />
-                {level === 0 ? labels.notSpicy : <MenuSpiceBadge level={level} labels={labels} />}
-              </label>
+              </span>
+            </legend>
+            {(["allergen", "dietary"] as const).map((kind) => (
+              <MenuLabelOptions
+                key={kind}
+                legend={kind === "allergen" ? labels.allergens : labels.dietary}
+                labels={sortedLabels.filter((label) => label.kind === kind)}
+                value={draft.labelIds}
+                onChange={(labelIds) => setDraft((current) => ({ ...current, labelIds }))}
+              />
             ))}
-          </div>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="font-medium">
-            <span className="inline-flex items-center gap-2">
-              {labels.labels}
-              {labelsHref && (
-                <IconTooltip label={labels.manageLabels}>
-                  <HostLink
-                    href={labelsHref}
-                    className={cn(iconButton, "aria-disabled:opacity-50")}
-                    aria-label={labels.manageLabels}
-                    aria-disabled={pending || undefined}
-                    onClick={(event) => guardNavigation(event, labelsHref)}
-                  >
-                    <PencilIcon className="size-4 shrink-0" aria-hidden="true" />
-                  </HostLink>
-                </IconTooltip>
-              )}
-            </span>
-          </legend>
-          <div className="flex flex-wrap gap-4">
-            {sortedLabels.map((label) => (
-              <label key={label.id} className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.labelIds.includes(label.id)}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      labelIds: event.target.checked
-                        ? [...current.labelIds, label.id]
-                        : current.labelIds.filter((id) => id !== label.id),
-                    }))
-                  }
-                />
-                <MenuLabelBadge label={{ ...label, name: label.translations[baseLocale] }} />
-              </label>
-            ))}
-          </div>
-        </fieldset>
+          </fieldset>
+        )}
         <div className="flex flex-wrap gap-5">
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
               checked={draft.visible}
               onChange={(event) => setDraft({ ...draft, visible: event.target.checked })}
-              disabled={!item}
+              disabled={!item && !visibleOnCreate}
             />
             {labels.visible}
           </label>
@@ -564,20 +613,36 @@ function MenuItemEditorPageContent({
             {labels.unavailable}
           </label>
         </div>
-        {draft.imageEntryId ? (
-          <div className="flex items-center gap-3 text-sm">
-            <span>
-              {labels.photo}: {photoName || draft.imageEntryId}
-            </span>
-            <button
-              type="button"
-              className={button}
-              onClick={() => setDraft({ ...draft, imageEntryId: null })}
-            >
-              {labels.removePhoto}
-            </button>
-          </div>
-        ) : null}
+        {(driveClient || draft.imageEntryId) && (
+          <DishPhotoField
+            labels={labels}
+            pending={pending}
+            itemId={photoItemId}
+            entryId={draft.imageEntryId}
+            entryName={photoName}
+            getPhotoUrl={draft.imageEntryId === savedPhotoEntryId ? getPhotoUrl : undefined}
+            driveClient={driveClient}
+            photo={photo}
+            onPick={setPhoto}
+            onRemove={() => {
+              setPhoto(undefined);
+              setPhotoName("");
+              setDraft((current) => ({ ...current, imageEntryId: null }));
+            }}
+            settings={
+              photoSettingsHref && (
+                <HostLink
+                  href={photoSettingsHref}
+                  onClick={(event) => guardNavigation(event, photoSettingsHref)}
+                  aria-disabled={pending || undefined}
+                  className="text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  {labels.photoSettings}
+                </HostLink>
+              )
+            }
+          />
+        )}
         {feedback ? (
           <p
             role={feedback.error ? "alert" : "status"}
@@ -587,33 +652,42 @@ function MenuItemEditorPageContent({
           </p>
         ) : null}
         <div className={editorActionsClass}>
-          <button type="submit" className={primary} disabled={pending || !categories.length}>
+          <button type="submit" className={primary} disabled={pending}>
             {pending ? labels.saving : labels.save}
           </button>
         </div>
       </form>
       {item && driveClient && getFolderHref ? (
-        <div className="border-t border-border pt-6">
-          <h2 className="mb-4 text-xl font-semibold">{labels.photo}</h2>
-          <DriveBrowser
-            client={driveClient}
-            transferUpload={driveTransfer}
-            scope={{ type: "menu-item", id: item.id }}
-            parentId={photoFolderId}
-            getFolderHref={getFolderHref}
-            linkComponent={HostLink}
-            onSelectFile={(entry) => {
-              setDraft({ ...draft, imageEntryId: entry.id });
-              setPhotoName(entry.name);
-            }}
-            isSelectableFile={(entry: DriveEntry) =>
-              ["image/jpeg", "image/png", "image/webp"].includes(entry.contentType) &&
-              entry.size <= 10_000_000
-            }
-            selectFileLabel={labels.selectPhoto}
-            uploadAccept="image/jpeg,image/png,image/webp"
-          />
-        </div>
+        <details
+          className="border-t border-border pt-6"
+          open={extrasOpen}
+          onToggle={(event) => setExtrasOpen(event.currentTarget.open)}
+        >
+          <summary className="cursor-pointer font-medium">{labels.supplementaryPhotos}</summary>
+          <p className="my-3 text-sm text-muted-foreground">{labels.supplementaryPhotoHelp}</p>
+          {extrasOpen && (
+            <DriveBrowser
+              key={savedPhotoEntryId}
+              client={driveClient}
+              transferUpload={driveTransfer}
+              scope={{ type: "menu-item", id: item.id }}
+              parentId={photoFolderId}
+              getFolderHref={getFolderHref}
+              linkComponent={HostLink}
+              onSelectFile={(entry) => {
+                if (lock.current) return;
+                setPhoto(undefined);
+                setDraft((current) => ({ ...current, imageEntryId: entry.id }));
+                setPhotoName(entry.name);
+              }}
+              isSelectableFile={(entry: DriveEntry) =>
+                dishPhotoMimeTypes.includes(entry.contentType) && entry.size <= dishPhotoMaxBytes
+              }
+              selectFileLabel={labels.selectPhoto}
+              uploadAccept={dishPhotoMimeTypes.join(",")}
+            />
+          )}
+        </details>
       ) : null}
     </section>
   );
