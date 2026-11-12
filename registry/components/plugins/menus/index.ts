@@ -40,3 +40,6 @@ export {
   type MenuErrorCode,
 } from "@/components/plugins/menus/model";
 export type * from "@/components/plugins/menus/types";
+
+export { MenuWorkspace, type MenuWorkspaceProps } from "@/components/plugins/menus/workspace";
+export type { MenuFilters } from "@/components/plugins/menus/composed-public";

@@ -1392,6 +1392,16 @@
           "target": "@components/plugins/menus/price.ts"
         },
         {
+          "path": "registry/components/plugins/menus/use-menu-drag.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/use-menu-drag.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/workspace.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/workspace.tsx"
+        },
+        {
           "path": "registry/components/plugins/menus/card-preview.tsx",
           "type": "registry:component",
           "target": "@components/plugins/menus/card-preview.tsx"
