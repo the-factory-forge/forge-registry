@@ -88,8 +88,8 @@ void test("collection keeps navigation usable across touch, keyboard and image f
   await dialog.getByRole("img", { name: "Second collection image" }).waitFor();
   assert.equal(await dialog.locator("output").textContent(), "2 / 3");
   assert.equal(await dialog.getByText("Second image in the example.").isVisible(), true);
-  await page.keyboard.press("ArrowRight");
-  await dialog.getByText("This image could not be loaded.").waitFor();
+  await dialog.getByRole("button", { name: "Next image" }).press("ArrowRight");
+  await dialog.getByRole("status").filter({ hasText: "This image could not be loaded." }).waitFor();
   await dialog.getByRole("button", { name: "Next image" }).click();
   const first = dialog.getByRole("img", { name: "First collection image" });
   await first.waitFor();

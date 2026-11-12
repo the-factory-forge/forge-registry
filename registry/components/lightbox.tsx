@@ -170,9 +170,9 @@ export function Lightbox({
                 }}
               >
                 {failedSrc === current.src ? (
-                  <p role="status" className="px-4 py-12 text-center text-dark-foreground">
+                  <output className="px-4 py-12 text-center text-dark-foreground">
                     {imageErrorLabel}
-                  </p>
+                  </output>
                 ) : (
                   <img
                     key={current.id}
