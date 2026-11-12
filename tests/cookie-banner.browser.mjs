@@ -60,14 +60,15 @@ await suite("Cookie banner browser", async () => {
   const reopen = (page) => page.getByRole("button", { name: "Open cookie banner" }).click();
   const customize = (dialog) => dialog.getByRole("button", { name: "Custom selection" }).click();
 
-  await test("reject saves denial and discards unconfirmed choices without a close action", async (t) => {
+  await test("two compact actions let visitors decline optional cookies through custom selection", async (t) => {
     const { page, dialog } = await openPreview(t);
     await dialog.waitFor();
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 800 });
-      const accept = dialog.getByRole("button", { name: "Accept all", exact: true });
-      const reject = dialog.getByRole("button", { name: "Reject all", exact: true });
-      assert.equal(await accept.getAttribute("class"), await reject.getAttribute("class"));
+      assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
+        "Custom selection",
+        "Accept all",
+      ]);
       assert.equal(
         await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth),
         true,
@@ -78,7 +79,9 @@ await suite("Cookie banner browser", async () => {
     assert.equal(await dialog.getByRole("button", { name: "Close", exact: true }).count(), 0);
     assert.equal(await storedConsent(page), null);
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-    await dialog.getByRole("button", { name: "Reject all", exact: true }).click();
+    await customize(dialog);
+    assert.equal(await dialog.getByRole("checkbox", { name: /^Statistics/ }).isChecked(), false);
+    await dialog.getByRole("button", { name: "Confirm selection", exact: true }).click();
     await dialog.waitFor({ state: "hidden" });
     assert.deepEqual(await storedConsent(page), denied);
     await expectApplied(page, false, false);
@@ -94,7 +97,6 @@ await suite("Cookie banner browser", async () => {
     assert.equal(await dialog.getByRole("checkbox").count(), 0);
     assert.deepEqual(await dialog.getByRole("button").allTextContents(), [
       "Custom selection",
-      "Reject all",
       "Accept all",
     ]);
     await customize(dialog);
@@ -151,7 +153,7 @@ await suite("Cookie banner browser", async () => {
     await page.getByRole("checkbox", { name: "Offer analytics cookies" }).uncheck();
     await expectApplied(page, false, false);
     await reopen(page);
-    assert.equal(await dialog.getByRole("button", { name: "Reject all", exact: true }).count(), 0);
+    assert.equal(await dialog.getByRole("button").count(), 2);
     await customize(dialog);
     assert.equal(await dialog.getByRole("checkbox").count(), 1);
     await dialog.getByRole("button", { name: "Cancel" }).click();

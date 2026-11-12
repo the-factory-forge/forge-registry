@@ -47,6 +47,7 @@ export interface CookieBannerProps {
   manageEvent?: string;
   text: string;
   acceptAllLabel: string;
+  /** @deprecated The banner offers refusal through custom selection. */
   rejectAllLabel?: string;
   acceptSelectionLabel: string;
   cancelLabel?: string;
@@ -86,7 +87,6 @@ export function CookieBanner({
   manageEvent = "manage-cookies",
   text,
   acceptAllLabel,
-  rejectAllLabel = "Reject all",
   acceptSelectionLabel,
   cancelLabel = "Cancel",
   confirmLabel = "Confirm selection",
@@ -176,8 +176,6 @@ export function CookieBanner({
   };
 
   if (hidden || !visible) return null;
-
-  const hasOptionalCookies = showAnalytics || showMarketing;
 
   return (
     <dialog
@@ -294,15 +292,6 @@ export function CookieBanner({
             >
               {customizing ? cancelLabel : acceptSelectionLabel}
             </button>
-            {!customizing && hasOptionalCookies && (
-              <button
-                type="button"
-                onClick={() => saveConsent(DEFAULT_CONSENT)}
-                className={cn(actionClass, choiceClass)}
-              >
-                {rejectAllLabel}
-              </button>
-            )}
             <button
               type="button"
               onClick={() =>
@@ -310,12 +299,7 @@ export function CookieBanner({
                   customizing ? draft : { necessary: true, analytics: true, marketing: true },
                 )
               }
-              className={cn(
-                actionClass,
-                customizing || !hasOptionalCookies
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : choiceClass,
-              )}
+              className={cn(actionClass, "bg-primary text-primary-foreground hover:bg-primary/90")}
             >
               {customizing ? confirmLabel : acceptAllLabel}
             </button>

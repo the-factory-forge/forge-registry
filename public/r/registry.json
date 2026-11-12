@@ -485,7 +485,7 @@
       "name": "cookie-banner",
       "type": "registry:block",
       "title": "Cookie Banner",
-      "description": "Cookie preferences with accept, reject and custom selection actions and consent-driven analytics.",
+      "description": "Cookie preferences with accept and custom selection actions and consent-driven analytics.",
       "files": [
         {
           "path": "registry/components/cookie-banner.tsx",

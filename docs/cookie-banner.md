@@ -9,12 +9,10 @@ labels and `consentKey`. Mount one banner per document. Screenshot tools can tar
 `#factory-cookie-banner` without changing consent. Existing sites receive the ID when
 they refresh their installed `@forge/cookie-banner` source.
 
-When optional cookies are available, the banner offers **Custom selection**,
-**Reject all** and **Accept all**. Accept and reject have equal prominence and
-each saves a choice. The banner has no close action, so dismissal cannot be
-mistaken for refusal.
-Custom selection reveals the necessary category and each enabled optional
-category, while the actions become **Cancel** and **Confirm selection**.
+The banner offers **Custom selection** and **Accept all**. Custom selection
+shows the necessary category and each enabled optional category, with **Cancel**
+and **Confirm selection** as its actions. To decline optional cookies, leave
+their boxes unchecked and confirm. The banner has no close action.
 Necessary cookies stay enabled. `showAnalytics` defaults to `true` and
 `showMarketing` defaults to `false`; unavailable categories are always denied,
 including when restoring a saved choice or accepting all cookies.
@@ -60,7 +58,6 @@ export function SiteCookieBanner() {
     <CookieBanner
       text="Choose which optional cookies this website may use."
       acceptAllLabel="Accept all"
-      rejectAllLabel="Reject all"
       acceptSelectionLabel="Custom selection"
       cancelLabel="Cancel"
       confirmLabel="Confirm selection"
@@ -125,8 +122,8 @@ unconditional `updateConsent(consent)` call above so withdrawal reaches the load
 Remove duplicate inline defaults and unconditional Google script/config tags.
 Only this controller should initialize the website's Google destinations.
 
-Translate `rejectAllLabel` alongside `acceptAllLabel`. Remove any `closeLabel`
-from the host call. The deprecated prop still type-checks and has no effect.
+Remove `closeLabel` and `rejectAllLabel` from host calls. Both deprecated props
+still type-check and have no effect.
 Use `acceptSelectionLabel` for the custom-selection action. Explicitly enable
 `showMarketing` when the host offers it.
 
