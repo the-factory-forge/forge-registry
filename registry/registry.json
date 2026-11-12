@@ -485,7 +485,7 @@
       "name": "cookie-banner",
       "type": "registry:block",
       "title": "Cookie Banner",
-      "description": "Cookie preferences with custom selection, saved choices, and consent-driven analytics integration.",
+      "description": "Cookie preferences with accept, reject and custom selection actions and consent-driven analytics.",
       "files": [
         {
           "path": "registry/components/cookie-banner.tsx",
@@ -493,8 +493,7 @@
           "target": "@components/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/consent-analytics", "@forge/icon-tooltip"],
-      "dependencies": ["lucide-react"]
+      "registryDependencies": ["@forge/cn", "@forge/consent-analytics"]
     },
     {
       "name": "language-switcher",

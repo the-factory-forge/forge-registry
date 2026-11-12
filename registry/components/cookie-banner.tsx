@@ -1,9 +1,7 @@
 "use client";
 
-import { XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
 import { applyGoogleConsent } from "@/components/utils/consent-analytics";
 
@@ -18,6 +16,10 @@ const DEFAULT_CONSENT: ConsentState = {
   analytics: false,
   marketing: false,
 };
+
+const actionClass =
+  "inline-flex min-h-10 cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+const choiceClass = "border border-border bg-background text-foreground hover:bg-muted";
 
 function deserialize(raw: string): ConsentState | null {
   try {
@@ -45,8 +47,10 @@ export interface CookieBannerProps {
   manageEvent?: string;
   text: string;
   acceptAllLabel: string;
+  rejectAllLabel?: string;
   acceptSelectionLabel: string;
   cancelLabel?: string;
+  /** @deprecated The banner no longer has a close action. */
   closeLabel?: string;
   confirmLabel?: string;
   policyLabel: string;
@@ -82,9 +86,9 @@ export function CookieBanner({
   manageEvent = "manage-cookies",
   text,
   acceptAllLabel,
+  rejectAllLabel = "Reject all",
   acceptSelectionLabel,
   cancelLabel = "Cancel",
-  closeLabel = "Close",
   confirmLabel = "Confirm selection",
   policyLabel,
   privacyHref,
@@ -173,6 +177,8 @@ export function CookieBanner({
 
   if (hidden || !visible) return null;
 
+  const hasOptionalCookies = showAnalytics || showMarketing;
+
   return (
     <dialog
       id="factory-cookie-banner"
@@ -187,23 +193,10 @@ export function CookieBanner({
       <div className="container-premium">
         <div
           className={cn(
-            "relative flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-3 pr-16 shadow-lg",
-            !customizing && "sm:flex-row sm:items-center",
+            "flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-3 shadow-lg",
+            !customizing && "lg:flex-row lg:items-center",
           )}
         >
-          <IconTooltip label={closeLabel}>
-            <button
-              type="button"
-              aria-label={closeLabel}
-              className="absolute top-3 right-3 inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:size-8"
-              onClick={() => {
-                cancelSelection();
-                setVisible(false);
-              }}
-            >
-              <XIcon className="size-4 shrink-0" aria-hidden="true" />
-            </button>
-          </IconTooltip>
           <p className="min-w-0 flex-1 text-sm leading-relaxed text-foreground">
             {text}{" "}
             <a
@@ -297,10 +290,19 @@ export function CookieBanner({
               type="button"
               onClick={customizing ? cancelSelection : () => setCustomizing(true)}
               aria-expanded={customizing}
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+              className={cn(actionClass, choiceClass)}
             >
               {customizing ? cancelLabel : acceptSelectionLabel}
             </button>
+            {!customizing && hasOptionalCookies && (
+              <button
+                type="button"
+                onClick={() => saveConsent(DEFAULT_CONSENT)}
+                className={cn(actionClass, choiceClass)}
+              >
+                {rejectAllLabel}
+              </button>
+            )}
             <button
               type="button"
               onClick={() =>
@@ -308,7 +310,12 @@ export function CookieBanner({
                   customizing ? draft : { necessary: true, analytics: true, marketing: true },
                 )
               }
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-primary/40 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed"
+              className={cn(
+                actionClass,
+                customizing || !hasOptionalCookies
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : choiceClass,
+              )}
             >
               {customizing ? confirmLabel : acceptAllLabel}
             </button>

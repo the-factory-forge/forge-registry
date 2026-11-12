@@ -174,7 +174,7 @@ rewrite other helpers or remove the old dependency.
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [page-faq](./docs/faq-contact.md)                     | Complete FAQ page with hero, category filters, and accessible answers                                       |
 | [page-contact](./docs/faq-contact.md)                 | Complete Contact page with hero, details, hours, social links, and optional map                             |
-| `cookie-banner`                                       | Compact custom selection, accept all, saved consent, and host analytics callback                            |
+| `cookie-banner`                                       | Accept, reject or customize optional cookies, with saved consent and a host analytics callback              |
 | `navbar`                                              | Responsive, dropdowns, mobile Sheet menu, language switcher, CTA                                            |
 | [subpage-sidebar](./docs/subpage-sidebar.md)          | Page-local nested navigation with a mobile drawer, reused by Drive                                          |
 | [intranet-sidebar](./docs/intranet-sidebar.md)        | Customer branding, configurable nested navigation, user profile, and responsive built-in or external toggle |
