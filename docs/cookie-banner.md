@@ -9,7 +9,10 @@ labels and `consentKey`. Mount one banner per document. Screenshot tools can tar
 `#factory-cookie-banner` without changing consent. Existing sites receive the ID when
 they refresh their installed `@forge/cookie-banner` source.
 
-The banner starts compact with **Custom selection** and **Accept all** actions.
+When optional cookies are available, the banner offers **Custom selection**,
+**Reject all** and **Accept all**. Accept and reject have equal prominence and
+each saves a choice. The banner has no close action, so dismissal cannot be
+mistaken for refusal.
 Custom selection reveals the necessary category and each enabled optional
 category, while the actions become **Cancel** and **Confirm selection**.
 Necessary cookies stay enabled. `showAnalytics` defaults to `true` and
@@ -57,6 +60,7 @@ export function SiteCookieBanner() {
     <CookieBanner
       text="Choose which optional cookies this website may use."
       acceptAllLabel="Accept all"
+      rejectAllLabel="Reject all"
       acceptSelectionLabel="Custom selection"
       cancelLabel="Cancel"
       confirmLabel="Confirm selection"
@@ -121,9 +125,10 @@ unconditional `updateConsent(consent)` call above so withdrawal reaches the load
 Remove duplicate inline defaults and unconditional Google script/config tags.
 Only this controller should initialize the website's Google destinations.
 
-For older banner installations, remove `rejectLabel`, use `acceptSelectionLabel`
-for the custom-selection action, and translate `cancelLabel` and `confirmLabel`.
-Explicitly enable `showMarketing` when needed.
+Translate `rejectAllLabel` alongside `acceptAllLabel`. Remove any `closeLabel`
+from the host call. The deprecated prop still type-checks and has no effect.
+Use `acceptSelectionLabel` for the custom-selection action. Explicitly enable
+`showMarketing` when the host offers it.
 
 ## Preview and regression checks
 

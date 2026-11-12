@@ -370,7 +370,8 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
           )
         )
           throw new DriveError("CONFLICT");
-        if (upload.state === "completed") return { id: requestId, completed: true };
+        if (upload.state === "completed")
+          return { id: requestId, entryId: upload.entryId, completed: true };
         if (upload.state !== "active" || new Date(upload.expiresAt).getTime() <= Date.now())
           throw new DriveError("EXPIRED");
       } else {
@@ -460,6 +461,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
       );
       return {
         id: requestId,
+        entryId: upload.entryId,
         completed: false,
         url,
         headers: { "Content-Type": contentType, "If-None-Match": "*" },
@@ -899,6 +901,41 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
     };
   }
 
+  async function deleteSpaces(
+    context: Context,
+    scopes: DriveScope[],
+    removeEntities?: (tx: DriveTransaction) => Promise<void>,
+  ) {
+    scopes = parseDriveInput(z.array(driveScopeSchema).min(1).max(1500), scopes).sort((a, b) =>
+      scopeKey(a).localeCompare(scopeKey(b)),
+    );
+    if (new Set(scopes.map(scopeKey)).size !== scopes.length) throw new DriveError("INVALID");
+    for (const scope of scopes) await access(context, scope, "delete");
+    await db
+      .transaction(async (tx) => {
+        for (const scope of scopes) {
+          await lockPlugin(tx, `drive:${scopeKey(scope)}`);
+          await access(context, scope, "delete");
+          const [space] = await tx
+            .select({ id: spaces.id })
+            .from(spaces)
+            .where(and(eq(spaces.entityType, scope.type), eq(spaces.entityId, scope.id)));
+          const spaceId = space?.id;
+          const rows = await tx
+            .select({ id: entries.id })
+            .from(entries)
+            .where(inSpace(spaceId))
+            .limit(1);
+          if (rows.length) throw new DriveError("CONFLICT");
+          // Expired staging keys are covered by the mandatory bucket lifecycle policy.
+          await tx.delete(uploads).where(eq(uploads.spaceId, spaceId ?? missingSpace));
+          await tx.delete(spaces).where(eq(spaces.id, spaceId ?? missingSpace));
+        }
+        await removeEntities?.(tx);
+      })
+      .catch(storageError);
+  }
+
   return {
     client,
     verifyBucket,
@@ -940,35 +977,14 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
         if (rows.length) throw new DriveError("CONFLICT");
       });
     },
-    async deleteSpace(
+    deleteSpace(
       context: Context,
       scope: DriveScope,
       removeEntity?: (tx: DriveTransaction) => Promise<void>,
     ) {
-      scope = parseDriveInput(driveScopeSchema, scope);
-      await access(context, scope, "delete");
-      await db
-        .transaction(async (tx) => {
-          await lockPlugin(tx, `drive:${scopeKey(scope)}`);
-          await access(context, scope, "delete");
-          const [space] = await tx
-            .select({ id: spaces.id })
-            .from(spaces)
-            .where(and(eq(spaces.entityType, scope.type), eq(spaces.entityId, scope.id)));
-          const spaceId = space?.id;
-          const rows = await tx
-            .select({ id: entries.id })
-            .from(entries)
-            .where(inSpace(spaceId))
-            .limit(1);
-          if (rows.length) throw new DriveError("CONFLICT");
-          // Expired staging keys are covered by the mandatory bucket lifecycle policy.
-          await tx.delete(uploads).where(eq(uploads.spaceId, spaceId ?? missingSpace));
-          await tx.delete(spaces).where(eq(spaces.id, spaceId ?? missingSpace));
-          await removeEntity?.(tx);
-        })
-        .catch(storageError);
+      return deleteSpaces(context, [scope], removeEntity);
     },
+    deleteSpaces,
     async maintenance(input: { limit?: number } = {}) {
       const { limit } = parseDriveInput(driveInputs.maintenance, input);
       const pendingSpaces = await db

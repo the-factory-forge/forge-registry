@@ -41,6 +41,48 @@ await suite("Menu print browser", async () => {
     return page.locator("[data-menu-print-frame]").contentFrame();
   }
 
+  await test("a saved card has the same title and dishes in Web and Paper", async (t) => {
+    const page = await preview(t, "/en/admin/menus/card-preview");
+    const web = page.getByRole("tabpanel", { name: "Web", exact: true });
+    await web.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+    await web.getByText("A sample dinner menu.", { exact: true }).waitFor();
+    const dish = await web.locator("article h3").first().textContent();
+    assert.ok(dish);
+    await web.locator("article img").first().waitFor();
+    await page.getByRole("tab", { name: "Paper", exact: true }).click();
+    const paper = page.frameLocator("[data-menu-preview-frame]").locator("[data-menu-paper]");
+    await paper.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+    assert.equal(await paper.getByText(dish, { exact: true }).count(), 1);
+    assert.equal(await paper.getByRole("img").count(), 0);
+    assert.equal(await page.locator("[data-menu-print-frame]").count(), 0);
+    await page.getByRole("tab", { name: "Web", exact: true }).click();
+    await web.getByRole("heading", { name: "Seasonal menu", exact: true }).waitFor();
+  });
+
+  await test("composed print keeps categories together without forcing each onto a new page", async (t) => {
+    const page = await preview(
+      t,
+      "/en/admin/menus/menu/50000000-0000-4000-8000-000000000001/preview",
+    );
+    await page.getByRole("tab", { name: "Paper", exact: true }).click();
+    const frame = await printedFrame(page);
+    const categories = frame.locator("[data-menu-paper] > section");
+    assert.equal(await categories.count(), 3);
+    assert.deepEqual(
+      await categories.evaluateAll((nodes) =>
+        nodes.map((node) => [
+          getComputedStyle(node).breakBefore,
+          getComputedStyle(node).breakInside,
+        ]),
+      ),
+      [
+        ["auto", "auto"],
+        ["auto", "avoid-page"],
+        ["auto", "avoid-page"],
+      ],
+    );
+  });
+
   await test("paper uses A4 portrait and A5 landscape dimensions", async (t) => {
     const page = await preview(t);
     const paper = page.frameLocator("[data-menu-preview-frame]").locator("[data-menu-paper]");
@@ -99,7 +141,8 @@ await suite("Menu print browser", async () => {
     assert.equal(await entry.count(), 1);
     assert.equal(await page.getByRole("heading", { name: "Menu printer", exact: true }).count(), 0);
     await entry.click();
-    await page.getByRole("link", { name: "Menu printer", exact: true }).click();
+    await page.getByRole("link", { name: "Item list", exact: true }).click();
+    await page.getByRole("link", { name: "Print menu", exact: true }).click();
     const paper = page.frameLocator("[data-menu-preview-frame]").locator("[data-menu-paper]");
     assert.equal(await paper.getAttribute("data-menu-paper"), "A4");
     assert.deepEqual(await paper.locator("h4").allTextContents(), [

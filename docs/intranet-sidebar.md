@@ -151,22 +151,23 @@ same offset. Reset it to `0rem` when printing if that header is hidden.
 
 ## Inputs and integration points
 
-| Input                | Contract                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------ |
-| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                               |
-| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host        |
-| Navigation item      | Stable `id`, `label`, optional icon node, and `href`, nested `items`, or both                          |
-| `badge`              | Optional non-interactive React node aligned after the item label; supply accessible text for counts    |
-| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                |
-| `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                  |
-| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                           |
-| `user`               | Required `email`; optional nullable `name`/`image`; missing or blank names use email initials          |
-| `profileHref`        | Required profile destination; the profile menu is always present                                       |
-| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`                    |
-| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                              |
-| `version`            | Optional display text, for example `v1.2.3`                                                            |
-| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error and expand/collapse labels |
-| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider                    |
+| Input                | Contract                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `brand`              | Required `name` and `href`; optional `logo` React node owned by the site                                      |
+| `groups`             | Groups with stable IDs, optional headings, and navigation items; filter permissions in the host               |
+| `footerItems`        | Optional navigation items pinned above the profile area; use for an installed, authorized Support destination |
+| Navigation item      | Stable `id`, `label`, optional icon node, and `href`, nested `items`, or both                                 |
+| `badge`              | Optional non-interactive React node aligned after the item label; supply accessible text for counts           |
+| `exact`              | Match a link only at its exact pathname; otherwise child path segments also activate it                       |
+| `collapsible: false` | Display nested items under a static label or parent link, useful for policy subgroups                         |
+| Group `footer`       | Optional site-owned actions, such as an impersonation dialog                                                  |
+| `user`               | Required `email`; optional nullable `name`/`image`; missing or blank names use email initials                 |
+| `profileHref`        | Required profile destination; the profile menu is always present                                              |
+| `onSignOut`          | Async host action; must reject on failure, including Better Auth's returned `error`                           |
+| `linkComponent`      | Optional router adapter accepting anchor props, `href`, children, and ref                                     |
+| `version`            | Optional display text, for example `v1.2.3`                                                                   |
+| `labels`             | Override navigation/toggle/close, profile/user-menu, sign-out/pending/error and expand/collapse labels        |
+| `togglePlacement`    | `sidebar` by default; `external` requires a shared toggle elsewhere in the provider                           |
 
 A linked parent (`href` plus `items`) renders a destination link and a separate
 expand/collapse button. Its section stays active on its own route or any active
@@ -201,8 +202,8 @@ import { pluginIcons } from "@/components/utils/plugin-icons";
 { id: "customers", label: "Customers", href: "/customers", icon: <pluginIcons.customers /> }
 ```
 
-The keys are `auth`, `blogs`, `customers`, `drive`, `employees`, `menus`, `projects`,
-and `reservations`. Navigation labels, routes and permissions remain host-owned.
+The keys include `auth`, `blogs`, `customers`, `drive`, `employees`, `menus`, `projects`,
+`reservations` and `supports`. Navigation labels, routes and permissions remain host-owned.
 
 ### Sidebar logo
 

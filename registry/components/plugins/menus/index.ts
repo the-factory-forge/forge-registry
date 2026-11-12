@@ -1,3 +1,9 @@
+export {
+  MenuCardPage,
+  MenuCardPreview,
+  type MenuCardPageProps,
+  type MenuCardPreviewProps,
+} from "@/components/plugins/menus/card-preview";
 export { MenuPage, type MenuPageProps } from "@/components/plugins/menus/public";
 export { MenuPrintPage, type MenuPrintPageProps } from "@/components/plugins/menus/print";
 export {
@@ -25,5 +31,15 @@ export {
   type MenuLabelTone,
   type MenuLabelIcon,
 } from "@/components/plugins/menus/label-presets";
-export { MenuError, buildMenu, type MenuErrorCode } from "@/components/plugins/menus/model";
+export {
+  MenuError,
+  buildMenu,
+  buildMenuCard,
+  isMenuCardPublic,
+  menuCardInputSchema,
+  type MenuErrorCode,
+} from "@/components/plugins/menus/model";
 export type * from "@/components/plugins/menus/types";
+
+export { MenuWorkspace, type MenuWorkspaceProps } from "@/components/plugins/menus/workspace";
+export type { MenuFilters } from "@/components/plugins/menus/composed-public";

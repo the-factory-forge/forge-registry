@@ -149,9 +149,14 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
       )
         throw new DriveError("CONFLICT");
     },
-    client(spaces: DriveSpace[], failActions: boolean, directoryState: string): DriveClient {
+    client(
+      spaces: DriveSpace[] | (() => DriveSpace[]),
+      failActions: boolean,
+      directoryState: string,
+    ): DriveClient {
+      const currentSpaces = () => (typeof spaces === "function" ? spaces() : spaces);
       const authorize = (scope: DriveScope, capability?: keyof DriveSpace["capabilities"]) => {
-        const space = spaces.find((item) => scopeKey(item.scope) === scopeKey(scope));
+        const space = currentSpaces().find((item) => scopeKey(item.scope) === scopeKey(scope));
         if (!space) throw new DriveError("NOT_FOUND");
         if (capability && !space.capabilities[capability]) throw new DriveError("FORBIDDEN");
         return space;
@@ -179,7 +184,11 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         const existing = uploads.get(input.requestId);
         if (existing) {
           if (existing.cancelled) throw new DriveError("EXPIRED");
-          return { id: input.requestId, completed: Boolean(existing.completed) };
+          return {
+            id: input.requestId,
+            entryId: existing.entryId,
+            completed: Boolean(existing.completed),
+          };
         }
         const name = validName(input.name);
         if (relativePath !== undefined) {
@@ -213,8 +222,9 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
           input = { ...input, parentId };
         }
         available(input.scope, input.parentId, name);
-        uploads.set(input.requestId, { input: { ...input, name }, entryId: crypto.randomUUID() });
-        return { id: input.requestId, completed: false };
+        const entryId = crypto.randomUUID();
+        uploads.set(input.requestId, { input: { ...input, name }, entryId });
+        return { id: input.requestId, entryId, completed: false };
       }
       return {
         async listTrash({ scope, search = "", cursor }) {
@@ -310,7 +320,7 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
           const sort = validSort(inputSort);
           await listing();
           return paginate(
-            spaces
+            currentSpaces()
               .filter((space) => space.name.toLowerCase().includes(search.toLowerCase()))
               .map((space) => {
                 const rows = owned(space.scope);

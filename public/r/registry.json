@@ -363,7 +363,7 @@
       "name": "lightbox",
       "type": "registry:ui",
       "title": "Lightbox",
-      "description": "Click-to-enlarge image overlay with Escape and click-outside dismiss.",
+      "description": "Image enlargement and optional collection navigation with keyboard and touch support.",
       "files": [
         {
           "path": "registry/components/lightbox.tsx",
@@ -485,7 +485,7 @@
       "name": "cookie-banner",
       "type": "registry:block",
       "title": "Cookie Banner",
-      "description": "Cookie preferences with custom selection, saved choices, and consent-driven analytics integration.",
+      "description": "Cookie preferences with accept, reject and custom selection actions and consent-driven analytics.",
       "files": [
         {
           "path": "registry/components/cookie-banner.tsx",
@@ -493,8 +493,7 @@
           "target": "@components/cookie-banner.tsx"
         }
       ],
-      "registryDependencies": ["@forge/cn", "@forge/consent-analytics", "@forge/icon-tooltip"],
-      "dependencies": ["lucide-react"]
+      "registryDependencies": ["@forge/cn", "@forge/consent-analytics"]
     },
     {
       "name": "language-switcher",
@@ -1324,8 +1323,14 @@
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",
-      "description": "Translated restaurant menu with draggable item ordering, size prices, category navigation, icon badges, spice levels, allergen and dietary filters, staff editors, and branded A4/A5 printing.",
-      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
+      "description": "Restaurant menu management with shared categories, dish photos, dietary filters, weekly menus, and web and paper previews.",
+      "dependencies": [
+        "@base-ui/react",
+        "@tanstack/react-query",
+        "lucide-react",
+        "motion",
+        "zod@4.6.7"
+      ],
       "registryDependencies": [
         "@forge/cn",
         "@forge/ui-shims",
@@ -1339,9 +1344,67 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/table-selection",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/image-with-fallback",
+        "@forge/image-crop",
+        "@forge/lightbox"
       ],
       "files": [
+        {
+          "path": "registry/components/plugins/menus/composed-public.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/composed-public.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/weekly.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/weekly.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/print-labels.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/print-labels.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/size-prices.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/size-prices.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/save-with-photo.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/save-with-photo.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/dish-photo.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/dish-photo.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/label-options.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/label-options.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/price.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/price.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/use-menu-drag.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/menus/use-menu-drag.ts"
+        },
+        {
+          "path": "registry/components/plugins/menus/workspace.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/workspace.tsx"
+        },
+        {
+          "path": "registry/components/plugins/menus/card-preview.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/menus/card-preview.tsx"
+        },
         {
           "path": "registry/components/plugins/menus/index.ts",
           "type": "registry:component",
@@ -2216,6 +2279,165 @@
           "target": "@components/connectors/agents-reservations/server/index.ts"
         }
       ]
+    },
+    {
+      "name": "supports",
+      "type": "registry:block",
+      "title": "Support",
+      "description": "Shared staff tickets with Markdown, image attachments, discussion and open, closed or canceled status. Host-owned authorization and routing.",
+      "files": [
+        {
+          "path": "registry/components/plugins/supports/index.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/index.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/composer.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/composer.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/ui.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/ui.tsx"
+        },
+        {
+          "path": "registry/components/plugins/supports/types.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/types.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/labels.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/labels.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/schema.ts"
+        }
+      ],
+      "registryDependencies": [
+        "@forge/cn",
+        "@forge/ui-shims",
+        "@forge/table-styles",
+        "@forge/table-search",
+        "@forge/table-pagination",
+        "@forge/native-select",
+        "@forge/action-toast",
+        "@forge/optimistic-action",
+        "@forge/icon-tooltip",
+        "@forge/loading-indicator",
+        "@forge/dialog-submit",
+        "@forge/editor-form"
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7", "@tanstack/markdown@0.0.16"]
+    },
+    {
+      "name": "supports-storage",
+      "type": "registry:block",
+      "title": "Support storage",
+      "description": "Typed PostgreSQL support tickets, retry-safe discussion and private S3 images with recoverable cleanup.",
+      "files": [
+        {
+          "path": "registry/components/plugins/supports/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/schema.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/storage.server.ts",
+          "type": "registry:component",
+          "target": "@components/plugins/supports/server/storage.server.ts"
+        },
+        {
+          "path": "registry/components/utils/storage-filename.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/storage-filename.ts"
+        },
+        {
+          "path": "registry/components/plugins/supports/server/integration.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/supports/server/integration.ts"
+        }
+      ],
+      "registryDependencies": ["@forge/supports", "@forge/database"],
+      "dependencies": [
+        "drizzle-orm@1.0.0-rc.4",
+        "postgres@3.4.9",
+        "@aws-sdk/client-s3",
+        "@aws-sdk/s3-request-presigner",
+        "zod@4.6.7"
+      ]
+    },
+    {
+      "name": "supports-github",
+      "type": "registry:block",
+      "title": "Supports–GitHub",
+      "description": "GitHub issue delivery status, explicit discussion export and safe retries for Supports.",
+      "files": [
+        {
+          "path": "registry/components/connectors/supports-github/index.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/supports-github/index.tsx"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/contracts.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/contracts.ts"
+        }
+      ],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "registryDependencies": [
+        "@forge/supports",
+        "@forge/icon-tooltip",
+        "@forge/optimistic-action",
+        "@forge/cn"
+      ]
+    },
+    {
+      "name": "supports-github-server",
+      "type": "registry:lib",
+      "title": "Supports–GitHub server",
+      "description": "Transactional private GitHub issue synchronization, signed webhooks and operator recovery.",
+      "files": [
+        {
+          "path": "registry/components/connectors/supports-github/contracts.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/contracts.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/index.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/github.server.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/github.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/markdown.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/markdown.ts"
+        },
+        {
+          "path": "registry/components/connectors/supports-github/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/connectors/supports-github/server/schema.ts"
+        }
+      ],
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod", "@tanstack/markdown@0.0.16"],
+      "registryDependencies": ["@forge/supports-storage", "@forge/database"]
     }
   ]
 }

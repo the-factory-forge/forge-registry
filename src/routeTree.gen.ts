@@ -14,6 +14,7 @@ import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
 import { Route as ReservationsRouteImport } from './routes/_reservations'
+import { Route as SupportsRouteImport } from './routes/_supports'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
 import { Route as ContentSidebarLayoutRouteImport } from './routes/content-sidebar-layout'
 import { Route as CookieBannerRouteImport } from './routes/cookie-banner'
@@ -51,6 +52,7 @@ import { Route as ReservationsLocaleReservationsSplatRouteImport } from './route
 import { Route as BlogsLocaleAdminBlogsSplatRouteImport } from './routes/_blogs.$locale.admin.blogs.$'
 import { Route as MenusLocaleAdminMenusSplatRouteImport } from './routes/_menus.$locale.admin.menus.$'
 import { Route as ReservationsLocaleAdminReservationsSplatRouteImport } from './routes/_reservations.$locale.admin.reservations.$'
+import { Route as SupportsLocaleIntranetSupportsSplatRouteImport } from './routes/_supports.$locale.intranet_.supports.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +73,10 @@ const PluginsRoute = PluginsRouteImport.update({
 } as any)
 const ReservationsRoute = ReservationsRouteImport.update({
   id: '/_reservations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportsRoute = SupportsRouteImport.update({
+  id: '/_supports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActionToastRoute = ActionToastRouteImport.update({
@@ -264,6 +270,12 @@ const ReservationsLocaleAdminReservationsSplatRoute =
     path: '/$locale/admin/reservations/$',
     getParentRoute: () => ReservationsRoute,
   } as any)
+const SupportsLocaleIntranetSupportsSplatRoute =
+  SupportsLocaleIntranetSupportsSplatRouteImport.update({
+    id: '/$locale/intranet_/supports/$',
+    path: '/$locale/intranet/supports/$',
+    getParentRoute: () => SupportsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -304,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
   '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
+  '/$locale/intranet/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -344,6 +357,7 @@ export interface FileRoutesByTo {
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
   '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
+  '/$locale/intranet/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -352,6 +366,7 @@ export interface FileRoutesById {
   '/_menus': typeof MenusRouteWithChildren
   '/_plugins': typeof PluginsRouteWithChildren
   '/_reservations': typeof ReservationsRouteWithChildren
+  '/_supports': typeof SupportsRouteWithChildren
   '/action-toast': typeof ActionToastRoute
   '/content-sidebar-layout': typeof ContentSidebarLayoutRoute
   '/cookie-banner': typeof CookieBannerRoute
@@ -389,6 +404,7 @@ export interface FileRoutesById {
   '/_blogs/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/_menus/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
   '/_reservations/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
+  '/_supports/$locale/intranet_/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -431,6 +447,7 @@ export interface FileRouteTypes {
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
     | '/$locale/admin/reservations/$'
+    | '/$locale/intranet/supports/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -471,6 +488,7 @@ export interface FileRouteTypes {
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
     | '/$locale/admin/reservations/$'
+    | '/$locale/intranet/supports/$'
   id:
     | '__root__'
     | '/'
@@ -478,6 +496,7 @@ export interface FileRouteTypes {
     | '/_menus'
     | '/_plugins'
     | '/_reservations'
+    | '/_supports'
     | '/action-toast'
     | '/content-sidebar-layout'
     | '/cookie-banner'
@@ -515,6 +534,7 @@ export interface FileRouteTypes {
     | '/_blogs/$locale/admin/blogs/$'
     | '/_menus/$locale/admin/menus/$'
     | '/_reservations/$locale/admin/reservations/$'
+    | '/_supports/$locale/intranet_/supports/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -523,6 +543,7 @@ export interface RootRouteChildren {
   MenusRoute: typeof MenusRouteWithChildren
   PluginsRoute: typeof PluginsRouteWithChildren
   ReservationsRoute: typeof ReservationsRouteWithChildren
+  SupportsRoute: typeof SupportsRouteWithChildren
   ActionToastRoute: typeof ActionToastRoute
   ContentSidebarLayoutRoute: typeof ContentSidebarLayoutRoute
   CookieBannerRoute: typeof CookieBannerRoute
@@ -588,6 +609,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ReservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_supports': {
+      id: '/_supports'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SupportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/action-toast': {
@@ -849,6 +877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservationsLocaleAdminReservationsSplatRouteImport
       parentRoute: typeof ReservationsRoute
     }
+    '/_supports/$locale/intranet_/supports/$': {
+      id: '/_supports/$locale/intranet_/supports/$'
+      path: '/$locale/intranet/supports/$'
+      fullPath: '/$locale/intranet/supports/$'
+      preLoaderRoute: typeof SupportsLocaleIntranetSupportsSplatRouteImport
+      parentRoute: typeof SupportsRoute
+    }
   }
 }
 
@@ -907,12 +942,26 @@ const ReservationsRouteWithChildren = ReservationsRoute._addFileChildren(
   ReservationsRouteChildren,
 )
 
+interface SupportsRouteChildren {
+  SupportsLocaleIntranetSupportsSplatRoute: typeof SupportsLocaleIntranetSupportsSplatRoute
+}
+
+const SupportsRouteChildren: SupportsRouteChildren = {
+  SupportsLocaleIntranetSupportsSplatRoute:
+    SupportsLocaleIntranetSupportsSplatRoute,
+}
+
+const SupportsRouteWithChildren = SupportsRoute._addFileChildren(
+  SupportsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogsRoute: BlogsRouteWithChildren,
   MenusRoute: MenusRouteWithChildren,
   PluginsRoute: PluginsRouteWithChildren,
   ReservationsRoute: ReservationsRouteWithChildren,
+  SupportsRoute: SupportsRouteWithChildren,
   ActionToastRoute: ActionToastRoute,
   ContentSidebarLayoutRoute: ContentSidebarLayoutRoute,
   CookieBannerRoute: CookieBannerRoute,

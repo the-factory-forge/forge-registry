@@ -22,6 +22,25 @@ export type Category = keyof typeof categoryIcons;
 export const examples = (
   [
     {
+      href: "/connectors/supports-github",
+      category: "Connector",
+      title: "Supports–GitHub",
+      description:
+        "Private GitHub issues with two-way replies, status, delivery recovery and explicit history export.",
+      tags: ["External API", "Host adapters"],
+      keywords: ["supports", "github", "connector", "adapter", "issues", "sync"],
+    },
+    {
+      href: "/en/intranet/supports",
+      category: "Plugin",
+      title: "Support",
+      icon: pluginIcons.supports,
+      description:
+        "Shared staff support tickets with Markdown, images, replies, and open or closed status.",
+      tags: ["Tickets", "Image attachments", "Discussion"],
+      keywords: ["supports", "support", "ticket", "bug", "feature", "help"],
+    },
+    {
       href: "/en/agents",
       category: "Plugin",
       title: "Agents",

@@ -25,7 +25,9 @@
     "test:menus-storage": "node --test tests/menus-storage/storage.integration.mjs",
     "preview": "vp preview",
     "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs",
-    "test:persistence": "node --test tests/persistence/*.integration.mjs"
+    "test:persistence": "node --import ./tests/drive-storage/register.mjs --test tests/persistence/*.integration.mjs",
+    "test:supports-storage": "node --test tests/supports-storage/*.integration.mjs",
+    "test:supports-github": "node --test tests/supports-github/*.integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1153.0",

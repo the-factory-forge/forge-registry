@@ -1,4 +1,5 @@
 export * from "./auth.schema.fixture.ts";
+export * from "../../registry/components/plugins/supports/server/schema.ts";
 export * from "./agent-key.schema.fixture.ts";
 export * from "../../registry/components/plugins/drive/server/schema.ts";
 export * from "../../registry/components/plugins/blogs/server/schema.ts";
@@ -14,3 +15,5 @@ export const projects = createProjectsSchema(customers);
 
 import { createBexioContactLinksSchema } from "../../registry/components/connectors/customers-bexio/server/schema.ts";
 export const bexioLinks = createBexioContactLinksSchema(customers);
+
+export * from "../../registry/components/connectors/supports-github/server/schema.ts";

@@ -79,6 +79,8 @@ export interface DriveUploadInput {
 }
 export interface DriveUploadTicket {
   id: string;
+  /** File identity for a caller that attaches the completed upload to another record. */
+  entryId?: string;
   url?: string;
   headers?: Record<string, string>;
   expiresAt?: string;

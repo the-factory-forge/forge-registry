@@ -24,6 +24,13 @@
         "files": ["registry/components/plugins/blogs/admin.tsx"],
         "createdAt": "2026-10-07T14:48:45.355Z",
         "reason": "Agent: the existing language tabs use a 2px bottom border as their active indicator, with only the top corners rounded on keyboard focus. This is a tab underline, not an accent border on a rounded card, and it is unchanged from HEAD."
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": ["registry/components/plugins/menus/editor.tsx"],
+        "createdAt": "2026-11-12T01:16:09.486Z",
+        "reason": "Codex review: the existing rule match is a language tab, not a card. Its active underline stays square; only the top corners of the keyboard focus outline are rounded."
       }
     ]
   }

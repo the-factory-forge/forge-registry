@@ -8,8 +8,18 @@ import {
   menuLabelPresets,
   menuLabelIcons,
 } from "../registry/components/plugins/menus/label-presets.ts";
-const { buildMenu, MenuError, parsePrice, reorderMenuItems, validateItem, validateLabel } =
-  await import("../registry/components/plugins/menus/model.ts");
+const {
+  buildMenu,
+  buildMenuCard,
+  MenuError,
+  menuCardStatus,
+  nextWeekDates,
+  parsePrice,
+  placeMenuItems,
+  reorderMenuItems,
+  validateItem,
+  validateLabel,
+} = await import("../registry/components/plugins/menus/model.ts");
 
 const category = { id: "c", position: 0, translations: { en: "Starters", fr: "Entrées" } };
 const label = { id: "l", kind: "allergen", position: 0, translations: { en: "Milk", fr: "Lait" } };
@@ -28,6 +38,17 @@ const item = {
     fr: { name: "", description: "" },
   },
 };
+
+await test("unassigned dishes remain editable but never enter public menu sections", () => {
+  const unassigned = { ...item, id: "orphan", categoryId: null };
+  assert.equal(validateItem(unassigned, "en").categoryId, null);
+  assert.deepEqual(buildMenu([unassigned], [category], [label], "en", "en"), []);
+  assert.deepEqual(
+    buildMenu([item, unassigned], [category], [label], "en", "en")[0].items.map(({ id }) => id),
+    [item.id],
+  );
+  assert.throws(() => validateItem({ ...item, categoryId: "" }, "en"), MenuError);
+});
 
 await test("reordering validates the complete versioned list and preserves item content", () => {
   const items = [
@@ -72,6 +93,86 @@ await test("reordering validates the complete versioned list and preserves item 
       (error) => error.code === "CONFLICT",
     );
   }
+});
+
+await test("grouped moves validate both categories before changing their order", () => {
+  const drink = { ...item, id: "b", categoryId: "drinks", version: 2 };
+  const items = [item, drink];
+  const groups = [
+    { categoryId: "c", items: [] },
+    {
+      categoryId: "drinks",
+      items: [
+        { id: "b", version: 2 },
+        { id: "a", version: 1 },
+      ],
+    },
+  ];
+  assert.deepEqual(placeMenuItems(items, groups), [
+    drink,
+    { ...item, categoryId: "drinks", position: 1, version: 2 },
+  ]);
+  for (const invalid of [
+    [{ categoryId: "drinks", items: groups[1].items }],
+    [
+      groups[0],
+      {
+        ...groups[1],
+        items: [
+          { id: "b", version: 2 },
+          { id: "a", version: 2 },
+        ],
+      },
+    ],
+  ]) {
+    assert.throws(() => placeMenuItems(items, invalid), { code: "CONFLICT" });
+    assert.deepEqual(items, [item, drink]);
+  }
+});
+
+await test("weekly menus show configured days only and calculate the next dated draft", () => {
+  const card = {
+    id: "weekly",
+    kind: "weekly",
+    categoryIds: ["drinks", "c"],
+    weekdays: [1],
+    weeklySections: [
+      { categoryId: "c", day: 1, course: "starter" },
+      { categoryId: "drinks", day: 2, course: "starter" },
+    ],
+    currencyLabel: "CHF",
+    startDate: "2026-12-21",
+    endDate: "2026-12-27",
+    displayMode: "lines",
+    published: false,
+    translations: { en: { name: "Weekly menu", description: "" } },
+  };
+  assert.deepEqual(nextWeekDates(card.endDate, [5, 0, 1]), {
+    startDate: "2026-12-28",
+    endDate: "2027-01-03",
+  });
+  assert.equal(menuCardStatus(card, "2026-12-23"), "unpublished");
+  const published = { ...card, published: true };
+  assert.equal(menuCardStatus(published, "2026-12-20"), "scheduled");
+  assert.equal(menuCardStatus(published, "2026-12-21"), "live");
+  assert.equal(menuCardStatus(published, "2026-12-27"), "live");
+  assert.equal(menuCardStatus(published, "2026-12-28"), "ended");
+  const view = buildMenuCard(
+    card,
+    [item, { ...item, id: "b", categoryId: "drinks" }],
+    [
+      { ...category, descriptions: { en: "Seasonal selection" } },
+      { ...category, id: "drinks" },
+    ],
+    [label],
+    "fr",
+    "en",
+  );
+  assert.equal(view.card.currencyLabel, "CHF");
+  assert.deepEqual(
+    view.categories.map(({ id, description }) => ({ id, description })),
+    [{ id: "c", description: "Seasonal selection" }],
+  );
 });
 
 await test("public menu orders items, omits hidden products, and falls back by entity", () => {

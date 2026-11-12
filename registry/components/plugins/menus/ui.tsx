@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { XIcon, Trash2Icon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
@@ -30,6 +30,85 @@ export function ErrorMessage({ message }: { message?: string }) {
       {message}
     </p>
   ) : null;
+}
+
+export function MenuConfirmation({
+  open,
+  title,
+  description,
+  confirm,
+  destructive = false,
+  cancel,
+  pending,
+  confirmDisabled = false,
+  error,
+  children,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  description: string;
+  confirm: string;
+  destructive?: boolean;
+  cancel: string;
+  pending: boolean;
+  confirmDisabled?: boolean;
+  error?: string;
+  children?: ReactNode;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(value) => {
+        if (!value && !pending) onCancel();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
+        <Dialog.Popup
+          initialFocus={cancelRef}
+          className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl"
+        >
+          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          <Dialog.Description className="text-sm text-muted-foreground">
+            {description}
+          </Dialog.Description>
+          <ErrorMessage message={error} />
+          {children}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              ref={cancelRef}
+              type="button"
+              disabled={pending}
+              className={outlineButton}
+              onClick={onCancel}
+            >
+              {cancel}
+            </button>
+            <button
+              type="button"
+              disabled={pending || confirmDisabled}
+              className={
+                destructive
+                  ? cn(
+                      button,
+                      "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+                    )
+                  : primary
+              }
+              onClick={onConfirm}
+            >
+              {confirm}
+            </button>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }
 
 export function DeleteControl({

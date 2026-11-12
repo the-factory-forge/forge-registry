@@ -557,7 +557,7 @@ await test("blog registry files ship independently and never expose server impor
     const files = (
       await readdir(new URL(`../${directory}/`, import.meta.url), { withFileTypes: true })
     )
-      .filter((f) => f.isFile())
+      .filter((f) => f.isFile() && f.name !== "AGENTS.md")
       .map((f) => `${directory}/${f.name}`)
       .sort();
     if (name === "blogs-storage") files.push("registry/components/utils/storage-filename.ts");

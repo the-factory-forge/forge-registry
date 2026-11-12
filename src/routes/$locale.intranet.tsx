@@ -55,6 +55,7 @@ function subscribePath(onChange: () => void) {
 }
 
 function IntranetExample() {
+  const { locale } = Route.useParams();
   const pathname = useSyncExternalStore(
     subscribePath,
     () => window.location.hash || "#overview",
@@ -101,6 +102,14 @@ function IntranetExample() {
         brand={{ name: "Acme workspace", href: "#overview" }}
         user={{ name: "Alex Morgan", email: "alex@example.com" }}
         groups={groups}
+        footerItems={[
+          {
+            id: "supports",
+            label: "Support",
+            href: `/${locale}/intranet/supports`,
+            icon: <pluginIcons.supports />,
+          },
+        ]}
         pathname={pathname}
         profileHref="#profile"
         version={`v${version}`}

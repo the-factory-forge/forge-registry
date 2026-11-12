@@ -162,13 +162,15 @@ function MenuItemsPageContent({
   const categoryNames = new Map(
     data?.categories.map((category) => [category.id, category.translations[baseLocale]]) ?? [],
   );
+  const categoryName = (id: string | null) =>
+    id === null ? labels.unassignedCategory : categoryNames.get(id);
   const draggedItem = data?.items.find((item) => item.id === dragPreview?.id);
   const filteredItems =
     data?.items.filter((item) =>
       matchesTableSearch(
         search,
         item.translations[baseLocale]?.name,
-        categoryNames.get(item.categoryId),
+        categoryName(item.categoryId),
         item.visible ? labels.yes : labels.no,
         item.soldOut ? labels.yes : labels.no,
       ),
@@ -360,7 +362,7 @@ function MenuItemsPageContent({
                         {item.translations[baseLocale]?.name}
                       </div>
                     </td>
-                    <td className={tableCellClass}>{categoryNames.get(item.categoryId)}</td>
+                    <td className={tableCellClass}>{categoryName(item.categoryId)}</td>
                     <td className={tableCellClass}>
                       <span
                         className={cn(
@@ -464,7 +466,7 @@ function MenuItemsPageContent({
                 {draggedItem.translations[baseLocale]?.name}
               </p>
               <p className="truncate text-muted-foreground">
-                {categoryNames.get(draggedItem.categoryId)}
+                {categoryName(draggedItem.categoryId)}
               </p>
             </div>
           </div>,
@@ -484,6 +486,7 @@ export interface MenuTaxonomyPageProps {
   backHref: string;
   linkComponent?: ComponentType<LinkProps>;
   labels?: Partial<MenusLabels>;
+  labelsOnly?: boolean;
   className?: string;
 }
 
@@ -496,6 +499,7 @@ function MenuTaxonomyPageContent({
   onNavigationStateChange,
   linkComponent: HostLink = Link,
   labels: overrides,
+  labelsOnly = false,
   className,
 }: MenuTaxonomyPageProps) {
   const labels = { ...menusLabels, ...overrides };
@@ -509,7 +513,9 @@ function MenuTaxonomyPageContent({
         {labels.back}
       </HostLink>
       <h1 className="text-2xl font-semibold">
-        {labels.categories} / {labels.labels}
+        {labelsOnly
+          ? (labels.allergensAndPreferences ?? labels.labels)
+          : `${labels.categories} / ${labels.labels}`}
       </h1>
       <ErrorMessage message={taxonomy.mutationError ? labels.error : undefined} />
       {error ? (
@@ -528,71 +534,73 @@ function MenuTaxonomyPageContent({
       {!data && !error ? <output>{labels.loading}</output> : null}
       {data ? (
         <>
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">{labels.categories}</h2>
-              <MenuTaxonomyEditor
-                blockedNavigation={blockedNavigation}
-                onNavigationStateChange={onNavigationStateChange}
-                disabled={disabled}
-                key="new-category"
-                kind="category"
-                locales={locales}
-                baseLocale={baseLocale}
-                labels={labels}
-                onSave={async (input) => {
-                  await taxonomy.saveCategory({
-                    position: input.position,
-                    translations: input.translations,
-                  });
-                }}
-              />
-            </div>
-            <ul className="divide-y divide-border rounded-2xl border border-border">
-              {retainRemovedItems(
-                data.categories,
-                savedData?.categories ?? [],
-                taxonomy.pending,
-              ).map((category) => (
-                <li
-                  key={category.id}
-                  hidden={!data.categories.some((row) => row.id === category.id)}
-                  className="flex items-center justify-between p-3"
-                >
-                  <span>{category.translations[baseLocale]}</span>
-                  <div className="flex gap-2">
-                    <MenuTaxonomyEditor
-                      blockedNavigation={blockedNavigation}
-                      onNavigationStateChange={onNavigationStateChange}
-                      disabled={disabled}
-                      key={category.id}
-                      kind="category"
-                      existing={category}
-                      locales={locales}
-                      baseLocale={baseLocale}
-                      labels={labels}
-                      onSave={async (input) => {
-                        await taxonomy.saveCategory({
-                          id: category.id,
-                          position: input.position,
-                          translations: input.translations,
-                        });
-                      }}
-                    />
-                    <DeleteControl
-                      disabled={disabled}
-                      label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
-                      confirm={labels.confirmDelete}
-                      cancel={labels.cancel}
-                      closeLabel={labels.close}
-                      errorMessage={labels.error}
-                      onDelete={() => taxonomy.removeCategory(category.id)}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
+          {!labelsOnly && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{labels.categories}</h2>
+                <MenuTaxonomyEditor
+                  blockedNavigation={blockedNavigation}
+                  onNavigationStateChange={onNavigationStateChange}
+                  disabled={disabled}
+                  key="new-category"
+                  kind="category"
+                  locales={locales}
+                  baseLocale={baseLocale}
+                  labels={labels}
+                  onSave={async (input) => {
+                    await taxonomy.saveCategory({
+                      position: input.position,
+                      translations: input.translations,
+                    });
+                  }}
+                />
+              </div>
+              <ul className="divide-y divide-border rounded-2xl border border-border">
+                {retainRemovedItems(
+                  data.categories,
+                  savedData?.categories ?? [],
+                  taxonomy.pending,
+                ).map((category) => (
+                  <li
+                    key={category.id}
+                    hidden={!data.categories.some((row) => row.id === category.id)}
+                    className="flex items-center justify-between p-3"
+                  >
+                    <span>{category.translations[baseLocale]}</span>
+                    <div className="flex gap-2">
+                      <MenuTaxonomyEditor
+                        blockedNavigation={blockedNavigation}
+                        onNavigationStateChange={onNavigationStateChange}
+                        disabled={disabled}
+                        key={category.id}
+                        kind="category"
+                        existing={category}
+                        locales={locales}
+                        baseLocale={baseLocale}
+                        labels={labels}
+                        onSave={async (input) => {
+                          await taxonomy.saveCategory({
+                            id: category.id,
+                            position: input.position,
+                            translations: input.translations,
+                          });
+                        }}
+                      />
+                      <DeleteControl
+                        disabled={disabled}
+                        label={`${labels.deleteCategory}: ${category.translations[baseLocale]}`}
+                        confirm={labels.confirmDelete}
+                        cancel={labels.cancel}
+                        closeLabel={labels.close}
+                        errorMessage={labels.error}
+                        onDelete={() => taxonomy.removeCategory(category.id)}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">{labels.labels}</h2>
@@ -615,58 +623,71 @@ function MenuTaxonomyPageContent({
                 }}
               />
             </div>
-            <ul className="divide-y divide-border rounded-2xl border border-border">
-              {retainRemovedItems(
-                data.labelsData,
-                savedData?.labelsData ?? [],
-                taxonomy.pending,
-              ).map((label) => (
-                <li
-                  key={label.id}
-                  hidden={!data.labelsData.some((row) => row.id === label.id)}
-                  className="flex items-center justify-between gap-3 p-3"
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <MenuLabelSymbol label={{ ...label, name: label.translations[baseLocale] }} />
-                    <span className="min-w-0 wrap-anywhere">
-                      {label.translations[baseLocale]}{" "}
-                      <span className="text-xs text-muted-foreground">({label.kind})</span>
-                    </span>
-                  </span>
-                  <div className="flex shrink-0 gap-2">
-                    <MenuTaxonomyEditor
-                      blockedNavigation={blockedNavigation}
-                      onNavigationStateChange={onNavigationStateChange}
-                      disabled={disabled}
-                      key={label.id}
-                      kind="label"
-                      existing={label}
-                      locales={locales}
-                      baseLocale={baseLocale}
-                      labels={labels}
-                      onSave={async (input) => {
-                        await taxonomy.saveLabel({
-                          id: label.id,
-                          kind: input.kind ?? label.kind,
-                          icon: input.icon,
-                          position: input.position,
-                          translations: input.translations,
-                        });
-                      }}
-                    />
-                    <DeleteControl
-                      disabled={disabled}
-                      label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
-                      confirm={labels.confirmDelete}
-                      cancel={labels.cancel}
-                      closeLabel={labels.close}
-                      errorMessage={labels.error}
-                      onDelete={() => taxonomy.removeLabel(label.id)}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {(labelsOnly ? (["allergen", "dietary"] as const) : [undefined]).map((kind) => (
+              <div key={kind ?? "all"} className="space-y-2">
+                {kind && (
+                  <h3 className="text-sm font-semibold">
+                    {kind === "allergen" ? labels.allergens : labels.dietary}
+                  </h3>
+                )}
+                <ul className="divide-y divide-border rounded-2xl border border-border">
+                  {retainRemovedItems(
+                    data.labelsData,
+                    savedData?.labelsData ?? [],
+                    taxonomy.pending,
+                  )
+                    .filter((label) => !kind || label.kind === kind)
+                    .map((label) => (
+                      <li
+                        key={label.id}
+                        hidden={!data.labelsData.some((row) => row.id === label.id)}
+                        className="flex items-center justify-between gap-3 p-3"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <MenuLabelSymbol
+                            label={{ ...label, name: label.translations[baseLocale] }}
+                          />
+                          <span className="min-w-0 wrap-anywhere">
+                            {label.translations[baseLocale]}{" "}
+                            <span className="text-xs text-muted-foreground">({label.kind})</span>
+                          </span>
+                        </span>
+                        <div className="flex shrink-0 gap-2">
+                          <MenuTaxonomyEditor
+                            blockedNavigation={blockedNavigation}
+                            onNavigationStateChange={onNavigationStateChange}
+                            disabled={disabled}
+                            key={label.id}
+                            kind="label"
+                            existing={label}
+                            locales={locales}
+                            baseLocale={baseLocale}
+                            labels={labels}
+                            onSave={async (input) => {
+                              await taxonomy.saveLabel({
+                                id: label.id,
+                                kind: input.kind ?? label.kind,
+                                icon: input.icon,
+                                position: input.position,
+                                translations: input.translations,
+                              });
+                            }}
+                          />
+                          <DeleteControl
+                            disabled={disabled}
+                            label={`${labels.deleteLabel}: ${label.translations[baseLocale]}`}
+                            confirm={labels.confirmDelete}
+                            cancel={labels.cancel}
+                            closeLabel={labels.close}
+                            errorMessage={labels.error}
+                            onDelete={() => taxonomy.removeLabel(label.id)}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
           </section>
         </>
       ) : null}

@@ -45,6 +45,7 @@ import {
   EntryDialog,
   iconButtonClass,
   messageFor,
+  outlineButtonClass,
 } from "@/components/plugins/drive/ui";
 import { useDriveListing } from "@/components/plugins/drive/use-listing";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
@@ -112,16 +113,28 @@ export function DrivePage({
             <h1 className="text-base font-semibold">{labels.title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{labels.description}</p>
           </div>
-          <TableSearch
-            className="ml-auto"
-            value={search}
-            label={labels.searchSpaces}
-            clearLabel={labels.clearSearch}
-            onValueChange={(value) => {
-              setSearch(value);
-              setCursors([]);
-            }}
-          />
+          <div className="ml-auto flex items-center gap-2">
+            <TableSearch
+              value={search}
+              label={labels.searchSpaces}
+              clearLabel={labels.clearSearch}
+              onValueChange={(value) => {
+                setSearch(value);
+                setCursors([]);
+              }}
+            />
+            <IconTooltip label={labels.refreshListing}>
+              <button
+                type="button"
+                className={iconButtonClass}
+                aria-label={labels.refreshListing}
+                disabled={loading}
+                onClick={() => setRevision((value) => value + 1)}
+              >
+                <RefreshCwIcon className="size-4" aria-hidden="true" />
+              </button>
+            </IconTooltip>
+          </div>
         </header>
         <div className="relative overflow-x-auto">
           <table aria-label={labels.spaces} className={cn(tableClass, "min-w-[44rem]")}>
@@ -875,16 +888,28 @@ function Browser({
                       {labels.uploadLimit(data?.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES)}
                     </p>
                   </div>
-                  <TableSearch
-                    className="ml-auto"
-                    value={search}
-                    label={labels.searchFiles}
-                    clearLabel={labels.clearSearch}
-                    onValueChange={(value) => {
-                      setSearch(value);
-                      setCursors([]);
-                    }}
-                  />
+                  <div className="ml-auto flex items-center gap-2">
+                    <TableSearch
+                      value={search}
+                      label={labels.searchFiles}
+                      clearLabel={labels.clearSearch}
+                      onValueChange={(value) => {
+                        setSearch(value);
+                        setCursors([]);
+                      }}
+                    />
+                    <IconTooltip label={labels.refreshListing}>
+                      <button
+                        type="button"
+                        className={iconButtonClass}
+                        aria-label={labels.refreshListing}
+                        disabled={loading}
+                        onClick={refresh}
+                      >
+                        <RefreshCwIcon className="size-4" aria-hidden="true" />
+                      </button>
+                    </IconTooltip>
+                  </div>
                 </header>
                 <div className="relative overflow-x-auto">
                   <table
@@ -1068,7 +1093,7 @@ function Browser({
                                   (!isSelectableFile || isSelectableFile(entry)) && (
                                     <button
                                       type="button"
-                                      className={buttonClass}
+                                      className={outlineButtonClass}
                                       disabled={actionsDisabled}
                                       onClick={() => onSelectFile(entry)}
                                     >

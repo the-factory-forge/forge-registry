@@ -1,18 +1,65 @@
 import { sql } from "drizzle-orm";
-import { boolean, integer, jsonb, pgTable, text, index, check } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  index,
+  check,
+  primaryKey,
+} from "drizzle-orm/pg-core";
 
 import type { MenuLabelIcon } from "@/components/plugins/menus/label-presets";
 import type {
   MenuItemSize,
+  MenuKind,
   MenuSpiceLevel,
   MenuTranslation,
+  WeeklySection,
 } from "@/components/plugins/menus/types";
 
 export const menuCategories = pgTable("menu_category", {
   id: text("id").primaryKey(),
+  version: integer("version").notNull().default(1),
   position: integer("position").notNull(),
   translations: jsonb("translations").$type<Record<string, string>>().notNull(),
+  descriptions: jsonb("descriptions").$type<Record<string, string>>().notNull().default({}),
 });
+
+export const menuCards = pgTable("restaurant_menu", {
+  id: text("id").primaryKey(),
+  version: integer("version").notNull().default(1),
+  position: integer("position").notNull(),
+  translations: jsonb("translations").$type<Record<string, MenuTranslation>>().notNull(),
+  published: boolean("published").notNull().default(false),
+  displayMode: text("display_mode").$type<"lines" | "photos">().notNull().default("lines"),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  kind: text("kind").$type<MenuKind>().notNull().default("standard"),
+  weekdays: jsonb("weekdays").$type<number[]>().notNull().default([]),
+  weeklySections: jsonb("weekly_sections").$type<WeeklySection[]>().notNull().default([]),
+  currencyLabel: text("currency_label"),
+  copyRequestId: text("copy_request_id").unique(),
+  copySourceId: text("copy_source_id"),
+});
+
+export const menuCardSections = pgTable(
+  "menu_section",
+  {
+    menuId: text("menu_id")
+      .notNull()
+      .references(() => menuCards.id, { onDelete: "cascade" }),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => menuCategories.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.categoryId] }),
+    index("menu_section_category").on(table.categoryId),
+  ],
+);
 
 export const menuLabels = pgTable(
   "menu_label",
@@ -39,10 +86,8 @@ export const menuItems = pgTable(
   {
     id: text("id").primaryKey(),
     version: integer("version").notNull(),
-    categoryId: text("category_id")
-      .notNull()
-      .references(() => menuCategories.id, { onDelete: "restrict" }),
-    priceMinor: integer("price_minor").notNull(),
+    categoryId: text("category_id").references(() => menuCategories.id, { onDelete: "restrict" }),
+    priceMinor: integer("price_minor"),
     sizes: jsonb("sizes").$type<MenuItemSize[]>().notNull().default([]),
     position: integer("position").notNull(),
     visible: boolean("visible").notNull(),

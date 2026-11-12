@@ -1,5 +1,6 @@
 import {
   BotMessageSquareIcon,
+  CircleHelpIcon,
   CalendarDaysIcon,
   FolderKanbanIcon,
   HardDriveIcon,
@@ -23,4 +24,5 @@ export const pluginIcons = {
   mailing: MailIcon,
   projects: FolderKanbanIcon,
   reservations: CalendarDaysIcon,
+  supports: CircleHelpIcon,
 };

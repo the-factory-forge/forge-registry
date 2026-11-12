@@ -55,3 +55,8 @@ Customers–Bexio uses the same composed fixture to verify its installation-scop
 unique person constraint, competing database connections, rollback after auth
 creation and before commit, invitation resend, and bulk recovery after losing a
 committed account response. Bexio calls are mocked; auth and PostgreSQL are real.
+
+Supports is included in the composed migration fixture. Its dedicated
+`pnpm test:supports-storage` suite uses the Blogs PostgreSQL/MinIO fixture with
+a disposable database and bucket. It verifies staff membership, retry receipts,
+concurrent writes, attachment claims, migration replay and recoverable cleanup.

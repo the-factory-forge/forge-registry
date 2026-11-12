@@ -52,6 +52,15 @@ void test("project success toasts preserve layout, focus and repeated saves in b
       const bounds = await toast.boundingBox();
       assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
       assert.ok(bounds.y >= 0 && bounds.y + bounds.height <= 900);
+      assert.equal(
+        await toast.evaluate((element) => {
+          const viewport = element.parentElement;
+          const box = viewport.getBoundingClientRect();
+          return viewport.contains(document.elementFromPoint(box.right - 2, box.bottom - 2));
+        }),
+        false,
+        "Empty notification padding must not intercept the page underneath",
+      );
       await page.screenshot({
         path: `/private/tmp/forge-feedback-task/project-toast-${width}-${colorScheme}.png`,
       });

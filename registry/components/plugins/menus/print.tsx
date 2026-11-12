@@ -9,17 +9,23 @@ import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import { MenuLabelBadge } from "@/components/plugins/menus/label-badge";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
+import { menuPriceFormatter } from "@/components/plugins/menus/price";
+import { MenuPrintLegend, MenuPrintSymbols } from "@/components/plugins/menus/print-labels";
+import { MenuSizePrices } from "@/components/plugins/menus/size-prices";
 import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
-import type { MenuViewCategory } from "@/components/plugins/menus/types";
+import type { MenuCardView, MenuViewCategory } from "@/components/plugins/menus/types";
+import { WeeklyMenu } from "@/components/plugins/menus/weekly";
 import { cn } from "@/components/utils/cn";
 
 export interface MenuPrintPageProps {
   sections: readonly MenuViewCategory[];
+  view?: MenuCardView;
   locale: string;
   currency: string;
   restaurantName: string;
   logo?: Pick<ImageProps, "src" | "alt" | "width" | "height" | "srcSet" | "sizes">;
   initialTitle?: string;
+  description?: string;
   initialFooter?: string;
   backHref: string;
   linkComponent?: ComponentType<LinkProps>;
@@ -32,7 +38,15 @@ const field =
 const button =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
-function PaperPreview({ children, title }: { children: ReactNode; title: string }) {
+function PaperPreview({
+  children,
+  title,
+  wide,
+}: {
+  children: ReactNode;
+  title: string;
+  wide?: boolean;
+}) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [body, setBody] = useState<HTMLElement>();
   useEffect(() => {
@@ -64,7 +78,11 @@ function PaperPreview({ children, title }: { children: ReactNode; title: string 
         ref={frameRef}
         title={title}
         data-menu-preview-frame
-        className={cn("mx-auto w-full max-w-[210mm] border-0 shadow-md", !body && "hidden")}
+        className={cn(
+          "mx-auto w-full border-0 shadow-md",
+          wide ? "max-w-[297mm]" : "max-w-[210mm]",
+          !body && "hidden",
+        )}
       />
     </>
   );
@@ -72,11 +90,13 @@ function PaperPreview({ children, title }: { children: ReactNode; title: string 
 
 export function MenuPrintPage({
   sections,
+  view,
   locale,
   currency,
   restaurantName,
   logo,
   initialTitle,
+  description,
   initialFooter = "",
   backHref,
   linkComponent: HostLink = Link,
@@ -84,7 +104,11 @@ export function MenuPrintPage({
   className,
 }: MenuPrintPageProps) {
   const labels = { ...menusLabels, ...overrides };
-  const [paperSize, setPaperSize] = useState<"A4" | "A5">("A4");
+  const weekly = view?.card.kind === "weekly";
+  const [paperSize, setPaperSize] = useState<"A4" | "A5" | "A4 landscape">(
+    weekly ? "A4 landscape" : "A4",
+  );
+  const wide = paperSize === "A4 landscape";
   const [title, setTitle] = useState(initialTitle ?? labels.menu);
   const [footer, setFooter] = useState(initialFooter);
   const [busy, setBusy] = useState(false);
@@ -98,7 +122,12 @@ export function MenuPrintPage({
     .filter((section) => section.items.length);
   const formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
   const divisor = 10 ** (formatter.resolvedOptions().maximumFractionDigits ?? 2);
-  const price = (minor: number) => formatter.format(minor / divisor);
+  const price = view
+    ? menuPriceFormatter(locale, currency)
+    : (minor: number) => formatter.format(minor / divisor);
+  const hasPrices = visibleSections.some((section) =>
+    section.items.some((item) => item.priceMinor !== null || item.sizes?.length),
+  );
 
   useEffect(() => () => frameRef.current?.remove(), []);
 
@@ -146,7 +175,7 @@ export function MenuPrintPage({
       );
       const printStyle = target.createElement("style");
       printStyle.textContent = `
-        @page { size: ${paperSize} ${paperSize === "A4" ? "portrait" : "landscape"}; margin: ${paperSize === "A4" ? "12mm" : "10mm"}; }
+        @page { size: ${paperSize === "A4 landscape" ? "A4 landscape" : paperSize === "A4" ? "A4 portrait" : "A5 landscape"}; margin: ${paperSize === "A4" ? "12mm" : "10mm"}; }
         :root { color-scheme: light; scrollbar-gutter: auto; }
         body { margin: 0; background: var(--background); color: var(--foreground); }
         [data-menu-paper] { width: auto; max-width: none; min-height: 0; margin: 0; padding: 0; border: 0; box-shadow: none; }
@@ -195,13 +224,15 @@ export function MenuPrintPage({
     <section
       className={cn("mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-foreground", className)}
     >
-      <HostLink
-        href={backHref}
-        className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-foreground transition-colors outline-none hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
-      >
-        <ArrowLeftIcon aria-hidden="true" className="size-4 shrink-0" />
-        {labels.back}
-      </HostLink>
+      {!view && (
+        <HostLink
+          href={backHref}
+          className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-foreground transition-colors outline-none hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
+        >
+          <ArrowLeftIcon aria-hidden="true" className="size-4 shrink-0" />
+          {labels.back}
+        </HostLink>
+      )}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{labels.printMenu}</h1>
         <button
@@ -223,11 +254,17 @@ export function MenuPrintPage({
           <NativeSelect
             id={`${id}-size`}
             value={paperSize}
-            onChange={(event) => setPaperSize(event.target.value === "A5" ? "A5" : "A4")}
+            onChange={(event) => {
+              const size = event.target.value;
+              setPaperSize(size === "A5" || size === "A4 landscape" ? size : "A4");
+            }}
             className={field}
           >
             <option value="A4">A4</option>
             <option value="A5">A5</option>
+            {weekly && (
+              <option value="A4 landscape">{labels.paperLandscape ?? "A4 landscape"}</option>
+            )}
           </NativeSelect>
         </div>
         <div className="space-y-2 text-sm font-medium">
@@ -264,14 +301,15 @@ export function MenuPrintPage({
         <output className="block">{labels.emptyPrintMenu}</output>
       ) : (
         <section className="min-w-0 bg-muted py-6 sm:px-6" aria-label={labels.printPreview}>
-          <PaperPreview title={labels.printPreview}>
+          <PaperPreview title={labels.printPreview} wide={wide}>
             <article
               ref={paperRef}
               data-menu-paper={paperSize}
               lang={locale}
               className={cn(
-                "light mx-auto w-[210mm] max-w-full bg-background font-sans text-[11pt] leading-relaxed wrap-anywhere text-foreground [color-scheme:light]",
-                paperSize === "A4" ? "min-h-[297mm] p-[12mm]" : "min-h-[148mm] p-[10mm]",
+                "light mx-auto max-w-full bg-background font-sans text-[11pt] leading-relaxed wrap-anywhere text-foreground [color-scheme:light]",
+                wide ? "min-h-[210mm] w-[297mm] p-[10mm]" : "w-[210mm]",
+                !wide && (paperSize === "A4" ? "min-h-[297mm] p-[12mm]" : "min-h-[148mm] p-[10mm]"),
               )}
             >
               <header className="mb-8 break-after-avoid space-y-3 text-center">
@@ -287,54 +325,141 @@ export function MenuPrintPage({
                   {restaurantName}
                 </p>
                 {title && <h2 className="text-[14pt] whitespace-pre-wrap">{title}</h2>}
+                {description && <p className="mt-2 whitespace-pre-wrap">{description}</p>}
+                {weekly && view.card.startDate && view.card.endDate && (
+                  <p>
+                    {new Intl.DateTimeFormat(locale, {
+                      dateStyle: "medium",
+                      timeZone: "UTC",
+                    }).formatRange(new Date(view.card.startDate), new Date(view.card.endDate))}
+                  </p>
+                )}
+                {view && hasPrices && (
+                  <p className="text-right text-[9pt]">
+                    {labels.price} ({view.card.currencyLabel ?? currency})
+                  </p>
+                )}
               </header>
-              {visibleSections.map((section) => (
-                <section key={section.id} className="mb-7">
-                  <h3 className="mb-4 break-after-avoid border-b border-border pb-2 font-serif text-[16pt] font-semibold">
-                    {section.name}
-                  </h3>
-                  {section.items.map((item) => (
-                    <article key={item.id} className="mb-5 break-inside-avoid">
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="min-w-0 font-semibold">{item.name}</h4>
-                        {item.soldOut && (
-                          <span className="max-w-[45%] shrink-0 rounded-full bg-status-pending px-2 py-0.5 text-[9pt] font-medium text-status-pending-foreground">
-                            {labels.soldOut}
-                          </span>
-                        )}
-                        {!item.sizes?.length && !item.soldOut && (
-                          <span className="shrink-0 tabular-nums">{price(item.priceMinor)}</span>
-                        )}
-                      </div>
-                      {item.description && (
-                        <p className="mt-1 whitespace-pre-wrap">{item.description}</p>
-                      )}
-                      {item.sizes?.length ? (
-                        <dl className="mt-2 space-y-1">
-                          {item.sizes.map((size) => (
-                            <div key={size.id} className="flex justify-between gap-3">
-                              <dt>{size.name}</dt>
-                              <dd className="shrink-0 tabular-nums">{price(size.priceMinor)}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      ) : item.soldOut ? (
-                        <p className="mt-1 text-right tabular-nums">{price(item.priceMinor)}</p>
-                      ) : null}
-                      {(item.labels.length > 0 || !!item.spiceLevel) && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {item.labels.map((label) => (
-                            <MenuLabelBadge key={label.id} label={label} />
-                          ))}
-                          {!!item.spiceLevel && (
-                            <MenuSpiceBadge level={item.spiceLevel} labels={labels} />
+              {weekly ? (
+                <WeeklyMenu
+                  data={{ ...view, categories: visibleSections }}
+                  locale={locale}
+                  currency={currency}
+                  labels={labels}
+                  paper
+                />
+              ) : view ? (
+                visibleSections.map((section, index) => (
+                  <section
+                    key={section.id}
+                    className={cn("mb-7", index > 0 && "break-inside-avoid-page")}
+                  >
+                    <h3 className="mb-4 break-after-avoid border-b border-border pb-2 font-serif text-[16pt] font-semibold">
+                      {section.name}
+                    </h3>
+                    {section.description && (
+                      <p className="mb-4 break-after-avoid whitespace-pre-wrap">
+                        {section.description}
+                      </p>
+                    )}
+                    {section.items.map((item) => (
+                      <article
+                        key={item.id}
+                        className="mb-5 grid break-inside-avoid grid-cols-[minmax(0,1fr)_auto] gap-x-4"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h4 className="font-semibold">{item.name}</h4>
+                            <MenuPrintSymbols labels={item.labels} />
+                            <MenuSpiceBadge level={item.spiceLevel ?? 0} labels={labels} iconOnly />
+                          </div>
+                          {item.description && (
+                            <p className="mt-1 whitespace-pre-wrap">{item.description}</p>
                           )}
                         </div>
-                      )}
-                    </article>
-                  ))}
-                </section>
-              ))}
+                        <div className="space-y-1 text-right">
+                          {item.sizes?.length ? (
+                            <MenuSizePrices
+                              sizes={item.sizes}
+                              format={price}
+                              className="max-w-40"
+                              paper
+                            />
+                          ) : (
+                            item.priceMinor !== null && (
+                              <span
+                                data-menu-print-price
+                                className="whitespace-nowrap tabular-nums"
+                              >
+                                {price(item.priceMinor)}
+                              </span>
+                            )
+                          )}
+                          {item.soldOut && (
+                            <p className="text-[9pt] font-medium">{labels.soldOut}</p>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </section>
+                ))
+              ) : (
+                visibleSections.map((section) => (
+                  <section key={section.id} className="mb-7">
+                    <h3 className="mb-4 break-after-avoid border-b border-border pb-2 font-serif text-[16pt] font-semibold">
+                      {section.name}
+                    </h3>
+                    {section.items.map((item) => (
+                      <article key={item.id} className="mb-5 break-inside-avoid">
+                        <div className="flex items-start justify-between gap-3">
+                          <h4 className="min-w-0 font-semibold">{item.name}</h4>
+                          {item.soldOut && (
+                            <span className="max-w-[45%] shrink-0 rounded-full bg-status-pending px-2 py-0.5 text-[9pt] font-medium text-status-pending-foreground">
+                              {labels.soldOut}
+                            </span>
+                          )}
+                          {!item.sizes?.length && !item.soldOut && item.priceMinor !== null && (
+                            <span className="shrink-0 tabular-nums">{price(item.priceMinor)}</span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="mt-1 whitespace-pre-wrap">{item.description}</p>
+                        )}
+                        {item.sizes?.length ? (
+                          <dl className="mt-2 space-y-1">
+                            {item.sizes.map((size) => (
+                              <div key={size.id} className="flex justify-between gap-3">
+                                <dt>{size.name}</dt>
+                                <dd className="shrink-0 tabular-nums">{price(size.priceMinor)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        ) : item.soldOut && item.priceMinor !== null ? (
+                          <p className="mt-1 text-right tabular-nums">{price(item.priceMinor)}</p>
+                        ) : null}
+                        {(item.labels.length > 0 || !!item.spiceLevel) && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {item.labels.map((label) => (
+                              <MenuLabelBadge key={label.id} label={label} />
+                            ))}
+                            {!!item.spiceLevel && (
+                              <MenuSpiceBadge level={item.spiceLevel} labels={labels} />
+                            )}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </section>
+                ))
+              )}
+              {view && (
+                <MenuPrintLegend
+                  labels={visibleSections.flatMap((section) =>
+                    section.items.flatMap((item) => item.labels),
+                  )}
+                  title={labels.printLegend}
+                />
+              )}
               {footer && (
                 <footer className="mt-8 border-t border-border pt-4 text-center text-[10pt] whitespace-pre-wrap">
                   {footer}

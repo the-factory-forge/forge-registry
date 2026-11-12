@@ -11,6 +11,8 @@ A [connector](./connectors.md) combines a plugin with another plugin, library or
 external service. It is separately installable; its adapters implement provider
 and host interfaces. Customers–Bexio supplies unique link storage and recoverable
 account provisioning; Projects–Drive composes existing project storage.
+Supports–GitHub supplies private issue delivery and guarded recovery while
+Supports retains generic transaction hooks and a trusted external import port.
 
 A service plugin provides a shared application capability without its own screen.
 Mailing supplies transactional email rendering and a separate server transport
@@ -34,6 +36,7 @@ the guides below own integration details and the specs own acceptance criteria.
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | [`agents`](../registry/components/plugins/agents/AGENTS.md)             | Private staff chat, administrator-managed model connection, saved conversations, attachments and reviewed plugin actions; optional external MCP tools                  | `agents-server`, `agents-mcp-server` | [Agents](./agents.md)                                                                 |
 | [`auth`](../registry/components/plugins/auth/AGENTS.md)                 | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                 | Host auth provider                   | [Auth](./intranet-auth.md)                                                            |
+| [`supports`](../registry/components/plugins/supports/AGENTS.md)         | Staff-shared maintenance tickets, Markdown discussion, images and close/cancel/reopen actions                                                                          | `supports-storage`                   | [Support tickets](./supports.md)                                                      |
 | [`employees`](../registry/components/plugins/employees/AGENTS.md)       | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                               | `employees-server`                   | [Employee UI](./intranet-auth.md#employee-ui), [photos and retention](./employees.md) |
 | [`customers`](../registry/components/plugins/customers/AGENTS.md)       | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                        | `customers-storage`                  | [Customers](./customers.md)                                                           |
 | [`projects`](../registry/components/plugins/projects/AGENTS.md)         | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                 | `projects-storage`                   | [Projects](./projects.md)                                                             |

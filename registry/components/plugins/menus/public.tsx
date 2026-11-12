@@ -4,18 +4,22 @@ import { LeafIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ComponentType } from "react";
 
 import { Image, type ImageProps } from "@/components/image";
+import { ImageWithFallback } from "@/components/image-with-fallback";
 import { Link } from "@/components/link";
 import { MenuLabelBadge, menuLabelColorClasses } from "@/components/plugins/menus/label-badge";
 import { getMenuFilterLabels } from "@/components/plugins/menus/label-presets";
 import { menusLabels, type MenusLabels } from "@/components/plugins/menus/labels";
 import { MenuSpiceBadge } from "@/components/plugins/menus/spice-badge";
-import type { MenuViewCategory, MenuViewLabel } from "@/components/plugins/menus/types";
+import type { MenuCard, MenuViewCategory, MenuViewLabel } from "@/components/plugins/menus/types";
 import { cn } from "@/components/utils/cn";
 
 export interface MenuPageProps {
   sections: readonly MenuViewCategory[];
   locale: string;
   currency: string;
+  title?: string;
+  description?: string;
+  displayMode?: MenuCard["displayMode"];
   filterLabels?: readonly MenuViewLabel[];
   imageUrl?: (itemId: string) => string;
   imageComponent?: ComponentType<ImageProps>;
@@ -27,6 +31,9 @@ export function MenuPage({
   sections,
   locale,
   currency,
+  title,
+  description,
+  displayMode,
   filterLabels,
   imageUrl,
   imageComponent: MenuImage = Image,
@@ -37,6 +44,7 @@ export function MenuPage({
   const id = `factory-menu-filters-${useId()}`;
   const navigationRef = useRef<HTMLElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>();
+  const [failedPhotos, setFailedPhotos] = useState<ReadonlySet<string>>(new Set());
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<{ allergen: string[]; dietary: string[] }>({
     allergen: [],
@@ -116,7 +124,12 @@ export function MenuPage({
       )}
     >
       <header>
-        <h1 className="font-serif text-4xl font-semibold">{labels.menu}</h1>
+        <h1 className="font-serif text-4xl font-semibold">{title ?? labels.menu}</h1>
+        {description && (
+          <p className="mt-3 max-w-prose whitespace-pre-wrap text-muted-foreground">
+            {description}
+          </p>
+        )}
       </header>
       {filteredSections.length ? (
         <nav
@@ -228,113 +241,183 @@ export function MenuPage({
           <h2 className="border-b border-border pb-3 font-serif text-2xl font-semibold">
             {section.name}
           </h2>
-          <div className="grid gap-5 md:grid-cols-2">
-            {section.items.map((item) => {
-              const sizes = item.sizes ?? [];
-              const selectedSize =
-                sizes.find((size) => size.id === selectedSizes[item.id]) ?? sizes[0];
-              return (
-                <article
-                  key={item.id}
-                  className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground"
-                >
-                  {item.imageEntryId && imageUrl ? (
-                    <MenuImage
-                      src={imageUrl(item.id)}
-                      alt={item.name}
-                      className="aspect-[16/9] w-full object-cover"
-                    />
-                  ) : null}
-                  <div className="space-y-3 p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <h3 className="min-w-0 flex-1 text-lg font-semibold wrap-anywhere">
-                        {item.name}
-                      </h3>
-                      <div className="ml-auto flex max-w-full flex-col items-end gap-2">
-                        {item.soldOut ? (
+          {displayMode ? (
+            <div className="divide-y divide-border">
+              {section.items.map((item) => {
+                const sizes = item.sizes ?? [];
+                const photo = item.imageEntryId && imageUrl ? imageUrl(item.id) : "";
+                return (
+                  <article
+                    key={item.id}
+                    className={cn(
+                      "grid items-start gap-3 py-4",
+                      displayMode === "photos"
+                        ? "min-h-24 grid-cols-[minmax(0,1fr)_4rem_5rem] sm:grid-cols-[minmax(0,1fr)_7rem_8rem]"
+                        : "grid-cols-[minmax(0,1fr)_auto]",
+                    )}
+                  >
+                    <div className="min-w-0 space-y-2">
+                      <h3 className="font-semibold wrap-anywhere">{item.name}</h3>
+                      {item.description && (
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {item.soldOut && (
                           <span className="rounded-full bg-status-pending px-2.5 py-1 text-xs font-medium text-status-pending-foreground">
                             {labels.soldOut}
                           </span>
-                        ) : null}
-                        <output
-                          aria-label={labels.price}
-                          aria-live="polite"
-                          className="font-semibold"
-                        >
-                          {formatter.format(
-                            (selectedSize?.priceMinor ?? item.priceMinor) / divisor,
-                          )}
-                        </output>
+                        )}
+                        <MenuSpiceBadge level={item.spiceLevel ?? 0} labels={labels} />
+                        {item.labels.map((label) => (
+                          <MenuLabelBadge key={label.id} label={label} />
+                        ))}
                       </div>
                     </div>
-                    {item.description ? (
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    {displayMode === "photos" && (
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-md">
+                        {photo && !failedPhotos.has(photo) ? (
+                          <MenuImage
+                            src={photo}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            onError={() =>
+                              setFailedPhotos((current) => new Set(current).add(photo))
+                            }
+                          />
+                        ) : (
+                          <ImageWithFallback src="" alt="" fill fallbackLabel="" />
+                        )}
+                      </div>
+                    )}
+                    <div className="min-w-14 space-y-1 text-right text-sm tabular-nums">
+                      {sizes.length > 0 ? (
+                        <dl className="space-y-1">
+                          {sizes.map((size) => (
+                            <div key={size.id} className="flex flex-wrap justify-end gap-x-2">
+                              <dt>{size.name}</dt>
+                              <dd>{formatter.format(size.priceMinor / divisor)}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        item.priceMinor !== null && formatter.format(item.priceMinor / divisor)
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid gap-5 md:grid-cols-2">
+              {section.items.map((item) => {
+                const sizes = item.sizes ?? [];
+                const selectedSize =
+                  sizes.find((size) => size.id === selectedSizes[item.id]) ?? sizes[0];
+                const priceMinor = selectedSize?.priceMinor ?? item.priceMinor;
+                return (
+                  <article
+                    key={item.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground"
+                  >
+                    {item.imageEntryId && imageUrl ? (
+                      <MenuImage
+                        src={imageUrl(item.id)}
+                        alt={item.name}
+                        className="aspect-[16/9] w-full object-cover"
+                      />
                     ) : null}
-                    {sizes.length ? (
-                      <fieldset className="min-w-0 space-y-2">
-                        <legend className="text-sm font-medium">{labels.sizes}</legend>
-                        <div className="flex flex-wrap gap-2">
-                          {sizes.map((size) => {
-                            const checked = selectedSize?.id === size.id;
-                            return (
-                              <label
-                                key={size.id}
-                                className={cn(
-                                  "inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
-                                  checked
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-border hover:bg-accent hover:text-accent-foreground",
-                                )}
+                    <div className="space-y-3 p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <h3 className="min-w-0 flex-1 text-lg font-semibold wrap-anywhere">
+                          {item.name}
+                        </h3>
+                        <div className="ml-auto flex max-w-full flex-col items-end gap-2">
+                          {item.soldOut ? (
+                            <span className="rounded-full bg-status-pending px-2.5 py-1 text-xs font-medium text-status-pending-foreground">
+                              {labels.soldOut}
+                            </span>
+                          ) : null}
+                          {priceMinor !== null && (
+                            <output
+                              aria-label={labels.price}
+                              aria-live="polite"
+                              className="font-semibold"
+                            >
+                              {formatter.format(priceMinor / divisor)}
+                            </output>
+                          )}
+                        </div>
+                      </div>
+                      {item.description ? (
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      ) : null}
+                      {sizes.length ? (
+                        <fieldset className="min-w-0 space-y-2">
+                          <legend className="text-sm font-medium">{labels.sizes}</legend>
+                          <div className="flex flex-wrap gap-2">
+                            {sizes.map((size) => {
+                              const checked = selectedSize?.id === size.id;
+                              return (
+                                <label
+                                  key={size.id}
+                                  className={cn(
+                                    "inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-full border px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
+                                    checked
+                                      ? "border-primary bg-primary text-primary-foreground"
+                                      : "border-border hover:bg-accent hover:text-accent-foreground",
+                                  )}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`${id}-size-${item.id}`}
+                                    value={size.id}
+                                    checked={checked}
+                                    className="sr-only"
+                                    onChange={() =>
+                                      setSelectedSizes((current) => ({
+                                        ...current,
+                                        [item.id]: size.id,
+                                      }))
+                                    }
+                                  />
+                                  <span className="wrap-anywhere">{size.name}</span>
+                                  <span className="shrink-0 font-semibold">
+                                    {formatter.format(size.priceMinor / divisor)}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </fieldset>
+                      ) : null}
+                      {(item.spiceLevel ?? 0) > 0 || item.labels.length ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <MenuSpiceBadge level={item.spiceLevel ?? 0} labels={labels} />
+                          {(["allergen", "dietary"] as const).map((kind) => {
+                            const tags = item.labels.filter((label) => label.kind === kind);
+                            return tags.length ? (
+                              <ul
+                                key={kind}
+                                aria-label={kind === "allergen" ? labels.allergens : labels.dietary}
+                                className="contents"
                               >
-                                <input
-                                  type="radio"
-                                  name={`${id}-size-${item.id}`}
-                                  value={size.id}
-                                  checked={checked}
-                                  className="sr-only"
-                                  onChange={() =>
-                                    setSelectedSizes((current) => ({
-                                      ...current,
-                                      [item.id]: size.id,
-                                    }))
-                                  }
-                                />
-                                <span className="wrap-anywhere">{size.name}</span>
-                                <span className="shrink-0 font-semibold">
-                                  {formatter.format(size.priceMinor / divisor)}
-                                </span>
-                              </label>
-                            );
+                                {tags.map((tag) => (
+                                  <li key={tag.id} className="inline-flex max-w-full">
+                                    <MenuLabelBadge label={tag} />
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null;
                           })}
                         </div>
-                      </fieldset>
-                    ) : null}
-                    {(item.spiceLevel ?? 0) > 0 || item.labels.length ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <MenuSpiceBadge level={item.spiceLevel ?? 0} labels={labels} />
-                        {(["allergen", "dietary"] as const).map((kind) => {
-                          const tags = item.labels.filter((label) => label.kind === kind);
-                          return tags.length ? (
-                            <ul
-                              key={kind}
-                              aria-label={kind === "allergen" ? labels.allergens : labels.dietary}
-                              className="contents"
-                            >
-                              {tags.map((tag) => (
-                                <li key={tag.id} className="inline-flex max-w-full">
-                                  <MenuLabelBadge label={tag} />
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null;
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
       ))}
     </section>
