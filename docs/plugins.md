@@ -89,6 +89,19 @@ No application encryption key or AWS-specific encryption header is required for
 this provider-managed protection. It does not prevent an authorized storage
 reader from retrieving plaintext; object names should not contain sensitive details.
 
+Bucket names are non-sensitive identifiers. In hosts using Varlock, declare
+`S3_BUCKET` in `.env.schema` as follows so a matching public URL or page text does
+not trigger response leak detection:
+
+```dotenv
+# @optional @sensitive=false @dynamic
+S3_BUCKET=
+```
+
+`@dynamic` keeps the bucket resolved at server startup instead of being frozen
+into the build. Keep `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` sensitive and retain leak
+protection for secrets. This classification does not change storage permissions.
+
 Keep application buckets and objects private. Drive checks the host's current
 scope and download permission before issuing a five-minute signed URL; anyone
 holding that URL can use it until expiry, including after their permission is
