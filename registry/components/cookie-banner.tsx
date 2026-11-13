@@ -47,12 +47,8 @@ export interface CookieBannerProps {
   manageEvent?: string;
   text: string;
   acceptAllLabel: string;
-  /** @deprecated The banner offers refusal through custom selection. */
-  rejectAllLabel?: string;
   acceptSelectionLabel: string;
   cancelLabel?: string;
-  /** @deprecated The banner no longer has a close action. */
-  closeLabel?: string;
   confirmLabel?: string;
   policyLabel: string;
   privacyHref: string;

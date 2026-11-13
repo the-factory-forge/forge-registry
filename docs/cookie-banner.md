@@ -122,8 +122,7 @@ unconditional `updateConsent(consent)` call above so withdrawal reaches the load
 Remove duplicate inline defaults and unconditional Google script/config tags.
 Only this controller should initialize the website's Google destinations.
 
-Remove `closeLabel` and `rejectAllLabel` from host calls. Both deprecated props
-still type-check and have no effect.
+Remove `closeLabel` and `rejectAllLabel` from host calls when updating older copies.
 Use `acceptSelectionLabel` for the custom-selection action. Explicitly enable
 `showMarketing` when the host offers it.
 
