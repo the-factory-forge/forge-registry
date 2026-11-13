@@ -49,32 +49,29 @@ The menu editor SHALL show collapsible category sections with indented dish rows
 
 ### Requirement: Preserve dishes when deleting a category
 
-Category deletion SHALL keep its dishes by default, clearing their category assignment. Staff SHALL find unassigned dishes below the menus and be able to assign them through the item editor. The confirmation SHALL offer an explicit option to delete the dishes too. Shared and weekly categories SHALL remain protected.
+Category deletion SHALL offer keeping dishes by default or explicitly deleting them. Shared and weekly categories SHALL remain protected. The [design decision](../../design.md#menus-reuse-categories) explains why reorganizing menus preserves reusable dishes.
 
 #### Scenario: Keep dishes for later use
 
-- **WHEN** staff confirm category deletion without choosing to delete its dishes
-- **THEN** the category is removed and its dishes retain their identities, content, labels and private files
-- **AND** those dishes appear in the unassigned section until staff give them a category
-- **AND** public menus, public image reads and printing exclude them, regardless of their saved visibility
+- **WHEN** staff confirm deletion while keeping dishes
+- **THEN** the category is removed and its dishes become unassigned, retaining their identities, content, labels and private files
+- **AND** staff find them below the menus and can reassign them through the item editor
+- **AND** public menus, public image reads and printing exclude them regardless of saved visibility
 
 #### Scenario: Delete category contents explicitly
 
-- **WHEN** staff explicitly confirm deletion of the category and its dishes
-- **THEN** current authorization and file protections apply to the complete operation
-- **AND** a protected dish or file causes the operation to fail without partial deletion
+- **WHEN** staff explicitly confirm deleting the category and its dishes
+- **THEN** authorization and file protections apply to the whole operation; a protected dish or file leaves all records unchanged
 
 #### Scenario: Reject an outdated confirmation
 
-- **WHEN** a nonempty category's current dish IDs or versions differ from the confirmation snapshot
-- **THEN** the whole operation is rejected without changing the category or dishes
-- **AND** staff can review refreshed contents before retrying
+- **WHEN** a nonempty category's dish IDs or versions differ from the confirmed snapshot
+- **THEN** the whole operation is rejected without changing the category or dishes, and staff can review refreshed contents before retrying
 
 #### Scenario: Preserve older deletion callers
 
-- **WHEN** a host calls category deletion without the new options
-- **THEN** deletion remains restricted to empty categories
-- **AND** a stale or unadapted client cannot silently delete or detach dishes
+- **WHEN** a host omits the new deletion options
+- **THEN** only empty categories can be deleted; existing dishes and their assignments stay intact
 
 ### Requirement: Current menu editing context
 

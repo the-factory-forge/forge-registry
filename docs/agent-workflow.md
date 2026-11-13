@@ -50,10 +50,11 @@ Both registry sync directions are maintained here. Package maintenance uses
 
 ## Shared Forge specifications
 
-Before implementation, resolve `forge-specs` from the workspace or Git remotes.
-Read its `AGENTS.md`, `the-forge`, `registry-distribution` and, for UI/CSS/Tailwind
-work, `shared-ui` specs under its `openspec/specs/`. Read `host-integration` when consumer integration
-is affected. Template application details live in
+Resolve `forge-specs` from the workspace or Git remotes. Its `AGENTS.md` locates
+shared contracts. Read `the-forge` for repository ownership or production-model
+decisions, `registry-distribution` for shared scope or source distribution,
+`shared-ui` for UI/CSS/Tailwind work and `host-integration` for consumer integration.
+Read the requirements affected by the task. Template application details live in
 `forge-specs/openspec/specs/site-template/spec.md`. If that checkout is elsewhere,
 use its supplied location or the
 [canonical forge-specs repository](https://github.com/the-factory-forge/forge-specs).

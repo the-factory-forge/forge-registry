@@ -2,28 +2,27 @@ schema: spec-driven
 
 context: |
   This is forge-registry, The Forge's reusable shadcn source registry and showroom.
-  Read AGENTS.md and ../forge-spec/AGENTS.md, then the-forge, registry-distribution
-  and relevant shared-ui/host-integration specs in ../forge-spec/openspec/specs/.
-  Read local openspec/specs/plugins, reservations, registry-showroom and registry-releases
-  for registry-specific behavior. Template specs and change history live in forge-specs.
-  For Blogs storage, Mailing rendering/transport or plugin persistence, read the local
-  concepts/adr decisions. Their linked host-branding and project-migration contracts
-  remain shared in forge-spec; template router and deployment decisions remain in forge-template.
-  For CSS/Tailwind work, read shared-ui and reuse existing semantic tokens,
-  typography, spacing, radii and layout utilities with Tailwind CSS 4.
+  Read AGENTS.md and follow its task guides. Resolve the actual forge-specs checkout
+  from the workspace or Git remotes; shared contracts and template planning live there.
+  For plugin or connector work, use registry/components/plugins/AGENTS.md and the
+  affected plugin's AGENTS.md to find its requirements, active changes and integration guide.
+  Read the shared plugin requirements and affected sections; follow another plugin
+  only when imports, callers or a shared contract connect it to the change.
+  Use reservations for scheduling, registry-showroom for showroom work and
+  registry-releases for source releases.
+  The task guides link relevant ADRs. For CSS/Tailwind work, read shared-ui and
+  reuse existing semantic tokens and layout utilities with Tailwind CSS 4.
   If the sibling is absent, use the supplied checkout or canonical repository:
   https://github.com/the-factory-forge/forge-specs. Report unavailable context.
   registry/registry.json owns shipped files/dependencies; public/r is generated
   with pnpm registry:sync. Keep showroom src/lib and src/showroom out of items.
   Shared UI uses props, semantic tokens and ui-shims; hosts own routing, locale,
-  auth, content and configuration. Never import another repository's source.
+  auth, content and configuration. Keep runtime source imports within the owning repository.
   Read CONTRIBUTING.md, item docs, package scripts, imports and consumers.
   Include generated output and a reviewed consumer install when distribution
   changes. Source updates do not automatically update installed consumers.
-  Keep registry-specific specs and changes in this root. Shared contracts and
-  template specs and change history live in forge-specs; consumer installation alone
-  does not make a plugin spec shared. Name each cross-repository delta's main-spec
-  destination and reconcile there without duplicating proposals or main specs.
+  Keep registry specs and changes here, including plugins installed by consumers.
+  Keep one owning change root and name each cross-repository delta's destination main spec.
 
 rules:
   proposal:

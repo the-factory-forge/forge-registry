@@ -1,8 +1,16 @@
 # Menus
 
-Menus manages translated restaurant items, taxonomy and public/print presentation.
-Read the [integration guide](../../../../docs/menus.md) and
-[Menus requirements](../../../../openspec/specs/plugins/spec.md#requirement-menus-plugin).
+Read the [integration guide](../../../../docs/menus.md) and affected requirement sections:
+
+- [Items](../../../../openspec/specs/plugins/spec.md#requirement-menus-plugin),
+  [printing](../../../../openspec/specs/plugins/spec.md#requirement-menu-printing) or
+  [drag feedback](../../../../openspec/specs/plugins/spec.md#requirement-menu-item-drag-feedback).
+- Active changes: [composition](../../../../openspec/changes/compose-menu-cards/specs/menu-cards/spec.md)
+  and [photos/visibility](../../../../openspec/changes/compose-menu-cards/specs/plugins/spec.md).
+
+The parent guide identifies shared requirements. Consult the
+[design decisions](../../../../openspec/changes/compose-menu-cards/design.md)
+when revisiting choices; update active-change links when archiving.
 
 ## Logic and ownership
 
