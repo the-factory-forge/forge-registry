@@ -88,7 +88,7 @@ for (const destination of [
       (page) =>
         page.getByRole("textbox", { name: "Description", exact: true }).fill("New description"),
       (page) => page.getByRole("button", { name: "Add size", exact: true }).click(),
-      (page) => page.getByRole("radio", { name: "Spicy", exact: true }).check(),
+      (page) => page.getByRole("slider", { name: "Spice level", exact: true }).press("ArrowRight"),
       (page) => page.getByRole("checkbox", { name: "Vegan", exact: true }).check(),
       (page) => page.getByRole("checkbox", { name: "Visible on menu", exact: true }).uncheck(),
       (page) => page.getByRole("checkbox", { name: "Sold out", exact: true }).check(),

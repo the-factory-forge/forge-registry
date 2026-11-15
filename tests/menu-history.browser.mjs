@@ -4,8 +4,8 @@ import { after, before, test } from "node:test";
 import { chromium } from "./showroom-browser.mjs";
 
 const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
-const directory = "/en/admin/menus";
-const editPath = `${directory}/30000000-0000-4000-8000-000000000001`;
+const directory = "/en/admin/menus/items";
+const editPath = "/en/admin/menus/30000000-0000-4000-8000-000000000001";
 let browser;
 before(async () => {
   browser = await chromium.launch();
