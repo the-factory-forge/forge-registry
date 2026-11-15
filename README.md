@@ -51,6 +51,10 @@ The attached sibling project `../tc-website` is a reference, a source of compone
 
 ## What is included
 
+[The Corner Support](docs/corner-support.md) is the separately deployed shared
+GitHub App service for customer Support. It is not started with the showroom or
+installed into customer sites through the registry catalog.
+
 - TanStack Start + Router, React 19, and Nitro showroom shell for previewing shared UI
 - TypeScript strict with `@/components/*`, `@/components/pages/*`, `@/components/layouts/*`, and `@/components/utils/*` aliases for registry source files; `@/*` resolves showroom files
 - Vite Plus 1.3.0 for linting and formatting, configured in `vite.config.ts`

@@ -1,0 +1,18 @@
+{
+  "appId": "5774442",
+  "botUserId": 357095502,
+  "privateKeyFile": "/run/secrets/corner-support.pem",
+  "webhookSecret": "REPLACE_WITH_RANDOM_APP_WEBHOOK_SECRET",
+  "sites": [
+    {
+      "id": "sample-website",
+      "credentialHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "installationId": 789,
+      "repositoryId": 101,
+      "owner": "the-factory-forge",
+      "repository": "sample-website",
+      "webhookUrl": "https://sample-website.example/api/supports/github-webhook",
+      "webhookSecret": "REPLACE_WITH_RANDOM_SITE_WEBHOOK_SECRET"
+    }
+  ]
+}

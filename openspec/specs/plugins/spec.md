@@ -2992,11 +2992,18 @@ SHALL remain unavailable to external clients without a separate upload capabilit
 ### Requirement: Supports–GitHub connector
 
 `supports-github` and `supports-github-server` SHALL connect one site's Supports
-to one host-configured private GitHub repository using a dedicated GitHub App.
+to one host-configured private GitHub repository using a Support-only GitHub App.
 Core Supports SHALL acquire no provider fields or dependency. The host SHALL own
 credentials, staff authorization, routes, migrations, schedules and monitoring.
 The [integration and recovery guide](../../../docs/supports-github.md) defines the
 server methods, persistence, installation and production acceptance boundaries.
+
+#### Scenario: Sharing the Support App
+
+- **WHEN** several customer repositories use the same App
+- **THEN** each site's access token is restricted to its configured repository
+- **AND** the App is reserved for the Support bridge within each repository so status echoes remain identifiable
+- **AND** each host retains its installation/repository checks and separate webhook secret
 
 #### Scenario: Creating and exporting discussions
 

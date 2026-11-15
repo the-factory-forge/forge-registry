@@ -49,12 +49,25 @@ are host implementations. `ticketUrl` must be absolute HTTPS without query
 credentials. It points to a route that checks staff access, never a signed image
 URL. Keep secrets and both server entrypoints out of the browser bundle.
 
-Use a dedicated GitHub App installed on the selected private repository with
+Forge template hosts fix `repository.owner` to `the-factory-forge`. They use
+`SUPPORT_GITHUB_REPOSITORY` when supplied, otherwise `SITE_NAME`; no owner
+environment variable is needed. Keep an explicit repository override when its
+name differs from the site's infrastructure slug. Repository defaults alone do
+not enable delivery: the App credentials, pinned IDs and webhook secret must all
+be configured. See the [host setup guide](https://github.com/the-factory-forge/forge-template/blob/main/docs/supports.md).
+
+New Forge sites use **The Corner Support**, one shared App with centrally held
+credentials and per-repository tokens. Follow the [shared service runbook](corner-support.md)
+for deployment, onboarding and migration. Its per-site relay secret is the host's
+`webhookSecret`; the App webhook secret and signing key stay on the shared service.
+Existing dedicated Apps remain supported.
+
+Use a GitHub App reserved for Support within the selected private repository with
 **Issues: read and write** and repository metadata read access. Subscribe to
 `issues` and `issue_comment`. The host obtains and refreshes its installation
 access token; app private keys never enter connector persistence. Pin the numeric
 installation, repository and App bot user IDs. Use that App only for this bridge
-on this repository: its status actions are treated as connector echoes. Repository
+on each repository: its status actions are treated as connector echoes. Repository
 labels, assignees, milestones and other automation remain host-owned. See GitHub's
 [installation token guide](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation).
 
