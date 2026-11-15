@@ -1,6 +1,6 @@
 {
   "name": "forge-registry",
-  "version": "0.0.0-rc.8",
+  "version": "0.0.0-rc.9",
   "private": true,
   "type": "module",
   "scripts": {
