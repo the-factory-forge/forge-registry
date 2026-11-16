@@ -53,13 +53,15 @@ Forge template hosts fix `repository.owner` to `the-factory-forge`. They use
 `SUPPORT_GITHUB_REPOSITORY` when supplied, otherwise `SITE_NAME`; no owner
 environment variable is needed. Keep an explicit repository override when its
 name differs from the site's infrastructure slug. Repository defaults alone do
-not enable delivery: the site service credential, pinned IDs and relay secret must all
+not enable delivery: the dedicated App credentials, pinned IDs and webhook secret must all
 be configured. See the [host setup guide](https://github.com/the-factory-forge/forge-template/blob/main/docs/supports.md).
 
-Forge sites use **The Corner Support**, one shared App with centrally held
-credentials and per-repository tokens. Follow the [shared service runbook](corner-support.md)
-for deployment and onboarding. Its per-site relay secret is the host's
-`webhookSecret`; the App webhook secret and signing key stay on the shared service.
+Forge sites use a **dedicated GitHub App per customer**, installed only on that
+customer's private repository. The existing host API signs requests using its own
+App key, refreshes repository-scoped tokens and receives GitHub webhooks directly.
+Its `webhookSecret` matches the dedicated App's webhook setting. No shared service,
+service token, relay or separate deployment is required. Follow the
+[customer setup guide](corner-support.md).
 
 Use a GitHub App reserved for Support within the selected private repository with
 **Issues: read and write** and repository metadata read access. Subscribe to
