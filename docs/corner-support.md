@@ -21,7 +21,7 @@ The intended production origin is `https://support.the-corner.swiss`. Set the Ap
 webhook to `/api/github/webhook`, subscribe to `issues` and `issue_comment`, and
 keep SSL verification enabled. Activate after deployment and signed acceptance
 testing. Registration, installation and a health response alone do not establish
-working delivery. Existing customer Apps remain untouched.
+working delivery.
 
 Use the Dockerfile with build context `services/corner-support`, exposing port 8080
 through the HTTPS reverse proxy. Mount the protected JSON configuration and RSA PEM
@@ -97,17 +97,6 @@ Outages delay GitHub delivery while local tickets and queued work remain availab
 Issues write also permits modifying issues; it is not create-only. A compromised
 customer credential is limited to its repository. A compromised service or App key
 affects every connected repository. Installation rate limits are shared.
-
-## Existing dedicated Apps
-
-The template still accepts dedicated-App credentials. Migrate separately: freeze
-local writes, drain/reconcile pending work and resolve uncertain jobs with the old
-App. Pause workers and webhooks, preserve issue/message/receipt mappings and update
-stored installation IDs through a reviewed host migration when needed. Reconcile
-old bot-authored history before changing the bot ID so it cannot reappear as external
-discussion. Verify existing bindings, old echoes and new issue/comment/status
-delivery before resuming. Never re-export old tickets to fix identity mismatches.
-Retire a dedicated App only after migration and an explicit removal decision.
 
 ## Verification
 

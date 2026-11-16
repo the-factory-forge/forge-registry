@@ -53,14 +53,13 @@ Forge template hosts fix `repository.owner` to `the-factory-forge`. They use
 `SUPPORT_GITHUB_REPOSITORY` when supplied, otherwise `SITE_NAME`; no owner
 environment variable is needed. Keep an explicit repository override when its
 name differs from the site's infrastructure slug. Repository defaults alone do
-not enable delivery: the App credentials, pinned IDs and webhook secret must all
+not enable delivery: the site service credential, pinned IDs and relay secret must all
 be configured. See the [host setup guide](https://github.com/the-factory-forge/forge-template/blob/main/docs/supports.md).
 
-New Forge sites use **The Corner Support**, one shared App with centrally held
+Forge sites use **The Corner Support**, one shared App with centrally held
 credentials and per-repository tokens. Follow the [shared service runbook](corner-support.md)
-for deployment, onboarding and migration. Its per-site relay secret is the host's
+for deployment and onboarding. Its per-site relay secret is the host's
 `webhookSecret`; the App webhook secret and signing key stay on the shared service.
-Existing dedicated Apps remain supported.
 
 Use a GitHub App reserved for Support within the selected private repository with
 **Issues: read and write** and repository metadata read access. Subscribe to
@@ -198,7 +197,7 @@ host's protected audit system without copying disclosed content.
 
 For `UNCERTAIN`, first inspect the job and repository. Successful issue/comment
 writes carry `<!-- forge-supports:JOB_UUID -->` at the end of the body. Recovery
-requires the dedicated App author and exact marker. The worker searches provider
+requires the configured App bot author and exact marker. The worker searches provider
 records before attempting any resend; an unknown outcome stays blocked.
 
 - If an issue exists, call `recover(context, {ticketId, jobId,
