@@ -51,7 +51,8 @@ hostname. Use another hostname if that name already serves mail or another servi
 2. Generate a unique 32-byte cryptographic credential encoded as base64url. Store
    only its SHA-256 hex digest as `credentialHash`; hand the original to this site's
    backend through protected storage. Generate a separate base64url webhook secret
-   of at least 32 characters. App, site-webhook and maintenance secrets must differ.
+   of at least 32 characters. The App webhook secret and every site relay secret must differ.
+   Current template hosts run maintenance internally without a scheduler credential.
 3. Add its installation/repository IDs, exact owner/name, fixed HTTPS webhook URL
    and site webhook secret to the protected config. Restart the service. Forward
    destinations come only from this operator-owned config, never from caller input.
