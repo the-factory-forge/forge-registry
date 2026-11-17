@@ -1,6 +1,8 @@
 ---
 name: sync-to-forge-registry
 description: Promote only a customer improvement identified in the current conversation upstream into forge-registry. Use when asked to bring a discussed site change back to shared source, not to pull registry updates into a site or synchronize accumulated customer differences.
+metadata:
+  author: The Corner Factory SA <support@the-corner.swiss>
 ---
 
 # Promote a discussed site change to Factory Registry

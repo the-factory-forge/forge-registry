@@ -1,6 +1,8 @@
 ---
 name: sync-from-forge-registry
 description: Pull selected forge-registry items and companions into a customer website while preserving its customizations and exclusions. Use for downstream registry updates, not promoting a site change upstream or syncing the template foundation.
+metadata:
+  author: The Corner Factory SA <support@the-corner.swiss>
 ---
 
 # Update a site from Factory Registry
