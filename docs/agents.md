@@ -322,6 +322,10 @@ privacy/lifecycle rules and adopted domain adapters before deployment.
 
 ## External assistants (optional MCP)
 
+For assistants using the current browser session and page context, install the
+separate [WebMCP connector](./webmcp.md). Both adapters reuse the same executor;
+WebMCP adds a visible website review and optional private staging.
+
 Install `@forge/agents-mcp-server` and the installed business connectors. It uses
 the official TypeScript MCP SDK's Streamable HTTP transport, including stateless
 legacy-client compatibility. The host supplies OAuth and fresh account/grant
@@ -374,7 +378,8 @@ The shared `createAgentsService` also exposes a trusted `external(context)` API 
 makes `runtime` optional. Sending a chat message without a runtime reports
 `NOT_CONFIGURED`; external calls require no model settings. Chat calls already use
 the extracted execution module directly and keep their existing approval UI.
-External records have a connection binding and `source=mcp`; no transcript is
+External proposals have a connection binding and `source=mcp`; private WebMCP
+staging uses `source=staging`. No transcript is
 synchronized. Existing rows need an additive host migration for the `source`
 column with default `chat`. Stores must implement insert-only `create`, including
 under concurrent retries. Do not replace stored proposals on ID conflict.

@@ -22,6 +22,14 @@ export type Category = keyof typeof categoryIcons;
 export const examples = (
   [
     {
+      href: "/connectors/agents-webmcp",
+      category: "Connector",
+      title: "WebMCP",
+      description: "Browser assistants use the current page and propose reviewed plugin actions.",
+      tags: ["Browser session", "Experimental"],
+      keywords: ["connector", "agents", "webmcp", "browser", "context", "approval"],
+    },
+    {
       href: "/connectors/supports-github",
       category: "Connector",
       title: "Supports–GitHub",
