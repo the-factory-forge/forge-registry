@@ -54,7 +54,7 @@ guidance. The requirements below remain the behavioral contract.
 
 ### Requirement: Supports plugin
 
-Supports SHALL provide a staff-shared website maintenance queue with a searchable,
+Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,
 paginated table, short creation dialog and dedicated discussion page. Tickets
 SHALL have a required title, Markdown description and explicit `bug`, `feature`
 or `support` type. They SHALL start `open`; every authorized staff member may
@@ -64,7 +64,7 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 #### Scenario: Creating and discussing a ticket
 
 - **WHEN** staff submit a valid title, description and type
-- **THEN** a locally saved ticket appears in the shared list, ordered by latest activity
+- **THEN** a locally saved ticket appears in the shared list, ordered by latest activity by default
 - **AND** its discussion shows Markdown, authorized image attachments and chronological replies/status changes
 - **AND** comments preserve closed or canceled status until an explicit reopen
 - **AND** submitted content has no edit/delete action and author names remain as posted after account changes
@@ -96,11 +96,23 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 - **THEN** raw HTML is disabled, links are sanitized and remote images are not fetched
 - **AND** images are displayed only through separately authorized attachments
 
+#### Scenario: Ordering the Support queue
+
+- **WHEN** staff open the queue without a valid sort selection
+- **THEN** Updated shows its descending arrow and the most recently updated tickets appear first
+- **WHEN** staff select Title, Status, Created by or Updated by pointer or keyboard
+- **THEN** only the active header persistently displays an arrow and exposes its sort direction to assistive technology
+- **AND** other sortable headers reveal their arrows on hover or keyboard focus
+- **AND** selecting an active header reverses its initial direction, then selecting it again restores Updated, newest first
+- **AND** Title orders by type and then title within each type, reversing both together
+- **AND** the service orders all matching tickets before pagination, breaking ties by newest update and descending ticket ID
+
 #### Scenario: Restoring a table view
 
-- **WHEN** staff search, paginate, reload or traverse browser history
+- **WHEN** staff search, sort, paginate, reload, return from a discussion or traverse browser history
 - **THEN** host-owned URL state restores both controls and results
 - **AND** search filters titles/descriptions before the fixed 20-row page
+- **AND** changing the sort resets the page, retains search and unrelated URL state, and returning to the default clears the sort parameters
 - **AND** new/create remains a labeled primary action and the installed host may place Support above the sidebar profile
 
 ### Requirement: Support persistence and private images

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "table-sort",
+  "title": "Table sorting",
+  "description": "Sortable table headers with keyboard controls, optional default ordering and a UUID fallback.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn",
+    "@forge/table-styles"
+  ],
+  "files": [
+    {
+      "path": "registry/components/table-sort.tsx",
+      "content": "\"use client\";\n\nimport { ArrowDownIcon, ArrowUpIcon } from \"lucide-react\";\n\nimport { cn } from \"@/components/utils/cn\";\nimport {\n  initialSortDirection,\n  nextTableSort,\n  tableSortLabels,\n  type TableSort,\n} from \"@/components/utils/table-sort-state\";\nimport { tableHeaderClass } from \"@/components/utils/table-styles\";\n\nexport type { TableSort } from \"@/components/utils/table-sort-state\";\n\nexport interface TableSortHeaderProps<Field extends string> {\n  field: Field;\n  label: string;\n  value?: TableSort<Field>;\n  defaultSort?: TableSort<Field>;\n  onValueChange?: (value: TableSort<Field> | undefined) => void;\n  labels?: Partial<typeof tableSortLabels>;\n}\n\nexport function TableSortHeader<Field extends string>({\n  field,\n  label,\n  value,\n  defaultSort,\n  onValueChange,\n  labels: overrides,\n}: TableSortHeaderProps<Field>) {\n  const labels = { ...tableSortLabels, ...overrides };\n  const active = value ?? defaultSort;\n  const selected = active?.field === field;\n  const direction = selected ? active.direction : initialSortDirection(field, defaultSort);\n  const Arrow = direction === \"asc\" ? ArrowUpIcon : ArrowDownIcon;\n  const next = nextTableSort(field, value, defaultSort);\n  const content = (\n    <>\n      {label}\n      {(selected || onValueChange) && (\n        <Arrow\n          aria-hidden=\"true\"\n          className={cn(\n            \"size-4 shrink-0\",\n            !selected &&\n              \"opacity-0 group-hover/sort:opacity-100 group-focus-visible/sort:opacity-100\",\n          )}\n        />\n      )}\n    </>\n  );\n  return (\n    <th\n      scope=\"col\"\n      className={tableHeaderClass}\n      aria-sort={selected ? (direction === \"asc\" ? \"ascending\" : \"descending\") : undefined}\n    >\n      {onValueChange ? (\n        <button\n          type=\"button\"\n          className=\"group/sort inline-flex min-h-10 w-full cursor-pointer items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring\"\n          title={\n            next\n              ? next.direction === \"asc\"\n                ? labels.sortAscending\n                : labels.sortDescending\n              : defaultSort\n                ? labels.sortDefault\n                : labels.sortClear\n          }\n          onClick={() => onValueChange(next)}\n        >\n          {content}\n        </button>\n      ) : (\n        <span className=\"inline-flex items-center gap-1.5\">{content}</span>\n      )}\n    </th>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/table-sort.tsx"
+    },
+    {
+      "path": "registry/components/utils/table-sort-state.ts",
+      "content": "export interface TableSort<Field extends string> {\n  field: Field;\n  direction: \"asc\" | \"desc\";\n}\n\nexport const tableSortLabels = {\n  sortAscending: \"Sort ascending\",\n  sortDescending: \"Sort descending\",\n  sortClear: \"Clear sort\",\n  sortDefault: \"Restore default order\",\n};\n\nexport function initialSortDirection(field: unknown, defaultSort?: TableSort<string>) {\n  return defaultSort && field === defaultSort.field ? defaultSort.direction : \"asc\";\n}\n\n/** Use the effective order before paginating, including when no header is active. */\nexport function resolveTableSort<Field extends string>(\n  value?: TableSort<Field>,\n  defaultSort?: TableSort<Field>,\n) {\n  return value ?? defaultSort ?? ({ field: \"id\", direction: \"asc\" } as const);\n}\n\nexport function nextTableSort<Field extends string>(\n  field: Field,\n  value?: TableSort<Field>,\n  defaultSort?: TableSort<Field>,\n): TableSort<Field> | undefined {\n  const active = value ?? defaultSort;\n  const first = initialSortDirection(field, defaultSort);\n  if (active?.field !== field) return { field, direction: first };\n  if (active.direction === first) return { field, direction: first === \"asc\" ? \"desc\" : \"asc\" };\n  return undefined;\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/table-sort-state.ts"
+    }
+  ],
+  "type": "registry:ui"
+}

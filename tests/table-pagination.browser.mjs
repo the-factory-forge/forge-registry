@@ -5,6 +5,43 @@ import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
+void test("clearing a header restores UUID order when the table has no default column", async (t) => {
+  const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1#posts`);
+  const posts = page.getByRole("region", { name: "Blog posts", exact: true });
+  const title = posts.getByRole("button", { name: "Title", exact: true });
+  const first = posts.locator("tbody tr:first-child td:first-child");
+  const active = posts.locator("th[aria-sort]");
+  await first.getByText("An idea for tomorrow", { exact: true }).waitFor();
+  assert.equal(await active.count(), 0);
+  await title.click();
+  await first.getByText("A fresh perspective", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "ascending");
+  assert(!new URL(page.url()).searchParams.has("postPage"));
+  await title.press("Space");
+  await first.getByText("Working together", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "descending");
+  await page.reload();
+  await title.press("Enter");
+  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
+  assert.equal(await active.count(), 0);
+  const cleared = new URL(page.url());
+  assert(!cleared.searchParams.has("sort"));
+  assert(!cleared.searchParams.has("direction"));
+  assert.equal(cleared.searchParams.get("cursor"), "1");
+  assert.equal(cleared.hash, "#posts");
+  await page.goBack();
+  await first.getByText("Working together", { exact: true }).waitFor();
+  await page.goForward();
+  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
+  assert.equal(await active.count(), 0);
+  await page.goto(`${baseURL}/table-pagination?sort=title&direction=sideways`);
+  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
+  assert.equal(await active.count(), 0);
+});
+
 void test("combined table demo supports discovery, search, pagination and stable request states", async (t) => {
   const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
   t.after(() => browser.close());

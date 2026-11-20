@@ -106,6 +106,94 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   assert.deepEqual(errors, []);
 });
 
+await test("support sorting restores the selected field, direction and rows across pages, history and discussions", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const queue = `${base}/en/intranet/supports`;
+  const heading = (field) => page.getByRole("columnheader", { name: field, exact: true });
+  const button = (field) => heading(field).getByRole("button");
+  const opacity = (field) =>
+    heading(field)
+      .locator("svg")
+      .evaluate((arrow) => getComputedStyle(arrow).opacity);
+  const firstTicket = page.locator("tbody tr:first-child td:first-child a");
+  const view = async (field, direction, title) => {
+    await page
+      .locator(`th[aria-sort="${direction}"]`)
+      .getByRole("button", { name: field, exact: true })
+      .waitFor();
+    await firstTicket.filter({ hasText: title }).waitFor();
+    assert.equal(await page.locator("th[aria-sort]").count(), 1);
+    assert.equal(await opacity(field), "1");
+  };
+  await page.goto(`${queue}?search=website&page=2&keep=notes#queue`);
+  await view("Updated", "descending", "Website review 22");
+  assert.deepEqual(await page.locator("thead button").allTextContents(), [
+    "Title",
+    "Status",
+    "Created by",
+    "Updated",
+  ]);
+  assert.equal(await opacity("Title"), "0");
+  const titleBounds = await button("Title").boundingBox();
+  await button("Title").hover();
+  assert.equal(await opacity("Title"), "1");
+  assert.deepEqual(await button("Title").boundingBox(), titleBounds);
+  await page.mouse.move(0, 0);
+  await button("Title").focus();
+  await page.keyboard.press("Tab");
+  assert.equal(await opacity("Status"), "1");
+  assert.equal(await opacity("Title"), "0");
+  await page.keyboard.press("Enter");
+  await view("Status", "ascending", "Change the contact page layout");
+  assert.equal(await opacity("Updated"), "0");
+  const sortedUrl = new URL(page.url());
+  assert.equal(sortedUrl.searchParams.get("sort"), "status");
+  assert.equal(sortedUrl.searchParams.get("direction"), "asc");
+  assert.equal(sortedUrl.searchParams.get("search"), "website");
+  assert.equal(sortedUrl.searchParams.get("keep"), "notes");
+  assert.equal(sortedUrl.hash, "#queue");
+  assert(!sortedUrl.searchParams.has("page"));
+
+  await button("Status").click();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await page.reload();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await page.goBack();
+  await view("Status", "ascending", "Change the contact page layout");
+  await page.goForward();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await firstTicket.click();
+  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  assert.equal(new URL(page.url()).searchParams.get("keep"), "notes");
+  assert.equal(new URL(page.url()).hash, "#queue");
+  await button("Status").click();
+  await view("Updated", "descending", "Add opening hours to the contact page");
+  assert(!new URL(page.url()).searchParams.has("sort"));
+  assert(!new URL(page.url()).searchParams.has("direction"));
+  await button("Updated").click();
+  await view("Updated", "ascending", "Website review 23");
+  await button("Updated").click();
+  await view("Updated", "descending", "Add opening hours to the contact page");
+  assert(!new URL(page.url()).searchParams.has("sort"));
+  await button("Created by").click();
+  await view("Created by", "ascending", "Update the team photo");
+  await page.setViewportSize({ width: 390, height: 840 });
+  await button("Title").click();
+  await view("Title", "ascending", "Change the contact page layout");
+  await button("Title").click();
+  await view("Title", "descending", "Website review 9");
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await button("Title").click();
+  await view("Updated", "descending", "Add opening hours to the contact page");
+  await page.goto(`${queue}?sort=type&direction=desc`);
+  await view("Title", "descending", "Website review 9");
+  await page.goto(`${queue}?sort=status&direction=invalid`);
+  await view("Updated", "descending", "Contact form confirmation is missing");
+});
+
 await test("support navigation, URL history, validation and pending dialog guards", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());

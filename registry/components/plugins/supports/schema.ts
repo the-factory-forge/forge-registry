@@ -28,9 +28,22 @@ export const supportCommentSchema = z
     attachmentIds: attachments,
   })
   .refine((value) => value.body.trim().length > 0 || value.attachmentIds.length > 0);
+export const supportSortSchema = z.object({
+  field: z
+    .enum(["title", "type", "status", "author", "updatedAt"])
+    .transform((field) => (field === "type" ? "title" : field)),
+  direction: z.enum(["asc", "desc"]),
+});
+export type SupportSort = z.input<typeof supportSortSchema>;
+export type SupportColumnSort = z.output<typeof supportSortSchema>;
+export const SUPPORT_DEFAULT_SORT = {
+  field: "updatedAt",
+  direction: "desc",
+} as const satisfies SupportSort;
 export const supportQuerySchema = z.object({
   search: z.string().trim().max(250).default(""),
   page: z.number().int().min(1).max(1000000).default(1),
+  sort: supportSortSchema.default(SUPPORT_DEFAULT_SORT),
 });
 export class SupportsError extends Error {
   code: "INVALID" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "STORAGE" | "STORAGE_NOT_CONFIGURED";

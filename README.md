@@ -153,6 +153,7 @@ rewrite other helpers or remove the old dependency.
 | [native-select](./docs/native-select.md)         | Native dropdown with consistent chevron spacing and standard form behavior          |
 | [table-pagination](./docs/table-pagination.md)   | Shared table footer for numbered and cursor pagination                              |
 | [table-search](./docs/table-search.md)           | Expanding search button and accent-insensitive row matching                         |
+| [table-sort](./docs/plugins.md#table-sorting)    | Sortable column headers with an optional default and UUID fallback                  |
 | `social-icons`                                   | Inline SVG icons: Instagram, Facebook, LinkedIn, YouTube                            |
 | `accordion`                                      | Base UI accordion with a bundled animation stylesheet                               |
 | `animations`                                     | FadeUp, FadeIn, ScaleIn, StaggerContainer, HeroAnimation, ImageReveal               |

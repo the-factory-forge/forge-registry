@@ -1,3 +1,6 @@
+import type { SupportSort } from "@/components/plugins/supports/schema";
+
+export type { SupportSort } from "@/components/plugins/supports/schema";
 export type SupportType = "bug" | "feature" | "support";
 export type SupportStatus = "open" | "closed" | "canceled";
 export interface SupportAuthor {
@@ -46,6 +49,7 @@ export interface SupportCommentInput {
 export interface SupportQuery {
   search?: string;
   page?: number;
+  sort?: SupportSort;
 }
 export interface SupportPage {
   items: SupportTicket[];

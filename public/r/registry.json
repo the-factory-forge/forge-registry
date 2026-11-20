@@ -120,6 +120,26 @@
       "registryDependencies": ["@forge/cn", "@forge/table-styles", "@forge/icon-tooltip"]
     },
     {
+      "name": "table-sort",
+      "type": "registry:ui",
+      "title": "Table sorting",
+      "description": "Sortable table headers with keyboard controls, optional default ordering and a UUID fallback.",
+      "files": [
+        {
+          "path": "registry/components/table-sort.tsx",
+          "type": "registry:component",
+          "target": "@components/table-sort.tsx"
+        },
+        {
+          "path": "registry/components/utils/table-sort-state.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-sort-state.ts"
+        }
+      ],
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/table-styles"]
+    },
+    {
       "name": "table-selection",
       "type": "registry:ui",
       "title": "Table selection",
@@ -2284,7 +2304,7 @@
       "name": "supports",
       "type": "registry:block",
       "title": "Support",
-      "description": "Shared staff tickets with Markdown, image attachments, discussion and open, closed or canceled status. Host-owned authorization and routing.",
+      "description": "Sortable staff ticket queue with Markdown discussions, image attachments and open, closed or canceled status. Host-owned authorization and routing.",
       "files": [
         {
           "path": "registry/components/plugins/supports/index.tsx",
@@ -2323,6 +2343,7 @@
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/table-pagination",
+        "@forge/table-sort",
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",

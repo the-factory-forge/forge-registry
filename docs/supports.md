@@ -1,6 +1,6 @@
 # Support tickets
 
-`supports` provides a shared staff queue for website maintenance: a searchable,
+`supports` provides a shared staff queue for website maintenance with a sortable, searchable,
 paginated table, short creation dialog and a ticket discussion page. All staff
 can view every ticket, post replies and close, cancel or reopen it. Customer and anonymous
 accounts are excluded. The companion `supports-storage` persists records in
@@ -42,7 +42,7 @@ footerItems={[
 profile section. `IntranetShell` passes it through. The host supplies localized
 labels, paths, the link adapter and the active pathname.
 
-Use `SupportsPage` with `client`, `tickets`, `total`, controlled `search`/`page`,
+Use `SupportsPage` with `client`, `tickets`, `total`, controlled `search`, `sort` and `page`,
 their change callbacks, `getTicketHref`, `onCreated` and `onChanged` to refresh the
 list after cancellation. After creation,
 `onCreated(ticket)` can navigate to its discussion. Use `SupportDetailPage` with
@@ -53,13 +53,27 @@ The discussion keeps Close ticket (or Reopen ticket) and Post reply in a sticky
 bottom bar. Closing uses danger styling and requires confirmation; canceling
 preserves the reply draft. Failed closure keeps the dialog open for retry.
 
-Read through shared query keys in the route loader and component. Include search,
-page, ticket and activity cursor in those keys. Search applies to title and
-description before the fixed 20-row page; latest activity sorts first. The host
-must validate URL search state, reset page when search changes and retain unrelated
-parameters and the fragment. Default to empty search/page 1. Live search may
-replace history; pagination adds history entries. Reload and Back/Forward must
-restore both controls and results.
+Pass the same `sort` to `SupportsPage` and `client.list({ search, sort, page })`.
+The exported `SUPPORT_DEFAULT_SORT` orders tickets by `updatedAt`, newest first.
+Select **Title**, **Status** or **Created by** to sort ascending. Select the same
+heading again to reverse it, then once more to restore **Updated**, newest first.
+Updated itself toggles between newest and oldest first. The active arrow stays
+visible. Other arrows appear on hover or keyboard focus.
+
+Title orders by ticket type first, then by title within each type. Reversing
+Title reverses both comparisons. Status uses the status key and Created by uses
+the saved author name. Ties use newest update, then descending ticket ID.
+The storage companion orders all matches before taking the 20-row page.
+Hosts can omit `sort` and `onSortChange` to keep a read-only default order.
+
+Include search, sort and page in list query keys, and ticket and activity cursor
+in detail keys. The showroom accepts URLs such as `?sort=title&direction=desc`.
+Existing `sort=type` links select the combined Title order.
+Missing or invalid sort selections use the default. In `onSortChange`, push a
+history entry, reset to page 1 and clear both sort parameters when returning to
+the default. Search changes also reset the page and may replace history. Preserve
+unrelated parameters and the fragment through pagination and discussion links.
+Reload and Back/Forward restore the controls and results.
 
 `client.get(id, cursor?)` returns the ticket and 50 chronological activity entries,
 with `nextCursor` when more exist. Accumulate subsequent pages and pass an
@@ -98,15 +112,18 @@ event. Submitted content has no edit/delete actions. Author `{id, name}` snapsho
 stay as posted after account renaming or deletion. There are no email notifications
 or per-user unread indicators in this version.
 
-Update the UI and storage companion together so `canceled` is accepted by server
-validation. Status columns already store text, so no database migration or
-reclassification of existing closed requests is needed.
+Update the UI and storage companion together so server validation accepts
+`canceled`. Existing closed requests keep their status.
 
 ## Server wiring and authorization
 
 Compose the exported tables and the shared `pluginLocks` table in the host's
 Drizzle schema, then generate, review and apply an additive migration using the
 [persistence workflow](./persistence.md). Installation never applies migrations.
+Before upgrading `supports-storage`, apply the generated migration that adds
+`supports_ticket.author_name`. PostgreSQL derives this column from each saved
+author snapshot, including existing tickets. Custom list adapters can order by
+their existing author-name field.
 Use a separate host database/schema per site; an S3 prefix is not database tenancy.
 
 ```ts

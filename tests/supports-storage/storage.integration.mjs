@@ -309,6 +309,51 @@ await test("supports persistence, authorization, concurrent retries and private 
     },
   );
   await t.test(
+    "orders all matching tickets before pagination and breaks ties by latest update and ID",
+    async () => {
+      const search = "queue ordering fixture";
+      const rows = Array.from({ length: 22 }, (_, index) => ({
+        id: `sort-${String(index).padStart(2, "0")}`,
+        title: index === 0 ? "A ticket" : index === 4 ? "Z ticket" : "Website ticket",
+        description: search,
+        type: index === 1 || index === 4 ? "bug" : "support",
+        status: index === 2 ? "closed" : "open",
+        author: { id: String(index), name: index === 3 ? "Alex" : "Jordan" },
+        updatedAt: new Date(Date.UTC(2026, 0, 1 + Math.floor(index / 2))),
+      }));
+      await db.insert(schema.supportsTickets).values(rows);
+      const ids = (page) => page.items.map((item) => item.id);
+      const newest = rows.map((row) => row.id).reverse();
+      assert.deepEqual(ids(await sam.list({ search })), newest.slice(0, 20));
+      for (const [field, leading] of Object.entries({
+        title: [1, 4, 0],
+        type: [1, 4, 0],
+        status: [2],
+        author: [3],
+      })) {
+        const firstIds = leading.map((index) => rows[index].id);
+        const rest = newest.filter((id) => !firstIds.includes(id));
+        for (const direction of ["asc", "desc"]) {
+          const expected =
+            direction === "asc" ? [...firstIds, ...rest] : [...rest, ...firstIds.toReversed()];
+          const sort = { field, direction };
+          const first = await sam.list({ search, sort });
+          const second = await sam.list({ search, sort, page: 2 });
+          assert.equal(first.total, rows.length);
+          assert.deepEqual([...ids(first), ...ids(second)], expected, `${field} ${direction}`);
+        }
+      }
+      assert.deepEqual(
+        ids(await sam.list({ search, sort: { field: "updatedAt", direction: "asc" } })).slice(0, 2),
+        ["sort-01", "sort-00"],
+      );
+      await rejected(
+        sam.list({ search, sort: { field: "description", direction: "asc" } }),
+        "INVALID",
+      );
+    },
+  );
+  await t.test(
     "search, activity paging, process recreation and account removal preserve shared records",
     async () => {
       for (let i = 0; i < 51; i++)

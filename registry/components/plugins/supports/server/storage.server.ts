@@ -79,7 +79,7 @@ const asset = ({ id, name, contentType, size }: SupportAttachmentRecord): Suppor
   size,
 });
 const ticket = (
-  row: SupportTicketRecord,
+  { authorName: _authorName, ...row }: SupportTicketRecord,
   files: SupportAttachmentRecord[] = [],
 ): SupportTicket => ({
   ...row,
@@ -312,7 +312,11 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
       list: (input: SupportQuery = {}) =>
         guard(async () => {
           await permit(context, "read");
-          const { search, page } = supportQuerySchema.parse(input);
+          const { search, page, sort } = supportQuerySchema.parse(input);
+          const order = sort.direction === "asc" ? asc : desc;
+          const column = sort.field === "author" ? tickets.authorName : tickets[sort.field];
+          const byType = sort.field === "title" ? [order(tickets.type)] : [];
+          const byActivity = sort.field === "updatedAt" ? [] : [desc(tickets.updatedAt)];
           const pattern = containsPattern(search);
           const where = or(ilike(tickets.title, pattern), ilike(tickets.description, pattern));
           const [rows, totals] = await Promise.all([
@@ -320,7 +324,7 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
               .select()
               .from(tickets)
               .where(where)
-              .orderBy(desc(tickets.updatedAt), desc(tickets.id))
+              .orderBy(...byType, order(column), ...byActivity, desc(tickets.id))
               .limit(SUPPORT_PAGE_SIZE)
               .offset((page - 1) * SUPPORT_PAGE_SIZE),
             db.select({ total: count() }).from(tickets).where(where),

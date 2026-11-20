@@ -1,4 +1,7 @@
+import { tableSortLabels } from "@/components/utils/table-sort-state";
+
 export const supportsLabels = {
+  ...tableSortLabels,
   title: "Support",
   add: "Support ticket",
   createTitle: "New support ticket",
@@ -64,7 +67,8 @@ export const supportsLabels = {
   loadMore: "Load more activity",
   total: (count: number) => `${count} tickets`,
 };
-export type SupportsLabels = typeof supportsLabels;
+export type SupportsLabels = Omit<typeof supportsLabels, keyof typeof tableSortLabels> &
+  Partial<typeof tableSortLabels>;
 
 export const supportTypeShortLabels = {
   bug: supportsLabels.bug,

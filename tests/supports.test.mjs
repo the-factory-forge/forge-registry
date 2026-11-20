@@ -48,7 +48,20 @@ await test("support inputs enforce required fields, enums, bounds and unique att
     }).success,
     true,
   );
-  assert.deepEqual(supportQuerySchema.parse({}), { search: "", page: 1 });
+  assert.deepEqual(supportQuerySchema.parse({}), {
+    search: "",
+    page: 1,
+    sort: { field: "updatedAt", direction: "desc" },
+  });
+  assert.deepEqual(supportQuerySchema.parse({ sort: { field: "type", direction: "desc" } }).sort, {
+    field: "title",
+    direction: "desc",
+  });
+  for (const sort of [
+    { field: "unknown", direction: "asc" },
+    { field: "type", direction: "up" },
+  ])
+    assert.equal(supportQuerySchema.safeParse({ sort }).success, false);
   assert.equal(supportQuerySchema.safeParse({ page: -1 }).success, false);
   for (const status of ["open", "closed", "canceled"])
     assert.equal(supportStatusSchema.parse(status), status);
@@ -69,6 +82,7 @@ await test("image validation recognizes screenshot formats and rejects executabl
 await test("support distribution owns its dependencies and keeps server imports out of the UI", async () => {
   const { items } = JSON.parse(await readFile("registry/registry.json", "utf8"));
   const ui = items.find((item) => item.name === "supports");
+  assert(ui.registryDependencies.includes("@forge/table-sort"));
   assert(ui.dependencies.includes("@tanstack/markdown@0.0.16"));
   for (const file of ui.files)
     assert.doesNotMatch(

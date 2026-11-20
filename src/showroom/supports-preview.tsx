@@ -1,8 +1,9 @@
 import { useNavigate, useSearch, useLocation } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { IntranetShell } from "@/components/layouts/intranet-shell";
 import {
+  SUPPORT_DEFAULT_SORT,
   SupportDetailPage,
   SupportsPage,
   type SupportDetail,
@@ -19,10 +20,17 @@ export function SupportsPreview() {
   const id = segments[0];
   const base = `/${locale}/intranet/supports`;
   const navigate = useNavigate({ from: "/$locale/intranet/supports/$" });
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const query = useSearch({ strict: false });
+  const location = useLocation();
+  const query = useSearch({ from: "/_supports/$locale/intranet_/supports/$" });
   const search = query.search ?? "";
   const page = Number(query.page ?? 1);
+  const sort = useMemo(
+    () => ({
+      field: query.sort ?? SUPPORT_DEFAULT_SORT.field,
+      direction: query.direction ?? SUPPORT_DEFAULT_SORT.direction,
+    }),
+    [query.sort, query.direction],
+  );
   const [list, setList] = useState<SupportPage>({ items: [], total: 0 });
   const [detail, setDetail] = useState<SupportDetail>();
   const [loading, setLoading] = useState(true);
@@ -53,7 +61,9 @@ export function SupportsPreview() {
             }));
         } else {
           const result =
-            mode === "empty" ? { items: [], total: 0 } : await mock.client.list({ search, page });
+            mode === "empty"
+              ? { items: [], total: 0 }
+              : await mock.client.list({ search, page, sort });
           if (current === generation.current && !signal?.aborted) setList(result);
         }
       } catch {
@@ -63,7 +73,7 @@ export function SupportsPreview() {
           setLoading(false);
       }
     },
-    [mock, id, search, page, mode, segments.length],
+    [mock, id, search, page, sort, mode, segments.length],
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -71,11 +81,8 @@ export function SupportsPreview() {
     return () => controller.abort();
   }, [load]);
   useEffect(() => () => mock.dispose(), [mock]);
-  const queryString = new URLSearchParams({
-    ...(search ? { search } : {}),
-    ...(page > 1 ? { page: String(page) } : {}),
-  }).toString();
-  const backHref = `${base}${queryString ? `?${queryString}` : ""}`;
+  const listState = `${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
+  const backHref = `${base}${listState}`;
   return (
     <ShowroomPreview
       width="full"
@@ -125,7 +132,7 @@ export function SupportsPreview() {
         user={{ name: "Alex Morgan", email: "alex@example.com" }}
         profileHref={`/${locale}/account`}
         onSignOut={async () => {}}
-        pathname={pathname}
+        pathname={location.pathname}
         linkComponent={ShowroomLink}
         groups={[
           {
@@ -180,6 +187,22 @@ export function SupportsPreview() {
             total={mode === "empty" ? 0 : list.total}
             search={search}
             page={page}
+            sort={sort}
+            onSortChange={(next) => {
+              const isDefault =
+                next.field === SUPPORT_DEFAULT_SORT.field &&
+                next.direction === SUPPORT_DEFAULT_SORT.direction;
+              void navigate({
+                search: (previous) => ({
+                  ...previous,
+                  sort: isDefault ? undefined : next.field,
+                  direction: isDefault ? undefined : next.direction,
+                  page: undefined,
+                }),
+                resetScroll: false,
+                hash: true,
+              });
+            }}
             onSearchChange={(value) =>
               void navigate({
                 search: (previous) => ({
@@ -203,14 +226,13 @@ export function SupportsPreview() {
               })
             }
             onChanged={() => void load()}
-            getTicketHref={(ticket) =>
-              `${base}/${ticket.id}${queryString ? `?${queryString}` : ""}`
-            }
+            getTicketHref={(ticket) => `${base}/${ticket.id}${listState}`}
             onCreated={(ticket) =>
               void navigate({
                 to: "/$locale/intranet/supports/$",
                 params: { locale, _splat: ticket.id },
-                search: { search: undefined, page: undefined },
+                search: true,
+                hash: true,
               })
             }
             linkComponent={ShowroomLink}

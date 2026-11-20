@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 import type {
@@ -15,6 +16,7 @@ export const supportsTickets = pgTable(
     type: text("type").$type<SupportType>().notNull(),
     status: text("status").$type<SupportStatus>().notNull().default("open"),
     author: jsonb("author").$type<SupportAuthor>().notNull(),
+    authorName: text("author_name").generatedAlwaysAs(sql`author->>'name'`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

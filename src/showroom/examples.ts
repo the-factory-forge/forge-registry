@@ -136,8 +136,8 @@ export const examples = (
       category: "Component",
       title: "Table",
       description:
-        "Searchable tables with result counts, page navigation, keyboard controls, and loading states.",
-      tags: ["Search", "Pagination"],
+        "Search and sort table rows, then page through the results with keyboard or pointer controls.",
+      tags: ["Search", "Sorting", "Pagination"],
       keywords: [
         "search",
         "table",

@@ -14,9 +14,15 @@ import {
   supportsLabels,
   type SupportsLabels,
 } from "@/components/plugins/supports/labels";
-import { SUPPORT_PAGE_SIZE } from "@/components/plugins/supports/schema";
+import {
+  SUPPORT_DEFAULT_SORT,
+  SUPPORT_PAGE_SIZE,
+  supportSortSchema,
+  type SupportColumnSort,
+} from "@/components/plugins/supports/schema";
 import type {
   SupportActivity,
+  SupportSort,
   SupportTicket,
   SupportsClient,
 } from "@/components/plugins/supports/types";
@@ -31,11 +37,11 @@ import {
 } from "@/components/plugins/supports/ui";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
+import { TableSortHeader } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import {
   tablePanelClass,
   tableClass,
-  tableHeaderClass,
   tableRowClass,
   tableCellClass,
   tableActionCellClass,
@@ -47,6 +53,7 @@ import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export type * from "./types";
 export type { SupportsLabels } from "./labels";
 export { supportsLabels } from "./labels";
+export { SUPPORT_DEFAULT_SORT } from "./schema";
 interface Appearance {
   className?: string;
   labels?: Partial<SupportsLabels>;
@@ -127,6 +134,8 @@ export interface SupportsPageProps extends Appearance {
   total: number;
   search: string;
   page: number;
+  sort?: SupportSort;
+  onSortChange?: (sort: SupportColumnSort) => void;
   onSearchChange: (search: string) => void;
   onPageChange: (page: number) => void;
   getTicketHref: (ticket: SupportTicket) => string;
@@ -142,6 +151,8 @@ function SupportsContent({
   total,
   search,
   page,
+  sort = SUPPORT_DEFAULT_SORT,
+  onSortChange,
   onSearchChange,
   onPageChange,
   getTicketHref,
@@ -157,7 +168,14 @@ function SupportsContent({
 }: SupportsPageProps) {
   const labels = { ...supportsLabels, ...overrides };
   const toast = useActionToast();
-  const scope = useMemo(() => ({ client, search, page }), [client, search, page]);
+  const activeSort = supportSortSchema.safeParse(sort).data ?? SUPPORT_DEFAULT_SORT;
+  const changeSort =
+    onSortChange && ((next?: SupportColumnSort) => onSortChange(next ?? SUPPORT_DEFAULT_SORT));
+  const { field, direction } = activeSort;
+  const scope = useMemo(
+    () => ({ client, search, page, field, direction }),
+    [client, search, page, field, direction],
+  );
   const cancellation = useOptimisticAction(tickets, scope);
   useLoadingActivity(Boolean(loading));
   return (
@@ -183,13 +201,24 @@ function SupportsContent({
           <table className={tableClass}>
             <thead>
               <tr>
-                {[labels.ticketTitle, labels.status, labels.author, labels.updated].map(
-                  (label, index) => (
-                    <th key={index} scope="col" className={tableHeaderClass}>
-                      {label}
-                    </th>
-                  ),
-                )}
+                {(
+                  [
+                    ["title", labels.ticketTitle],
+                    ["status", labels.status],
+                    ["author", labels.author],
+                    ["updatedAt", labels.updated],
+                  ] as const
+                ).map(([column, label]) => (
+                  <TableSortHeader
+                    key={column}
+                    field={column}
+                    label={label}
+                    value={activeSort}
+                    defaultSort={SUPPORT_DEFAULT_SORT}
+                    onValueChange={changeSort}
+                    labels={labels}
+                  />
+                ))}
                 <th scope="col" className={tableActionHeaderClass}>
                   <span className="sr-only">{labels.actions}</span>
                 </th>
