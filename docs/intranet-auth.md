@@ -481,4 +481,4 @@ for transaction-bound auth, membership filtering and the cutover workflow.
 
 ## Agent key ordering
 
-The agent key table compares name, status, creation, last use and expiry. Dates use their timestamps and unused keys sort last by last use. Clearing the selection returns to ascending key ID. Pass `sort` and `onSortChange` to store the selected order in the security route.
+The agent key table compares name, status, creation, last use and expiry. Dates use their timestamps and unused keys sort last by last use. On a first visit keys appear in ascending ID order. Later visits restore the last selected column and direction. Pass `sort` and `onSortChange` to store the selected order in the security route.

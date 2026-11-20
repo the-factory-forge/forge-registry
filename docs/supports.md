@@ -53,12 +53,12 @@ The discussion keeps Close ticket (or Reopen ticket) and Post reply in a sticky
 bottom bar. Closing uses danger styling and requires confirmation; canceling
 preserves the reply draft. Failed closure keeps the dialog open for retry.
 
-Pass the same `sort` to `SupportsPage` and `client.list({ search, sort, page })`.
-The exported `SUPPORT_DEFAULT_SORT` orders tickets by `updatedAt`, newest first.
-Select **Title**, **Status** or **Created by** to sort ascending. Select the same
-heading again to reverse it, then once more to restore **Updated**, newest first.
-Updated itself toggles between newest and oldest first. The active arrow stays
-visible. Other arrows appear on hover or keyboard focus.
+Pass the URL’s explicit `sort` to `SupportsPage`. For the list request, use
+`client.list({ search, sort, page })` with the effective order. On a first visit
+the queue uses `SUPPORT_DEFAULT_SORT` (Updated, newest first). Selecting **Title**,
+**Status** or **Created by** starts ascending. Each click on the active heading
+reverses its direction, and the queue remembers the last choice in this browser.
+The active arrow stays visible. Other arrows appear on hover or keyboard focus.
 
 Title orders by ticket type first, then by title within each type. Reversing
 Title reverses both comparisons. Status uses the status key and Created by uses
@@ -69,9 +69,11 @@ Hosts can omit `sort` and `onSortChange` to keep a read-only default order.
 Include search, sort and page in list query keys, and ticket and activity cursor
 in detail keys. The showroom accepts URLs such as `?sort=title&direction=desc`.
 Existing `sort=type` links select the combined Title order.
-Missing or invalid sort selections use the default. In `onSortChange`, push a
-history entry, reset to page 1 and clear both sort parameters when returning to
-the default. Search changes also reset the page and may replace history. Preserve
+When the link has no valid sort, pass `sort={undefined}` so the table can
+restore its saved choice. In `onSortChange(sort, source)`, write the field and
+direction to the URL and use them for the list query. A user click pushes a
+history entry and resets to page 1. A `"restore"` replaces the current entry and
+preserves its page. Search changes also reset the page and may replace history. Preserve
 unrelated parameters and the fragment through pagination and discussion links.
 Reload and Back/Forward restore the controls and results.
 

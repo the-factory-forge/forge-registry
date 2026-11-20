@@ -29,6 +29,7 @@ export const DEFAULT_PRICING_COLUMNS = {
 };
 
 type PricingField = keyof typeof DEFAULT_PRICING_COLUMNS;
+const pricingFields = Object.keys(DEFAULT_PRICING_COLUMNS) as PricingField[];
 const serviceOrder = { field: "name", direction: "asc" } as const;
 export interface PricingTableProps extends TableSortProps<PricingField> {
   searchLabel?: string;
@@ -71,7 +72,7 @@ export function PricingTable({
   const hasDuration = items.some((i) => i.duration);
   const hasDescription = items.some((i) => i.description);
 
-  const fields = (Object.keys(cols) as PricingField[]).filter((field) =>
+  const fields = pricingFields.filter((field) =>
     field === "code"
       ? hasCode
       : field === "duration"
@@ -80,8 +81,11 @@ export function PricingTable({
           ? hasDescription
           : true,
   );
-  const order = useTableSort<PricingField>(sortProps, serviceOrder, (field) =>
-    fields.includes(field),
+  const order = useTableSort<PricingField>(
+    sortProps,
+    serviceOrder,
+    (field) => fields.includes(field),
+    { key: "pricing", fields: pricingFields },
   );
   const selected = order.value ?? serviceOrder;
   const numericPrice =

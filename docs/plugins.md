@@ -269,18 +269,23 @@ for each sortable column. Pass its `field`, translated `label`, the current
 with direction `"asc"` or `"desc"`. Only the active header keeps its arrow
 visible. Hover or keyboard focus reveals the arrow on other sortable headers.
 
-A new field starts ascending. The next click reverses it and the third emits
-`undefined` to clear the selection. Pass the same optional `defaultSort` to
-each header. Clearing restores that field and direction, and clicking the active
-default toggles its direction. Without a default, clearing hides the active arrow.
+Each click on the active header reverses its direction. Selecting a different
+column starts it ascending, or in its configured direction for the default column.
+Each registry table saves the last column and direction selected in this browser’s
+localStorage. A valid sort in the URL takes precedence over the saved preference.
+On a first visit, or when the saved value is invalid or unavailable, the table
+uses its configured default or ascending UUID order.
+
+For a new table, call `useTableSort(props, defaultSort, undefined, { key, fields })`
+with a stable table key and its list of sortable fields. Spread the result into
+each header. Use `sortStorageKey` for independent instances of the same table.
 
 In the query adapter, import `resolveTableSort` from
 `@/components/utils/table-sort-state`. It returns the selected order, the
 configured default, or `{ field: "id", direction: "asc" }`. Map `id` to the
 table’s UUID column.
 Validate the field and direction, order all matching rows with a stable
-tie-breaker, then take the page. The host owns URL state and resets pagination
-when the sort changes. The [table example](https://registry.the-corner.swiss/table-pagination)
+tie-breaker, then take the page. The [table example](https://registry.the-corner.swiss/table-pagination)
 uses UUID order. The [Support queue](./supports.md#host-routes-and-navigation)
 defaults to the last update.
 
@@ -294,10 +299,14 @@ defaults to the last update.
 | Account agent keys                | UUID, ascending, with no active header             |
 | Public pricing                    | Service name, ascending                            |
 
-Pass `sort` and `onSortChange` to bind a list to host URL state. Translate arrow
-actions through `sortLabels`. Complete collections also work with local state.
+To bind a list to the URL, pass its explicit selection as `sort`, leaving it
+undefined when the link has none. In `onSortChange(sort, source)`, a `"select"`
+action writes the field and direction, pushes history and resets pagination.
+A `"restore"` action applies the saved preference, replaces the current history
+entry and preserves its page. Translate arrow actions through `sortLabels`.
+Complete collections also work with local state.
 For server-paged Blogs and Employees, pass the same selection to the list request
-and reset the page when it changes. A host supplying only one page must wire
+on each change. A host supplying only one page must wire
 `onSortChange` to enable its sort controls. For Customers and Projects, pass the
 complete matching collection, including all authorized cursor pages if using
 the storage companion. Custom customer columns can supply a `syncColumn.sortValue`.

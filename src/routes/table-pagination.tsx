@@ -16,7 +16,7 @@ import {
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
-import { TableSortHeader, type TableSort } from "@/components/table-sort";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import { resolveTableSort } from "@/components/utils/table-sort-state";
 import {
@@ -54,6 +54,7 @@ const postSortField = z.enum({
   Category: "category",
   Status: "status",
 });
+const postSortFields = postSortField.options;
 const postSortQuery = z.object({
   sort: postSortField,
   direction: z.enum(["asc", "desc"]).default("asc"),
@@ -73,20 +74,28 @@ function TablePaginationExample() {
     sort: field,
     direction = "asc",
   } = Route.useSearch();
-  const sort = field ? { field, direction } : undefined;
-  const order = resolveTableSort(sort);
   const navigate = Route.useNavigate();
-  const setSort = (next?: TableSort<z.infer<typeof postSortField>>) =>
-    void navigate({
-      search: (previous) => ({
-        ...previous,
-        sort: next?.field,
-        direction: next?.direction,
-        postPage: undefined,
-      }),
-      hash: true,
-      resetScroll: false,
-    });
+  const headers = useTableSort(
+    {
+      sort: field ? { field, direction } : undefined,
+      onSortChange: (next, source) =>
+        void navigate({
+          search: (previous) => ({
+            ...previous,
+            sort: next.field,
+            direction: next.direction,
+            postPage: source === "restore" ? previous.postPage : undefined,
+          }),
+          hash: true,
+          resetScroll: false,
+          replace: source === "restore",
+        }),
+    },
+    undefined,
+    undefined,
+    { key: "table-pagination-posts", fields: postSortFields },
+  );
+  const order = resolveTableSort(headers.value);
   const setPage = (page: number) =>
     void navigate({
       search: (previous) => ({ ...previous, postPage: page === 1 ? undefined : page }),
@@ -198,13 +207,7 @@ function TablePaginationExample() {
               <thead>
                 <tr className={tableRowClass}>
                   {Object.entries(postSortField.enum).map(([label, column]) => (
-                    <TableSortHeader
-                      key={column}
-                      field={column}
-                      label={label}
-                      value={sort}
-                      onValueChange={setSort}
-                    />
+                    <TableSortHeader key={column} field={column} label={label} {...headers} />
                   ))}
                   <th scope="col" className={tableActionHeaderClass}>
                     Actions

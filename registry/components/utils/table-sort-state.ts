@@ -5,8 +5,10 @@ export interface TableSort<Field extends string> {
 
 export interface TableSortProps<Field extends string> {
   sort?: TableSort<Field>;
-  onSortChange?: (sort: TableSort<Field> | undefined) => void;
+  onSortChange?: (sort: TableSort<Field>, source?: "select" | "restore") => void;
   sortLabels?: Partial<typeof tableSortLabels>;
+  /** Override the built-in key for independent instances of the same table. */
+  sortStorageKey?: string;
 }
 
 export type TableSortValue = string | number | null | undefined;
@@ -41,7 +43,9 @@ export function sortTableRows<Row, Field extends string>(
 export const tableSortLabels = {
   sortAscending: "Sort ascending",
   sortDescending: "Sort descending",
+  /** @deprecated Headers now toggle between ascending and descending. */
   sortClear: "Clear sort",
+  /** @deprecated Headers now toggle between ascending and descending. */
   sortDefault: "Restore default order",
 };
 
@@ -61,10 +65,9 @@ export function nextTableSort<Field extends string>(
   field: Field,
   value?: TableSort<Field>,
   defaultSort?: TableSort<Field>,
-): TableSort<Field> | undefined {
+): TableSort<Field> {
   const active = value ?? defaultSort;
-  const first = initialSortDirection(field, defaultSort);
-  if (active?.field !== field) return { field, direction: first };
-  if (active.direction === first) return { field, direction: first === "asc" ? "desc" : "asc" };
-  return undefined;
+  if (active?.field === field)
+    return { field, direction: active.direction === "asc" ? "desc" : "asc" };
+  return { field, direction: initialSortDirection(field, defaultSort) };
 }

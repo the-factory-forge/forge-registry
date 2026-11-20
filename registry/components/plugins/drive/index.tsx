@@ -24,6 +24,8 @@ import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { useDriveRecovery } from "@/components/plugins/drive/recovery";
 import {
+  DRIVE_SORT_FIELDS,
+  DRIVE_FILE_SORT_FIELDS,
   driveDefaultSort,
   type DriveSort,
   type DriveFileSortField,
@@ -97,6 +99,7 @@ export function DrivePage({
   const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveSort["field"]>(
     sortProps,
     driveDefaultSort,
+    { key: "spaces", fields: DRIVE_SORT_FIELDS },
   );
   const [revision, setRevision] = useState(0);
   const load = useCallback(
@@ -313,6 +316,7 @@ function Browser({
   const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveFileSortField>(
     sortProps,
     driveDefaultSort,
+    { key: "files", fields: DRIVE_FILE_SORT_FIELDS },
   );
   const [revision, setRevision] = useState(0);
   const [localTrashView, setLocalTrashView] = useState(false);
@@ -368,7 +372,6 @@ function Browser({
   const [previousParentId, setPreviousParentId] = useState(parentId);
   if (previousParentId !== parentId) {
     setPreviousParentId(parentId);
-    if (!sortProps.onSortChange) order.onValueChange(undefined);
     setSearch("");
     setCursors([]);
     setLocalTrashView(false);

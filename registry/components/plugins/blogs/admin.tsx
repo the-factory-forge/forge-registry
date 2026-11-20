@@ -124,8 +124,13 @@ function BlogsPageContent({
   useLoadingActivity(!!loading);
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, useContext(BlogEditorClient));
-  const order = useTableSort<BlogSortField>(sortProps, blogDefaultSort);
   const complete = suppliedData.total <= suppliedData.items.length;
+  const order = useTableSort<BlogSortField>(
+    sortProps,
+    blogDefaultSort,
+    undefined,
+    complete || sortProps.onSortChange ? { key: "blog", fields: BLOG_SORT_FIELDS } : undefined,
+  );
   const toggleAction = useBlogAction(labels);
   const historyPublication = useHistoryPublication(client, labels, (result) => {
     void optimistic.run(

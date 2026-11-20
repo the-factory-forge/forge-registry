@@ -705,4 +705,4 @@ The plugin installs its TanStack Query dependency through `@forge/optimistic-act
 
 ## Sort controls and trash
 
-Bind `sort` and `onSortChange` on `DrivePage` and `DriveBrowser`. The browser accepts a separate `trashOrder` with the same props, plus `trashView` and `onTrashViewChange` for navigation. Forward the sort to `listTrash` to order the full trash by name, original location, deletion date or expiry. Clearing a trash sort restores newest deletion first. Each order change starts at the first cursor.
+Bind `sort` and `onSortChange` on `DrivePage` and `DriveBrowser`. The browser accepts a separate `trashOrder` with the same props, plus `trashView` and `onTrashViewChange` for navigation. Forward the sort to `listTrash` to order the full trash by name, original location, deletion date or expiry. Trash starts with the newest deletion first. Spaces, files and trash each remember their own last selection. Choosing a different order starts at the first cursor.

@@ -86,7 +86,13 @@ export interface MenuItemEditorPageProps {
   driveClient?: DriveClient;
   driveOrder?: Pick<
     DriveBrowserProps,
-    "sort" | "onSortChange" | "sortLabels" | "trashOrder" | "trashView" | "onTrashViewChange"
+    | "sort"
+    | "onSortChange"
+    | "sortLabels"
+    | "sortStorageKey"
+    | "trashOrder"
+    | "trashView"
+    | "onTrashViewChange"
   >;
   driveTransfer?: DriveTransfer;
   photoFolderId?: string | null;

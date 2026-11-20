@@ -24,13 +24,12 @@ export function SupportsPreview() {
   const query = useSearch({ from: "/_supports/$locale/intranet_/supports/$" });
   const search = query.search ?? "";
   const page = Number(query.page ?? 1);
-  const sort = useMemo(
-    () => ({
-      field: query.sort ?? SUPPORT_DEFAULT_SORT.field,
-      direction: query.direction ?? SUPPORT_DEFAULT_SORT.direction,
-    }),
+  const urlSort = useMemo(
+    () =>
+      query.sort && query.direction ? { field: query.sort, direction: query.direction } : undefined,
     [query.sort, query.direction],
   );
+  const sort = urlSort ?? SUPPORT_DEFAULT_SORT;
   const [list, setList] = useState<SupportPage>({ items: [], total: 0 });
   const [detail, setDetail] = useState<SupportDetail>();
   const [loading, setLoading] = useState(true);
@@ -187,22 +186,20 @@ export function SupportsPreview() {
             total={mode === "empty" ? 0 : list.total}
             search={search}
             page={page}
-            sort={sort}
-            onSortChange={(next) => {
-              const isDefault =
-                next.field === SUPPORT_DEFAULT_SORT.field &&
-                next.direction === SUPPORT_DEFAULT_SORT.direction;
+            sort={urlSort}
+            onSortChange={(next, source) =>
               void navigate({
                 search: (previous) => ({
                   ...previous,
-                  sort: isDefault ? undefined : next.field,
-                  direction: isDefault ? undefined : next.direction,
-                  page: undefined,
+                  sort: next.field,
+                  direction: next.direction,
+                  page: source === "restore" ? previous.page : undefined,
                 }),
                 resetScroll: false,
                 hash: true,
-              });
-            }}
+                replace: source === "restore",
+              })
+            }
             onSearchChange={(value) =>
               void navigate({
                 search: (previous) => ({

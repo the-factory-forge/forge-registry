@@ -183,7 +183,7 @@ export const menusLabels = {
   reorder: "Reorder item",
   reorderHelp: "Drag a handle to reorder items, or focus it and use the Up and Down arrow keys.",
   reorderSearchHelp: "Clear the search to reorder items.",
-  reorderSortHelp: "Restore display order to move items.",
+  reorderSortHelp: "Select Display order ascending to move items.",
   visible: "Visible on menu",
   unavailable: "Sold out",
   photo: "Photo",

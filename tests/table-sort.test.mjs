@@ -7,23 +7,26 @@ import {
   sortTableRows,
 } from "../registry/components/utils/table-sort-state.ts";
 
-await test("a cleared column resolves to the configured default or ascending UUID", () => {
+await test("an active header always reverses and keeps its field", () => {
   const name = { field: "name", direction: "asc" };
   const reversed = { ...name, direction: "desc" };
-  for (const fallback of [undefined, { field: "updatedAt", direction: "desc" }]) {
-    assert.deepEqual(nextTableSort("name", undefined, fallback), name);
-    assert.deepEqual(nextTableSort("name", name, fallback), reversed);
-    const cleared = nextTableSort("name", reversed, fallback);
-    assert.equal(cleared, undefined);
-    assert.deepEqual(resolveTableSort(reversed, fallback), reversed);
+  const updated = { field: "updatedAt", direction: "desc" };
+  for (const fallback of [undefined, updated]) {
     assert.deepEqual(
-      resolveTableSort(cleared, fallback),
+      resolveTableSort(undefined, fallback),
       fallback ?? { field: "id", direction: "asc" },
     );
+    assert.deepEqual(nextTableSort("name", undefined, fallback), name);
+    assert.deepEqual(nextTableSort("name", name, fallback), reversed);
+    assert.deepEqual(nextTableSort("name", reversed, fallback), name);
   }
+  assert.deepEqual(nextTableSort("updatedAt", name, updated), updated);
+  const oldest = nextTableSort("updatedAt", undefined, updated);
+  assert.deepEqual(oldest, { ...updated, direction: "asc" });
+  assert.deepEqual(nextTableSort("updatedAt", oldest, updated), updated);
 });
 
-await test("ordering keeps empty cells last and resolves ties and cleared sorts by ID", () => {
+await test("ordering keeps empty cells last and resolves ties and initial unsorted rows by ID", () => {
   const rows = [
     { id: "c", name: "Item 2" },
     { id: "a", name: "Item 10" },

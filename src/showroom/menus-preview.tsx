@@ -35,7 +35,7 @@ import {
   type MenuLabel,
   type MenusClient,
 } from "@/components/plugins/menus";
-import { MENU_SORT_FIELDS, menuDefaultSort } from "@/components/plugins/menus/admin";
+import { MENU_SORT_FIELDS } from "@/components/plugins/menus/admin";
 import {
   nextWeekDates,
   placeMenuItems,
@@ -817,7 +817,7 @@ function FlatPublicPreview() {
 
 export function MenuAdminPreview() {
   const driveOrder = useShowroomDriveOrder();
-  const order = useShowroomTableSort("menuItems", MENU_SORT_FIELDS, menuDefaultSort);
+  const order = useShowroomTableSort("menuItems", MENU_SORT_FIELDS);
   const mock = useMock();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const listState = mock.listState;

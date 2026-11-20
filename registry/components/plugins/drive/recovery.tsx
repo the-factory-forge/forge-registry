@@ -218,6 +218,7 @@ function TrashRecovery({
   const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveTrashSort["field"]>(
     trashOrder ?? {},
     trashDefaultSort,
+    { key: "trash", fields: TRASH_SORT_FIELDS },
   );
   const [revision, setRevision] = useState(0);
   const load = useCallback(

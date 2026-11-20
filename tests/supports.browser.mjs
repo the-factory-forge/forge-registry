@@ -170,14 +170,15 @@ await test("support sorting restores the selected field, direction and rows acro
   assert.equal(new URL(page.url()).searchParams.get("keep"), "notes");
   assert.equal(new URL(page.url()).hash, "#queue");
   await button("Status").click();
+  await view("Status", "ascending", "Change the contact page layout");
+  await button("Updated").click();
   await view("Updated", "descending", "Add opening hours to the contact page");
-  assert(!new URL(page.url()).searchParams.has("sort"));
-  assert(!new URL(page.url()).searchParams.has("direction"));
   await button("Updated").click();
   await view("Updated", "ascending", "Website review 23");
   await button("Updated").click();
   await view("Updated", "descending", "Add opening hours to the contact page");
-  assert(!new URL(page.url()).searchParams.has("sort"));
+  assert.equal(new URL(page.url()).searchParams.get("sort"), "updatedAt");
+  assert.equal(new URL(page.url()).searchParams.get("direction"), "desc");
   await button("Created by").click();
   await view("Created by", "ascending", "Update the team photo");
   await page.setViewportSize({ width: 390, height: 840 });
@@ -187,10 +188,14 @@ await test("support sorting restores the selected field, direction and rows acro
   await view("Title", "descending", "Website review 9");
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await button("Title").click();
-  await view("Updated", "descending", "Add opening hours to the contact page");
+  await view("Title", "ascending", "Change the contact page layout");
+  await page.goto(queue);
+  await view("Title", "ascending", "Change the contact page layout");
   await page.goto(`${queue}?sort=type&direction=desc`);
   await view("Title", "descending", "Website review 9");
   await page.goto(`${queue}?sort=status&direction=invalid`);
+  await view("Title", "ascending", "Change the contact page layout");
+  await page.goto(`${queue}?sort=updatedAt&direction=desc`);
   await view("Updated", "descending", "Contact form confirmation is missing");
 });
 

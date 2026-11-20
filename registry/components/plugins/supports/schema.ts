@@ -28,9 +28,10 @@ export const supportCommentSchema = z
     attachmentIds: attachments,
   })
   .refine((value) => value.body.trim().length > 0 || value.attachmentIds.length > 0);
+export const SUPPORT_SORT_FIELDS = ["title", "status", "author", "updatedAt"] as const;
 export const supportSortSchema = z.object({
   field: z
-    .enum(["title", "type", "status", "author", "updatedAt"])
+    .enum([...SUPPORT_SORT_FIELDS, "type"])
     .transform((field) => (field === "type" ? "title" : field)),
   direction: z.enum(["asc", "desc"]),
 });

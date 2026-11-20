@@ -13,7 +13,7 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/components/plugins/projects";
-import { PROJECT_SORT_FIELDS, projectDefaultSort } from "@/components/plugins/projects/types";
+import { PROJECT_SORT_FIELDS } from "@/components/plugins/projects/types";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
 import { useShowroomTableSort } from "@/showroom/routing";
@@ -24,7 +24,6 @@ function useProjectList(customerId?: string) {
   const order = useShowroomTableSort(
     "projects",
     customerId ? embeddedProjectFields : PROJECT_SORT_FIELDS,
-    projectDefaultSort,
   );
   const state = usePluginsPreview();
   const { locale } = useShowroomParams();

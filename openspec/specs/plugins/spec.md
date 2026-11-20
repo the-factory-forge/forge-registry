@@ -56,15 +56,20 @@ guidance. The requirements below remain the behavioral contract.
 
 Record list tables SHALL expose column sort arrows for their comparable data.
 The active header SHALL show its direction. Other sortable headers SHALL show an
-arrow on hover or keyboard focus. Selecting a different header SHALL start its
-sort, selecting it again SHALL reverse the direction, and the next selection
-SHALL restore the configured default or ascending UUID order. A configured
-default SHALL show its arrow whenever it determines the visible order.
+arrow on hover or keyboard focus. Selecting a different header SHALL activate
+that column. Each selection of the active header SHALL reverse its direction.
 
-Hosts SHALL apply the selected order across authorized matching rows before
-pagination and reset the page on change. URL-bound tables SHALL restore the order
-after reload and browser history navigation. Menu item sorting SHALL preserve the
-saved display order and restrict manual moves to that order.
+Record tables SHALL save each table’s last user-selected column and direction
+in localStorage. On a new visit, a valid explicit URL sort SHALL take precedence
+over that preference. Without a valid URL or saved order, the table SHALL use
+its configured default with a visible arrow, or ascending UUID order with no
+active header. Sorting SHALL work when browser storage is unavailable.
+
+Hosts SHALL apply the order across authorized matching rows before pagination.
+A user selection SHALL reset the page. Restoring a preference SHALL preserve
+the requested page and replace the current history entry. URL-bound tables SHALL
+restore the order on reload and Back/Forward. Menu item sorting SHALL preserve
+the saved display order and restrict manual moves to that order.
 
 ### Requirement: Supports plugin
 
@@ -112,12 +117,12 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 
 #### Scenario: Ordering the Support queue
 
-- **WHEN** staff open the queue without a valid sort selection
+- **WHEN** staff open the queue without a valid URL sort or saved preference
 - **THEN** Updated shows its descending arrow and the most recently updated tickets appear first
 - **WHEN** staff select Title, Status, Created by or Updated by pointer or keyboard
 - **THEN** only the active header persistently displays an arrow and exposes its sort direction to assistive technology
 - **AND** other sortable headers reveal their arrows on hover or keyboard focus
-- **AND** selecting an active header reverses its initial direction, then selecting it again restores Updated, newest first
+- **AND** each selection of the active header reverses its direction and saves that order for the next visit
 - **AND** Title orders by type and then title within each type, reversing both together
 - **AND** the service orders all matching tickets before pagination, breaking ties by newest update and descending ticket ID
 
@@ -126,7 +131,7 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 - **WHEN** staff search, sort, paginate, reload, return from a discussion or traverse browser history
 - **THEN** host-owned URL state restores both controls and results
 - **AND** search filters titles/descriptions before the fixed 20-row page
-- **AND** changing the sort resets the page, retains search and unrelated URL state, and returning to the default clears the sort parameters
+- **AND** choosing a sort resets the page and records its field and direction while preserving search and unrelated URL state
 - **AND** new/create remains a labeled primary action and the installed host may place Support above the sidebar profile
 
 ### Requirement: Support persistence and private images

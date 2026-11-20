@@ -124,7 +124,10 @@ function AgentKeysContent({
   const [maxExpiry, setMaxExpiry] = useState("");
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
-  const order = useTableSort(sortProps);
+  const order = useTableSort(sortProps, undefined, undefined, {
+    key: "keys",
+    fields: AGENT_KEY_SORT_FIELDS,
+  });
   const sortedKeys = sortTableRows(
     keys ?? [],
     order.value,

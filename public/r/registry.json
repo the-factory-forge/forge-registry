@@ -123,7 +123,7 @@
       "name": "table-sort",
       "type": "registry:ui",
       "title": "Table sorting",
-      "description": "Sortable table headers with keyboard controls, optional default ordering and a UUID fallback.",
+      "description": "Sortable table headers with keyboard controls, remembered per-table ordering and a UUID fallback.",
       "files": [
         {
           "path": "registry/components/table-sort.tsx",
@@ -136,7 +136,7 @@
           "target": "@components/utils/table-sort-state.ts"
         }
       ],
-      "dependencies": ["lucide-react"],
+      "dependencies": ["lucide-react", "zod@4.6.7"],
       "registryDependencies": ["@forge/cn", "@forge/table-styles"]
     },
     {

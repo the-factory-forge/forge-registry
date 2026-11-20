@@ -9,7 +9,7 @@ import {
   CustomerNewPage,
   type CustomerFormValues,
 } from "@/components/plugins/customers";
-import { CUSTOMER_SORT_FIELDS, customerDefaultSort } from "@/components/plugins/customers/types";
+import { CUSTOMER_SORT_FIELDS } from "@/components/plugins/customers/types";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { CustomerProjectsPreview } from "@/showroom/projects-preview";
 import { useShowroomTableSort } from "@/showroom/routing";
@@ -21,7 +21,6 @@ export function CustomersPreview() {
   const order = useShowroomTableSort(
     "customers",
     state.showIntegration ? CUSTOMER_SORT_FIELDS : customerFields,
-    customerDefaultSort,
   );
   const params = useShowroomParams();
   const navigate = useNavigate();

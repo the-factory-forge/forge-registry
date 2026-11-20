@@ -204,4 +204,4 @@ owner and page state. See the [bounded directory contract](./persistence.md#boun
 
 ## List sorting
 
-The list sorts project names, displayed owner and assignee names, and status. The customer-scoped list omits the common owner column. Bind `sort` and `onSortChange` to the host URL and supply all matching projects. Clearing a sort restores ascending project name.
+The list sorts project names, displayed owner and assignee names, and status. The customer-scoped list omits the common owner column. Bind `sort` and `onSortChange` to the host URL and supply all matching projects. Both lists start with ascending project name and remember their selections independently.

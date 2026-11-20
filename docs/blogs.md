@@ -697,4 +697,4 @@ and fresh-process persistence. Run it with the companion's storage suite.
 
 ## Admin table ordering
 
-Bind `BlogsPage.sort` and `onSortChange` to the host URL and pass the sort to `client.list`. The storage companion orders authorized results before taking the page. Title and category names use the requested locale. Clearing the selection restores the most recently updated articles first.
+Bind `BlogsPage.sort` and `onSortChange` to the host URL and pass the sort to `client.list`. The storage companion orders authorized results before taking the page. Title and category names use the requested locale. On a first visit the most recently updated articles appear first. Later visits use the last selected order unless the URL supplies one.

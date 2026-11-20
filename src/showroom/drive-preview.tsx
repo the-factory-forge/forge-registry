@@ -5,19 +5,17 @@ import { useSearch } from "@tanstack/react-router";
 import { ProjectDrive } from "@/components/connectors/projects-drive";
 import { DriveBrowser, DrivePage, type DriveScope } from "@/components/plugins/drive";
 import {
+  DRIVE_FILE_SORT_FIELDS,
   DRIVE_SORT_FIELDS,
   TRASH_SORT_FIELDS,
-  driveDefaultSort,
-  trashDefaultSort,
 } from "@/components/plugins/drive/types";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { useShowroomTableSort, useShowroomQuery } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
-const fileFields = DRIVE_SORT_FIELDS.filter((field) => field !== "owner");
 export function useShowroomDriveOrder() {
-  const order = useShowroomTableSort("files", fileFields, driveDefaultSort);
-  const trashOrder = useShowroomTableSort("trash", TRASH_SORT_FIELDS, trashDefaultSort);
+  const order = useShowroomTableSort("files", DRIVE_FILE_SORT_FIELDS);
+  const trashOrder = useShowroomTableSort("trash", TRASH_SORT_FIELDS);
   const { query, update } = useShowroomQuery();
   return {
     ...order,
@@ -65,7 +63,7 @@ export function EmbeddedDrivePreview({
 export function DrivePreview() {
   const fileOrder = useShowroomDriveOrder();
   const state = usePluginsPreview();
-  const spacesOrder = useShowroomTableSort("spaces", DRIVE_SORT_FIELDS, driveDefaultSort);
+  const spacesOrder = useShowroomTableSort("spaces", DRIVE_SORT_FIELDS);
   const params = useShowroomParams();
   const base = `/${params.locale}/drive`;
   const [type, id, folder] = params.segments ?? [];

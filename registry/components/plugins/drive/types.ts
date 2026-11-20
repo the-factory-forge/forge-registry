@@ -56,7 +56,8 @@ export interface DrivePageResult<T> {
 }
 export const DRIVE_SORT_FIELDS = ["name", "updatedAt", "size", "owner"] as const;
 export type DriveSort = TableSort<(typeof DRIVE_SORT_FIELDS)[number]>;
-export type DriveFileSortField = Exclude<DriveSort["field"], "owner">;
+export const DRIVE_FILE_SORT_FIELDS = DRIVE_SORT_FIELDS.filter((field) => field !== "owner");
+export type DriveFileSortField = (typeof DRIVE_FILE_SORT_FIELDS)[number];
 export const driveDefaultSort = { field: "name", direction: "asc" } as const;
 export const TRASH_SORT_FIELDS = ["name", "originalPath", "deletedAt", "expiresAt"] as const;
 export type DriveTrashSort = TableSort<(typeof TRASH_SORT_FIELDS)[number]>;

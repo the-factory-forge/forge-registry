@@ -9,7 +9,11 @@ import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
-import { customerDefaultSort, type CustomerSortField } from "@/components/plugins/customers/types";
+import {
+  CUSTOMER_SORT_FIELDS,
+  customerDefaultSort,
+  type CustomerSortField,
+} from "@/components/plugins/customers/types";
 import type {
   CustomerDetailPageProps,
   CustomerNewPageProps,
@@ -85,6 +89,7 @@ function CustomersPageContent({
     sortProps,
     customerDefaultSort,
     (field) => field !== "sync" || !!syncColumn?.sortValue,
+    { key: "customers", fields: CUSTOMER_SORT_FIELDS },
   );
   const optimistic = useOptimisticAction(suppliedCustomers);
   const root = useRef<HTMLElement>(null);

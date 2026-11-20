@@ -3,7 +3,7 @@ import { forwardRef, useCallback, useMemo, useRef } from "react";
 import { z } from "zod";
 
 import type { LinkProps } from "@/components/link";
-import type { TableSort } from "@/components/table-sort";
+import type { TableSortProps } from "@/components/table-sort";
 
 /** Host adapter: published components keep their framework-independent href contract. */
 export const ShowroomLink = forwardRef<HTMLAnchorElement, LinkProps>(function ShowroomLink(
@@ -50,11 +50,7 @@ export function useShowroomQuery() {
   return { query, update };
 }
 
-export function useShowroomTableSort<Field extends string>(
-  key: string,
-  fields: readonly Field[],
-  defaultSort?: TableSort<Field>,
-) {
+export function useShowroomTableSort<Field extends string>(key: string, fields: readonly Field[]) {
   const { query, update } = useShowroomQuery();
   const raw = query[key + "Sort"];
   const sort = useMemo(() => {
@@ -62,14 +58,14 @@ export function useShowroomTableSort<Field extends string>(
     const result = z.tuple([z.enum(fields), z.enum(["asc", "desc"])]).safeParse(raw.split("."));
     if (result.success) return { field: result.data[0], direction: result.data[1] };
   }, [raw, fields]);
-  const onSortChange = (next?: TableSort<Field>) => {
-    const isDefault =
-      next?.field === defaultSort?.field && next?.direction === defaultSort?.direction;
-    update({
-      [key + "Sort"]: next && !isDefault ? next.field + "." + next.direction : undefined,
-      [key + "Page"]: undefined,
-    });
-  };
+  const onSortChange: NonNullable<TableSortProps<Field>["onSortChange"]> = (next, source) =>
+    update(
+      {
+        [key + "Sort"]: next.field + "." + next.direction,
+        ...(source === "restore" ? {} : { [key + "Page"]: undefined }),
+      },
+      source === "restore",
+    );
   return { sort, onSortChange };
 }
 

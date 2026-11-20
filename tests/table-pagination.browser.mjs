@@ -5,10 +5,11 @@ import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
-void test("clearing a header restores UUID order when the table has no default column", async (t) => {
+void test("a table starts in UUID order and remembers the last column direction", async (t) => {
   const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
   t.after(() => browser.close());
-  const page = await browser.newPage();
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1#posts`);
   const posts = page.getByRole("region", { name: "Blog posts", exact: true });
   const title = posts.getByRole("button", { name: "Title", exact: true });
@@ -25,21 +26,34 @@ void test("clearing a header restores UUID order when the table has no default c
   assert.equal(await active.getAttribute("aria-sort"), "descending");
   await page.reload();
   await title.press("Enter");
-  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
-  assert.equal(await active.count(), 0);
-  const cleared = new URL(page.url());
-  assert(!cleared.searchParams.has("sort"));
-  assert(!cleared.searchParams.has("direction"));
-  assert.equal(cleared.searchParams.get("cursor"), "1");
-  assert.equal(cleared.hash, "#posts");
+  await first.getByText("A fresh perspective", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "ascending");
+  const selected = new URL(page.url());
+  assert.equal(selected.searchParams.get("sort"), "title");
+  assert.equal(selected.searchParams.get("direction"), "asc");
+  assert.equal(selected.searchParams.get("cursor"), "1");
+  assert.equal(selected.hash, "#posts");
   await page.goBack();
   await first.getByText("Working together", { exact: true }).waitFor();
   await page.goForward();
-  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
+  await first.getByText("A fresh perspective", { exact: true }).waitFor();
+  await page.goBack();
+  await page.goBack();
+  await page.goBack();
+  await first.getByText("An idea for tomorrow", { exact: true }).waitFor();
   assert.equal(await active.count(), 0);
+  const reopened = await context.newPage();
+  await reopened.goto(`${baseURL}/table-search`);
+  await reopened.goto(`${baseURL}/table-pagination?postPage=2&cursor=1#posts`);
+  await reopened.waitForURL((url) => url.searchParams.get("direction") === "asc");
+  assert.equal(new URL(reopened.url()).searchParams.get("postPage"), "2");
+  assert.equal(new URL(reopened.url()).hash, "#posts");
+  await reopened.goBack();
+  assert.equal(new URL(reopened.url()).pathname, "/table-search");
+  await reopened.close();
   await page.goto(`${baseURL}/table-pagination?sort=title&direction=sideways`);
-  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
-  assert.equal(await active.count(), 0);
+  await first.getByText("A fresh perspective", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "ascending");
 });
 
 void test("combined table demo supports discovery, search, pagination and stable request states", async (t) => {

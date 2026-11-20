@@ -53,6 +53,46 @@ async function selectTwo(page) {
   await page.getByRole("button", { name: "Delete selected items (2)", exact: true }).click();
 }
 
+void test("the standalone menu table restores its order after reload and ignores invalid preferences", async (t) => {
+  const page = await fixture(t);
+  const name = page.getByRole("button", { name: "Name", exact: true });
+  await name.click();
+  await name.click();
+  await page.reload();
+  await page.locator('th[aria-sort="descending"]').getByRole("button", { name: "Name" }).waitFor();
+  await handle(page, "A Third").waitFor();
+  assert.deepEqual(await rows(page), ["A Third", "A Second", "A First"]);
+
+  for (const raw of [
+    "{",
+    '{"field":"removed","direction":"desc"}',
+    '{"field":"name","direction":"sideways"}',
+  ]) {
+    await page.evaluate((value) => localStorage.setItem("forge:table-sort:menuItems", value), raw);
+    await page.reload();
+    await handle(page, "A First").waitFor();
+    assert.equal(await page.locator("th[aria-sort]").innerText(), "Display order");
+    assert.deepEqual(await rows(page), ["A First", "A Second", "A Third"]);
+  }
+});
+
+void test("a menu table can still change direction when localStorage is denied", async (t) => {
+  const page = await fixture(t);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new DOMException("Storage denied", "SecurityError");
+      },
+    });
+  });
+  await page.reload();
+  const name = page.getByRole("button", { name: "Name", exact: true });
+  await name.click();
+  await name.click();
+  await handle(page, "A Third").waitFor();
+  assert.deepEqual(await rows(page), ["A Third", "A Second", "A First"]);
+});
+
 for (const outcome of ["success", "failure"]) {
   void test(`an old reorder ${outcome} cannot replace, reload or notify the new client`, async (t) => {
     const page = await fixture(t);

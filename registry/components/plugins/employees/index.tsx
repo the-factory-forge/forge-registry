@@ -108,8 +108,15 @@ function EmployeesPageContent({
   useLoadingActivity(loading);
   const [localSearch, setLocalSearch] = useState("");
   const search = controlledSearch ?? localSearch;
-  const order = useTableSort<EmployeeSort["field"]>(sortProps, employeeDefaultSort);
   const complete = total <= suppliedEmployees.length;
+  const order = useTableSort<EmployeeSort["field"]>(
+    sortProps,
+    employeeDefaultSort,
+    undefined,
+    complete || sortProps.onSortChange
+      ? { key: "employees", fields: EMPLOYEE_SORT_FIELDS }
+      : undefined,
+  );
   const scope = JSON.stringify([currentUserId, currentUserRole, offset, search, order.value]);
   const optimistic = useOptimisticAction(suppliedEmployees, scope);
   const employees = optimistic.value;

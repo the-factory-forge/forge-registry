@@ -16,6 +16,7 @@ import {
 } from "@/components/plugins/supports/labels";
 import {
   SUPPORT_DEFAULT_SORT,
+  SUPPORT_SORT_FIELDS,
   SUPPORT_PAGE_SIZE,
   supportSortSchema,
   type SupportColumnSort,
@@ -37,7 +38,7 @@ import {
 } from "@/components/plugins/supports/ui";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
-import { TableSortHeader } from "@/components/table-sort";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import {
   tablePanelClass,
@@ -53,7 +54,7 @@ import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export type * from "./types";
 export type { SupportsLabels } from "./labels";
 export { supportsLabels } from "./labels";
-export { SUPPORT_DEFAULT_SORT } from "./schema";
+export { SUPPORT_DEFAULT_SORT, SUPPORT_SORT_FIELDS } from "./schema";
 interface Appearance {
   className?: string;
   labels?: Partial<SupportsLabels>;
@@ -135,7 +136,8 @@ export interface SupportsPageProps extends Appearance {
   search: string;
   page: number;
   sort?: SupportSort;
-  onSortChange?: (sort: SupportColumnSort) => void;
+  onSortChange?: TableSortProps<SupportColumnSort["field"]>["onSortChange"];
+  sortStorageKey?: string;
   onSearchChange: (search: string) => void;
   onPageChange: (page: number) => void;
   getTicketHref: (ticket: SupportTicket) => string;
@@ -151,8 +153,9 @@ function SupportsContent({
   total,
   search,
   page,
-  sort = SUPPORT_DEFAULT_SORT,
+  sort,
   onSortChange,
+  sortStorageKey,
   onSearchChange,
   onPageChange,
   getTicketHref,
@@ -168,9 +171,18 @@ function SupportsContent({
 }: SupportsPageProps) {
   const labels = { ...supportsLabels, ...overrides };
   const toast = useActionToast();
-  const activeSort = supportSortSchema.safeParse(sort).data ?? SUPPORT_DEFAULT_SORT;
-  const changeSort =
-    onSortChange && ((next?: SupportColumnSort) => onSortChange(next ?? SUPPORT_DEFAULT_SORT));
+  const order = useTableSort<SupportColumnSort["field"]>(
+    {
+      sort: supportSortSchema.safeParse(sort).data,
+      onSortChange,
+      sortStorageKey,
+      sortLabels: labels,
+    },
+    SUPPORT_DEFAULT_SORT,
+    undefined,
+    onSortChange ? { key: "supports", fields: SUPPORT_SORT_FIELDS } : undefined,
+  );
+  const activeSort = order.value ?? SUPPORT_DEFAULT_SORT;
   const { field, direction } = activeSort;
   const scope = useMemo(
     () => ({ client, search, page, field, direction }),
@@ -213,10 +225,8 @@ function SupportsContent({
                     key={column}
                     field={column}
                     label={label}
-                    value={activeSort}
-                    defaultSort={SUPPORT_DEFAULT_SORT}
-                    onValueChange={changeSort}
-                    labels={labels}
+                    {...order}
+                    onValueChange={onSortChange ? order.onValueChange : undefined}
                   />
                 ))}
                 <th scope="col" className={tableActionHeaderClass}>

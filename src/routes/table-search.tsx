@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
-import { TableSortHeader } from "@/components/table-sort";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableCellClass,
@@ -18,10 +18,12 @@ const fields = ["name", "details"] as const;
 const byName = { field: "name", direction: "asc" } as const;
 function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
   const [search, setSearch] = useState("");
-  const { sort, onSortChange } = useShowroomTableSort(title.toLowerCase(), fields, byName);
+  const key = "table-search-" + title.toLowerCase();
+  const sortProps = useShowroomTableSort(title.toLowerCase(), fields);
+  const order = useTableSort(sortProps, byName, undefined, { key, fields });
   const filteredRows = sortTableRows(
     rows.filter((row) => matchesTableSearch(search, ...row)),
-    sort ?? byName,
+    order.value ?? byName,
     (row, field) => row[field === "name" ? 0 : 1],
     (row) => row[0],
   );
@@ -52,9 +54,7 @@ function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
                 <TableSortHeader
                   key={field}
                   field={field}
-                  value={sort}
-                  defaultSort={byName}
-                  onValueChange={onSortChange}
+                  {...order}
                   label={field === "name" ? "Name" : "Details"}
                 />
               ))}

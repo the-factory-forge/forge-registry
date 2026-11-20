@@ -16,7 +16,11 @@ import {
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { projectLabels } from "@/components/plugins/projects/labels";
 import { ProjectForm } from "@/components/plugins/projects/project-form";
-import { projectDefaultSort, type ProjectSortField } from "@/components/plugins/projects/types";
+import {
+  PROJECT_SORT_FIELDS,
+  projectDefaultSort,
+  type ProjectSortField,
+} from "@/components/plugins/projects/types";
 import type {
   ProjectDetailPageProps,
   ProjectStatus,
@@ -88,6 +92,10 @@ function ProjectsListContent({
     sortProps,
     projectDefaultSort,
     (field) => field !== "owner" || customerId === undefined,
+    {
+      key: customerId === undefined ? "projects" : "customer-projects",
+      fields: PROJECT_SORT_FIELDS,
+    },
   );
   const optimistic = useOptimisticAction(suppliedProjects);
   const projects = optimistic.value;

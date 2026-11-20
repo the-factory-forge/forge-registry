@@ -10,8 +10,9 @@ import { useTableSort, type TableSort, type TableSortProps } from "@/components/
 export function useDriveTableOrder<Field extends string>(
   props: TableSortProps<Field>,
   defaultSort: TableSort<Field>,
+  preference: { key: string; fields: readonly Field[] },
 ) {
-  const order = useTableSort(props, defaultSort);
+  const order = useTableSort(props, defaultSort, undefined, preference);
   const { field, direction } = order.value ?? defaultSort;
   const sort = useMemo(() => ({ field, direction }), [field, direction]);
   const [page, setPage] = useState<{ sort: typeof sort; cursors: string[] }>({ sort, cursors: [] });

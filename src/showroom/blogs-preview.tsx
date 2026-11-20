@@ -22,7 +22,7 @@ import {
   BlogsPage,
   blogCapabilities,
 } from "@/components/plugins/blogs";
-import { BLOG_SORT_FIELDS, blogDefaultSort } from "@/components/plugins/blogs/types";
+import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
@@ -251,7 +251,7 @@ export function BlogsAdminPreview() {
     (currentArticle.id !== lastArticle?.id || currentArticle.version !== lastArticle.version)
   )
     setLastArticle(currentArticle);
-  const order = useShowroomTableSort("blog", BLOG_SORT_FIELDS, blogDefaultSort);
+  const order = useShowroomTableSort("blog", BLOG_SORT_FIELDS);
   const { search, setSearch, page, setPage } = useShowroomTablePage("blog");
   const root = `/${routeLocale}/admin/blogs`,
     actor = state.readOnly ? null : { id: state.editor, admin: state.admin },

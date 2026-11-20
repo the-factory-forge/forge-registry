@@ -5,7 +5,6 @@ import { NativeSelect } from "@/components/native-select";
 import { EmployeesPage, type Employee } from "@/components/plugins/employees";
 import {
   EMPLOYEE_SORT_FIELDS,
-  employeeDefaultSort,
   sortEmployees,
   EMPLOYEE_PAGE_SIZE,
 } from "@/components/plugins/employees/schema";
@@ -40,7 +39,7 @@ export function EmployeesPreview() {
   const [fail, setFail] = useState(false);
   const [failDelivery, setFailDelivery] = useState(false);
   const [role, setRole] = useState("admin");
-  const order = useShowroomTableSort("employees", EMPLOYEE_SORT_FIELDS, employeeDefaultSort);
+  const order = useShowroomTableSort("employees", EMPLOYEE_SORT_FIELDS);
   const { page, setPage, search, setSearch } = useShowroomTablePage("employees");
   const offset = (page - 1) * EMPLOYEE_PAGE_SIZE;
   const filteredEmployees = employees.filter((employee) =>
