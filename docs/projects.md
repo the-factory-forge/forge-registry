@@ -201,3 +201,7 @@ Pages default to 50 candidates, cap at 100 and authorize persisted ownership and
 each returned project. An empty authorized page can still have a next cursor.
 Compose `TablePagination` without an unfiltered total and retain URL-owned search,
 owner and page state. See the [bounded directory contract](./persistence.md#bounded-customer-and-project-directories).
+
+## List sorting
+
+The list sorts project names, displayed owner and assignee names, and status. The customer-scoped list omits the common owner column. Bind `sort` and `onSortChange` to the host URL and supply all matching projects. Clearing a sort restores ascending project name.

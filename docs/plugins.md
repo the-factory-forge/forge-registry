@@ -284,6 +284,29 @@ when the sort changes. The [table example](https://registry.the-corner.swiss/tab
 uses UUID order. The [Support queue](./supports.md#host-routes-and-navigation)
 defaults to the last update.
 
+| Record table                      | Default order                                      |
+| --------------------------------- | -------------------------------------------------- |
+| Customers, Projects and Employees | Displayed name, ascending                          |
+| Blog admin and Support            | Last update, newest first                          |
+| Drive spaces and files            | Name, ascending, with folders first within a space |
+| Drive trash                       | Deletion date, newest first                        |
+| Menu items                        | Saved display order                                |
+| Account agent keys                | UUID, ascending, with no active header             |
+| Public pricing                    | Service name, ascending                            |
+
+Pass `sort` and `onSortChange` to bind a list to host URL state. Translate arrow
+actions through `sortLabels`. Complete collections also work with local state.
+For server-paged Blogs and Employees, pass the same selection to the list request
+and reset the page when it changes. A host supplying only one page must wire
+`onSortChange` to enable its sort controls. For Customers and Projects, pass the
+complete matching collection, including all authorized cursor pages if using
+the storage companion. Custom customer columns can supply a `syncColumn.sortValue`.
+For standalone tables, `sortTableRows` compares text and numbers, keeps missing
+values last and breaks ties by ascending ID.
+
+Pricing accepts `priceAmount` and `durationMinutes` for numeric comparisons across formatted prices and time units. When those values are absent, the table uses natural text ordering. Supply a stable `id`
+on each price row. Existing rows use their code or service name for ties.
+
 ## Table selection and bulk deletion
 
 Auth keys, Customers, Projects (including embedded lists), Employees, Blogs, Menu items,

@@ -9,12 +9,20 @@ import {
   CustomerNewPage,
   type CustomerFormValues,
 } from "@/components/plugins/customers";
+import { CUSTOMER_SORT_FIELDS, customerDefaultSort } from "@/components/plugins/customers/types";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { CustomerProjectsPreview } from "@/showroom/projects-preview";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
+const customerFields = CUSTOMER_SORT_FIELDS.filter((field) => field !== "sync");
 export function CustomersPreview() {
   const state = usePluginsPreview();
+  const order = useShowroomTableSort(
+    "customers",
+    state.showIntegration ? CUSTOMER_SORT_FIELDS : customerFields,
+    customerDefaultSort,
+  );
   const params = useShowroomParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -110,6 +118,7 @@ export function CustomersPreview() {
   const query = search.trim().toLowerCase();
   return (
     <CustomersPage
+      {...order}
       className="showroom-page"
       customers={customers.filter((customer) =>
         [customer.name, customer.companyName, customer.email].some((value) =>
@@ -138,7 +147,9 @@ export function CustomersPreview() {
           : undefined
       }
       syncColumn={
-        state.showIntegration ? { label: "Host sync", render: () => "Not connected" } : undefined
+        state.showIntegration
+          ? { label: "Host sync", render: () => "Not connected", sortValue: () => "Not connected" }
+          : undefined
       }
       toolbar={
         state.showIntegration ? (

@@ -16,6 +16,7 @@ import {
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { projectLabels } from "@/components/plugins/projects/labels";
 import { ProjectForm } from "@/components/plugins/projects/project-form";
+import { projectDefaultSort, type ProjectSortField } from "@/components/plugins/projects/types";
 import type {
   ProjectDetailPageProps,
   ProjectStatus,
@@ -32,14 +33,15 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
@@ -78,9 +80,15 @@ function ProjectsListContent({
   labels: overrides,
   linkComponent: ProjectLink = Link,
   className,
+  ...sortProps
 }: ProjectsListProps) {
   useLoadingActivity(!!loading);
   const labels = { ...projectLabels, ...overrides };
+  const order = useTableSort<ProjectSortField>(
+    sortProps,
+    projectDefaultSort,
+    (field) => field !== "owner" || customerId === undefined,
+  );
   const optimistic = useOptimisticAction(suppliedProjects);
   const projects = optimistic.value;
   const error = loadError || (optimistic.error ? labels.actionError : undefined);
@@ -105,6 +113,25 @@ function ProjectsListContent({
     loading || !!loadError || optimistic.pending || deletion.pending || selection.pending;
   const owners = new Map(customers.map((customer) => [customer.id, customer]));
   const assigned = new Map(assignees.map((assignee) => [assignee.id, assignee]));
+  const sortedProjects = sortTableRows(
+    deletion.items,
+    order.value ?? order.defaultSort,
+    (project, field) => {
+      switch (field) {
+        case "name":
+          return project.name;
+        case "owner": {
+          const owner = owners.get(project.ownerId);
+          return owner && customerDisplayName(owner);
+        }
+        case "assignee":
+          return project.assigneeId && assigned.get(project.assigneeId)?.name;
+        case "status":
+          return labels[project.status];
+      }
+    },
+    (project) => project.id,
+  );
   return (
     <section
       ref={root}
@@ -159,50 +186,30 @@ function ProjectsListContent({
                   />
                 </th>
               )}
-              {[
-                labels.name,
-                ...(customerId === undefined ? [labels.owner] : []),
-                labels.assignee,
-                labels.status,
-                labels.actions,
-              ].map((label, index) => (
-                <th
-                  key={index}
-                  scope="col"
-                  className={
-                    index === (customerId === undefined ? 4 : 3)
-                      ? tableActionHeaderClass
-                      : tableHeaderClass
-                  }
-                >
-                  <div
-                    className={
-                      index === (customerId === undefined ? 4 : 3)
-                        ? "flex items-center justify-end gap-2"
-                        : undefined
-                    }
-                  >
-                    {label}
-                    {index === (customerId === undefined ? 4 : 3) && (
-                      <>
-                        {onDelete && (
-                          <TableBulkDelete
-                            selection={selection}
-                            getName={(project) => project.name}
-                            onDelete={(project) => onDelete!(project.id)}
-                            labels={labels}
-                            disabled={selectionDisabled}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                </th>
-              ))}
+              <TableSortHeader {...order} field="name" label={labels.name} />
+              {customerId === undefined && (
+                <TableSortHeader {...order} field="owner" label={labels.owner} />
+              )}
+              <TableSortHeader {...order} field="assignee" label={labels.assignee} />
+              <TableSortHeader {...order} field="status" label={labels.status} />
+              <th scope="col" className={tableActionHeaderClass}>
+                <div className="flex items-center justify-end gap-2">
+                  {labels.actions}
+                  {onDelete && (
+                    <TableBulkDelete
+                      selection={selection}
+                      getName={(project) => project.name}
+                      onDelete={(project) => onDelete!(project.id)}
+                      labels={labels}
+                      disabled={selectionDisabled}
+                    />
+                  )}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {deletion.items.map((project) => {
+            {sortedProjects.map((project) => {
               const owner = owners.get(project.ownerId);
               const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
               return (

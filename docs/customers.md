@@ -176,3 +176,7 @@ When creation's response is lost or invitation delivery fails, find the saved
 customer by email and use `resendInvitation`. Manual recovery is the default;
 guaranteed eventual delivery needs a host-owned outbox. Profile-only edits preserve
 pending invitations because they do not invoke identity mutation hooks.
+
+## Directory sorting
+
+The Customer heading compares the displayed company or contact name. Email and Status also support sorting. A host displaying a synchronization column can supply `syncColumn.sortValue(customer)` for its rendered value. Bind `sort` and `onSortChange` to the host URL and supply the complete matching directory.

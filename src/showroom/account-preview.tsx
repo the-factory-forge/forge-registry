@@ -12,6 +12,8 @@ import {
   ChangePasswordForm,
   type AgentKey,
 } from "@/components/plugins/auth";
+import { AGENT_KEY_SORT_FIELDS } from "@/components/plugins/auth/agent-keys";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { ShowroomLink, useShowroomParams } from "@/showroom/routing";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -42,6 +44,7 @@ const initialSessions = [true, false].map((current) => ({
   expiresAt: "2027-01-01T12:00:00Z",
 }));
 export function AccountPreview() {
+  const order = useShowroomTableSort("keys", AGENT_KEY_SORT_FIELDS);
   const { locale } = useShowroomParams();
   const search = useSearch({ from: "/$locale/account" });
   const navigate = useNavigate({ from: "/$locale/account" });
@@ -255,6 +258,7 @@ export function AccountPreview() {
                 passwordForm={<ChangePasswordForm onChangePassword={perform} />}
                 agentKeys={
                   <AgentKeys
+                    {...order}
                     locale={locale}
                     keys={unavailable ? undefined : keys}
                     error={unavailable}

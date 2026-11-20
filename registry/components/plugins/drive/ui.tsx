@@ -2,16 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
-import {
-  XIcon,
-  ArrowDownIcon,
-  FolderIcon,
-  FolderOpenIcon,
-  LoaderCircleIcon,
-  ArrowUpDownIcon,
-  RefreshCwIcon,
-  ArrowUpIcon,
-} from "lucide-react";
+import { XIcon, FolderIcon, FolderOpenIcon, LoaderCircleIcon, RefreshCwIcon } from "lucide-react";
 import {
   createContext,
   useContext,
@@ -37,7 +28,6 @@ import type {
   DriveClient,
   DriveEntry,
   DriveScope,
-  DriveSort,
   DriveSpace,
 } from "@/components/plugins/drive/types";
 import { useDriveDeletion } from "@/components/plugins/drive/use-deletion";
@@ -45,7 +35,6 @@ import type { useUploads } from "@/components/plugins/drive/use-uploads";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
-import { tableHeaderClass } from "@/components/utils/table-styles";
 import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
@@ -96,39 +85,6 @@ export function DriveFolderIcon({
         )}
       />
     </span>
-  );
-}
-
-export function SortHeading({
-  field,
-  label,
-  sort,
-  onSort,
-}: {
-  field: DriveSort["field"];
-  label: string;
-  sort: DriveSort;
-  onSort: (sort: DriveSort) => void;
-}) {
-  const active = sort.field === field;
-  const Icon = active ? (sort.direction === "asc" ? ArrowUpIcon : ArrowDownIcon) : ArrowUpDownIcon;
-  return (
-    <th
-      scope="col"
-      aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}
-      className={tableHeaderClass}
-    >
-      <button
-        type="button"
-        className={cn(buttonClass, "-ml-3 whitespace-nowrap")}
-        onClick={() =>
-          onSort({ field, direction: active && sort.direction === "asc" ? "desc" : "asc" })
-        }
-      >
-        {label}
-        <Icon aria-hidden="true" />
-      </button>
-    </th>
   );
 }
 

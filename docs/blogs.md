@@ -694,3 +694,7 @@ reviewed process; source installation does not run a migration or deployment.
 `tests/blogs-storage/history.integration.mjs` uses a disposable schema and bucket
 for retention, confirmation, authorization, rollback, image lifecycle, migration
 and fresh-process persistence. Run it with the companion's storage suite.
+
+## Admin table ordering
+
+Bind `BlogsPage.sort` and `onSortChange` to the host URL and pass the sort to `client.list`. The storage companion orders authorized results before taking the page. Title and category names use the requested locale. Clearing the selection restores the most recently updated articles first.

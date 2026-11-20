@@ -22,10 +22,13 @@ import {
   BlogsPage,
   blogCapabilities,
 } from "@/components/plugins/blogs";
-import { articleListItem } from "@/components/plugins/blogs/utils";
+import { BLOG_SORT_FIELDS, blogDefaultSort } from "@/components/plugins/blogs/types";
+import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
+import { useShowroomTableSort } from "@/showroom/routing";
+import { useShowroomTablePage } from "@/showroom/routing";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -248,8 +251,8 @@ export function BlogsAdminPreview() {
     (currentArticle.id !== lastArticle?.id || currentArticle.version !== lastArticle.version)
   )
     setLastArticle(currentArticle);
-  const [search, setSearch] = useState(""),
-    [page, setPage] = useState(1);
+  const order = useShowroomTableSort("blog", BLOG_SORT_FIELDS, blogDefaultSort);
+  const { search, setSearch, page, setPage } = useShowroomTablePage("blog");
   const root = `/${routeLocale}/admin/blogs`,
     actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
     capabilities = blogCapabilities(actor);
@@ -339,19 +342,17 @@ export function BlogsAdminPreview() {
           .map((a) => articleListItem(a, locale, state.mock.categories()));
   return (
     <BlogsPage
+      {...order}
       {...common}
       capabilitiesForArticle={(post) => blogCapabilities(actor, post.author?.id)}
       data={{
-        items: items.slice((page - 1) * 6, page * 6),
+        items: sortBlogItems(items, order.sort, locale).slice((page - 1) * 6, page * 6),
         total: items.length,
         page,
         pageSize: 6,
       }}
       search={search}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
+      onSearchChange={setSearch}
       onPageChange={setPage}
       onSetPublished={async (id, locale, published, requestId) => {
         const article = state.mock.get(id);

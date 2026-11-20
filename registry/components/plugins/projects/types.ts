@@ -3,6 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { LinkProps } from "@/components/link";
 import type { Customer } from "@/components/plugins/customers";
 import type { ProjectsLabels } from "@/components/plugins/projects/labels";
+import type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
 
 export type ProjectStatus = "requested" | "prospect" | "under-construction" | "production";
 export type ProjectSection = "details" | "drive";
@@ -36,7 +37,15 @@ export interface ProjectsAppearanceProps {
   linkComponent?: ComponentType<LinkProps>;
 }
 
-export interface ProjectsListProps extends ProjectsAppearanceProps {
+export const PROJECT_SORT_FIELDS = ["name", "owner", "assignee", "status"] as const;
+export type ProjectSortField = (typeof PROJECT_SORT_FIELDS)[number];
+export const projectDefaultSort = {
+  field: "name",
+  direction: "asc",
+} as const satisfies TableSort<ProjectSortField>;
+
+export interface ProjectsListProps
+  extends TableSortProps<ProjectSortField>, ProjectsAppearanceProps {
   projects: readonly Project[];
   customers: readonly Customer[];
   assignees?: readonly ProjectAssignee[];

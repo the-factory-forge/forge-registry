@@ -20,6 +20,7 @@ import {
   validateCategory,
 } from "@/components/plugins/blogs/model";
 import { canAccessBlog } from "@/components/plugins/blogs/permissions";
+import { sortBlogItems } from "@/components/plugins/blogs/utils";
 import {
   articleListItem,
   assertBlog,
@@ -455,9 +456,11 @@ export function createBlogsMock() {
         const page = q.page ?? 1,
           pageSize = q.pageSize ?? 12;
         return {
-          items: filtered
-            .slice((page - 1) * pageSize, page * pageSize)
-            .map((a) => articleListItem(a, q.locale, categories)),
+          items: sortBlogItems(
+            filtered.map((a) => articleListItem(a, q.locale, categories)),
+            q.sort,
+            q.locale,
+          ).slice((page - 1) * pageSize, page * pageSize),
           total: filtered.length,
           page,
           pageSize,

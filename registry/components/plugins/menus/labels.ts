@@ -77,6 +77,7 @@ export interface MenusLabels extends TableSelectionLabels {
   reorder?: string;
   reorderHelp?: string;
   reorderSearchHelp?: string;
+  reorderSortHelp?: string;
   visible: string;
   unavailable: string;
   photo: string;
@@ -182,6 +183,7 @@ export const menusLabels = {
   reorder: "Reorder item",
   reorderHelp: "Drag a handle to reorder items, or focus it and use the Up and Down arrow keys.",
   reorderSearchHelp: "Clear the search to reorder items.",
+  reorderSortHelp: "Restore display order to move items.",
   visible: "Visible on menu",
   unavailable: "Sold out",
   photo: "Photo",

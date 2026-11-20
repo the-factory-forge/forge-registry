@@ -299,3 +299,32 @@ await test("pending accounts receive invitations rather than verification emails
     false,
   );
 });
+
+await test("derived employee fields sort the authorized directory before taking a page", async () => {
+  const users = Array.from({ length: 27 }, (_, i) => ({
+    id: String(i).padStart(2, "0"),
+    name: String(i),
+    websitePublished: i > 24,
+  }));
+  const { service } = fixture({
+    directory: {
+      contains: async () => true,
+      list: async (offset, limit) => ({
+        users: users.slice(offset, offset + limit),
+        total: users.length,
+      }),
+    },
+  });
+  const sort = { field: "website", direction: "desc" };
+  const first = await service.list({ sort });
+  const last = await service.list({ offset: 25, sort });
+  assert.deepEqual(
+    first.users.slice(0, 2).map((user) => user.id),
+    ["25", "26"],
+  );
+  assert.deepEqual(
+    last.users.map((user) => user.id),
+    ["23", "24"],
+  );
+  assert.throws(() => service.list({ sort: { field: "unknown", direction: "desc" } }));
+});

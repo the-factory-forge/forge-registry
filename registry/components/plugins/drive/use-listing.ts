@@ -5,6 +5,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import type { DriveClient, DriveFolderResult, DriveScope } from "@/components/plugins/drive/types";
 import { errorCode } from "@/components/plugins/drive/utils";
+import { useTableSort, type TableSort, type TableSortProps } from "@/components/table-sort";
+
+export function useDriveTableOrder<Field extends string>(
+  props: TableSortProps<Field>,
+  defaultSort: TableSort<Field>,
+) {
+  const order = useTableSort(props, defaultSort);
+  const { field, direction } = order.value ?? defaultSort;
+  const sort = useMemo(() => ({ field, direction }), [field, direction]);
+  const [page, setPage] = useState<{ sort: typeof sort; cursors: string[] }>({ sort, cursors: [] });
+  if (page.sort !== sort) setPage({ sort, cursors: [] });
+  const cursors = page.sort === sort ? page.cursors : [];
+  return {
+    order,
+    sort,
+    cursors,
+    cursor: cursors.at(-1),
+    setCursors: (next: string[]) => setPage({ sort, cursors: next }),
+  };
+}
 
 /** Private to Drive: callers memoize the read and keep refresh separate from mutation scope. */
 export function useDriveListing<T>(

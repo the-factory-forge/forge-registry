@@ -1,7 +1,9 @@
-import { Link, useBlocker, useParams } from "@tanstack/react-router";
-import { forwardRef, useCallback, useRef } from "react";
+import { Link, useBlocker, useLocation, useNavigate, useParams } from "@tanstack/react-router";
+import { forwardRef, useCallback, useMemo, useRef } from "react";
+import { z } from "zod";
 
 import type { LinkProps } from "@/components/link";
+import type { TableSort } from "@/components/table-sort";
 
 /** Host adapter: published components keep their framework-independent href contract. */
 export const ShowroomLink = forwardRef<HTMLAnchorElement, LinkProps>(function ShowroomLink(
@@ -32,6 +34,64 @@ export const ShowroomLink = forwardRef<HTMLAnchorElement, LinkProps>(function Sh
 export function useShowroomParams() {
   const { locale = "en", _splat } = useParams({ strict: false });
   return { locale, segments: _splat?.split("/").filter(Boolean) ?? [] };
+}
+
+export function useShowroomQuery() {
+  const query: Record<string, unknown> = useLocation().search;
+  const navigate = useNavigate();
+  const update = (values: Record<string, string | number | boolean | undefined>, replace = false) =>
+    void navigate({
+      to: ".",
+      search: (previous) => ({ ...previous, ...values }),
+      hash: true,
+      resetScroll: false,
+      replace,
+    });
+  return { query, update };
+}
+
+export function useShowroomTableSort<Field extends string>(
+  key: string,
+  fields: readonly Field[],
+  defaultSort?: TableSort<Field>,
+) {
+  const { query, update } = useShowroomQuery();
+  const raw = query[key + "Sort"];
+  const sort = useMemo(() => {
+    if (typeof raw !== "string") return;
+    const result = z.tuple([z.enum(fields), z.enum(["asc", "desc"])]).safeParse(raw.split("."));
+    if (result.success) return { field: result.data[0], direction: result.data[1] };
+  }, [raw, fields]);
+  const onSortChange = (next?: TableSort<Field>) => {
+    const isDefault =
+      next?.field === defaultSort?.field && next?.direction === defaultSort?.direction;
+    update({
+      [key + "Sort"]: next && !isDefault ? next.field + "." + next.direction : undefined,
+      [key + "Page"]: undefined,
+    });
+  };
+  return { sort, onSortChange };
+}
+
+export function useShowroomTablePage(key: string) {
+  const { query, update } = useShowroomQuery();
+  const page = z.coerce
+    .number()
+    .int()
+    .positive()
+    .catch(1)
+    .parse(query[key + "Page"]);
+  const search = z
+    .string()
+    .catch("")
+    .parse(query[key + "Search"]);
+  return {
+    page,
+    search,
+    setPage: (next: number) => update({ [key + "Page"]: next > 1 ? next : undefined }),
+    setSearch: (next: string) =>
+      update({ [key + "Search"]: next || undefined, [key + "Page"]: undefined }, true),
+  };
 }
 
 export function useShowroomEditorGuard() {

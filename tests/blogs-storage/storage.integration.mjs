@@ -152,7 +152,21 @@ await test("private blog persistence, publication boundaries, retries, and recov
       "FORBIDDEN",
     );
     await rejected(storage.client("restricted").get(second.id), "FORBIDDEN");
-    const page = await storage.client("restricted").list({ locale: "en" });
+    const sort = { field: "title", direction: "asc" };
+    const first = await client.list({ locale: "en", pageSize: 1, search: "a", sort });
+    const next = await client.list({ locale: "en", pageSize: 1, page: 2, search: "a", sort });
+    assert.deepEqual([first.items[0].id, next.items[0].id], [article.id, second.id]);
+    const reverse = await client.list({
+      locale: "en",
+      pageSize: 1,
+      sort: { ...sort, direction: "desc" },
+    });
+    assert.equal(reverse.items[0].id, second.id);
+    await rejected(
+      client.list({ locale: "en", sort: { field: "other", direction: "asc" } }),
+      "INVALID",
+    );
+    const page = await storage.client("restricted").list({ locale: "en", sort });
     assert.equal(page.total, 1);
     assert.equal(page.items[0].id, article.id);
     assert.equal((await storage.listPublished({ locale: "en" })).total, 0);

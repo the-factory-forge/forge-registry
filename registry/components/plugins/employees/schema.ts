@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { sortTableRows } from "@/components/utils/table-sort-state";
+import type { TableSort } from "@/components/utils/table-sort-state";
+
 export const employeeRoleSchema = z.enum(["user", "admin"]);
 
 export const createEmployeeSchema = z.object({
@@ -8,7 +11,13 @@ export const createEmployeeSchema = z.object({
   role: employeeRoleSchema.default("user"),
 });
 
+export const EMPLOYEE_SORT_FIELDS = ["name", "email", "role", "status", "website"] as const;
+export type EmployeeSort = TableSort<(typeof EMPLOYEE_SORT_FIELDS)[number]>;
+export const employeeDefaultSort = { field: "name", direction: "asc" } as const;
 export const listEmployeesSchema = z.object({
+  sort: z
+    .object({ field: z.enum(EMPLOYEE_SORT_FIELDS), direction: z.enum(["asc", "desc"]) })
+    .optional(),
   offset: z.number().int().nonnegative().default(0),
 });
 
@@ -43,4 +52,28 @@ export type VerificationResult = { status: "sent" | "verified" | "unavailable" }
 export type InvitationResult = { invitationSent: boolean };
 export function isEmployeeAdmin(role: string | null | undefined): boolean {
   return role?.split(",").includes("admin") ?? false;
+}
+
+export function sortEmployees(rows: readonly Employee[], sort: EmployeeSort = employeeDefaultSort) {
+  return sortTableRows(
+    rows,
+    sort,
+    (employee, field) => {
+      switch (field) {
+        case "name":
+          return employee.name;
+        case "email":
+          return employee.email;
+        case "role":
+          return isEmployeeAdmin(employee.role) ? "admin" : "user";
+        case "status":
+          return Number(!!employee.banned);
+        case "website":
+          return employee.websitePublished === undefined
+            ? undefined
+            : Number(employee.websitePublished);
+      }
+    },
+    (employee) => employee.id,
+  );
 }

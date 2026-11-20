@@ -17,8 +17,10 @@ import {
   accountDate,
 } from "@/components/plugins/auth/account-styles";
 import { useTableSelection, type TableDeletionOptions } from "@/components/table-selection";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import { tableActionCellClass, tableActionHeaderClass } from "@/components/utils/table-styles";
 
 export interface AgentKey {
@@ -30,7 +32,9 @@ export interface AgentKey {
   expired: boolean;
   revoked?: boolean;
 }
-export interface AgentKeysProps {
+export const AGENT_KEY_SORT_FIELDS = ["name", "status", "created", "lastUsed", "expires"] as const;
+type AgentKeySortField = (typeof AGENT_KEY_SORT_FIELDS)[number];
+export interface AgentKeysProps extends TableSortProps<AgentKeySortField> {
   keys?: AgentKey[];
   loading?: boolean;
   error?: boolean;
@@ -109,6 +113,7 @@ function AgentKeysContent({
   labels: overrides,
   locale,
   className,
+  ...sortProps
 }: AgentKeysProps) {
   useLoadingActivity(loading);
   const labels = { ...securityLabels, ...overrides };
@@ -119,7 +124,28 @@ function AgentKeysContent({
   const [maxExpiry, setMaxExpiry] = useState("");
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
-  const selection = useTableSelection(keys ?? []);
+  const order = useTableSort(sortProps);
+  const sortedKeys = sortTableRows(
+    keys ?? [],
+    order.value,
+    (key, field) => {
+      switch (field) {
+        case "name":
+          return key.name;
+        case "status":
+          return key.revoked ? labels.revoked : key.expired ? labels.expired : labels.active;
+        case "created":
+          return new Date(key.createdAt).getTime();
+        case "expires":
+          return new Date(key.expiresAt).getTime();
+        case "lastUsed":
+          return key.lastUsedAt && new Date(key.lastUsedAt).getTime();
+      }
+    },
+    (key) => key.id,
+    locale,
+  );
+  const selection = useTableSelection(sortedKeys);
   const selectedKeys = selection.selected;
   const { deletion } = selection;
   const deleting = deletion.items;
@@ -207,14 +233,8 @@ function AgentKeysContent({
                       />
                     </label>
                   </th>
-                  {(["name", "status", "created", "lastUsed", "expires"] as const).map((column) => (
-                    <th
-                      key={column}
-                      scope="col"
-                      className="p-2 text-left font-medium text-muted-foreground"
-                    >
-                      {labels[column]}
-                    </th>
+                  {AGENT_KEY_SORT_FIELDS.map((field) => (
+                    <TableSortHeader key={field} {...order} field={field} label={labels[field]} />
                   ))}
                   <th scope="col" className={cn(tableActionHeaderClass, "w-14")}>
                     <span className="sr-only">{labels.actions}</span>
@@ -243,7 +263,7 @@ function AgentKeysContent({
                 </tr>
               </thead>
               <tbody>
-                {keys.map((key) => (
+                {sortedKeys.map((key) => (
                   <tr key={key.id} className="border-b border-border last:border-0">
                     <td>
                       <label className="inline-flex size-10 items-center justify-center">

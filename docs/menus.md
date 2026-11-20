@@ -453,3 +453,7 @@ Custom Drive adapters need the optional `deleteSpaces()` operation only for
 deleting a category and all its dishes atomically. `createDriveStorage` provides
 it. Older adapters can still preserve dishes; delete-all fails safely with a
 storage error until the adapter supports that operation.
+
+## Sorting menu items
+
+The item table starts in saved display order. Sorting a column affects the current view. Drag and keyboard moves are available in ascending Display order with an empty search. Clearing another column restores that order. Use `MenuItemsPage.sort` and `onSortChange` to bind the view to the host URL. The editor can forward file and trash sorting through `driveOrder`.

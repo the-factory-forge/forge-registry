@@ -35,6 +35,7 @@ import {
   type MenuLabel,
   type MenusClient,
 } from "@/components/plugins/menus";
+import { MENU_SORT_FIELDS, menuDefaultSort } from "@/components/plugins/menus/admin";
 import {
   nextWeekDates,
   placeMenuItems,
@@ -45,6 +46,8 @@ import {
 } from "@/components/plugins/menus/model";
 import { MenuConfirmation } from "@/components/plugins/menus/ui";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { useShowroomDriveOrder } from "@/showroom/drive-preview";
+import { useShowroomTableSort } from "@/showroom/routing";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -813,6 +816,8 @@ function FlatPublicPreview() {
 }
 
 export function MenuAdminPreview() {
+  const driveOrder = useShowroomDriveOrder();
+  const order = useShowroomTableSort("menuItems", MENU_SORT_FIELDS, menuDefaultSort);
   const mock = useMock();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const listState = mock.listState;
@@ -1090,6 +1095,7 @@ export function MenuAdminPreview() {
           linkComponent={Link}
           className="showroom-page"
           driveClient={driveClient}
+          driveOrder={driveOrder}
           driveTransfer={mock.drive.transfer}
           photoFolderId={typeof query.folder === "string" ? query.folder : null}
           getFolderHref={(folderId) => `${base}/${id}${folderId ? `?folder=${folderId}` : ""}`}
@@ -1124,6 +1130,7 @@ export function MenuAdminPreview() {
   if (id !== "items") return <p role="alert">Menu item not found.</p>;
   return (
     <MenuItemsPage
+      {...order}
       client={listClient}
       baseLocale={baseLocale}
       newHref={`${base}/new`}

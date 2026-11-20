@@ -702,3 +702,7 @@ review migrations, and validate host integrations before deploying an update.
 See the [optimistic action contract](./optimistic-actions.md) for immediate UI
 changes, rollback, server-confirmed operations and host callback requirements.
 The plugin installs its TanStack Query dependency through `@forge/optimistic-action`.
+
+## Sort controls and trash
+
+Bind `sort` and `onSortChange` on `DrivePage` and `DriveBrowser`. The browser accepts a separate `trashOrder` with the same props, plus `trashView` and `onTrashViewChange` for navigation. Forward the sort to `listTrash` to order the full trash by name, original location, deletion date or expiry. Clearing a trash sort restores newest deletion first. Each order change starts at the first cursor.

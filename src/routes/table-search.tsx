@@ -2,19 +2,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import { TableSortHeader } from "@/components/table-sort";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
+const fields = ["name", "details"] as const;
+const byName = { field: "name", direction: "asc" } as const;
 function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
   const [search, setSearch] = useState("");
-  const filteredRows = rows.filter((row) => matchesTableSearch(search, ...row));
+  const { sort, onSortChange } = useShowroomTableSort(title.toLowerCase(), fields, byName);
+  const filteredRows = sortTableRows(
+    rows.filter((row) => matchesTableSearch(search, ...row)),
+    sort ?? byName,
+    (row, field) => row[field === "name" ? 0 : 1],
+    (row) => row[0],
+  );
   return (
     <section className={tablePanelClass} aria-label={title}>
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -38,12 +48,16 @@ function SearchableTable({ title, rows }: { title: string; rows: string[][] }) {
         <table className={tableClass}>
           <thead>
             <tr className={tableRowClass}>
-              <th scope="col" className={tableHeaderClass}>
-                Name
-              </th>
-              <th scope="col" className={tableHeaderClass}>
-                Details
-              </th>
+              {fields.map((field) => (
+                <TableSortHeader
+                  key={field}
+                  field={field}
+                  value={sort}
+                  defaultSort={byName}
+                  onValueChange={onSortChange}
+                  label={field === "name" ? "Name" : "Details"}
+                />
+              ))}
             </tr>
           </thead>
           <tbody>

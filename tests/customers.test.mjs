@@ -48,6 +48,7 @@ await test("customers retains its dependencies and contains no website integrati
     "@forge/record-deletion",
     "@forge/loading-indicator",
     "@forge/dialog-submit",
+    "@forge/table-sort",
   ]);
   for (const file of item.files) {
     const source = await readFile(new URL(`../${file.path}`, import.meta.url), "utf8");

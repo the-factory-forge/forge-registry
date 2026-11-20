@@ -52,6 +52,20 @@ guidance. The requirements below remain the behavioral contract.
 
 ## Requirements
 
+### Requirement: Record table sorting
+
+Record list tables SHALL expose column sort arrows for their comparable data.
+The active header SHALL show its direction. Other sortable headers SHALL show an
+arrow on hover or keyboard focus. Selecting a different header SHALL start its
+sort, selecting it again SHALL reverse the direction, and the next selection
+SHALL restore the configured default or ascending UUID order. A configured
+default SHALL show its arrow whenever it determines the visible order.
+
+Hosts SHALL apply the selected order across authorized matching rows before
+pagination and reset the page on change. URL-bound tables SHALL restore the order
+after reload and browser history navigation. Menu item sorting SHALL preserve the
+saved display order and restrict manual moves to that order.
+
 ### Requirement: Supports plugin
 
 Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,

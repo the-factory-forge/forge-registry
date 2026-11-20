@@ -13,11 +13,19 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/components/plugins/projects";
+import { PROJECT_SORT_FIELDS, projectDefaultSort } from "@/components/plugins/projects/types";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
+const embeddedProjectFields = PROJECT_SORT_FIELDS.filter((field) => field !== "owner");
 function useProjectList(customerId?: string) {
+  const order = useShowroomTableSort(
+    "projects",
+    customerId ? embeddedProjectFields : PROJECT_SORT_FIELDS,
+    projectDefaultSort,
+  );
   const state = usePluginsPreview();
   const { locale } = useShowroomParams();
   const [search, setSearch] = useState("");
@@ -25,6 +33,7 @@ function useProjectList(customerId?: string) {
   const base = `/${locale}/projects`;
   const context = customerId ? `?customerId=${encodeURIComponent(customerId)}` : "";
   return {
+    ...order,
     projects: state.projects.filter((project) =>
       [
         project.name,

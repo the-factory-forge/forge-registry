@@ -3,7 +3,15 @@ import { useId, useState } from "react";
 
 import { NativeSelect } from "@/components/native-select";
 import { EmployeesPage, type Employee } from "@/components/plugins/employees";
+import {
+  EMPLOYEE_SORT_FIELDS,
+  employeeDefaultSort,
+  sortEmployees,
+  EMPLOYEE_PAGE_SIZE,
+} from "@/components/plugins/employees/schema";
 import { matchesTableSearch } from "@/components/table-search";
+import { useShowroomTableSort } from "@/showroom/routing";
+import { useShowroomTablePage } from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
 export function EmployeesPreview() {
@@ -32,8 +40,9 @@ export function EmployeesPreview() {
   const [fail, setFail] = useState(false);
   const [failDelivery, setFailDelivery] = useState(false);
   const [role, setRole] = useState("admin");
-  const [offset, setOffset] = useState(0);
-  const [search, setSearch] = useState("");
+  const order = useShowroomTableSort("employees", EMPLOYEE_SORT_FIELDS, employeeDefaultSort);
+  const { page, setPage, search, setSearch } = useShowroomTablePage("employees");
+  const offset = (page - 1) * EMPLOYEE_PAGE_SIZE;
   const filteredEmployees = employees.filter((employee) =>
     matchesTableSearch(search, employee.name, employee.email, employee.role),
   );
@@ -111,6 +120,7 @@ export function EmployeesPreview() {
         <output>The employees dashboard is available to administrators only.</output>
       )}
       <EmployeesPage
+        {...order}
         onUploadPhoto={async (id, file) => {
           await beforeAction();
           const image = await new Promise<string>((resolve, reject) => {
@@ -178,14 +188,21 @@ export function EmployeesPreview() {
               }
             : undefined
         }
-        employees={state === "empty" ? [] : filteredEmployees.slice(offset, offset + 25)}
+        employees={
+          state === "empty"
+            ? []
+            : sortEmployees(filteredEmployees, order.sort).slice(
+                offset,
+                offset + EMPLOYEE_PAGE_SIZE,
+              )
+        }
         loading={state === "loading"}
         error={state === "error"}
         total={state === "empty" ? 0 : filteredEmployees.length}
         search={search}
         onSearchChange={setSearch}
         offset={offset}
-        onOffsetChange={setOffset}
+        onOffsetChange={(next) => setPage(Math.floor(next / EMPLOYEE_PAGE_SIZE) + 1)}
         currentUserId="admin"
         currentUserRole={role}
         onCreate={async (values) => {

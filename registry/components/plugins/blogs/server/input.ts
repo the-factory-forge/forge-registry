@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { BlogsError } from "@/components/plugins/blogs/utils";
 
 export const blogIdSchema = z.string().regex(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);
@@ -30,7 +31,11 @@ const query = z.object({
   search: z.string().max(250).optional(),
 });
 export const blogInputs = {
-  query,
+  query: query.extend({
+    sort: z
+      .object({ field: z.enum(BLOG_SORT_FIELDS), direction: z.enum(["asc", "desc"]) })
+      .optional(),
+  }),
   publicQuery: query.extend({ categoryId: id.optional() }),
   create: mutation.extend({
     title: z

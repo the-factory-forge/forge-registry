@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { useState } from "react";
 
 import { cn } from "@/components/utils/cn";
 import {
@@ -8,10 +9,27 @@ import {
   nextTableSort,
   tableSortLabels,
   type TableSort,
+  type TableSortProps,
 } from "@/components/utils/table-sort-state";
 import { tableHeaderClass } from "@/components/utils/table-styles";
 
-export type { TableSort } from "@/components/utils/table-sort-state";
+export type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
+
+/** A host can own the selection in its URL, or use the local state for a complete collection. */
+export function useTableSort<Field extends string>(
+  { sort, onSortChange, sortLabels }: TableSortProps<Field>,
+  defaultSort?: TableSort<Field>,
+  isAvailable?: (field: Field) => boolean,
+) {
+  const [local, setLocal] = useState(sort);
+  const selected = onSortChange ? sort : local;
+  return {
+    value: selected && isAvailable && !isAvailable(selected.field) ? undefined : selected,
+    defaultSort,
+    onValueChange: onSortChange ?? setLocal,
+    labels: sortLabels,
+  };
+}
 
 export interface TableSortHeaderProps<Field extends string> {
   field: Field;
@@ -20,6 +38,7 @@ export interface TableSortHeaderProps<Field extends string> {
   defaultSort?: TableSort<Field>;
   onValueChange?: (value: TableSort<Field> | undefined) => void;
   labels?: Partial<typeof tableSortLabels>;
+  className?: string;
 }
 
 export function TableSortHeader<Field extends string>({
@@ -29,6 +48,7 @@ export function TableSortHeader<Field extends string>({
   defaultSort,
   onValueChange,
   labels: overrides,
+  className,
 }: TableSortHeaderProps<Field>) {
   const labels = { ...tableSortLabels, ...overrides };
   const active = value ?? defaultSort;
@@ -54,13 +74,13 @@ export function TableSortHeader<Field extends string>({
   return (
     <th
       scope="col"
-      className={tableHeaderClass}
+      className={cn(tableHeaderClass, className)}
       aria-sort={selected ? (direction === "asc" ? "ascending" : "descending") : undefined}
     >
       {onValueChange ? (
         <button
           type="button"
-          className="group/sort inline-flex min-h-10 w-full cursor-pointer items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="group/sort inline-flex min-h-10 w-full cursor-pointer items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring in-[.text-right]:justify-end"
           title={
             next
               ? next.direction === "asc"

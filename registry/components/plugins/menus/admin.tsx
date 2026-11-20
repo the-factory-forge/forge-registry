@@ -39,14 +39,15 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
@@ -56,7 +57,10 @@ export {
   type MenuItemEditorPageProps,
 } from "@/components/plugins/menus/editor";
 
-export interface MenuItemsPageProps {
+export const MENU_SORT_FIELDS = ["name", "category", "visible", "unavailable", "position"] as const;
+type MenuSortField = (typeof MENU_SORT_FIELDS)[number];
+export const menuDefaultSort = { field: "position", direction: "asc" } as const;
+export interface MenuItemsPageProps extends TableSortProps<MenuSortField> {
   /** Keep stable while editing; replacing the client starts a fresh item list. */
   client: MenusClient;
   baseLocale: string;
@@ -79,9 +83,13 @@ function MenuItemsPageContent({
   linkComponent: HostLink = Link,
   labels: overrides,
   className,
+  ...sortProps
 }: MenuItemsPageProps) {
   const labels = { ...menusLabels, ...overrides };
   const [search, setSearch] = useState("");
+  const order = useTableSort<MenuSortField>(sortProps, menuDefaultSort);
+  const sort = order.value ?? menuDefaultSort;
+  const manualOrder = sort.field === "position" && sort.direction === "asc";
   const items = useMenuItems(client);
   const { data, source: savedData, loading, error, reordering } = items;
   const notify = useActionToast();
@@ -94,7 +102,7 @@ function MenuItemsPageContent({
     edge?: "before" | "after";
     container: HTMLElement;
   }>();
-  const dragPreview = preview?.scope === items.scope ? preview : undefined;
+  const dragPreview = manualOrder && preview?.scope === items.scope ? preview : undefined;
   const drag = useRef<
     | {
         scope: number;
@@ -110,7 +118,7 @@ function MenuItemsPageContent({
   const reorderHelpId = `factory-menu-reorder-${useId()}`;
   useEffect(() => {
     drag.current = undefined;
-  }, [items.scope]);
+  }, [items.scope, sort.field, sort.direction]);
   function clearDrag() {
     drag.current = undefined;
     setDragPreview(undefined);
@@ -165,7 +173,7 @@ function MenuItemsPageContent({
   const categoryName = (id: string | null) =>
     id === null ? labels.unassignedCategory : categoryNames.get(id);
   const draggedItem = data?.items.find((item) => item.id === dragPreview?.id);
-  const filteredItems =
+  const matches =
     data?.items.filter((item) =>
       matchesTableSearch(
         search,
@@ -175,10 +183,31 @@ function MenuItemsPageContent({
         item.soldOut ? labels.yes : labels.no,
       ),
     ) ?? [];
+  const positions = new Map(data?.items.map((item, index) => [item.id, index + 1]));
+  const filteredItems = sortTableRows(
+    matches,
+    sort,
+    (item, field) => {
+      switch (field) {
+        case "name":
+          return item.translations[baseLocale]?.name;
+        case "category":
+          return categoryName(item.categoryId);
+        case "visible":
+          return item.visible ? labels.yes : labels.no;
+        case "unavailable":
+          return item.soldOut ? labels.yes : labels.no;
+        case "position":
+          return positions.get(item.id);
+      }
+    },
+    (item) => item.id,
+    baseLocale,
+  );
   const selectable = filteredItems;
   const selection = useTableSelection(selectable, JSON.stringify([items.scope, search]));
   const selectionDisabled = loading || error || reordering || items.pending || selection.pending;
-  const reorderDisabled = selectionDisabled || !!search.trim();
+  const reorderDisabled = selectionDisabled || !!search.trim() || !manualOrder;
   return (
     <section className={cn(page, className)}>
       <div className={tablePanelClass}>
@@ -209,7 +238,11 @@ function MenuItemsPageContent({
         </header>
         {client.reorder && (
           <p id={reorderHelpId} className="mt-3 text-sm text-muted-foreground">
-            {search.trim() ? labels.reorderSearchHelp : labels.reorderHelp}
+            {search.trim()
+              ? labels.reorderSearchHelp
+              : manualOrder
+                ? labels.reorderHelp
+                : labels.reorderSortHelp}
           </p>
         )}
         {reordering ? <output className="block text-sm">{labels.saving}</output> : null}
@@ -232,18 +265,9 @@ function MenuItemsPageContent({
                     disabled={selectionDisabled || !selectable.length}
                   />
                 </th>
-                <th scope="col" className={tableHeaderClass}>
-                  {labels.name}
-                </th>
-                <th scope="col" className={tableHeaderClass}>
-                  {labels.category}
-                </th>
-                <th scope="col" className={tableHeaderClass}>
-                  {labels.visible}
-                </th>
-                <th scope="col" className={tableHeaderClass}>
-                  {labels.unavailable}
-                </th>
+                {MENU_SORT_FIELDS.map((field) => (
+                  <TableSortHeader key={field} {...order} field={field} label={labels[field]} />
+                ))}
                 <th scope="col" className={tableActionHeaderClass}>
                   <div className="flex items-center justify-end gap-2">
                     {labels.actions}
@@ -387,6 +411,7 @@ function MenuItemsPageContent({
                         {item.soldOut ? labels.yes : labels.no}
                       </span>
                     </td>
+                    <td className={tableCellClass}>{positions.get(item.id)}</td>
                     <td className={tableActionCellClass}>
                       <div className={tableActionsClass}>
                         <IconTooltip
@@ -416,7 +441,7 @@ function MenuItemsPageContent({
               )}
               {(error || filteredItems.length === 0) && (
                 <tr className={tableRowClass}>
-                  <td colSpan={6} className={cn(tableCellClass, "py-8")}>
+                  <td colSpan={7} className={cn(tableCellClass, "py-8")}>
                     <div className="flex flex-wrap items-center gap-2">
                       {error ? (
                         <>

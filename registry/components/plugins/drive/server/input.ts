@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { DRIVE_SORT_FIELDS, TRASH_SORT_FIELDS } from "@/components/plugins/drive/types";
 import { DriveError } from "@/components/plugins/drive/utils";
 
 export const driveIdSchema = z
@@ -24,7 +25,7 @@ const query = z.object({
   cursor: z.string().optional(),
   sort: z
     .object({
-      field: z.enum(["name", "updatedAt", "size", "owner"]),
+      field: z.enum(DRIVE_SORT_FIELDS),
       direction: z.enum(["asc", "desc"]),
     })
     .optional(),
@@ -41,7 +42,15 @@ const upload = z.object({
 export const driveInputs = {
   query,
   listing: query.extend({ scope, parentId }),
-  trash: query.extend({ scope }),
+  trash: query.extend({
+    scope,
+    sort: z
+      .object({
+        field: z.enum([...TRASH_SORT_FIELDS, ...DRIVE_SORT_FIELDS]),
+        direction: z.enum(["asc", "desc"]),
+      })
+      .optional(),
+  }),
   folder: z.object({ scope, parentId, name }),
   entry,
   rename: entry.extend({ name }),

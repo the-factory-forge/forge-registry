@@ -10,6 +10,11 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
 import { DriveBulkDelete } from "@/components/plugins/drive/bulk-delete";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
+import {
+  trashDefaultSort,
+  TRASH_SORT_FIELDS,
+  type DriveTrashSort,
+} from "@/components/plugins/drive/types";
 import type {
   DriveClient,
   DriveEntry,
@@ -28,11 +33,12 @@ import {
   outlineButtonClass,
   primaryClass,
 } from "@/components/plugins/drive/ui";
-import { useDriveListing } from "@/components/plugins/drive/use-listing";
+import { useDriveListing, useDriveTableOrder } from "@/components/plugins/drive/use-listing";
 import { errorCode, scopeKey, validName } from "@/components/plugins/drive/utils";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { TableSelectionCheckbox, useTableSelection } from "@/components/table-selection";
+import { TableSortHeader, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import {
@@ -41,7 +47,6 @@ import {
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
@@ -55,6 +60,7 @@ export function useDriveRecovery({
   labels,
   locale,
   visible,
+  trashOrder,
   refreshKey,
   onChanged,
   onDeleted,
@@ -68,6 +74,7 @@ export function useDriveRecovery({
   labels: DriveLabels;
   locale?: string;
   visible: boolean;
+  trashOrder?: TableSortProps<DriveTrashSort["field"]>;
   refreshKey: number;
   onChanged: () => void;
   onDeleted: (entry: DriveEntry) => void;
@@ -172,6 +179,7 @@ export function useDriveRecovery({
           labels={labels}
           locale={locale}
           visible={visible}
+          trashOrder={trashOrder}
           refreshKey={refreshKey}
           onChanged={onChanged}
           isActive={() => active.current === session}
@@ -187,6 +195,7 @@ function TrashRecovery({
   labels,
   locale,
   visible,
+  trashOrder,
   refreshKey,
   onChanged,
   isActive,
@@ -197,6 +206,7 @@ function TrashRecovery({
   labels: DriveLabels;
   locale?: string;
   visible: boolean;
+  trashOrder?: TableSortProps<DriveTrashSort["field"]>;
   refreshKey: number;
   onChanged: () => void;
   isActive: () => boolean;
@@ -205,12 +215,14 @@ function TrashRecovery({
   const manager = Toast.useToastManager();
   const notify = useActionToast();
   const [search, setSearch] = useState("");
-  const [cursors, setCursors] = useState<string[]>([]);
-  const cursor = cursors.at(-1);
+  const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveTrashSort["field"]>(
+    trashOrder ?? {},
+    trashDefaultSort,
+  );
   const [revision, setRevision] = useState(0);
   const load = useCallback(
-    (signal: AbortSignal) => client.listTrash!({ scope, search, cursor, signal }),
-    [client, scope, search, cursor],
+    (signal: AbortSignal) => client.listTrash!({ scope, search, cursor, sort, signal }),
+    [client, scope, search, cursor, sort],
   );
   const listing = useDriveListing(load, `${revision}:${refreshKey}`);
   const { loading, error } = listing;
@@ -218,14 +230,17 @@ function TrashRecovery({
   const [restoreEntry, setRestoreEntry] = useState<DriveTrashEntry>();
   const lock = useRef(false);
   const mutationScope = useMemo(
-    () => ({ client, scope, search, cursor }),
-    [client, scope, search, cursor],
+    () => ({ client, scope, search, cursor, sort }),
+    [client, scope, search, cursor, sort],
   );
   const optimistic = useOptimisticAction(listing.data, mutationScope);
   const data = optimistic.value;
   const capabilities = data?.space.capabilities;
   const selectable = capabilities?.delete ? (data?.items ?? []) : [];
-  const selection = useTableSelection(selectable, JSON.stringify([scope, search, cursor, visible]));
+  const selection = useTableSelection(
+    selectable,
+    JSON.stringify([scope, search, cursor, sort, visible]),
+  );
   const disabled = loading || !!error || !!restoring || optimistic.pending || selection.pending;
   const refresh = () => setRevision((value) => value + 1);
   const restored = () => {
@@ -318,35 +333,29 @@ function TrashRecovery({
                     />
                   </th>
                 )}
-                {[
-                  labels.name,
-                  labels.originalLocation,
-                  labels.deletedAt,
-                  labels.expiresAt,
-                  labels.actions,
-                ].map((label, index) => (
-                  <th
-                    key={index}
-                    scope="col"
-                    className={index === 4 ? tableActionHeaderClass : tableHeaderClass}
-                  >
-                    <div
-                      className={index === 4 ? "flex items-center justify-end gap-2" : undefined}
-                    >
-                      {label}
-                      {index === 4 && capabilities?.delete && (
-                        <DriveBulkDelete
-                          client={client}
-                          scope={scope}
-                          selection={selection}
-                          labels={labels}
-                          disabled={disabled}
-                          onDeleted={deleted}
-                        />
-                      )}
-                    </div>
-                  </th>
+                {TRASH_SORT_FIELDS.map((field) => (
+                  <TableSortHeader
+                    key={field}
+                    {...order}
+                    field={field}
+                    label={field === "originalPath" ? labels.originalLocation : labels[field]}
+                  />
                 ))}
+                <th scope="col" className={tableActionHeaderClass}>
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    {capabilities?.delete && (
+                      <DriveBulkDelete
+                        client={client}
+                        scope={scope}
+                        selection={selection}
+                        labels={labels}
+                        disabled={disabled}
+                        onDeleted={deleted}
+                      />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">

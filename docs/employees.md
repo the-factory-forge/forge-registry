@@ -95,3 +95,7 @@ validation, failure/retry, bulk choices and invalid-image/crop/upload retry whil
 retaining the edit form. Server tests cover delegated removal and authorization.
 The showroom simulates the host transaction and upload; verify those integrations
 against the consumer's own database and object storage before deployment.
+
+## Directory ordering
+
+Bind `EmployeesPage.sort` and `onSortChange` to the host URL, reset the offset and forward `sort` to `createEmployeeService().list`. Each column supports both directions. The default is name ascending. A host directory can implement `listSorted(offset, limit, sort)` to order its authorized query in storage. For older adapters, the service reads the eligible directory before comparing derived fields and taking the requested page.

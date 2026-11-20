@@ -4,9 +4,28 @@ import { useSearch } from "@tanstack/react-router";
 
 import { ProjectDrive } from "@/components/connectors/projects-drive";
 import { DriveBrowser, DrivePage, type DriveScope } from "@/components/plugins/drive";
+import {
+  DRIVE_SORT_FIELDS,
+  TRASH_SORT_FIELDS,
+  driveDefaultSort,
+  trashDefaultSort,
+} from "@/components/plugins/drive/types";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
+import { useShowroomTableSort, useShowroomQuery } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
+const fileFields = DRIVE_SORT_FIELDS.filter((field) => field !== "owner");
+export function useShowroomDriveOrder() {
+  const order = useShowroomTableSort("files", fileFields, driveDefaultSort);
+  const trashOrder = useShowroomTableSort("trash", TRASH_SORT_FIELDS, trashDefaultSort);
+  const { query, update } = useShowroomQuery();
+  return {
+    ...order,
+    trashOrder,
+    trashView: query.trash === true,
+    onTrashViewChange: (visible: boolean) => update({ trash: visible || undefined }),
+  };
+}
 export function EmbeddedDrivePreview({
   scope,
   base,
@@ -16,11 +35,13 @@ export function EmbeddedDrivePreview({
   base: string;
   customerId?: string;
 }) {
+  const fileOrder = useShowroomDriveOrder();
   const state = usePluginsPreview();
   const query = useSearch({ strict: false });
   const { locale } = useShowroomParams();
   return (
     <ProjectDrive
+      {...fileOrder}
       project={{ id: scope.id }}
       locale={locale}
       client={state.driveClient}
@@ -42,13 +63,16 @@ export function EmbeddedDrivePreview({
 }
 
 export function DrivePreview() {
+  const fileOrder = useShowroomDriveOrder();
   const state = usePluginsPreview();
+  const spacesOrder = useShowroomTableSort("spaces", DRIVE_SORT_FIELDS, driveDefaultSort);
   const params = useShowroomParams();
   const base = `/${params.locale}/drive`;
   const [type, id, folder] = params.segments ?? [];
   if (!type)
     return (
       <DrivePage
+        {...spacesOrder}
         className="showroom-page"
         locale={params.locale}
         client={state.driveClient}
@@ -72,6 +96,7 @@ export function DrivePreview() {
     );
   return (
     <DriveBrowser
+      {...fileOrder}
       className="showroom-page"
       locale={params.locale}
       client={state.driveClient}

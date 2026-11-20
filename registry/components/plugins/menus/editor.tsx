@@ -17,7 +17,12 @@ import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
-import { DriveBrowser, type DriveClient, type DriveEntry } from "@/components/plugins/drive";
+import {
+  DriveBrowser,
+  type DriveBrowserProps,
+  type DriveClient,
+  type DriveEntry,
+} from "@/components/plugins/drive";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
 import { DishPhotoField } from "@/components/plugins/menus/dish-photo";
 import { MenuLabelSymbol } from "@/components/plugins/menus/label-badge";
@@ -79,6 +84,10 @@ export interface MenuItemEditorPageProps {
   onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
   onSaved: (item: MenuItem, photoAdded: boolean) => void;
   driveClient?: DriveClient;
+  driveOrder?: Pick<
+    DriveBrowserProps,
+    "sort" | "onSortChange" | "sortLabels" | "trashOrder" | "trashView" | "onTrashViewChange"
+  >;
   driveTransfer?: DriveTransfer;
   photoFolderId?: string | null;
   getPhotoUrl?: (itemId: string, entryId: string) => string | undefined;
@@ -107,6 +116,7 @@ function MenuItemEditorPageContent({
   onNavigationStateChange,
   onSaved,
   driveClient,
+  driveOrder,
   driveTransfer,
   photoFolderId,
   getPhotoUrl,
@@ -158,7 +168,9 @@ function MenuItemEditorPageContent({
   const [photo, setPhoto] = useState<PendingDishPhoto>();
   const [savedPhotoEntryId, setSavedPhotoEntryId] = useState(item?.imageEntryId);
   const [photoItemId, setPhotoItemId] = useState(item?.id);
-  const [extrasOpen, setExtrasOpen] = useState(!!photoFolderId);
+  const [extrasOpen, setExtrasOpen] = useState(
+    !!(photoFolderId || driveOrder?.sort || driveOrder?.trashView),
+  );
   const saveState = useRef({ item });
   const upload = useRef<AbortController>(null);
   const lock = useRef(false);
@@ -667,6 +679,7 @@ function MenuItemEditorPageContent({
           <p className="my-3 text-sm text-muted-foreground">{labels.supplementaryPhotoHelp}</p>
           {extrasOpen && (
             <DriveBrowser
+              {...driveOrder}
               key={savedPhotoEntryId}
               client={driveClient}
               transferUpload={driveTransfer}

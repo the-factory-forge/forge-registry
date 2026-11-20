@@ -1,4 +1,5 @@
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
+import { resolveTrashSort } from "@/components/plugins/drive/types";
 import type {
   DriveClient,
   DriveEntry,
@@ -16,6 +17,7 @@ import {
   validName,
   validSort,
 } from "@/components/plugins/drive/utils";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 
 type MockEntry = DriveEntry & { scope: DriveScope; blob?: Blob; url?: string };
 export function createDriveMock(initialEntries: MockEntry[] = []) {
@@ -227,20 +229,25 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
         return { id: input.requestId, entryId, completed: false };
       }
       return {
-        async listTrash({ scope, search = "", cursor }) {
+        async listTrash({ scope, search = "", cursor, sort }) {
           const space = authorize(scope);
           await listing();
           return {
             space,
             ...paginate(
-              [...trash.values()]
-                .filter(
-                  (group) =>
-                    scopeKey(group.scope) === scopeKey(scope) &&
-                    group.entry.name.toLowerCase().includes(search.toLowerCase()),
-                )
-                .map((group) => group.entry)
-                .sort((a, b) => b.deletedAt.localeCompare(a.deletedAt) || a.id.localeCompare(b.id)),
+              sortTableRows(
+                [...trash.values()]
+                  .filter(
+                    (group) =>
+                      scopeKey(group.scope) === scopeKey(scope) &&
+                      group.entry.name.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((group) => group.entry),
+                resolveTrashSort(sort),
+                (entry, field) =>
+                  field === "originalPath" ? "/" + entry.originalPath : entry[field],
+                (entry) => entry.id,
+              ),
               cursor,
             ),
           };

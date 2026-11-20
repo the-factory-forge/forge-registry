@@ -44,6 +44,7 @@ import type {
   DriveStorageOptions,
   DriveTransaction,
 } from "@/components/plugins/drive/server/types";
+import { resolveTrashSort } from "@/components/plugins/drive/types";
 import type {
   DriveClient,
   DriveDeletePreview,
@@ -753,7 +754,14 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
   ): Pick<DriveClient, "listTrash" | "trashEntry" | "restoreEntry"> {
     return {
       async listTrash(input) {
-        const { scope, search = "", cursor } = parseDriveInput(driveInputs.trash, input);
+        const {
+          scope,
+          search = "",
+          cursor,
+          sort: requestedSort,
+        } = parseDriveInput(driveInputs.trash, input);
+        const sort = resolveTrashSort(requestedSort);
+        const direction = sort.direction === "asc" ? asc : desc;
         const space = await access(context, scope);
         const offset = offsetFor(cursor);
         return authorized(context, scope, false, undefined, async (tx, spaceId) => {
@@ -768,7 +776,7 @@ export function createDriveStorage<Context>(options: DriveStorageOptions<Context
                 ilike(entries.name, containsPattern(search.slice(0, 255))),
               ),
             )
-            .orderBy(desc(entries.deletedAt), entries.id)
+            .orderBy(direction(entries[sort.field]), entries.id)
             .limit(pageSize + 1)
             .offset(offset);
           return {

@@ -9,6 +9,7 @@ import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
+import { customerDefaultSort, type CustomerSortField } from "@/components/plugins/customers/types";
 import type {
   CustomerDetailPageProps,
   CustomerNewPageProps,
@@ -32,7 +33,9 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -74,9 +77,15 @@ function CustomersPageContent({
   className,
   labels: overrides,
   linkComponent: CustomerLink = Link,
+  ...sortProps
 }: CustomersPageProps) {
   useLoadingActivity(loading);
   const labels = { ...customerLabels, ...overrides };
+  const order = useTableSort<CustomerSortField>(
+    sortProps,
+    customerDefaultSort,
+    (field) => field !== "sync" || !!syncColumn?.sortValue,
+  );
   const optimistic = useOptimisticAction(suppliedCustomers);
   const root = useRef<HTMLElement>(null);
   const deletion = useRecordDeletion({
@@ -90,7 +99,23 @@ function CustomersPageContent({
     returnFocus: root,
     className: "max-w-md",
   });
-  const customers = deletion.items;
+  const customers = sortTableRows(
+    deletion.items,
+    order.value ?? order.defaultSort,
+    (customer, field) => {
+      switch (field) {
+        case "name":
+          return customerDisplayName(customer);
+        case "email":
+          return customer.email;
+        case "status":
+          return customer.emailVerified ? labels.verified : labels.unverified;
+        case "sync":
+          return syncColumn?.sortValue?.(customer);
+      }
+    },
+    (customer) => customer.id,
+  );
   const selectable = onDelete ? customers : [];
   const selection = useTableSelection(selectable, search ?? "");
   const selectionDisabled =
@@ -144,44 +169,31 @@ function CustomersPageContent({
                     />
                   </th>
                 )}
-                {[
-                  labels.customer,
-                  labels.email,
-                  labels.status,
-                  ...(syncColumn ? [syncColumn.label] : []),
-                  labels.actions,
-                ].map((label, index) => (
-                  <th
-                    scope="col"
-                    key={index}
-                    className={
-                      index === (syncColumn ? 4 : 3) ? tableActionHeaderClass : tableHeaderClass
-                    }
-                  >
-                    <div
-                      className={
-                        index === (syncColumn ? 4 : 3)
-                          ? "flex items-center justify-end gap-2"
-                          : undefined
-                      }
-                    >
-                      {label}
-                      {index === (syncColumn ? 4 : 3) && (
-                        <>
-                          {onDelete && (
-                            <TableBulkDelete
-                              selection={selection}
-                              getName={customerDisplayName}
-                              onDelete={(customer) => onDelete!(customer.id)}
-                              labels={labels}
-                              disabled={selectionDisabled}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                <TableSortHeader {...order} field="name" label={labels.customer} />
+                <TableSortHeader {...order} field="email" label={labels.email} />
+                <TableSortHeader {...order} field="status" label={labels.status} />
+                {syncColumn &&
+                  (syncColumn.sortValue ? (
+                    <TableSortHeader {...order} field="sync" label={syncColumn.label} />
+                  ) : (
+                    <th scope="col" className={tableHeaderClass}>
+                      {syncColumn.label}
+                    </th>
+                  ))}
+                <th scope="col" className={tableActionHeaderClass}>
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    {onDelete && (
+                      <TableBulkDelete
+                        selection={selection}
+                        getName={customerDisplayName}
+                        onDelete={(customer) => onDelete!(customer.id)}
+                        labels={labels}
+                        disabled={selectionDisabled}
+                      />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
