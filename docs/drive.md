@@ -15,6 +15,12 @@ returns cursors. Host paging callbacks stay compatible; translate the new
 
 ## Folder navigation
 
+Hosts may observe the current scope, folder, search, trash view and selected
+entries through `onViewChange`; unmount reports `undefined`. Keep the callback stable.
+Increment `refreshVersion` after an external change to refresh the listing and
+tree. These optional props support browser-assistant context without installing
+WebMCP or changing Drive permissions.
+
 The file browser uses [`SubpageSidebar`](./subpage-sidebar.md) for the space root,
 a nested folder tree and optional Trash. The root link uses the same space name
 as the breadcrumb, including after renaming. The breadcrumb stays above the local

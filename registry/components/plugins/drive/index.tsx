@@ -297,6 +297,8 @@ function Browser({
   getFolderHref,
   backHref,
   onRenameSpace,
+  onViewChange,
+  refreshVersion = 0,
   transferUpload,
   onSelectFile,
   isSelectableFile,
@@ -316,7 +318,8 @@ function Browser({
     setSort(next);
     setCursors([]);
   };
-  const [revision, setRevision] = useState(0);
+  const [localRevision, setRevision] = useState(0);
+  const revision = localRevision + refreshVersion;
   const [trashView, setTrashView] = useState(false);
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
@@ -387,6 +390,31 @@ function Browser({
   const selection = useTableSelection(
     selectable,
     JSON.stringify([scope, parentId, search, cursor, sort, trashView]),
+  );
+  const reportedView = useRef<{ callback: DriveBrowserProps["onViewChange"]; key: string } | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    if (!onViewChange) return;
+    const view = {
+      scope,
+      parentId,
+      search,
+      trash: trashView,
+      selected: selection.selected.map(({ id, name, kind }) => ({ id, name, kind })),
+    };
+    const key = JSON.stringify(view);
+    // Selection arrays are rebuilt on render; host state must not cause a reporting loop.
+    if (reportedView.current?.callback === onViewChange && reportedView.current.key === key) return;
+    reportedView.current = { callback: onViewChange, key };
+    onViewChange(view);
+  }, [onViewChange, scope, parentId, search, trashView, selection.selected]);
+  useLayoutEffect(
+    () => () => {
+      reportedView.current = null;
+      onViewChange?.(undefined);
+    },
+    [onViewChange],
   );
   const actionsDisabled =
     loading || !!error || optimistic.pending || selection.pending || !!removedFolder;

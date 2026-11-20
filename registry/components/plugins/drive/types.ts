@@ -130,7 +130,19 @@ export interface DrivePageProps extends DriveAppearanceProps {
   client: DriveClient;
   getSpaceHref: (space: DriveSpace) => string;
 }
+export interface DriveBrowserView {
+  scope: DriveScope;
+  parentId: string | null;
+  search: string;
+  trash: boolean;
+  selected: { id: string; name: string; kind: DriveEntry["kind"] }[];
+}
 export interface DriveBrowserProps extends DriveAppearanceProps {
+  /** Report visible context to the host; clear it on unmount. */
+  onViewChange?: (view: DriveBrowserView | undefined) => void;
+  /** Increment after an action outside this browser changes Drive. */
+  refreshVersion?: number;
+
   client: DriveClient;
   scope: DriveScope;
   parentId?: string | null;
