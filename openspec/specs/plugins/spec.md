@@ -75,6 +75,7 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 - **THEN** every row provides explicit View request and Cancel request actions
 - **AND** View opens the discussion, while Cancel sets the distinct `canceled` status without deleting content or history
 - **AND** closed and canceled rows retain a disabled cancellation action in the same position
+- **AND** ticket types appear as dotless labels in the queue and discussion, with host theme pairs for destructive (Bug), primary (Feature), and informational (Support)
 - **AND** canceled requests use a neutral gray badge in both themes, while open remains orange and closed remains green
 - **AND** cancellation prevents duplicate submissions, rolls back on failure and supports retry
 - **AND** successful cancellation refreshes host data through `onChanged`; the detail page can reopen the request

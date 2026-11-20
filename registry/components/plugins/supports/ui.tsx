@@ -8,6 +8,7 @@ import type { SupportsLabels } from "@/components/plugins/supports/labels";
 import type {
   SupportAttachment,
   SupportStatus,
+  SupportType,
   SupportsClient,
 } from "@/components/plugins/supports/types";
 import { cn } from "@/components/utils/cn";
@@ -29,6 +30,21 @@ export function SupportMarkdown({ value }: { value: string }) {
     </div>
   );
 }
+const supportBadgeClass =
+  "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium";
+
+const supportTypeBadgeColors = {
+  bug: "bg-destructive text-destructive-foreground",
+  feature: "bg-primary text-primary-foreground",
+  support: "bg-status-info text-status-info-foreground",
+} satisfies Record<SupportType, string>;
+
+export function SupportTypeBadge({ type, labels }: { type: SupportType; labels: SupportsLabels }) {
+  return (
+    <span className={cn(supportBadgeClass, supportTypeBadgeColors[type])}>{labels[type]}</span>
+  );
+}
+
 export function SupportStatusBadge({
   status,
   labels,
@@ -39,7 +55,8 @@ export function SupportStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+        supportBadgeClass,
+        "gap-1.5 before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
         status === "open"
           ? "bg-status-pending text-status-pending-foreground"
           : status === "closed"

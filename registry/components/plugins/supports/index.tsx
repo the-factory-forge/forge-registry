@@ -20,6 +20,7 @@ import {
   SupportAttachments,
   SupportMarkdown,
   SupportStatusBadge,
+  SupportTypeBadge,
   buttonClass,
   primaryClass,
   supportError,
@@ -240,7 +241,9 @@ function SupportsContent({
                       {ticket.title}
                     </TicketLink>
                   </td>
-                  <td className={tableCellClass}>{labels[ticket.type]}</td>
+                  <td className={tableCellClass}>
+                    <SupportTypeBadge type={ticket.type} labels={labels} />
+                  </td>
                   <td className={tableCellClass}>
                     <SupportStatusBadge status={ticket.status} labels={labels} />
                   </td>
@@ -405,7 +408,7 @@ function DetailContent({
             <SupportStatusBadge status={status.value} labels={labels} />
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>{labels[ticket.type]}</span>
+            <SupportTypeBadge type={ticket.type} labels={labels} />
             <span>{ticket.author.name}</span>
             <time dateTime={ticket.createdAt}>{formatDate(ticket.createdAt)}</time>
           </div>

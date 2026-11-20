@@ -87,6 +87,10 @@ discussion; Cancel sets the distinct `canceled` status and keeps the request and
 its history. Closed and canceled rows keep cancellation visible but disabled. Failed
 cancellation restores the status and allows retry.
 
+Type labels use the host’s semantic background and foreground pairs. Bug uses
+`destructive` and `destructive-foreground`, Feature uses `primary` and
+`primary-foreground`, and Support uses `status-info` and `status-info-foreground`.
+
 Tickets start `open`. All staff may close, cancel or reopen them; comments leave
 the current status unchanged. Canceled uses a neutral gray badge (`bg-muted-foreground/15` and
 `text-muted-foreground`); Open remains orange and Closed remains green. Repeated identical status changes add no duplicate
