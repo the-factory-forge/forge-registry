@@ -35,10 +35,29 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
     document.querySelector('[role="dialog"]')?.contains(document.activeElement),
   );
   await dialog.getByRole("textbox", { name: "Title", exact: true }).fill("Screenshot support test");
-  await dialog.getByRole("combobox", { name: "Type", exact: true }).selectOption("bug");
+  const type = dialog.getByRole("combobox", { name: "Type", exact: true });
+  const description = dialog.getByRole("textbox", { name: "Description", exact: true });
+  await type.selectOption("bug");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "Problem:\n1. I do …\n2. I see …\n\nI expected it to …",
+  );
+  assert.equal(await description.inputValue(), "");
   const markdown =
     '**Visible description**\n\n```html\n<img onerror="alert(1)">\n```\n\n![External](https://support-tracker.invalid/pixel.png)\n\n[Unsafe](javascript:alert(1))\n\n<script>window.supportScriptRan=true</script>';
-  await dialog.getByRole("textbox", { name: "Description", exact: true }).fill(markdown);
+  await description.fill(markdown);
+  await type.selectOption("feature");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "I’d like to …\nThis would help me …",
+  );
+  await type.selectOption("support");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "I need help with …\nI’ve already tried …",
+  );
+  assert.equal(await description.inputValue(), markdown);
+  await type.selectOption("bug");
   await dialog.getByLabel("Images", { exact: true }).setInputFiles([
     { name: "screen.png", mimeType: "image/png", buffer: png },
     { name: "follow-up.gif", mimeType: "image/gif", buffer: gif },

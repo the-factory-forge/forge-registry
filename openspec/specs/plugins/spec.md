@@ -80,6 +80,12 @@ or `support` type. They SHALL start `open`; every authorized staff member may
 comment, close, cancel or reopen any ticket. Customer accounts SHALL be excluded through
 fresh membership checks, not inferred from the shared `user`/`admin` roles.
 
+#### Scenario: Guiding a new ticket description
+
+- **WHEN** staff select a ticket type in the creation dialog
+- **THEN** the empty description shows a translatable placeholder prompting for steps, observed behavior and expected behavior for bugs, the requested change and its benefit for features, or the help needed and what was tried for support
+- **AND** changing the type preserves the description draft
+
 #### Scenario: Creating and discussing a ticket
 
 - **WHEN** staff submit a valid title, description and type

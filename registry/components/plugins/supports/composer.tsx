@@ -204,7 +204,12 @@ export function SupportComposer({
             </label>
             <textarea
               id={`${id}-body`}
-              className={cn(inputClass, "min-h-32 resize-y")}
+              className={cn(
+                inputClass,
+                "resize-y placeholder:text-muted-foreground",
+                ticketId ? "min-h-32" : "min-h-36",
+              )}
+              placeholder={!ticketId && type ? labels[`${type}DescriptionPlaceholder`] : undefined}
               required={!ticketId}
               maxLength={5000}
               value={body}

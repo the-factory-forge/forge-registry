@@ -91,6 +91,9 @@ explicit `bug`, `feature` or `support` selection. Replies accept up to 5,000
 characters and require text or at least one image. Each submission accepts up to
 five PNG/JPEG/WebP/GIF images of 10 MiB each. Images are not cropped.
 
+The new ticket description shows an example for the selected type. Hosts can
+translate each example through the `bugDescriptionPlaceholder`,
+`featureDescriptionPlaceholder` and `supportDescriptionPlaceholder` labels.
 Descriptions and replies use a Markdown textarea without a preview toggle.
 Saved content disables raw HTML and uses sanitized links.
 Remote embedded images are suppressed; uploaded attachments are displayed
