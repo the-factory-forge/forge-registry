@@ -2176,6 +2176,46 @@
       ]
     },
     {
+      "name": "agents-webmcp",
+      "type": "registry:component",
+      "title": "WebMCP connector",
+      "description": "Browser-session tools with explicit page context and visible write reviews.",
+      "dependencies": ["@base-ui/react", "zod@4.6.7"],
+      "registryDependencies": ["@forge/agents"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-webmcp/index.tsx",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-webmcp/index.tsx"
+        },
+        {
+          "path": "registry/components/connectors/agents-webmcp/browser.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-webmcp/browser.ts"
+        },
+        {
+          "path": "registry/components/connectors/agents-webmcp/types.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-webmcp/types.ts"
+        }
+      ]
+    },
+    {
+      "name": "agents-webmcp-server",
+      "type": "registry:component",
+      "title": "WebMCP server",
+      "description": "Authorized tool discovery, durable proposals and private staging using existing Agents execution.",
+      "dependencies": ["zod@4.6.7"],
+      "registryDependencies": ["@forge/agents-webmcp", "@forge/agents-server"],
+      "files": [
+        {
+          "path": "registry/components/connectors/agents-webmcp/server/index.ts",
+          "type": "registry:component",
+          "target": "@components/connectors/agents-webmcp/server/index.ts"
+        }
+      ]
+    },
+    {
       "name": "agents-blogs-server",
       "type": "registry:component",
       "title": "Agents–Blogs",

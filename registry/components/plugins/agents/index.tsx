@@ -461,7 +461,7 @@ function AttachmentView({
     </div>
   );
 }
-function ActionView({
+export function AgentActionReview({
   action,
   disabled,
   decide,
@@ -472,7 +472,7 @@ function ActionView({
   disabled: boolean;
   decide: (approve: boolean) => void;
   labels: AgentsLabels;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   const resultHref =
     action.status === "succeeded" ? safeAgentResultHref(action.resultHref) : undefined;
@@ -1016,7 +1016,7 @@ function AgentsContent({
                 {conversation.actions
                   .filter((action) => action.messageId === entry.id)
                   .map((action) => (
-                    <ActionView
+                    <AgentActionReview
                       key={action.id}
                       action={action}
                       labels={labels}
@@ -1053,7 +1053,7 @@ function AgentsContent({
                           />
                         ) : null;
                       })}
-                    </ActionView>
+                    </AgentActionReview>
                   ))}
               </Fragment>
             ))}

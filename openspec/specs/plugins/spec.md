@@ -2991,6 +2991,40 @@ SHALL remain unavailable to external clients without a separate upload capabilit
 - **WHEN** a host continues to use the existing Agents chat client
 - **THEN** its approval UI, durable storage and recovery rules remain compatible and external records are excluded from its conversation list
 
+### Requirement: WebMCP connector
+
+The optional WebMCP connector SHALL expose host-selected page context and installed
+Agents operations to a compatible browser assistant, using the current website
+session. Hosts SHALL retain authentication, routes, permissions and context
+selection. The connector SHALL reuse Agents execution without a model provider.
+
+#### Scenario: Acting on the current page
+
+- **WHEN** an authorized assistant requests context or an installed operation
+- **THEN** the host supplies explicit current-page state and the server rechecks current access
+- **AND** no credential, arbitrary unsaved form value or account-security action is exposed
+
+#### Scenario: Reviewing a browser request
+
+- **WHEN** a tool proposes a business write
+- **THEN** the website presents its stored review before execution
+- **AND** stale input, revoked access and another session cannot authorize the write
+- **AND** retrying an approved request returns its durable outcome without replaying it
+
+#### Scenario: Staging a private file
+
+- **WHEN** an authorized operation supports private attachments
+- **THEN** bounded staging remains isolated to the user and session
+- **AND** the eventual plugin upload requires its own reviewed action and integrity check
+
+#### Scenario: Leaving or using an unsupported page
+
+- **WHEN** the page context is replaced or the integration unmounts
+- **THEN** its tools are removed and unapproved reviews are cancelled
+- **AND** cancellation does not promise rollback of an approved write
+- **WHEN** the browser has no WebMCP API
+- **THEN** the ordinary website remains usable
+
 ### Requirement: Supports–GitHub connector
 
 `supports-github` and `supports-github-server` SHALL connect one site's Supports
