@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 
 import type { AgentsConnectionStore } from "@/components/plugins/agents/server/connection.server";
 import {
@@ -42,7 +42,7 @@ export function createAgentsStore(db: PluginDatabase): AgentsStore {
           id: document.id,
           ownerId: document.ownerId,
           operationId: document.operationId,
-          source: document.connection ? "mcp" : "chat",
+          source: document.connection ? (document.actions.length ? "mcp" : "staging") : "chat",
           title: document.title,
           updatedAt: document.updatedAt,
           document,
@@ -80,6 +80,21 @@ export function createAgentsStore(db: PluginDatabase): AgentsStore {
           .from(conversations)
           .where(eq(conversations.ownerId, ownerId))
           .limit(100)
+      ).map((row) => row.id);
+    },
+    async expiredStaging(ownerId, before) {
+      return (
+        await db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.ownerId, ownerId),
+              eq(conversations.source, "staging"),
+              lt(conversations.updatedAt, before),
+            ),
+          )
+          .limit(20)
       ).map((row) => row.id);
     },
     change(id, ownerId, update) {

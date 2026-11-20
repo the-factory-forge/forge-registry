@@ -149,6 +149,7 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
           for (const operation of operations) {
             if (!(await operation.authorize(context))) continue;
             for (const tool of operation.tools) {
+              if (tool.authorize && !(await tool.authorize(context))) continue;
               if (!actor.scopes.includes(agentScope(operation.id, tool.kind))) continue;
               if (tool.kind === "read") {
                 server.registerTool(

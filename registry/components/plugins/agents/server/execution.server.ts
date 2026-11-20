@@ -73,6 +73,7 @@ interface ExecutionOptions<Context> {
 export function createAgentExecutor<Context>(options: ExecutionOptions<Context>) {
   const { access, change, get, files } = options;
   async function read(context: Context, tool: AgentTool<Context>, raw: unknown, files: AgentFiles) {
+    if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
     if (tool.kind !== "read") throw new AgentsError("INVALID");
     return tool.run(context, parse(tool.schema, raw), files);
   }
@@ -84,6 +85,7 @@ export function createAgentExecutor<Context>(options: ExecutionOptions<Context>)
     messageId: string,
     callId: string,
   ): Promise<AgentStoredAction> {
+    if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
     if (tool.kind !== "write") throw new AgentsError("INVALID");
     const input = parse(tool.schema, raw);
     const prepared = await tool.prepare(context, input, files);
@@ -129,6 +131,7 @@ export function createAgentExecutor<Context>(options: ExecutionOptions<Context>)
       )
         throw new AgentsError("STALE");
       const args = parse(tool.schema, action.input);
+      if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
       const prepared = await tool.prepare(context, args, files(context, input.conversationId));
       if (
         agentSnapshot(prepared.snapshot) !== action.snapshot ||
@@ -137,6 +140,7 @@ export function createAgentExecutor<Context>(options: ExecutionOptions<Context>)
         throw new AgentsError("STALE");
       const current = await access(context, input.conversationId);
       if (current.record.run?.id !== runId) throw new AgentsError("BUSY");
+      if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
       started = true;
       const result = await tool.run(
         context,

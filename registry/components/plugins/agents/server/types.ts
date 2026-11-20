@@ -27,7 +27,9 @@ export type AgentTool<Context> = {
   name: string;
   description: string;
   schema: z.ZodType;
-  /** File staging belongs to intranet chat; external clients do not supply file bytes. */
+  /** Optional per-tool permissions, rechecked by the shared executor. */
+  authorize?(context: Context): Promise<boolean>;
+  /** Requires private file staging supplied by the host. */
   requiresAttachments?: boolean;
 } & (
   | {
@@ -94,6 +96,7 @@ export interface AgentsStore {
   get(id: string, ownerId: string): Promise<AgentRecord | null>;
   list(ownerId: string, operationId: string): Promise<AgentConversationSummary[]>;
   owned(ownerId: string): Promise<string[]>;
+  expiredStaging?(ownerId: string, before: string): Promise<string[]>;
   change<T>(id: string, ownerId: string, update: (record: AgentRecord) => T): Promise<T>;
   remove(id: string, ownerId: string): Promise<void>;
   putAttachment(record: AgentStoredAttachment): Promise<void>;

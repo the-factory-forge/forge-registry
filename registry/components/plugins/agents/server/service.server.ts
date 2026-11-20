@@ -127,8 +127,12 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         const { ownerId, record } = await access(context, conversationId);
         if (record.deleting) throw new AgentsError("NOT_FOUND");
         const row = await store.getAttachment(parse(id, attachmentId), ownerId);
-        if (!row || row.conversationId !== conversationId || row.state !== "ready")
-          throw new AgentsError("NOT_FOUND");
+        if (!row || row.state !== "ready") throw new AgentsError("NOT_FOUND");
+        if (row.conversationId !== conversationId) {
+          // External proposals may reference staged files from the same owner and connection only.
+          if (!record.connection) throw new AgentsError("NOT_FOUND");
+          await access(context, row.conversationId);
+        }
         if (!options.attachments) throw new AgentsError("STORAGE");
         try {
           const bytes = await options.attachments.get(row.key);
@@ -263,11 +267,19 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         for await (const event of runtime.stream({
           instructions: operation.instructions,
           messages: record.messages,
-          tools: operation.tools.map((tool) => ({
-            name: tool.name,
-            description: tool.description,
-            inputSchema: z.toJSONSchema(tool.schema, { io: "input" }),
-          })),
+          tools: (
+            await Promise.all(
+              operation.tools.map(async (tool) =>
+                !tool.authorize || (await tool.authorize(context)) ? tool : null,
+              ),
+            )
+          )
+            .filter((tool) => tool !== null)
+            .map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              inputSchema: z.toJSONSchema(tool.schema, { io: "input" }),
+            })),
           signal,
         })) {
           await checkRun();
@@ -400,13 +412,18 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
       },
     };
   }
-  const noExternalFiles: AgentFiles = {
-    async get() {
-      throw new AgentsError("NOT_FOUND");
-    },
-  };
+  function externalFiles(context: Context): AgentFiles {
+    return {
+      async get(attachmentId) {
+        const actor = await connectionActor(context);
+        const row = await store.getAttachment(parse(id, attachmentId), actor.id);
+        if (!row) throw new AgentsError("NOT_FOUND");
+        return files(context, row.conversationId).get(attachmentId);
+      },
+    };
+  }
   return {
-    /** Trusted MCP adapter entry point. Identity and connection come only from the host. */
+    /** Trusted external adapter entry point. Identity and connection come only from the host. */
     external(context: Context) {
       async function proposal(proposalId: string) {
         await connectionActor(context);
@@ -416,12 +433,66 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         return { proposalId: conversation.id, operationId: conversation.operationId, ...action };
       }
       return {
+        async stage(raw: unknown) {
+          const input = parse(
+            attachmentInput
+              .omit({ conversationId: true })
+              .extend({ operationId: id, requestId: id }),
+            raw,
+          );
+          const actor = await connectionActor(context);
+          await permit(context, input.operationId);
+          // Proposals expire in 30 minutes; abandoned staging is reclaimed on the owner's next upload.
+          const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          for (const expired of (await store.expiredStaging?.(actor.id, cutoff)) ?? [])
+            await removeOwned(expired, actor.id);
+          const conversationId = createHash("sha256")
+            .update(
+              JSON.stringify([
+                actor.id,
+                actor.connection,
+                "file",
+                input.operationId,
+                input.requestId,
+              ]),
+            )
+            .digest("hex");
+          await store.create({
+            id: conversationId,
+            ownerId: actor.id,
+            connection: actor.connection,
+            operationId: input.operationId,
+            title: "File transfer",
+            updatedAt: new Date().toISOString(),
+            messages: [],
+            actions: [],
+            run: null,
+            requests: [],
+            downloads: {},
+            canResume: false,
+          });
+          await access(context, conversationId);
+          const ready = (await store.attachments(conversationId, actor.id)).find(
+            (file) => file.state === "ready",
+          );
+          if (ready) {
+            if (
+              ready.name !== input.name ||
+              ready.contentType !== input.contentType ||
+              ready.sha256 !== createHash("sha256").update(input.bytes).digest("hex")
+            )
+              throw new AgentsError("INVALID");
+            await files(context, conversationId).get(ready.id);
+            return metadata(ready);
+          }
+          return attach(context, { ...input, conversationId });
+        },
         async read(operationId: string, toolName: string, input: unknown) {
           await connectionActor(context);
           const operation = await permit(context, operationId);
           const tool = operation.tools.find((tool) => tool.name === toolName);
           if (!tool) throw new AgentsError("INVALID");
-          return executor.read(context, tool, input, noExternalFiles);
+          return executor.read(context, tool, input, externalFiles(context));
         },
         async propose(operationId: string, toolName: string, raw: unknown, requestId: string) {
           const actor = await connectionActor(context);
@@ -438,7 +509,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
               context,
               tool,
               input,
-              noExternalFiles,
+              externalFiles(context),
               messageId,
               requestId,
             );
@@ -542,6 +613,8 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
           const download = record.downloads[parse(id, messageId)];
           const tool = download && operation.tools.find((tool) => tool.name === download.tool);
           if (!tool || tool.kind !== "read" || !tool.download) throw new AgentsError("NOT_FOUND");
+          if (tool.authorize && !(await tool.authorize(context)))
+            throw new AgentsError("FORBIDDEN");
           return tool.download(context, parse(tool.schema, download.input));
         },
         async cleanup(conversationId: string) {
