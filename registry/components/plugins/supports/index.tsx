@@ -9,7 +9,11 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { SupportComposer } from "@/components/plugins/supports/composer";
-import { supportsLabels, type SupportsLabels } from "@/components/plugins/supports/labels";
+import {
+  supportTypeShortLabels,
+  supportsLabels,
+  type SupportsLabels,
+} from "@/components/plugins/supports/labels";
 import { SUPPORT_PAGE_SIZE } from "@/components/plugins/supports/schema";
 import type {
   SupportActivity,
@@ -179,17 +183,13 @@ function SupportsContent({
           <table className={tableClass}>
             <thead>
               <tr>
-                {[
-                  labels.ticketTitle,
-                  labels.type,
-                  labels.status,
-                  labels.author,
-                  labels.updated,
-                ].map((label, index) => (
-                  <th key={index} scope="col" className={tableHeaderClass}>
-                    {label}
-                  </th>
-                ))}
+                {[labels.ticketTitle, labels.status, labels.author, labels.updated].map(
+                  (label, index) => (
+                    <th key={index} scope="col" className={tableHeaderClass}>
+                      {label}
+                    </th>
+                  ),
+                )}
                 <th scope="col" className={tableActionHeaderClass}>
                   <span className="sr-only">{labels.actions}</span>
                 </th>
@@ -198,7 +198,7 @@ function SupportsContent({
             <tbody>
               {cancellation.error && (
                 <tr>
-                  <td colSpan={6} className="p-4">
+                  <td colSpan={5} className="p-4">
                     <p role="alert" className="text-destructive">
                       {supportError(cancellation.error, {
                         ...labels,
@@ -210,7 +210,7 @@ function SupportsContent({
               )}
               {error && (
                 <tr>
-                  <td colSpan={6} className="p-4">
+                  <td colSpan={5} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <p role="alert" className="text-destructive">
                         {labels.loadError}
@@ -226,7 +226,7 @@ function SupportsContent({
               )}
               {!tickets.length && !error && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
                     <output>{loading ? labels.loading : labels.empty}</output>
                   </td>
                 </tr>
@@ -236,13 +236,13 @@ function SupportsContent({
                   <td className={tableCellClass}>
                     <TicketLink
                       href={getTicketHref(ticket)}
-                      className="inline-flex min-h-10 items-center rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring md:min-h-8"
+                      className="inline-block min-h-10 content-center rounded-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring md:min-h-8"
                     >
+                      <span className="text-muted-foreground">
+                        {overrides?.[ticket.type] ?? supportTypeShortLabels[ticket.type]}:
+                      </span>{" "}
                       {ticket.title}
                     </TicketLink>
-                  </td>
-                  <td className={tableCellClass}>
-                    <SupportTypeBadge type={ticket.type} labels={labels} />
                   </td>
                   <td className={tableCellClass}>
                     <SupportStatusBadge status={ticket.status} labels={labels} />

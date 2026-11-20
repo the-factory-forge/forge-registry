@@ -65,3 +65,9 @@ export const supportsLabels = {
   total: (count: number) => `${count} tickets`,
 };
 export type SupportsLabels = typeof supportsLabels;
+
+export const supportTypeShortLabels = {
+  bug: supportsLabels.bug,
+  feature: "Feat",
+  support: "Sup",
+};

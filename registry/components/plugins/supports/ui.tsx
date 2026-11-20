@@ -33,16 +33,8 @@ export function SupportMarkdown({ value }: { value: string }) {
 const supportBadgeClass =
   "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium";
 
-const supportTypeBadgeColors = {
-  bug: "bg-destructive text-destructive-foreground",
-  feature: "bg-primary text-primary-foreground",
-  support: "bg-status-info text-status-info-foreground",
-} satisfies Record<SupportType, string>;
-
 export function SupportTypeBadge({ type, labels }: { type: SupportType; labels: SupportsLabels }) {
-  return (
-    <span className={cn(supportBadgeClass, supportTypeBadgeColors[type])}>{labels[type]}</span>
-  );
+  return <span className={cn(supportBadgeClass, "text-muted-foreground")}>{labels[type]}</span>;
 }
 
 export function SupportStatusBadge({

@@ -102,7 +102,7 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
     }
   }
   await page.getByRole("link", { name: "Back to support", exact: true }).click();
-  await page.getByRole("link", { name: "Screenshot support test", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Bug: Screenshot support test", exact: true }).waitFor();
   assert.deepEqual(errors, []);
 });
 
@@ -115,7 +115,13 @@ await test("support navigation, URL history, validation and pending dialog guard
     .getByRole("navigation", { name: "Support navigation" })
     .getByRole("link", { name: "Support", exact: true })
     .click();
-  await page.getByRole("table").waitFor();
+  const table = page.getByRole("table");
+  await table.waitFor();
+  assert.equal(await table.getByRole("columnheader", { name: "Type", exact: true }).count(), 0);
+  await table
+    .getByRole("link", { name: "Feat: Add opening hours to the contact page", exact: true })
+    .waitFor();
+  await table.getByRole("link", { name: "Sup: Update the team photo", exact: true }).waitFor();
   await page.getByRole("button", { name: "Next page", exact: true }).click();
   await page.waitForURL((url) => Number(JSON.parse(url.searchParams.get("page") ?? "1")) === 2);
   await page.reload();
@@ -126,7 +132,7 @@ await test("support navigation, URL history, validation and pending dialog guard
   await page.getByRole("button", { name: "Search tickets", exact: true }).click();
   await page.getByRole("searchbox", { name: "Search tickets", exact: true }).fill("Contact form");
   await page
-    .getByRole("link", { name: "Contact form confirmation is missing", exact: true })
+    .getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true })
     .waitFor();
   assert(!new URL(page.url()).searchParams.has("page"));
   await page.reload();
@@ -301,7 +307,7 @@ await test("ticket actions stay visible on overflow and closing requires recover
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${base}/en/intranet/supports`);
   await page
-    .getByRole("link", { name: "Contact form confirmation is missing", exact: true })
+    .getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true })
     .click();
   const article = page.locator("article");
   const close = article.getByRole("button", { name: "Close ticket", exact: true });
