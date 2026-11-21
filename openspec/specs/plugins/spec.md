@@ -104,6 +104,7 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 
 - **WHEN** the host exposes priority editing and staff create or update a ticket
 - **THEN** they can select Urgent, High, Medium, Low or No priority and see the saved value in the queue and discussion
+- **AND** the queue shows Priority immediately after Status
 - **AND** existing tickets without a priority and legacy P4 tickets display No priority
 
 #### Scenario: Viewing and canceling from the queue

@@ -245,23 +245,29 @@ function SupportsContent({
                   [
                     ["title", labels.ticketTitle],
                     ["status", labels.status],
+                    ["priority", labels.priority],
                     ["author", labels.author],
                     ["updatedAt", labels.updated],
                   ] as const
-                ).map(([column, label]) => (
-                  <TableSortHeader
-                    key={column}
-                    field={column}
-                    label={label}
-                    {...order}
-                    onValueChange={onSortChange ? order.onValueChange : undefined}
-                  />
-                ))}
-                {client.setPriority && (
-                  <th scope="col" className={tableHeaderClass}>
-                    {labels.priority}
-                  </th>
-                )}
+                ).map(([column, label]) => {
+                  if (column === "priority") {
+                    return client.setPriority ? (
+                      <th key={column} scope="col" className={tableHeaderClass}>
+                        {label}
+                      </th>
+                    ) : null;
+                  }
+
+                  return (
+                    <TableSortHeader
+                      key={column}
+                      field={column}
+                      label={label}
+                      {...order}
+                      onValueChange={onSortChange ? order.onValueChange : undefined}
+                    />
+                  );
+                })}
                 <th scope="col" className={tableActionHeaderClass}>
                   <span className="sr-only">{labels.actions}</span>
                 </th>
@@ -324,11 +330,6 @@ function SupportsContent({
                       <SupportStatusBadge status={ticket.status} labels={labels} />
                     )}
                   </td>
-
-                  <td className={tableCellClass}>{ticket.author.name}</td>
-                  <td className={cn(tableCellClass, "whitespace-nowrap tabular-nums")}>
-                    <time dateTime={ticket.updatedAt}>{formatDate(ticket.updatedAt)}</time>
-                  </td>
                   {client.setPriority && (
                     <td className={cn(tableCellClass, "whitespace-nowrap")}>
                       {isSelectablePriority(ticket.priority) ? (
@@ -338,6 +339,10 @@ function SupportsContent({
                       )}
                     </td>
                   )}
+                  <td className={tableCellClass}>{ticket.author.name}</td>
+                  <td className={cn(tableCellClass, "whitespace-nowrap tabular-nums")}>
+                    <time dateTime={ticket.updatedAt}>{formatDate(ticket.updatedAt)}</time>
+                  </td>
                   <td className={tableActionCellClass} aria-label={labels.actions}>
                     <div className={tableActionsClass}>
                       <IconTooltip label={labels.view}>

@@ -24,10 +24,12 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   });
   await page.goto(`${base}/en/intranet/supports`);
   await page.getByRole("table").waitFor();
+  assert.equal(await page.getByRole("columnheader").nth(2).textContent(), "Priority");
   await page.getByRole("button", { name: "Refresh tickets", exact: true }).click();
-  await page
-    .getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true })
-    .waitFor();
+  const firstTicket = page.getByRole("row").filter({
+    has: page.getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true }),
+  });
+  assert.equal(await firstTicket.getByRole("cell").nth(2).textContent(), "No priority");
   await page.getByRole("button", { name: "Support ticket", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New support ticket" });
   await dialog.waitFor();
