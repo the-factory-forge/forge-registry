@@ -32,6 +32,10 @@ function createDemo() {
   let fail = false;
   function queue(value: string) {
     pending.push(value);
+    if (connection.state === "blocked" || (connection.state === "failed" && !connection.issueUrl)) {
+      connection = { ...connection, pending: pending.length };
+      return;
+    }
     connection = {
       ...connection,
       state: "pending",
@@ -96,12 +100,13 @@ function createDemo() {
       imported.length = 0;
       remote.length = 0;
       pending.length = 0;
-      connection = { ...connection, issueUrl: null };
+      connection = { ...connection, state: "unlinked", issueUrl: null };
       queue(`Alex Morgan: ${ticket.description}`);
       return ticket.id;
     },
     deliver() {
       if (connection.state === "unlinked" || connection.state === "blocked") return;
+      if (connection.state === "failed" && !connection.issueUrl) return;
       if (fail) {
         connection = { ...connection, state: "failed", failure: "DELIVERY", canRetry: true };
         return;

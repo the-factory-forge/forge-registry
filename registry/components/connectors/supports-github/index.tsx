@@ -27,6 +27,7 @@ export const supportsGithubLabels = {
   refresh: "Refresh GitHub connection",
   issue: "View GitHub issue",
   send: "Send to GitHub",
+  savedForSend: "Your ticket is saved here. Send it to GitHub when the connection is back.",
   retry: "Retry delivery",
   cancel: "Cancel",
   saving: "Saving…",
@@ -46,7 +47,9 @@ export const supportsGithubLabels = {
   STALE_STATUS:
     "A newer GitHub status replaced an older queued change. Change the ticket status again if needed.",
 };
-export type SupportsGithubLabels = typeof supportsGithubLabels;
+export type SupportsGithubLabels = Omit<typeof supportsGithubLabels, "savedForSend"> & {
+  savedForSend?: string;
+};
 export interface SupportGithubCardProps {
   ticketId: string;
   client: SupportsGithubClient;
@@ -94,6 +97,7 @@ export function SupportGithubCard({
   }, [client, ticketId, scope, refresh, revision]);
   const current = loaded?.scope === scope ? loaded : undefined;
   const connection = current?.value;
+  const awaitingSend = connection?.canRetry && connection.issueUrl === null;
   const confirming = confirmScope === scope;
   const change = (action: () => Promise<void>) => {
     void mutation.run(action, () => {
@@ -138,7 +142,7 @@ export function SupportGithubCard({
       <p className="text-sm text-muted-foreground">{labels.images}</p>
       {connection?.failure && (
         <p role="alert" className="text-sm text-destructive">
-          {labels[connection.failure]}
+          {awaitingSend ? labels.savedForSend : labels[connection.failure]}
         </p>
       )}
       {mutation.error && !confirming && (
@@ -166,11 +170,11 @@ export function SupportGithubCard({
         {connection?.canRetry && (
           <button
             type="button"
-            className={buttonClass}
+            className={awaitingSend ? primaryClass : buttonClass}
             disabled={!canWrite || mutation.pending}
             onClick={() => change(() => client.retry(ticketId))}
           >
-            {mutation.pending ? labels.saving : labels.retry}
+            {mutation.pending ? labels.saving : awaitingSend ? labels.send : labels.retry}
           </button>
         )}
       </div>

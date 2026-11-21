@@ -3053,6 +3053,14 @@ server methods, persistence, installation and production acceptance boundaries.
 - **THEN** the original description, complete saved discussion, author attribution and current status export exactly once, including concurrent replies
 - **AND** installation itself exports no old ticket and creates no repository
 
+#### Scenario: Sending a ticket after an outage
+
+- **WHEN** the first delivery fails and the connector knows the issue was not created
+- **THEN** the ticket and later replies remain saved locally, including after the connection recovers and the worker runs again
+- **WHEN** authorized staff select **Send to GitHub**
+- **THEN** the existing job resumes and delivers one issue and its queued replies in order
+- **AND** an uncertain write remains subject to marker reconciliation and guarded recovery
+
 #### Scenario: Synchronizing replies and status
 
 - **WHEN** new local replies or close/cancel/reopen actions commit

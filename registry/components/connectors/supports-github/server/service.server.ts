@@ -793,6 +793,8 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           work.find((entry) => entry.failure !== "TOO_LONG") ??
           null;
         if (!job || job.availableAt > new Date()) continue;
+        // Staff release a failed first delivery with Send to GitHub. Later replies wait behind it.
+        if (job.kind === "create" && job.state === "failed") continue;
         examined++;
         if (job.state === "blocked" || job.state === "sending") {
           if (job.failure === "UNCERTAIN" || job.state === "sending")

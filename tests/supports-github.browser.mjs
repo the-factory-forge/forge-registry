@@ -60,6 +60,19 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
   await page.getByRole("heading", { name: "New website request" }).waitFor();
   await card.getByText("Delivery pending", { exact: true }).waitFor();
   assert.equal(await card.getByRole("button", { name: "Send to GitHub" }).count(), 0);
+  const worker = page.getByRole("button", { name: "Run delivery worker", exact: true });
+  const send = card.getByRole("button", { name: "Send to GitHub", exact: true });
+  await page.getByLabel("Simulate GitHub failure").check();
+  await worker.click();
+  await card.getByRole("alert").filter({ hasText: "Your ticket is saved here" }).waitFor();
+  await page.getByLabel("Simulate GitHub failure").uncheck();
+  await page.getByRole("textbox", { name: "Reply", exact: true }).fill("Still saved locally");
+  await page.getByRole("button", { name: "Post reply", exact: true }).click();
+  await worker.click();
+  await remote.getByText("No delivery yet.").waitFor();
+  await page.getByLabel("Read-only connection").check();
+  assert(await send.isDisabled());
+  await page.getByLabel("Read-only connection").uncheck();
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const theme of ["light", "dark"]) {
@@ -75,5 +88,11 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
       });
     }
   }
+  await send.focus();
+  await page.keyboard.press("Enter");
+  await card.getByText("Delivery pending", { exact: true }).waitFor();
+  await worker.click();
+  await card.getByText("Synchronized", { exact: true }).waitFor();
+  await remote.getByText("Alex Morgan: Still saved locally", { exact: true }).waitFor();
   assert.deepEqual(errors, []);
 });

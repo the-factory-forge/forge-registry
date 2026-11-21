@@ -2,9 +2,14 @@
 
 Install `@forge/supports-github` and `@forge/supports-github-server` alongside
 Supports. This connector sends staff website requests to one host-configured
-private repository per site. New tickets automatically create issues; existing
-tickets require staff to confirm **Send to GitHub**. Installation performs no
-repository creation, export, migration or network request.
+private repository per site. New tickets queue for automatic issue creation.
+If GitHub is unreachable or rejects the first delivery before an issue is created,
+the ticket and subsequent replies stay local until staff select **Send to GitHub**.
+The worker resumes the existing job and delivers the saved discussion in order.
+If GitHub may already have created the issue, marker reconciliation and operator
+recovery apply. Tickets that predate the connector still require staff to confirm
+their export. Installation performs no repository creation, export, migration or
+network request.
 
 The [showroom](https://registry.the-corner.swiss/connectors/supports-github) uses
 in-memory data. The registry owns this implementation and its

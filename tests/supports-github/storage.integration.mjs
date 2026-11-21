@@ -297,6 +297,30 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
       assert.equal(f.remote.issues.length, 1);
     },
   );
+  await t.test("a failed first delivery waits for staff to send the saved discussion", async () => {
+    const f = await fixture();
+    const ticket = await f.create();
+    f.remote.settings.fail = "create";
+    await f.connector.process();
+    assert.equal((await f.ui.get(ticket.id)).canRetry, true);
+    await f.comment(ticket.id, "First follow-up");
+    await f.comment(ticket.id, "Second follow-up");
+
+    f.remote.settings.fail = null;
+    await pool`update supports_github_job set available_at = now() where ticket_id = ${ticket.id}`;
+    await f.connector.reconcile();
+    await f.drain();
+    assert.equal(f.remote.issues.length, 0);
+    assert.equal((await f.staff.get(ticket.id)).activity.length, 2);
+    await Promise.all([f.ui.retry(ticket.id), f.ui.retry(ticket.id)]);
+    await f.drain();
+    assert.equal(f.remote.issues.length, 1);
+    const replies = f.remote.comments.get(1);
+    assert.equal(replies.length, 2);
+    assert.match(replies[0].body, /First follow-up/);
+    assert.match(replies[1].body, /Second follow-up/);
+    assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
+  });
   await t.test(
     "private repository validation, safe retry and changed configuration preserve local content",
     async () => {
