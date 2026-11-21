@@ -18,6 +18,7 @@ import {
   supportCreateSchema,
   supportIdSchema,
   supportImageType,
+  supportPrioritySchema,
   supportQuerySchema,
   supportStatusSchema,
 } from "@/components/plugins/supports/schema";
@@ -195,6 +196,7 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
           title: input.title,
           description: input.description,
           type: input.type,
+          priority: input.priority,
           author: actor,
           createdAt: now,
           updatedAt: now,
@@ -412,6 +414,19 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
             await options.onMutation?.(tx, { kind: "status", ticketId: id, activityId });
           });
         }),
+      setPriority: (id: string, input: unknown) =>
+        guard(async () => {
+          await permit(context, "status", id);
+          const priority = supportPrioritySchema.nullable().parse(input);
+          await db.transaction(async (tx) => {
+            const row = await record(tx, id, true);
+            await permit(context, "status", id);
+            if (row.priority === priority) return;
+            const updatedAt = new Date(Math.max(Date.now(), row.updatedAt.getTime() + 1));
+            await tx.update(tickets).set({ priority, updatedAt }).where(eq(tickets.id, id));
+            await options.onMutation?.(tx, { kind: "priority", ticketId: id, priority });
+          });
+        }),
       upload: async ({ requestId, file }: { requestId: string; file: File }) => {
         await permit(context, "upload");
         if (file.size > SUPPORT_MAX_IMAGE_BYTES) throw new SupportsError("INVALID");
@@ -468,9 +483,10 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
         }),
     };
   }
-  /** Trusted host scheduler only. No browser transport; final attachments never expire. */
-  async function maintenance() {
+  /** Trusted host cleanup. Final attachments never expire. */
+  async function maintenance(limit = 50) {
     return guard(async () => {
+      z.number().int().min(1).max(50).parse(limit);
       objectStorage();
       const rows = await db
         .select()
@@ -483,7 +499,7 @@ export function createSupportsStorage<Context>(options: SupportsStorageOptions<C
           ),
         )
         .orderBy(asc(attachments.updatedAt), asc(attachments.id))
-        .limit(50);
+        .limit(limit);
       let failed = 0;
       for (const row of rows) {
         try {

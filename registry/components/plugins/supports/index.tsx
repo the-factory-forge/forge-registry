@@ -1,7 +1,15 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowLeftIcon, CircleHelpIcon, EyeIcon, PlusIcon, XIcon } from "lucide-react";
+import { Toast } from "@base-ui/react/toast";
+import {
+  ArrowLeftIcon,
+  CircleHelpIcon,
+  EyeIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  XIcon,
+} from "lucide-react";
 import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
@@ -30,9 +38,11 @@ import type {
 import {
   SupportAttachments,
   SupportMarkdown,
+  SupportPrioritySelect,
   SupportStatusBadge,
   SupportTypeBadge,
   buttonClass,
+  isSelectablePriority,
   primaryClass,
   supportError,
 } from "@/components/plugins/supports/ui";
@@ -44,6 +54,7 @@ import {
   tablePanelClass,
   tableClass,
   tableRowClass,
+  tableHeaderClass,
   tableCellClass,
   tableActionCellClass,
   tableActionHeaderClass,
@@ -131,6 +142,7 @@ export function SupportCreateDialog({
 }
 export interface SupportsPageProps extends Appearance {
   client: SupportsClient;
+  renderStatus?: (ticketId: string) => ReactNode;
   tickets: readonly SupportTicket[];
   total: number;
   search: string;
@@ -146,9 +158,11 @@ export interface SupportsPageProps extends Appearance {
   loading?: boolean;
   error?: boolean;
   onRetry?: () => void;
+  onRefresh?: () => void;
 }
 function SupportsContent({
   client,
+  renderStatus,
   tickets,
   total,
   search,
@@ -164,6 +178,7 @@ function SupportsContent({
   loading,
   error,
   onRetry,
+  onRefresh,
   labels: overrides,
   linkComponent: TicketLink = Link,
   formatDate = formatDateDefault,
@@ -205,6 +220,19 @@ function SupportsContent({
             clearLabel={labels.clearSearch}
             maxLength={250}
           />
+          {onRefresh && (
+            <IconTooltip label={labels.refresh}>
+              <button
+                type="button"
+                aria-label={labels.refresh}
+                disabled={loading}
+                className={cn(buttonClass, "size-10 rounded-md p-0 md:size-8")}
+                onClick={onRefresh}
+              >
+                <RefreshCwIcon className="size-4" aria-hidden="true" />
+              </button>
+            </IconTooltip>
+          )}
           <SupportCreateDialog client={client} labels={labels} onCreated={onCreated} />
         </div>
       </header>
@@ -229,6 +257,11 @@ function SupportsContent({
                     onValueChange={onSortChange ? order.onValueChange : undefined}
                   />
                 ))}
+                {client.setPriority && (
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.priority}
+                  </th>
+                )}
                 <th scope="col" className={tableActionHeaderClass}>
                   <span className="sr-only">{labels.actions}</span>
                 </th>
@@ -237,7 +270,7 @@ function SupportsContent({
             <tbody>
               {cancellation.error && (
                 <tr>
-                  <td colSpan={5} className="p-4">
+                  <td colSpan={client.setPriority ? 6 : 5} className="p-4">
                     <p role="alert" className="text-destructive">
                       {supportError(cancellation.error, {
                         ...labels,
@@ -249,7 +282,7 @@ function SupportsContent({
               )}
               {error && (
                 <tr>
-                  <td colSpan={5} className="p-4">
+                  <td colSpan={client.setPriority ? 6 : 5} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <p role="alert" className="text-destructive">
                         {labels.loadError}
@@ -265,7 +298,10 @@ function SupportsContent({
               )}
               {!tickets.length && !error && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={client.setPriority ? 6 : 5}
+                    className="p-8 text-center text-muted-foreground"
+                  >
                     <output>{loading ? labels.loading : labels.empty}</output>
                   </td>
                 </tr>
@@ -284,12 +320,24 @@ function SupportsContent({
                     </TicketLink>
                   </td>
                   <td className={tableCellClass}>
-                    <SupportStatusBadge status={ticket.status} labels={labels} />
+                    {renderStatus?.(ticket.id) ?? (
+                      <SupportStatusBadge status={ticket.status} labels={labels} />
+                    )}
                   </td>
+
                   <td className={tableCellClass}>{ticket.author.name}</td>
                   <td className={cn(tableCellClass, "whitespace-nowrap tabular-nums")}>
                     <time dateTime={ticket.updatedAt}>{formatDate(ticket.updatedAt)}</time>
                   </td>
+                  {client.setPriority && (
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      {isSelectablePriority(ticket.priority) ? (
+                        labels[ticket.priority]
+                      ) : (
+                        <span className="text-muted-foreground">{labels.noPriority}</span>
+                      )}
+                    </td>
+                  )}
                   <td className={tableActionCellClass} aria-label={labels.actions}>
                     <div className={tableActionsClass}>
                       <IconTooltip label={labels.view}>
@@ -366,6 +414,8 @@ export function SupportsPage(props: SupportsPageProps) {
 }
 export interface SupportDetailPageProps extends Appearance {
   integrationContent?: ReactNode;
+  attachmentNote?: string;
+  statusBadge?: ReactNode;
   client: SupportsClient;
   ticket: SupportTicket;
   activity: readonly SupportActivity[];
@@ -377,6 +427,8 @@ export interface SupportDetailPageProps extends Appearance {
 }
 function DetailContent({
   integrationContent,
+  attachmentNote,
+  statusBadge,
   client,
   ticket,
   activity,
@@ -394,6 +446,8 @@ function DetailContent({
   const toast = useActionToast();
   const scope = useMemo(() => ({ client, id: ticket.id }), [client, ticket.id]);
   const status = useOptimisticAction(ticket.status, scope);
+  const notifications = Toast.useToastManager();
+  const priority = useOptimisticAction(ticket.priority ?? null, scope);
   const [closeScope, setCloseScope] = useState<typeof scope | null>(null);
   const statusButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
@@ -444,13 +498,34 @@ function DetailContent({
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <h1 className="min-w-0 text-2xl font-semibold break-words">{ticket.title}</h1>
-            <SupportStatusBadge status={status.value} labels={labels} />
+            {statusBadge ?? <SupportStatusBadge status={status.value} labels={labels} />}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <SupportTypeBadge type={ticket.type} labels={labels} />
             <span>{ticket.author.name}</span>
             <time dateTime={ticket.createdAt}>{formatDate(ticket.createdAt)}</time>
           </div>
+          {client.setPriority && (
+            <div className="w-fit max-w-full">
+              <SupportPrioritySelect
+                value={priority.value}
+                disabled={priority.pending}
+                labels={labels}
+                onChange={(next) => {
+                  void priority
+                    .run(
+                      () => next,
+                      () => client.setPriority!(ticket.id, next).finally(onChanged),
+                      () => toast(labels.prioritySaved),
+                    )
+                    .catch(() => {
+                      if (priority.isCurrent())
+                        notifications.add({ title: labels.priorityError, type: "error" });
+                    });
+                }}
+              />
+            </div>
+          )}
         </header>
         {integrationContent}
         {status.error && !confirming && (
@@ -469,7 +544,12 @@ function DetailContent({
           </div>
         )}
         <SupportMarkdown value={ticket.description} />
-        <SupportAttachments files={ticket.attachments} client={client} labels={labels} />
+        <SupportAttachments
+          files={ticket.attachments}
+          client={client}
+          labels={labels}
+          note={attachmentNote}
+        />
         <section className="space-y-5 border-t border-border pt-5" aria-label={labels.discussion}>
           <h2 className="text-lg font-semibold">{labels.discussion}</h2>
           {!activity.length && <p className="text-sm text-muted-foreground">{labels.noActivity}</p>}
@@ -495,7 +575,12 @@ function DetailContent({
                   </time>
                 </div>
                 {entry.body && <SupportMarkdown value={entry.body} />}
-                <SupportAttachments files={entry.attachments} client={client} labels={labels} />
+                <SupportAttachments
+                  files={entry.attachments}
+                  client={client}
+                  labels={labels}
+                  note={attachmentNote}
+                />
               </li>
             ))}
           </ol>

@@ -235,6 +235,7 @@ export function SupportsPreview() {
             linkComponent={ShowroomLink}
             loading={loading}
             error={error}
+            onRefresh={() => void load()}
             onRetry={() => void load()}
           />
         )}

@@ -150,6 +150,23 @@ await test("supports persistence, authorization, concurrent retries and private 
     },
   );
   await t.test(
+    "priority respects staff status permissions and accepts existing unprioritized tickets",
+    async () => {
+      assert.equal((await alex.get(ticket.id)).ticket.priority, null);
+      const readOnly = createSupportsStorage({
+        ...options,
+        authorize: async (_, permission) => permission === "read",
+      }).client("alex");
+      await rejected(readOnly.setPriority(ticket.id, "P1"), "FORBIDDEN");
+      await rejected(storage.client("customer").setPriority(ticket.id, "P1"), "FORBIDDEN");
+      await rejected(alex.setPriority(ticket.id, "P5"), "INVALID");
+      await alex.setPriority(ticket.id, "P4");
+      assert.equal((await sam.get(ticket.id)).ticket.priority, "P4");
+      await sam.setPriority(ticket.id, null);
+      assert.equal((await alex.get(ticket.id)).ticket.priority, null);
+    },
+  );
+  await t.test(
     "concurrent comments and duplicate status transitions preserve all activity",
     async (t) => {
       const comment = { id: ticket.id, requestId: request(), body: "Reply", attachmentIds: [] };
@@ -291,7 +308,8 @@ await test("supports persistence, authorization, concurrent retries and private 
         .set({ expiresAt: new Date(0) })
         .where(eq(schema.supportsAttachments.id, reserved.id));
       failures.add("DeleteObjectCommand");
-      assert.equal((await storage.maintenance()).failed, 1);
+      await rejected(storage.maintenance(51), "INVALID");
+      assert.deepEqual(await storage.maintenance(1), { examined: 1, failed: 1 });
       failures.clear();
       assert.equal((await storage.maintenance()).failed, 0);
       const [deleted] = await db

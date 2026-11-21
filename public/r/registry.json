@@ -2423,6 +2423,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/supports",
+        "@forge/action-toast",
         "@forge/icon-tooltip",
         "@forge/optimistic-action",
         "@forge/cn"

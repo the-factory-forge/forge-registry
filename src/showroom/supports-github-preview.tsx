@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import {
   SupportGithubCard,
+  SupportGithubSendButton,
+  supportsGithubLabels,
   type SupportsGithubClient,
   type SupportsGithubConnection,
 } from "@/components/connectors/supports-github";
@@ -41,6 +43,22 @@ function createDemo() {
       state: "pending",
       failure: null,
       pending: pending.length,
+      canRetry: true,
+    };
+  }
+  function deliver() {
+    if (connection.state === "unlinked" || connection.state === "blocked") return;
+    if (connection.state === "failed" && !connection.issueUrl) return;
+    if (fail) {
+      connection = { ...connection, state: "failed", failure: "DELIVERY", canRetry: true };
+      return;
+    }
+    remote.push(...pending.splice(0));
+    connection = {
+      state: "synchronized",
+      issueUrl: "https://github.com/example/website/issues/42",
+      failure: null,
+      pending: 0,
       canRetry: false,
     };
   }
@@ -54,10 +72,14 @@ function createDemo() {
       const detail = await mock.client.get(id);
       queue(`${detail.ticket.author.name}: ${detail.ticket.description}`);
       detail.activity.forEach((entry) => queue(`${entry.author.name}: ${entry.body}`));
+      deliver();
+      return { ...connection };
     },
     async retry() {
-      if (readOnly || connection.state !== "failed") throw new Error("Unavailable");
-      connection = { ...connection, state: "pending", failure: null, canRetry: false };
+      if (readOnly || !connection.canRetry) throw new Error("Unavailable");
+      connection = { ...connection, state: "pending", failure: null, canRetry: true };
+      deliver();
+      return { ...connection };
     },
   };
   const client: SupportsClient = {
@@ -84,6 +106,9 @@ function createDemo() {
     client,
     github,
     remote,
+    get connection() {
+      return connection;
+    },
     dispose: mock.dispose,
     configure(values: { readOnly: boolean; fail: boolean }) {
       readOnly = values.readOnly;
@@ -104,22 +129,7 @@ function createDemo() {
       queue(`Alex Morgan: ${ticket.description}`);
       return ticket.id;
     },
-    deliver() {
-      if (connection.state === "unlinked" || connection.state === "blocked") return;
-      if (connection.state === "failed" && !connection.issueUrl) return;
-      if (fail) {
-        connection = { ...connection, state: "failed", failure: "DELIVERY", canRetry: true };
-        return;
-      }
-      remote.push(...pending.splice(0));
-      connection = {
-        state: "synchronized",
-        issueUrl: "https://github.com/example/website/issues/42",
-        failure: null,
-        pending: 0,
-        canRetry: false,
-      };
-    },
+    deliver,
     reply() {
       if (!connection.issueUrl) return;
       const body =
@@ -179,8 +189,8 @@ export function SupportsGithubPreview() {
       controls={
         <div className="space-y-4">
           <p>
-            Delivery is paused until you run the worker. The initial ticket represents an existing
-            discussion.
+            The initial ticket has a saved reply. Send it to export the discussion, or create a new
+            ticket to try automatic delivery.
           </p>
           <label className="flex items-center gap-2">
             <input
@@ -248,6 +258,22 @@ export function SupportsGithubPreview() {
           backHref="/?category=Connector"
           linkComponent={ShowroomLink}
           onChanged={changed}
+          attachmentNote={supportsGithubLabels.images}
+          statusBadge={
+            !demo.connection.issueUrl ? (
+              <SupportGithubSendButton
+                badge
+                ticketId={id}
+                client={demo.github}
+                action={demo.connection.state === "unlinked" ? "export" : "retry"}
+                failed={Boolean(demo.connection.failure)}
+                canWrite={
+                  !readOnly && (demo.connection.state === "unlinked" || demo.connection.canRetry)
+                }
+                onChanged={changed}
+              />
+            ) : undefined
+          }
           integrationContent={
             <SupportGithubCard
               ticketId={id}

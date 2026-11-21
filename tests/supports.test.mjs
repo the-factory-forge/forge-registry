@@ -28,6 +28,7 @@ await test("support inputs enforce required fields, enums, bounds and unique att
     { title: " " },
     { description: " " },
     { type: "other" },
+    { priority: "P5" },
     { title: "x".repeat(201) },
     { description: "x".repeat(5001) },
     { attachmentIds: Array(6).fill("image") },

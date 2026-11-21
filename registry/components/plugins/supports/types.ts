@@ -1,6 +1,6 @@
-import type { SupportSort } from "@/components/plugins/supports/schema";
+import type { SupportPriority, SupportSort } from "@/components/plugins/supports/schema";
 
-export type { SupportSort } from "@/components/plugins/supports/schema";
+export type { SupportPriority, SupportSort } from "@/components/plugins/supports/schema";
 export type SupportType = "bug" | "feature" | "support";
 export type SupportStatus = "open" | "closed" | "canceled";
 export interface SupportAuthor {
@@ -19,6 +19,7 @@ export interface SupportTicket {
   description: string;
   type: SupportType;
   status: SupportStatus;
+  priority?: SupportPriority | null;
   author: SupportAuthor;
   createdAt: string;
   updatedAt: string;
@@ -38,6 +39,7 @@ export interface SupportCreateInput {
   title: string;
   description: string;
   type: SupportType;
+  priority?: SupportPriority;
   attachmentIds: string[];
 }
 export interface SupportCommentInput {
@@ -67,6 +69,7 @@ export interface SupportsClient {
   create(input: SupportCreateInput): Promise<SupportTicket>;
   comment(input: SupportCommentInput): Promise<void>;
   setStatus(id: string, status: SupportStatus): Promise<void>;
+  setPriority?(id: string, priority: SupportPriority | null): Promise<void>;
   upload(input: { requestId: string; file: File }): Promise<SupportAttachment>;
   cancelUpload(id: string): Promise<void>;
   getAttachment(id: string): Promise<{ url: string }>;

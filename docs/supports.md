@@ -49,6 +49,8 @@ list after cancellation. After creation,
 `ticket`, `activity`, `client`, `backHref` and `onChanged`. Both expose `labels`,
 `className`, `linkComponent` and `formatDate`; English is the default.
 
+Pass `onRefresh` to show a localized refresh button beside the queue search. The host decides which displayed tickets to recheck.
+
 The discussion keeps Close ticket (or Reopen ticket) and Post reply in a sticky
 bottom bar. Closing uses danger styling and requires confirmation; canceling
 preserves the reply draft. Failed closure keeps the dialog open for retry.
@@ -91,6 +93,12 @@ explicit `bug`, `feature` or `support` selection. Replies accept up to 5,000
 characters and require text or at least one image. Each submission accepts up to
 five PNG/JPEG/WebP/GIF images of 10 MiB each. Images are not cropped.
 
+Hosts that expose `client.setPriority(id, value)` enable priority on creation, in
+the queue and on the discussion. The selector shows No priority, Urgent, High,
+Medium and Low. They correspond to `null` and `P0` through `P3`. Storage also
+accepts legacy `P4` and displays it as No priority. An edit requires the same
+staff permission as a status change. Updating priority leaves ticket status alone.
+
 The new ticket description shows an example for the selected type. Hosts can
 translate each example through the `bugDescriptionPlaceholder`,
 `featureDescriptionPlaceholder` and `supportDescriptionPlaceholder` labels.
@@ -128,7 +136,8 @@ Drizzle schema, then generate, review and apply an additive migration using the
 Before upgrading `supports-storage`, apply the generated migration that adds
 `supports_ticket.author_name`. PostgreSQL derives this column from each saved
 author snapshot, including existing tickets. Custom list adapters can order by
-their existing author-name field.
+their existing author-name field. Include the nullable `supports_ticket.priority`
+column and its P0–P4 check in the reviewed migration. Existing rows start with no priority.
 Use a separate host database/schema per site; an S3 prefix is not database tenancy.
 
 ```ts
@@ -165,7 +174,7 @@ be consistent across tickets, not a per-record visibility filter.
 
 Expose request-scoped operations through `supports.client(context)`. The
 `SupportsClient` browser contract contains list/get/create/comment/setStatus,
-upload/cancelUpload and getAttachment. Keep session resolution, CSRF protection,
+optional setPriority, upload/cancelUpload and getAttachment. Keep session resolution, CSRF protection,
 transport validation, rate limiting and credentials server-side. Never accept an
 actor or arbitrary context from the browser. Denied reads should clear host caches.
 
@@ -201,7 +210,7 @@ until expiry; do not log or persist them as canonical references.
 
 Run `await supports.maintenance()` from a trusted host scheduler, for example once
 per hour, and alert on its returned `failed` count. Each call examines at most 50
-eligible records; run additional bounded calls for a backlog. It rotates failed
+eligible records. Request-driven hosts can pass a smaller limit, such as `supports.maintenance(1)` after an upload. It rotates failed
 records, retries deletion safely and preserves tombstones against late upload
 retries. `cancelUpload` marks an unattached image for cleanup before object deletion.
 Installation does not create a scheduler. Do not apply a bucket expiry rule to the
@@ -212,7 +221,7 @@ final Supports object prefix or remove metadata for failed cleanup.
 [Supports–GitHub](./supports-github.md) supplies private issue delivery through
 separately installed connector source. Core Supports has no provider fields or
 connector dependency. Its optional server `onMutation(transaction, event)` commits
-connector work alongside creates, replies and status changes. Enqueue failure
+connector work alongside creates, replies, priority edits and status changes. Enqueue failure
 rolls back the local submission; remote delivery happens after commit.
 
 The trusted server `integration` port exposes authorization, transaction locking,

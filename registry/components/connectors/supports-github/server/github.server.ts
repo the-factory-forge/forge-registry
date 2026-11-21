@@ -15,7 +15,11 @@ export class SupportsGithubError extends Error {
     this.retryAfter = retryAfter;
   }
 }
-const identifier = z.number().int().positive().safe();
+const identifier = z.number().int().positive();
+const issueFieldValue = z.object({
+  issue_field_id: identifier,
+  single_select_option: z.object({ name: z.string() }).nullish(),
+});
 export const githubUser = z
   .object({ id: identifier, login: z.string().min(1).max(200) })
   .nullable();
@@ -24,6 +28,7 @@ export const githubIssue = z.object({
   number: identifier,
   title: z.string(),
   body: z.string().nullable(),
+  type: z.object({ name: z.string() }).nullish(),
   state: z.enum(["open", "closed"]),
   state_reason: z.string().nullable().optional(),
   user: githubUser,
@@ -135,7 +140,7 @@ export function createGithubClient(options: {
       );
     }
     try {
-      return schema.parse(await response.json());
+      return schema.parse(response.status === 204 ? undefined : await response.json());
     } catch {
       throw new SupportsGithubError("DELIVERY", method !== "GET");
     }
@@ -189,10 +194,33 @@ export function createGithubClient(options: {
         z.array(githubComment),
       ),
     events: (number: number) => pages(`${path}/issues/${number}/events`, githubEvent),
+    async priority(number: number, fieldId: number) {
+      const fields = await pages(`${path}/issues/${number}/issue-field-values`, issueFieldValue);
+      return (
+        fields.find((field) => field.issue_field_id === fieldId)?.single_select_option?.name ?? null
+      );
+    },
+    async setPriority(number: number, fieldId: number, option: string | null) {
+      const route = `${path}/issues/${number}/issue-field-values`;
+      if (option !== null) {
+        await request(route, z.array(issueFieldValue), "POST", {
+          issue_field_values: [{ field_id: fieldId, value: option }],
+        });
+      } else {
+        try {
+          await request(`${route}/${fieldId}`, z.undefined(), "DELETE");
+        } catch (error) {
+          // A concurrent clear also returns 404. The caller verifies the field after the write.
+          if (!(error instanceof SupportsGithubError && error.code === "MISSING")) throw error;
+        }
+      }
+    },
     // Issue discovery uses the marker, not eventually consistent search results.
     issues: () => pages(`${path}/issues?state=all&sort=created&direction=desc`, githubIssue),
-    create: (title: string, body: string) =>
-      request(`${path}/issues`, githubIssue, "POST", { title, body }),
+    create: (title: string, body: string, type?: string) =>
+      request(`${path}/issues`, githubIssue, "POST", { title, body, type }),
+    setType: (number: number, type: string) =>
+      request(`${path}/issues/${number}`, githubIssue, "PATCH", { type }),
     comment: (number: number, body: string) =>
       request(`${path}/issues/${number}/comments`, githubComment, "POST", { body }),
     setStatus: (number: number, status: SupportStatus) =>

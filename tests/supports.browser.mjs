@@ -24,6 +24,10 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   });
   await page.goto(`${base}/en/intranet/supports`);
   await page.getByRole("table").waitFor();
+  await page.getByRole("button", { name: "Refresh tickets", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true })
+    .waitFor();
   await page.getByRole("button", { name: "Support ticket", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New support ticket" });
   await dialog.waitFor();
@@ -43,6 +47,15 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
     "Problem:\n1. I do …\n2. I see …\n\nI expected it to …",
   );
   assert.equal(await description.inputValue(), "");
+  const priority = dialog.getByRole("combobox", { name: "Priority" });
+  assert.deepEqual(await priority.getByRole("option").allTextContents(), [
+    "No priority",
+    "Urgent",
+    "High",
+    "Medium",
+    "Low",
+  ]);
+  await priority.selectOption({ label: "High" });
   const markdown =
     '**Visible description**\n\n```html\n<img onerror="alert(1)">\n```\n\n![External](https://support-tracker.invalid/pixel.png)\n\n[Unsafe](javascript:alert(1))\n\n<script>window.supportScriptRan=true</script>';
   await description.fill(markdown);
@@ -66,6 +79,11 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   await dialog.getByRole("button", { name: "Create ticket", exact: true }).click();
   await page.getByRole("heading", { name: "Screenshot support test", exact: true }).waitFor();
   await actionToast(page, "Ticket created.");
+  const savedPriority = page.getByRole("combobox", { name: "Priority" });
+  assert.equal(await savedPriority.inputValue(), "P1");
+  await savedPriority.selectOption({ label: "No priority" });
+  await actionToast(page, "Priority updated.");
+  assert.equal(await savedPriority.inputValue(), "");
   assert.equal(await page.locator("article figure").count(), 2);
   assert.equal(await page.locator('article a[href^="javascript:"]').count(), 0);
   assert.equal(await page.locator('article img[src*="support-tracker.invalid"]').count(), 0);

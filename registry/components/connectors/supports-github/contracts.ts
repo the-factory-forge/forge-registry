@@ -16,6 +16,6 @@ export interface SupportsGithubConnection {
 }
 export interface SupportsGithubClient {
   get(ticketId: string): Promise<SupportsGithubConnection>;
-  exportTicket(ticketId: string): Promise<void>;
-  retry(ticketId: string): Promise<void>;
+  exportTicket(ticketId: string): Promise<SupportsGithubConnection | void>;
+  retry(ticketId: string): Promise<SupportsGithubConnection | void>;
 }

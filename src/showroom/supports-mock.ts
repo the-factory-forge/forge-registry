@@ -6,6 +6,7 @@ import {
   supportCommentSchema,
   supportImageType,
   supportQuerySchema,
+  supportPrioritySchema,
 } from "@/components/plugins/supports/schema";
 import type {
   SupportActivity,
@@ -126,6 +127,7 @@ export function createSupportsMock() {
         title: input.title,
         description: input.description,
         type: input.type,
+        priority: input.priority ?? null,
         status: "open",
         author,
         createdAt: now,
@@ -172,6 +174,15 @@ export function createSupportsMock() {
       activity.set(row.id, [...(activity.get(row.id) ?? []), entry]);
       row.updatedAt = now;
       mutations.set(input.requestId, { fingerprint, id: row.id });
+    },
+    async setPriority(id, priority) {
+      await before();
+      const row = find(id);
+      const value = supportPrioritySchema.nullable().parse(priority);
+      if ((row.priority ?? null) !== value) {
+        row.priority = value;
+        row.updatedAt = new Date().toISOString();
+      }
     },
     async setStatus(id, status) {
       await before();

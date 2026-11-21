@@ -71,6 +71,12 @@ the requested page and replace the current history entry. URL-bound tables SHALL
 restore the order on reload and Back/Forward. Menu item sorting SHALL preserve
 the saved display order and restrict manual moves to that order.
 
+#### Scenario: Sorting tickets across pages
+
+- **WHEN** staff select Created by on the second page of matching tickets
+- **THEN** the queue returns to the first page with every matching ticket ordered by author before pagination
+- **AND** returning from a discussion restores that page and order
+
 ### Requirement: Supports plugin
 
 Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,
@@ -93,6 +99,12 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 - **AND** its discussion shows Markdown, authorized image attachments and chronological replies/status changes
 - **AND** comments preserve closed or canceled status until an explicit reopen
 - **AND** submitted content has no edit/delete action and author names remain as posted after account changes
+
+#### Scenario: Setting an optional priority
+
+- **WHEN** the host exposes priority editing and staff create or update a ticket
+- **THEN** they can select Urgent, High, Medium, Low or No priority and see the saved value in the queue and discussion
+- **AND** existing tickets without a priority and legacy P4 tickets display No priority
 
 #### Scenario: Viewing and canceling from the queue
 
@@ -3060,6 +3072,29 @@ server methods, persistence, installation and production acceptance boundaries.
 - **WHEN** authorized staff select **Send to GitHub**
 - **THEN** the existing job resumes and delivers one issue and its queued replies in order
 - **AND** an uncertain write remains subject to marker reconciliation and guarded recovery
+
+#### Scenario: Retrying an unsent discussion
+
+- **WHEN** an authorized viewer opens the queue or discussion before an issue is confirmed
+- **THEN** the host can display a gray Pending badge and staff can use it to send or check delivery
+- **AND** a failed attempt shows a disconnected icon and an error toast
+- **AND** image access guidance appears only alongside actual attachments
+- **WHEN** a create or comment acknowledgement is lost
+- **THEN** a matching receipt from the configured App confirms the write and retry cannot duplicate it
+
+#### Scenario: Request-driven delivery
+
+- **WHEN** a host sends a ticket after its local transaction commits
+- **THEN** only that ticket’s eligible outbound jobs run, preserving receipts and queued order
+- **WHEN** the host enables immediate webhook processing or staff refresh the discussion
+- **THEN** accepted remote activity can appear without waiting for scheduled processing, and a refresh never sends queued outbound writes
+
+#### Scenario: Mapping ticket metadata
+
+- **WHEN** a host configures its organization's issue types and Priority field
+- **THEN** delivery assigns its native issue type once and synchronizes priority on creation, subsequent edits and clearing
+- **AND** later GitHub type changes and unrelated issue fields are preserved
+- **AND** hosts can use either mapping independently
 
 #### Scenario: Synchronizing replies and status
 

@@ -1,5 +1,16 @@
 import { tableSortLabels } from "@/components/utils/table-sort-state";
 
+const priorityLabels = {
+  priority: "Priority",
+  noPriority: "No priority",
+  P0: "Urgent",
+  P1: "High",
+  P2: "Medium",
+  P3: "Low",
+  prioritySaved: "Priority updated.",
+  priorityError: "Could not update the priority. Try again.",
+};
+
 export const supportsLabels = {
   ...tableSortLabels,
   title: "Support",
@@ -14,6 +25,7 @@ export const supportsLabels = {
   supportDescriptionPlaceholder: "I need help with …\nI’ve already tried …",
   type: "Type",
   chooseType: "Choose a type",
+  ...priorityLabels,
   bug: "Bug",
   feature: "Feature",
   support: "Support",
@@ -28,6 +40,7 @@ export const supportsLabels = {
   cancelTicket: "Cancel request",
   cancelError: "Could not cancel this request. Please try again.",
   search: "Search tickets",
+  refresh: "Refresh tickets",
   clearSearch: "Clear search",
   empty: "No support tickets found.",
   loading: "Loading tickets…",
@@ -70,8 +83,11 @@ export const supportsLabels = {
   loadMore: "Load more activity",
   total: (count: number) => `${count} tickets`,
 };
-export type SupportsLabels = Omit<typeof supportsLabels, keyof typeof tableSortLabels> &
-  Partial<typeof tableSortLabels>;
+export type SupportsLabels = Omit<
+  typeof supportsLabels,
+  keyof typeof tableSortLabels | keyof typeof priorityLabels | "refresh"
+> &
+  Partial<typeof tableSortLabels & typeof priorityLabels & Pick<typeof supportsLabels, "refresh">>;
 
 export const supportTypeShortLabels = {
   bug: supportsLabels.bug,

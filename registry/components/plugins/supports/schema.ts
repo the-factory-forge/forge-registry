@@ -6,6 +6,8 @@ export const SUPPORT_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const SUPPORT_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const supportIdSchema = z.string().min(1).max(200);
 export const supportStatusSchema = z.enum(["open", "closed", "canceled"]);
+export const supportPrioritySchema = z.enum(["P0", "P1", "P2", "P3", "P4"]);
+export type SupportPriority = z.infer<typeof supportPrioritySchema>;
 const attachments = z
   .array(supportIdSchema)
   .max(SUPPORT_MAX_IMAGES)
@@ -18,6 +20,7 @@ export const supportCreateSchema = z.object({
     .max(5000)
     .refine((value) => value.trim().length > 0),
   type: z.enum(["bug", "feature", "support"]),
+  priority: supportPrioritySchema.optional(),
   attachmentIds: attachments,
 });
 export const supportCommentSchema = z

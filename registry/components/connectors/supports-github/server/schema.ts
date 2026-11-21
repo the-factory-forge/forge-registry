@@ -11,12 +11,19 @@ import {
 
 import type { SupportsGithubFailure } from "@/components/connectors/supports-github/contracts";
 import { supportsTickets } from "@/components/plugins/supports/server/schema";
-import type { SupportAuthor, SupportStatus } from "@/components/plugins/supports/types";
+import type {
+  SupportAuthor,
+  SupportPriority,
+  SupportStatus,
+  SupportType,
+} from "@/components/plugins/supports/types";
 
 export interface GithubJobPayload {
   title?: string;
   body?: string;
+  type?: SupportType;
   status?: SupportStatus;
+  priority?: SupportPriority | null;
   baseRevision?: string;
   author?: SupportAuthor;
   sourceAt?: string;
@@ -55,7 +62,9 @@ export const supportsGithubJobs = pgTable(
       .references(() => supportsGithubBindings.ticketId),
     sourceKey: text("source_key").notNull().unique(),
     direction: text("direction").$type<"inbound" | "outbound">().notNull(),
-    kind: text("kind").$type<"create" | "comment" | "status" | "missing">().notNull(),
+    kind: text("kind")
+      .$type<"create" | "comment" | "status" | "type" | "priority" | "missing">()
+      .notNull(),
     state: text("state")
       .$type<"pending" | "sending" | "failed" | "blocked" | "done" | "redacted">()
       .notNull()

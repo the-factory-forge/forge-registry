@@ -1,12 +1,14 @@
 import type {
   SupportActivity,
   SupportAuthor,
+  SupportPriority,
   SupportTicket,
 } from "@/components/plugins/supports/types";
 import type { DatabaseTransaction } from "@/components/utils/database";
 
 export type SupportMutation =
   | { kind: "create"; ticketId: string }
+  | { kind: "priority"; ticketId: string; priority: SupportPriority | null }
   | { kind: "comment" | "status"; ticketId: string; activityId: string };
 
 /** Trusted server composition only; never expose this port through browser transport. */
