@@ -56,6 +56,14 @@ stylesheet does not ship with the item; forge-template supplies the defaults.
 
 ## Editing and publishing
 
+While the article is loading, render `BlogEditPage` with `article={null}`,
+`backHref`, `locales` and `defaultLocale`. Supply the same labels and link adapter
+as the loaded editor. Back stays available, a skeleton occupies the title and a
+gray status badge shows a spinner and `loadingStatus`. Title, slug and summary
+stay visible and disabled. Pass the loaded article and its normal editing props
+when ready. During background refreshes, keep passing the loaded article to
+preserve unsaved edits. Handle load failures in the host route.
+
 The small switch in the editor's status badge toggles publication for the selected
 language. The editor shows **Draft** when there is a saved draft, including when
 an earlier version is still live. The switch indicates whether the language is

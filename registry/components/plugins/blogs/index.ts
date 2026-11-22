@@ -8,6 +8,7 @@ export type {
   BlogsPageProps,
   BlogNewPageProps,
   BlogEditPageProps,
+  BlogEditPageLoadingProps,
   BlogCategoriesPageProps,
 } from "@/components/plugins/blogs/admin";
 export { BlogIndexPage, BlogPostPage, BlogMarkdown } from "@/components/plugins/blogs/public";

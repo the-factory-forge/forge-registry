@@ -1447,6 +1447,12 @@ with chronological history and detailed comparison.
   Published, unpublished changes and draft SHALL use success, pending and
   not-started colors in both list and editor.
 
+#### Scenario: Opening an article before its data arrives
+
+- **WHEN** a host renders the editor with a pending article
+- **THEN** Back remains available, the title has a skeleton and a gray status badge on the right shows translated loading text and a spinner that respects reduced motion
+- **AND** the first card displays disabled title, slug and summary controls until the article loads, then displays the article values with the editor’s normal permissions
+
 #### Scenario: Reading a blog status
 
 - **WHEN** a blog translation is published, has unpublished changes, or is a draft

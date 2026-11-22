@@ -283,7 +283,10 @@ export function BlogsAdminPreview() {
       ignoreBlocker: true,
     });
   }
-  const currentArticle = state.mock.all().find((article) => article.id === segments[0]);
+  const initialLoad = state.state === "loading";
+  const currentArticle = initialLoad
+    ? undefined
+    : state.mock.all().find((article) => article.id === segments[0]);
   const [lastArticle, setLastArticle] = useState(currentArticle);
   if (
     currentArticle &&
@@ -328,7 +331,7 @@ export function BlogsAdminPreview() {
   if (segments[0]) {
     // Keep the editor mounted until its successful deletion callback navigates away.
     const article = currentArticle ?? (lastArticle?.id === segments[0] ? lastArticle : undefined);
-    if (!article)
+    if (!article && !initialLoad)
       return (
         <p role="alert" className="p-8">
           {common.labels.NOT_FOUND}{" "}
@@ -339,7 +342,7 @@ export function BlogsAdminPreview() {
       );
     return (
       <BlogEditPage
-        key={`${article.id}:${state.exampleRevision}`}
+        key={`${segments[0]}:${state.exampleRevision}`}
         onNavigationStateChange={onNavigationStateChange}
         blockedNavigation={blockedNavigation}
         {...common}
@@ -347,16 +350,16 @@ export function BlogsAdminPreview() {
           { id: "jordan", name: "Jordan Lee" },
           { id: "alex", name: "Alex Morgan" },
         ]}
-        capabilities={blogCapabilities(actor, article.shared.author?.id)}
+        capabilities={blogCapabilities(actor, article?.shared.author?.id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
             : false
         }
         imageCropLabels={blogsPreviewCropLabels[isLocale(routeLocale) ? routeLocale : "en"]}
-        article={article}
+        article={article ?? null}
         categories={state.mock.categories()}
-        assets={state.mock.assets(article.id)}
+        assets={state.mock.assets(segments[0])}
         locales={blogLocales}
         defaultLocale={locale}
         view={{ state: view, onChange: changeView }}

@@ -76,7 +76,11 @@ import {
   tableRowClass,
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
-export { BlogEditPage, type BlogEditPageProps } from "@/components/plugins/blogs/editor";
+export {
+  BlogEditPage,
+  type BlogEditPageProps,
+  type BlogEditPageLoadingProps,
+} from "@/components/plugins/blogs/editor";
 
 export interface BlogsPageProps extends BlogsAppearanceProps, TableSortProps<BlogSortField> {
   data: BlogPage<BlogListItem>;

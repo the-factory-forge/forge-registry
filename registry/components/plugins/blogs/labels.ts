@@ -20,6 +20,7 @@ export const blogsLabels = {
   popularCategories: "Categories",
   empty: "No posts found.",
   loading: "Loading…",
+  loadingStatus: "loading",
   retry: "Retry",
   error: "Something went wrong. Please try again.",
   title: "Title",
@@ -179,7 +180,11 @@ export const blogsLabels = {
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
-export type BlogsLabels = Omit<typeof blogsLabels, "clearCategory" | "close" | "createAction"> & {
+export type BlogsLabels = Omit<
+  typeof blogsLabels,
+  "clearCategory" | "close" | "createAction" | "loadingStatus"
+> & {
+  loadingStatus?: string;
   clearCategory?: string;
   close?: string;
   createAction?: string;

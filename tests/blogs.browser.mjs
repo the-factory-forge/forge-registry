@@ -97,6 +97,47 @@ await suite("Blogs browser", async () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await actionToast(page, "Draft saved.");
   }
+  await test("initial article loading keeps Back available and disables the details card", async (t) => {
+    const page = await preview(t, "/en/admin/blogs");
+    const state = page.getByLabel("Directory state", { exact: true });
+    const article = "Make room for better ideas";
+    const back = page.getByRole("link", { name: "Posts", exact: true });
+    const badge = page.getByRole("status").filter({ hasText: /^loading$/ });
+    const fields = ["Title", "Slug", "Summary"].map((name) =>
+      page.getByRole("textbox", { name, exact: true }),
+    );
+    await state.selectOption("loading");
+    await page.getByRole("link", { name: article, exact: true }).click();
+    await badge.waitFor();
+    for (const field of fields) {
+      assert.ok(await field.isVisible());
+      assert.ok(await field.isDisabled());
+      assert.equal(await field.inputValue(), "");
+    }
+    const header = page.locator("header").filter({ has: badge });
+    const skeleton = header.locator('[aria-hidden="true"]').first();
+    const placeholderBox = await skeleton.boundingBox();
+    const badgeBox = await badge.boundingBox();
+    const headerBox = await header.boundingBox();
+    assert.ok(placeholderBox.width > 0 && placeholderBox.x + placeholderBox.width < badgeBox.x);
+    assert.ok(Math.abs(badgeBox.x + badgeBox.width - headerBox.x - headerBox.width) < 1);
+    const spinner = badge.locator("svg");
+    assert.equal(await spinner.evaluate((icon) => getComputedStyle(icon).animationName), "spin");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(await spinner.evaluate((icon) => getComputedStyle(icon).animationName), "none");
+    await back.click();
+    await page.getByRole("link", { name: article, exact: true }).click();
+    await badge.waitFor();
+    const title = fields[0];
+    await state.selectOption("ready");
+    await page.getByRole("heading", { name: article, exact: true }).waitFor();
+    assert.equal(await badge.count(), 0);
+    assert.equal(await title.inputValue(), article);
+    assert.ok(await title.isEditable());
+    await title.fill("Unsaved title");
+    await state.selectOption("loading");
+    assert.equal(await title.inputValue(), "Unsaved title");
+  });
   await test("editor category shortcut opens management only for administrators", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`);
     const link = page.getByRole("link", { name: "Manage categories", exact: true });

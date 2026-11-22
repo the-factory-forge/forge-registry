@@ -5,6 +5,7 @@ import { Tabs } from "@base-ui/react/tabs";
 import {
   XIcon,
   HistoryIcon,
+  LoaderCircleIcon,
   RefreshCwIcon,
   Bold,
   Code,
@@ -16,7 +17,15 @@ import {
   PencilIcon,
   Quote,
 } from "lucide-react";
-import { useId, useEffect, useRef, useState, type SubmitEvent, type RefObject } from "react";
+import {
+  useId,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type SubmitEvent,
+  type RefObject,
+} from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
@@ -112,43 +121,75 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
   onDeleted: () => void;
 }
-function BlogEditPageContent(props: BlogEditPageProps) {
-  return <Editor key={props.article.id} {...props} />;
-}
-function Editor(props: BlogEditPageProps) {
+export type BlogEditPageLoadingProps = Pick<
+  BlogEditPageProps,
+  "backHref" | "className" | "defaultLocale" | "labels" | "linkComponent" | "locales" | "view"
+> & { article: null };
+
+function Editor({
+  props,
+  navigationRef,
+}: {
+  props: BlogEditPageProps | BlogEditPageLoadingProps;
+  navigationRef: RefObject<(next: () => void) => void>;
+}) {
   const [localLocale, setLocale] = useState(props.defaultLocale);
   const locale = props.view?.state.locale ?? localLocale;
   const labels = { ...blogsLabels, ...props.labels };
-  const navigationRef = useRef<(next: () => void) => void>((next) => next());
+  useLoadingActivity(props.article === null);
   return (
-    <section className={cn(pageClass, props.className)}>
-      <BlogEditorBackLink {...props} onLeave={(next) => navigationRef.current(next)} />
-      <Tabs.Root
-        value={locale}
-        onValueChange={(value: string) =>
-          navigationRef.current(() => {
-            if (props.view) props.view.onChange({ locale: value, versionId: null, compare: false });
-            else setLocale(value);
-          })
-        }
+    <Tabs.Root
+      value={locale}
+      onValueChange={(value: string) =>
+        navigationRef.current(() => {
+          if (props.view) props.view.onChange({ locale: value, versionId: null, compare: false });
+          else setLocale(value);
+        })
+      }
+    >
+      <Tabs.List
+        aria-label={labels.language}
+        className="flex gap-1 overflow-x-auto border-b border-border"
       >
-        <Tabs.List
-          aria-label={labels.language}
-          className="flex gap-1 overflow-x-auto border-b border-border"
-        >
-          {props.locales.map((l) => (
-            <Tabs.Tab key={l.code} type="button" value={l.code} className={languageTabClass}>
-              {l.name}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-        <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
+        {props.locales.map((l) => (
+          <Tabs.Tab
+            key={l.code}
+            type="button"
+            value={l.code}
+            disabled={props.article === null}
+            className={languageTabClass}
+          >
+            {l.name}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
+        {props.article === null ? (
+          <div className="@container/blog-editor space-y-6">
+            <header className="flex min-h-10 items-start justify-between gap-3 md:min-h-9">
+              <div
+                aria-hidden="true"
+                className="my-1.5 h-6 w-64 max-w-3/5 rounded bg-foreground/15 motion-safe:animate-pulse"
+              />
+              <output
+                className={cn(
+                  "inline-flex min-h-6 shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+                  blogStatusClass.draft,
+                )}
+              >
+                <LoaderCircleIcon aria-hidden="true" className="size-3 motion-safe:animate-spin" />
+                {props.labels?.loadingStatus ?? props.labels?.loading ?? blogsLabels.loadingStatus}
+              </output>
+            </header>
+            <BlogDetailsCard labels={labels} disabled />
+          </div>
+        ) : (
           <BlogEditorClient value={props.client}>
             <EditorForm {...props} locale={locale} navigationRef={navigationRef} />
           </BlogEditorClient>
-        </Tabs.Panel>
-      </Tabs.Root>
-    </section>
+        )}
+      </Tabs.Panel>
+    </Tabs.Root>
   );
 }
 function BlogEditorBackLink({
@@ -271,6 +312,65 @@ function BlogLeaveDialog({
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+type BlogDetailsKey = "title" | "slug" | "summary";
+
+function BlogDetailsCard({
+  labels,
+  disabled,
+  editor,
+}: {
+  labels: BlogsLabels;
+  disabled: boolean;
+  editor?: {
+    id: string;
+    fields: Pick<ReturnType<typeof useEditorValidation>, "field" | "message">;
+    content: BlogContent;
+    onChange: (key: BlogDetailsKey, value: string) => void;
+  };
+}) {
+  function inputProps(key: BlogDetailsKey) {
+    return {
+      "aria-label": labels[key],
+      ...editor?.fields.field(`${editor.id}-${key}`),
+      value: editor?.content[key] ?? "",
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        editor?.onChange(key, event.target.value),
+    };
+  }
+  return (
+    <fieldset
+      disabled={disabled}
+      className={cn(cardClass, "grid min-w-0 gap-5 @min-[32rem]/blog-editor:grid-cols-2")}
+    >
+      <label className="space-y-2 text-sm font-medium">
+        <span>{labels.title}</span>
+        <input maxLength={250} className={inputClass} {...inputProps("title")} />
+        {editor?.fields.message(`${editor.id}-title`)}
+      </label>
+      <label className="space-y-2 text-sm font-medium">
+        <span>{labels.slug}</span>
+        <input
+          maxLength={120}
+          className={inputClass}
+          {...inputProps("slug")}
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"
+        />
+        {editor?.fields.message(`${editor.id}-slug`)}
+      </label>
+      <label className="space-y-2 text-sm font-medium @min-[32rem]/blog-editor:col-span-2">
+        <span>{labels.summary}</span>
+        <textarea
+          rows={3}
+          maxLength={2000}
+          className={cn(inputClass, "h-auto py-3")}
+          {...inputProps("summary")}
+        />
+        {editor?.fields.message(`${editor.id}-summary`)}
+      </label>
+    </fieldset>
   );
 }
 
@@ -852,49 +952,11 @@ function EditorForm({
               className="space-y-6"
               aria-busy={pending}
             >
-              <fieldset
+              <BlogDetailsCard
+                labels={labels}
                 disabled={pending || readOnly}
-                className={cn(cardClass, "grid min-w-0 gap-5 @min-[32rem]/blog-editor:grid-cols-2")}
-              >
-                <label className="space-y-2 text-sm font-medium">
-                  <span>{labels.title}</span>
-                  <input
-                    maxLength={250}
-                    className={inputClass}
-                    {...fields.field(`${id}-title`)}
-                    aria-label={labels.title}
-                    value={content.title}
-                    onChange={(e) => field("title", e.target.value)}
-                  />
-                  {fields.message(`${id}-title`)}
-                </label>
-                <label className="space-y-2 text-sm font-medium">
-                  <span>{labels.slug}</span>
-                  <input
-                    maxLength={120}
-                    className={inputClass}
-                    {...fields.field(`${id}-slug`)}
-                    aria-label={labels.slug}
-                    value={content.slug}
-                    onChange={(e) => field("slug", e.target.value)}
-                    pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                  />
-                  {fields.message(`${id}-slug`)}
-                </label>
-                <label className="space-y-2 text-sm font-medium @min-[32rem]/blog-editor:col-span-2">
-                  <span>{labels.summary}</span>
-                  <textarea
-                    rows={3}
-                    maxLength={2000}
-                    className={cn(inputClass, "h-auto py-3")}
-                    {...fields.field(`${id}-summary`)}
-                    aria-label={labels.summary}
-                    value={content.summary}
-                    onChange={(e) => field("summary", e.target.value)}
-                  />
-                  {fields.message(`${id}-summary`)}
-                </label>
-              </fieldset>
+                editor={{ id, fields, content, onChange: field }}
+              />
               <fieldset disabled={pending || readOnly} className={cn(cardClass, "space-y-5")}>
                 <legend className="sr-only">{labels.shared}</legend>
                 <div>
@@ -1332,10 +1394,17 @@ function BlogCategoryEditorContent({
   );
 }
 
-export function BlogEditPage(props: BlogEditPageProps) {
+export function BlogEditPage(props: BlogEditPageProps | BlogEditPageLoadingProps) {
+  const navigationRef = useRef<(next: () => void) => void>((next) => next());
   return (
     <ActionToastProvider>
-      <BlogEditPageContent {...props} />
+      <section className={cn(pageClass, props.className)}>
+        <BlogEditorBackLink
+          {...props}
+          onLeave={props.article === null ? undefined : (next) => navigationRef.current(next)}
+        />
+        <Editor key={props.article?.id} props={props} navigationRef={navigationRef} />
+      </section>
     </ActionToastProvider>
   );
 }
