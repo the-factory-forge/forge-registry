@@ -35,8 +35,8 @@ function Home() {
 
   return (
     <ShowroomPreview>
-      <header className="max-w-3xl pt-4 pb-8 sm:pt-8 sm:pb-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl">
+      <header className="max-w-3xl pt-4 pb-8 @min-[40rem]/showroom:pt-8 @min-[40rem]/showroom:pb-10">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground @min-[40rem]/showroom:text-4xl">
           Showcase
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
@@ -84,7 +84,7 @@ function Home() {
           placeholder="Search titles or keywords..."
           alwaysExpanded
           size="default"
-          className="w-full sm:w-72"
+          className="w-full @min-[40rem]/showroom:w-72 [&_input]:text-base @min-[48rem]/showroom:[&_input]:text-sm"
         />
       </div>
 

@@ -5,20 +5,32 @@ import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
-await test("homepage cards reflow when the preview narrows on a desktop viewport", async (t) => {
+await test("homepage layout responds to preview width on a desktop viewport", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    reducedMotion: "reduce",
+  });
   await page.goto(baseURL);
   const examples = page.getByRole("region", { name: "Examples" });
+  const heading = page.getByRole("heading", { name: "Showcase", exact: true });
+  const search = page.getByRole("searchbox", { name: "Search examples" });
   const columnCount = () =>
     examples.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length);
+  const fontSize = (element) => element.evaluate((node) => getComputedStyle(node).fontSize);
+  const searchWidth = () => search.evaluate((input) => input.parentElement.offsetWidth);
 
   assert.equal(await columnCount(), 3);
   await page.getByRole("button", { name: /switch to small$/ }).click();
   assert.equal(await columnCount(), 1);
+  assert.equal(await fontSize(heading), "30px");
+  assert.equal(await fontSize(search), "16px");
+  assert.equal(await searchWidth(), (await examples.boundingBox()).width);
   await page.getByRole("button", { name: /switch to medium$/ }).click();
   assert.equal(await columnCount(), 2);
+  assert.equal(await fontSize(heading), "36px");
+  assert.equal(await fontSize(search), "14px");
 });
 
 await test("device control changes only the main page CSS width without frames or navigation", async (t) => {

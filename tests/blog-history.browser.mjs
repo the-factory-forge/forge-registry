@@ -1025,6 +1025,33 @@ void test("publishing an unedited historical draft prunes only the oldest public
   await counts(page, 5, 1, "FR");
 });
 
+void test("the missing-illustrations simulation explains where it applies", async (t) => {
+  const page = await preview(t, false, undefined, false);
+  const simulation = page.getByRole("checkbox", { name: "Simulate missing illustrations" });
+  const description = () =>
+    simulation.evaluate((input) =>
+      document.getElementById(input.getAttribute("aria-describedby"))?.textContent.trim(),
+    );
+
+  assert.equal(await simulation.isEnabled(), true);
+  assert.equal(
+    await description(),
+    "Publish a draft with illustrations to see the omission warning.",
+  );
+  await simulation.check();
+  const history = page.getByRole("checkbox", { name: "History transport", exact: true });
+  await history.uncheck();
+  assert.equal(await simulation.isDisabled(), true);
+  assert.equal(await description(), "Enable History transport to simulate missing illustrations.");
+  await history.check();
+  assert.equal(await simulation.isEnabled(), true);
+
+  await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+  await page.waitForURL(`${base}/en/admin/blogs`);
+  assert.equal(await simulation.isDisabled(), true);
+  assert.equal(await description(), "Open a post in Manage posts to try this simulation.");
+});
+
 void test("missing illustrations require explicit omission, failures remain retryable and public rendering omits them", async (t) => {
   const page = await preview(t, false);
   await counts(page, 2, 0);

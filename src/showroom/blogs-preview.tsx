@@ -1,6 +1,6 @@
 "use client";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useMatch, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -107,7 +107,10 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const selectId = `factory-showroom-blogs-${useId()}`;
   const { locale, segments } = useShowroomParams();
   const state = usePreview();
+  const adminRoute = useMatch({ from: "/_blogs/$locale/admin/blogs/$", shouldThrow: false });
   const article = state.mock.all().find((value) => value.id === segments[0]);
+  const hasArticleEditor = Boolean(adminRoute && article);
+  const canSimulateMissingImages = hasArticleEditor && state.historyEnabled;
   return (
     <Context.Provider value={state}>
       <ShowroomPreview
@@ -207,14 +210,25 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
                 Changes this post as another editor. The next save will conflict.
               </p>
             </div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={state.missingImages}
-                onChange={(event) => state.setMissingImages(event.target.checked)}
-              />
-              Simulate missing illustrations
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 has-disabled:text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={state.missingImages}
+                  disabled={!canSimulateMissingImages}
+                  aria-describedby={`${selectId}-missing-illustrations`}
+                  onChange={(event) => state.setMissingImages(event.target.checked)}
+                />
+                Simulate missing illustrations
+              </label>
+              <p id={`${selectId}-missing-illustrations`} className="text-xs text-muted-foreground">
+                {!hasArticleEditor
+                  ? "Open a post in Manage posts to try this simulation."
+                  : !state.historyEnabled
+                    ? "Enable History transport to simulate missing illustrations."
+                    : "Publish a draft with illustrations to see the omission warning."}
+              </p>
+            </div>
             <button
               onClick={() => {
                 state.mock.failNextUpload();
