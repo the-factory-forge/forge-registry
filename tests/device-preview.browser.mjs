@@ -5,6 +5,22 @@ import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 
+await test("homepage cards reflow when the preview narrows on a desktop viewport", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseURL);
+  const examples = page.getByRole("region", { name: "Examples" });
+  const columnCount = () =>
+    examples.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length);
+
+  assert.equal(await columnCount(), 3);
+  await page.getByRole("button", { name: /switch to small$/ }).click();
+  assert.equal(await columnCount(), 1);
+  await page.getByRole("button", { name: /switch to medium$/ }).click();
+  assert.equal(await columnCount(), 2);
+});
+
 await test("device control changes only the main page CSS width without frames or navigation", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
