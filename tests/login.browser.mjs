@@ -47,6 +47,32 @@ await suite("Login browser", async () => {
     assert.equal(await email.inputValue(), "member+verified@example.test");
   });
 
+  await test("password sign-in failures show a toast on each retry without moving the form", async (t) => {
+    const page = await preview(t, "/en/login");
+    await page.getByLabel("Simulate action failures").check();
+    const email = page.getByLabel("Email", { exact: true });
+    const password = page.getByLabel("Password", { exact: true });
+    const signIn = page.getByRole("button", { name: "Sign in", exact: true });
+    const loginError =
+      "Unable to sign in. Check your email and password, or contact your administrator.";
+    await email.fill("member@example.test");
+    await password.fill("example-password");
+    const emailTop = () =>
+      email.evaluate((input) => input.getBoundingClientRect().top + window.scrollY);
+    const initialTop = await emailTop();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await signIn.click();
+      await actionToast(page, loginError);
+      assert.equal(await emailTop(), initialTop);
+      assert.equal(await email.inputValue(), "member@example.test");
+      assert.equal(await password.inputValue(), "example-password");
+      assert.match(await password.getAttribute("aria-describedby"), /-error$/);
+    }
+
+    assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  });
+
   await test("forgot password carries only the email across navigation and reload", async (t) => {
     const page = await preview(t, "/en/login");
     const email = "member+recovery@example.test";
@@ -270,7 +296,7 @@ await suite("Login browser", async () => {
     await google.focus();
     await page.keyboard.press("Enter");
     await page.locator("#factory-auth-main-content form").evaluate((form) => form.requestSubmit());
-    await page.getByRole("alert").filter({ hasText: "Could not sign in with Google" }).waitFor();
+    await actionToast(page, "Could not sign in with Google. Please try again.");
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.equal(
       await page.getByLabel("Password", { exact: true }).inputValue(),

@@ -44,7 +44,9 @@ continues below the left panel when the form side is taller.
 checked by default; users can uncheck it before signing in. Reject its
 promise when authentication fails; resolve only after successful authentication
 and the host's cache refresh/navigation. The form handles pending state,
-password visibility, duplicate submission prevention, and generic failure copy.
+password visibility and duplicate submission prevention. Password and Google
+sign-in failures show translated, dismissible error toasts and retain the form
+values for retry.
 Supply `onGoogleSignIn(): Promise<void>` to show Google, the only social provider.
 Omit it when Google is not configured. The host performs OAuth and supplies a
 trusted callback URL. Credentials stay in the form and callback,

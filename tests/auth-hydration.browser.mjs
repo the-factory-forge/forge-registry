@@ -3,6 +3,8 @@ import { after, before, test } from "node:test";
 
 import { chromium } from "playwright";
 
+import { actionToast } from "./action-toast-helpers.mjs";
+
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
 let browser;
 before(async () => {
@@ -59,7 +61,8 @@ for (const view of ["login", "forgot-password", "reset-password"]) {
     if (view !== "forgot-password")
       await form.locator('input[type="password"]').fill("Hydration-test-password");
     await form.locator('button[type="submit"]').click();
-    await page.getByRole("alert").waitFor();
+    if (view === "login") await actionToast(page, "Unable to sign in.");
+    else await page.getByRole("alert").waitFor();
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.deepEqual(navigations, [], "Hydrated submissions must use the host callback");
     if (view !== "forgot-password")

@@ -453,6 +453,12 @@ profile/security components (`AccountPage`, `AccountSecurity`, `AgentKeys`).
   The host SHALL own sessions, OAuth, password policy, reset-token validation,
   email delivery, rate limiting and navigation. Auth SHALL NOT install a provider.
 
+#### Scenario: Sign-in fails
+
+- **WHEN** password or Google sign-in fails
+- **THEN** the shared error toast announces the translated message for that method without moving the form
+- **AND** entered credentials remain available for retry
+
 #### Scenario: Authentication before hydration
 
 - **WHEN** authentication forms or sign-in/out controls are server-rendered before their client handlers are ready

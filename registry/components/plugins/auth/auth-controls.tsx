@@ -20,7 +20,7 @@ export function useAuthAction() {
   const hydrated = useHydrated();
   const lock = useRef(false);
   const [status, setStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
-  async function run(action: () => Promise<void>) {
+  async function run(action: () => Promise<void>, onFailure?: () => void) {
     if (!hydrated || lock.current) return;
     lock.current = true;
     setStatus("pending");
@@ -30,6 +30,7 @@ export function useAuthAction() {
     } catch {
       lock.current = false;
       setStatus("error");
+      onFailure?.();
     }
   }
   return {
