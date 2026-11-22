@@ -1,4 +1,5 @@
 "use client";
+import { Toast } from "@base-ui/react/toast";
 import { useState } from "react";
 
 import {
@@ -32,6 +33,7 @@ export function AuthPreview({
 }
 function Preview({ view, defaultEmail }: { view: View; defaultEmail?: string }) {
   const { locale } = useShowroomParams();
+  const { add } = Toast.useToastManager();
   const [fail, setFail] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [validLink, setValidLink] = useState(true);
@@ -180,7 +182,10 @@ function Preview({ view, defaultEmail }: { view: View; defaultEmail?: string }) 
               }}
               onGoogleSignIn={async () => {
                 await perform();
-                setNotice("Google sign-in callback received. No provider was contacted.");
+                add({
+                  title: "Google sign-in callback received. No provider was contacted.",
+                  type: "info",
+                });
               }}
             />
           )}

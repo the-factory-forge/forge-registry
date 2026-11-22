@@ -307,10 +307,9 @@ await suite("Login browser", async () => {
     );
     await page.getByLabel("Simulate action failures").uncheck();
     await google.click();
-    await page
-      .getByRole("status")
-      .filter({ hasText: "Google sign-in callback received." })
-      .waitFor();
+    const googleNotice = "Google sign-in callback received. No provider was contacted.";
+    await actionToast(page, googleNotice);
+    assert.equal(await page.getByText(googleNotice, { exact: true }).count(), 0);
     assert.equal(await google.isDisabled(), true);
     assert.equal(
       await page.getByRole("button", { name: "Sign in", exact: true }).isDisabled(),
