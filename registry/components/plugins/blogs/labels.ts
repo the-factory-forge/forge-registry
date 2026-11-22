@@ -10,7 +10,7 @@ export const blogsLabels = {
   newPost: "New post",
   create: "Create draft",
   edit: "Edit",
-  back: "Back to posts",
+  back: "Posts",
   categories: "Categories",
   manageCategories: "Manage categories",
   search: "Search posts",

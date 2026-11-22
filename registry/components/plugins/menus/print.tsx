@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeftIcon, PrinterIcon } from "lucide-react";
+import { PrinterIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import { BackLink } from "@/components/back-link";
 import { Image, type ImageProps } from "@/components/image";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -225,13 +226,9 @@ export function MenuPrintPage({
       className={cn("mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-foreground", className)}
     >
       {!view && (
-        <HostLink
-          href={backHref}
-          className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-foreground transition-colors outline-none hover:bg-primary/5 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring md:min-h-8"
-        >
-          <ArrowLeftIcon aria-hidden="true" className="size-4 shrink-0" />
+        <BackLink linkComponent={HostLink} href={backHref}>
           {labels.back}
-        </HostLink>
+        </BackLink>
       )}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{labels.printMenu}</h1>

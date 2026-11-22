@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeftIcon,
   GripVerticalIcon,
   PencilIcon,
   PlusIcon,
@@ -13,6 +12,7 @@ import { useEffect, useId, useRef, useState, type ComponentType, type PointerEve
 import { createPortal } from "react-dom";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import {
@@ -538,10 +538,9 @@ function MenuTaxonomyPageContent({
   const disabled = taxonomy.loading || taxonomy.pending;
   return (
     <section className={cn(page, className)}>
-      <HostLink href={backHref} className={cn(button, "hover:bg-primary/5 hover:text-primary")}>
-        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+      <BackLink linkComponent={HostLink} href={backHref}>
         {labels.back}
-      </HostLink>
+      </BackLink>
       <h1 className="text-2xl font-semibold">
         {labelsOnly
           ? (labels.allergensAndPreferences ?? labels.labels)

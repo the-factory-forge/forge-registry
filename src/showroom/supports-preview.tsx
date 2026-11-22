@@ -1,6 +1,7 @@
 import { useNavigate, useSearch, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
 import {
   SUPPORT_DEFAULT_SORT,
@@ -173,7 +174,9 @@ export function SupportsPreview() {
             />
           ) : (
             <div className="space-y-4">
-              <ShowroomLink href={backHref}>Back to support</ShowroomLink>
+              <BackLink linkComponent={ShowroomLink} href={backHref}>
+                Back to support
+              </BackLink>
               <p role={error ? "alert" : "status"}>
                 {error ? "Ticket not found. Demo tickets reset on reload." : "Loading ticket…"}
               </p>

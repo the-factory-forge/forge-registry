@@ -280,6 +280,9 @@ Action and field labels use sentence case throughout the administrative plugins.
 Primary actions use a short verb when their section already names the resource:
 Invite in Employees and Create in resource lists. Keep objects that distinguish
 actions, descriptive form headings and explicit destructive confirmations.
+Beside a gear or return arrow, name the destination. Beside a plus that adds a
+specific item, show the item name and give the button its full translated action
+name for assistive technology.
 
 ## Do's and Don'ts
 

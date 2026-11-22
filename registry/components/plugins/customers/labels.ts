@@ -15,7 +15,7 @@ export const customerLabels = {
   create: "Create",
   newTitle: "New customer",
   newDescription: "Add a customer and their contact details.",
-  back: "Back to customers",
+  back: "Customers",
   edit: "Edit customer details",
   viewProjects: "View customer projects",
   sections: "Customer sections",

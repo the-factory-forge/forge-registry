@@ -2,6 +2,7 @@
 
 import { useSearch } from "@tanstack/react-router";
 
+import { BackLink } from "@/components/back-link";
 import { ProjectDrive } from "@/components/connectors/projects-drive";
 import { DriveBrowser, DrivePage, type DriveScope } from "@/components/plugins/drive";
 import {
@@ -84,12 +85,9 @@ export function DrivePreview() {
     return (
       <p>
         Drive space not found.{" "}
-        <Link
-          className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          href={base}
-        >
+        <BackLink linkComponent={Link} href={base}>
           Back to drive
-        </Link>
+        </BackLink>
       </p>
     );
   return (

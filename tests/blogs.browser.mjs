@@ -228,7 +228,13 @@ await suite("Blogs browser", async () => {
     assert.equal(await row.getByRole("cell").nth(2).textContent(), "Ideas & practice, Design");
     const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
     assert.equal(await draft.getByRole("cell").nth(2).textContent(), "—");
-    await page.getByRole("link", { name: "Manage categories", exact: true }).click();
+    const categories = page.getByRole("link", { name: "Categories", exact: true });
+    assert.equal(await categories.innerText(), "Categories");
+    await page.getByLabel("Administrator", { exact: true }).uncheck();
+    await categories.waitFor({ state: "hidden" });
+    await page.getByLabel("Administrator", { exact: true }).check();
+    await categories.click();
+    await page.waitForURL("**/en/admin/blogs/categories");
     await page.getByRole("button", { name: "Ideas & practice", exact: true }).click();
     const categoryName =
       "A category with a name that is far too long to fit in a compact table cell";
@@ -280,6 +286,10 @@ await suite("Blogs browser", async () => {
     }
     await page.getByRole("link", { name: "French blog", exact: true }).click();
     await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+    assert.equal(
+      await page.getByRole("link", { name: "Catégories", exact: true }).innerText(),
+      "Catégories",
+    );
     const frenchRow = page.getByRole("row").filter({
       has: page.locator(`a[href="/fr/admin/blogs/${existing}"]`),
     });

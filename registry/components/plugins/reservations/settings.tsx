@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import type { ComponentType } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -128,12 +129,9 @@ function ReservationSettingsPageContent({
       : config?.resources.find((r) => r.id === editor?.id);
   return (
     <section className={cn(pageClass, className)}>
-      <HostLink
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-        href={backHref}
-      >
+      <BackLink linkComponent={HostLink} href={backHref}>
         {labels.back}
-      </HostLink>
+      </BackLink>
       <h1 className="font-serif text-3xl font-semibold">
         {editor ? (editor.kind === "service" ? labels.service : labels.resource) : labels.settings}
       </h1>
@@ -538,7 +536,7 @@ function HoursEditor({
 }: {
   value: ReservationHours[];
   onChange: (value: ReservationHours[]) => void;
-  labels: ReservationLabels;
+  labels: ReturnType<typeof getReservationLabels>;
 }) {
   return (
     <div className="space-y-3">
@@ -584,10 +582,11 @@ function HoursEditor({
       <button
         type="button"
         className={buttonClass}
+        aria-label={labels.addHours}
         onClick={() => onChange([...value, { start: "09:00", end: "17:00" }])}
       >
         <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-        {labels.addHours}
+        {labels.hoursInterval}
       </button>
     </div>
   );
@@ -603,7 +602,7 @@ function ResourceEditor({
   mode: ReservationMode;
   value?: ReservationResource;
   client: ReservationsAdminClient;
-  labels: ReservationLabels;
+  labels: ReturnType<typeof getReservationLabels>;
   onSaved: (id: string) => void;
 }) {
   const [savedDraft, setDraft] = useState<ReservationResource>(
@@ -731,6 +730,7 @@ function ResourceEditor({
             <button
               type="button"
               className={buttonClass}
+              aria-label={labels.addClosure}
               onClick={() =>
                 change({
                   ...draft,
@@ -739,7 +739,7 @@ function ResourceEditor({
               }
             >
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-              {labels.addClosure}
+              {labels.closure}
             </button>
           </div>
         ) : (
@@ -775,6 +775,7 @@ function ResourceEditor({
                 </Field>
                 <button
                   type="button"
+                  aria-label={labels.addException}
                   disabled={!date || date in draft.exceptions}
                   className={buttonClass}
                   onClick={() => {
@@ -783,7 +784,7 @@ function ResourceEditor({
                   }}
                 >
                   <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-                  {labels.addException}
+                  {labels.exceptionDate}
                 </button>
               </div>
               {Object.entries(draft.exceptions)

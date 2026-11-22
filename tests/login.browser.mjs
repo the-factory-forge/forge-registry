@@ -230,7 +230,10 @@ await suite("Login browser", async () => {
       if (view === "reset-password") {
         assert.equal(await password.count(), 0);
         assert.equal(await requestLink.count(), 0);
-        await page.getByRole("link", { name: "Back to sign in", exact: true }).waitFor();
+        const signIn = page
+          .getByLabel("Component preview", { exact: true })
+          .getByRole("link", { name: "Sign in", exact: true });
+        assert.equal(await signIn.getAttribute("href"), "/en/login");
       } else {
         assert.equal(await password.inputValue(), "");
         assert.equal(await password.getAttribute("type"), "password");

@@ -827,6 +827,9 @@ function AgentsContent({
           <button
             type="button"
             className={cn(outline, "w-full")}
+            aria-label={
+              overrides?.newConversation ?? overrides?.conversation ?? agentsLabels.newConversation
+            }
             disabled={!operation || blocked}
             onClick={() => {
               setDrafts((drafts) => ({ ...drafts, [operationId!]: { text: "", attachments: [] } }));
@@ -837,7 +840,7 @@ function AgentsContent({
             }}
           >
             <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.newConversation}
+            {overrides?.conversation ?? overrides?.newConversation ?? agentsLabels.conversation}
           </button>
           {(operationId || conversationId) && (
             <button

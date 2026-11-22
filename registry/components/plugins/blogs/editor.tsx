@@ -28,6 +28,7 @@ import {
 } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
@@ -129,7 +130,7 @@ function Editor(props: BlogEditPageProps) {
   const navigationRef = useRef<(next: () => void) => void>((next) => next());
   return (
     <section className={cn(pageClass, props.className)}>
-      <BackLink {...props} onLeave={(next) => navigationRef.current(next)} />
+      <BlogEditorBackLink {...props} onLeave={(next) => navigationRef.current(next)} />
       <Tabs.Root
         value={locale}
         onValueChange={(value) => navigationRef.current(() => setLocale(value as string))}
@@ -153,7 +154,7 @@ function Editor(props: BlogEditPageProps) {
     </section>
   );
 }
-function BackLink({
+function BlogEditorBackLink({
   linkComponent: BlogLink = Link,
   backHref,
   labels: overrides,
@@ -162,7 +163,8 @@ function BackLink({
   onLeave?: (next: () => void) => void;
 }) {
   return (
-    <BlogLink
+    <BackLink
+      linkComponent={BlogLink}
       href={backHref}
       onClick={
         onLeave
@@ -181,10 +183,9 @@ function BackLink({
             }
           : undefined
       }
-      className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
     >
-      ← {{ ...blogsLabels, ...overrides }.back}
-    </BlogLink>
+      {{ ...blogsLabels, ...overrides }.back}
+    </BackLink>
   );
 }
 function BlogLeaveDialog({

@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
@@ -256,7 +257,7 @@ function BlogsPageContent({
             {capabilities.manageCategories && (
               <BlogLink href={categoriesHref} className={outlineButtonClass}>
                 <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.manageCategories}
+                {labels.categories}
               </BlogLink>
             )}
             {capabilities.create && (
@@ -498,12 +499,9 @@ function BlogNewPageContent({
   }
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        ← {labels.back}
-      </BlogLink>
+      <BackLink linkComponent={BlogLink} href={backHref}>
+        {labels.back}
+      </BackLink>
       <h1 className="font-serif text-3xl font-semibold">{labels.newPost}</h1>
       <form
         onKeyDownCapture={submitFormOnShortcut}
@@ -627,12 +625,9 @@ function BlogCategoriesPageContent({
   );
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        ← {labels.back}
-      </BlogLink>
+      <BackLink linkComponent={BlogLink} href={backHref}>
+        {labels.back}
+      </BackLink>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl font-semibold">{labels.categories}</h1>
         {capabilities.manageCategories && (

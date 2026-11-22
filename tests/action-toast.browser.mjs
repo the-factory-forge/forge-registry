@@ -86,7 +86,7 @@ void test("toast expiry pauses on hover, nested providers share one queue, and n
   await toast.hover();
   await page.waitForTimeout(5500);
   assert.equal(await toast.isVisible(), true);
-  await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+  await page.getByRole("link", { name: "Projects", exact: true }).click();
   await page.getByRole("heading", { name: "Projects", exact: true, level: 2 }).waitFor();
   assert.equal(await toast.count(), 1);
   await toast.waitFor({ state: "hidden", timeout: 8000 });

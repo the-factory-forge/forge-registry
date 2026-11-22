@@ -18,6 +18,21 @@
       "dependencies": ["cn"]
     },
     {
+      "name": "back-link",
+      "type": "registry:ui",
+      "title": "Back link",
+      "description": "Return navigation with a labeled, motion-aware arrow and host link support.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "files": [
+        {
+          "path": "registry/components/back-link.tsx",
+          "type": "registry:component",
+          "target": "@components/back-link.tsx"
+        }
+      ]
+    },
+    {
       "name": "table-styles",
       "type": "registry:lib",
       "title": "Plugin table styles",
@@ -990,6 +1005,7 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
@@ -1045,6 +1061,7 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/customers",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1222,6 +1239,7 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/view-preference",
         "@forge/dropdown-menu",
         "@forge/table-pagination",
@@ -1372,6 +1390,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/view-preference",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1617,6 +1636,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/action-toast",
@@ -1772,6 +1792,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
@@ -2362,6 +2383,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",

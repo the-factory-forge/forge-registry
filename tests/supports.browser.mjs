@@ -140,7 +140,7 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     }
   }
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await page.getByRole("link", { name: "Bug: Screenshot support test", exact: true }).waitFor();
   assert.deepEqual(errors, []);
 });
@@ -204,7 +204,7 @@ await test("support sorting restores the selected field, direction and rows acro
   await page.goForward();
   await view("Status", "descending", "Add opening hours to the contact page");
   await firstTicket.click();
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await view("Status", "descending", "Add opening hours to the contact page");
   assert.equal(new URL(page.url()).searchParams.get("keep"), "notes");
   assert.equal(new URL(page.url()).hash, "#queue");
@@ -337,7 +337,7 @@ await test("support row actions view requests and cancel with rollback and retry
   await page.keyboard.press("Enter");
   await page.getByRole("heading", { name: title, exact: true }).waitFor();
   await page.getByText("I can reproduce this on mobile too.", { exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await cancel.waitFor();
 
   await page.getByLabel("Delay actions", { exact: true }).check();
@@ -373,7 +373,7 @@ await test("support row actions view requests and cancel with rollback and retry
   assert.equal(await page.getByText("canceled this request", { exact: true }).count(), 1);
   await page.getByRole("button", { name: "Reopen ticket", exact: true }).click();
   await actionToast(page, "Ticket status updated.");
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await row.getByText("Open", { exact: true }).waitFor();
 
   for (const width of [1440, 390]) {

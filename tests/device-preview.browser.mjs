@@ -112,7 +112,7 @@ await test("sample edits, unsaved drafts and open dialogs survive every device s
   await preview.getByLabel("Simulate action failures").uncheck();
   await preview.getByRole("button", { name: "Save changes", exact: true }).click();
   await preview.getByRole("heading", { name: "Preserved Studio", exact: true }).waitFor();
-  await preview.getByRole("link", { name: "Back to customers", exact: true }).click();
+  await preview.getByRole("link", { name: "Customers", exact: true }).click();
   const row = preview
     .getByRole("row", { includeHidden: true })
     .filter({ hasText: "Preserved Studio" });

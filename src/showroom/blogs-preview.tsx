@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { NativeSelect } from "@/components/native-select";
 import {
   BlogCategoriesPage,
@@ -293,12 +294,9 @@ export function BlogsAdminPreview() {
       return (
         <p role="alert" className="p-8">
           {common.labels.NOT_FOUND}{" "}
-          <Link
-            href={root}
-            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          >
+          <BackLink linkComponent={Link} href={root}>
             {common.labels.back}
-          </Link>
+          </BackLink>
         </p>
       );
     return (
@@ -408,12 +406,9 @@ export function BlogsPublicPreview() {
       return (
         <p role="alert" className="p-8">
           {common.labels.NOT_FOUND}{" "}
-          <Link
-            href={root}
-            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          >
+          <BackLink linkComponent={Link} href={root}>
             {common.labels.back}
-          </Link>
+          </BackLink>
         </p>
       );
     return (

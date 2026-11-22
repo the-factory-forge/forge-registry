@@ -4,6 +4,7 @@ import { Markdown } from "@tanstack/markdown/react";
 import { ArrowUpRight, CalendarDays, ChevronDownIcon, SearchIcon, UserRound } from "lucide-react";
 import { useEffect, useRef } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
@@ -319,12 +320,9 @@ export function BlogPostPage({
         className,
       )}
     >
-      <BlogLink
-        href={backHref}
-        className="inline-flex min-h-10 cursor-pointer items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring md:min-h-8"
-      >
-        ← {labels.back}
-      </BlogLink>
+      <BackLink linkComponent={BlogLink} href={backHref}>
+        {labels.back}
+      </BackLink>
       <header className="space-y-5">
         <div className="flex flex-wrap gap-2">
           {post.shared.categoryIds.map((id) => {

@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeftIcon, FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
+import { FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
 import { useRef } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
@@ -21,7 +22,6 @@ import type {
   CustomersPageProps,
 } from "@/components/plugins/customers/types";
 import {
-  buttonClass,
   cardClass,
   CustomerActionButton,
   CustomerAvatar,
@@ -346,13 +346,9 @@ function CustomerDetailPageContent({
   const customer = optimistic.value;
   return (
     <div className={cn(pageClass, className)}>
-      <CustomerLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={CustomerLink} href={backHref}>
         {labels.back}
-      </CustomerLink>
+      </BackLink>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
         <div className="flex min-w-0 items-center gap-4">
           <CustomerAvatar customer={customer} large />
@@ -459,13 +455,9 @@ export function CustomerNewPage({
   const labels = { ...customerLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <CustomerLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={CustomerLink} href={backHref}>
         {labels.back}
-      </CustomerLink>
+      </BackLink>
       <CustomerForm labels={labels} onSubmit={onCreate} />
     </div>
   );

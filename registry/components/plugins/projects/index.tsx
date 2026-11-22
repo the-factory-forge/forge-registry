@@ -1,18 +1,14 @@
 "use client";
 
-import { ArrowLeftIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
-import {
-  buttonClass,
-  cardClass,
-  iconButtonClass,
-  primaryButtonClass,
-} from "@/components/plugins/customers/ui";
+import { cardClass, iconButtonClass, primaryButtonClass } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { projectLabels } from "@/components/plugins/projects/labels";
 import { ProjectForm } from "@/components/plugins/projects/project-form";
@@ -363,13 +359,9 @@ function ProjectDetailPageContent({
   const [statusUpdate, setStatusUpdate] = useState<{ status: ProjectStatus }>();
   return (
     <div className={cn(pageClass, className)}>
-      <ProjectLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={ProjectLink} href={backHref}>
         {labels.back}
-      </ProjectLink>
+      </BackLink>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
         <ProjectAvatar name={project.name} image={project.posterImage} large />
         <div className="min-w-0 flex-1 basis-40">
@@ -449,13 +441,9 @@ export function ProjectNewPage({
   const labels = { ...projectLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <ProjectLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={ProjectLink} href={backHref}>
         {labels.back}
-      </ProjectLink>
+      </BackLink>
       <header className={cn(cardClass, "space-y-1.5")}>
         <h1 className="font-semibold">{labels.newTitle}</h1>
         <p className="text-sm text-muted-foreground">{labels.newDescription}</p>

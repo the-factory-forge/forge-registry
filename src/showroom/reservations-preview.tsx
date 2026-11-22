@@ -40,6 +40,7 @@ const french: ReservationLabels = {
   blockedDates: "Dates bloquées",
   blockedFrom: "Bloqué du",
   blockedThrough: "Bloqué jusqu’au (inclus)",
+  closure: "Fermeture",
   addClosure: "Ajouter une fermeture",
   closuresHelp:
     "Les hébergements actifs sont disponibles en continu, sauf réservations et dates bloquées. Les deux dates de fermeture sont incluses.",
@@ -150,6 +151,7 @@ const french: ReservationLabels = {
   eligibleResources: "Ressources disponibles",
   hours: "Horaires hebdomadaires",
   exceptions: "Horaires particuliers et fermetures",
+  hoursInterval: "Plage",
   addHours: "Ajouter une plage",
   remove: "Supprimer",
   addException: "Ajouter une date",

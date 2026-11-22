@@ -250,7 +250,9 @@ await test("Agents: operation cards remain visible in drafts and the first messa
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
   assert.equal(await blogs.count(), 0);
   assert.equal(await page.getByRole("combobox", { name: "Operation", exact: true }).count(), 0);
-  await page.getByRole("button", { name: "New conversation", exact: true }).click();
+  const newConversation = page.getByRole("button", { name: "New conversation", exact: true });
+  assert.equal(await newConversation.innerText(), "Conversation");
+  await newConversation.click();
   await blogs.waitFor();
   assert.equal(await blogs.getAttribute("aria-pressed"), "true");
   assert.equal(new URL(page.url()).searchParams.has("conversation"), false);

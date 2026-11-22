@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeftIcon,
   CheckCircleIcon,
   EyeIcon,
   EyeOffIcon,
@@ -11,6 +10,7 @@ import {
 import { useId, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { useHydrated } from "@/components/plugins/auth/auth-controls";
@@ -167,16 +167,9 @@ export function ForgotPasswordForm({
         </form>
       )}
       {loginHref && (
-        <FormLink
-          href={loginHref}
-          className={cn(
-            linkClass,
-            "min-h-10 justify-self-start rounded-lg px-3 hover:bg-primary/5 hover:no-underline",
-          )}
-        >
-          <ArrowLeftIcon className="size-4" aria-hidden="true" />
+        <BackLink linkComponent={FormLink} href={loginHref}>
           {labels.backToLogin}
-        </FormLink>
+        </BackLink>
       )}
     </div>
   );
@@ -371,16 +364,9 @@ export function ResetPasswordForm({
       )}
       {enabled && !validLink && requestResetLink}
       {loginHref && (
-        <FormLink
-          href={loginHref}
-          className={cn(
-            linkClass,
-            "min-h-10 justify-self-start rounded-lg px-3 hover:bg-primary/5 hover:no-underline",
-          )}
-        >
-          <ArrowLeftIcon className="size-4" aria-hidden="true" />
+        <BackLink linkComponent={FormLink} href={loginHref}>
           {labels.backToLogin}
-        </FormLink>
+        </BackLink>
       )}
     </div>
   );

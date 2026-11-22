@@ -91,7 +91,7 @@ await suite("Customers browser", async () => {
     await page.getByRole("button", { name: "Save changes" }).click();
     await page.getByRole("heading", { name: "Updated Studio", exact: true }).waitFor();
     await actionToast(page, "Customer updated");
-    await page.getByRole("link", { name: "Back to customers" }).click();
+    await page.getByRole("link", { name: "Customers", exact: true }).click();
     await page.getByRole("row").filter({ hasText: "Updated Studio" }).waitFor();
     await page
       .getByRole("row")
@@ -174,7 +174,7 @@ await suite("Customers browser", async () => {
     assert.equal(await page.locator('input[type="password"]').count(), 0);
     assert.equal(await page.getByText(/invitation/i).count(), 0);
     assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
-    await page.getByRole("link", { name: "Back to customers" }).click();
+    await page.getByRole("link", { name: "Customers", exact: true }).click();
     await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
     assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);
     await page.getByRole("link", { name: "Create" }).click();
@@ -268,7 +268,7 @@ await suite("Customers browser", async () => {
           path: `/tmp/forge-customer-projects-${name}-${colorScheme}.png`,
           fullPage: true,
         });
-        await page.getByRole("link", { name: "Back to customers" }).click();
+        await page.getByRole("link", { name: "Customers", exact: true }).click();
         await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -307,7 +307,7 @@ await suite("Customers browser", async () => {
     await page.getByLabel("Account actions", { exact: true }).uncheck();
     assert.equal(await badge.count(), 0);
     await page.getByText("Verified", { exact: true }).waitFor();
-    await page.getByRole("link", { name: "Back to customers", exact: true }).click();
+    await page.getByRole("link", { name: "Customers", exact: true }).click();
     const row = page.getByRole("row").filter({ hasText: "Acme Studio" });
     await row.getByText("Verified", { exact: true }).waitFor();
     await page.getByLabel("Account actions", { exact: true }).check();

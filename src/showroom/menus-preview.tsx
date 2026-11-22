@@ -14,6 +14,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { NativeSelect } from "@/components/native-select";
 import {
   MenuCardPreview,
@@ -37,6 +38,7 @@ import {
 } from "@/components/plugins/menus";
 import { MENU_SORT_FIELDS } from "@/components/plugins/menus/admin";
 import {
+  localized,
   nextWeekDates,
   placeMenuItems,
   reorderMenuItems,
@@ -978,7 +980,9 @@ export function MenuAdminPreview() {
       <div className="showroom-page space-y-4">
         {menu && (
           <div>
-            <Link href={backHref}>Back to menu</Link>
+            <BackLink linkComponent={Link} href={backHref}>
+              Back to menu
+            </BackLink>
             <h1 className="mt-3 text-2xl font-semibold">Preview menu</h1>
             <p className="text-sm text-muted-foreground">Private preview of the saved menu.</p>
           </div>
@@ -1034,7 +1038,7 @@ export function MenuAdminPreview() {
                 printPreview: "Aperçu du menu à imprimer",
                 emptyPrintMenu:
                   "Aucun plat visible à imprimer. Rendez d'abord un plat visible dans la gestion du menu.",
-                back: "Retour aux plats",
+                back: "Plats",
                 soldOut: "Épuisé",
                 mildSpice: "Peu épicé",
                 mediumSpice: "Épicé",
@@ -1057,6 +1061,7 @@ export function MenuAdminPreview() {
         labels={
           id === "labels"
             ? {
+                back: "Menus",
                 allergensAndPreferences: "Allergens and preferences",
                 dietary: "Dietary preferences",
               }
@@ -1086,6 +1091,13 @@ export function MenuAdminPreview() {
           displayLocale={scoped ? locale : undefined}
           currencyLabel={menu?.currencyLabel}
           photoSettingsHref={menu && menu.kind !== "weekly" ? `${base}/settings` : undefined}
+          labels={
+            menu
+              ? { back: localized(menu.translations, locale, baseLocale).name }
+              : unassigned
+                ? { back: "Menus" }
+                : undefined
+          }
           labelsData={mock.labels}
           locales={locales}
           baseLocale={baseLocale}

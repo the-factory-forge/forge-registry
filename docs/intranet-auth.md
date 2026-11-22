@@ -160,7 +160,7 @@ When `requestResetHref` is provided, the reset form places “Request a new link
 beside the new-password hint, wrapping below it on narrow screens. Invalid reset
 links retain that recovery action beneath the error. It is hidden when recovery
 is unavailable or the password reset succeeds. `loginHref` still controls the
-separate “Back to sign in” link.
+separate “Sign in” link.
 
 Every password input has a trailing eye button, including login, reset/change,
 account security and employee creation. Passwords start hidden; Show/Hide toggles

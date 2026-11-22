@@ -35,6 +35,7 @@ await test("customers retains its dependencies and contains no website integrati
   );
   const item = manifest.items.find((entry) => entry.name === "customers");
   assert.deepEqual(item.registryDependencies, [
+    "@forge/back-link",
     "@forge/cn",
     "@forge/ui-shims",
     "@forge/table-styles",

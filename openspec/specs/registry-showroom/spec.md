@@ -121,7 +121,7 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 #### Scenario: Collapsed settings on a smartphone
 
 - **WHEN** the reviewer hides settings below 40rem
-- **THEN** the gear shares a standard or narrow preview’s first row, including the blog editor’s Back to posts row
+- **THEN** the gear shares a standard or narrow preview’s first row, including the blog editor’s return link to Posts
 - **AND** the separate empty settings row disappears while preview controls remain usable without overlap
 - **AND** full application previews retain their full width below the gear, and tablet and desktop placement remain unchanged
 

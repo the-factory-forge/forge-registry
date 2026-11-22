@@ -33,6 +33,7 @@ export const agentsLabels = {
   chooseFirst: "Select an operation to start.",
   conversations: "Conversations",
   allOperations: "All operations",
+  conversation: "Conversation",
   newConversation: "New conversation",
   untitled: "New conversation",
   emptyHistory: "No conversations yet.",
@@ -88,4 +89,4 @@ export const agentsLabels = {
   refresh: "Refresh",
   noOperations: "No operations are available for your account.",
 };
-export type AgentsLabels = typeof agentsLabels;
+export type AgentsLabels = Omit<typeof agentsLabels, "conversation"> & { conversation?: string };

@@ -126,7 +126,7 @@ void test("reload warns about dirty drafts and confirmed link departures do not 
     await page.shell.evaluate(() => location.reload());
     await warning;
     assert.equal(await title(page).inputValue(), "Keep through reload");
-    await page.getByRole("link", { name: "← Back to posts", exact: true }).click();
+    await page.getByRole("link", { name: "Posts", exact: true }).click();
     await dialog(page).getByRole("button", { name: action, exact: true }).click();
     await list(page).waitFor();
     assert.deepEqual(warnings, ["beforeunload"]);

@@ -51,7 +51,7 @@ const settle = (page, index, success = true) =>
 
 for (const destination of [
   { name: "Manage labels", hash: "#labels" },
-  { name: "Back to items", hash: "#back" },
+  { name: "Items", hash: "#back" },
 ]) {
   const link = (page) => page.getByRole("link", { name: destination.name, exact: true });
   const dialog = (page) => page.getByRole("dialog", { name: "Keep your changes?", exact: true });

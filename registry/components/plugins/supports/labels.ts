@@ -45,7 +45,7 @@ export const supportsLabels = {
   empty: "No support tickets found.",
   loading: "Loading tickets…",
   loadError: "Could not load tickets. Please try again.",
-  back: "Back to support",
+  back: "Support",
   discussion: "Discussion",
   noActivity: "No replies yet.",
   reply: "Reply",

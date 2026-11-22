@@ -130,7 +130,7 @@ await suite("Menus browser", async () => {
       .selectOption({ label: "Lunch plates" });
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await actionToast(page, "Saved.");
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Menus", exact: true }).click();
     await lunch.getByText("Tomato soup", { exact: true }).waitFor();
     assert.equal(
       await lunch
@@ -419,7 +419,7 @@ await suite("Menus browser", async () => {
     await page.getByRole("checkbox", { name: "Visible on menu" }).check();
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.getByRole("heading", { name: "Edit item", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await stage.getByRole("link", { name: "Weekly specials", exact: true }).click();
     await weekly.getByRole("link", { name: "Preview", exact: true }).click();
     await page.getByRole("columnheader", { name: "Monday", exact: true }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
@@ -849,7 +849,7 @@ await suite("Menus browser", async () => {
       .selectOption({ label: "Starters" });
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await actionToast(page, "Saved.");
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     const names = () => page.locator("tbody tr td:nth-child(2)").allTextContents();
     const burrata = page.getByRole("button", {
       name: "Reorder item: Burrata with tomatoes",
@@ -1085,8 +1085,10 @@ await suite("Menus browser", async () => {
     await page.getByRole("link", { name: "Create", exact: true }).click();
     await page.getByRole("textbox", { name: "Name *", exact: true }).fill("Margherita pizza");
     await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).fill("22.00");
-    await page.getByRole("button", { name: "Add size", exact: true }).click();
-    await page.getByRole("button", { name: "Add size", exact: true }).click();
+    const addSize = page.getByRole("button", { name: "Add size", exact: true });
+    assert.equal(await addSize.innerText(), "Size");
+    await addSize.click();
+    await addSize.click();
     assert.equal(await page.getByRole("textbox", { name: "Price (CHF)", exact: true }).count(), 0);
     await page.getByRole("tab", { name: "Français", exact: true }).click();
     await page
@@ -1231,7 +1233,7 @@ await suite("Menus browser", async () => {
       .filter({ hasText: "Paleo (dietary)" })
       .locator("svg.lucide-carrot")
       .waitFor();
-    await page.getByRole("link", { name: "Back to items" }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: Burrata with tomatoes" }).click();
     await page.getByText("Additional private images", { exact: true }).click();
     await openDriveFolderDialog(page);
@@ -1283,7 +1285,7 @@ await suite("Menus browser", async () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     await page.getByRole("link", { name: "Edit item: Burrata with tomatoes", exact: true }).click();
     await page
       .locator("label")

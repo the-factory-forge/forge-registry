@@ -207,9 +207,13 @@ await suite("Reservations browser", async () => {
     await page.getByRole("link", { name: "Settings", exact: true }).click();
     await page.getByRole("link", { name: "Edit Alex", exact: true }).click();
     await page.getByLabel("Date", { exact: true }).fill(date);
-    await page.getByRole("button", { name: "Add date", exact: true }).click();
+    const addDate = page.getByRole("button", { name: "Add date", exact: true });
+    assert.equal(await addDate.innerText(), "Date");
+    await addDate.click();
     const exception = page.getByRole("group", { name: date, exact: true });
-    await exception.getByRole("button", { name: "Add interval", exact: true }).click();
+    const addInterval = exception.getByRole("button", { name: "Add interval", exact: true });
+    assert.equal(await addInterval.innerText(), "Interval");
+    await addInterval.click();
     await exception.getByLabel("Start", { exact: true }).fill("10:00");
     await exception.getByLabel("End", { exact: true }).fill("11:00");
     await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -619,6 +623,26 @@ await suite("Reservations browser", async () => {
     assert.equal(await archiveService.isDisabled(), true);
   });
 
+  await test("French resource editors name each plus button and show its object", async (t) => {
+    const page = await preview(t, "/fr/admin/reservations/settings/resources/new", {
+      viewport: { width: 390, height: 844 },
+    });
+    const monday = page.getByRole("group", { name: "Lundi", exact: true });
+    assert.equal(
+      await monday.getByRole("button", { name: "Ajouter une plage", exact: true }).innerText(),
+      "Plage",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Ajouter une date", exact: true }).innerText(),
+      "Date",
+    );
+    await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
+    assert.equal(
+      await page.getByRole("button", { name: "Ajouter une fermeture", exact: true }).innerText(),
+      "Fermeture",
+    );
+  });
+
   await test("settings list archive actions work in French, dark mode and stay mode on mobile", async (t) => {
     const page = await preview(t, "/fr/admin/reservations/settings", {
       viewport: { width: 390, height: 844 },
@@ -944,7 +968,9 @@ await suite("Reservations browser", async () => {
       await page.getByRole("heading", { name: "Weekly working hours", exact: true }).count(),
       0,
     );
-    await page.getByRole("button", { name: "Add closure", exact: true }).click();
+    const addClosure = page.getByRole("button", { name: "Add closure", exact: true });
+    assert.equal(await addClosure.innerText(), "Closure");
+    await addClosure.click();
     await page.getByLabel("Blocked from", { exact: true }).fill(addDays(1));
     await page.getByLabel("Blocked through (inclusive)", { exact: true }).fill(addDays(2));
     await page.getByRole("button", { name: "Save", exact: true }).click();

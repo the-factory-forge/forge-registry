@@ -617,7 +617,7 @@ for (const ui of [
     read: "Lire",
     compare: "Comparer",
     live: "en ligne",
-    back: "Retour aux articles",
+    back: "Articles",
     save: "Enregistrer le brouillon",
     saved: "Brouillon enregistré.",
     returnToDraft: "Revenir au brouillon",
@@ -643,7 +643,7 @@ for (const ui of [
     read: "Lesen",
     compare: "Vergleichen",
     live: "online",
-    back: "Zurück zu den Beiträgen",
+    back: "Beiträge",
     save: "Entwurf speichern",
     saved: "Entwurf gespeichert.",
     returnToDraft: "Zurück zum Entwurf",
@@ -669,7 +669,7 @@ for (const ui of [
     read: "Leggi",
     compare: "Confronta",
     live: "online",
-    back: "Torna agli articoli",
+    back: "Articoli",
     save: "Salva bozza",
     saved: "Bozza salvata.",
     returnToDraft: "Torna alla bozza",
@@ -726,7 +726,7 @@ for (const ui of [
     const crop = page.getByRole("dialog", { name: ui.crop, exact: true });
     await crop.getByRole("button", { name: ui.useImage, exact: true }).waitFor();
     await crop.getByRole("button", { name: ui.cancel, exact: true }).click();
-    await page.getByRole("link", { name: `← ${ui.back}`, exact: true }).click();
+    await page.getByRole("link", { name: ui.back, exact: true }).click();
     await page.locator('[data-preview-ready="true"]').waitFor();
     assert.equal(new URL(page.url()).pathname, `/${ui.locale}/admin/blogs`);
     await page

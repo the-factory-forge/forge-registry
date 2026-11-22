@@ -16,6 +16,7 @@ export const reservationLabels = {
   blockedDates: "Blocked dates",
   blockedFrom: "Blocked from",
   blockedThrough: "Blocked through (inclusive)",
+  closure: "Closure",
   addClosure: "Add closure",
   closuresHelp:
     "Active resources are available continuously except for bookings and blocked dates. Both dates are included in a closure.",
@@ -123,6 +124,7 @@ export const reservationLabels = {
   eligibleResources: "Eligible resources",
   hours: "Weekly working hours",
   exceptions: "Date-specific hours and closures",
+  hoursInterval: "Interval",
   addHours: "Add interval",
   remove: "Remove",
   addException: "Add date",
@@ -140,15 +142,30 @@ export const reservationLabels = {
   weekday6: "Saturday",
   weekday7: "Sunday",
 };
-export type ReservationLabels = Omit<typeof reservationLabels, "createAction"> & {
+export type ReservationLabels = Omit<
+  typeof reservationLabels,
+  "createAction" | "closure" | "hoursInterval"
+> & {
   createAction?: string;
+  closure?: string;
+  hoursInterval?: string;
 };
 
 export function getReservationLabels(
   overrides: Partial<ReservationLabels> | undefined,
   mode?: "appointment" | "stay",
-): ReservationLabels {
-  const labels = { ...reservationLabels, ...overrides };
+) {
+  const labels = {
+    ...reservationLabels,
+    ...overrides,
+    addClosure: overrides?.addClosure ?? overrides?.closure ?? reservationLabels.addClosure,
+    addHours: overrides?.addHours ?? overrides?.hoursInterval ?? reservationLabels.addHours,
+    addException: overrides?.addException ?? overrides?.date ?? reservationLabels.addException,
+    closure: overrides?.closure ?? overrides?.addClosure ?? reservationLabels.closure,
+    hoursInterval:
+      overrides?.hoursInterval ?? overrides?.addHours ?? reservationLabels.hoursInterval,
+    exceptionDate: overrides?.date ?? overrides?.addException ?? reservationLabels.date,
+  };
   return mode === "stay"
     ? {
         ...labels,

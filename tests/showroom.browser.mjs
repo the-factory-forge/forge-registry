@@ -710,7 +710,7 @@ await suite("Showroom browser", async () => {
       await page.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
       const toggle = page.getByRole("button", { name: "Settings", exact: true });
       assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-      const back = page.getByRole("link", { name: "← Back to posts", exact: true });
+      const back = page.getByRole("link", { name: "Posts", exact: true });
       const backBox = await back.boundingBox();
       const toggleBox = await toggle.boundingBox();
       assert.equal(toggleBox.y, backBox.y);

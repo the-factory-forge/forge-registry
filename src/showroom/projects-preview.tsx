@@ -3,6 +3,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { NativeSelect } from "@/components/native-select";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import {
@@ -96,7 +97,7 @@ export function ProjectsPreview() {
   const backHref = fromCustomer && customer ? `${customerBase}/${customer.id}/projects` : base;
   const appearance = {
     linkComponent: Link,
-    labels: { back: fromCustomer ? "Back to customer projects" : "Back to projects" },
+    labels: { back: fromCustomer ? "Customer projects" : "Projects" },
   };
   async function validateOwner(ownerId: string) {
     await state.beforeAction();
@@ -112,12 +113,9 @@ export function ProjectsPreview() {
     return (
       <div className="space-y-4">
         <h1 className="text-xl font-semibold">Project page not found</h1>
-        <Link
-          href={base}
-          className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-        >
+        <BackLink linkComponent={Link} href={base}>
           Back to projects
-        </Link>
+        </BackLink>
       </div>
     );
   if (projectId === "new")

@@ -22,6 +22,29 @@ const {
 const { deriveManagementSecret, signManagementLink, verifyManagementLink } =
   await import("../registry/components/plugins/reservations/server/links.ts");
 
+const { getReservationLabels } =
+  await import("../registry/components/plugins/reservations/labels.ts");
+
+void test("resource buttons retain older translated action captions", () => {
+  const labels = getReservationLabels({
+    addHours: "Ajouter une plage",
+    addClosure: "Ajouter une fermeture",
+    addException: "Ajouter une date",
+  });
+  assert.equal(labels.hoursInterval, labels.addHours);
+  assert.equal(labels.closure, labels.addClosure);
+  assert.equal(labels.exceptionDate, labels.addException);
+
+  const compact = getReservationLabels({
+    hoursInterval: "Plage",
+    closure: "Fermeture",
+    date: "Jour",
+  });
+  assert.equal(compact.addHours, compact.hoursInterval);
+  assert.equal(compact.addClosure, compact.closure);
+  assert.equal(compact.addException, compact.exceptionDate);
+});
+
 export const resourceId = "10000000-0000-4000-8000-000000000001";
 export const serviceId = "20000000-0000-4000-8000-000000000001";
 const resource = {

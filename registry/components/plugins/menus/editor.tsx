@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
-import { XIcon, ArrowLeftIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { XIcon, PencilIcon, PlusIcon } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import { useActionToast, ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -45,7 +46,6 @@ import type {
 } from "@/components/plugins/menus/types";
 import {
   field,
-  button,
   outlineButton,
   primary,
   page,
@@ -339,15 +339,14 @@ function MenuItemEditorPageContent({
   }
   return (
     <section className={cn(page, className)}>
-      <HostLink
+      <BackLink
+        linkComponent={HostLink}
         href={backHref}
-        className={cn(button, "hover:bg-primary/5 hover:text-primary aria-disabled:opacity-50")}
         aria-disabled={pending || undefined}
         onClick={(event) => guardNavigation(event, backHref)}
       >
-        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.back}
-      </HostLink>
+      </BackLink>
       <h1 className="text-2xl font-semibold">{item ? labels.editItem : labels.newItem}</h1>
       <MenuLeaveDialog
         open={leaveOpen || !!blockedNavigation}
@@ -537,6 +536,7 @@ function MenuItemEditorPageContent({
           <button
             type="button"
             className={outlineButton}
+            aria-label={overrides?.addSize ?? overrides?.size ?? menusLabels.addSize}
             disabled={sizes.length >= 20}
             onClick={() =>
               setSizes((current) => [
@@ -546,7 +546,7 @@ function MenuItemEditorPageContent({
             }
           >
             <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-            {labels.addSize}
+            {overrides?.size ?? overrides?.addSize ?? menusLabels.size}
           </button>
         </fieldset>
         <label className="block max-w-xl font-medium">

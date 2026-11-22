@@ -2,17 +2,11 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
-import {
-  ArrowLeftIcon,
-  CircleHelpIcon,
-  EyeIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  XIcon,
-} from "lucide-react";
+import { CircleHelpIcon, EyeIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
@@ -498,10 +492,9 @@ function DetailContent({
           </button>
         }
       >
-        <TicketLink href={backHref} className={buttonClass}>
-          <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+        <BackLink linkComponent={TicketLink} href={backHref}>
           {labels.back}
-        </TicketLink>
+        </BackLink>
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <h1 className="min-w-0 text-2xl font-semibold break-words">{ticket.title}</h1>

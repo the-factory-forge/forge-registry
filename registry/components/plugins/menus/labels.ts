@@ -68,6 +68,7 @@ export interface MenusLabels extends TableSelectionLabels {
   unassignedCategory?: string;
   price: string;
   sizes?: string;
+  size?: string;
   addSize?: string;
   sizeName?: string;
   removeSize?: string;
@@ -174,6 +175,7 @@ export const menusLabels = {
   category: "Category",
   price: "Price",
   sizes: "Sizes",
+  size: "Size",
   addSize: "Add size",
   sizeName: "Size name",
   removeSize: "Remove size",
@@ -200,7 +202,7 @@ export const menusLabels = {
   language: "Language",
   priceInvalid: "Enter a valid, non-negative price within the allowed range.",
   baseNameRequired: "Enter a name in the base language.",
-  back: "Back to items",
+  back: "Items",
   newCategory: "New category",
   editCategory: "Edit category",
   newLabel: "New label",
