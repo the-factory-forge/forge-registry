@@ -160,7 +160,9 @@ export function SupportsPreview() {
         contentClassName="showroom-inset"
       >
         {id ? (
-          detail?.ticket.id === id ? (
+          mode === "loading" || (detail?.ticket.id !== id && !error) ? (
+            <SupportDetailPage ticket={null} backHref={backHref} linkComponent={ShowroomLink} />
+          ) : detail?.ticket.id === id ? (
             <SupportDetailPage
               client={mock.client}
               ticket={detail.ticket}
@@ -177,9 +179,7 @@ export function SupportsPreview() {
               <BackLink linkComponent={ShowroomLink} href={backHref}>
                 Back to support
               </BackLink>
-              <p role={error ? "alert" : "status"}>
-                {error ? "Ticket not found. Demo tickets reset on reload." : "Loading ticket…"}
-              </p>
+              <p role="alert">Ticket not found. Demo tickets reset on reload.</p>
             </div>
           )
         ) : (

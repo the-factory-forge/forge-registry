@@ -257,6 +257,10 @@ responses cannot be revoked.
 
 ## Item editor lifetime
 
+While the first item request is pending, pass `item={null}` with the same Back
+link, locales and currency to show the loading editor. Omit `item` to create a dish.
+Supply the item and its callbacks when the request succeeds.
+
 Keep the `MenusClient` reference stable while editing. `MenuItemEditorPage` starts
 a fresh editor when the client or item ID changes, including creation/edit
 transitions; hosts do not need to key the page themselves. Earlier saves may

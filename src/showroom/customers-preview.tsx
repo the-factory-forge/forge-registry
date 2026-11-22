@@ -82,17 +82,22 @@ export function CustomersPreview() {
           </BackLink>
         </div>
       );
+    const detailAppearance = {
+      className: "showroom-page",
+      section: tab === "projects" ? ("projects" as const) : ("about" as const),
+      backHref: base,
+      sectionHrefs: {
+        about: `${base}/${customerId}`,
+        projects: `${base}/${customerId}/projects`,
+      },
+      linkComponent: Link,
+    };
+    if (state.directoryState === "loading")
+      return <CustomerDetailPage {...detailAppearance} customer={null} />;
     return (
       <CustomerDetailPage
-        className="showroom-page"
+        {...detailAppearance}
         customer={customer}
-        section={tab === "projects" ? "projects" : "about"}
-        backHref={base}
-        sectionHrefs={{
-          about: `${base}/${customerId}`,
-          projects: `${base}/${customerId}/projects`,
-        }}
-        linkComponent={Link}
         onDelete={onDelete}
         onSetVerified={onSetVerified}
         onSave={async (values: CustomerFormValues) => {

@@ -208,6 +208,13 @@ form order. Each error SHALL have destructive styling and an associated inline
 message. Editing SHALL clear field feedback without moving focus. Server validation
 SHALL remain authoritative.
 
+#### Scenario: Loading a standalone record
+
+- **WHEN** a host renders a pending blog, menu item, customer, project or support ticket
+- **THEN** Back remains available, a title skeleton and a translated neutral loading badge identify the pending record, and the editor shows its first fields disabled
+- **AND** the screen contributes to the shared loading indicator and respects reduced motion
+- **AND** record actions and host-supplied record content become available only when the record arrives
+
 #### Scenario: Correcting an item
 
 - **WHEN** staff submit an item with missing or invalid values

@@ -76,6 +76,17 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
   syncContent?: ReactNode;
 }
 
+export type CustomerDetailPageLoadingProps = Pick<
+  CustomerDetailPageProps,
+  | "className"
+  | "labels"
+  | "linkComponent"
+  | "section"
+  | "backHref"
+  | "sectionHrefs"
+  | "emailChangeDescription"
+> & { customer: null };
+
 export interface CustomerNewPageProps extends CustomersAppearanceProps {
   backHref: string;
   onCreate: (values: CustomerCreateValues) => Promise<void>;

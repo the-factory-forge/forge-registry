@@ -9,7 +9,7 @@ import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
-import { useLoadingActivity } from "@/components/loading-indicator";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
 import { SupportComposer } from "@/components/plugins/supports/composer";
 import {
   supportTypeShortLabels,
@@ -36,6 +36,7 @@ import {
   SupportStatusBadge,
   SupportTypeBadge,
   buttonClass,
+  inputClass,
   isSelectablePriority,
   primaryClass,
   supportError,
@@ -426,6 +427,11 @@ export interface SupportDetailPageProps extends Appearance {
   loading?: boolean;
   error?: boolean;
 }
+export type SupportDetailPageLoadingProps = Pick<
+  SupportDetailPageProps,
+  "backHref" | "className" | "labels" | "linkComponent"
+> & { ticket: null };
+
 function DetailContent({
   integrationContent,
   attachmentNote,
@@ -433,15 +439,12 @@ function DetailContent({
   client,
   ticket,
   activity,
-  backHref,
   onChanged,
   onLoadMore,
   loading,
   error,
   labels: overrides,
-  linkComponent: TicketLink = Link,
   formatDate = formatDateDefault,
-  className,
 }: SupportDetailPageProps) {
   const labels = { ...supportsLabels, ...overrides };
   const toast = useActionToast();
@@ -470,7 +473,7 @@ function DetailContent({
   }
   useLoadingActivity(Boolean(loading));
   return (
-    <article className={cn("mx-auto max-w-4xl min-w-0 text-foreground", className)}>
+    <>
       <SupportComposer
         key={ticket.id}
         client={client}
@@ -492,9 +495,6 @@ function DetailContent({
           </button>
         }
       >
-        <BackLink linkComponent={TicketLink} href={backHref}>
-          {labels.back}
-        </BackLink>
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <h1 className="min-w-0 text-2xl font-semibold break-words">{ticket.title}</h1>
@@ -648,13 +648,41 @@ function DetailContent({
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-    </article>
+    </>
   );
 }
-export function SupportDetailPage(props: SupportDetailPageProps) {
+export function SupportDetailPage(props: SupportDetailPageProps | SupportDetailPageLoadingProps) {
+  const labels = { ...supportsLabels, ...props.labels };
+  useLoadingActivity(props.ticket === null);
   return (
     <ActionToastProvider closeLabel={props.labels?.close}>
-      <DetailContent key={props.ticket.id} {...props} />
+      <article
+        className={cn("mx-auto max-w-4xl min-w-0 space-y-6 text-foreground", props.className)}
+      >
+        <BackLink linkComponent={props.linkComponent ?? Link} href={props.backHref}>
+          {labels.back}
+        </BackLink>
+        {props.ticket === null ? (
+          <>
+            <header className="space-y-3">
+              <div className="flex min-h-8 items-start justify-between gap-3">
+                <LoadingSkeleton className="my-1 h-6 w-64 max-w-3/5" />
+                <LoadingBadge label={labels.loading} />
+              </div>
+              <LoadingSkeleton className="h-5 w-48 max-w-full" />
+            </header>
+            <div aria-busy="true" className="space-y-6">
+              <LoadingSkeleton className="h-12 w-full" />
+              <label className="block space-y-2 text-sm font-medium">
+                <span>{labels.reply}</span>
+                <textarea disabled className={cn(inputClass, "min-h-32 resize-y")} />
+              </label>
+            </div>
+          </>
+        ) : (
+          <DetailContent key={props.ticket.id} {...props} />
+        )}
+      </article>
     </ActionToastProvider>
   );
 }

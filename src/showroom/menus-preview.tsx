@@ -668,7 +668,7 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
         }
         controls={
           <>
-            {current === "items" && (
+            {(current === "items" || mock.items.some(({ id }) => id === segments.at(-1))) && (
               <div className="grid gap-2">
                 <label htmlFor="factory-menu-directory-state">Directory state</label>
                 <NativeSelect
@@ -1071,6 +1071,22 @@ export function MenuAdminPreview() {
         className="showroom-page"
       />
     );
+  const editorAppearance = {
+    backHref,
+    baseLocale,
+    className: "showroom-page",
+    currency: "CHF",
+    currencyLabel: menu?.currencyLabel,
+    labels: menu
+      ? { back: localized(menu.translations, locale, baseLocale).name }
+      : unassigned
+        ? { back: "Menus" }
+        : undefined,
+    linkComponent: Link,
+    locales,
+  };
+  if (item && listState === "loading")
+    return <MenuItemEditorPage {...editorAppearance} item={null} />;
   if (id === "new" || item)
     return (
       <>
@@ -1089,23 +1105,10 @@ export function MenuAdminPreview() {
           visibleOnCreate={scoped}
           initialCategoryId={typeof query.category === "string" ? query.category : undefined}
           displayLocale={scoped ? locale : undefined}
-          currencyLabel={menu?.currencyLabel}
+          {...editorAppearance}
           photoSettingsHref={menu && menu.kind !== "weekly" ? `${base}/settings` : undefined}
-          labels={
-            menu
-              ? { back: localized(menu.translations, locale, baseLocale).name }
-              : unassigned
-                ? { back: "Menus" }
-                : undefined
-          }
           labelsData={mock.labels}
-          locales={locales}
-          baseLocale={baseLocale}
-          currency="CHF"
-          backHref={backHref}
           labelsHref={`${directory}/${scoped || unassigned ? "labels" : "taxonomy"}`}
-          linkComponent={Link}
-          className="showroom-page"
           driveClient={driveClient}
           driveOrder={driveOrder}
           driveTransfer={mock.drive.transfer}

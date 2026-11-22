@@ -88,6 +88,7 @@
           "target": "@components/utils/loading-store.ts"
         }
       ],
+      "dependencies": ["lucide-react"],
       "registryDependencies": ["@forge/cn"]
     },
     {

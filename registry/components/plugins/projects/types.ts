@@ -74,6 +74,11 @@ export interface ProjectDetailPageProps extends ProjectsAppearanceProps {
   driveContent?: ReactNode;
 }
 
+export type ProjectDetailPageLoadingProps = Pick<
+  ProjectDetailPageProps,
+  "className" | "labels" | "linkComponent" | "section" | "backHref" | "sectionHrefs"
+> & { project: null };
+
 export interface ProjectNewPageProps extends ProjectsAppearanceProps {
   backHref: string;
   onCreate: (values: ProjectFormValues) => Promise<void>;

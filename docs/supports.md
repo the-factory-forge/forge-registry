@@ -86,6 +86,11 @@ ticket and list. Reload activity after a write so comments and status events sta
 ordered. Refetch on page entry. Clear private caches on sign-out or lost access;
 do not retain denied data behind an error banner.
 
+While the first ticket request is pending, pass `ticket={null}` with the same Back
+link to show the loading discussion. Supply the ticket, activity and callbacks
+when the request succeeds. Keep passing the loaded ticket with `loading` during
+a background refresh.
+
 ## Forms and discussion
 
 Creation requires a title (200 characters), Markdown description (5,000) and an

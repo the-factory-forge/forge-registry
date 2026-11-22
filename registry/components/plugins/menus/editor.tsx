@@ -17,6 +17,7 @@ import { useActionToast, ActionToastProvider } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
 import {
   DriveBrowser,
@@ -56,6 +57,9 @@ import {
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut, submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
+const languageTabClass =
+  "min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed data-[active]:border-primary data-[active]:text-foreground";
+
 const editorLocales = (locales: readonly { code: string; name: string }[], baseLocale: string) =>
   locales.some((locale) => locale.code === baseLocale)
     ? locales
@@ -417,7 +421,7 @@ function MenuItemEditorPageContent({
                 key={locale.code}
                 type="button"
                 value={locale.code}
-                className="min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground focus-visible:rounded-t-md focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed data-[active]:border-primary data-[active]:text-foreground"
+                className={languageTabClass}
               >
                 {locale.name}
               </Tabs.Tab>
@@ -1034,7 +1038,92 @@ export function MenuTaxonomyEditor({
   );
 }
 
-export function MenuItemEditorPage(props: MenuItemEditorPageProps) {
+export type MenuItemEditorPageLoadingProps = Pick<
+  MenuItemEditorPageProps,
+  | "backHref"
+  | "baseLocale"
+  | "className"
+  | "currency"
+  | "currencyLabel"
+  | "labels"
+  | "linkComponent"
+  | "locales"
+> & { item: null };
+
+function MenuItemEditorLoading({
+  backHref,
+  baseLocale,
+  className,
+  currency,
+  currencyLabel = currency,
+  labels: overrides,
+  linkComponent: HostLink = Link,
+  locales,
+}: MenuItemEditorPageLoadingProps) {
+  const labels = { ...menusLabels, ...overrides };
+  return (
+    <section className={cn(page, className)}>
+      <BackLink linkComponent={HostLink} href={backHref}>
+        {labels.back}
+      </BackLink>
+      <header className="flex min-h-8 items-center justify-between gap-3">
+        <LoadingSkeleton className="h-6 w-64 max-w-3/5" />
+        <LoadingBadge label={labels.loading} />
+      </header>
+      <div aria-busy="true" className="space-y-6">
+        <fieldset disabled className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span>{labels.category}</span>
+            <NativeSelect className={field} />
+          </label>
+          <label className="space-y-1">
+            <span>
+              {labels.price} ({currencyLabel})
+            </span>
+            <input className={field} />
+          </label>
+        </fieldset>
+        <Tabs.Root value={baseLocale}>
+          <Tabs.List
+            aria-label={labels.language}
+            className="flex gap-1 overflow-x-auto border-b border-border"
+          >
+            {editorLocales(locales, baseLocale).map(({ code, name }) => (
+              <Tabs.Tab key={code} type="button" value={code} disabled className={languageTabClass}>
+                {name}
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+          <Tabs.Panel value={baseLocale} className="pt-4">
+            <fieldset disabled className="min-w-0 space-y-4">
+              <label className="block space-y-1">
+                <span>{labels.name} *</span>
+                <input className={field} />
+              </label>
+              <label className="block space-y-1">
+                <span>{labels.description}</span>
+                <textarea className={field} rows={4} />
+              </label>
+            </fieldset>
+          </Tabs.Panel>
+        </Tabs.Root>
+      </div>
+    </section>
+  );
+}
+
+export function MenuItemEditorPage(
+  props: MenuItemEditorPageProps | MenuItemEditorPageLoadingProps,
+) {
+  useLoadingActivity(props.item === null);
+  return props.item === null ? (
+    <MenuItemEditorLoading {...props} />
+  ) : (
+    <MenuItemEditorSession {...props} />
+  );
+}
+
+function MenuItemEditorSession(props: MenuItemEditorPageProps) {
   const [session, setSession] = useState({ client: props.client, id: props.item?.id, key: 0 });
   if (session.client !== props.client || session.id !== props.item?.id)
     setSession({ client: props.client, id: props.item?.id, key: session.key + 1 });

@@ -54,6 +54,7 @@ import {
 import { retainRemovedItems } from "@/components/utils/use-optimistic-action";
 export {
   MenuItemEditorPage,
+  type MenuItemEditorPageLoadingProps,
   type MenuItemEditorPageProps,
 } from "@/components/plugins/menus/editor";
 

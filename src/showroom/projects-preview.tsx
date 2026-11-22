@@ -153,17 +153,22 @@ export function ProjectsPreview() {
       </>
     );
   if (!project) return null;
+  const detailAppearance = {
+    ...appearance,
+    className: "showroom-page",
+    section: tab === "drive" ? ("drive" as const) : ("details" as const),
+    backHref,
+    sectionHrefs: {
+      details: `${base}/${project.id}${context}`,
+      drive: `${base}/${project.id}/drive${context}`,
+    },
+  };
+  if (state.directoryState === "loading")
+    return <ProjectDetailPage {...detailAppearance} project={null} />;
   return (
     <ProjectDetailPage
-      className="showroom-page"
-      {...appearance}
+      {...detailAppearance}
       project={project}
-      section={tab === "drive" ? "drive" : "details"}
-      backHref={backHref}
-      sectionHrefs={{
-        details: `${base}/${project.id}${context}`,
-        drive: `${base}/${project.id}/drive${context}`,
-      }}
       onStatusChange={listProps.onStatusChange}
       onSave={async (values) => {
         await validateOwner(project.ownerId);

@@ -55,6 +55,10 @@ The plugin prevents duplicate submissions and reports overridable generic
 feedback. The host owns persistence, access checks, reloading data, and
 navigation after creation/deletion. Hiding an action is not authorization.
 
+While the first project request is pending, pass `project={null}` with the same
+Back link and section links to show the loading summary and disabled Details
+fields. Supply the record and its callbacks when the request succeeds.
+
 ## Change status from a badge
 
 Click a status badge in the detail header or table to choose Requested, Prospect,

@@ -33,6 +33,14 @@ export interface ProjectFormProps {
   onDelete?: (id: string) => Promise<void>;
 }
 
+type ProjectFormLoadingProps = Pick<ProjectFormProps, "labels" | "className"> & {
+  project: null;
+  onSubmit?: never;
+  onDelete?: never;
+  disabled?: never;
+  statusUpdate?: never;
+};
+
 function ProjectFormContent({
   project,
   labels,
@@ -41,9 +49,9 @@ function ProjectFormContent({
   className,
   disabled,
   statusUpdate,
-}: ProjectFormProps) {
+}: ProjectFormProps | ProjectFormLoadingProps) {
   const id = `factory-project-form-${useId()}`;
-  const [values, setValues] = useState(() => projectFormValues(project));
+  const [values, setValues] = useState(() => projectFormValues(project ?? undefined));
   const { formRef, issues: errors, setIssues: setErrors, clear } = useEditorValidation();
   const action = useCustomerAction(labels.actionError, project?.id);
   const deletion = useRecordDeletion({
@@ -56,7 +64,8 @@ function ProjectFormContent({
     disabled: disabled || action.pending,
     returnFocus: formRef,
   });
-  const pending = disabled || action.pending || deletion.pending;
+  const loading = project === null;
+  const pending = loading || disabled || action.pending || deletion.pending;
   const [previousStatusUpdate, setPreviousStatusUpdate] = useState(statusUpdate);
   if (statusUpdate !== previousStatusUpdate) {
     setPreviousStatusUpdate(statusUpdate);
@@ -69,7 +78,7 @@ function ProjectFormContent({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending) return;
+    if (pending || !onSubmit) return;
     const normalized = {
       ...values,
       name: values.name.trim(),
@@ -111,7 +120,7 @@ function ProjectFormContent({
         aria-busy={pending}
         className={cn(cardClass, "space-y-5 focus-visible:ring-2 focus-visible:ring-ring")}
       >
-        {project && (
+        {project !== undefined && (
           <div className="space-y-1.5">
             <h2 className="font-semibold">{labels.detailsTitle}</h2>
             <p className="text-sm text-muted-foreground">{labels.detailsDescription}</p>
@@ -136,17 +145,18 @@ function ProjectFormContent({
             </label>
             <NativeSelect
               {...fieldProps("status")}
-              value={values.status}
+              value={loading ? "" : values.status}
               onChange={(event) => {
                 const status = projectStatuses.find((entry) => entry === event.target.value);
                 if (status) change("status", status);
               }}
             >
-              {projectStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {labels[status]}
-                </option>
-              ))}
+              {!loading &&
+                projectStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {labels[status]}
+                  </option>
+                ))}
             </NativeSelect>
             {error("status")}
           </div>
@@ -165,25 +175,27 @@ function ProjectFormContent({
           </div>
         </fieldset>
         <Feedback feedback={action.feedback} />
-        <div className={editorActionsClass}>
-          {project && onDelete && (
-            <RecordDeleteButton
-              label={labels.deleteProject}
-              disabled={pending}
-              onClick={(event) => deletion.open(project.id, event.currentTarget)}
-            />
-          )}
-          <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
-            {pending ? labels.pending : project ? labels.save : labels.create}
-          </button>
-        </div>
+        {!loading && (
+          <div className={editorActionsClass}>
+            {project && onDelete && (
+              <RecordDeleteButton
+                label={labels.deleteProject}
+                disabled={pending}
+                onClick={(event) => deletion.open(project.id, event.currentTarget)}
+              />
+            )}
+            <button type="submit" disabled={pending} className={cn(primaryButtonClass, "ml-auto")}>
+              {pending ? labels.pending : project ? labels.save : labels.create}
+            </button>
+          </div>
+        )}
         {deletion.dialog}
       </form>
     </div>
   );
 }
 
-export function ProjectForm(props: ProjectFormProps) {
+export function ProjectForm(props: ProjectFormProps | ProjectFormLoadingProps) {
   return (
     <ActionToastProvider>
       <ProjectFormContent {...props} />

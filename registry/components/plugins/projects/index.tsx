@@ -7,7 +7,7 @@ import { ActionToastProvider } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
-import { useLoadingActivity } from "@/components/loading-indicator";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
 import { cardClass, iconButtonClass, primaryButtonClass } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { projectLabels } from "@/components/plugins/projects/labels";
@@ -18,6 +18,7 @@ import {
   type ProjectSortField,
 } from "@/components/plugins/projects/types";
 import type {
+  ProjectDetailPageLoadingProps,
   ProjectDetailPageProps,
   ProjectStatus,
   ProjectNewPageProps,
@@ -56,6 +57,7 @@ export type {
   ProjectsAppearanceProps,
   ProjectsListProps,
   ProjectsPageProps,
+  ProjectDetailPageLoadingProps,
   ProjectDetailPageProps,
   ProjectNewPageProps,
 } from "@/components/plugins/projects/types";
@@ -340,51 +342,61 @@ export function ProjectsPage({ className, ...props }: ProjectsPageProps) {
   );
 }
 
-function ProjectDetailPageContent({
-  project: suppliedProject,
-  section = "details",
-  backHref,
-  sectionHrefs,
-  onSave,
-  onDelete,
-  onStatusChange,
-  driveContent,
-  className,
-  labels: overrides,
-  linkComponent: ProjectLink = Link,
-}: ProjectDetailPageProps) {
+function ProjectDetailPageContent(props: ProjectDetailPageProps | ProjectDetailPageLoadingProps) {
+  const {
+    project: suppliedProject,
+    section = "details",
+    sectionHrefs,
+    labels: overrides,
+    linkComponent: ProjectLink = Link,
+  } = props;
+  const ready = props.project === null ? undefined : props;
+  const onDelete = ready?.onDelete;
   const labels = { ...projectLabels, ...overrides };
-  const optimistic = useOptimisticAction(suppliedProject, suppliedProject.id);
+  const optimistic = useOptimisticAction(suppliedProject, suppliedProject?.id);
   const project = optimistic.value;
   const [statusUpdate, setStatusUpdate] = useState<{ status: ProjectStatus }>();
   return (
-    <div className={cn(pageClass, className)}>
-      <BackLink linkComponent={ProjectLink} href={backHref}>
-        {labels.back}
-      </BackLink>
+    <>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
-        <ProjectAvatar name={project.name} image={project.posterImage} large />
-        <div className="min-w-0 flex-1 basis-40">
-          <h1 className="text-xl font-semibold break-words">{project.name}</h1>
-        </div>
-        <div className="ml-auto self-start">
-          <ProjectStatusBadge
-            status={project.status}
-            name={project.name}
-            labels={labels}
-            disabled={optimistic.pending}
-            onChange={async (status) => {
-              await optimistic.run(
-                (row) => ({ ...row, status }),
-                () =>
-                  onStatusChange
-                    ? onStatusChange(project.id, status)
-                    : onSave({ ...projectFormValues(project), status }),
-                () => setStatusUpdate({ status }),
-              );
-            }}
-          />
-        </div>
+        {ready && project ? (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <ProjectAvatar name={project.name} image={project.posterImage} large />
+              <h1 className="min-w-0 text-xl font-semibold break-words">{project.name}</h1>
+            </div>
+            <div className="ml-auto min-h-10 max-w-full self-start sm:min-h-6">
+              <ProjectStatusBadge
+                status={project.status}
+                name={project.name}
+                labels={labels}
+                disabled={optimistic.pending}
+                onChange={async (status) => {
+                  await optimistic.run(
+                    (row) => row && { ...row, status },
+                    () =>
+                      ready.onStatusChange
+                        ? ready.onStatusChange(project.id, status)
+                        : ready.onSave({ ...projectFormValues(project), status }),
+                    () => setStatusUpdate({ status }),
+                  );
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <LoadingSkeleton className="size-16 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <LoadingSkeleton className="h-6 w-64 max-w-full" />
+              </div>
+            </div>
+            <div className="ml-auto flex min-h-10 max-w-full items-center self-start sm:min-h-6 sm:items-start">
+              <LoadingBadge label={labels.loading} />
+            </div>
+          </>
+        )}
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
         {(["details", "drive"] as const).map((tab) => (
@@ -402,32 +414,36 @@ function ProjectDetailPageContent({
         ))}
       </nav>
       {section === "details" ? (
-        <ProjectForm
-          key={project.id}
-          project={project}
-          statusUpdate={statusUpdate}
-          labels={labels}
-          onSubmit={(values) =>
-            optimistic.run(
-              (row) => ({ ...row, ...values }),
-              () => onSave(values),
-            )
-          }
-          disabled={optimistic.pending}
-          onDelete={
-            onDelete
-              ? (id) =>
-                  optimistic.run(
-                    (row) => row,
-                    () => onDelete(id),
-                  )
-              : undefined
-          }
-        />
+        ready && project ? (
+          <ProjectForm
+            key={project.id}
+            project={project}
+            statusUpdate={statusUpdate}
+            labels={labels}
+            onSubmit={(values) =>
+              optimistic.run(
+                (row) => row && { ...row, ...values },
+                () => ready.onSave(values),
+              )
+            }
+            disabled={optimistic.pending}
+            onDelete={
+              onDelete
+                ? (id) =>
+                    optimistic.run(
+                      (row) => row,
+                      () => onDelete(id),
+                    )
+                : undefined
+            }
+          />
+        ) : (
+          <ProjectForm project={null} labels={labels} />
+        )
       ) : (
-        driveContent
+        ready?.driveContent
       )}
-    </div>
+    </>
   );
 }
 
@@ -461,10 +477,17 @@ export function ProjectsList(props: ProjectsListProps) {
   );
 }
 
-export function ProjectDetailPage(props: ProjectDetailPageProps) {
+export function ProjectDetailPage(props: ProjectDetailPageProps | ProjectDetailPageLoadingProps) {
+  const { className, backHref, labels, linkComponent } = props;
+  useLoadingActivity(props.project === null);
   return (
     <ActionToastProvider>
-      <ProjectDetailPageContent key={props.project.id} {...props} />
+      <div className={cn(pageClass, className)}>
+        <BackLink linkComponent={linkComponent ?? Link} href={backHref}>
+          {labels?.back ?? projectLabels.back}
+        </BackLink>
+        <ProjectDetailPageContent key={props.project?.id} {...props} />
+      </div>
     </ActionToastProvider>
   );
 }
