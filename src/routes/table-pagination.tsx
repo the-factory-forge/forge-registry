@@ -18,7 +18,7 @@ import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
 import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
-import { resolveTableSort } from "@/components/utils/table-sort-state";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -95,7 +95,6 @@ function TablePaginationExample() {
     undefined,
     { key: "table-pagination-posts", fields: postSortFields },
   );
-  const order = resolveTableSort(headers.value);
   const setPage = (page: number) =>
     void navigate({
       search: (previous) => ({ ...previous, postPage: page === 1 ? undefined : page }),
@@ -130,18 +129,15 @@ function TablePaginationExample() {
       actionError: "Could not delete this post. Try again.",
     },
   });
-  const filteredPosts =
+  const orderedPosts = sortTableRows(
     state === "empty"
       ? []
-      : deletion.items
-          .filter((post) => matchesTableSearch(search, post.title))
-          .sort((a, b) => {
-            const comparison = a[order.field].localeCompare(b[order.field]);
-            return (
-              (order.direction === "asc" ? comparison : -comparison) || a.id.localeCompare(b.id)
-            );
-          });
-  const total = filteredPosts.length;
+      : deletion.items.filter((post) => matchesTableSearch(search, post.title)),
+    headers.value,
+    (post, column) => post[column],
+    (post) => post.id,
+  );
+  const total = orderedPosts.length;
   const pageCount = Math.max(1, Math.ceil(total / 3));
   const page = Math.min(requestedPage, pageCount);
   return (
@@ -222,7 +218,7 @@ function TablePaginationExample() {
                     </td>
                   </tr>
                 ) : (
-                  filteredPosts.slice((page - 1) * 3, page * 3).map((post) => (
+                  orderedPosts.slice((page - 1) * 3, page * 3).map((post) => (
                     <tr key={post.id} className={tableRowClass}>
                       <td className={cn(tableCellClass, "min-w-64 font-medium")}>{post.title}</td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>{post.author}</td>
