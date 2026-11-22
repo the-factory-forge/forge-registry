@@ -5,7 +5,8 @@ The admin-only employee directory remains documented in [Employee UI](./intranet
 ## Optional employee images
 
 `EmployeePhotoField` is an optional field with a compact photo preview and an
-outlined Choose photo / Change photo button. Translate these actions through
+outlined **Photo** or **Change photo** button from the shared `@forge/photo-picker` control.
+See the [Employees showroom](https://registry.the-corner.swiss/en/employees). Translate these actions through
 `labels.choose` and `labels.change`; existing label overrides remain optional.
 The deprecated `labels.hint` is accepted for compatibility but is no longer displayed.
 It crops and exports WebP before invoking `onUpload(file)`; rejection keeps the

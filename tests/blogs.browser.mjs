@@ -702,7 +702,26 @@ await suite("Blogs browser", async () => {
   });
   await test("image upload failure/retry, Markdown insertion, keyboard toolbar, deletion focus and read-only", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`);
-    await page.getByLabel("Crop new blog images (1200 × 675)", { exact: true }).uncheck();
+    const thumbnailPhoto = page.getByRole("button", { name: "Photo — Thumbnail", exact: true });
+    const bannerPhoto = page.getByRole("button", { name: "Photo — Banner", exact: true });
+    const previews = [
+      [thumbnailPhoto, "Hand-drawn lightbulb with radiating lines"],
+      [bannerPhoto, "Hand-drawn cup holding four pencils"],
+    ];
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const [button, alt] of previews) {
+        const imageBox = await button
+          .locator("..")
+          .getByRole("img", { name: alt, exact: true })
+          .boundingBox();
+        const buttonBox = await button.boundingBox();
+        assert.ok(imageBox.height > 120);
+        assert.ok(Math.abs(imageBox.x + imageBox.width - buttonBox.x - buttonBox.width - 8) < 1);
+        assert.ok(Math.abs(imageBox.y + imageBox.height - buttonBox.y - buttonBox.height - 8) < 1);
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
     const upload = page.getByLabel("Upload image — Thumbnail", { exact: true }),
       file = {
         name: "upload.png",
@@ -712,6 +731,16 @@ await suite("Blogs browser", async () => {
           "base64",
         ),
       };
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      bannerPhoto.press("Enter"),
+    ]);
+    assert.equal(await chooser.element().getAttribute("aria-label"), "Upload image — Banner");
+    await chooser.setFiles(file);
+    const crop = page.getByRole("dialog", { name: "Crop image", exact: true });
+    await crop.getByRole("button", { name: "Cancel", exact: true }).click();
+    await crop.waitFor({ state: "hidden" });
+    await page.getByLabel("Crop new blog images (1200 × 675)", { exact: true }).uncheck();
     await page.getByRole("button", { name: "Fail next upload", exact: true }).click();
     await upload.setInputFiles(file);
     await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();

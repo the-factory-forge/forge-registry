@@ -1586,6 +1586,18 @@ omission under the recovery contract.
 - **AND** a database failure leaves the previous draft and publication intact
 - **AND** the operation creates no Markdown object or object-ledger entry
 
+### Requirement: Blog editor photo selection
+
+The thumbnail and banner fields SHALL retain large previews and offer image
+uploads through a Photo button at the bottom right of each preview when uploads
+are allowed. Existing asset selection and alternative text editing SHALL remain
+available independently of uploading.
+
+#### Scenario: Selecting a new thumbnail or banner
+
+- **WHEN** an editor activates Photo for a thumbnail or banner
+- **THEN** the file picker opens for that field and the existing crop and upload rules apply
+
 ### Requirement: Optional blog image storage
 
 Blogs SHALL remain usable with PostgreSQL when the host has no S3 client or bucket.

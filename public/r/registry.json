@@ -1254,6 +1254,7 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/image-crop",
+        "@forge/photo-picker",
         "@forge/table-selection",
         "@forge/content-sidebar-layout",
         "@forge/loading-indicator",
@@ -1720,6 +1721,7 @@
         "@forge/icon-tooltip",
         "@forge/table-selection",
         "@forge/image-crop",
+        "@forge/photo-picker",
         "@forge/loading-indicator",
         "@forge/table-sort"
       ],
@@ -1940,6 +1942,21 @@
         }
       ],
       "dependencies": ["react-email@6.11.3"]
+    },
+    {
+      "name": "photo-picker",
+      "type": "registry:ui",
+      "title": "Photo picker",
+      "description": "A keyboard-accessible image file picker with an upload button beside or over a preview.",
+      "files": [
+        {
+          "path": "registry/components/photo-picker.tsx",
+          "type": "registry:component",
+          "target": "@components/photo-picker.tsx"
+        }
+      ],
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "image-crop",

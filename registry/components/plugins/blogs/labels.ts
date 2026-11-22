@@ -68,6 +68,7 @@ export const blogsLabels = {
   alt: "Alternative text",
   noImage: "No image",
   upload: "Upload image",
+  photo: "Photo",
   uploading: "Uploading…",
   uploaded: "Image uploaded.",
   removeImage: "Remove image",
@@ -182,9 +183,10 @@ export const blogsLabels = {
 };
 export type BlogsLabels = Omit<
   typeof blogsLabels,
-  "clearCategory" | "close" | "createAction" | "loadingStatus"
+  "clearCategory" | "close" | "createAction" | "loadingStatus" | "photo"
 > & {
   loadingStatus?: string;
+  photo?: string;
   clearCategory?: string;
   close?: string;
   createAction?: string;

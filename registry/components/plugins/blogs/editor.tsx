@@ -36,6 +36,7 @@ import { ContentSidebarLayout } from "@/components/layouts/content-sidebar-layou
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
+import { PhotoPicker } from "@/components/photo-picker";
 import {
   BlogHistoryPanel,
   BlogHistoryReader,
@@ -575,6 +576,15 @@ function EditorForm({
     alt: "thumbnailAlt" | "bannerAlt",
     label: string,
   ) {
+    const imageId = shared[target];
+    const preview = imageId ? (
+      <BlogImage
+        src={safeAssetUrl(assetUrl(imageId))}
+        alt={content[alt]}
+        className="aspect-video max-h-48 w-full rounded-2xl object-cover"
+      />
+    ) : null;
+    const photo = labels.photo ?? blogsLabels.photo;
     return (
       <div className="space-y-3">
         <label htmlFor={`${id}-${target}`} className="text-sm font-medium">
@@ -593,33 +603,26 @@ function EditorForm({
             </option>
           ))}
         </NativeSelect>
-        {shared[target] && (
-          <BlogImage
-            src={safeAssetUrl(assetUrl(shared[target]!))}
-            alt={content[alt]}
-            className="aspect-video max-h-48 w-full rounded-2xl object-cover"
+        {capabilities.upload ? (
+          <PhotoPicker
+            layout="overlay"
+            buttonLabel={photo}
+            buttonAriaLabel={`${photo} — ${label}`}
+            inputLabel={`${labels.upload} — ${label}`}
+            onSelect={(file) => selectImage(file, target)}
+            preview={
+              preview ?? (
+                <div className="flex aspect-video max-h-48 w-full items-center justify-center rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
+                  {labels.noImage}
+                </div>
+              )
+            }
           />
-        )}
-        {capabilities.upload && (
-          <label className="block space-y-2 text-sm">
-            {labels.upload}
-            <input
-              aria-label={`${labels.upload} — ${label}`}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="block w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-muted file:px-3 file:py-2"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) selectImage(file, target);
-              }}
-            />
-          </label>
+        ) : (
+          preview
         )}
         <label className="block space-y-2 text-sm">
-          <span>
-            {label} · {labels.alt}
-          </span>
+          <span>{labels.alt}</span>
           <input
             className={inputClass}
             maxLength={1000}

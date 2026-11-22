@@ -329,6 +329,10 @@ unnecessary because transfers use the host endpoint.
 
 ## Crop new thumbnail and banner uploads
 
+Both previews use `@forge/photo-picker` with a **Photo** upload button in the
+lower-right corner. The asset selectors and alternative text fields remain available.
+Override `labels.photo` to translate the button.
+
 `BlogEditPage` crops thumbnail and banner images by default at 1200×900 and
 1600×900 respectively. Override `imageDimensions`, for example
 `{ thumbnail: { width: 1200, height: 675 } }`, to crop only those configured fields,

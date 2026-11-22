@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "photo-picker",
+  "title": "Photo picker",
+  "description": "A keyboard-accessible image file picker with an upload button beside or over a preview.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/photo-picker.tsx",
+      "content": "\"use client\";\n\nimport { UploadIcon } from \"lucide-react\";\nimport { useRef, type ReactNode } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface PhotoPickerProps {\n  preview: ReactNode;\n  onSelect: (file: File) => void;\n  layout?: \"beside\" | \"overlay\";\n  inputId?: string;\n  inputLabel?: string;\n  buttonLabel?: string;\n  buttonAriaLabel?: string;\n  disabled?: boolean;\n}\n\nexport function PhotoPicker({\n  preview,\n  onSelect,\n  layout = \"beside\",\n  inputId,\n  inputLabel,\n  buttonLabel = \"Photo\",\n  buttonAriaLabel,\n  disabled,\n}: PhotoPickerProps) {\n  const input = useRef<HTMLInputElement>(null);\n\n  return (\n    <div className={layout === \"overlay\" ? \"relative\" : \"flex items-center gap-4\"}>\n      {preview}\n      <button\n        type=\"button\"\n        className={cn(\n          \"inline-flex min-h-10 min-w-0 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8\",\n          layout === \"overlay\" && \"absolute right-2 bottom-2\",\n        )}\n        aria-label={buttonAriaLabel}\n        disabled={disabled}\n        onClick={() => input.current?.click()}\n      >\n        <UploadIcon aria-hidden=\"true\" className=\"size-4 shrink-0\" />\n        {buttonLabel}\n      </button>\n      <input\n        ref={input}\n        id={inputId}\n        aria-label={inputLabel}\n        type=\"file\"\n        accept=\"image/jpeg,image/png,image/webp\"\n        disabled={disabled}\n        className=\"hidden\"\n        onChange={(event) => {\n          const file = event.currentTarget.files?.[0];\n          event.currentTarget.value = \"\";\n          if (file) onSelect(file);\n        }}\n      />\n    </div>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/photo-picker.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}
