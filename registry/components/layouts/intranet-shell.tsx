@@ -81,15 +81,18 @@ export function IntranetShell({
           (renderTopbar ? (
             renderTopbar(toggle)
           ) : (
-            <header className="flex min-h-14 items-center gap-2 border-b border-border px-4 py-2 print:hidden">
-              {toggle}
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                {topbar ?? (
-                  <span className="truncate text-sm font-medium">{sidebarProps.brand.name}</span>
-                )}
-              </div>
-              {controls && <div className="ml-auto flex items-center gap-2">{controls}</div>}
-            </header>
+            <>
+              <header className="flex min-h-12 items-center gap-2 px-4 py-2 print:hidden">
+                {toggle}
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  {topbar ?? (
+                    <span className="truncate text-sm font-medium">{sidebarProps.brand.name}</span>
+                  )}
+                </div>
+                {controls && <div className="ml-auto flex items-center gap-2">{controls}</div>}
+              </header>
+              <div className="border-t border-border print:hidden" />
+            </>
           ))}
         {wrapContent ? (
           <div
