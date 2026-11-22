@@ -461,6 +461,13 @@ profile/security components (`AccountPage`, `AccountSecurity`, `AgentKeys`).
 - **AND** after hydration, host callbacks, validation, duplicate prevention and failure recovery remain available
 - **AND** this behavior does not require a host router or framework-specific hook
 
+#### Scenario: Opening a prefilled recovery page
+
+- **WHEN** a visitor follows the login recovery link after entering an email
+- **THEN** the link carries the encoded email as a query parameter
+- **AND** the host can use that parameter to prefill the editable recovery form when opening, sharing or reloading the link
+- **AND** the reset request still requires form submission
+
 #### Scenario: Password recovery
 
 - **WHEN** a visitor requests password recovery

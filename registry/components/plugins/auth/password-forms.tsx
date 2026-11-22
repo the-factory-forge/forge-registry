@@ -36,6 +36,7 @@ interface RecoveryProps extends FormProps {
 }
 export interface ForgotPasswordFormProps extends RecoveryProps {
   onRequestReset: (email: string) => Promise<void>;
+  defaultEmail?: string;
 }
 export interface ChangePasswordValues {
   currentPassword: string;
@@ -91,6 +92,7 @@ function useSubmission() {
 
 export function ForgotPasswordForm({
   onRequestReset,
+  defaultEmail,
   enabled = true,
   loginHref,
   labels: overrides,
@@ -140,6 +142,7 @@ export function ForgotPasswordForm({
               id={`${id}-email`}
               name="email"
               type="email"
+              defaultValue={defaultEmail}
               autoComplete="email"
               autoCapitalize="none"
               spellCheck={false}

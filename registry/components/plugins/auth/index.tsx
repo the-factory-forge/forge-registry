@@ -77,6 +77,7 @@ export interface LoginFormProps {
   defaultEmail?: string;
   verificationStatus?: "success" | "error";
   enabled?: boolean;
+  /** Recovery page that accepts the current email as an optional query parameter. */
   forgotPasswordHref?: string;
   onGoogleSignIn?: () => Promise<void>;
   labels?: Partial<LoginLabels>;
@@ -87,6 +88,18 @@ const inputClass =
   "h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
 const buttonClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+
+function recoveryHref(href: string, email: string) {
+  if (!email) return href;
+  const hashIndex = href.indexOf("#");
+  const destination = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hash = href.slice(destination.length);
+  const queryIndex = destination.indexOf("?");
+  const path = queryIndex === -1 ? destination : destination.slice(0, queryIndex);
+  const search = new URLSearchParams(queryIndex === -1 ? "" : destination.slice(queryIndex));
+  search.set("email", email);
+  return `${path}?${search}${hash}`;
+}
 
 export function LoginForm(props: LoginFormProps) {
   return (
@@ -116,6 +129,7 @@ function LoginFormContent({
     toast(labels.emailVerified);
   }, [verificationStatus, labels.emailVerified, toast]);
   const id = `factory-login-${useId()}`;
+  const [email, setEmail] = useState<string>();
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const action = useAuthAction();
@@ -182,6 +196,7 @@ function LoginFormContent({
             name="email"
             type="email"
             defaultValue={defaultEmail}
+            onChange={(event) => setEmail(event.currentTarget.value)}
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}
@@ -262,7 +277,7 @@ function LoginFormContent({
           </label>
           {forgotPasswordHref && (
             <LoginLink
-              href={forgotPasswordHref}
+              href={recoveryHref(forgotPasswordHref, (email ?? defaultEmail ?? "").trim())}
               className="font-medium text-primary hover:underline"
             >
               {labels.forgotPassword}

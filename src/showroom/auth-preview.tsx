@@ -21,10 +21,16 @@ const destinations = [
   ["account", "Account and security"],
   ["access-denied", "Access denied"],
 ];
-export function AuthPreview({ view = "login" }: { view?: View }) {
-  return <Preview key={view} view={view} />;
+export function AuthPreview({
+  view = "login",
+  defaultEmail,
+}: {
+  view?: View;
+  defaultEmail?: string;
+}) {
+  return <Preview key={view} view={view} defaultEmail={defaultEmail} />;
 }
-function Preview({ view }: { view: View }) {
+function Preview({ view, defaultEmail }: { view: View; defaultEmail?: string }) {
   const { locale } = useShowroomParams();
   const [fail, setFail] = useState(false);
   const [enabled, setEnabled] = useState(true);
@@ -180,6 +186,8 @@ function Preview({ view }: { view: View }) {
           )}
           {view === "forgot-password" && (
             <ForgotPasswordForm
+              key={defaultEmail}
+              defaultEmail={defaultEmail}
               enabled={enabled}
               loginHref={`/${locale}/login`}
               linkComponent={ShowroomLink}

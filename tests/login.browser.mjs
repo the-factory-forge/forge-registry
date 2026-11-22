@@ -47,6 +47,35 @@ await suite("Login browser", async () => {
     assert.equal(await email.inputValue(), "member+verified@example.test");
   });
 
+  await test("forgot password carries only the email across navigation and reload", async (t) => {
+    const page = await preview(t, "/en/login");
+    const email = "member+recovery@example.test";
+    const link = page.getByRole("link", { name: "Forgot password?", exact: true });
+    assert.equal(await link.getAttribute("href"), "/en/forgot-password");
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill("example-password");
+    await link.press("Enter");
+    await page.waitForURL("**/forgot-password?*");
+    const recoveryUrl = new URL(page.url());
+    assert.deepEqual([...recoveryUrl.searchParams], [["email", email]]);
+
+    const recoveryEmail = page.getByLabel("Email", { exact: true });
+    assert.equal(await recoveryEmail.inputValue(), email);
+    await recoveryEmail.fill("edited@example.test");
+    await page.reload();
+    assert.equal(await recoveryEmail.inputValue(), email);
+    assert.equal(await page.getByTestId("callback-count").textContent(), "0");
+
+    const sharedPage = await preview(t, recoveryUrl.pathname + recoveryUrl.search);
+    assert.equal(await sharedPage.getByLabel("Email", { exact: true }).inputValue(), email);
+
+    await page.goBack();
+    await page.waitForURL("**/login");
+    await page.goForward();
+    await page.waitForURL("**/forgot-password?*");
+    assert.equal(await recoveryEmail.inputValue(), email);
+  });
+
   await test("recovery validates email, blocks duplicates, and retains a failed draft", async (t) => {
     const page = await preview(t, "/en/forgot-password");
     const email = page.getByLabel("Email", { exact: true });

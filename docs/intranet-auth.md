@@ -133,7 +133,7 @@ compact submit button for account security sections.
 
 | Component                                   | Host callback and state                                                                                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `enabled`, `loginHref`                                                  |
+| `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `defaultEmail`, `enabled`, `loginHref`                                  |
 | `ResetPasswordForm`                         | `onResetPassword(newPassword): Promise<void>`, required `validLink`, optional `enabled`, `loginHref`, `requestResetHref` |
 | `ChangePasswordForm` / `ChangePasswordPage` | `onChangePassword({ currentPassword, newPassword }): Promise<void>`                                                      |
 
@@ -144,6 +144,15 @@ success. The change form remains available with empty fields and a status messag
 Password forms default to 8–128 characters; set `minLength`, `maxLength`, and the
 translated `passwordHint` to match the server's policy. All components accept
 `className` and label overrides. Components with links accept `linkComponent`.
+
+The sign-in recovery link adds the entered email as an encoded `email` query
+parameter. On the recovery route, parse the optional string and pass it to
+`ForgotPasswordForm.defaultEmail`. If the router reuses the mounted route when
+the email changes, key the form by that parameter to refresh the prefill.
+A custom `linkComponent` must preserve the query string when routing. With
+TanStack Router, pass the pathname, query parameters and fragment as `to`,
+`search` and `hash`. Sharing the recovery page URL shares the email address.
+The visitor can edit it and must submit the form to request a reset link.
 
 When `requestResetHref` is provided, the reset form places “Request a new link”
 beside the new-password hint, wrapping below it on narrow screens. Invalid reset
