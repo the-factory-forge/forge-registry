@@ -74,11 +74,7 @@ import {
   primaryClass,
   useBlogAction,
 } from "@/components/plugins/blogs/ui";
-import {
-  languageTabClass,
-  blogStatusClass,
-  publicationToggleClass,
-} from "@/components/plugins/blogs/ui";
+import { languageTabClass, blogStatusClass } from "@/components/plugins/blogs/ui";
 import {
   hasUnpublishedChanges,
   MAX_IMAGE_BYTES,
@@ -88,6 +84,7 @@ import {
   slugify,
 } from "@/components/plugins/blogs/utils";
 import { emptyContent } from "@/components/plugins/blogs/utils";
+import { StatusToggle } from "@/components/status-toggle";
 import { cn } from "@/components/utils/cn";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
@@ -474,7 +471,6 @@ function EditorForm({
   }
   const readOnly = !capabilities.edit;
   const publishOnSave = capabilities.publish && !asDraft;
-  const StatusBadge = capabilities.publish ? "button" : "span";
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
     setValidation("");
     fields.clear(`${id}-${key}`);
@@ -909,39 +905,26 @@ function EditorForm({
                   {content.title || labels.newPost}
                 </h1>
                 <div className="ml-auto flex items-center gap-2">
-                  <StatusBadge
-                    type={capabilities.publish ? "button" : undefined}
-                    aria-label={capabilities.publish ? labels.publicationStatus : undefined}
-                    aria-pressed={capabilities.publish ? status !== "draft" : undefined}
-                    disabled={
-                      capabilities.publish
-                        ? pending || dirty || !base.translations[locale]
-                        : undefined
-                    }
-                    onClick={
-                      capabilities.publish ? () => void publish(status !== "draft") : undefined
-                    }
-                    className={cn(
-                      "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
-                      blogStatusClass[status],
-                      capabilities.publish
-                        ? publicationToggleClass
-                        : "before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                    )}
-                  >
-                    {capabilities.publish && (
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "flex h-3 w-5 shrink-0 items-center rounded-full bg-current/20 px-0.5",
-                          status !== "draft" && "justify-end",
-                        )}
-                      >
-                        <span className="size-2 rounded-full bg-current" />
-                      </span>
-                    )}
-                    {labels[status === "changed" ? "draft" : status]}
-                  </StatusBadge>
+                  {capabilities.publish ? (
+                    <StatusToggle
+                      label={labels.publicationStatus}
+                      pressed={status !== "draft"}
+                      disabled={pending || dirty || !base.translations[locale]}
+                      onPressedChange={(pressed) => void publish(!pressed)}
+                      className={blogStatusClass[status]}
+                    >
+                      {labels[status === "changed" ? "draft" : status]}
+                    </StatusToggle>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                        blogStatusClass[status],
+                      )}
+                    >
+                      {labels[status === "changed" ? "draft" : status]}
+                    </span>
+                  )}
                   {!viewingHistory && historyToggle}
                 </div>
               </div>

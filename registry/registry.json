@@ -121,6 +121,20 @@
       "registryDependencies": ["@forge/cn"]
     },
     {
+      "name": "status-toggle",
+      "type": "registry:ui",
+      "title": "Status toggle",
+      "description": "Compact toggle button for changing a visible status, with a switch indicator and a stable accessible label.",
+      "files": [
+        {
+          "path": "registry/components/status-toggle.tsx",
+          "type": "registry:component",
+          "target": "@components/status-toggle.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "table-pagination",
       "type": "registry:ui",
       "title": "Table pagination",
@@ -1240,6 +1254,7 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/status-toggle",
         "@forge/back-link",
         "@forge/view-preference",
         "@forge/dropdown-menu",
@@ -1709,6 +1724,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/status-toggle",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",

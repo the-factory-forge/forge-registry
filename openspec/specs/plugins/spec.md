@@ -807,12 +807,12 @@ edit/delete dialogs and verification actions.
 
 - **WHEN** a host offers employee profile publication
 - **THEN** Hosts MAY supply public-profile visibility independently of account access.
-  The edit-dialog status SHALL become an immediate toggle only when the host
-  provides a visibility callback. The directory SHALL preview the change while
-  pending and restore the previous status on failure, preserving unsaved account
-  fields. The host SHALL authorize, validate and persist publication separately
-  from account updates and refresh the employee data. Without the callback, the
-  status SHALL remain read-only.
+  The edit-dialog status SHALL show the shared switch indicator and act as an
+  immediate toggle only when the host provides a visibility callback. The directory
+  SHALL preview the change while pending and restore the previous status on
+  failure, preserving unsaved account fields. The host SHALL authorize, validate
+  and persist publication separately from account updates and refresh the employee
+  data. Without the callback, the status SHALL remain read-only.
 
 #### Scenario: Inviting an employee
 
