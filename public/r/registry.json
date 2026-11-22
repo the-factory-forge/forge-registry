@@ -120,6 +120,19 @@
       "registryDependencies": ["@forge/cn", "@forge/table-styles", "@forge/icon-tooltip"]
     },
     {
+      "name": "view-preference",
+      "type": "registry:lib",
+      "title": "View preferences",
+      "description": "Browser-local layout choices scoped to their owning view. Restoring a default removes its key.",
+      "files": [
+        {
+          "path": "registry/components/utils/view-preference.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/view-preference.ts"
+        }
+      ]
+    },
+    {
       "name": "table-sort",
       "type": "registry:ui",
       "title": "Table sorting",
@@ -137,7 +150,7 @@
         }
       ],
       "dependencies": ["lucide-react", "zod@4.6.7"],
-      "registryDependencies": ["@forge/cn", "@forge/table-styles"]
+      "registryDependencies": ["@forge/view-preference", "@forge/cn", "@forge/table-styles"]
     },
     {
       "name": "table-selection",
@@ -890,6 +903,7 @@
       "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/view-preference",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/auth",
@@ -1208,6 +1222,7 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/view-preference",
         "@forge/dropdown-menu",
         "@forge/table-pagination",
         "@forge/cn",
@@ -1357,6 +1372,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/view-preference",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/drive",

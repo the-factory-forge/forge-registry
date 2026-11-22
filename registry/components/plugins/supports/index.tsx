@@ -195,7 +195,9 @@ function SupportsContent({
     },
     SUPPORT_DEFAULT_SORT,
     undefined,
-    onSortChange ? { key: "supports", fields: SUPPORT_SORT_FIELDS } : undefined,
+    onSortChange
+      ? { owner: "supports", key: "queue", legacyKey: "supports", fields: SUPPORT_SORT_FIELDS }
+      : undefined,
   );
   const activeSort = order.value ?? SUPPORT_DEFAULT_SORT;
   const { field, direction } = activeSort;

@@ -4,12 +4,22 @@ import { MoonIcon, SunIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
-const storageKey = "forge-showroom-theme";
+const storageKey = viewPreferenceKey("showroom", "appearance", "theme");
+const legacyKey = "forge-showroom-theme";
 type Theme = "light" | "dark";
 
 // Apply the saved choice before paint. The SSR and unavailable-storage default is light.
-export const themeScript = `try{if(localStorage.getItem("${storageKey}")==="dark"){document.documentElement.classList.replace("light","dark")}}catch{}`;
+export const themeScript = `try {
+  const saved = localStorage.getItem("${storageKey}");
+  const legacy = localStorage.getItem("${legacyKey}");
+  if ((saved ?? legacy) === "dark") {
+    document.documentElement.classList.replace("light", "dark");
+    if (saved === null) localStorage.setItem("${storageKey}", "dark");
+  }
+  if (legacy !== null) localStorage.removeItem("${legacyKey}");
+} catch {}`;
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
@@ -52,7 +62,8 @@ export function ThemeControl() {
           const nextTheme = theme === "dark" ? "light" : "dark";
           applyTheme(nextTheme);
           try {
-            localStorage.setItem(storageKey, nextTheme);
+            if (nextTheme === "light") localStorage.removeItem(storageKey);
+            else localStorage.setItem(storageKey, nextTheme);
           } catch {
             /* The current tab still works without storage. */
           }

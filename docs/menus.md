@@ -433,7 +433,8 @@ integrations can keep their current routes and operations.
 ## Unassigned dishes and category deletion
 
 The workspace keeps unassigned dishes below the menus, alongside the existing
-unattached-category section. Staff can find a preserved dish and assign it through
+unattached-category section. Both sections start closed and remember explicit toggles
+independently. A link with an unassigned-dish search opens its results. Staff can find a preserved dish and assign it through
 the item editor. No separate directory is needed for that recovery path. Unassigned
 dishes and their photos are excluded from public menus and print, even if the dish
 was previously visible. Their private files and labels remain available to staff.

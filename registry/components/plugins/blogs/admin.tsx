@@ -129,7 +129,9 @@ function BlogsPageContent({
     sortProps,
     blogDefaultSort,
     undefined,
-    complete || sortProps.onSortChange ? { key: "blog", fields: BLOG_SORT_FIELDS } : undefined,
+    complete || sortProps.onSortChange
+      ? { owner: "blogs", key: "posts", legacyKey: "blog", fields: BLOG_SORT_FIELDS }
+      : undefined,
   );
   const toggleAction = useBlogAction(labels);
   const historyPublication = useHistoryPublication(client, labels, (result) => {

@@ -125,6 +125,7 @@ function AgentKeysContent({
   const [failure, setFailure] = useState("");
   const [secret, setSecret] = useState("");
   const order = useTableSort(sortProps, undefined, undefined, {
+    owner: "auth",
     key: "keys",
     fields: AGENT_KEY_SORT_FIELDS,
   });

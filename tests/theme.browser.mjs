@@ -107,6 +107,10 @@ await suite("Theme browser", async () => {
     await second.shell.getByRole("button", { name: "Dark mode", exact: true }).focus();
     await second.keyboard.press("Space");
     await page.waitForFunction(() => document.documentElement.classList.contains("light"));
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("forge:showroom:appearance:theme")),
+      null,
+    );
     assert.equal(await toggle.getAttribute("aria-pressed"), "false");
     assert.equal((await palette(page)).primary, "rgb(19, 52, 58)");
     assert.equal(await page.locator("html").getAttribute("style"), null);

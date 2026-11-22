@@ -93,6 +93,7 @@ function ProjectsListContent({
     projectDefaultSort,
     (field) => field !== "owner" || customerId === undefined,
     {
+      owner: "projects",
       key: customerId === undefined ? "projects" : "customer-projects",
       fields: PROJECT_SORT_FIELDS,
     },

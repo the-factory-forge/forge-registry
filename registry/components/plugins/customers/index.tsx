@@ -89,7 +89,7 @@ function CustomersPageContent({
     sortProps,
     customerDefaultSort,
     (field) => field !== "sync" || !!syncColumn?.sortValue,
-    { key: "customers", fields: CUSTOMER_SORT_FIELDS },
+    { owner: "customers", key: "directory", legacyKey: "customers", fields: CUSTOMER_SORT_FIELDS },
   );
   const optimistic = useOptimisticAction(suppliedCustomers);
   const root = useRef<HTMLElement>(null);

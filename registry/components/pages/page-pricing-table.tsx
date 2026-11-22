@@ -85,7 +85,7 @@ export function PricingTable({
     sortProps,
     serviceOrder,
     (field) => fields.includes(field),
-    { key: "pricing", fields: pricingFields },
+    { owner: "page-pricing-table", key: "pricing", fields: pricingFields },
   );
   const selected = order.value ?? serviceOrder;
   const numericPrice =

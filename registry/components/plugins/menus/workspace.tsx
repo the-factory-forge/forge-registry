@@ -70,6 +70,7 @@ import { moveMenuEntry, useMenuDrag } from "@/components/plugins/menus/use-menu-
 import { TableSearch, matchesTableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
+import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
 type DraftState = { dirty: boolean; pending: boolean };
 export interface MenuWorkspaceProps {
@@ -215,7 +216,9 @@ function WorkspaceContent(props: MenuWorkspaceProps) {
     queryFn: () => client.categories(),
   });
   const [creating, setCreating] = useState(!!initialCreate);
-  const [showUnassigned, setShowUnassigned] = useState(false);
+  const [showUnassigned, setShowUnassigned] = usePanelPreference(
+    viewPreferenceKey("menus", "workspace", "unassigned-categories"),
+  );
   const [deletingCategory, setDeletingCategory] = useState<MenuCategory>();
   const unassigned =
     categories.data?.filter(
@@ -319,11 +322,14 @@ function WorkspaceContent(props: MenuWorkspaceProps) {
             />
           ))}
         {menus.data && categories.data && (unassigned.length > 0 || showUnassigned) && (
-          <details
-            className="border-t border-border pt-4"
-            onToggle={(event) => setShowUnassigned(event.currentTarget.open)}
-          >
-            <summary className="min-h-11 cursor-pointer text-lg font-semibold">
+          <details className="border-t border-border pt-4" open={showUnassigned}>
+            <summary
+              onClick={(event) => {
+                event.preventDefault();
+                setShowUnassigned(!showUnassigned);
+              }}
+              className="min-h-11 cursor-pointer text-lg font-semibold"
+            >
               {copy("Unassigned categories")}{" "}
               <span className="text-sm font-normal text-muted-foreground">{unassigned.length}</span>
             </summary>
@@ -489,7 +495,11 @@ function UnassignedDishes({ categories }: { categories: MenuCategory[] }) {
     unassignedSearch = "",
     onUnassignedSearchChange,
   } = useWorkspace();
-  const [open, setOpen] = useState(Boolean(unassignedSearch));
+  const [preferredOpen, setOpen] = usePanelPreference(
+    viewPreferenceKey("menus", "workspace", "unassigned-dishes"),
+  );
+  const [dismissedSearch, setDismissedSearch] = useState("");
+  const open = preferredOpen || (!!unassignedSearch && unassignedSearch !== dismissedSearch);
   const items = useQuery({
     queryKey: [...workspaceKey, "unassigned-items"],
     queryFn: async () =>
@@ -504,12 +514,15 @@ function UnassignedDishes({ categories }: { categories: MenuCategory[] }) {
       return matchesTableSearch(unassignedSearch, name, description);
     }) ?? [];
   return (
-    <details
-      open={open || Boolean(unassignedSearch)}
-      className="border-t border-border pt-4"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <summary className="min-h-11 cursor-pointer text-lg font-semibold">
+    <details open={open} className="border-t border-border pt-4">
+      <summary
+        onClick={(event) => {
+          event.preventDefault();
+          setDismissedSearch(open ? unassignedSearch : "");
+          setOpen(!open);
+        }}
+        className="min-h-11 cursor-pointer text-lg font-semibold"
+      >
         {copy("Unassigned dishes")}{" "}
         {items.data && (
           <span className="text-sm font-normal text-muted-foreground tabular-nums">

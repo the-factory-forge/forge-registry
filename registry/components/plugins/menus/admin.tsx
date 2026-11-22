@@ -88,7 +88,9 @@ function MenuItemsPageContent({
   const labels = { ...menusLabels, ...overrides };
   const [search, setSearch] = useState("");
   const order = useTableSort<MenuSortField>(sortProps, menuDefaultSort, undefined, {
-    key: "menuItems",
+    owner: "menus",
+    key: "items",
+    legacyKey: "menuItems",
     fields: MENU_SORT_FIELDS,
   });
   const sort = order.value ?? menuDefaultSort;

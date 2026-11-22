@@ -16,6 +16,7 @@ import type {
 import { assetIdFromUrl, MAX_MARKDOWN_BYTES, safeAssetUrl } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
+import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
 export interface BlogMarkdownProps extends Pick<
   BlogsAppearanceProps,
@@ -102,6 +103,9 @@ export function BlogIndexPage({
   formatDate = defaultDate,
   className,
 }: BlogIndexPageProps) {
+  const [categoriesOpen, setCategoriesOpen] = usePanelPreference(
+    viewPreferenceKey("blogs", "listing", "categories"),
+  );
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const composing = useRef(false);
   useEffect(() => () => clearTimeout(searchTimer.current), [actionHref, categoryId, search]);
@@ -190,8 +194,14 @@ export function BlogIndexPage({
       </header>
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <aside className="rounded-3xl border border-border lg:order-last lg:p-5">
-          <details className="group lg:hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <details className="group lg:hidden" open={categoriesOpen}>
+            <summary
+              onClick={(event) => {
+                event.preventDefault();
+                setCategoriesOpen(!categoriesOpen);
+              }}
+              className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+            >
               <h2 className="font-serif text-base font-semibold">{labels.popularCategories}</h2>
               <ChevronDownIcon
                 aria-hidden="true"

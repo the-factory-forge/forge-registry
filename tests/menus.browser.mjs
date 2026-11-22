@@ -33,6 +33,29 @@ await suite("Menus browser", async () => {
     await container.locator('[role="tabpanel"][inert]').waitFor({ state: "hidden" });
   }
 
+  await test("unassigned dishes remember explicit toggles and a search link opens them for its query", async (t) => {
+    const page = await preview(t, "/en/admin/menus?menuSearch=unassigned&menuQuery=soup");
+    const section = page
+      .locator("details")
+      .filter({ has: page.locator("summary", { hasText: "Unassigned dishes" }) });
+    const saved = () =>
+      page.evaluate(() => localStorage.getItem("forge:menus:workspace:unassigned-dishes"));
+    await section.locator("summary").waitFor();
+    assert.equal(await section.getAttribute("open"), "");
+    assert.equal(await saved(), null);
+    await page.goto(baseURL + "/en/admin/menus");
+    await section.locator("summary").click();
+    await page.reload();
+    assert.equal(await section.getAttribute("open"), "");
+    assert.equal(await saved(), "open");
+    await section.locator("summary").click();
+    await page.waitForFunction(
+      () => !localStorage.getItem("forge:menus:workspace:unassigned-dishes"),
+    );
+    await page.reload();
+    assert.equal(await section.getAttribute("open"), null);
+  });
+
   await test("stacked menus share one editable category and preview their own dishes", async (t) => {
     const page = await preview(t, "/en/admin/menus");
     const stage = page.getByRole("main", { name: "Component preview" });
@@ -115,7 +138,7 @@ await suite("Menus browser", async () => {
         .getAttribute("aria-pressed"),
       "false",
     );
-    await orphanSection.locator("summary").click();
+    assert.equal(await orphanSection.getAttribute("open"), "");
     await orphanSection.getByText("Green salad", { exact: true }).waitFor();
     assert.equal(await orphanSection.getByText("Tomato soup", { exact: true }).count(), 0);
     await orphanSection

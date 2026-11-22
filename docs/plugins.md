@@ -261,6 +261,19 @@ language. Client feedback supplements existing server validation and keeps draft
 Blog publication requirements appear only beside fields after a publish attempt;
 incomplete drafts remain saveable. Hosts can reuse the helper for their own editors.
 
+## Browser view preferences
+
+Use `forge:<owner>:<view>:<preference>[:<instance>]` for localStorage layout choices.
+Use the registry item name or `showroom` as the owner, stable kebab-case names
+for views and preferences, and an optional stable instance for independent copies.
+Build keys with `viewPreferenceKey` from `@/components/utils/view-preference`.
+For example, `forge:blogs:editor:history` applies across articles and languages,
+and `forge:intranet-sidebar:desktop:navigation` applies across intranet routes.
+
+Save a value only when the user chooses a non-default. Returning to the default
+removes that key. These choices are shared by visits in the same browser profile
+and origin. URL filters, record edits and modal workflows retain their existing owners.
+
 ## Table sorting
 
 Install `@forge/table-sort` and render a `TableSortHeader` in the header row
@@ -276,7 +289,7 @@ localStorage. A valid sort in the URL takes precedence over the saved preference
 On a first visit, or when the saved value is invalid or unavailable, the table
 uses its configured default or ascending UUID order.
 
-For a new table, call `useTableSort(props, defaultSort, undefined, { key, fields })`
+For a new table, call `useTableSort(props, defaultSort, undefined, { owner, key, fields })`
 with a stable table key and its list of sortable fields. Spread the result into
 each header. Use `sortStorageKey` for independent instances of the same table.
 

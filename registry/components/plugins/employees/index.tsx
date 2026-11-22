@@ -114,7 +114,12 @@ function EmployeesPageContent({
     employeeDefaultSort,
     undefined,
     complete || sortProps.onSortChange
-      ? { key: "employees", fields: EMPLOYEE_SORT_FIELDS }
+      ? {
+          owner: "employees",
+          key: "directory",
+          legacyKey: "employees",
+          fields: EMPLOYEE_SORT_FIELDS,
+        }
       : undefined,
   );
   const scope = JSON.stringify([currentUserId, currentUserRole, offset, search, order.value]);

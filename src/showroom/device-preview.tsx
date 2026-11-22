@@ -1,26 +1,37 @@
 "use client";
 
 import { LaptopIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
+import { useViewPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
 export function DeviceControl() {
-  const [previewDevice, setPreviewDevice] = useState<"phone" | "tablet">();
+  const [previewDevice, setPreviewDevice] = useViewPreference(
+    viewPreferenceKey("showroom", "preview", "size"),
+    "big",
+    ["small", "medium", "big"] as const,
+  );
+  useEffect(() => {
+    const style = document.documentElement.style;
+    if (previewDevice === "big") style.removeProperty("--showroom-device-width");
+    else
+      style.setProperty("--showroom-device-width", previewDevice === "small" ? "390px" : "768px");
+  }, [previewDevice]);
 
   const Icon =
-    previewDevice === "phone"
+    previewDevice === "small"
       ? SmartphoneIcon
-      : previewDevice === "tablet"
+      : previewDevice === "medium"
         ? TabletIcon
         : LaptopIcon;
   const nextDevice =
-    previewDevice === "phone" ? "tablet" : previewDevice === "tablet" ? undefined : "phone";
+    previewDevice === "small" ? "medium" : previewDevice === "medium" ? "big" : "small";
   const label =
-    previewDevice === "phone"
+    previewDevice === "small"
       ? "Small preview — switch to medium"
-      : previewDevice === "tablet"
+      : previewDevice === "medium"
         ? "Medium preview — switch to big"
         : "Big preview — switch to small";
 
@@ -29,16 +40,10 @@ export function DeviceControl() {
       <button
         type="button"
         aria-label={label}
-        onClick={() => {
-          document.documentElement.style.setProperty(
-            "--showroom-device-width",
-            nextDevice === "phone" ? "390px" : nextDevice === "tablet" ? "768px" : "100%",
-          );
-          setPreviewDevice(nextDevice);
-        }}
+        onClick={() => setPreviewDevice(nextDevice)}
         className={cn(
           "hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:inline-flex",
-          previewDevice
+          previewDevice !== "big"
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground",
         )}

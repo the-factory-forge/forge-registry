@@ -12,7 +12,7 @@ export function useDriveTableOrder<Field extends string>(
   defaultSort: TableSort<Field>,
   preference: { key: string; fields: readonly Field[] },
 ) {
-  const order = useTableSort(props, defaultSort, undefined, preference);
+  const order = useTableSort(props, defaultSort, undefined, { owner: "drive", ...preference });
   const { field, direction } = order.value ?? defaultSort;
   const sort = useMemo(() => ({ field, direction }), [field, direction]);
   const [page, setPage] = useState<{ sort: typeof sort; cursors: string[] }>({ sort, cursors: [] });

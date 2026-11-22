@@ -13,6 +13,7 @@ import {
   type TableSortProps,
 } from "@/components/utils/table-sort-state";
 import { tableHeaderClass } from "@/components/utils/table-styles";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
 export type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
 
@@ -22,9 +23,13 @@ export function useTableSort<Field extends string>(
   { sort, onSortChange, sortLabels, sortStorageKey }: TableSortProps<Field>,
   defaultSort?: TableSort<Field>,
   isAvailable?: (field: Field) => boolean,
-  preference?: { key: string; fields: readonly Field[] },
+  preference?: { owner?: string; key: string; legacyKey?: string; fields: readonly Field[] },
 ) {
-  const key = preference && `forge:table-sort:${sortStorageKey ?? preference.key}`;
+  const key =
+    preference &&
+    viewPreferenceKey(preference.owner ?? "table-sort", preference.key, "sort", sortStorageKey);
+  const legacyKey =
+    preference && `forge:table-sort:${sortStorageKey ?? preference.legacyKey ?? preference.key}`;
   const fields = preference?.fields;
   const [local, setLocal] = useState<{ key?: string; sort: TableSort<Field> }>();
   const restoredKey = useRef<string>(undefined);
@@ -35,9 +40,9 @@ export function useTableSort<Field extends string>(
     () => false,
   );
   const saved = useMemo(() => {
-    if (!hydrated || !key || !fields) return;
+    if (!hydrated || !key || !legacyKey || !fields) return;
     try {
-      const raw = window.localStorage.getItem(key);
+      const raw = window.localStorage.getItem(key) ?? window.localStorage.getItem(legacyKey);
       if (raw)
         return z
           .object({ field: z.enum(fields), direction: z.enum(["asc", "desc"]) })
@@ -45,7 +50,25 @@ export function useTableSort<Field extends string>(
     } catch {
       // Storage may be inaccessible or contain malformed JSON.
     }
-  }, [hydrated, key, fields]);
+  }, [hydrated, key, legacyKey, fields]);
+
+  // Move an existing installation's saved order to its owning view.
+  useEffect(() => {
+    if (!hydrated || !key || !legacyKey) return;
+    try {
+      if (localStorage.getItem(legacyKey) === null) return;
+      if (
+        saved &&
+        localStorage.getItem(key) === null &&
+        !(saved.field === defaultSort?.field && saved.direction === defaultSort.direction)
+      ) {
+        localStorage.setItem(key, JSON.stringify(saved));
+      }
+      localStorage.removeItem(legacyKey);
+    } catch {
+      // A read-only store can still supply its old preference.
+    }
+  }, [hydrated, key, legacyKey, saved, defaultSort]);
 
   // Restore once per visit. Later history navigation belongs to the host.
   useEffect(() => {
@@ -64,7 +87,11 @@ export function useTableSort<Field extends string>(
       restoredKey.current = key;
       if (key) {
         try {
-          window.localStorage.setItem(key, JSON.stringify(next));
+          if (next.field === defaultSort?.field && next.direction === defaultSort.direction) {
+            window.localStorage.removeItem(key);
+          } else {
+            window.localStorage.setItem(key, JSON.stringify(next));
+          }
         } catch {
           // Keep the choice active for this visit when persistence fails.
         }

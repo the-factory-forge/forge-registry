@@ -63,12 +63,26 @@ void test("the standalone menu table restores its order after reload and ignores
   await handle(page, "A Third").waitFor();
   assert.deepEqual(await rows(page), ["A Third", "A Second", "A First"]);
 
+  const defaultOrder = page.getByRole("button", { name: "Display order", exact: true });
+  await defaultOrder.click();
+  const key = "forge:menus:items:sort";
+  assert.equal(await page.evaluate((key) => localStorage.getItem(key), key), null);
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "forge:table-sort:menuItems",
+      JSON.stringify({ field: "name", direction: "desc" }),
+    ),
+  );
+  await page.reload();
+  await page.locator('th[aria-sort="descending"]').getByRole("button", { name: "Name" }).waitFor();
+  assert.equal(await page.evaluate(() => localStorage.getItem("forge:table-sort:menuItems")), null);
+  assert.ok(await page.evaluate((key) => localStorage.getItem(key), key));
   for (const raw of [
     "{",
     '{"field":"removed","direction":"desc"}',
     '{"field":"name","direction":"sideways"}',
   ]) {
-    await page.evaluate((value) => localStorage.setItem("forge:table-sort:menuItems", value), raw);
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [key, raw]);
     await page.reload();
     await handle(page, "A First").waitFor();
     assert.equal(await page.locator("th[aria-sort]").innerText(), "Display order");

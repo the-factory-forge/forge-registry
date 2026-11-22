@@ -39,6 +39,22 @@ await suite("Blogs browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     return page;
   }
+  await test("mobile category navigation remembers expansion across visits", async (t) => {
+    const page = await preview(t, "/en/blogs", { viewport: { width: 390, height: 850 } });
+    const section = page
+      .locator("aside details")
+      .filter({ has: page.locator("summary", { hasText: "Categories" }) });
+    assert.equal(await section.getAttribute("open"), null);
+    await section.locator("summary").click();
+    await page.reload();
+    assert.equal(await section.getAttribute("open"), "");
+    await section.locator("summary").click();
+    await page.waitForFunction(
+      () => localStorage.getItem("forge:blogs:listing:categories") === null,
+    );
+    await page.reload();
+    assert.equal(await section.getAttribute("open"), null);
+  });
   async function saved(page) {
     await page.getByRole("button", { name: "Save draft", exact: true }).click();
     await actionToast(page, "Draft saved.");

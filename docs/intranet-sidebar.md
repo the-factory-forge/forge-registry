@@ -140,7 +140,8 @@ an offcanvas sidebar; screens below 768px use a modal drawer with focus trapping
 Escape dismissal, and focus restoration. Ordinary navigation closes the mobile
 drawer. Ctrl/Cmd+B toggles navigation except while typing in editable controls.
 The provider supports `defaultOpen` or controlled `open`/`onOpenChange` for desktop;
-mobile visibility is independent.
+the uncontrolled desktop toggle remembers its position across visits. Restoring
+`defaultOpen` clears the saved value. Mobile drawers start closed on each visit.
 
 When the host has a persistent header above the layout, set the inherited CSS
 variable `--intranet-top-offset` on a wrapper (for example,

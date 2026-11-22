@@ -41,7 +41,9 @@ await test("device control changes only the main page CSS width without frames o
     assert.equal(await main.evaluate((element) => element.getBoundingClientRect().width), width);
     assert.equal(
       await page.evaluate(() =>
-        document.documentElement.style.getPropertyValue("--showroom-device-width"),
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--showroom-device-width")
+          .trim(),
       ),
       width === 1440 ? "100%" : `${width}px`,
     );
@@ -74,6 +76,13 @@ await test("device control changes only the main page CSS width without frames o
   assert.equal(await main.evaluate((element) => element.getBoundingClientRect().width), 768);
   await page.screenshot({ path: "/tmp/forge-css-preview-desktop.png" });
   await page.reload();
+  assert.equal(await control.getAttribute("aria-label"), "Medium preview — switch to big");
+  assert.equal(await main.evaluate((element) => element.getBoundingClientRect().width), 768);
+  await control.click();
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("forge:showroom:preview:size")),
+    null,
+  );
   assert.equal(await control.getAttribute("aria-label"), "Big preview — switch to small");
   assert.equal(await main.evaluate((element) => element.getBoundingClientRect().width), 1440);
   assert.equal(await page.locator("iframe").count(), 0);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
 import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls } from "./showroom-helpers.mjs";
 
 await suite("Showroom browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -604,7 +605,12 @@ await suite("Showroom browser", async () => {
       await page.setViewportSize({ width, height: 900 });
       await page.reload();
       await page.locator('[data-preview-ready="true"]').waitFor();
-      assert.equal(await panel.isVisible(), defaultOpen);
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await toggle.click();
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("forge:showroom:preview:settings")),
+        null,
+      );
     }
     assert.deepEqual(errors, []);
   });
@@ -626,7 +632,7 @@ await suite("Showroom browser", async () => {
         });
         if (await themeButton.count()) await themeButton.click();
         const toggle = page.getByRole("button", { name: "Settings", exact: true });
-        if (width < 640) await toggle.click();
+        await openPreviewControls(page);
         const panel = page.locator("#factory-showroom-controls");
         const heading = page.getByRole("heading", { name: "Preview controls", exact: true });
         assert.equal(await toggle.textContent(), "");
@@ -739,6 +745,7 @@ await suite("Showroom browser", async () => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(baseURL + path);
         const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        await openPreviewControls(page);
         for (const open of [true, false]) {
           assert.equal(await toggle.getAttribute("aria-expanded"), String(open));
           const preview = await page.locator("#factory-showroom-preview").boundingBox();
@@ -807,7 +814,7 @@ await suite("Showroom browser", async () => {
       for (const path of ["/en/login", "/en/projects", "/en/blogs", "/en/intranet-sidebar"]) {
         await page.goto(baseURL + path);
         await page.locator('[data-preview-ready="true"]').waitFor();
-        await page.getByRole("button", { name: "Settings", exact: true }).click();
+        await openPreviewControls(page);
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,

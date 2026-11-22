@@ -60,7 +60,7 @@ arrow on hover or keyboard focus. Selecting a different header SHALL activate
 that column. Each selection of the active header SHALL reverse its direction.
 
 Record tables SHALL save each table’s last user-selected column and direction
-in localStorage. On a new visit, a valid explicit URL sort SHALL take precedence
+under an owner- and view-scoped localStorage key. Selecting the configured default SHALL remove the saved order. On a new visit, a valid explicit URL sort SHALL take precedence
 over that preference. Without a valid URL or saved order, the table SHALL use
 its configured default with a visible arrow, or ascending UUID order with no
 active header. Sorting SHALL work when browser storage is unavailable.
