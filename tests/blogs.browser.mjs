@@ -138,6 +138,24 @@ await suite("Blogs browser", async () => {
     await state.selectOption("loading");
     assert.equal(await title.inputValue(), "Unsaved title");
   });
+  await test("simulate loading previews the editor skeleton and preserves unsaved edits", async (t) => {
+    const page = await preview(t, `/en/admin/blogs/${existing}`);
+    const simulateLoading = page.getByRole("checkbox", { name: "Simulate loading", exact: true });
+    const title = page.getByRole("textbox", { name: "Title", exact: true });
+    await title.fill("Unsaved title");
+
+    await simulateLoading.check();
+    await page
+      .getByRole("status")
+      .filter({ hasText: /^loading$/ })
+      .waitFor();
+    assert.ok(await title.isDisabled());
+    assert.equal(await title.inputValue(), "");
+
+    await simulateLoading.uncheck();
+    assert.ok(await title.isEditable());
+    assert.equal(await title.inputValue(), "Unsaved title");
+  });
   await test("editor category shortcut opens management only for administrators", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`);
     const link = page.getByRole("link", { name: "Manage categories", exact: true });

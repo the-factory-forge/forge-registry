@@ -48,6 +48,7 @@ function usePreview() {
     [admin, setAdmin] = useState(true),
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
+    [simulateLoading, setSimulateLoading] = useState(false),
     [failUpload, setFailUpload] = useState(false),
     [cropImages, setCropImages] = useState(true),
     [state, setState] = useState("ready"),
@@ -86,6 +87,8 @@ function usePreview() {
     setReadOnly,
     fail,
     setFail,
+    simulateLoading,
+    setSimulateLoading,
     failUpload,
     setFailUpload,
     cropImages,
@@ -154,6 +157,16 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               />
               Simulate action failures
             </label>
+            {article && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={state.simulateLoading}
+                  onChange={(event) => state.setSimulateLoading(event.target.checked)}
+                />
+                Simulate loading
+              </label>
+            )}
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -340,7 +353,7 @@ export function BlogsAdminPreview() {
           </BackLink>
         </p>
       );
-    return (
+    const editor = (
       <BlogEditPage
         key={`${segments[0]}:${state.exampleRevision}`}
         onNavigationStateChange={onNavigationStateChange}
@@ -367,6 +380,22 @@ export function BlogsAdminPreview() {
         categoriesHref={`${root}/categories`}
         onDeleted={() => navigate({ href: root, ignoreBlocker: true })}
       />
+    );
+    const showLoadingPreview = state.simulateLoading && !!article;
+    return (
+      <>
+        {showLoadingPreview && (
+          <BlogEditPage
+            {...common}
+            article={null}
+            locales={blogLocales}
+            defaultLocale={locale}
+            view={{ state: view, onChange: changeView }}
+            backHref={root}
+          />
+        )}
+        <div hidden={showLoadingPreview}>{editor}</div>
+      </>
     );
   }
   const items =
