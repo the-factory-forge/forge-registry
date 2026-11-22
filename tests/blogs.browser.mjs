@@ -55,8 +55,46 @@ await suite("Blogs browser", async () => {
     await page.reload();
     assert.equal(await section.getAttribute("open"), null);
   });
+  await test("the category heading clears the filter and preserves search", async (t) => {
+    const page = await preview(t, "/en/blogs?search=quiet", {
+      viewport: { width: 1440, height: 900 },
+    });
+    const heading = page.getByRole("heading", { name: "Categories", exact: true });
+    const clear = page.getByRole("link", { name: "Clear category filter", exact: true });
+    const category = page.getByRole("link", { name: "Ideas & practice (2)", exact: true });
+
+    assert.equal(await clear.count(), 0);
+    await category.click();
+    await page.waitForURL((url) => url.searchParams.has("category"));
+    const filtered = page.url();
+
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await clear.waitFor();
+      const titleBox = await heading.boundingBox();
+      const clearBox = await clear.boundingBox();
+      assert.ok(clearBox.x >= titleBox.x + titleBox.width);
+      assert.ok(Math.abs(clearBox.y + clearBox.height / 2 - titleBox.y - titleBox.height / 2) < 2);
+      await clear.hover();
+      await page.getByRole("tooltip", { name: "Clear category filter", exact: true }).waitFor();
+      await clear.press("Enter");
+      await page.waitForURL((url) => !url.searchParams.has("category"));
+      assert.equal(new URL(page.url()).searchParams.get("search"), "quiet");
+      await clear.waitFor({ state: "hidden" });
+      await page.reload();
+      assert.equal(new URL(page.url()).searchParams.get("search"), "quiet");
+      await page.goBack();
+      await page.waitForURL(filtered);
+      await clear.waitFor();
+      await page.goForward();
+      await clear.waitFor({ state: "hidden" });
+      await page.goBack();
+      await page.waitForURL(filtered);
+    }
+  });
   async function saved(page) {
-    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await actionToast(page, "Draft saved.");
   }
   await test("editor category shortcut opens management only for administrators", async (t) => {
@@ -90,6 +128,7 @@ await suite("Blogs browser", async () => {
       viewport: { width: 1440, height: 1000 },
     });
     const badge = page.getByRole("button", { name: "Publication status", exact: true });
+    assert.equal(await page.getByRole("button", { name: "Unpublish", exact: true }).count(), 0);
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
     await badge.focus();
     await page.keyboard.press("Space");
@@ -111,8 +150,11 @@ await suite("Blogs browser", async () => {
     await title.fill("A protected revision");
     assert.equal(await badge.isDisabled(), true);
     await saved(page);
-    await badge.filter({ hasText: "Unpublished changes" }).waitFor();
-    assert.equal(await badge.textContent(), "Unpublished changes");
+    await badge.filter({ hasText: /^Draft$/ }).waitFor();
+    assert.equal(await badge.getAttribute("aria-pressed"), "true");
+    await badge.locator("xpath=ancestor::header[1]").screenshot({
+      path: "/tmp/forge-blog-toggle-editor-desktop.png",
+    });
     await page.getByLabel("Simulate action failures", { exact: true }).check();
     await badge.click();
     await page
@@ -120,7 +162,7 @@ await suite("Blogs browser", async () => {
       .getByRole("alert")
       .filter({ hasText: "Storage is unavailable" })
       .waitFor();
-    assert.equal(await badge.textContent(), "Unpublished changes");
+    assert.equal(await badge.textContent(), "Draft");
     assert.equal(await badge.getAttribute("aria-pressed"), "true");
     assert.equal(await title.inputValue(), "A protected revision");
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
@@ -128,16 +170,13 @@ await suite("Blogs browser", async () => {
     await actionToast(page, "This language is no longer public");
     assert.equal(await badge.textContent(), "Draft");
     assert.equal(await title.inputValue(), "A protected revision");
-    await page.getByRole("tabpanel").locator("header").first().screenshot({
-      path: "/tmp/forge-blog-toggle-editor-desktop.png",
-    });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
-    await page.getByRole("tabpanel").locator("header").first().screenshot({
+    await badge.locator("xpath=ancestor::header[1]").screenshot({
       path: "/tmp/forge-blog-toggle-editor-mobile-dark.png",
     });
     await page.getByLabel("Read-only", { exact: true }).check();
@@ -193,31 +232,37 @@ await suite("Blogs browser", async () => {
     assert.equal(await row.getByRole("button", { name: /^Publication status:/ }).count(), 0);
   });
 
-  await test("publish is hidden until the selected translation has unpublished changes", async (t) => {
+  await test("the editor uses one Save or Publish action for the selected language", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`);
     const publish = page.getByRole("button", { name: "Publish", exact: true });
-    const unpublish = page.getByRole("button", { name: "Unpublish", exact: true });
-    assert.equal(await publish.count(), 0);
-    assert.equal(await unpublish.isEnabled(), true);
+    const save = page.getByRole("button", { name: "Save", exact: true });
+    const asDraft = page.getByRole("checkbox", { name: "As draft", exact: true });
+    const badge = page.getByRole("button", { name: "Publication status", exact: true });
+    await publish.waitFor();
+    assert.equal(await save.count(), 0);
+    assert.equal(await badge.isEnabled(), true);
 
     await page.getByLabel("Title", { exact: true }).fill("A revised title");
-    assert.equal(await publish.count(), 0);
+    await publish.waitFor();
     await saved(page);
-    assert.equal(await publish.isEnabled(), true);
-    await page.getByRole("tab", { name: "Français", exact: true }).click();
     assert.equal(await publish.count(), 0);
+    assert.equal(await save.isEnabled(), true);
+    await page.getByRole("tab", { name: "Français", exact: true }).click();
+    await publish.waitFor();
     await page.getByRole("tab", { name: "English", exact: true }).click();
+    await asDraft.uncheck();
     assert.equal(await publish.isEnabled(), true);
     await publish.click();
     await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
-    assert.equal(await publish.count(), 0);
-    assert.equal(await unpublish.isEnabled(), true);
+    await publish.waitFor();
+    assert.equal(await save.count(), 0);
+    assert.equal(await badge.isEnabled(), true);
 
-    await unpublish.click();
+    await badge.click();
     await actionToast(page, "This language is no longer public");
     assert.equal(await publish.isEnabled(), true);
-    assert.equal(await unpublish.count(), 0);
+    assert.equal(await badge.getAttribute("aria-pressed"), "false");
   });
   await test("admin categories stay readable and long table text truncates in both themes", async (t) => {
     const page = await preview(t, "/en/admin/blogs", { viewport: { width: 1440, height: 1000 } });
@@ -510,7 +555,7 @@ await suite("Blogs browser", async () => {
       .getByRole("heading", { name: "Make room for better ideas", exact: true })
       .waitFor({ state: "hidden" });
     assert.equal(await page.locator("article").count(), 1);
-    await page.getByRole("link", { name: "All categories", exact: true }).click();
+    await page.getByRole("link", { name: "Clear category filter", exact: true }).click();
     await page.getByRole("heading", { name: "Make room for better ideas", exact: true }).waitFor();
     await page.getByRole("searchbox", { name: "Search posts", exact: true }).fill("quieter");
     await page.waitForURL(`${baseURL}/en/blogs?search=quieter`);
@@ -553,8 +598,9 @@ await suite("Blogs browser", async () => {
       .getByRole("textbox", { name: "Markdown", exact: true })
       .fill("## A useful heading\n\n**Careful writing** matters.");
     await page.getByRole("heading", { name: "A useful heading", exact: true }).waitFor();
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
     await page.getByLabel("Simulate action failures", { exact: true }).check();
-    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
     assert.match(
       await page.getByRole("textbox", { name: "Markdown", exact: true }).inputValue(),
@@ -563,6 +609,7 @@ await suite("Blogs browser", async () => {
     await page.getByLabel("Simulate action failures", { exact: true }).uncheck();
     await saved(page);
     await page.getByLabel("Editor", { exact: true }).selectOption("alex");
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).uncheck();
     await page.getByRole("button", { name: "Publish", exact: true }).click();
     await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
@@ -630,7 +677,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
     await page.getByLabel("Read-only", { exact: true }).check();
-    assert.equal(await page.getByRole("button", { name: "Save draft", exact: true }).count(), 0);
+    assert.equal(await page.getByRole("button", { name: "Save", exact: true }).count(), 0);
     assert.equal(await text.isDisabled(), true);
     await page.getByLabel("Read-only", { exact: true }).uncheck();
     await trigger.click();
@@ -686,6 +733,7 @@ await suite("Blogs browser", async () => {
     await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Un nouveau texte.");
     await page.getByLabel("Author", { exact: true }).selectOption("jordan");
     await saved(page);
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).uncheck();
     await page.getByRole("button", { name: "Publish", exact: true }).click();
     await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
@@ -712,8 +760,9 @@ await suite("Blogs browser", async () => {
     await leave.waitFor();
     await leave.getByRole("button", { name: "Cancel", exact: true }).click();
     assert.equal(await french.getAttribute("aria-selected"), "true");
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
     await page.getByLabel("Simulate action failures", { exact: true }).check();
-    await page.getByRole("button", { name: "Save draft", exact: true }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
     assert.equal(await english.isDisabled(), false);
     assert.equal(await title.inputValue(), "Une traduction modifiée");
@@ -767,11 +816,12 @@ await suite("Blogs browser", async () => {
       ],
     };
     for (const [label, colors] of Object.entries(palettes)) {
+      const editorLabel = label === "Unpublished changes" ? "Draft" : label;
       if (label === "Unpublished changes") {
         await page.getByRole("textbox", { name: "Title", exact: true }).fill("A revised title");
         await saved(page);
       } else if (label === "Draft") {
-        await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+        await page.getByRole("button", { name: "Publication status", exact: true }).click();
         // The badge changes optimistically; navigation waits for persistence.
         await actionToast(page, "This language is no longer public");
         await page
@@ -786,7 +836,7 @@ await suite("Blogs browser", async () => {
         assert.deepEqual(
           await page
             .getByRole("button", { name: "Publication status", exact: true })
-            .filter({ hasText: label })
+            .filter({ hasText: editorLabel })
             .evaluate((node) => {
               const style = getComputedStyle(node);
               return [style.backgroundColor, style.color];

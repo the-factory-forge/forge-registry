@@ -1474,18 +1474,37 @@ with chronological history and detailed comparison.
 - **THEN** its status becomes unpublished changes
 - **AND** the public page retains its previous publication until staff publish again
 
+#### Scenario: Choosing whether to save a draft or publish
+
+- **WHEN** staff with publication permission save with As draft checked
+- **THEN** the editor action is labeled Save and saves only the selected language's draft
+- **AND** As draft starts unchecked, so the same action is labeled Publish and saves and publishes that language with the existing publication checks and image review
+- **AND** a failed publication leaves any successfully saved draft available for retry
+- **AND** the editor status switch controls whether the saved translation is live
+
 #### Scenario: Scrolling the editor history
 
 - **WHEN** staff scroll an article with history open on desktop
-- **THEN** the comparison and History buttons stick together with the history panel below the host header offset
-- **AND** long timelines scroll inside the panel while the buttons remain visible
+- **THEN** the history panel sticks below the host header offset
+- **AND** long timelines scroll inside the panel and its close action remains available
 - **AND** narrow layouts retain the controls and expanded history in normal page flow
 
 #### Scenario: Opening and closing History
 
-- **WHEN** the Blog History panel opens by default or through its toggle
-- **THEN** the toggle has a filled primary treatment and exposes `aria-expanded="true"`
-- **AND** closing through the toggle, panel close action or mobile version selection restores its inactive outline and `aria-expanded="false"`
+- **GIVEN** History starts closed at every viewport width in the default editor view
+- **WHEN** staff open it through its toggle or restore a view with History open
+- **THEN** the icon-only toggle has a filled primary treatment and exposes `aria-expanded="true"`
+- **AND** it sits beside the publication status in the editor and in the toolbar when reviewing history, with a translated accessible name and tooltip
+- **AND** closing through the toggle, panel close action or mobile version selection restores its inactive outline and `aria-expanded="false"` and clears the open state
+
+#### Scenario: Restoring the blog editor view from its URL
+
+- **WHEN** a host binds the editor view to its URL and staff open, reload or traverse a deep link
+- **THEN** the editor restores the article language, History visibility, selected retained snapshot and comparison mode
+- **AND** the default language, closed panel, editable draft and read mode are omitted from the URL
+- **AND** a language switch resets the snapshot and comparison while keeping History visibility
+- **AND** browser history changes that switch language or enter a different snapshot retain draft navigation protection
+- **AND** hosts can keep the existing uncontrolled editor behavior by omitting the view binding
 
 #### Scenario: Computing a draft save
 
@@ -1669,11 +1688,19 @@ restore the prior status and show an error.
 
 #### Scenario: Toggling a live translation
 
-- **WHEN** staff activate a Published or Unpublished changes badge
+- **WHEN** staff activate a publication switch that is on
 - **THEN** only that translation is unpublished immediately, preserving its draft
-- **AND** activating its Draft badge publishes the saved revision if valid, after historical-return confirmation when required
-- **AND** the separate Publish action can publish revisions without unpublishing first
+- **AND** the editor labels a saved draft Draft even while the switch is on
+- **AND** turning the switch back on publishes the saved revision if valid, after historical-return confirmation when required
+- **AND** the editor’s Publish action can publish revisions without unpublishing first
 - **AND** table badges remain read-only without the host's `onSetPublished` callback
+
+#### Scenario: Opening the live version's History menu
+
+- **WHEN** staff open the live version's actions menu
+- **THEN** Compare is disabled because that version is the comparison baseline
+- **AND** Unpublish is available to staff with publication permission when no changes are pending or unsaved
+- **AND** unpublishing uses the existing editor operation, preserving the saved draft and retained history
 
 #### Scenario: A badge would discard later publications
 
@@ -1881,6 +1908,18 @@ Authorization, validation, concurrency, image recovery and idempotency SHALL rem
 - **THEN** it becomes a new live publication and v18 is removed only because it is the oldest of six publications
 - **AND** v22, v26, v36 and v37 remain retained, with no additional deletion caused by the source's age
 
+#### Scenario: Publishing from the draft's History menu
+
+- **WHEN** staff with publication permission open the current saved draft's actions menu with no unsaved changes
+- **THEN** Publish appears first and uses the same version-bound plan and missing-image confirmation as the editor
+- **AND** unsaved working drafts and staff without publication permission do not offer this action
+
+#### Scenario: Publishing the newest saved version when nothing is live
+
+- **WHEN** staff with publication permission open the first History row's menu and that row is the current saved version with no live publication or unsaved changes
+- **THEN** Publish appears first and uses the same version-bound plan, including when the current saved version is a previously unpublished publication
+- **AND** older publications still require resuming and saving as a draft before publication
+
 #### Scenario: A stale or failed confirmation
 
 - **WHEN** article state changes after a missing-image plan was displayed, or authorization, validation, image checking or persistence fails
@@ -2003,6 +2042,8 @@ content SHALL have an explicit comparison empty state.
 - **WHEN** staff open the history panel
 - **THEN** one chronological list shows publication numbers, a translated unnumbered draft, authors, times, states and separate publication/draft counts
 - **AND** no reprise lanes appear
+- **AND** selecting the current publication shows the editor, including when returning from an older version
+- **AND** when a separate saved draft exists, selecting the live publication opens its read-only preview
 
 #### Scenario: Comparing a small text change
 
@@ -2015,10 +2056,12 @@ content SHALL have an explicit comparison empty state.
 #### Scenario: Switching reading and comparison
 
 - **WHEN** staff inspect a saved state or compare their current draft
-- **THEN** Read and Compare are both available as explicit selected modes
-- **AND** comparison names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
-- **AND** the reference endpoint uses the same red semantic treatment and minus marker as removed values, while the selected endpoint uses the green treatment and plus marker of added values
-- **AND** switching to Read and back to Compare preserves the selection and working content
+- **THEN** selecting a saved history row opens its read preview, or the editor when the row represents the current publication
+- **AND** the row's Compare action opens the comparison against the live publication
+- **AND** the Compare toggle in a historical publication's footer switches between preview and comparison without changing the selected version
+- **AND** the toggle appears immediately before Resume as draft when that action is available
+- **AND** the accessible comparison heading names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
+- **AND** switching views through the history panel preserves working content
 - **AND** title, slug, summary, author, categories and image differences remain included, with an explanation that unchanged fields are hidden
 
 #### Scenario: Inspecting on a narrow screen
@@ -2030,7 +2073,7 @@ content SHALL have an explicit comparison empty state.
 
 #### Scenario: Comparing a working draft and captured fields
 
-- **WHEN** staff compare the current draft, including unsaved edits, or a selected history version
+- **WHEN** staff choose Compare from the actions menu of a saved version or unsaved draft
 - **THEN** the reference remains the live publication in the selected language
 - **AND** the existing paragraph/word diff, whitespace handling and bounded fallback remain available
 - **AND** comparison covers title, slug, summary, signature, thumbnail, banner, their alternative text, categories and Markdown

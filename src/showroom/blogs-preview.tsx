@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { z } from "zod";
 
 import { BackLink } from "@/components/back-link";
 import { NativeSelect } from "@/components/native-select";
@@ -22,6 +23,7 @@ import {
   BlogPostPage,
   BlogsPage,
   blogCapabilities,
+  type BlogEditorView,
 } from "@/components/plugins/blogs";
 import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
@@ -239,12 +241,48 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
     </Context.Provider>
   );
 }
+const historyVersionId = z.uuid();
+
+function readEditorView(search: Record<string, unknown>, defaultLocale: string): BlogEditorView {
+  return {
+    locale: blogLocales.find(({ code }) => code === search.lang)?.code ?? defaultLocale,
+    historyOpen: search.history === true,
+    versionId: historyVersionId.safeParse(search.version).data ?? null,
+    compare: search.compare === true,
+  };
+}
+
 export function BlogsAdminPreview() {
   const { locale: routeLocale, segments } = useShowroomParams();
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
     navigate = useNavigate();
-  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
+  const query = useSearch({ strict: false });
+  const view = readEditorView(query, locale);
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard((current, next) => {
+    const from = readEditorView(current, locale);
+    const to = readEditorView(next, locale);
+    return from.locale !== to.locale || (to.versionId !== null && from.versionId !== to.versionId);
+  });
+  function changeView(change: Partial<BlogEditorView>) {
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const next = { ...readEditorView(previous, locale), ...change };
+        return {
+          ...previous,
+          lang: next.locale === locale ? undefined : next.locale,
+          history: next.historyOpen || undefined,
+          version: next.versionId ?? undefined,
+          compare: next.compare || undefined,
+        };
+      },
+      hash: true,
+      resetScroll: false,
+      // The editor already guarded the language or history selection.
+      ignoreBlocker: true,
+    });
+  }
   const currentArticle = state.mock.all().find((article) => article.id === segments[0]);
   const [lastArticle, setLastArticle] = useState(currentArticle);
   if (
@@ -321,6 +359,7 @@ export function BlogsAdminPreview() {
         assets={state.mock.assets(article.id)}
         locales={blogLocales}
         defaultLocale={locale}
+        view={{ state: view, onChange: changeView }}
         backHref={root}
         categoriesHref={`${root}/categories`}
         onDeleted={() => navigate({ href: root, ignoreBlocker: true })}

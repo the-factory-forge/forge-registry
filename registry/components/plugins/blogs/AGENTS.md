@@ -14,7 +14,8 @@ for the affected flow.
 - `model.ts` owns draft/publication transitions and retention. Each language has
   one saved draft and up to five publications, including live. Saving replaces its
   draft without changing public content. Resuming history changes the editable
-  draft; Save and Publish remain distinct operations.
+  draft. Editor Save can follow a successful draft save with publication of the
+  returned revision.
 - `permissions.ts` separates the management author from the acting editor.
   Stored authorship governs publishing/deletion; publication signatures govern
   public attribution. Legacy attribution requires explicit administrator review.

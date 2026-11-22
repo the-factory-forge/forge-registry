@@ -9,6 +9,14 @@ export interface BlogEditor {
   id: string;
   name: string;
 }
+export interface BlogEditorView {
+  locale: string;
+  historyOpen: boolean;
+  /** Retained history entry to inspect, or null for the working draft. */
+  versionId: string | null;
+  compare: boolean;
+}
+
 export interface BlogLocale {
   code: string;
   name: string;

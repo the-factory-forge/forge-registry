@@ -90,7 +90,9 @@ export function useShowroomTablePage(key: string) {
   };
 }
 
-export function useShowroomEditorGuard() {
+export function useShowroomEditorGuard(
+  changesEditorView?: (current: Record<string, unknown>, next: Record<string, unknown>) => boolean,
+) {
   const editorState = useRef({ dirty: false, pending: false });
   const onNavigationStateChange = useCallback((state: { dirty: boolean; pending: boolean }) => {
     editorState.current = state;
@@ -98,12 +100,16 @@ export function useShowroomEditorGuard() {
   // Block navigation during saves first; editors own dirty-edit dialogs and native unload.
   useBlocker({
     shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.pending,
+      editorState.current.pending &&
+      (current.pathname !== next.pathname ||
+        changesEditorView?.(current.search, next.search) === true),
     enableBeforeUnload: false,
   });
   const blocker = useBlocker({
     shouldBlockFn: ({ current, next }) =>
-      current.pathname !== next.pathname && editorState.current.dirty,
+      editorState.current.dirty &&
+      (current.pathname !== next.pathname ||
+        changesEditorView?.(current.search, next.search) === true),
     enableBeforeUnload: false,
     withResolver: true,
   });

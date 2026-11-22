@@ -16,6 +16,7 @@ export const blogsLabels = {
   search: "Search posts",
   searchSubmit: "Search",
   allCategories: "All categories",
+  clearCategory: "Clear category filter",
   popularCategories: "Categories",
   empty: "No posts found.",
   loading: "Loading…",
@@ -41,7 +42,9 @@ export const blogsLabels = {
   publicationStatus: "Publication status",
   changed: "Unpublished changes",
   missing: "Not translated",
-  save: "Save draft",
+  save: "Save",
+  asDraft: "As draft",
+  saveDraft: "Save draft",
   publish: "Publish",
   unpublish: "Unpublish",
   saved: "Draft saved.",
@@ -138,7 +141,7 @@ export const blogsLabels = {
   replaceDraftDescription:
     "Resuming this version will replace the current draft. Its changes will be lost when you save. Live content stays unchanged.",
   replaceDraft: "Replace draft",
-  publishVersion: "Publish draft",
+  publishVersion: "Publish",
   deleteVersion: "Delete version",
   deleteDraft: "Delete draft",
   versionDeleted: "Version deleted.",
@@ -176,7 +179,8 @@ export const blogsLabels = {
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
-export type BlogsLabels = Omit<typeof blogsLabels, "close" | "createAction"> & {
+export type BlogsLabels = Omit<typeof blogsLabels, "clearCategory" | "close" | "createAction"> & {
+  clearCategory?: string;
   close?: string;
   createAction?: string;
 };

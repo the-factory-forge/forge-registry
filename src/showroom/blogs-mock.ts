@@ -3,6 +3,7 @@ import type {
   BlogAsset,
   BlogCategory,
   BlogEditor,
+  BlogPublication,
   BlogsClient,
   BlogHistoryVersion,
   BlogHistoryTarget,
@@ -183,6 +184,7 @@ function seed() {
 export function createBlogsMock() {
   const initial = seed();
   const versions = new Map<string, BlogHistoryVersion[]>();
+  let seededVersion = 500;
   for (const article of initial.articles) {
     const retained: BlogHistoryVersion[] = [];
     for (const [locale, translation] of Object.entries(article.translations)) {
@@ -192,12 +194,10 @@ export function createBlogsMock() {
         currentId: null as string | null,
         publishedId: null as string | null,
       };
-      const capture = (published: boolean) => {
-        const content = published ? translation.published! : translation.draft;
-        const shared = published
-          ? translation.published!.shared
-          : (translation.shared ?? article.shared);
-        const id = crypto.randomUUID();
+      const capture = (published: BlogPublication | null) => {
+        const content = published ?? translation.draft;
+        const shared = published?.shared ?? translation.shared ?? article.shared;
+        const id = key(seededVersion++);
         retained.push({
           id,
           number: ++state.lastNumber,
@@ -210,7 +210,7 @@ export function createBlogsMock() {
           sourcePublicationId: state.publishedId,
           sourcePublicationOrder: state.lastPublicationOrder || null,
           publicationOrder: published ? ++state.lastPublicationOrder : null,
-          publishedAt: published ? translation.published!.publishedAt : null,
+          publishedAt: published?.publishedAt ?? null,
           omittedAssetIds: [],
           content: structuredClone(content),
           shared: structuredClone(shared),
@@ -218,7 +218,22 @@ export function createBlogsMock() {
         state.currentId = id;
         if (published) state.publishedId = id;
       };
-      if (translation.published) capture(true);
+      if (translation.published) {
+        if (article.id === key(1) && locale === "en") {
+          const earlierDate = "2026-09-03T10:00:00.000Z";
+          capture({
+            ...translation.published,
+            summary: "A small practice for making time to think.",
+            markdown: translation.published.markdown.replace(
+              "Good ideas often start with **paying attention**.",
+              "Set aside ten minutes to sketch out the problem.",
+            ),
+            updatedAt: earlierDate,
+            publishedAt: earlierDate,
+          });
+        }
+        capture(translation.published);
+      }
       if (
         !translation.published ||
         !sameBlogInputs(
@@ -226,7 +241,7 @@ export function createBlogsMock() {
           { content: translation.published, shared: translation.published.shared },
         )
       )
-        capture(false);
+        capture(null);
       translation.history = state;
       translation.shared ??= structuredClone(article.shared);
     }

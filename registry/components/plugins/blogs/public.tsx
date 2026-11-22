@@ -1,10 +1,18 @@
 "use client";
 
 import { Markdown } from "@tanstack/markdown/react";
-import { ArrowUpRight, CalendarDays, ChevronDownIcon, SearchIcon, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  ChevronDownIcon,
+  SearchIcon,
+  UserRound,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { BackLink } from "@/components/back-link";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
@@ -118,15 +126,21 @@ export function BlogIndexPage({
   }
   const labels = { ...blogsLabels, ...overrides },
     pages = Math.max(1, Math.ceil(data.total / data.pageSize));
-  const categoryNavigation = (
-    <nav aria-label={labels.categories} className="space-y-3">
+  const clearCategoryLabel =
+    overrides?.clearCategory ?? overrides?.allCategories ?? blogsLabels.clearCategory;
+  const clearCategory = categoryId && (
+    <IconTooltip label={clearCategoryLabel}>
       <BlogLink
         href={categoryHref(null)}
-        aria-current={!categoryId ? "page" : undefined}
-        className="block text-sm hover:underline"
+        aria-label={clearCategoryLabel}
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring lg:size-8"
       >
-        {labels.allCategories}
+        <XIcon aria-hidden="true" className="size-4 shrink-0" />
       </BlogLink>
+    </IconTooltip>
+  );
+  const categoryNavigation = (
+    <nav aria-label={labels.categories} className="space-y-3">
       {categories
         .filter((c) => c.translations[locale] && (data.categoryCounts[c.id] ?? 0) > 0)
         .map((c) => (
@@ -153,15 +167,15 @@ export function BlogIndexPage({
         className,
       )}
     >
-      <header className="space-y-4 border-b border-border pb-8">
-        <h1 className="font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
+      <header className="flex flex-col gap-4 border-b border-border pb-8 sm:flex-row sm:items-center">
+        <h1 className="min-w-0 flex-1 font-serif text-4xl font-semibold tracking-tight wrap-anywhere sm:text-5xl">
           {labels.publicTitle}
         </h1>
         <form
           onKeyDownCapture={submitFormOnShortcut}
           action={actionHref}
           method="get"
-          className="ml-auto max-w-lg"
+          className="w-full max-w-lg sm:w-1/2 sm:shrink-0"
           onSubmit={() => clearTimeout(searchTimer.current)}
         >
           <label className="sr-only" htmlFor="factory-blog-search">
@@ -194,14 +208,17 @@ export function BlogIndexPage({
         </form>
       </header>
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <aside className="rounded-3xl border border-border lg:order-last lg:p-5">
+        <aside className="relative rounded-3xl border border-border lg:order-last lg:p-5">
           <details className="group lg:hidden" open={categoriesOpen}>
             <summary
               onClick={(event) => {
                 event.preventDefault();
                 setCategoriesOpen(!categoriesOpen);
               }}
-              className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+              className={cn(
+                "flex min-h-14 cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden",
+                categoryId && "pr-14",
+              )}
             >
               <h2 className="font-serif text-base font-semibold">{labels.popularCategories}</h2>
               <ChevronDownIcon
@@ -211,8 +228,12 @@ export function BlogIndexPage({
             </summary>
             <div className="px-4 pb-4">{categoryNavigation}</div>
           </details>
+          {clearCategory && <div className="absolute top-2 right-2 lg:hidden">{clearCategory}</div>}
           <div className="hidden lg:block">
-            <h2 className="mb-5 font-serif text-xl font-semibold">{labels.popularCategories}</h2>
+            <div className="mb-5 flex min-h-8 items-center justify-between gap-2">
+              <h2 className="font-serif text-xl font-semibold">{labels.popularCategories}</h2>
+              {clearCategory}
+            </div>
             {categoryNavigation}
           </div>
         </aside>
