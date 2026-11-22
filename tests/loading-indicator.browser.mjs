@@ -82,6 +82,25 @@ void test("overlap, failure and unmount release the shared indicator", async (t)
   await bar.waitFor({ state: "hidden" });
 });
 
+void test("the loading indicator sits above the navbar and behind the dialog and its backdrop", async (t) => {
+  for (const width of [1440, 390]) {
+    const page = await fixture(t, { viewport: { width, height: 844 }, reducedMotion: "reduce" });
+    const bar = page.locator('[data-slot="loading-indicator"]');
+    await page.getByRole("button", { name: "Toggle loading", exact: true }).click();
+    await bar.waitFor();
+    await page.getByRole("button", { name: "Open dialog" }).click();
+    const dialog = page.getByRole("dialog", { name: "Test dialog" });
+    await dialog.waitFor();
+    const backdrop = page.locator('[data-slot="dialog-backdrop"]');
+    const stackingLevel = (locator) =>
+      locator.evaluate((element) => Number(getComputedStyle(element).zIndex));
+    const barLayer = await stackingLevel(bar);
+    assert.ok(barLayer > (await stackingLevel(page.locator("header"))));
+    assert.ok(barLayer < (await stackingLevel(dialog)));
+    assert.ok(barLayer < (await stackingLevel(backdrop)));
+  }
+});
+
 void test("the loader grows from a fixed left edge and fills before hiding", async (t) => {
   for (const width of [1440, 390]) {
     const page = await fixture(t, {

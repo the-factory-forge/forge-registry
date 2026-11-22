@@ -84,7 +84,7 @@ function ActivityBar({
       data-state={state}
       hidden={state === "idle"}
       className={cn(
-        "pointer-events-none fixed inset-x-0 top-0 z-[1100] h-1 overflow-hidden bg-primary/20 print:hidden",
+        "pointer-events-none fixed inset-x-0 top-0 z-45 h-1 overflow-hidden bg-primary/20 print:hidden",
         className,
       )}
     >

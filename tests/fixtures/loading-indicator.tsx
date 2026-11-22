@@ -1,3 +1,4 @@
+import { Dialog } from "@base-ui/react/dialog";
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -47,11 +48,23 @@ function App() {
   const [mounted, setMounted] = useState(true);
   return (
     <LoadingProvider>
-      <header className="h-14">Navbar</header>
+      <header className="sticky top-0 z-40 h-[60px] bg-background">Navbar</header>
       <LoadingIndicator label="Chargement…" className="top-14" />
       <main className="flex gap-2">
         <LoadingProvider>{mounted && <Source />}</LoadingProvider>
         <button onClick={() => setMounted(!mounted)}>Toggle source</button>
+        <Dialog.Root>
+          <Dialog.Trigger>Open dialog</Dialog.Trigger>
+          <Dialog.Portal>
+            <Dialog.Backdrop
+              data-slot="dialog-backdrop"
+              className="fixed inset-0 z-50 bg-foreground/30"
+            />
+            <Dialog.Popup className="fixed inset-x-8 top-12 z-50 bg-background p-4">
+              <Dialog.Title>Test dialog</Dialog.Title>
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
       </main>
     </LoadingProvider>
   );
