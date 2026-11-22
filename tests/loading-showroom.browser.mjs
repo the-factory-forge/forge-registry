@@ -75,7 +75,7 @@ void test("data states across plugins share the indicator and navigation release
     "/en/customers",
     "/en/projects",
     "/en/admin/blogs",
-    "/en/admin/menus",
+    "/en/admin/menus/items",
   ]) {
     await page.goto(base + route);
     await page.locator('[data-preview-ready="true"]').waitFor();
