@@ -94,7 +94,9 @@ providers belong in `src/lib/`. Showroom controls belong in
 `src/showroom/`. Neither directory may be listed in `registry/registry.json` or
 imported by shared registry components. Reusable connector source and provider adapters live under `registry/components/connectors/{name}/`
 and install at `@components/connectors/{name}/*`. List connectors in the showroom
-under **Connector**; server companions stay with their parent example.
+under **Connector**; server companions stay with their parent example. WebMCP is
+intended as a shared website capability and stays unlisted, with its demo linked
+from `docs/webmcp.md`.
 Host adapters remain in the consuming website.
 Plugin-specific supporting code stays with its plugin. Shared consumer-facing helpers remain in
 `registry/components/utils/`.

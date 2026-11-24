@@ -7,6 +7,10 @@ entry point for assistants outside the browser.
 
 ## Try the example
 
+WebMCP is planned as a shared website capability, so its demo is absent from the
+marketplace catalog and search. The direct URL below remains available for review;
+automatic host installation still requires Template adoption.
+
 1. Start Registry with `PORTLESS=0 pnpm dev --host 127.0.0.1 --port 3218`.
 2. In Chrome, enable `chrome://flags/#enable-webmcp-testing` and relaunch.
 3. Open `http://127.0.0.1:3218/connectors/agents-webmcp`.

@@ -12,7 +12,7 @@ Read `docs/showroom.md` for its layout and development procedures.
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,
 controls and navigation. The shared `examples` catalog in `src/showroom/examples.ts` SHALL
 list composed components, page sections, layouts and plugins, excluding basic
-controls and feedback helpers. Their demos and non-visual helpers SHALL be linked
+controls, feedback helpers and the shared WebMCP website capability. Their demos and non-visual helpers SHALL be linked
 from item guides or parent examples. The shared header owns persisted Light/Dark
 selection; font and System controls are excluded.
 
@@ -23,10 +23,10 @@ selection; font and System controls are excluded.
 - **AND** representative interactions and relevant loading, empty and error states work
 - **AND** light/dark, narrow layouts and keyboard interaction remain usable
 
-#### Scenario: Reviewing a basic control
+#### Scenario: Reviewing an unlisted capability
 
-- **WHEN** a reviewer browses All or Component on the showroom homepage
-- **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, do not appear as standalone cards
+- **WHEN** a reviewer browses the showroom catalog or global search
+- **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, and WebMCP do not appear as standalone entries
 - **AND** their existing demo URLs and registry installation remain available
 
 ### Requirement: Barebones mailing examples
