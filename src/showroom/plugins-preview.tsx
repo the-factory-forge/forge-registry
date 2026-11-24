@@ -1,12 +1,29 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "@tanstack/react-router";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from "react";
 
 import { NativeSelect } from "@/components/native-select";
 import type { Customer } from "@/components/plugins/customers";
-import { DriveError, type DriveScope, type DriveSpace } from "@/components/plugins/drive";
+import {
+  DriveError,
+  type DriveScope,
+  type DriveBrowserView,
+  type DriveSpace,
+} from "@/components/plugins/drive";
 import type { Project } from "@/components/plugins/projects";
+import { directoryAgentOperations } from "@/showroom/directory-agent-operations";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -53,6 +70,11 @@ function usePreviewState() {
   const [showIntegration, setShowIntegration] = useState(false);
   const [directoryState, setDirectoryState] = useState("ready");
   const [notice, setNotice] = useState("");
+  const driveView = useRef<DriveBrowserView | undefined>(undefined);
+  const onDriveViewChange = useCallback((view: DriveBrowserView | undefined) => {
+    driveView.current = view;
+  }, []);
+  const [agentRevision, setAgentRevision] = useState(0);
   const driveClient = useMemo(() => {
     const writable = {
       upload: true,
@@ -97,6 +119,10 @@ function usePreviewState() {
   return {
     driveMock,
     driveClient,
+    onDriveViewChange,
+    getDriveView: () => driveView.current,
+    agentRevision,
+    setAgentRevision,
     showDrive,
     setShowDrive,
     projects,
@@ -141,10 +167,21 @@ export const previewAssignees = [
 ];
 
 export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
+  const path = useLocation({ select: (location) => location.pathname });
   const state = usePreviewState();
   const { locale } = useShowroomParams();
   return (
     <PreviewContext.Provider value={state}>
+      <PluginWebMcp
+        operations={directoryAgentOperations(state)}
+        revision={`${state.showActions}:${state.showDrive}`}
+        context={() => ({
+          plugin: path.split("/")[2],
+          recordId: path.split("/")[3],
+          drive: state.getDriveView(),
+        })}
+        onChange={() => state.setAgentRevision((value) => value + 1)}
+      />
       <ShowroomPreview
         notice={previewDataNotice}
         navigation={

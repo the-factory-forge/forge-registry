@@ -25,6 +25,8 @@ export function EmbeddedDrivePreview({
       locale={locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
+      refreshVersion={state.agentRevision}
+      onViewChange={state.onDriveViewChange}
       onRenameSpace={
         scope.type === "project" ? (name) => state.renameDriveSpace(scope, name) : undefined
       }
@@ -76,6 +78,8 @@ export function DrivePreview() {
       locale={params.locale}
       client={state.driveClient}
       transferUpload={state.driveMock.transfer}
+      refreshVersion={state.agentRevision}
+      onViewChange={state.onDriveViewChange}
       scope={{ type, id }}
       onRenameSpace={
         type === "project" ? (name) => state.renameDriveSpace({ type, id }, name) : undefined

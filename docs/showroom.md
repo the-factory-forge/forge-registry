@@ -12,6 +12,9 @@ There is no import, workspace link, or build dependency on `forge-template` or
 dependency. Future framework updates belong here and can be reviewed against
 upstream Cove independently of those consumers.
 
+The [WebMCP guide](./webmcp.md#test-the-plugin-previews-without-ai) lists native
+plugin checks and the separate `pnpm demo:mcp` local protocol fixture.
+
 ## Boundaries
 
 - `registry/` contains portable source and its shadcn manifest. Neither Start nor

@@ -27,7 +27,8 @@
     "test:reservations-storage": "node --test tests/reservations-storage/storage.integration.mjs",
     "test:persistence": "node --import ./tests/drive-storage/register.mjs --test tests/persistence/*.integration.mjs",
     "test:supports-storage": "node --test tests/supports-storage/*.integration.mjs",
-    "test:supports-github": "node --test tests/supports-github/*.integration.mjs"
+    "test:supports-github": "node --test tests/supports-github/*.integration.mjs",
+    "demo:mcp": "node scripts/demo-mcp.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1153.0",

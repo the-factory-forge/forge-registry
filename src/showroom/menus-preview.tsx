@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocation } from "@tanstack/react-router";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import {
@@ -14,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { createMenusAgentOperation } from "@/components/connectors/agents-menus/server";
 import { NativeSelect } from "@/components/native-select";
 import {
   MenuCardPreview,
@@ -45,6 +47,7 @@ import {
 } from "@/components/plugins/menus/model";
 import { MenuConfirmation } from "@/components/plugins/menus/ui";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -604,6 +607,7 @@ function useMock(mode: "mock" | "legacy" | "workspace" = "mock") {
 }
 
 export function MenusPreviewProvider({ children }: { children: ReactNode }) {
+  const path = useLocation({ select: (location) => location.pathname });
   const [legacy] = useState(() => createMock());
   const [workspace] = useState(() => createMock(true));
   useEffect(
@@ -626,6 +630,23 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
   useSyncExternalStore(mock.subscribe, mock.snapshot, () => 0);
   return (
     <Context.Provider value={{ mock, legacy, workspace }}>
+      {path.includes("/admin/menus") && (
+        <PluginWebMcp
+          operations={[
+            createMenusAgentOperation<undefined>({
+              client: () => mock.client,
+              cards: mock === workspace ? () => mock.client : undefined,
+              authorize: async () => true,
+            }),
+          ]}
+          revision={mock === workspace ? "workspace" : "legacy"}
+          context={{
+            plugin: "menus",
+            menuId: segments[0] === "menu" ? segments[1] : undefined,
+            recordId: segments[0] === "menu" ? segments[2] : segments[0],
+          }}
+        />
+      )}
       <ShowroomPreview
         notice={previewDataNotice}
         navigation={

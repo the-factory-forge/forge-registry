@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+import { createAgentConversationsOperation } from "@/components/connectors/agents-conversations/server";
 import { AgentsPage } from "@/components/plugins/agents";
 import { createAgentsMock } from "@/showroom/agents-mock";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -29,81 +31,102 @@ function AgentsPreview() {
   const [mock] = useState(() => createAgentsMock(`/${locale}/agents`));
   const [fail, setFail] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
+  const [revision, setRevision] = useState(0);
   mock.configure({ fail, readOnly });
+  const operation = createAgentConversationsOperation<undefined>({
+    authorizeOperation: async () => true,
+    client: () => mock.client,
+    authorize: async () => true,
+  });
+  for (const tool of operation.tools)
+    if (tool.kind === "write") tool.authorize = async () => !readOnly;
   return (
-    <ShowroomPreview
-      controls={
-        <div className="space-y-4 text-sm">
-          <p>
-            This uses a deterministic mock, sample records and browser-session storage. No model or
-            live plugin is connected.
-          </p>
-          <p>
-            Try “list” for a read, or enter a new name to review a proposed change. Conversations
-            and attachments survive reload in this browser session.
-          </p>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={fail}
-              onChange={(event) => setFail(event.target.checked)}
-            />
-            Simulate failure
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={readOnly}
-              onChange={(event) => setReadOnly(event.target.checked)}
-            />
-            Read-only tools
-          </label>
-          <p>
-            Production hosts supply the authenticated runtime, PostgreSQL store and private
-            attachment storage. Install only the plugin connectors the website needs.
-          </p>
-        </div>
-      }
-    >
-      {search.record ? (
-        <SampleRecord
-          key={search.record}
-          mock={mock}
-          id={search.record}
-          onClose={() =>
-            void navigate({
-              search: (current) => ({ ...current, record: undefined }),
-              resetScroll: false,
-            })
-          }
-        />
-      ) : (
-        <AgentsPage
-          client={mock.client}
-          settings={readOnly ? undefined : mock.settings}
-          labels={{
-            settingsDescription:
-              "Demo only. Enter “demo” as the API key, load a sample model and save it. No AI provider is contacted.",
-            keyHelp: "Use the sample key “demo”. Real API keys are rejected and never saved.",
-            settingsSaved:
-              "Demo settings saved. The next sample response will show the selected model.",
-          }}
-          operationId={search.operation ?? null}
-          conversationId={search.conversation ?? null}
-          onSelectionChange={({ operationId, conversationId }) => {
-            void navigate({
-              search: (current) => ({
-                ...current,
-                operation: operationId ?? undefined,
-                conversation: conversationId ?? undefined,
-                record: undefined,
-              }),
-              resetScroll: false,
-            });
-          }}
-        />
-      )}
-    </ShowroomPreview>
+    <>
+      <PluginWebMcp
+        operations={[operation]}
+        revision={`${readOnly}`}
+        context={{
+          plugin: "agents",
+          operationId: search.operation,
+          conversationId: search.conversation,
+        }}
+        onChange={() => setRevision((value) => value + 1)}
+      />
+      <ShowroomPreview
+        controls={
+          <div className="space-y-4 text-sm">
+            <p>
+              This uses a deterministic mock, sample records and browser-session storage. No model
+              or live plugin is connected.
+            </p>
+            <p>
+              Try “list” for a read, or enter a new name to review a proposed change. Conversations
+              and attachments survive reload in this browser session.
+            </p>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={fail}
+                onChange={(event) => setFail(event.target.checked)}
+              />
+              Simulate failure
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={readOnly}
+                onChange={(event) => setReadOnly(event.target.checked)}
+              />
+              Read-only tools
+            </label>
+            <p>
+              Production hosts supply the authenticated runtime, PostgreSQL store and private
+              attachment storage. Install only the plugin connectors the website needs.
+            </p>
+          </div>
+        }
+      >
+        {search.record ? (
+          <SampleRecord
+            key={search.record}
+            mock={mock}
+            id={search.record}
+            onClose={() =>
+              void navigate({
+                search: (current) => ({ ...current, record: undefined }),
+                resetScroll: false,
+              })
+            }
+          />
+        ) : (
+          <AgentsPage
+            refreshVersion={revision}
+            client={mock.client}
+            settings={readOnly ? undefined : mock.settings}
+            labels={{
+              settingsDescription:
+                "Demo only. Enter “demo” as the API key, load a sample model and save it. No AI provider is contacted.",
+              keyHelp: "Use the sample key “demo”. Real API keys are rejected and never saved.",
+              settingsSaved:
+                "Demo settings saved. The next sample response will show the selected model.",
+            }}
+            operationId={search.operation ?? null}
+            conversationId={search.conversation ?? null}
+            onSelectionChange={({ operationId, conversationId }) => {
+              void navigate({
+                search: (current) => ({
+                  ...current,
+                  operation: operationId ?? undefined,
+                  conversation: conversationId ?? undefined,
+                  record: undefined,
+                }),
+                resetScroll: false,
+              });
+            }}
+          />
+        )}
+      </ShowroomPreview>
+    </>
   );
 }
 

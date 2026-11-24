@@ -122,6 +122,16 @@ export function createDriveMock(initialEntries: MockEntry[] = []) {
   };
   return {
     transfer,
+    entry(scope: DriveScope, id: string) {
+      const value =
+        owned(scope).find((row) => row.id === id) ??
+        [...trash.values()].find(
+          (group) => group.entry.id === id && scopeKey(group.scope) === scopeKey(scope),
+        )?.entry;
+      if (!value) throw new DriveError("NOT_FOUND");
+      const { blob: _blob, url: _url, ...entry } = value as MockEntry;
+      return structuredClone(entry);
+    },
     fileUrl(scope: DriveScope, entryId: string) {
       return owned(scope).find((entry) => entry.id === entryId)?.url ?? "";
     },

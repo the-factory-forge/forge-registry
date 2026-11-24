@@ -1,6 +1,7 @@
 "use client";
 
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -12,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { createBlogsAgentOperation } from "@/components/connectors/agents-blogs/server";
 import { NativeSelect } from "@/components/native-select";
 import {
   BlogCategoriesPage,
@@ -26,6 +28,7 @@ import { articleListItem } from "@/components/plugins/blogs/utils";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -95,12 +98,25 @@ function useBlogsPreview() {
   return value;
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
+  const path = useLocation({ select: (location) => location.pathname });
   const selectId = `factory-showroom-blogs-${useId()}`;
   const { locale, segments } = useShowroomParams();
   const state = usePreview();
   const article = state.mock.all().find((value) => value.id === segments[0]);
   return (
     <Context.Provider value={state}>
+      {path.includes("/admin/blogs") && (
+        <PluginWebMcp
+          operations={[
+            createBlogsAgentOperation<undefined>({
+              client: () => state.client,
+              authorize: async () => true,
+            }),
+          ]}
+          revision={`${state.editor}:${state.admin}:${state.readOnly}:${state.historyEnabled}:${state.exampleRevision}`}
+          context={{ plugin: "blogs", recordId: path.split("/admin/blogs/")[1]?.split("/")[0] }}
+        />
+      )}
       <ShowroomPreview
         notice={previewDataNotice}
         navigation={

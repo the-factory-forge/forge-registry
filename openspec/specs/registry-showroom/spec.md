@@ -36,6 +36,20 @@ selection; font and System controls are excluded.
 - **AND** a proposal made through an external caller remains inspectable on the page
 - **AND** sample data, native-tool checks and external AI compatibility are clearly distinguished
 
+#### Scenario: Testing business plugins through native tools
+
+- **WHEN** a reviewer opens a staff preview for Blogs, Customers, Employees, Projects, Drive, Menus, Reservations, Supports or Agents
+- **THEN** a compatible browser discovers its installed business tools and current context
+- **AND** approved changes update the same sample records used by the ordinary interface
+- **AND** rejection, stale reviews and revoked permissions prevent changes
+- **AND** public previews expose no staff administration tools, and unsupported browsers retain ordinary controls
+
+#### Scenario: Comparing remote MCP with WebMCP
+
+- **WHEN** a reviewer starts the documented local MCP fixture without an AI provider
+- **THEN** an authenticated MCP client can read and review Blogs changes using the shared business connector
+- **AND** the guide distinguishes its disposable data from the browser demos and production authentication
+
 ### Requirement: Barebones mailing examples
 
 Mailing SHALL preview verification, password reset, invitation and email change,

@@ -29,8 +29,8 @@ the inspector/assistant extensions described in the
 read the selected record, propose a new name and wait for the site's approval.
 Record the browser and assistant versions separately from native API results.
 
-Only this route mounts WebMCP in the showroom; other plugin previews expose no
-WebMCP tools. The extension chat is separate from Forge's Agents chat. The page's
+The business previews below also mount WebMCP. Public Blog, Menu and Reservation
+pages expose no administration tools. The extension chat is separate from Forge's Agents chat. The page's
 **Help & assistant prompt** section provides a prompt and recovery steps.
 An inspector trace containing `parameter 1 is not of type 'Tool'` remains a failed
 invocation even if its final AI response sounds successful. Repeated calls through
@@ -45,6 +45,62 @@ WebMCP is experimental and requires a supported browser and a secure context
 the [current imperative API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)
 before changing the native boundary; this implementation uses
 `document.modelContext.registerTool` and abort-scoped registration.
+
+## Test the plugin previews without AI
+
+Keep the inspector open, select a tool, enter its JSON arguments, then execute.
+`website_context` reports the current page and selected record; Drive also reports
+its folder and selection. The preview controls stay available in the sidebar.
+
+| Plugin       | Preview path                | Start with                                           |
+| ------------ | --------------------------- | ---------------------------------------------------- |
+| Blogs        | `/en/admin/blogs`           | `blogs_list` with `{"locale":"en"}`                  |
+| Customers    | `/en/customers`             | `customers_list` with `{}`                           |
+| Employees    | `/en/employees`             | `employees_list` with `{}`                           |
+| Projects     | `/en/projects`              | `projects_list` with `{"ownerId":"acme","query":{}}` |
+| Drive        | `/en/drive/project/website` | `drive_list_spaces` with `{}`                        |
+| Menus        | `/en/admin/menus`           | `menus_list_cards` with `{}`                         |
+| Reservations | `/en/admin/reservations`    | `reservations_configuration` with `{}`               |
+| Supports     | `/en/intranet/supports`     | `supports_list` with `{}`                            |
+| Agents       | `/en/agents`                | `conversations_operations` with `{}`                 |
+
+For a first write, open Blogs and call `blogs_create`:
+
+```json
+{ "input": { "title": "WebMCP review", "locale": "en" }, "requestId": "blogs-review-1" }
+```
+
+Reject the proposal: no article appears. Repeat with a new request ID and approve:
+the article appears in the list. Read again to verify it. The inspector's schema
+lists the required arguments for each tool; writes wrap them in `input` and use a
+unique `requestId`. Repeating the same ID returns its recorded outcome.
+
+These previews reuse the distributed business connectors and common executor.
+Their clients modify sample records only. Customers, Projects and Drive share a
+preview workspace. Other plugins keep their existing demo stores. Page reloads
+reset these samples, except Agents conversations kept in browser-session storage.
+No provider is called, email sent, or customer account accessed. Optional tools
+require their corresponding host adapter; discovery does not grant permission.
+
+## Test remote MCP separately
+
+Run `pnpm demo:mcp` in Registry. It prints a local `/mcp` URL and a temporary
+Bearer token. Open the [reference MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+with `npx @modelcontextprotocol/inspector`, using a Node version supported by its
+current documentation. Select **Streamable HTTP**, enter the printed URL and
+Bearer token, then connect and list tools. No model key is needed.
+
+1. Call `blogs_list` with `{"locale":"en"}`.
+2. Call `blogs_create` with the JSON above. It returns a pending proposal.
+3. Inspect the complete `preview`. Call `agents_execute` with its `proposalId`
+   and that unchanged `preview` as `review`, or `agents_reject` to reject it.
+4. Call `blogs_list` again to verify the result.
+
+This local fixture uses the actual MCP handler, Blogs connector and review engine.
+Its sample data is separate from browser tabs and resets on restart. It listens
+only on loopback and is not a production endpoint. Remote MCP currently excludes
+attachment-dependent tools; native WebMCP supports small staged uploads. Neither
+transport automatically turns download metadata into file bytes.
 
 ## Install and wire the host
 
@@ -145,3 +201,11 @@ that separate preview failure.
 The Drive loading-state test also failed once in the full run, then passed in
 isolation on both revisions. Keep that timing-sensitive result visible when
 reviewing the full suite; it is not an all-green browser run.
+
+Local verification on 2026-11-24: all nine plugin journeys pass native tool
+discovery, reads and reviewed changes. The targeted browser suite also checks
+Drive uploads, public routes, unavailable WebMCP and preserved Agents drafts.
+205 unit tests, format/lint/types, generated distribution and build pass.
+An official shadcn consumer install passes TypeScript. The reference MCP Inspector
+CLI discovers tools, prepares and approves a Blogs creation, then reads it back.
+No real model/provider or customer website was used.
