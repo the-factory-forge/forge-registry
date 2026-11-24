@@ -62,6 +62,8 @@ const field =
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** Reload after an external action while retaining unsent drafts. */
+  refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
   settings?: AgentsSettingsClient;
   operationId: string | null;
@@ -573,6 +575,7 @@ export function AgentActionReview({
 }
 function AgentsContent({
   client,
+  refreshVersion,
   settings,
   operationId,
   conversationId,
@@ -655,7 +658,7 @@ function AgentsContent({
       generation.current = request + 1;
       abort();
     };
-  }, [client, operationId, conversationId, revision]);
+  }, [client, operationId, conversationId, revision, refreshVersion]);
   useEffect(() => {
     const element = transcript.current;
     if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 160)

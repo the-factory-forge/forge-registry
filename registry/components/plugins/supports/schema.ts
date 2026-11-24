@@ -20,14 +20,16 @@ export const supportCreateSchema = z.object({
   type: z.enum(["bug", "feature", "support"]),
   attachmentIds: attachments,
 });
-export const supportCommentSchema = z
+export const supportCommentInputSchema = z
   .object({
-    requestId: supportIdSchema,
     id: supportIdSchema,
     body: z.string().max(5000),
     attachmentIds: attachments,
   })
   .refine((value) => value.body.trim().length > 0 || value.attachmentIds.length > 0);
+export const supportCommentSchema = supportCommentInputSchema.safeExtend({
+  requestId: supportIdSchema,
+});
 export const supportQuerySchema = z.object({
   search: z.string().trim().max(250).default(""),
   page: z.number().int().min(1).max(1000000).default(1),

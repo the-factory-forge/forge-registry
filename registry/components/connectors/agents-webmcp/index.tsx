@@ -127,7 +127,6 @@ export function AgentsWebMcp({
     if (approve) request.removeAbort();
     setBusy(true);
     setError("");
-    let changed = false;
     try {
       // An approved write keeps its durable outcome even when the browser invocation is cancelled.
       const value = await request.client.decide({
@@ -138,8 +137,14 @@ export function AgentsWebMcp({
       request.removeAbort();
       pending.current = null;
       setProposal(value);
+      if (value.status === "succeeded" || value.status === "unresolved") {
+        try {
+          await callbacks.current.onChange?.();
+        } catch {
+          setError(labels.unavailable);
+        }
+      }
       request.resolve(value);
-      changed = value.status === "succeeded" || value.status === "unresolved";
     } catch (error) {
       request.reject(error);
       setError(
@@ -151,13 +156,6 @@ export function AgentsWebMcp({
       );
     } finally {
       setBusy(false);
-    }
-    if (changed) {
-      try {
-        await callbacks.current.onChange?.();
-      } catch {
-        setError(labels.unavailable);
-      }
     }
   }
   return (

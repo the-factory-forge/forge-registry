@@ -15,19 +15,21 @@ Its browser-session mock is not production storage or authorization.
 pnpm dlx shadcn@4.22.1 add @forge/agents @forge/agents-server @forge/agents-blogs-server
 ```
 
-Install only the required connectors. Neither Agents item installs the seven
+Install only the required connectors. Neither Agents item installs the
 business plugins automatically. Connectors are server-only source; their
 dependencies include the existing plugin contracts and service schemas.
 
-| Connector                    | Factory                            | Host integration                                                                                                                                                   |
-| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agents-blogs-server`        | `createBlogsAgentOperation`        | An authenticated `BlogsClient`, including history when enabled                                                                                                     |
-| `agents-employees-server`    | `createEmployeesAgentOperation`    | A fresh admin employee service, authorized exact lookup, trusted invitation/verification URLs; optional deletion-retention, photo and website-publication adapters |
-| `agents-customers-server`    | `createCustomersAgentOperation`    | The existing Customers service client                                                                                                                              |
-| `agents-projects-server`     | `createProjectsAgentOperation`     | The existing Projects service client; customer ownership remains required                                                                                          |
-| `agents-drive-server`        | `createDriveAgentOperation`        | The scoped Drive client and authorized exact entry lookup; optional space-name adapters                                                                            |
-| `agents-menus-server`        | `createMenusAgentOperation`        | The Menus client; optional image upload through the existing menu-item Drive scope                                                                                 |
-| `agents-reservations-server` | `createReservationsAgentOperation` | The staff Reservations client and authorized exact lookup without management secrets                                                                               |
+| Connector                     | Factory                             | Host integration                                                                                                                                                   |
+| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agents-blogs-server`         | `createBlogsAgentOperation`         | An authenticated `BlogsClient`, including history when enabled                                                                                                     |
+| `agents-employees-server`     | `createEmployeesAgentOperation`     | A fresh admin employee service, authorized exact lookup, trusted invitation/verification URLs; optional deletion-retention, photo and website-publication adapters |
+| `agents-customers-server`     | `createCustomersAgentOperation`     | The existing Customers service client                                                                                                                              |
+| `agents-projects-server`      | `createProjectsAgentOperation`      | The existing Projects service client; customer ownership remains required                                                                                          |
+| `agents-drive-server`         | `createDriveAgentOperation`         | The scoped Drive client and authorized exact entry lookup; optional space-name adapters                                                                            |
+| `agents-menus-server`         | `createMenusAgentOperation`         | The Menus client; optional composed-menu client and image upload through the existing menu-item Drive scope                                                        |
+| `agents-reservations-server`  | `createReservationsAgentOperation`  | The staff Reservations client and authorized exact lookup without management secrets                                                                               |
+| `agents-supports-server`      | `createSupportsAgentOperation`      | The staff Supports client, retaining ticket visibility and attachment ownership                                                                                    |
+| `agents-conversations-server` | `createAgentConversationsOperation` | The current user's Agents client and a required target-operation permission/scope check                                                                            |
 
 Each factory takes `client(context)` and `authorize(context)`. Resolve current
 permissions in these callbacks; a cached role or a browser capability is not
@@ -169,7 +171,7 @@ names that sample model; it never calls providers or saves real API keys.
 
 ## Page and navigation
 
-`AgentsPage` accepts `client`, controlled `operationId` and `conversationId`,
+`AgentsPage` accepts an optional `refreshVersion` to reload externally changed conversations without discarding drafts, plus `client`, controlled `operationId` and `conversationId`,
 `onSelectionChange`, translated `labels`, optional administrator-only `settings`,
 `cropLabels` and `className`. Settings replaces the former header operation selector;
 operation cards and All operations retain selection and navigation.
@@ -389,3 +391,16 @@ consent, account Security and migrations. Installation makes it available; it re
 its installed Employees connector. Registry publication and installation into
 other customer sites are separate actions; no customer is enabled by this source
 change. The local client fixtures are not live Claude/ChatGPT acceptance tests.
+
+Conversation tools can list, read, create and remove the current user's chats,
+send a message, attach a staged file and decide a stored business proposal.
+Decisions show the inner proposal's full target, changes and effects before
+execution. Sending uses the host model and its billing; the showroom uses a mock.
+Supports tools reuse the staff queue's create/comment/status/upload operations;
+they add no ticket editing, deletion or notification system.
+
+`createAgentConversationsOperation` requires `authorizeOperation(context, id, kind)`.
+For MCP, intersect the connection's `agents:<id>:read/write` scopes with current
+website permissions. Conversations always need read access to their operation;
+changes also need write access. An `agents:agents:*` grant alone gives no access
+to Blogs or another plugin through saved chats.

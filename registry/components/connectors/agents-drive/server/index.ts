@@ -8,6 +8,7 @@ import {
 } from "@/components/plugins/agents/server/tools";
 import { AgentsError } from "@/components/plugins/agents/types";
 import { driveInputs, driveScopeSchema } from "@/components/plugins/drive/server/input";
+import type { DriveTransfer } from "@/components/plugins/drive/transfer";
 import type {
   DriveClient,
   DriveEntry,
@@ -16,6 +17,8 @@ import type {
 } from "@/components/plugins/drive/types";
 
 export interface DriveAgentOptions<Context> extends AgentConnectorOptions<Context, DriveClient> {
+  /** Use the host's upload transport when it differs from a signed HTTP PUT. */
+  transferUpload?: DriveTransfer;
   /** Authorized exact lookup, used to detect changes between proposal and approval. */
   entry(
     context: Context,
@@ -127,15 +130,23 @@ export function createDriveAgentOperation<Context>(options: DriveAgentOptions<Co
             : await client.prepareUpload(input);
           if (!ticket) throw new AgentsError("FORBIDDEN");
           if (!ticket.completed) {
-            if (!ticket.url) throw new AgentsError("STORAGE");
-            const response = await fetch(ticket.url, {
-              method: "PUT",
-              headers: ticket.headers,
-              body: new Uint8Array(bytes),
-              signal: AbortSignal.timeout(60000),
-              redirect: "error",
-            });
-            if (!response.ok) throw new AgentsError("STORAGE");
+            if (options.transferUpload) {
+              await options.transferUpload(
+                ticket,
+                new File([new Uint8Array(bytes)], metadata.name, { type: metadata.contentType }),
+                { signal: AbortSignal.timeout(60000), onProgress: () => {} },
+              );
+            } else {
+              if (!ticket.url) throw new AgentsError("STORAGE");
+              const response = await fetch(ticket.url, {
+                method: "PUT",
+                headers: ticket.headers,
+                body: new Uint8Array(bytes),
+                signal: AbortSignal.timeout(60000),
+                redirect: "error",
+              });
+              if (!response.ok) throw new AgentsError("STORAGE");
+            }
             await client.completeUpload({ scope: i.scope, uploadId: ticket.id });
           }
           return { uploadId: ticket.id, name: metadata.name };

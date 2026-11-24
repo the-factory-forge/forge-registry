@@ -165,3 +165,75 @@ await test("MCP rejects a foreign browser origin and absent authentication", asy
     401,
   );
 });
+
+await test("conversation tools cannot bypass target-operation scopes through a saved chat", async () => {
+  const { send, memoryStore } = await import("./agents/fixture.mjs");
+  const { createAgentConversationsOperation } =
+    await import("../registry/components/connectors/agents-conversations/server/index.ts");
+  const f = fixture();
+  const chat = await f.client.create("blogs");
+  const pending = await send(f.client, chat.id, "change");
+  const actionId = pending.chat.actions[0].id;
+  const identity = {
+    id: "staff",
+    connection: { id: "nested", clientId: "inspector" },
+    scopes: ["agents:agents:read", "agents:agents:write"],
+  };
+  const operation = createAgentConversationsOperation({
+    authorize: async () => true,
+    client: () => f.client,
+    authorizeOperation: async (c, id, kind) => c.scopes.includes(`agents:${id}:${kind}`),
+  });
+  const handler = createAgentsMcpHandler({
+    resource: "https://fixture.test/mcp",
+    store: memoryStore(),
+    operations: [operation],
+    actor: async (c) => c,
+  });
+  async function call(name, args) {
+    const response = await handler.handle(
+      new Request("https://fixture.test/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          "MCP-Protocol-Version": "2025-11-25",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      }),
+      identity,
+    );
+    const text = await response.text();
+    return JSON.parse(
+      text.startsWith("event:")
+        ? text
+            .split("\n")
+            .find((l) => l.startsWith("data: "))
+            .slice(6)
+        : text,
+    ).result;
+  }
+  assert.deepEqual(JSON.parse((await call("conversations_operations", {})).content[0].text), []);
+  assert.equal((await call("conversations_list", { operationId: "blogs" })).isError, true);
+  assert.equal((await call("conversations_get", { conversationId: chat.id })).isError, true);
+  const input = {
+    input: { conversationId: chat.id, actionId, approve: true },
+    requestId: "denied",
+  };
+  assert.equal((await call("conversations_decide", input)).isError, true);
+  identity.scopes.push("agents:blogs:read");
+  assert.equal((await call("conversations_decide", input)).isError, true);
+  identity.scopes.push("agents:blogs:write");
+  const prepared = await call("conversations_decide", { ...input, requestId: "allowed" });
+  assert.ok(!prepared.isError);
+  const p = JSON.parse(prepared.content[0].text);
+  identity.scopes.pop();
+  const result = await call("agents_execute", { proposalId: p.proposalId, review: p.preview });
+  assert.equal(result.isError, true);
+  assert.equal(f.state.writes, 0);
+});

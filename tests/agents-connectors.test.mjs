@@ -3,7 +3,17 @@ import test from "node:test";
 
 import { fixture, send } from "./agents/fixture.mjs";
 
-const names = ["blogs", "employees", "customers", "projects", "drive", "menus", "reservations"];
+const names = [
+  "blogs",
+  "employees",
+  "customers",
+  "projects",
+  "drive",
+  "menus",
+  "reservations",
+  "supports",
+  "conversations",
+];
 const factories = {};
 for (const name of names)
   factories[name] = Object.values(
@@ -43,6 +53,7 @@ for (const name of names) {
             calls.push({ method, args });
             if (method === "list") return name === "employees" ? { users: [values], total: 1 } : [];
             if (method === "get") return { ...entry, ...values };
+            if (method === "operations") return [{ id: "blogs", label: "Blogs" }];
             if (method === "configuration") return { services: [], resources: [], settings: {} };
             if (method === "listSpaces") return { items: [] };
             if (method === "create" && name === "employees")
@@ -56,6 +67,7 @@ for (const name of names) {
       },
     );
     const operation = factories[name]({
+      authorizeOperation: async () => permitted,
       client: () => proxy,
       authorize: async () => permitted,
       get: async () => ({ ...entry, ...values }),
@@ -116,6 +128,25 @@ for (const name of names) {
           labelIds: [],
           translations: { en: { name: "Dish", description: "" } },
         },
+        method: "create",
+      },
+      supports: {
+        read: "supports_list",
+        readInput: {},
+        write: "supports_create",
+        writeInput: {
+          title: "Ticket",
+          description: "Please check",
+          type: "support",
+          attachmentIds: [],
+        },
+        method: "create",
+      },
+      conversations: {
+        read: "conversations_operations",
+        readInput: {},
+        write: "conversations_create",
+        writeInput: { operationId: "blogs" },
         method: "create",
       },
       reservations: {

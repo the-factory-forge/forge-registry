@@ -2943,7 +2943,8 @@ the server companion’s administrator-managed website model connection.
 - **WHEN** a host installs Agents
 - **THEN** the base UI and server companion do not install every business plugin
 - **AND** separately installable server connectors cover Blogs, Employees, Customers,
-  Projects, Drive, Menus and Reservations through their existing service contracts
+  Projects, Drive, Menus, Reservations and Supports through their existing service contracts
+- **AND** optional conversation tools use the current user's Agents client without exposing provider settings or account security
 - **AND** employee administration retains administrator checks and retention adapters
 - **AND** Auth owns sessions while Mailing remains behind configured notification actions
 - **AND** host-defined workflows use trusted instructions and explicit allowed tools
@@ -2967,12 +2968,20 @@ the server companion’s administrator-managed website model connection.
 - **AND** cancellation does not imply rollback of an already-started approved write
 - **AND** stale executing writes are marked unresolved rather than replayed
 
+#### Scenario: Reviewing an action inside a conversation
+
+- **WHEN** an assistant proposes approving a saved chat action
+- **THEN** the review shows that action's target, changes and effects
+- **AND** changed proposals and lost permissions prevent execution
+- **AND** conversation tools retain the connection's read/write scopes for the target operation
+- **AND** refreshing externally changed chats preserves unsent drafts
+
 ### Requirement: External assistant tools reuse durable Agents execution
 
 The registry SHALL provide optional MCP tools over its shared Agents read,
 proposal and execution module, without requiring a model provider. Hosts SHALL
 supply verified connection identity, current authorization and explicit installed
-operations. Tool scopes SHALL narrow host permissions. The seven existing business
+operations. Tool scopes SHALL narrow host permissions. The installed business
 connectors SHALL retain their service adapters; attachment-dependent operations
 SHALL remain unavailable to external clients without a separate upload capability.
 
