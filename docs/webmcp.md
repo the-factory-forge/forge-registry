@@ -5,46 +5,17 @@ operations to a compatible browser assistant. `agents-webmcp-server` reuses the
 durable Agents executor without a model provider. Remote MCP remains a separate
 entry point for assistants outside the browser.
 
-## Try the example
+## Browser setup
 
-WebMCP is planned as a shared website capability, so its demo is absent from the
-marketplace catalog and search. The direct URL below remains available for review;
-automatic host installation still requires Template adoption.
+Enable `chrome://flags/#enable-webmcp-testing` in a supported Chrome and relaunch.
+WebMCP requires HTTPS or localhost. The ordinary page remains usable without it.
+The tools are mounted in the plugin previews below; there is no separate WebMCP
+showroom page or marketplace entry. Template adoption is still required before
+new Forge websites receive this integration automatically.
 
-1. Start Registry with `PORTLESS=0 pnpm dev --host 127.0.0.1 --port 3218`.
-2. In Chrome, enable `chrome://flags/#enable-webmcp-testing` and relaunch.
-3. Open `http://127.0.0.1:3218/connectors/agents-webmcp`.
-4. Use **Read page context** and **Read sample record**. Both should match the
-   selection and saved name. Switch the selected record and compare again.
-5. Enter a different name and **Propose sample change**. Reject it: the saved
-   name stays unchanged. Propose again and approve: the saved name changes.
-6. Use **Read last decision** to check `rejected` or `succeeded`. This also works
-   for a proposal made by an external assistant while the page stays open.
-
-The buttons call native `document.modelContext`, using fictional browser-session
-records. No AI subscription or provider key is needed. They verify the website's
-tools, not an assistant's ability to plan a task. For a conversational test, use
-the inspector/assistant extensions described in the
-[Chrome guide](https://developer.chrome.com/docs/ai/webmcp). Ask the assistant to
-read the selected record, propose a new name and wait for the site's approval.
-Record the browser and assistant versions separately from native API results.
-
-The business previews below also mount WebMCP. Public Blog, Menu and Reservation
-pages expose no administration tools. The extension chat is separate from Forge's Agents chat. The page's
-**Help & assistant prompt** section provides a prompt and recovery steps.
-An inspector trace containing `parameter 1 is not of type 'Tool'` remains a failed
-invocation even if its final AI response sounds successful. Repeated calls through
-the installed inspector 1.9.21 content script passed in isolated Chrome 158.0.8127.38
-checks; the reported live-extension failure has not been reproduced or resolved.
-On 2026-11-24, the user's Inspector chat trace confirmed context and record reads,
-followed by a successful rename reflected on the page. The model version was not
-recorded. This validates that showroom journey, not other plugins or production.
-
-WebMCP is experimental and requires a supported browser and a secure context
-(HTTPS or localhost). An unavailable API leaves the ordinary page usable. See
-the [current imperative API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)
-before changing the native boundary; this implementation uses
-`document.modelContext.registerTool` and abort-scoped registration.
+Use the [current native API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)
+when changing browser registration. This implementation uses
+`document.modelContext.registerTool` with abort-scoped registration.
 
 ## Test the plugin previews without AI
 
@@ -101,25 +72,50 @@ reset these samples, except Agents conversations kept in browser-session storage
 No provider is called, email sent, or customer account accessed. Optional tools
 require their corresponding host adapter; discovery does not grant permission.
 
-## Test remote MCP separately
+## Test remote MCP from Agents Settings
 
-Run `pnpm demo:mcp` in Registry. It prints a local `/mcp` URL and a temporary
-Bearer token. Open the [reference MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
-with `npx @modelcontextprotocol/inspector`, using a Node version supported by its
-current documentation. Select **Streamable HTTP**, enter the printed URL and
-Bearer token, then connect and list tools. No model key is needed.
+1. Run Registry on `http://127.0.0.1:3218` and `pnpm demo:mcp` in another terminal.
+2. Open `/en/agents`, then **Settings → External assistant**.
+3. Create a temporary key. Copy its URL, key and the test prompt to your local agent.
+4. Expand **MCP test records** and refresh results to inspect the server's articles
+   and recent calls. Revoke the key when finished.
 
-1. Call `blogs_list` with `{"locale":"en"}`.
-2. Call `blogs_create` with the JSON above. It returns a pending proposal.
-3. Inspect the complete `preview`. Call `agents_execute` with its `proposalId`
-   and that unchanged `preview` as `review`, or `agents_reject` to reject it.
-4. Call `blogs_list` again to verify the result.
+This panel is development-only. It uses the actual MCP handler, Blogs connector
+and review engine with disposable server-side records, separate from browser
+previews. The key expires after one hour. Creating another key invalidates the
+previous one immediately; closing Settings clears the displayed secret.
+Restarting the server clears keys and sample data. No model provider is contacted.
+Management requests require the exact configured local showroom origin. MCP
+requests require the current Bearer token and remain restricted to sample Blogs.
+The server listens only on loopback; another computer or a cloud assistant cannot
+reach this URL. This is not the customer account/OAuth flow.
 
-This local fixture uses the actual MCP handler, Blogs connector and review engine.
-Its sample data is separate from browser tabs and resets on restart. It listens
-only on loopback and is not a production endpoint. Remote MCP currently excludes
-attachment-dependent tools; native WebMCP supports small staged uploads. Neither
-transport automatically turns download metadata into file bytes.
+For another local test port, set `SHOWROOM_ORIGIN` when starting `demo:mcp` and
+`VITE_MCP_DEMO_URL` when starting Registry. Defaults are showroom port 3218 and MCP
+port 3222. Never publish or tunnel this disposable key-management fixture.
+
+A standard client such as the [reference MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+can connect with **Streamable HTTP**, the displayed URL and Bearer token.
+Each mutation returns a pending proposal; review its full `preview`, then send
+`agents_execute` with its `proposalId` and that unchanged preview as `review`.
+Use `agents_reject` to reject it. Repeat `blogs_get` or `blogs_list` to verify.
+The copied prompt covers creation, title/content changes and deletion of only the
+new test article. `blogs_list` reads a collection; `blogs_get` reads one article
+by ID. Both belong to the same Blogs plugin.
+
+For Codex CLI, the locally verified command accepts a token environment variable:
+
+```sh
+codex mcp add forge-registry-demo --url http://127.0.0.1:3222/mcp --bearer-token-env-var FORGE_REGISTRY_DEMO_KEY
+```
+
+Set that variable in the environment of the client you launch; this command alone
+does not supply a key to an already running desktop app. Alternatively, give the
+local agent the copied test prompt and key for a direct protocol test.
+
+Remote MCP currently excludes attachment-dependent tools; native WebMCP supports
+small staged uploads. Neither transport automatically turns download metadata
+into file bytes.
 
 ## Install and wire the host
 
@@ -235,3 +231,11 @@ show stored file identity and destination before approval; chat previews remain
 compatible. The 31 targeted browser checks, 205 unit tests, code checks, build and
 updated shadcn consumer installation pass. This does not cover SiniGest adoption,
 CI execution or real-assistant acceptance.
+
+Temporary-key demo verification on 2026-11-24: a key created in Agents Settings
+passes remote MCP discovery, read, reviewed creation, title/content update and
+deletion. Existing articles remain unchanged. Rotation, expiry and revocation
+reject the old key; browser storage contains no key. All 206 unit tests and 30
+targeted browser tests pass, with format/lint/types, build and a shadcn consumer
+installation. Desktop and mobile were inspected. The production build omits the
+temporary-key panel. A real local assistant remains a separate acceptance check.

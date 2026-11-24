@@ -99,6 +99,12 @@ aborts the departed stream; late results cannot update the new view.
 
 ## Administrator-managed model connection
 
+Hosts may supply `AgentsPage.connectionSettings` to place their assistant access
+controls in the same Settings dialog. The content and its authenticated transport
+remain host-owned; model settings keep their existing administrator restriction.
+Registry uses this slot only in development for its [temporary MCP demo](./webmcp.md#test-remote-mcp-from-agents-settings).
+It does not create production account keys or change the Auth plugin's Security UI.
+
 Pass an `AgentsSettingsClient` as `AgentsPage.settings` only for website
 administrators. The header Settings button opens a provider, API key and model
 form. Following [VS Code’s bring-your-own-key flow](https://code.visualstudio.com/docs/agent-customization/language-models),

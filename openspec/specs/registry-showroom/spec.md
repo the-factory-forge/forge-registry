@@ -27,14 +27,14 @@ selection; font and System controls are excluded.
 
 - **WHEN** a reviewer browses the showroom catalog or global search
 - **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, and WebMCP do not appear as standalone entries
-- **AND** their existing demo URLs and registry installation remain available
+- **AND** registry installation remains available; WebMCP is demonstrated inside the plugin previews
 
 #### Scenario: Reviewing WebMCP without an AI provider
 
-- **WHEN** a reviewer opens the documented WebMCP demo in a supported browser
-- **THEN** the page explains how to compare context and record reads, approve or reject a visible change and read its recorded outcome
-- **AND** a proposal made through an external caller remains inspectable on the page
-- **AND** sample data, native-tool checks and external AI compatibility are clearly distinguished
+- **WHEN** a reviewer opens a documented plugin preview in a supported browser
+- **THEN** native DevTools can discover and call its tools without an AI provider
+- **AND** business writes show the shared approval review and update the sample data only after approval
+- **AND** the retired standalone WebMCP demo is no longer routed
 
 #### Scenario: Testing business plugins through native tools
 
@@ -48,6 +48,9 @@ selection; font and System controls are excluded.
 
 - **WHEN** a reviewer starts the documented local MCP fixture without an AI provider
 - **THEN** an authenticated MCP client can read and review Blogs changes using the shared business connector
+- **AND** local Agents settings can create an expiring key, replace or revoke it, and display a bounded test prompt
+- **AND** a client can create, read, update and delete its disposable article with stored review before each mutation
+- **AND** key management stays development-only and accepts only the configured local showroom origin
 - **AND** the guide distinguishes its disposable data from the browser demos and production authentication
 
 ### Requirement: Barebones mailing examples

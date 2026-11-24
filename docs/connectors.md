@@ -11,7 +11,7 @@ there is no runtime loader or universal synchronization protocol.
 | `customers-bexio`                            | Customers and the Bexio contact API      | [Showcase](https://registry.the-corner.swiss/connectors/customers-bexio) | [Setup](./customers-bexio.md)    |
 | `projects-drive`                             | Projects and Forge Drive                 | [Showcase](https://registry.the-corner.swiss/connectors/projects-drive)  | [Setup](./projects-drive.md)     |
 | `supports-github` / `supports-github-server` | Supports and private GitHub issues       | [Showcase](https://registry.the-corner.swiss/connectors/supports-github) | [Setup](./supports-github.md)    |
-| `agents-webmcp` / `agents-webmcp-server`     | Browser assistants and Agents operations | Local `/connectors/agents-webmcp` preview                                | [Setup and testing](./webmcp.md) |
+| `agents-webmcp` / `agents-webmcp-server`     | Browser assistants and Agents operations | Installed plugin admin previews                                          | [Setup and testing](./webmcp.md) |
 
 Install only the relationship needed by a website. The connector declares both
 its own files and the existing items it uses. Base plugins do not acquire a
