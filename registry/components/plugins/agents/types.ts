@@ -41,6 +41,8 @@ export interface AgentPreview {
   changes: { label: string; before?: string; after: string }[];
   effects: string[];
   attachmentIds?: string[];
+  /** File identity captured with the stored proposal, without bytes or storage URLs. */
+  attachments?: AgentAttachment[];
 }
 export type AgentActionStatus =
   | "pending"

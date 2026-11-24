@@ -151,6 +151,14 @@ await test("WebMCP stages private bytes for a reviewed upload and enforces ident
     input: { attachmentId: staged.id },
     requestId: "deposit",
   });
+  assert.deepEqual(proposal.preview.attachments, [
+    {
+      id: staged.id,
+      name: "test.txt",
+      contentType: "text/plain",
+      size: 10,
+    },
+  ]);
   assert.equal(f.permissions.uploads, 0);
   const result = await f.client.decide({
     proposalId: proposal.proposalId,

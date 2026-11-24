@@ -20,7 +20,7 @@ async function invoke(page, name, input = {}) {
     { name, input },
   );
 }
-async function write(page, name, input, approve = true) {
+async function write(page, name, input, approve = true, review = async () => {}) {
   await page.evaluate(
     ({ name, input }) => {
       window.pendingWrite = (async () => {
@@ -33,6 +33,8 @@ async function write(page, name, input, approve = true) {
     { name, input },
   );
   const dialog = page.getByRole("dialog", { name: "Request from your assistant" });
+  await dialog.waitFor();
+  await review(dialog);
   await dialog.getByRole("button", { name: approve ? "Approve" : "Reject", exact: true }).click();
   const result = await page.evaluate(() => window.pendingWrite);
   assert.equal(result.status, approve ? "succeeded" : "rejected", JSON.stringify(result));
@@ -190,11 +192,23 @@ await test("Drive staging uploads reviewed bytes and context follows folder sele
     contentType: "text/plain",
     base64: "aGVsbG8=",
   });
-  await write(page, "drive_upload", {
-    scope: { type: "project", id: "website" },
-    parentId: null,
-    attachmentId: staged.id,
-  });
+  await write(
+    page,
+    "drive_upload",
+    {
+      scope: { type: "project", id: "website" },
+      parentId: null,
+      attachmentId: staged.id,
+    },
+    true,
+    async (dialog) => {
+      const files = dialog.getByRole("list", { name: "Attachments", exact: true });
+      assert.equal(await files.getByText("native-check.txt", { exact: true }).count(), 1);
+      assert.match(await files.innerText(), /5 byte/);
+      assert.match(await files.innerText(), /text\/plain/);
+      assert.match(await dialog.innerText(), /project\/website: \//);
+    },
+  );
   await page.getByText("native-check.txt", { exact: true }).first().waitFor();
   const listing = await invoke(page, "drive_list_entries", {
     scope: { type: "project", id: "website" },

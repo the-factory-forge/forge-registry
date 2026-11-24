@@ -98,6 +98,16 @@ export function agentTools<Context>() {
             changes: agentChanges(input, before),
             effects: options.effects ?? [],
             attachmentIds,
+            ...(attachments.length
+              ? {
+                  attachments: attachments.map(({ id, name, contentType, size }) => ({
+                    id,
+                    name,
+                    contentType,
+                    size,
+                  })),
+                }
+              : {}),
           };
           return { preview, snapshot: { before, attachments } };
         },

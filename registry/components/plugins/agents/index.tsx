@@ -469,12 +469,14 @@ export function AgentActionReview({
   decide,
   labels,
   children,
+  renderAttachment,
 }: {
   action: AgentAction;
   disabled: boolean;
   decide: (approve: boolean) => void;
   labels: AgentsLabels;
   children?: React.ReactNode;
+  renderAttachment?: (file: AgentAttachment) => React.ReactNode;
 }) {
   const resultHref =
     action.status === "succeeded" ? safeAgentResultHref(action.resultHref) : undefined;
@@ -518,6 +520,22 @@ export function AgentActionReview({
           </div>
         ))}
       </dl>
+      {!!action.preview.attachments?.length && (
+        <ul aria-label={labels.attachments} className="space-y-2 text-sm">
+          {action.preview.attachments.map((file) => (
+            <li key={file.id} className="break-words">
+              {renderAttachment ? renderAttachment(file) : <span>{file.name}</span>}
+              <p className="text-xs text-muted-foreground">
+                {new Intl.NumberFormat(undefined, { style: "unit", unit: "byte" }).format(
+                  file.size,
+                )}
+                {" · "}
+                {file.contentType}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
       {children}
       {!!action.preview.effects.length && (
         <div>
@@ -1024,6 +1042,14 @@ function AgentsContent({
                       action={action}
                       labels={labels}
                       disabled={blocked}
+                      renderAttachment={(file) => (
+                        <AttachmentView
+                          client={client}
+                          conversationId={conversation.id}
+                          attachment={file}
+                          labels={labels}
+                        />
+                      )}
                       decide={(approve) =>
                         void run(async (request) => {
                           const chat = await client.decide({
@@ -1042,20 +1068,21 @@ function AgentsContent({
                         })
                       }
                     >
-                      {action.preview.attachmentIds?.map((id) => {
-                        const file = conversation.messages
-                          .flatMap((message) => message.attachments)
-                          .find((file) => file.id === id);
-                        return file ? (
-                          <AttachmentView
-                            key={id}
-                            client={client}
-                            conversationId={conversation.id}
-                            attachment={file}
-                            labels={labels}
-                          />
-                        ) : null;
-                      })}
+                      {!action.preview.attachments &&
+                        action.preview.attachmentIds?.map((id) => {
+                          const file = conversation.messages
+                            .flatMap((message) => message.attachments)
+                            .find((file) => file.id === id);
+                          return file ? (
+                            <AttachmentView
+                              key={id}
+                              client={client}
+                              conversationId={conversation.id}
+                              attachment={file}
+                              labels={labels}
+                            />
+                          ) : null;
+                        })}
                     </AgentActionReview>
                   ))}
               </Fragment>

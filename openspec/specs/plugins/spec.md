@@ -3025,6 +3025,13 @@ selection. The connector SHALL reuse Agents execution without a model provider.
 - **WHEN** an authorized operation supports private attachments
 - **THEN** bounded staging remains isolated to the user and session
 - **AND** the eventual plugin upload requires its own reviewed action and integrity check
+- **AND** the review identifies the file's name, size and destination from the prepared proposal before approval
+
+#### Scenario: A previous decision returns after navigation
+
+- **WHEN** the context or authenticated client changes while a decision is pending
+- **THEN** that decision's success or failure cannot replace or disable a newer review
+- **AND** an already approved write retains its durable outcome without refreshing the departed context
 
 #### Scenario: Leaving or using an unsupported page
 

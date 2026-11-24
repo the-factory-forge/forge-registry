@@ -114,6 +114,8 @@ export function createDriveAgentOperation<Context>(options: DriveAgentOptions<Co
         before: async (c, i) =>
           i.parentId ? options.entry(c, { scope: i.scope, entryId: i.parentId }) : i.scope,
         attachments: (i) => [i.attachmentId],
+        target: (i, destination) =>
+          `${i.scope.type}/${i.scope.id}: ${i.parentId ? `${(destination as DriveEntry).name} (${i.parentId})` : "/"}${i.relativePath ? ` / ${i.relativePath}` : ""}`,
         run: async (c, i, files, requestId) => {
           const { metadata, bytes } = await files.get(i.attachmentId);
           const client = options.client(c);
