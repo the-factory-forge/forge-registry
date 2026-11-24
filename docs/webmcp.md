@@ -48,7 +48,11 @@ before changing the native boundary; this implementation uses
 
 ## Test the plugin previews without AI
 
-Keep the inspector open, select a tool, enter its JSON arguments, then execute.
+In Chrome DevTools, open **Application → WebMCP → Available Tools**, select a
+tool, enter its arguments and click **Run tool**. **Invoked Tools** shows its input,
+output and status. This [native panel](https://developer.chrome.com/docs/devtools/application/webmcp)
+needs no extension or AI key. The inspector extension remains an alternative
+when the browser does not provide this panel.
 `website_context` reports the current page and selected record; Drive also reports
 its folder and selection. The preview controls stay available in the sidebar.
 
@@ -64,6 +68,12 @@ its folder and selection. The preview controls stay available in the sidebar.
 | Supports     | `/en/intranet/supports`     | `supports_list` with `{}`                            |
 | Agents       | `/en/agents`                | `conversations_operations` with `{}`                 |
 
+For Blogs, start with `{"locale":"en","page":1,"pageSize":12}` and omit optional
+filters. If a generated input includes a sample `search` value such as `"string"`,
+remove it. `items: []` with `total: 0` means no matching records; compare the
+invocation's exact input and the preview's sample state before treating it as an
+integration failure.
+
 For a first write, open Blogs and call `blogs_create`:
 
 ```json
@@ -74,6 +84,15 @@ Reject the proposal: no article appears. Repeat with a new request ID and approv
 the article appears in the list. Read again to verify it. The inspector's schema
 lists the required arguments for each tool; writes wrap them in `input` and use a
 unique `requestId`. Repeating the same ID returns its recorded outcome.
+
+Tools include creation, deletion and business actions, not only reads and updates.
+For example, Blogs exposes publication and history; Drive exposes folders,
+duplication and trash. The installed connector and host adapters determine the
+actual catalog. Do not infer complete UI parity from a successful sample call.
+The tool descriptions, argument schemas and `website_context` explain these
+actions to the browser assistant. Repository `AGENTS.md` files guide contributors;
+WebMCP does not automatically load them. Keep runtime guidance with the operation
+and tool definitions rather than maintaining a second plugin manual.
 
 These previews reuse the distributed business connectors and common executor.
 Their clients modify sample records only. Customers, Projects and Drive share a
@@ -209,3 +228,10 @@ Drive uploads, public routes, unavailable WebMCP and preserved Agents drafts.
 An official shadcn consumer install passes TypeScript. The reference MCP Inspector
 CLI discovers tools, prepares and approves a Blogs creation, then reads it back.
 No real model/provider or customer website was used.
+
+Review corrections on 2026-11-24: eight delayed-response cases cover approval and
+rejection, success and failure, and context/client replacement. Upload reviews
+show stored file identity and destination before approval; chat previews remain
+compatible. The 31 targeted browser checks, 205 unit tests, code checks, build and
+updated shadcn consumer installation pass. This does not cover SiniGest adoption,
+CI execution or real-assistant acceptance.
