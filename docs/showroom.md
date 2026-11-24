@@ -234,12 +234,12 @@ links retain the selected locale. Examples share Acme workspace branding and
 consistent people/project names where they represent the same records; specialized
 booking, restaurant, and public-page content retains its own meaning.
 
-Localized demos also show a language switch beside the theme control, using the
-configured French, English, German and Italian locales. Switching keeps the
-current page, query and hash, preserves in-memory demo state through client
-navigation, and saves the choice in `FORGE_LOCALE`. The directory and unlocalized
-examples omit the switch. The shared `LanguageSwitcher` accepts a `linkComponent`
-adapter; the showroom supplies `ShowroomLink` and explicit locale destinations.
+The Blogs, Menus and Reservations demos offer **Language** in the Preview controls
+sidebar. Blogs has French, English, German and Italian interface labels. On a
+public article, the switch links to its published translations using their own
+slugs. Menus and Reservations offer English and French. Switching preserves the
+query, hash and in-memory demo state. Editor navigation guards run before the
+new locale is saved in `FORGE_LOCALE`.
 
 The showroom defaults to Light and stores Dark under
 `forge:showroom:appearance:theme`. Selecting Light removes the key. It applies that choice before paint, across routes and tabs,

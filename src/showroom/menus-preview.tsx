@@ -49,6 +49,7 @@ import {
 import { MenuConfirmation } from "@/components/plugins/menus/ui";
 import { createDriveMock } from "@/showroom/drive-mock";
 import { useShowroomDriveOrder } from "@/showroom/drive-preview";
+import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { useShowroomTableSort } from "@/showroom/routing";
 import {
   ShowroomLink as Link,
@@ -663,11 +664,11 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
               </ul>
             )}
             <Link href={`/${locale}/admin/menus/items`}>Item list</Link>
-            <Link href="/fr/menus">French menu</Link>
           </>
         }
         controls={
           <>
+            <PreviewLanguageSwitcher languages={locales.map(({ code }) => code)} />
             {(current === "items" || mock.items.some(({ id }) => id === segments.at(-1))) && (
               <div className="grid gap-2">
                 <label htmlFor="factory-menu-directory-state">Directory state</label>

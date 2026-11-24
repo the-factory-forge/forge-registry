@@ -4,6 +4,7 @@ import { after, before, test, suite } from "node:test";
 import { actionToast } from "./action-toast-helpers.mjs";
 import { openDriveFolderDialog, closeDriveNavigation } from "./drive-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
+import { switchPreviewLanguage } from "./showroom-helpers.mjs";
 
 await suite("Menus browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -493,7 +494,7 @@ await suite("Menus browser", async () => {
     await page.getByRole("heading", { name: "Burrata with tomatoes" }).waitFor();
     await page.getByText("Sold out", { exact: true }).waitFor();
     assert.equal(await page.getByText("Homemade lemonade").count(), 0);
-    await page.getByRole("link", { name: "French menu" }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.getByRole("heading", { name: "Burrata aux tomates" }).waitFor();
     await page.getByRole("heading", { name: "House pasta" }).waitFor();
     await page.setViewportSize({ width: 390, height: 844 });
@@ -594,7 +595,7 @@ await suite("Menus browser", async () => {
     assert.equal(await navigation.count(), 0);
     await page.getByRole("button", { name: "Clear filters" }).click();
     assert.equal(await navigation.getByRole("link").count(), 2);
-    await page.getByRole("link", { name: "French menu" }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     const french = page.getByRole("navigation", { name: "Catégories", exact: true });
     assert.deepEqual(await french.getByRole("link").allTextContents(), [
@@ -702,7 +703,7 @@ await suite("Menus browser", async () => {
     await actionToast(page, "Saved.");
     await page.getByRole("link", { name: "Public menu" }).click();
     await page.getByRole("heading", { name: "Seasonal soup" }).waitFor();
-    await page.getByRole("link", { name: "French menu" }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.getByRole("heading", { name: "Soupe de saison" }).waitFor();
   });
 
@@ -780,7 +781,7 @@ await suite("Menus browser", async () => {
     await clear.click();
     assert.equal(await page.locator("article").count(), 2);
     assert.equal(await page.getByRole("checkbox", { checked: true }).count(), 0);
-    await page.getByRole("link", { name: "French menu" }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page
@@ -1052,7 +1053,7 @@ await suite("Menus browser", async () => {
       await page.getByRole("link", { name: "Item list", exact: true }).click();
     }
     await page.getByRole("link", { name: "Public menu", exact: true }).click();
-    await page.getByRole("link", { name: "French menu", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.getByText("Extrêmement épicé", { exact: true }).waitFor();
     assert.equal(
       await page
@@ -1156,7 +1157,7 @@ await suite("Menus browser", async () => {
     assert.equal(await burrata.getByRole("radio").count(), 0);
     await page.getByRole("checkbox", { name: "Milk", exact: true }).check();
     assert.equal(await large.isChecked(), true);
-    await page.getByRole("link", { name: "French menu", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     await pizza
       .getByRole("group", { name: "Tailles", exact: true })
       .getByRole("radio", { name: /Familiale · 40 cm/ })
@@ -1305,7 +1306,7 @@ await suite("Menus browser", async () => {
       .filter({ hasText: "Burrata with tomatoes" })
       .locator("svg.lucide-sprout")
       .waitFor();
-    await page.getByRole("link", { name: "French menu", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     await page
       .locator("label")
       .filter({ has: page.getByRole("checkbox", { name: "Végétarien", exact: true }) })

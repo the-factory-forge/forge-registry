@@ -271,7 +271,8 @@ Plugin cards may use different radii; inspect their shared classes before edits.
 ### Navigation and previews
 
 The shared header contains the official Corner icon, All components navigation,
-Light/Dark control, repository link, and a language switch on localized demos.
+search, Light/Dark and device controls, and the repository link. Translated plugin
+demos put their language switch in the Preview controls sidebar.
 Skip to preview is the first keyboard stop. Each demo supplies its own settings
 to the shared preview frame, which owns positioning and responsive behavior.
 ShowroomIntro supplies consistent demo headings and instructions where the component

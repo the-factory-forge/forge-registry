@@ -3,7 +3,7 @@ import { after, before, test, suite } from "node:test";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
-import { openPreviewControls } from "./showroom-helpers.mjs";
+import { openPreviewControls, switchPreviewLanguage } from "./showroom-helpers.mjs";
 
 await suite("Reservations browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3215";
@@ -493,7 +493,8 @@ await suite("Reservations browser", async () => {
       true,
     );
     await page.screenshot({ path: "/tmp/reservations-mobile.png", fullPage: true });
-    await page.getByRole("link", { name: "Français", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
+    await page.getByRole("link", { name: "Public booking", exact: true }).click();
     await page.getByRole("heading", { name: "Réserver un rendez-vous" }).waitFor();
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(await page.getByRole("button", { name: "Vérifier la réservation" }).count(), 1);

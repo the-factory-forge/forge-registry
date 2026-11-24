@@ -355,7 +355,7 @@ the article title as its accessible name and a visible keyboard focus outline.
 The Read more arrow moves up and right on card hover or keyboard focus, and stays
 still when reduced motion is requested.
 
-Article language switching belongs in the host navbar. `BlogPostPage` does not
+The host owns article language navigation. The showroom places it in the Preview controls sidebar. `BlogPostPage` does not
 render language links or accept a `translations` prop; remove that prop when
 updating existing integrations and keep published locale URLs in the host navigation.
 

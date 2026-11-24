@@ -3,6 +3,7 @@ import { before, after, test, suite } from "node:test";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
+import { switchPreviewLanguage } from "./showroom-helpers.mjs";
 
 await suite("Blogs browser", async () => {
   async function confirmHistoryPublication(page) {
@@ -388,8 +389,7 @@ await suite("Blogs browser", async () => {
       await page.getByRole("dialog").waitFor({ state: "hidden" });
       await page.screenshot({ path: `/tmp/forge-blogs-categories-${theme}.png`, fullPage: true });
     }
-    await page.getByRole("link", { name: "French blog", exact: true }).click();
-    await page.getByRole("link", { name: "Manage posts", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     assert.equal(
       await page.getByRole("link", { name: "Catégories", exact: true }).innerText(),
       "Catégories",
@@ -498,7 +498,7 @@ await suite("Blogs browser", async () => {
     assert.equal(await post.count(), 0);
     await page.getByRole("link", { name: "Public blog", exact: true }).click();
     assert.equal(await page.getByRole("link", { name: title, exact: true }).count(), 0);
-    await page.getByRole("link", { name: "French blog", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     assert.equal(
       await page.getByRole("link", { name: "Faire de la place aux idées", exact: true }).count(),
       0,
@@ -601,7 +601,9 @@ await suite("Blogs browser", async () => {
       await page.screenshot({ path: `/tmp/forge-blog-auto-search-${theme}.png`, fullPage: true });
     }
     await search.fill("pending");
-    await page.getByRole("link", { name: "French blog", exact: true }).click();
+    await page.getByRole("button", { name: "Language", exact: true }).press("Enter");
+    await page.clock.runFor(50);
+    await page.getByRole("menuitem", { name: "Français", exact: true }).press("Enter");
     await page.clock.runFor(500);
     assert.equal(new URL(page.url()).pathname, "/fr/blogs");
     assert.notEqual(new URL(page.url()).searchParams.get("search"), "pending");
@@ -625,7 +627,9 @@ await suite("Blogs browser", async () => {
       .getByRole("heading", { name: "Notes from our workbench", exact: true })
       .waitFor({ state: "hidden" });
     assert.equal(await page.locator("article").count(), 1);
-    await page.getByRole("link", { name: "French blog", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
+    await page.waitForURL(`${baseURL}/fr/blogs?search=quieter`);
+    await page.getByRole("link", { name: "Public blog", exact: true }).click();
     await page.getByRole("heading", { name: "Faire de la place aux idées", exact: true }).waitFor();
     assert.equal(await page.locator("article").count(), 1);
     await page.getByRole("link", { name: "Faire de la place aux idées", exact: true }).click();
@@ -825,7 +829,8 @@ await suite("Blogs browser", async () => {
     await page.getByRole("button", { name: "Publish", exact: true }).click();
     await confirmHistoryPublication(page);
     await actionToast(page, "This language is now published");
-    await page.getByRole("link", { name: "French blog", exact: true }).click();
+    await page.getByRole("link", { name: "Public blog", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
     await page.getByRole("link", { name: "Une idée", exact: true }).waitFor();
   });
 

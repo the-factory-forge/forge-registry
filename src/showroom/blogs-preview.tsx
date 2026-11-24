@@ -30,6 +30,7 @@ import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
+import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { useShowroomTableSort } from "@/showroom/routing";
 import { useShowroomTablePage } from "@/showroom/routing";
 import {
@@ -108,7 +109,12 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const { locale, segments } = useShowroomParams();
   const state = usePreview();
   const adminRoute = useMatch({ from: "/_blogs/$locale/admin/blogs/$", shouldThrow: false });
-  const article = state.mock.all().find((value) => value.id === segments[0]);
+  const articles = state.mock.all();
+  const article = articles.find((value) => value.id === segments[0]);
+  const publicSlug = adminRoute ? undefined : segments[0];
+  const publicPost = publicSlug
+    ? articles.find((value) => value.translations[locale]?.published?.slug === publicSlug)
+    : undefined;
   const hasArticleEditor = Boolean(adminRoute && article);
   const canSimulateMissingImages = hasArticleEditor && state.historyEnabled;
   return (
@@ -119,11 +125,20 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
           <>
             <Link href={`/${locale}/blogs`}>Public blog</Link>
             <Link href={`/${locale}/admin/blogs`}>Manage posts</Link>
-            <Link href="/fr/blogs">French blog</Link>
           </>
         }
         controls={
           <>
+            <PreviewLanguageSwitcher
+              translatedPath={
+                publicSlug
+                  ? (code) => {
+                      const slug = publicPost?.translations[code]?.published?.slug;
+                      return slug && `/${code}/blogs/${slug}`;
+                    }
+                  : undefined
+              }
+            />
             <label htmlFor={`${selectId}-editor`} className="flex items-center gap-2">
               Editor
               <NativeSelect
