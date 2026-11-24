@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAgentConversationsOperation } from "@/components/connectors/agents-conversations/server";
 import { AgentsPage } from "@/components/plugins/agents";
 import { createAgentsMock } from "@/showroom/agents-mock";
+import { McpDemoSettings } from "@/showroom/mcp-demo-settings";
 import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
@@ -103,6 +104,7 @@ function AgentsPreview() {
             refreshVersion={revision}
             client={mock.client}
             settings={readOnly ? undefined : mock.settings}
+            connectionSettings={import.meta.env.DEV ? <McpDemoSettings /> : undefined}
             labels={{
               settingsDescription:
                 "Demo only. Enter “demo” as the API key, load a sample model and save it. No AI provider is contacted.",

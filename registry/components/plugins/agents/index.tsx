@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { Tabs } from "@base-ui/react/tabs";
 import {
   DownloadIcon,
   EyeIcon,
@@ -66,6 +67,8 @@ export interface AgentsPageProps {
   refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
   settings?: AgentsSettingsClient;
+  /** Optional host-owned assistant connection controls; the host authorizes their transport. */
+  connectionSettings?: React.ReactNode;
   operationId: string | null;
   conversationId: string | null;
   onSelectionChange: (selection: {
@@ -121,7 +124,15 @@ function failure(error: unknown, labels: AgentsLabels) {
   return labels.error;
 }
 
-function ModelSettings({ client, labels }: { client: AgentsSettingsClient; labels: AgentsLabels }) {
+function ModelSettings({
+  client,
+  labels,
+  connectionSettings,
+}: {
+  client: AgentsSettingsClient;
+  labels: AgentsLabels;
+  connectionSettings?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
@@ -139,17 +150,46 @@ function ModelSettings({ client, labels }: { client: AgentsSettingsClient; label
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-dark/50" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-border bg-popover p-6 text-popover-foreground">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <Dialog.Title className="text-lg font-semibold">{labels.modelSettings}</Dialog.Title>
+            <Dialog.Title className="text-lg font-semibold">
+              {connectionSettings ? labels.settings : labels.modelSettings}
+            </Dialog.Title>
             <IconTooltip label={labels.close}>
               <Dialog.Close aria-label={labels.close} disabled={busy} className={button}>
                 <XIcon aria-hidden="true" className="size-4" />
               </Dialog.Close>
             </IconTooltip>
           </div>
-          <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
-            {labels.settingsDescription}
-          </Dialog.Description>
-          {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+          {connectionSettings ? (
+            <Tabs.Root defaultValue="connection" className="space-y-5">
+              <Tabs.List aria-label={labels.settings} className="flex gap-4 border-b border-border">
+                <Tabs.Tab
+                  value="connection"
+                  disabled={busy}
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                >
+                  {labels.externalAssistant}
+                </Tabs.Tab>
+                <Tabs.Tab
+                  value="model"
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                >
+                  {labels.modelSettings}
+                </Tabs.Tab>
+              </Tabs.List>
+              <Tabs.Panel value="connection">{connectionSettings}</Tabs.Panel>
+              <Tabs.Panel value="model">
+                <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
+                {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+              </Tabs.Panel>
+            </Tabs.Root>
+          ) : (
+            <>
+              <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
+                {labels.settingsDescription}
+              </Dialog.Description>
+              {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+            </>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -595,6 +635,7 @@ function AgentsContent({
   client,
   refreshVersion,
   settings,
+  connectionSettings,
   operationId,
   conversationId,
   onSelectionChange,
@@ -819,7 +860,13 @@ function AgentsContent({
             {operation?.description ?? labels.chooseFirst}
           </p>
         </div>
-        {settings && <ModelSettings client={settings} labels={labels} />}
+        {settings && (
+          <ModelSettings
+            client={settings}
+            labels={labels}
+            connectionSettings={connectionSettings}
+          />
+        )}
       </header>
       <div className="grid min-h-0 flex-1 md:grid-cols-[14rem_minmax(0,1fr)]">
         <nav

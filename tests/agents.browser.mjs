@@ -356,7 +356,8 @@ await test("Agents: administrator model settings save, reload and drive the demo
     .getByRole("button", { name: "Settings", exact: true });
   await settings.focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Model settings", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.getByRole("tab", { name: "Model settings", exact: true }).click();
   const key = dialog.getByLabel("API key", { exact: true });
   await key.fill("demo");
   assert.equal(await key.getAttribute("type"), "password");
@@ -377,6 +378,7 @@ await test("Agents: administrator model settings save, reload and drive the demo
   await dialog.waitFor({ state: "hidden" });
   await page.reload();
   await settings.click();
+  await dialog.getByRole("tab", { name: "Model settings", exact: true }).click();
   assert.equal(await dialog.getByLabel("Model", { exact: true }).inputValue(), "demo-openai");
   await dialog.getByLabel("Provider", { exact: true }).selectOption("anthropic");
   await key.fill("not-a-real-key");
@@ -438,6 +440,7 @@ await test("Agents: administrator model settings save, reload and drive the demo
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText(/Demo model: demo-anthropic\. The sample record/).waitFor();
   await settings.click();
+  await dialog.getByRole("tab", { name: "Model settings", exact: true }).click();
   await dialog.getByRole("button", { name: "Disconnect", exact: true }).click();
   await dialog.getByRole("button", { name: "Confirm disconnect", exact: true }).click();
   await page

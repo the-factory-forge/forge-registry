@@ -1,6 +1,7 @@
 export const agentsLabels = {
   title: "Agents",
   settings: "Settings",
+  externalAssistant: "External assistant",
   modelSettings: "Model settings",
   settingsDescription:
     "Choose the AI provider and model for this website. Saved changes apply to the next chat request for all staff.",
