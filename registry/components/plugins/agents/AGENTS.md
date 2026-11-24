@@ -14,7 +14,8 @@ and the guide's linked shared access contract.
 - `server/service.server.ts` resolves fresh actors and operation access, owns
   conversations, server history and attachment lifecycle, and coordinates runtime
   turns. `store.server.ts` and `schema.ts` persist records and serialized changes.
-- `server/execution.server.ts` is the common execution path for chat, MCP and WebMCP.
+- `execution.ts` is the common execution path for chat, MCP and WebMCP.
+  The old server import re-exports it; showroom mocks use the same pure executor.
   Reads validate input and call existing services. Writes first store their input,
   review and snapshot; execution revalidates them and runs only stored arguments.
   A started write with an uncertain result becomes unresolved and requires trusted

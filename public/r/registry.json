@@ -1936,6 +1936,11 @@
           "path": "registry/components/plugins/customers/server/service.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/customers/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/customers/inputs.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/customers/inputs.ts"
         }
       ]
     },
@@ -1961,6 +1966,11 @@
           "path": "registry/components/plugins/projects/server/service.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/projects/server/service.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/projects/inputs.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/projects/inputs.ts"
         }
       ]
     },
@@ -2157,6 +2167,11 @@
           "path": "registry/components/plugins/agents/server/execution.server.ts",
           "type": "registry:lib",
           "target": "@components/plugins/agents/server/execution.server.ts"
+        },
+        {
+          "path": "registry/components/plugins/agents/execution.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/agents/execution.ts"
         }
       ]
     },
