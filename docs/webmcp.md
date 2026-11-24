@@ -14,8 +14,12 @@ automatic host installation still requires Template adoption.
 1. Start Registry with `PORTLESS=0 pnpm dev --host 127.0.0.1 --port 3218`.
 2. In Chrome, enable `chrome://flags/#enable-webmcp-testing` and relaunch.
 3. Open `http://127.0.0.1:3218/connectors/agents-webmcp`.
-4. Use **Read page context**, then **Propose sample change**. Approve or reject
-   in the page. Switch the selected record and read its context again.
+4. Use **Read page context** and **Read sample record**. Both should match the
+   selection and saved name. Switch the selected record and compare again.
+5. Enter a different name and **Propose sample change**. Reject it: the saved
+   name stays unchanged. Propose again and approve: the saved name changes.
+6. Use **Read last decision** to check `rejected` or `succeeded`. This also works
+   for a proposal made by an external assistant while the page stays open.
 
 The buttons call native `document.modelContext`, using fictional browser-session
 records. No AI subscription or provider key is needed. They verify the website's
@@ -24,6 +28,17 @@ the inspector/assistant extensions described in the
 [Chrome guide](https://developer.chrome.com/docs/ai/webmcp). Ask the assistant to
 read the selected record, propose a new name and wait for the site's approval.
 Record the browser and assistant versions separately from native API results.
+
+Only this route mounts WebMCP in the showroom; other plugin previews expose no
+WebMCP tools. The extension chat is separate from Forge's Agents chat. The page's
+**Help & assistant prompt** section provides a prompt and recovery steps.
+An inspector trace containing `parameter 1 is not of type 'Tool'` remains a failed
+invocation even if its final AI response sounds successful. Repeated calls through
+the installed inspector 1.9.21 content script passed in isolated Chrome 158.0.8127.38
+checks; the reported live-extension failure has not been reproduced or resolved.
+On 2026-11-24, the user's Inspector chat trace confirmed context and record reads,
+followed by a successful rename reflected on the page. The model version was not
+recorded. This validates that showroom journey, not other plugins or production.
 
 WebMCP is experimental and requires a supported browser and a secure context
 (HTTPS or localhost). An unavailable API leaves the ordinary page usable. See

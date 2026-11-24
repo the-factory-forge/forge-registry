@@ -5,6 +5,7 @@ import {
   AgentsWebMcp,
   getWebMcpContext,
   type AgentsWebMcpClient,
+  type WebMcpProposal,
 } from "@/components/connectors/agents-webmcp";
 import { NativeSelect } from "@/components/native-select";
 import { AgentsError } from "@/components/plugins/agents/types";
@@ -17,13 +18,16 @@ const input = z
 function previewClient(
   mock: ReturnType<typeof createAgentsMock>,
   operationId: string,
+  onProposal: (value: WebMcpProposal) => void,
 ): AgentsWebMcpClient {
   const requests = new Map<string, { name: string; id: string }>();
   const proposal = async (id: string) => {
     const chat = await mock.client.get(id);
     const action = chat.actions[0];
     if (!action) throw new AgentsError("NOT_FOUND");
-    return { ...action, resultHref: undefined, proposalId: id, operationId };
+    const value = { ...action, resultHref: undefined, proposalId: id, operationId };
+    onProposal(value);
+    return value;
   };
   return {
     async catalog() {
@@ -102,11 +106,13 @@ async function invoke(name: string, input: unknown) {
 export function WebMcpPreview() {
   const [mock] = useState(() => createAgentsMock());
   const [operation, setOperation] = useState("blogs");
-  const client = useMemo(() => previewClient(mock, operation), [mock, operation]);
+  const [lastProposal, setLastProposal] = useState<WebMcpProposal>();
+  const client = useMemo(() => previewClient(mock, operation, setLastProposal), [mock, operation]);
+  const currentProposal = lastProposal?.operationId === operation ? lastProposal : undefined;
   const available = useSyncExternalStore(subscribe, supported, () => false);
-  const [name, setName] = useState("Reviewed sample");
+  const [name, setName] = useState("WebMCP test");
   const [record, setRecord] = useState("Sample record");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<{ tool: string; text: string; failed?: boolean }>();
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let current = true;
@@ -119,104 +125,201 @@ export function WebMcpPreview() {
   }, [mock, operation]);
   const run = async (tool: string, input: unknown) => {
     setBusy(true);
-    setResult("");
+    setResult({ tool, text: "" });
     try {
-      setResult((await invoke(tool, input)) ?? "Done");
+      const value = (await invoke(tool, input)) ?? "Done";
+      let text = value;
+      try {
+        text = JSON.stringify(JSON.parse(value), null, 2);
+      } catch {
+        // A tool may return plain text.
+      }
+      setResult({ tool, text });
     } catch (error) {
-      setResult(error instanceof Error ? error.message : "Request failed");
+      setResult({
+        tool,
+        text: error instanceof Error ? error.message : "Request failed",
+        failed: true,
+      });
     } finally {
       setBusy(false);
     }
   };
+  const responseData = result && !busy && (
+    <pre
+      data-testid="webmcp-result"
+      className="max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs break-words whitespace-pre-wrap"
+    >
+      {result.text}
+    </pre>
+  );
+  const response = (
+    <section aria-label="Last tool response" className="space-y-2">
+      <output className="block text-xs text-muted-foreground">
+        {busy
+          ? result?.tool === "sample_rename"
+            ? "Approve or reject on the page."
+            : "Reading…"
+          : result && `${result.tool}: ${result.failed ? "call failed" : "response received"}`}
+      </output>
+      {!busy &&
+      !result?.failed &&
+      (result?.tool === "sample_rename" || result?.tool === "webmcp_proposal") ? (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-muted-foreground">Response data</summary>
+          <div className="mt-2">{responseData}</div>
+        </details>
+      ) : (
+        responseData
+      )}
+    </section>
+  );
   return (
     <ShowroomPreview
-      notice="Browser-session sample data. No website account, AI provider or live service is connected."
+      width="narrow"
+      notice="Sample data. Changes stay in this browser tab."
       controls={
-        <div className="space-y-3 text-sm">
-          <p>
-            Install: <code>shadcn add @forge/agents-webmcp @forge/agents-webmcp-server</code>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Test with the page buttons or the Chrome inspector.
           </p>
-          <p>
-            Hosts provide authenticated endpoints, current page context and existing plugin actions.
-          </p>
-          <p>
-            Enable <code>chrome://flags/#enable-webmcp-testing</code> and relaunch Chrome. These
-            buttons call the native API; no model or API key is needed.
-          </p>
-          <a href="https://developer.chrome.com/docs/ai/webmcp" className="underline">
-            Browser setup and assistant extensions
-          </a>
+          <details className="text-sm">
+            <summary className="cursor-pointer font-medium">Help & assistant prompt</summary>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+              <li>Read context and record: check the selection and saved name.</li>
+              <li>Propose a new name. Reject keeps the old name; Approve saves the new one.</li>
+              <li>Read last decision: check succeeded or rejected.</li>
+            </ol>
+            <p className="mt-4 text-muted-foreground">Try this in the extension chat:</p>
+            <blockquote className="mt-2 rounded-md bg-muted p-3">
+              Read the selected record. Propose renaming it to “Assistant test” and wait for my
+              decision. Read it again to confirm the saved name.
+            </blockquote>
+            <p className="mt-4 text-muted-foreground">
+              Only this demo exposes WebMCP. The extension chat uses its own AI provider. If it
+              reports an invalid Tool, reload this page and reset that chat before retrying.
+            </p>
+            <a
+              href="https://developer.chrome.com/docs/ai/webmcp"
+              className="mt-3 inline-block underline underline-offset-4"
+            >
+              Chrome setup and extensions
+            </a>
+          </details>
         </div>
       }
     >
       <ShowroomIntro title="WebMCP">
-        Give a browser assistant the current page context and review its proposed changes here.
+        Try the tools an assistant can use. This page uses sample data.
       </ShowroomIntro>
-      <output className="mb-5 block text-sm text-muted-foreground">
+      <output className="mb-6 block text-sm text-muted-foreground">
         {available
           ? "Native WebMCP is available."
           : "WebMCP is unavailable in this browser. The normal page remains usable."}
       </output>
-      <div className="max-w-xl space-y-5">
-        <div className="space-y-2">
-          <label htmlFor="factory-webmcp-record" className="block">
-            Selected record
+      <div className="max-w-2xl space-y-6">
+        <div className="grid items-end gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="factory-webmcp-record" className="block text-sm font-medium">
+              Selected record
+            </label>
+            <NativeSelect
+              id="factory-webmcp-record"
+              value={operation}
+              onChange={(event) => {
+                setOperation(event.target.value);
+                setResult(undefined);
+              }}
+              className="block h-11 w-full rounded-md border border-input bg-background px-3"
+            >
+              <option value="blogs">Example article</option>
+              <option value="customers">Example customer</option>
+            </NativeSelect>
+          </div>
+          <div className="space-y-2">
+            <span className="block text-sm text-muted-foreground">Saved name</span>
+            <strong data-testid="saved-name" className="block min-h-11 content-center break-words">
+              {record}
+            </strong>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={!available || busy}
+              className="min-h-11 rounded-md border border-border px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              onClick={() => void run("website_context", {})}
+            >
+              Read page context
+            </button>
+            <button
+              type="button"
+              disabled={!available || busy}
+              className="min-h-11 rounded-md border border-border px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              onClick={() => void run("sample_read", {})}
+            >
+              Read sample record
+            </button>
+          </div>
+          {(result?.tool === "website_context" || result?.tool === "sample_read") && response}
+        </div>
+        <div className="space-y-3 border-t border-border pt-6">
+          <label htmlFor="factory-webmcp-name" className="block text-sm font-medium">
+            Proposed name
           </label>
-          <NativeSelect
-            id="factory-webmcp-record"
-            value={operation}
-            onChange={(event) => setOperation(event.target.value)}
-            className="block w-full rounded-md border border-input bg-background p-2"
-          >
-            <option value="blogs">Example article</option>
-            <option value="customers">Example customer</option>
-          </NativeSelect>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="factory-webmcp-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              aria-describedby="factory-webmcp-name-help"
+              maxLength={200}
+              className="min-h-11 min-w-0 flex-1 rounded-md border border-input bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring"
+            />
+            <button
+              type="button"
+              disabled={!available || busy || !name.trim() || name.trim() === record}
+              className="min-h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              onClick={() => void run("sample_rename", { name, requestId: crypto.randomUUID() })}
+            >
+              Propose sample change
+            </button>
+          </div>
+          <p id="factory-webmcp-name-help" className="text-sm text-muted-foreground">
+            {name.trim() === record
+              ? "Choose a different name."
+              : "Nothing changes until you approve."}
+          </p>
+          {result?.tool === "sample_rename" && response}
         </div>
-        <p>
-          Saved name: <strong data-testid="saved-name">{record}</strong>
-        </p>
-        <label className="block space-y-2">
-          <span>Proposed name</span>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="block w-full rounded-md border border-input bg-background p-2"
-          />
-        </label>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled={!available || busy}
-            className="min-h-10 rounded-md border border-border px-3 py-2 disabled:opacity-50"
-            onClick={() => void run("website_context", {})}
-          >
-            Read page context
-          </button>
-          <button
-            type="button"
-            disabled={!available || busy || !name.trim()}
-            className="min-h-10 rounded-md bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50"
-            onClick={() => void run("sample_rename", { name, requestId: crypto.randomUUID() })}
-          >
-            Propose sample change
-          </button>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={!available || busy || !currentProposal}
+              className="min-h-11 rounded-md border border-border px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              onClick={() =>
+                currentProposal &&
+                void run("webmcp_proposal", { proposalId: currentProposal.proposalId })
+              }
+            >
+              Read last decision
+            </button>
+            <output className="text-sm text-muted-foreground">
+              {currentProposal?.status ?? "No proposal yet"}
+            </output>
+          </div>
+          {result?.tool === "webmcp_proposal" && response}
         </div>
-        {result && (
-          <pre
-            data-testid="webmcp-result"
-            className="max-h-60 overflow-auto rounded-md border border-border p-3 text-xs break-words whitespace-pre-wrap"
-          >
-            {result}
-          </pre>
-        )}
       </div>
       <AgentsWebMcp
         client={client}
         contextKey={operation}
-        getContext={() => ({
+        getContext={async () => ({
           page: "WebMCP example",
           selectedRecord: operation,
-          savedName: record,
+          savedName: (await mock.record(operation))?.name ?? "Sample record",
         })}
         onChange={async () => setRecord((await mock.record(operation))?.name ?? "Sample record")}
       />

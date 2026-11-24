@@ -20,6 +20,12 @@ await test("native WebMCP discovers context, reviews a change, cancels and refre
   );
   await page.getByRole("button", { name: "Read page context", exact: true }).click();
   await page.getByTestId("webmcp-result").filter({ hasText: "blogs" }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "Read last decision", exact: true }).isDisabled(),
+    true,
+  );
+  await page.getByRole("button", { name: "Read sample record", exact: true }).click();
+  await page.getByTestId("webmcp-result").filter({ hasText: "Sample record" }).waitFor();
   await page.getByLabel("Proposed name", { exact: true }).fill("Approved browser sample");
   await page.getByRole("button", { name: "Propose sample change", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Request from your assistant" });
@@ -39,11 +45,23 @@ await test("native WebMCP discovers context, reviews a change, cancels and refre
   await page.keyboard.press("Enter");
   await page.getByTestId("saved-name").filter({ hasText: "Approved browser sample" }).waitFor();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  assert.equal(
+    await page.getByRole("button", { name: "Propose sample change", exact: true }).isDisabled(),
+    true,
+  );
+  await page.getByRole("button", { name: "Read last decision", exact: true }).click();
+  await page.getByText("webmcp_proposal: response received", { exact: true }).waitFor();
+  await page.getByText("Response data", { exact: true }).click();
+  await page.getByTestId("webmcp-result").filter({ hasText: "succeeded" }).waitFor();
   await page.getByLabel("Proposed name", { exact: true }).fill("Rejected browser sample");
   await page.getByRole("button", { name: "Propose sample change", exact: true }).click();
   await dialog.getByRole("button", { name: "Reject", exact: true }).click();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   assert.equal(await page.getByTestId("saved-name").textContent(), "Approved browser sample");
+  await page.getByRole("button", { name: "Read last decision", exact: true }).click();
+  await page.getByText("webmcp_proposal: response received", { exact: true }).waitFor();
+  await page.getByText("Response data", { exact: true }).click();
+  await page.getByTestId("webmcp-result").filter({ hasText: "rejected" }).waitFor();
   await page.getByRole("button", { name: "Propose sample change", exact: true }).click();
   await dialog.getByRole("button", { name: "Approve", exact: true }).waitFor();
   await page.locator("#factory-webmcp-record").selectOption("customers", { force: true });
@@ -60,6 +78,50 @@ await test("native WebMCP discovers context, reviews a change, cancels and refre
   );
   assert.deepEqual(errors, []);
 });
+await test("external native calls leave a readable decision and fresh context", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.goto(`${baseURL}/connectors/agents-webmcp`);
+  await page.getByLabel("Selected record", { exact: true }).selectOption("customers");
+  await page.waitForFunction(async () =>
+    (await document.modelContext.getTools()).some((tool) => tool.name === "sample_rename"),
+  );
+  await page.evaluate(() => {
+    const invoke = async (name, input = {}) => {
+      const tool = (await document.modelContext.getTools()).find((tool) => tool.name === name);
+      return JSON.parse(await document.modelContext.executeTool(tool, input));
+    };
+    window.externalReview = invoke("sample_rename", {
+      name: "Assistant test",
+      requestId: "external-test",
+    }).then(async (proposal) => ({
+      proposal,
+      context: await invoke("website_context"),
+      record: await invoke("sample_read"),
+    }));
+  });
+  const dialog = page.getByRole("dialog", { name: "Request from your assistant" });
+  await dialog.getByRole("button", { name: "Approve", exact: true }).click();
+  const result = await page.evaluate(() => window.externalReview);
+  assert.equal(result.proposal.status, "succeeded");
+  assert.equal(result.context.savedName, "Assistant test");
+  assert.equal(result.record.name, result.context.savedName);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Read last decision", exact: true }).click();
+  await page.getByText("webmcp_proposal: response received", { exact: true }).waitFor();
+  await page.getByText("Response data", { exact: true }).click();
+  await page.getByTestId("webmcp-result").filter({ hasText: "succeeded" }).waitFor();
+  assert.equal(
+    JSON.parse(await page.getByTestId("webmcp-result").textContent()).proposalId,
+    result.proposal.proposalId,
+  );
+  await page.getByLabel("Selected record", { exact: true }).selectOption("blogs");
+  assert.equal(
+    await page.getByRole("button", { name: "Read last decision", exact: true }).isDisabled(),
+    true,
+  );
+});
 await test("WebMCP absence leaves the ordinary preview usable", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
@@ -72,6 +134,8 @@ await test("WebMCP absence leaves the ordinary preview usable", async (t) => {
     .getByText("WebMCP is unavailable in this browser. The normal page remains usable.")
     .waitFor();
   assert.equal(await page.getByRole("button", { name: "Read page context" }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Read sample record" }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "Read last decision" }).isDisabled(), true);
   await page.getByLabel("Selected record", { exact: true }).selectOption("customers");
   assert.equal(await page.getByTestId("saved-name").textContent(), "Sample record");
 });

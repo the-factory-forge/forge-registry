@@ -29,6 +29,13 @@ selection; font and System controls are excluded.
 - **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, and WebMCP do not appear as standalone entries
 - **AND** their existing demo URLs and registry installation remain available
 
+#### Scenario: Reviewing WebMCP without an AI provider
+
+- **WHEN** a reviewer opens the documented WebMCP demo in a supported browser
+- **THEN** the page explains how to compare context and record reads, approve or reject a visible change and read its recorded outcome
+- **AND** a proposal made through an external caller remains inspectable on the page
+- **AND** sample data, native-tool checks and external AI compatibility are clearly distinguished
+
 ### Requirement: Barebones mailing examples
 
 Mailing SHALL preview verification, password reset, invitation and email change,
