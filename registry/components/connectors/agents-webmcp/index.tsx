@@ -60,6 +60,7 @@ export function AgentsWebMcp({
     removeAbort(): void;
     approved: boolean;
     client: AgentsWebMcpClient;
+    signal: AbortSignal;
   } | null>(null);
 
   useEffect(() => {
@@ -87,27 +88,26 @@ export function AgentsWebMcp({
               return;
             }
             const cancel = () => {
-              if (
-                pending.current?.value.proposalId !== value.proposalId ||
-                pending.current.approved
-              )
-                return;
+              if (pending.current !== request || request.approved) return;
               pending.current.removeAbort();
               pending.current = null;
               setProposal(undefined);
+              setBusy(false);
               reject(signal.reason);
               void client
                 .decide({ proposalId: value.proposalId, approve: false, review: value.preview })
                 .catch(() => {});
             };
-            pending.current = {
+            const request = {
               value,
               resolve,
               reject,
               approved: false,
               client,
+              signal: controller.signal,
               removeAbort: () => signal.removeEventListener("abort", cancel),
             };
+            pending.current = request;
             signal.addEventListener("abort", cancel, { once: true });
             setError("");
             setProposal(value);
@@ -117,12 +117,23 @@ export function AgentsWebMcp({
       if (!controller.signal.aborted) setError(labels.unavailable);
       controller.abort();
     });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (pending.current?.signal === controller.signal) {
+        pending.current.removeAbort();
+        pending.current = null;
+      }
+      setProposal(undefined);
+      setBusy(false);
+      setError("");
+    };
   }, [client, contextKey, labels.unavailable]);
 
   async function decide(approve: boolean) {
     const request = pending.current;
     if (!request || busy) return;
+    const current = () => pending.current === request && !request.signal.aborted;
+    let completed = false;
     request.approved = approve;
     if (approve) request.removeAbort();
     setBusy(true);
@@ -135,27 +146,33 @@ export function AgentsWebMcp({
         review: request.value.preview,
       });
       request.removeAbort();
-      pending.current = null;
-      setProposal(value);
-      if (value.status === "succeeded" || value.status === "unresolved") {
-        try {
-          await callbacks.current.onChange?.();
-        } catch {
-          setError(labels.unavailable);
+      if (current()) {
+        setProposal(value);
+        if (value.status === "succeeded" || value.status === "unresolved") {
+          try {
+            await callbacks.current.onChange?.();
+          } catch {
+            if (current()) setError(labels.unavailable);
+          }
         }
       }
+      completed = true;
       request.resolve(value);
     } catch (error) {
       request.reject(error);
-      setError(
-        error instanceof AgentsError && error.code === "FORBIDDEN"
-          ? labels.unavailable
-          : approve
-            ? labels.unresolved
-            : labels.unavailable,
-      );
+      if (current())
+        setError(
+          error instanceof AgentsError && error.code === "FORBIDDEN"
+            ? labels.unavailable
+            : approve
+              ? labels.unresolved
+              : labels.unavailable,
+        );
     } finally {
-      setBusy(false);
+      if (current()) {
+        if (completed) pending.current = null;
+        setBusy(false);
+      }
     }
   }
   return (
