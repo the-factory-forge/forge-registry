@@ -13,6 +13,11 @@ there is no runtime loader or universal synchronization protocol.
 | `supports-github` / `supports-github-server` | Supports and private GitHub issues       | [Showcase](https://registry.the-corner.swiss/connectors/supports-github) | [Setup](./supports-github.md)    |
 | `agents-webmcp` / `agents-webmcp-server`     | Browser assistants and Agents operations | Installed plugin admin previews                                          | [Setup and testing](./webmcp.md) |
 
+WebMCP is a site-wide browser integration, packaged as an optional connector to
+Agents operations. Hosts can mount its browser adapter once in the authenticated
+layout to expose the installed operations permitted for the current user. Its
+packaging does not require a separate showroom card for each plugin.
+
 Install only the relationship needed by a website. The connector declares both
 its own files and the existing items it uses. Base plugins do not acquire a
 reverse dependency. Browser source lives at `@components/connectors/{name}`;
@@ -26,8 +31,11 @@ Keep host adapters outside registry-managed files. Installation does not activat
 connections, grant permissions or migrate deployed data. A folder scope or hidden
 button never grants access.
 
-The showroom's **Connector** category and search list the four examples. Their
-**Adapters and installation** sections identify each interface and its role.
+The showroom's **Connector** category and search list Customers–Bexio,
+Projects–Drive and Supports–GitHub. WebMCP has no standalone catalog entry;
+its tools are demonstrated inside supported plugin admin previews. The three
+listed examples' **Adapters and installation** sections identify each interface
+and its role.
 Browser-only in-memory adapters demonstrate actions, read-only behavior and
 repeatable failures; they do not implement production authorization or access
 live Bexio/GitHub/S3 services. Demo controls remain showroom code.
@@ -39,8 +47,9 @@ TC Bexio connection or deployed project's storage.
 
 ## Agents connectors
 
-The seven `agents-{plugin}-server` items connect Agents to existing Blogs,
-Employees, Customers, Projects, Drive, Menus and Reservations services. They are
-server-only relationships, documented with the [Agents plugin](./agents.md), and
-share its showroom rather than adding seven independent UI demos. Install only
-the relationships used by the host; the base plugins do not depend on Agents.
+The eight `agents-{plugin}-server` items connect Agents to existing Blogs,
+Employees, Customers, Projects, Drive, Menus, Reservations and Supports services.
+`agents-conversations-server` separately exposes the current user's private
+conversation tools to MCP and WebMCP. These server-only relationships are
+documented with the [Agents plugin](./agents.md) and share its showroom. Install
+only the relationships used by the host; the base plugins do not depend on Agents.
