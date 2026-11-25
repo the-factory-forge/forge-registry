@@ -86,6 +86,7 @@ function ProjectsListContent({
 }: ProjectsListProps) {
   useLoadingActivity(!!loading);
   const labels = { ...projectLabels, ...overrides };
+  const description = customerId === undefined ? labels.description : labels.customerDescription;
   const order = useTableSort<ProjectSortField>(
     sortProps,
     projectDefaultSort,
@@ -153,9 +154,7 @@ function ProjectsListContent({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1.5">
           <h2 className="font-semibold">{labels.title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {customerId === undefined ? labels.description : labels.customerDescription}
-          </p>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
           <TableSearch
@@ -201,7 +200,7 @@ function ProjectsListContent({
               <TableSortHeader {...order} field="status" label={labels.status} />
               <th scope="col" className={tableActionHeaderClass}>
                 <div className="flex items-center justify-end gap-2">
-                  {labels.actions}
+                  <span className="sr-only">{labels.actions}</span>
                   {onDelete && (
                     <TableBulkDelete
                       selection={selection}

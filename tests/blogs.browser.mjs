@@ -40,6 +40,29 @@ await suite("Blogs browser", async () => {
     await page.locator('[data-preview-ready="true"]').waitFor();
     return page;
   }
+  await test("article IDs redirect to the published translation before JavaScript runs", async (t) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    t.after(() => context.close());
+    const page = await context.newPage();
+    for (const [locale, slug] of [
+      ["en", "make-room-for-better-ideas"],
+      ["fr", "faire-place-idees"],
+    ]) {
+      const path = `/${locale}/blogs/${existing}?ref=share#article`;
+      const response = await page.goto(baseURL + path);
+      assert.equal(response.status(), 200);
+      assert.equal(page.url(), baseURL + `/${locale}/blogs/${slug}?ref=share#article`);
+      assert.equal((await response.request().redirectedFrom().response()).status(), 307);
+      await page.getByRole("article").waitFor();
+    }
+    for (const path of [
+      `/de/blogs/${existing}`,
+      "/en/blogs/missing",
+      "/en/blogs/make-room-for-better-ideas/extra",
+    ]) {
+      assert.equal((await page.goto(baseURL + path)).status(), 404);
+    }
+  });
   await test("mobile category navigation remembers expansion across visits", async (t) => {
     const page = await preview(t, "/en/blogs", { viewport: { width: 390, height: 850 } });
     const section = page
@@ -601,9 +624,7 @@ await suite("Blogs browser", async () => {
       await page.screenshot({ path: `/tmp/forge-blog-auto-search-${theme}.png`, fullPage: true });
     }
     await search.fill("pending");
-    await page.getByRole("button", { name: "Language", exact: true }).press("Enter");
-    await page.clock.runFor(50);
-    await page.getByRole("menuitem", { name: "Français", exact: true }).press("Enter");
+    await page.getByRole("link", { name: "FR, switch language to Français" }).press("Enter");
     await page.clock.runFor(500);
     assert.equal(new URL(page.url()).pathname, "/fr/blogs");
     assert.notEqual(new URL(page.url()).searchParams.get("search"), "pending");

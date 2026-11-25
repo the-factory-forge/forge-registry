@@ -2,8 +2,9 @@ import { z } from "zod";
 
 import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { BlogsError } from "@/components/plugins/blogs/utils";
+import { publicIdPattern, publicSlugPattern } from "@/components/utils/public-identifier";
 
-export const blogIdSchema = z.string().regex(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);
+export const blogIdSchema = z.string().regex(publicIdPattern);
 const id = blogIdSchema;
 const version = z.number().int().positive();
 const locale = z.string();
@@ -15,10 +16,7 @@ const historyTarget = historyGet.extend({ version });
 const historyMutation = historyTarget.extend({ requestId: id });
 const content = z.object({
   title: z.string().max(250),
-  slug: z
-    .string()
-    .max(120)
-    .regex(/^(?:[a-z0-9]+(?:-[a-z0-9]+)*)?$/),
+  slug: z.string().max(120).regex(publicSlugPattern).or(z.literal("")),
   summary: z.string().max(2000),
   markdown: z.string(),
   thumbnailAlt: z.string().max(1000),
@@ -69,10 +67,7 @@ export const blogInputs = {
             .string()
             .max(150)
             .refine((value) => !!value.trim()),
-          slug: z
-            .string()
-            .max(120)
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          slug: z.string().max(120).regex(publicSlugPattern),
         }),
       ),
     })

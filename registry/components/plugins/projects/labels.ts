@@ -4,7 +4,7 @@ export const projectLabels = {
   ...tableSelectionLabels,
   clearSearch: "Clear search",
   title: "Projects",
-  description: "Manage your projects, owners, and assignees.",
+  description: "",
   customerDescription: "Projects owned by this customer.",
   create: "Create",
   newTitle: "New project",

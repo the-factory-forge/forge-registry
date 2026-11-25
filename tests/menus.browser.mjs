@@ -89,6 +89,55 @@ await suite("Menus browser", async () => {
     await paper.getByRole("heading", { name: "Cold drinks", exact: true }).waitFor();
   });
 
+  await test("reversible workspace actions save without a confirmation dialog", async (t) => {
+    const page = await preview(t, "/en/admin/menus");
+    const seasonal = page.getByRole("region", { name: "Seasonal menu", exact: true });
+    const visibility = seasonal.getByRole("button", {
+      name: "Dish visibility · Burrata with tomatoes",
+    });
+    const publication = seasonal.getByRole("button", { name: "Menu publication Seasonal menu" });
+    const failureToggle = page.getByText("Simulate action failures").locator("input");
+
+    await failureToggle.check();
+    await visibility.click();
+    await seasonal.getByRole("alert").filter({ hasText: "Could not save" }).waitFor();
+    assert.equal(await visibility.getAttribute("aria-pressed"), "true");
+
+    await failureToggle.uncheck();
+    await visibility.click();
+    await seasonal
+      .getByRole("button", { name: "Dish visibility · Burrata with tomatoes", pressed: false })
+      .waitFor();
+    await visibility.click();
+    await seasonal
+      .getByRole("button", { name: "Dish visibility · Burrata with tomatoes", pressed: true })
+      .waitFor();
+
+    await publication.press("Space");
+    await seasonal
+      .getByRole("button", { name: "Menu publication Seasonal menu", pressed: false })
+      .waitFor();
+    await publication.click();
+    await seasonal
+      .getByRole("button", { name: "Menu publication Seasonal menu", pressed: true })
+      .waitFor();
+
+    const lunch = page.getByRole("region", { name: "Lunch menu", exact: true });
+    const drinks = page.getByRole("region", { name: "Drinks menu", exact: true });
+    await lunch.getByRole("button", { name: "Actions for Soft drinks", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Remove from this menu", exact: true }).click();
+    await lunch
+      .getByRole("region", { name: "Soft drinks", exact: true })
+      .waitFor({ state: "hidden" });
+    await drinks.getByRole("region", { name: "Soft drinks", exact: true }).waitFor();
+    await seasonal.getByRole("button", { name: "Dish actions Burrata with tomatoes" }).click();
+    await page.getByRole("menuitem", { name: "Delete dish", exact: true }).click();
+    const deletion = page.getByRole("dialog", { name: "Delete this dish?", exact: true });
+    await deletion.getByRole("button", { name: "Cancel", exact: true }).click();
+    await deletion.waitFor({ state: "hidden" });
+    await visibility.waitFor();
+  });
+
   await test("deleting a category keeps hidden dishes that staff can reassign or delete", async (t) => {
     const page = await preview(t, "/en/admin/menus");
     const stage = page.getByRole("main", { name: "Component preview" });
@@ -273,7 +322,7 @@ await suite("Menus browser", async () => {
     await stage.getByRole("button", { name: "Save", exact: true }).click();
     const menu = stage.getByRole("region", { name: "Dinner for two", exact: true });
     await menu.getByRole("heading", { name: "Dinner for two", exact: true }).waitFor();
-    assert.equal(await menu.getByRole("switch").getAttribute("aria-checked"), "false");
+    await menu.getByRole("button", { name: /^Menu publication /, pressed: false }).waitFor();
     await menu.getByRole("button", { name: "Settings", exact: true }).click();
     const settings = page.getByRole("dialog", {
       name: "Menu settings · Dinner for two",
@@ -440,7 +489,7 @@ await suite("Menus browser", async () => {
     await weekly.getByRole("button", { name: "Create next week’s menu", exact: true }).click();
     const next = weekly.filter({ hasText: "2026-11-09" });
     await next.getByText(/2026-11-09.*2026-11-10/).waitFor();
-    assert.equal(await next.getByRole("switch").getAttribute("aria-checked"), "false");
+    await next.getByRole("button", { name: /^Menu publication /, pressed: false }).waitFor();
     assert.equal(await next.getByText("Carrot soup", { exact: true }).count(), 0);
   });
 
@@ -1207,6 +1256,28 @@ await suite("Menus browser", async () => {
     assert.match(
       await pizza.getByRole("status", { name: "Prix", exact: true }).textContent(),
       /24,00/,
+    );
+  });
+
+  await test("each grouped taxonomy section creates labels of its own type", async (t) => {
+    const page = await preview(t, "/en/admin/menus/labels");
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const [section, name, kind] of [
+      ["Allergens", "Mustard seeds", "allergen"],
+      ["Dietary preferences", "Paleo", "dietary"],
+    ]) {
+      const group = page.getByRole("heading", { name: section, exact: true }).locator("../..");
+      await group.getByRole("button", { name: `Create · ${section}`, exact: true }).press("Enter");
+      const dialog = page.getByRole("dialog", { name: "New label", exact: true });
+      await dialog.getByRole("textbox", { name: "Name (English) *", exact: true }).fill(name);
+      assert.equal(await dialog.getByRole("combobox", { name: "Label type" }).count(), 0);
+      await dialog.getByRole("button", { name: "Save", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await group.getByText(`${name} (${kind})`, { exact: true }).waitFor();
+    }
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      true,
     );
   });
 

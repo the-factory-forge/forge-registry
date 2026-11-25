@@ -80,10 +80,8 @@ export function Navbar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b transition-colors",
-        scrolled
-          ? "border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-          : "border-transparent bg-background",
+        "sticky top-0 z-50 w-full border-b bg-background transition-colors",
+        scrolled ? "border-border" : "border-transparent",
       )}
     >
       <div className="container-premium flex h-16 max-w-[96rem] items-center justify-between gap-4 lg:h-20">

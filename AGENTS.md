@@ -69,6 +69,16 @@ UI must ship its own dependencies and use framework shims; a working showroom
 alone does not prove consumer portability. Treat [MECHANICS.md](MECHANICS.md) as
 historical context to verify, not an instruction to fix every recorded gap.
 
+Prefer a short verb when the heading makes the target clear. In the Products
+table, label the plus action **Create**. Follow the [action label guidance](DESIGN.md#action-labels)
+when several actions could share the same verb.
+
+Use the semantic `destructive` color for every enabled delete, remove or other
+destructive action, including icon-only triggers, menu items and confirmation
+buttons. Reuse `destructiveActionClass` from `@forge/destructive-action` for
+buttons, or the destructive menu variant. Verify the color at rest, on hover
+and on keyboard focus. Keep disabled table actions neutral.
+
 ## Validation
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md#formatting-and-validation) for implementation

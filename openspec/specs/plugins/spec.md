@@ -77,6 +77,66 @@ the saved display order and restrict manual moves to that order.
 - **THEN** the queue returns to the first page with every matching ticket ordered by author before pagination
 - **AND** returning from a discussion restores that page and order
 
+### Requirement: Products plugin
+
+Products SHALL supply a staff directory, a shared create/edit form, a public catalog and individual published product pages. Hosts SHALL supply a currency, interface translations, routes, authorization and data. The optional Products storage companion SHALL provide a Drizzle schema and version-checked operations.
+
+#### Scenario: Creating a private product
+
+- **WHEN** authorized staff save a name, optionally adding a description, ordered characteristic label–value pairs and a nonnegative price in minor units
+- **THEN** the new product is private and absent from public reads
+- **AND** incomplete pairs or invalid prices are rejected and failed form saves retain the draft for retry
+
+#### Scenario: Editing product translations
+
+- **WHEN** the host supplies multiple content languages
+- **THEN** the editor shows a tab for each language and preserves unsaved edits when switching tabs
+- **AND** one save applies the primary content and optional translations together, requiring a name for each filled language and complete characteristic pairs
+- **AND** price and publication status are shared, and catalog reads use the requested translation or fall back to the primary content
+
+#### Scenario: Showing optional product images
+
+- **WHEN** staff save a product with any combination of thumbnail, banner and ordered gallery photos
+- **THEN** the catalog shows the thumbnail and the detail page shows the banner and gallery when supplied
+- **AND** visitors can swipe or use keyboard-operable controls to browse multiple photos. A single photo has no navigation controls and an empty gallery takes no space.
+- **AND** removing images does not change publication or translated content. A name-only product can still be created and published.
+- **AND** failed photo uploads retain the previous image and the rest of the draft for retry
+
+#### Scenario: Publishing and maintaining a product
+
+- **WHEN** staff publish a name-only or more detailed product
+- **THEN** visitors see it in primary-name alphabetical order with its saved details, including a supplied zero price
+- **AND** saving edits to a published product updates its public details
+- **AND** unpublishing removes it from the catalog and preserves its data for republication
+- **AND** staff can toggle publication with the status badge. Without the host publication callback, the badge is read-only.
+
+#### Scenario: Opening a public product
+
+- **WHEN** a visitor follows a catalog link or opens a published product by UUID or its optional unique slug
+- **THEN** the page shows that product in the requested language using the catalog’s translation fallback
+- **AND** a UUID visit replaces the URL with the current slug when present, preserving the locale and query. A product without a slug keeps its UUID URL.
+- **AND** unknown, private and deleted products return the same not-found result by either identifier
+
+#### Scenario: Deleting a product
+
+- **WHEN** staff with deletion permission confirm the directory row’s Delete product action
+- **THEN** the product is permanently removed from the staff directory and public catalog
+- **AND** canceling preserves the record, and a failed deletion restores the row and offers a retry
+- **AND** the action is available only when the host supplies the deletion callback
+
+#### Scenario: Finding a product in the staff directory
+
+- **WHEN** staff search by name
+- **THEN** the directory filters before paging, with the current query and page owned by the host URL
+- **AND** the toolbar, column headings and footer remain available for empty results and while loading
+
+#### Scenario: Reading pages and applying writes
+
+- **WHEN** visitors request a catalog page
+- **THEN** the server filters published records before sorting and pagination and returns only catalog fields
+- **WHEN** a staff read or write lacks permission, or a write has a stale version
+- **THEN** the service rejects that operation without changing the product
+
 ### Requirement: Supports plugin
 
 Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,
@@ -808,7 +868,7 @@ edit/delete dialogs and verification actions.
 
 - **WHEN** a host offers employee profile publication
 - **THEN** Hosts MAY supply public-profile visibility independently of account access.
-  The edit-dialog status SHALL show the shared switch indicator and act as an
+  The directory and edit-dialog statuses SHALL show the shared switch indicator and act as an
   immediate toggle only when the host provides a visibility callback. The directory
   SHALL preview the change while pending and restore the previous status on
   failure, preserving unsaved account fields. The host SHALL authorize, validate
@@ -839,7 +899,7 @@ edit/delete dialogs and verification actions.
 
 #### Scenario: Toggling an employee's website visibility
 
-- **WHEN** an administrator activates the edit-dialog visibility toggle
+- **WHEN** an administrator activates the visibility toggle in an employee row or its edit dialog
 - **THEN** the host visibility callback runs without submitting account edits
 - **AND** duplicate actions are disabled until it finishes
 - **AND** a failed save restores the prior status and shows a retryable error
@@ -1454,6 +1514,14 @@ with chronological history and detailed comparison.
   mutations. Blogs SHALL remain independent of Customers, Projects and Drive.
   Published, unpublished changes and draft SHALL use success, pending and
   not-started colors in both list and editor.
+
+#### Scenario: Opening a published article by ID or slug
+
+- **WHEN** a visitor opens an article UUID or a published slug in a specific language
+- **THEN** Blogs uses the public identifier resolver shared with Products and shows the current publication for that language
+- **AND** an ID link redirects to the publication’s slug, preserving the locale, query and fragment
+- **AND** an unpublished or missing translation returns 404
+- **AND** existing UUID-shaped slugs keep their exact links and new article slugs reserve UUIDs
 
 #### Scenario: Opening an article before its data arrives
 
@@ -2261,6 +2329,14 @@ protection independently of the Blog editor, preserving the existing page interf
 - **AND** success SHALL advance only the accepted version without overwriting later edits; failure SHALL retain the draft and version for retry
 - **AND** existing server version checks SHALL continue to reject conflicting writes
 
+#### Scenario: Applying reversible changes in the Menus workspace
+
+- **WHEN** staff toggle menu publication or dish visibility, or remove a category from a menu
+- **THEN** the workspace SHALL submit the change without a confirmation dialog, prevent duplicate submissions and report save failures
+- **AND** removing a category SHALL preserve its dishes and other menu memberships
+- **AND** shared category editing SHALL still require staff to unlock that category before toggling a dish
+- **AND** permanent deletion SHALL still require confirmation
+
 #### Scenario: Filtering visible dishes
 
 - **WHEN** a visitor filters a supplied public menu
@@ -2310,6 +2386,12 @@ protection independently of the Blog editor, preserving the existing page interf
 - **AND** loaded rows remain visible and further writes wait for refresh to settle
 - **AND** failed reads retain accepted rows with retry, while failed writes retain dialog drafts and confirmations
 - **AND** responses from an earlier client session cannot change or refresh the current client's taxonomy
+
+#### Scenario: Creating labels from grouped management
+
+- **WHEN** staff use Create beside Allergens or Dietary preferences
+- **THEN** the shared label editor SHALL create a label of that section’s type without asking staff to select a type
+- **AND** the saved label SHALL appear in that section
 
 #### Scenario: Editing label icons
 

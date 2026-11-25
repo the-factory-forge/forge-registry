@@ -153,7 +153,7 @@ export function DrivePage({
                 <TableSortHeader {...order} field="size" label={labels.size} />
                 <TableSortHeader {...order} field="owner" label={labels.owner} />
                 <th scope="col" className={tableActionHeaderClass}>
-                  {labels.actions}
+                  <span className="sr-only">{labels.actions}</span>
                 </th>
               </tr>
             </thead>
@@ -974,7 +974,7 @@ function Browser({
                         </th>
                         <th scope="col" className={tableActionHeaderClass}>
                           <div className="flex items-center justify-end gap-2">
-                            {labels.actions}
+                            <span className="sr-only">{labels.actions}</span>
                             {capabilities?.delete && (
                               <DriveBulkDelete
                                 key={parentId ?? "root"}

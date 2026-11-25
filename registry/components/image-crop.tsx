@@ -209,7 +209,7 @@ function CropSession({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-5 mb-0 flex items-start justify-between gap-3 bg-card px-5 pt-5 pb-2 sm:-mx-6 sm:px-6"
+            className="sticky top-0 z-20 -mx-5 mb-0 flex items-start justify-between gap-3 bg-card px-5 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 sm:-mx-6 sm:px-6"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {labels.title}
@@ -355,7 +355,7 @@ function CropSession({
             </div>
             <div
               data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-end gap-2 bg-card px-5 pt-0 pb-5 sm:-mx-6 sm:px-6"
+              className="sticky bottom-0 z-10 -mx-5 flex flex-wrap justify-end gap-2 bg-card px-5 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80 sm:-mx-6 sm:px-6"
             >
               <Dialog.Close
                 type="button"

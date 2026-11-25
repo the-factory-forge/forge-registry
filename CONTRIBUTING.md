@@ -201,7 +201,8 @@ Ship this styling with the component and verify both themes and every reset/clos
 Place the primary status badge at the top right of a card or detail summary,
 opposite its title, following the shared [status placement contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-status-badge-placement).
 Allow long titles and translated labels to wrap without overlap. Table statuses
-remain in their status column.
+remain in their status column. When the host supplies a binary status action, use
+the [status toggle](./docs/status-toggle.md) on the badge and exercise the badge itself in the interaction test.
 
 Follow the shared [button cursor contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-button-pointer-cursors).
 Enabled buttons use `cursor-pointer`; disabled controls use `cursor-not-allowed`.

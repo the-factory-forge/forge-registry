@@ -19,6 +19,7 @@ const {
   publicPosts,
   safeAssetUrl,
   validateContent,
+  validArticleSlug,
   hasUnpublishedChanges,
 } = await import("../registry/components/plugins/blogs/utils.ts");
 
@@ -54,6 +55,15 @@ void test("collaboration grants editing to staff and management only to author/a
     assert.equal(canAccessBlog(colleague, permission, "author"), false);
   assert.equal(blogCapabilities({ id: "author", admin: false }, "author").publish, true);
   assert.equal(blogCapabilities({ id: "admin", admin: true }, "author").changeAuthor, true);
+});
+void test("article slugs reserve IDs and preserve saved and restored legacy slugs", () => {
+  const id = randomUUID();
+  const article = createArticle(id, id, "en", actor, now);
+  assert.equal(article.translations.en.draft.slug, `post-${id.slice(0, 8)}`);
+  assert.equal(validArticleSlug(id, article.translations.en), false);
+  article.translations.en.draft.slug = id;
+  assert.equal(validArticleSlug(id, article.translations.en), true);
+  assert.equal(validArticleSlug(id, undefined, id), true);
 });
 const parent = {
   id: randomUUID(),

@@ -12,25 +12,21 @@ import type { BlogsLabels } from "@/components/plugins/blogs/labels";
 import { TablePagination } from "@/components/table-pagination";
 import { cn } from "@/components/utils/cn";
 import { editorInvalidClass } from "@/components/utils/editor-form";
+import {
+  buttonClass,
+  primaryClass,
+  outlineButtonClass,
+  iconButtonClass,
+} from "@/components/utils/table-controls";
 import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
-export const buttonClass =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors md:min-h-8 text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:bg-background disabled:text-foreground disabled:hover:bg-background disabled:hover:text-foreground dark:disabled:bg-background dark:disabled:hover:bg-background [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
-export const primaryClass = cn(
-  buttonClass,
-  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-);
-export const outlineButtonClass = cn(buttonClass, "border border-border");
-export const iconButtonClass = cn(
-  buttonClass,
-  "size-10 min-h-10 shrink-0 border border-border bg-background p-0 disabled:pointer-events-auto md:size-8 md:min-h-8",
-);
+export { buttonClass, primaryClass, outlineButtonClass, iconButtonClass };
 export const inputClass = cn(
   "h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive md:text-sm",
   editorInvalidClass,
 );
 export const cardClass = "rounded-xl border border-border bg-card p-6 text-card-foreground";
-export const pageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";
+export { tablePageClass as pageClass } from "@/components/utils/table-styles";
 export function errorMessage(error: unknown, labels: BlogsLabels) {
   const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
   return [
@@ -188,7 +184,7 @@ export function ConfirmDelete<T>({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {title}
@@ -212,7 +208,7 @@ export function ConfirmDelete<T>({
           </div>
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
           >
             <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
               {labels.cancel}

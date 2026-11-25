@@ -17,6 +17,7 @@ import {
   inputClass,
 } from "@/components/plugins/employees/styles";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 
 export interface EmployeeDeletionGroup {
   /** Unique across the preview, including when several employees are selected. */
@@ -130,7 +131,7 @@ export function EmployeeDeleteDialog({
         <Dialog.Popup className={cn(dialogClass, "max-h-[90dvh]")}>
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-background px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-background px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {labels.deleteTitle}
@@ -238,7 +239,7 @@ export function EmployeeDeleteDialog({
           ))}
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-background px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-background px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
           >
             <Dialog.Close className={outlineButtonClass} disabled={status === "saving"}>
               {labels.cancel}
@@ -257,7 +258,7 @@ export function EmployeeDeleteDialog({
             )}
             <button
               type="button"
-              className={cn(buttonClass, "bg-destructive/10 text-destructive")}
+              className={cn(buttonClass, destructiveActionClass)}
               disabled={pending || !ready || status === "error"}
               onClick={async () => {
                 if (saving.current || !preview || !ready) return;

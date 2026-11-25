@@ -16,6 +16,7 @@ for the affected flow.
   draft without changing public content. Resuming history changes the editable
   draft. Editor Save can follow a successful draft save with publication of the
   returned revision.
+- Public URL lookup uses `@forge/public-identifier` against the requested language’s publication projection.
 - `permissions.ts` separates the management author from the acting editor.
   Stored authorship governs publishing/deletion; publication signatures govern
   public attribution. Legacy attribution requires explicit administrator review.

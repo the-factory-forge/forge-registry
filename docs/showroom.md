@@ -162,6 +162,11 @@ Canonical URLs omit search parameters and trailing slashes. The localized `/logi
 page is the authentication example's canonical URL. Sample record details, editing
 flows, and missing pages use `noindex, follow` and omit canonical links.
 
+`/sitemap.xml` lists the homepage and demos from `src/showroom/examples.ts`, expanding
+localized examples across the supported languages. It uses the same canonical origin
+as page metadata, excludes the login preview and contains no sample record or editor URLs.
+`/robots.txt` advertises this dynamically generated sitemap for crawlers and Search Console.
+
 This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.
@@ -237,12 +242,13 @@ links retain the selected locale. Examples share Acme workspace branding and
 consistent people/project names where they represent the same records; specialized
 booking, restaurant, and public-page content retains its own meaning.
 
-The Blogs, Menus and Reservations demos offer **Language** in the Preview controls
-sidebar. Blogs has French, English, German and Italian interface labels. On a
-public article, the switch links to its published translations using their own
-slugs. Menus and Reservations offer English and French. Switching preserves the
-query, hash and in-memory demo state. Editor navigation guards run before the
-new locale is saved in `FORGE_LOCALE`.
+The Blogs, Menus, Products and Reservations demos offer **Language** in the
+Preview controls sidebar. It shows the destination language and switches
+between English and French in one click. On a public article, the toggle is
+available when the other language is published and uses that translation's slug.
+The Products catalog and detail pages display saved translations when available.
+Switching preserves the query, hash and in-memory demo state. Editor navigation
+guards run before the new locale is saved in `FORGE_LOCALE`.
 
 The showroom defaults to Light and stores Dark under
 `forge:showroom:appearance:theme`. Selecting Light removes the key. It applies that choice before paint, across routes and tabs,

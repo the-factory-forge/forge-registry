@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogsRouteImport } from './routes/_blogs'
 import { Route as MenusRouteImport } from './routes/_menus'
 import { Route as PluginsRouteImport } from './routes/_plugins'
+import { Route as ProductsRouteImport } from './routes/_products'
 import { Route as ReservationsRouteImport } from './routes/_reservations'
 import { Route as SupportsRouteImport } from './routes/_supports'
 import { Route as ActionToastRouteImport } from './routes/action-toast'
@@ -25,7 +26,9 @@ import { Route as LightboxRouteImport } from './routes/lightbox'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SectionAnchorRouteImport } from './routes/section-anchor'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubpageSidebarRouteImport } from './routes/subpage-sidebar'
 import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
@@ -43,14 +46,17 @@ import { Route as LocaleResetPasswordRouteImport } from './routes/$locale.reset-
 import { Route as ConnectorsConnectorRouteImport } from './routes/connectors.$connector'
 import { Route as MailingSplatRouteImport } from './routes/mailing.$'
 import { Route as LocaleLegalDocumentRouteImport } from './routes/$locale.legal.$document'
+import { Route as ProductsLocaleProductsRouteImport } from './routes/_products.$locale.products'
 import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$locale.blogs.$'
 import { Route as MenusLocaleMenusSplatRouteImport } from './routes/_menus.$locale.menus.$'
 import { Route as PluginsLocaleCustomersSplatRouteImport } from './routes/_plugins.$locale.customers.$'
 import { Route as PluginsLocaleDriveSplatRouteImport } from './routes/_plugins.$locale.drive.$'
 import { Route as PluginsLocaleProjectsSplatRouteImport } from './routes/_plugins.$locale.projects.$'
+import { Route as ProductsLocaleProductsIdentifierRouteImport } from './routes/_products.$locale.products_.$identifier'
 import { Route as ReservationsLocaleReservationsSplatRouteImport } from './routes/_reservations.$locale.reservations.$'
 import { Route as BlogsLocaleAdminBlogsSplatRouteImport } from './routes/_blogs.$locale.admin.blogs.$'
 import { Route as MenusLocaleAdminMenusSplatRouteImport } from './routes/_menus.$locale.admin.menus.$'
+import { Route as ProductsLocaleAdminProductsSplatRouteImport } from './routes/_products.$locale.admin.products.$'
 import { Route as ReservationsLocaleAdminReservationsSplatRouteImport } from './routes/_reservations.$locale.admin.reservations.$'
 import { Route as SupportsLocaleIntranetSupportsSplatRouteImport } from './routes/_supports.$locale.intranet_.supports.$'
 
@@ -69,6 +75,10 @@ const MenusRoute = MenusRouteImport.update({
 } as any)
 const PluginsRoute = PluginsRouteImport.update({
   id: '/_plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/_products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservationsRoute = ReservationsRouteImport.update({
@@ -129,9 +139,19 @@ const PageHeroRoute = PageHeroRouteImport.update({
   path: '/page-hero',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SectionAnchorRoute = SectionAnchorRouteImport.update({
   id: '/section-anchor',
   path: '/section-anchor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubpageSidebarRoute = SubpageSidebarRouteImport.update({
@@ -219,6 +239,11 @@ const LocaleLegalDocumentRoute = LocaleLegalDocumentRouteImport.update({
   path: '/$locale/legal/$document',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductsLocaleProductsRoute = ProductsLocaleProductsRouteImport.update({
+  id: '/$locale/products',
+  path: '/$locale/products',
+  getParentRoute: () => ProductsRoute,
+} as any)
 const BlogsLocaleBlogsSplatRoute = BlogsLocaleBlogsSplatRouteImport.update({
   id: '/$locale/blogs/$',
   path: '/$locale/blogs/$',
@@ -246,6 +271,12 @@ const PluginsLocaleProjectsSplatRoute =
     path: '/$locale/projects/$',
     getParentRoute: () => PluginsRoute,
   } as any)
+const ProductsLocaleProductsIdentifierRoute =
+  ProductsLocaleProductsIdentifierRouteImport.update({
+    id: '/$locale/products_/$identifier',
+    path: '/$locale/products/$identifier',
+    getParentRoute: () => ProductsRoute,
+  } as any)
 const ReservationsLocaleReservationsSplatRoute =
   ReservationsLocaleReservationsSplatRouteImport.update({
     id: '/$locale/reservations/$',
@@ -263,6 +294,12 @@ const MenusLocaleAdminMenusSplatRoute =
     id: '/$locale/admin/menus/$',
     path: '/$locale/admin/menus/$',
     getParentRoute: () => MenusRoute,
+  } as any)
+const ProductsLocaleAdminProductsSplatRoute =
+  ProductsLocaleAdminProductsSplatRouteImport.update({
+    id: '/$locale/admin/products/$',
+    path: '/$locale/admin/products/$',
+    getParentRoute: () => ProductsRoute,
   } as any)
 const ReservationsLocaleAdminReservationsSplatRoute =
   ReservationsLocaleAdminReservationsSplatRouteImport.update({
@@ -289,7 +326,9 @@ export interface FileRoutesByFullPath {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -307,14 +346,17 @@ export interface FileRoutesByFullPath {
   '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
+  '/$locale/products': typeof ProductsLocaleProductsRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/$locale/products/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/$locale/admin/products/$': typeof ProductsLocaleAdminProductsSplatRoute
   '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
   '/$locale/intranet/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
@@ -330,7 +372,9 @@ export interface FileRoutesByTo {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -348,14 +392,17 @@ export interface FileRoutesByTo {
   '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
+  '/$locale/products': typeof ProductsLocaleProductsRoute
   '/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/$locale/products/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/$locale/admin/products/$': typeof ProductsLocaleAdminProductsSplatRoute
   '/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
   '/$locale/intranet/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
@@ -365,6 +412,7 @@ export interface FileRoutesById {
   '/_blogs': typeof BlogsRouteWithChildren
   '/_menus': typeof MenusRouteWithChildren
   '/_plugins': typeof PluginsRouteWithChildren
+  '/_products': typeof ProductsRouteWithChildren
   '/_reservations': typeof ReservationsRouteWithChildren
   '/_supports': typeof SupportsRouteWithChildren
   '/action-toast': typeof ActionToastRoute
@@ -377,7 +425,9 @@ export interface FileRoutesById {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -395,14 +445,17 @@ export interface FileRoutesById {
   '/connectors/$connector': typeof ConnectorsConnectorRoute
   '/mailing/$': typeof MailingSplatRoute
   '/$locale/legal/$document': typeof LocaleLegalDocumentRoute
+  '/_products/$locale/products': typeof ProductsLocaleProductsRoute
   '/_blogs/$locale/blogs/$': typeof BlogsLocaleBlogsSplatRoute
   '/_menus/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/_plugins/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/_plugins/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
   '/_plugins/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
+  '/_products/$locale/products_/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/_reservations/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
   '/_blogs/$locale/admin/blogs/$': typeof BlogsLocaleAdminBlogsSplatRoute
   '/_menus/$locale/admin/menus/$': typeof MenusLocaleAdminMenusSplatRoute
+  '/_products/$locale/admin/products/$': typeof ProductsLocaleAdminProductsSplatRoute
   '/_reservations/$locale/admin/reservations/$': typeof ReservationsLocaleAdminReservationsSplatRoute
   '/_supports/$locale/intranet_/supports/$': typeof SupportsLocaleIntranetSupportsSplatRoute
 }
@@ -420,7 +473,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -438,14 +493,17 @@ export interface FileRouteTypes {
     | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
+    | '/$locale/products'
     | '/$locale/blogs/$'
     | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
+    | '/$locale/products/$identifier'
     | '/$locale/reservations/$'
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
+    | '/$locale/admin/products/$'
     | '/$locale/admin/reservations/$'
     | '/$locale/intranet/supports/$'
   fileRoutesByTo: FileRoutesByTo
@@ -461,7 +519,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -479,14 +539,17 @@ export interface FileRouteTypes {
     | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
+    | '/$locale/products'
     | '/$locale/blogs/$'
     | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
     | '/$locale/projects/$'
+    | '/$locale/products/$identifier'
     | '/$locale/reservations/$'
     | '/$locale/admin/blogs/$'
     | '/$locale/admin/menus/$'
+    | '/$locale/admin/products/$'
     | '/$locale/admin/reservations/$'
     | '/$locale/intranet/supports/$'
   id:
@@ -495,6 +558,7 @@ export interface FileRouteTypes {
     | '/_blogs'
     | '/_menus'
     | '/_plugins'
+    | '/_products'
     | '/_reservations'
     | '/_supports'
     | '/action-toast'
@@ -507,7 +571,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -525,14 +591,17 @@ export interface FileRouteTypes {
     | '/connectors/$connector'
     | '/mailing/$'
     | '/$locale/legal/$document'
+    | '/_products/$locale/products'
     | '/_blogs/$locale/blogs/$'
     | '/_menus/$locale/menus/$'
     | '/_plugins/$locale/customers/$'
     | '/_plugins/$locale/drive/$'
     | '/_plugins/$locale/projects/$'
+    | '/_products/$locale/products_/$identifier'
     | '/_reservations/$locale/reservations/$'
     | '/_blogs/$locale/admin/blogs/$'
     | '/_menus/$locale/admin/menus/$'
+    | '/_products/$locale/admin/products/$'
     | '/_reservations/$locale/admin/reservations/$'
     | '/_supports/$locale/intranet_/supports/$'
   fileRoutesById: FileRoutesById
@@ -542,6 +611,7 @@ export interface RootRouteChildren {
   BlogsRoute: typeof BlogsRouteWithChildren
   MenusRoute: typeof MenusRouteWithChildren
   PluginsRoute: typeof PluginsRouteWithChildren
+  ProductsRoute: typeof ProductsRouteWithChildren
   ReservationsRoute: typeof ReservationsRouteWithChildren
   SupportsRoute: typeof SupportsRouteWithChildren
   ActionToastRoute: typeof ActionToastRoute
@@ -554,7 +624,9 @@ export interface RootRouteChildren {
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SectionAnchorRoute: typeof SectionAnchorRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubpageSidebarRoute: typeof SubpageSidebarRoute
   TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
@@ -602,6 +674,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof PluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_products': {
+      id: '/_products'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_reservations': {
@@ -688,11 +767,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PageHeroRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/section-anchor': {
       id: '/section-anchor'
       path: '/section-anchor'
       fullPath: '/section-anchor'
       preLoaderRoute: typeof SectionAnchorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subpage-sidebar': {
@@ -814,6 +907,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleLegalDocumentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_products/$locale/products': {
+      id: '/_products/$locale/products'
+      path: '/$locale/products'
+      fullPath: '/$locale/products'
+      preLoaderRoute: typeof ProductsLocaleProductsRouteImport
+      parentRoute: typeof ProductsRoute
+    }
     '/_blogs/$locale/blogs/$': {
       id: '/_blogs/$locale/blogs/$'
       path: '/$locale/blogs/$'
@@ -849,6 +949,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PluginsLocaleProjectsSplatRouteImport
       parentRoute: typeof PluginsRoute
     }
+    '/_products/$locale/products_/$identifier': {
+      id: '/_products/$locale/products_/$identifier'
+      path: '/$locale/products/$identifier'
+      fullPath: '/$locale/products/$identifier'
+      preLoaderRoute: typeof ProductsLocaleProductsIdentifierRouteImport
+      parentRoute: typeof ProductsRoute
+    }
     '/_reservations/$locale/reservations/$': {
       id: '/_reservations/$locale/reservations/$'
       path: '/$locale/reservations/$'
@@ -869,6 +976,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$locale/admin/menus/$'
       preLoaderRoute: typeof MenusLocaleAdminMenusSplatRouteImport
       parentRoute: typeof MenusRoute
+    }
+    '/_products/$locale/admin/products/$': {
+      id: '/_products/$locale/admin/products/$'
+      path: '/$locale/admin/products/$'
+      fullPath: '/$locale/admin/products/$'
+      preLoaderRoute: typeof ProductsLocaleAdminProductsSplatRouteImport
+      parentRoute: typeof ProductsRoute
     }
     '/_reservations/$locale/admin/reservations/$': {
       id: '/_reservations/$locale/admin/reservations/$'
@@ -926,6 +1040,22 @@ const PluginsRouteChildren: PluginsRouteChildren = {
 const PluginsRouteWithChildren =
   PluginsRoute._addFileChildren(PluginsRouteChildren)
 
+interface ProductsRouteChildren {
+  ProductsLocaleProductsRoute: typeof ProductsLocaleProductsRoute
+  ProductsLocaleProductsIdentifierRoute: typeof ProductsLocaleProductsIdentifierRoute
+  ProductsLocaleAdminProductsSplatRoute: typeof ProductsLocaleAdminProductsSplatRoute
+}
+
+const ProductsRouteChildren: ProductsRouteChildren = {
+  ProductsLocaleProductsRoute: ProductsLocaleProductsRoute,
+  ProductsLocaleProductsIdentifierRoute: ProductsLocaleProductsIdentifierRoute,
+  ProductsLocaleAdminProductsSplatRoute: ProductsLocaleAdminProductsSplatRoute,
+}
+
+const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
+  ProductsRouteChildren,
+)
+
 interface ReservationsRouteChildren {
   ReservationsLocaleReservationsSplatRoute: typeof ReservationsLocaleReservationsSplatRoute
   ReservationsLocaleAdminReservationsSplatRoute: typeof ReservationsLocaleAdminReservationsSplatRoute
@@ -960,6 +1090,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogsRoute: BlogsRouteWithChildren,
   MenusRoute: MenusRouteWithChildren,
   PluginsRoute: PluginsRouteWithChildren,
+  ProductsRoute: ProductsRouteWithChildren,
   ReservationsRoute: ReservationsRouteWithChildren,
   SupportsRoute: SupportsRouteWithChildren,
   ActionToastRoute: ActionToastRoute,
@@ -972,7 +1103,9 @@ const rootRouteChildren: RootRouteChildren = {
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SectionAnchorRoute: SectionAnchorRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubpageSidebarRoute: SubpageSidebarRoute,
   TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,

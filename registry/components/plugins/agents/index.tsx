@@ -48,6 +48,7 @@ import type {
 } from "@/components/plugins/agents/types";
 import { safeAgentResultHref } from "@/components/plugins/agents/types";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
@@ -422,7 +423,7 @@ function ModelSettingsForm({
           {saved && (
             <button
               type="button"
-              className={outline}
+              className={cn(outline, destructiveActionClass)}
               onClick={() => {
                 if (!disconnecting) {
                   setDisconnecting(true);
@@ -900,7 +901,7 @@ function AgentsContent({
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground [@media(max-height:600px)]:hidden">
-            {labels.privateConversations}
+            {labels.privateConversations} · {operation?.label ?? labels.allOperations}
           </p>
         </div>
         <button
@@ -1290,7 +1291,7 @@ function AgentsContent({
                       <button
                         type="button"
                         aria-label={`${labels.removeAttachment}: ${file.name}`}
-                        className={button}
+                        className={cn(button, destructiveActionClass)}
                         disabled={blocked}
                         onClick={() =>
                           updateDraft({
@@ -1371,7 +1372,7 @@ function AgentsContent({
                   <IconTooltip label={labels.deleteConversation}>
                     <button
                       type="button"
-                      className={button}
+                      className={cn(button, destructiveActionClass)}
                       aria-label={labels.deleteConversation}
                       disabled={blocked}
                       onClick={() => {

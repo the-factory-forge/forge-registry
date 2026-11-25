@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Toast } from "@base-ui/react/toast";
-import { CircleHelpIcon, EyeIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
+import { EyeIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
@@ -99,7 +99,7 @@ export function SupportCreateDialog({
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
           <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-background px-6 text-foreground shadow-lg">
-            <div className="sticky top-0 z-10 -mx-6 space-y-2 bg-background px-6 pt-5 pb-4">
+            <div className="sticky top-0 z-10 -mx-6 space-y-2 bg-background px-6 pt-5 pb-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
               <div className="flex items-start justify-between gap-3">
                 <Dialog.Title className="text-lg font-semibold">{labels.createTitle}</Dialog.Title>
                 <IconTooltip label={labels.close}>
@@ -203,39 +203,39 @@ function SupportsContent({
   const cancellation = useOptimisticAction(tickets, scope);
   useLoadingActivity(Boolean(loading));
   return (
-    <section className={cn("min-w-0 space-y-5 text-foreground", className)}>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <CircleHelpIcon className="size-5 shrink-0" aria-hidden="true" />
-          {labels.title}
-        </h1>
-        <div className="flex max-w-full flex-wrap items-center gap-2">
-          <TableSearch
-            value={search}
-            onValueChange={onSearchChange}
-            label={labels.search}
-            clearLabel={labels.clearSearch}
-            maxLength={250}
-          />
-          {onRefresh && (
-            <IconTooltip label={labels.refresh}>
-              <button
-                type="button"
-                aria-label={labels.refresh}
-                disabled={loading}
-                className={cn(buttonClass, "size-10 rounded-md p-0 md:size-8")}
-                onClick={onRefresh}
-              >
-                <RefreshCwIcon className="size-4" aria-hidden="true" />
-              </button>
-            </IconTooltip>
-          )}
-          <SupportCreateDialog client={client} labels={labels} onCreated={onCreated} />
-        </div>
-      </header>
-      <div className={tablePanelClass} aria-busy={loading}>
+    <section className={cn("min-w-0 text-foreground", className)}>
+      <div className={cn(tablePanelClass, "space-y-5")}>
+        <header className="flex flex-wrap items-center gap-x-2 gap-y-4">
+          <div className="flex min-w-0 flex-1 basis-64 items-center justify-between gap-4">
+            <h1 className="font-sans text-base font-semibold wrap-anywhere">{labels.title}</h1>
+            <TableSearch
+              className="min-w-10 shrink md:min-w-8"
+              value={search}
+              onValueChange={onSearchChange}
+              label={labels.search}
+              clearLabel={labels.clearSearch}
+              maxLength={250}
+            />
+          </div>
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+            {onRefresh && (
+              <IconTooltip label={labels.refresh}>
+                <button
+                  type="button"
+                  aria-label={labels.refresh}
+                  disabled={loading}
+                  className={cn(buttonClass, "size-10 rounded-md p-0 md:size-8")}
+                  onClick={onRefresh}
+                >
+                  <RefreshCwIcon className="size-4" aria-hidden="true" />
+                </button>
+              </IconTooltip>
+            )}
+            <SupportCreateDialog client={client} labels={labels} onCreated={onCreated} />
+          </div>
+        </header>
         <div className="overflow-x-auto">
-          <table className={tableClass}>
+          <table className={tableClass} aria-busy={loading}>
             <thead>
               <tr>
                 {(
@@ -606,7 +606,7 @@ function DetailContent({
           >
             <div
               data-dialog-header
-              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
                 {labels.closeTitle}
@@ -630,7 +630,7 @@ function DetailContent({
             </div>
             <div
               data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Close ref={cancelButton} className={buttonClass} disabled={status.pending}>
                 {labels.cancel}

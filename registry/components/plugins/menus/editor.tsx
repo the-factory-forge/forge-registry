@@ -55,6 +55,7 @@ import {
   DeleteControl,
 } from "@/components/plugins/menus/ui";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitDialogOnShortcut, submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 const languageTabClass =
@@ -747,7 +748,7 @@ function MenuLeaveDialog({
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {labels.unsavedTitle}
@@ -769,12 +770,17 @@ function MenuLeaveDialog({
           <ErrorMessage message={error} />
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Close className={outlineButton} disabled={pending}>
               {labels.cancel}
             </Dialog.Close>
-            <button type="button" className={outlineButton} disabled={pending} onClick={onDiscard}>
+            <button
+              type="button"
+              className={cn(outlineButton, destructiveActionClass)}
+              disabled={pending}
+              onClick={onDiscard}
+            >
               {labels.discardChanges}
             </button>
             <button
@@ -797,6 +803,7 @@ export interface MenuTaxonomyEditorProps {
   blockedNavigation?: MenuItemEditorPageProps["blockedNavigation"];
   onNavigationStateChange?: MenuItemEditorPageProps["onNavigationStateChange"];
   kind: "category" | "label";
+  fixedLabelKind?: MenuLabel["kind"];
   existing?: MenuCategory | MenuLabel;
   locales: readonly { code: string; name: string }[];
   baseLocale: string;
@@ -813,6 +820,7 @@ export interface MenuTaxonomyEditorProps {
 export function MenuTaxonomyEditor({
   disabled = false,
   kind,
+  fixedLabelKind,
   existing,
   locales,
   baseLocale,
@@ -828,9 +836,10 @@ export function MenuTaxonomyEditor({
   const [translations, setTranslations] = useState<Record<string, string>>(
     existing?.translations ?? {},
   );
-  const [labelKind, setLabelKind] = useState<MenuLabel["kind"]>(
+  const [selectedLabelKind, setLabelKind] = useState<MenuLabel["kind"]>(
     existing && "kind" in existing ? existing.kind : "allergen",
   );
+  const labelKind = fixedLabelKind ?? selectedLabelKind;
   const [icon, setIcon] = useState<MenuLabelIcon | null>(
     existing && "kind" in existing ? (existing.icon ?? null) : null,
   );
@@ -881,6 +890,12 @@ export function MenuTaxonomyEditor({
       : existing
         ? labels.editLabel
         : labels.newLabel;
+  const createLabel = labels.createAction ?? title;
+  const triggerLabel = existing
+    ? title
+    : fixedLabelKind
+      ? `${createLabel} · ${fixedLabelKind === "allergen" ? labels.allergens : labels.dietary}`
+      : undefined;
   return (
     <Dialog.Root
       open={open}
@@ -890,14 +905,14 @@ export function MenuTaxonomyEditor({
         <Dialog.Trigger
           disabled={disabled}
           className={existing ? iconButton : primary}
-          aria-label={existing ? title : undefined}
+          aria-label={triggerLabel}
         >
           {existing ? (
             <PencilIcon aria-hidden="true" className="size-4 shrink-0" />
           ) : (
             <>
               <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
-              {labels.createAction ?? title}
+              {createLabel}
             </>
           )}
         </Dialog.Trigger>
@@ -910,7 +925,7 @@ export function MenuTaxonomyEditor({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {title}
@@ -964,17 +979,19 @@ export function MenuTaxonomyEditor({
             </label>
             {kind === "label" ? (
               <>
-                <label className="block space-y-1">
-                  <span>{labels.labelKind}</span>
-                  <NativeSelect
-                    className={field}
-                    value={labelKind}
-                    onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
-                  >
-                    <option value="allergen">{labels.allergens}</option>
-                    <option value="dietary">{labels.dietary}</option>
-                  </NativeSelect>
-                </label>
+                {!fixedLabelKind && (
+                  <label className="block space-y-1">
+                    <span>{labels.labelKind}</span>
+                    <NativeSelect
+                      className={field}
+                      value={labelKind}
+                      onChange={(event) => setLabelKind(event.target.value as MenuLabel["kind"])}
+                    >
+                      <option value="allergen">{labels.allergens}</option>
+                      <option value="dietary">{labels.dietary}</option>
+                    </NativeSelect>
+                  </label>
+                )}
                 <label className="block space-y-1">
                   <span>{labels.icon}</span>
                   <span className="flex items-center gap-3">
@@ -1009,7 +1026,7 @@ export function MenuTaxonomyEditor({
             {error ? <ErrorMessage message={labels.error} /> : null}
             <div
               data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
             >
               <Dialog.Close className={outlineButton} disabled={pending}>
                 {labels.cancel}

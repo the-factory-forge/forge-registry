@@ -7,8 +7,6 @@ import { LoadingIndicator, useLoadingActivity } from "@/components/loading-indic
 const loadingLabels: Record<string, string> = {
   en: "Loading…",
   fr: "Chargement…",
-  de: "Wird geladen…",
-  it: "Caricamento…",
 };
 
 export function ShowroomLoading() {

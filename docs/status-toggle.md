@@ -24,5 +24,5 @@ in `onPressedChange`. Set `disabled` while an update is pending.
 </StatusToggle>
 ```
 
-The [Employees showroom](https://registry.the-corner.swiss/en/employees) demonstrates the toggle in the edit
-dialog. The [Blogs showroom](https://registry.the-corner.swiss/en/blogs) uses it in the article editor.
+The [Employees showroom](https://registry.the-corner.swiss/en/employees) demonstrates the toggle in each employee row
+and its edit dialog. The [Blogs showroom](https://registry.the-corner.swiss/en/blogs) uses it in the article editor.

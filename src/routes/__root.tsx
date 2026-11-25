@@ -75,7 +75,7 @@ function RootDocument({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <HeadContent />
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col pt-(--showroom-header-height)">
         <LoadingProvider>
           <ShowroomHeader />
           <ShowroomLoading />

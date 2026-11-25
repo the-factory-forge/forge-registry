@@ -7,12 +7,11 @@ import { ActionToastProvider } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import {
-  EmployeeActions,
+  EmployeeTableActionCells,
   type EmployeeActionCallbacks,
 } from "@/components/plugins/employees/employee-actions";
 import { EmployeeCreateDialog } from "@/components/plugins/employees/employee-create-dialog";
 import { EmployeeDeleteDialog } from "@/components/plugins/employees/employee-delete-dialog";
-import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
 import {
   EMPLOYEE_SORT_FIELDS,
   employeeDefaultSort,
@@ -45,7 +44,6 @@ import {
 } from "@/components/table-selection";
 import { cn } from "@/components/utils/cn";
 import {
-  tableActionCellClass,
   tableActionHeaderClass,
   tableCellClass,
   tableClass,
@@ -222,7 +220,7 @@ function EmployeesPageContent({
                 ))}
                 <th scope="col" className={tableActionHeaderClass}>
                   <div className="flex items-center justify-end gap-2">
-                    {labels.actions}
+                    <span className="sr-only">{labels.actions}</span>
                     {deletion ? (
                       <EmployeeDeleteDialog
                         bulk
@@ -344,73 +342,59 @@ function EmployeesPageContent({
                         {employee.banned ? labels.disabled : labels.active}
                       </span>
                     </td>
-                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
-                      <EmployeeWebsiteStatus
-                        published={employee.websitePublished}
-                        labels={labels}
-                      />
-                    </td>
-                    <td className={tableActionCellClass}>
-                      <EmployeeActions
-                        deletion={deletion}
-                        onUploadPhoto={onUploadPhoto}
-                        photoOptions={photoOptions}
-                        employee={employee}
-                        disabled={
-                          loading ||
-                          error ||
-                          optimistic.pending ||
-                          selection.pending ||
-                          employee.id.startsWith("pending-")
-                        }
-                        currentUserId={currentUserId}
-                        labels={labels}
-                        onSetWebsitePublished={
-                          onSetWebsitePublished
-                            ? (id, published) =>
-                                optimistic.run(
-                                  (rows) =>
-                                    rows.map((row) =>
-                                      row.id === id ? { ...row, websitePublished: published } : row,
-                                    ),
-                                  () => onSetWebsitePublished(id, published),
-                                )
-                            : undefined
-                        }
-                        onUpdate={(values) =>
-                          optimistic.run(
-                            (rows) =>
-                              rows.map((row) =>
-                                row.id === values.id
-                                  ? {
-                                      ...row,
-                                      ...values,
-                                      emailVerified:
-                                        row.email === values.email && row.emailVerified,
-                                    }
-                                  : row,
-                              ),
-                            () => onUpdate(values),
-                          )
-                        }
-                        onDelete={(id) =>
-                          optimistic.run(
-                            (rows) => rows.filter((row) => row.id !== id),
-                            () => onDelete(id),
-                          )
-                        }
-                        onSendVerification={onSendVerification}
-                      />
-                    </td>
+                    <EmployeeTableActionCells
+                      key={scope}
+                      deletion={deletion}
+                      onUploadPhoto={onUploadPhoto}
+                      photoOptions={photoOptions}
+                      employee={employee}
+                      disabled={selectionDisabled || employee.id.startsWith("pending-")}
+                      currentUserId={currentUserId}
+                      labels={labels}
+                      onSetWebsitePublished={
+                        onSetWebsitePublished
+                          ? (id, published) =>
+                              optimistic.run(
+                                (rows) =>
+                                  rows.map((row) =>
+                                    row.id === id ? { ...row, websitePublished: published } : row,
+                                  ),
+                                () => onSetWebsitePublished(id, published),
+                              )
+                          : undefined
+                      }
+                      onUpdate={(values) =>
+                        optimistic.run(
+                          (rows) =>
+                            rows.map((row) =>
+                              row.id === values.id
+                                ? {
+                                    ...row,
+                                    ...values,
+                                    emailVerified: row.email === values.email && row.emailVerified,
+                                  }
+                                : row,
+                            ),
+                          () => onUpdate(values),
+                        )
+                      }
+                      onDelete={(id) =>
+                        optimistic.run(
+                          (rows) => rows.filter((row) => row.id !== id),
+                          () => onDelete(id),
+                        )
+                      }
+                      onSendVerification={onSendVerification}
+                    />
                   </tr>
                 ),
               )}
-              {((error && !loading) || optimistic.error || filteredEmployees.length === 0) && (
+              {((error && !loading) || filteredEmployees.length === 0) && (
                 <tr>
                   <td colSpan={7} className={cn(tableCellClass, "py-8")}>
-                    {(error && !loading) || optimistic.error ? (
+                    {error && !loading ? (
                       <p role="alert" className="text-destructive">
-                        {error ? labels.error : labels.updateError}
+                        {labels.error}
                       </p>
                     ) : (
                       <output className="text-muted-foreground">

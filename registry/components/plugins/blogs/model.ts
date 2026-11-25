@@ -15,9 +15,11 @@ import {
   normalizeCategories,
   slugify,
   validId,
+  validArticleSlug,
   validateContent,
   draftShared,
 } from "@/components/plugins/blogs/utils";
+import { publicIdPattern, publicSlugPattern } from "@/components/utils/public-identifier";
 
 export function createArticle(
   id: string,
@@ -27,6 +29,7 @@ export function createArticle(
   now: string,
 ): BlogArticle {
   assertBlog(typeof title === "string" && title.trim() && title.length <= 250);
+  const slug = slugify(title);
   return {
     id,
     version: 1,
@@ -40,7 +43,7 @@ export function createArticle(
         draft: {
           ...emptyContent,
           title: title.trim(),
-          slug: slugify(title),
+          slug: slug && !publicIdPattern.test(slug) ? slug : `post-${id.slice(0, 8)}`,
           revisionId: null,
           assetIds: [],
           editor,
@@ -209,6 +212,13 @@ export function saveBlogDraft(
     assertBlog(source.locale === input.locale, "NOT_FOUND");
     if (input.origin.repriseId !== undefined) validId(input.origin.repriseId);
   }
+  assertBlog(
+    validArticleSlug(
+      content.slug,
+      previous.translations[input.locale],
+      input.origin ? source?.content.slug : undefined,
+    ),
+  );
   if (input.origin && source && !input.shared.author) shared.author = source.shared.author;
   const base = {
     content: previous.translations[input.locale]?.draft ?? {
@@ -451,7 +461,7 @@ export function validateCategory(
     assertBlog(
       label.name.trim() &&
         label.name.length <= 150 &&
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(label.slug) &&
+        publicSlugPattern.test(label.slug) &&
         label.slug.length <= 120,
     );
     assertBlog(

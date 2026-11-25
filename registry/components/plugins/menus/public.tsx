@@ -135,7 +135,7 @@ export function MenuPage({
         <nav
           ref={navigationRef}
           aria-label={labels.categories}
-          className="sticky top-[var(--menu-top-offset,0px)] z-10 flex gap-2 overflow-x-auto border-b border-border bg-background py-2 print:hidden"
+          className="sticky top-[var(--menu-top-offset,0px)] z-10 flex gap-2 overflow-x-auto border-b border-border bg-background py-2 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 print:hidden"
         >
           {filteredSections.map((section, index) => {
             const sectionId = `${id}-category-${section.id}`;
