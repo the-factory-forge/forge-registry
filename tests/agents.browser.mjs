@@ -422,6 +422,13 @@ await test("Agents: Enter sends once, Shift+Enter and composition preserve the d
 await test("Agents: administrator model settings save, reload and drive the demo chat", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
+  // Keep this settings test independent of the separately started MCP demo.
+  await context.route("**/demo/state", (route) =>
+    route.fulfill({
+      headers: { "access-control-allow-origin": new URL(baseURL).origin },
+      json: { resource: new URL("/mcp", route.request().url()).href, expiresAt: null },
+    }),
+  );
   const page = await context.newPage();
   const providerRequests = [];
   page.on("request", (request) => {
