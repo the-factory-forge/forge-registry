@@ -17,8 +17,9 @@ export async function startMcpDemo({
 } = {}) {
   const origin = new URL(showroomOrigin);
   if (
-    origin.protocol !== "http:" ||
-    !["127.0.0.1", "localhost"].includes(origin.hostname) ||
+    !["http:", "https:"].includes(origin.protocol) ||
+    (!["127.0.0.1", "localhost"].includes(origin.hostname) &&
+      !origin.hostname.endsWith(".localhost")) ||
     origin.origin !== showroomOrigin
   )
     throw new Error("The demo requires a loopback showroom origin.");

@@ -74,7 +74,9 @@ require their corresponding host adapter; discovery does not grant permission.
 
 ## Test remote MCP from Agents Settings
 
-1. Run Registry on `http://127.0.0.1:3218` and `pnpm demo:mcp` in another terminal.
+1. Run `pnpm dev` for Registry, then
+   `SHOWROOM_ORIGIN=https://forge-registry.localhost pnpm demo:mcp` in another terminal.
+   Use the exact origin printed by Portless if your configuration changes it.
 2. Open `/en/agents`, then **Settings → External assistant**.
 3. Create a temporary key. Supply the URL and key in your local client's MCP connection settings.
 4. Test `blogs_list`, then create, update and delete your own disposable article.
@@ -90,9 +92,11 @@ requests require the current Bearer token and remain restricted to sample Blogs.
 The server listens only on loopback; another computer or a cloud assistant cannot
 reach this URL. This is not the customer account/OAuth flow.
 
-For another local test port, set `SHOWROOM_ORIGIN` when starting `demo:mcp` and
-`VITE_MCP_DEMO_URL` when starting Registry. Defaults are showroom port 3218 and MCP
-port 3222. Never publish or tunnel this disposable key-management fixture.
+`SHOWROOM_ORIGIN` accepts HTTP or HTTPS origins on `localhost`, `127.0.0.1` or a
+`.localhost` domain; management still requires that exact origin. For direct HTTP
+tests, the default showroom origin is `http://127.0.0.1:3218`. The MCP server uses
+port 3222 by default; set its `PORT` and Registry's `VITE_MCP_DEMO_URL` together
+when changing it. Never publish or tunnel this disposable key-management fixture.
 
 A standard client such as the [reference MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
 can connect with **Streamable HTTP**, the displayed URL and Bearer token.

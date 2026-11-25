@@ -3,6 +3,34 @@ import test from "node:test";
 
 import { startMcpDemo } from "../scripts/demo-mcp.mjs";
 import { mcpClient } from "./agents/mcp-client.mjs";
+await test("Portless HTTPS origins are supported while remote and non-origin URLs are refused", async (t) => {
+  for (const showroomOrigin of [
+    "https://forge-registry.localhost",
+    "http://forge-registry.localhost:1355",
+    "https://localhost",
+  ]) {
+    const demo = await startMcpDemo({ port: 0, showroomOrigin });
+    t.after(() => demo.close());
+    const state = demo.resource.replace("/mcp", "/demo/state");
+    const response = await fetch(state, { headers: { Origin: showroomOrigin } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), showroomOrigin);
+    assert.equal(
+      (await fetch(state, { headers: { Origin: "https://other.localhost" } })).status,
+      403,
+    );
+  }
+  for (const showroomOrigin of [
+    "https://foreign.test",
+    "https://forge-registry.localhost.evil.test",
+    "https://forge-registry.localhost@evil.test",
+    "ftp://localhost",
+    "https://forge-registry.localhost/path",
+    "https://forge-registry.localhost?query=value",
+  ]) {
+    await assert.rejects(startMcpDemo({ port: 0, showroomOrigin }), /loopback showroom origin/);
+  }
+});
 await test("local HTTP MCP fixture authenticates, discovers and executes the shared Blogs operation", async (t) => {
   const demo = await startMcpDemo({ port: 0 });
   t.after(() => demo.close());
