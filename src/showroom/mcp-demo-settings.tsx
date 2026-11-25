@@ -1,4 +1,4 @@
-import { CopyIcon, RefreshCwIcon } from "lucide-react";
+import { CopyIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
 
@@ -13,8 +13,6 @@ const server = import.meta.env.VITE_MCP_DEMO_URL ?? "http://127.0.0.1:3222";
 const stateSchema = z.object({
   resource: z.literal(`${server}/mcp`),
   expiresAt: z.string().nullable(),
-  articles: z.array(z.object({ id: z.string(), title: z.string() })),
-  events: z.array(z.object({ tool: z.string(), outcome: z.string(), at: z.string() })),
 });
 const keySchema = z.object({
   token: z.string().regex(/^[a-f0-9]{48}$/),
@@ -94,11 +92,6 @@ export function McpDemoSettings() {
       setError("Copy failed. Select and copy the text manually.");
     }
   }
-  const prompt = `Test the disposable Forge Registry MCP demo at ${server}/mcp using the temporary Bearer key I provide separately. No AI provider key is required by this server.
-Discover the tool schemas. Use blogs_list with {"locale":"en","page":1,"pageSize":12}, then blogs_get to read an article.
-Create one draft titled "MCP check <unique suffix>" with blogs_create. Read its returned ID with blogs_get. Use blogs_save to change its title and Markdown, preserving its other fields and using its current version. Read it back and verify both changes. Delete only the article you created with blogs_delete and its latest version, then confirm it is absent.
-Each write first returns a proposal: show its complete preview, then call agents_execute with the proposalId and unchanged preview as review. You are authorized to execute these three changes on your disposable test article. Use a new requestId for each intended change; retry only an identical request. Stop on an unresolved outcome. Leave existing articles unchanged.
-Report each step, the created ID, the final deletion check and any errors. Never print the key or save it in a file, log or repository. Use a local MCP or HTTP client; ask me before changing persistent client configuration.`;
   return (
     <section aria-label="Local MCP demo" className="space-y-5 text-sm">
       <p className="text-muted-foreground">
@@ -200,51 +193,6 @@ Report each step, the created ID, the final deletion check and any errors. Never
       <output className="block min-h-5 text-muted-foreground">
         {busy ? "Updating…" : feedback}
       </output>
-      <details>
-        <summary className="cursor-pointer font-medium">Prompt for your agent</summary>
-        <div className="mt-3 space-y-3">
-          <button type="button" className={accountButtonClass} onClick={() => void copy(prompt)}>
-            Copy test prompt
-          </button>
-          <pre className="max-h-48 overflow-auto text-xs break-words whitespace-pre-wrap">
-            {prompt}
-          </pre>
-        </div>
-      </details>
-      <details>
-        <summary className="cursor-pointer font-medium">MCP test records</summary>
-        <div className="mt-3 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Server samples, separate from the Blogs browser preview. Restarting the MCP server
-            resets them.
-          </p>
-          <button
-            type="button"
-            className={accountButtonClass}
-            disabled={busy}
-            onClick={() => void run()}
-          >
-            <RefreshCwIcon className="size-4" aria-hidden="true" />
-            Refresh results
-          </button>
-          <ul aria-label="MCP articles" className="space-y-2">
-            {state?.articles.map((article) => (
-              <li key={article.id} className="break-words">
-                {article.title}
-              </li>
-            ))}
-          </ul>
-          {state?.events.length ? (
-            <ol aria-label="Recent MCP calls" className="space-y-1 text-xs text-muted-foreground">
-              {state.events.slice(-5).map((event, i) => (
-                <li key={i}>
-                  {event.tool}: {event.outcome}
-                </li>
-              ))}
-            </ol>
-          ) : null}
-        </div>
-      </details>
     </section>
   );
 }

@@ -32,13 +32,7 @@ await test("Agents settings creates a temporary MCP key for reviewed CRUD and re
   assert.ok(
     await page.evaluate(async (token) => (await navigator.clipboard.readText()) === token, token),
   );
-  await dialog.getByText("Prompt for your agent", { exact: true }).click();
-  await dialog.getByRole("button", { name: "Copy test prompt", exact: true }).click();
-  const prompt = await page.evaluate(() => navigator.clipboard.readText());
-  assert.ok(
-    prompt.includes(demo.resource) && prompt.includes("blogs_delete") && !prompt.includes(token),
-  );
-  await dialog.getByText("Prompt for your agent", { exact: true }).click();
+  assert.equal(await dialog.locator("details").count(), 0);
   const { call } = await mcpClient(demo.resource, token);
   const initial = await call("blogs_list", { locale: "en", pageSize: 100 });
   const title = "MCP browser check " + crypto.randomUUID();
@@ -69,14 +63,7 @@ await test("Agents settings creates a temporary MCP key for reviewed CRUD and re
   const saved = await call("blogs_get", { id: created.id });
   assert.equal(saved.translations.en.draft.title, updated);
   assert.equal(saved.translations.en.draft.markdown, "Verified through the MCP endpoint.");
-  await dialog.getByText("MCP test records", { exact: true }).click();
-  await dialog.getByRole("button", { name: "Refresh results", exact: true }).click();
-  await dialog
-    .getByRole("list", { name: "MCP articles" })
-    .getByText(updated, { exact: true })
-    .waitFor();
   await mkdir(".cache", { recursive: true });
-  await dialog.getByText("MCP test records", { exact: true }).click();
   for (const [width, theme] of [
     [1440, "light"],
     [390, "dark"],
