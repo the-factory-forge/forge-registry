@@ -526,7 +526,38 @@ await test("Agents: administrator model settings save, reload and drive the demo
     .waitFor();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByLabel("Read-only tools", { exact: true }).check();
-  assert.equal(await settings.count(), 0);
+  assert.equal(await settings.count(), 1);
+  await settings.click();
+  assert.equal(
+    await dialog
+      .getByRole("tab", { name: "External assistant", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  assert.equal(
+    await dialog.getByRole("tab", { name: "Model settings", exact: true }).isDisabled(),
+    true,
+  );
+  await dialog
+    .getByText(
+      "Only administrators can configure the shared AI model. Ask an administrator to change it.",
+      { exact: true },
+    )
+    .waitFor();
+  const unavailableModel = dialog.getByRole("tab", { name: "Model settings", exact: true });
+  const bounds = await unavailableModel.boundingBox();
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page
+    .getByRole("region", { name: "Notifications", exact: true })
+    .getByText(
+      "Only administrators can configure the shared AI model. Ask an administrator to change it.",
+      { exact: true },
+    )
+    .waitFor();
+  assert.equal(await unavailableModel.getAttribute("aria-selected"), "false");
+  assert.equal(await dialog.getByLabel("API key", { exact: true }).count(), 0);
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
   assert.deepEqual(providerRequests, []);
 });
 await browser.close();

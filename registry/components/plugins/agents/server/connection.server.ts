@@ -70,7 +70,15 @@ export function createAgentsModelConnection<Context>(options: AgentsConnectionOp
         if (!saved) throw new AgentsError("NOT_CONFIGURED");
         const connection = modelSelection.parse({ ...saved, token: decrypt(saved) });
         if (!connection.token) throw new AgentsError("NOT_CONFIGURED");
-        yield* streamAgentModel({ ...connection, token: connection.token }, input);
+        yield* streamAgentModel(
+          { ...connection, token: connection.token },
+          {
+            ...input,
+            instructions:
+              input.instructions +
+              `\nConfigured AI provider: ${connection.provider}. Configured API model ID: ${connection.model}. Use these configured identifiers when asked which provider or model is running. Do not infer an underlying version behind a provider alias. The supplied tools access this website's data with the current employee's permissions, including on a local host. Integrated chat calls the site's services directly; MCP and WebMCP are separate entry points for external assistants. You have no general browser and do not automatically see the screen, current page or unsaved form values. Use tool results to verify site data.`,
+          },
+        );
       } catch (error) {
         throw error instanceof AgentsError ? error : new AgentsError("RUNTIME");
       }

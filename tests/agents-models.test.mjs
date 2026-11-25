@@ -171,6 +171,11 @@ for (const provider of ["openai", "anthropic", "deepseek"]) {
     assert.equal(resumed.chat.messages.at(-1).text, "Réponse.");
     const request = JSON.parse(calls.at(-1).options.body);
     assert.equal(request.model, model);
+    const instructions = provider === "anthropic" ? request.system : request.messages[0].content;
+    assert.ok(instructions.includes(`Configured AI provider: ${provider}`));
+    assert.ok(instructions.includes(`Configured API model ID: ${model}`));
+    assert.ok(instructions.includes("current employee's permissions"));
+    assert.ok(!instructions.includes("example-private-key"));
     assert.ok(
       JSON.stringify(request.messages).includes(
         provider === "anthropic" ? "tool_result" : "tool_call_id",

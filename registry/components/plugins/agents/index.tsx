@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
+import { Toast } from "@base-ui/react/toast";
 import {
   DownloadIcon,
   EyeIcon,
@@ -40,6 +41,7 @@ import type {
   AgentConversation,
   AgentConversationSummary,
   AgentOperation,
+  AgentErrorCode,
   AgentModelOption,
   AgentModelProvider,
   AgentModelSettings,
@@ -67,6 +69,16 @@ const bubble =
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** The host can keep this page mounted during navigation without leaving dialogs open. */
+  active?: boolean;
+  /** Host-owned generation can outlive the currently displayed conversation. */
+  generation?: {
+    conversationId: string;
+    text: string;
+    running: boolean;
+    error?: AgentErrorCode;
+    stop(): void;
+  };
   /** Reload after an external action while retaining unsent drafts. */
   refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
@@ -146,12 +158,14 @@ function ModelSettings({
   labels,
   connectionSettings,
 }: {
-  client: AgentsSettingsClient;
+  client?: AgentsSettingsClient;
   labels: AgentsLabels;
   connectionSettings?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const restrictionId = `factory-agent-model-restriction-${useId()}`;
+  const { add } = Toast.useToastManager();
   return (
     <Dialog.Root
       open={open}
@@ -188,23 +202,43 @@ function ModelSettings({
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="model"
-                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                  disabled={!client}
+                  aria-describedby={!client ? restrictionId : undefined}
+                  onClickCapture={() => {
+                    // Explain the restriction before Base UI suppresses the disabled tab's click.
+                    if (!client)
+                      add({
+                        title: labels.modelSettingsRestricted,
+                        type: "info",
+                        data: { closeLabel: labels.close },
+                      });
+                  }}
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 data-active:border-primary data-active:text-foreground"
                 >
                   {labels.modelSettings}
                 </Tabs.Tab>
               </Tabs.List>
+              {!client && (
+                <p id={restrictionId} className="text-sm text-muted-foreground">
+                  {labels.modelSettingsRestricted}
+                </p>
+              )}
               <Tabs.Panel value="connection">{connectionSettings}</Tabs.Panel>
-              <Tabs.Panel value="model">
-                <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
-                {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
-              </Tabs.Panel>
+              {client && (
+                <Tabs.Panel value="model">
+                  <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
+                  {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+                </Tabs.Panel>
+              )}
             </Tabs.Root>
           ) : (
             <>
               <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
                 {labels.settingsDescription}
               </Dialog.Description>
-              {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+              {open && client && (
+                <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />
+              )}
             </>
           )}
         </Dialog.Popup>
@@ -650,6 +684,8 @@ export function AgentActionReview({
 }
 function AgentsContent({
   client,
+  active = true,
+  generation: externalGeneration,
   refreshVersion,
   settings,
   connectionSettings,
@@ -687,14 +723,29 @@ function AgentsContent({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState<unknown>(null);
-  const errorText = error || (loadError ? failure(loadError, labels) : "");
-  const [streaming, setStreaming] = useState(false);
-  const [stream, setStream] = useState("");
+  const reply =
+    externalGeneration?.conversationId === conversationId ? externalGeneration : undefined;
+  const errorText =
+    error ||
+    (loadError ? failure(loadError, labels) : "") ||
+    (reply?.error ? failure({ code: reply.error }, labels) : "");
+  const [localStreaming, setStreaming] = useState(false);
+  const [localStream, setStream] = useState("");
+  const streaming = localStreaming || !!reply?.running;
+  const stream = reply?.running ? reply.text : localStream;
   const [revision, setRevision] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [crop, setCrop] = useState<File | null>(null);
   const [attachmentOption, setAttachmentOption] = useState("0");
   const [failedFile, setFailedFile] = useState<File | null>(null);
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active) {
+      setCrop(null);
+      setDeleting(false);
+    }
+  }
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
   const pending = useRef(false);
@@ -704,7 +755,7 @@ function AgentsContent({
   const draft: AgentDrafts[string] = drafts[key] ?? { text: "", attachments: [] };
   const operation = operations.find((operation) => operation.id === operationId);
   const started = !!conversation?.messages.length;
-  const blocked = busy || loading || !!conversation?.running;
+  const blocked = busy || loading || !!conversation?.running || streaming;
   const waiting = conversation?.actions.some(
     (action) => action.status === "pending" || action.status === "unresolved",
   );
@@ -797,6 +848,7 @@ function AgentsContent({
     onSelectionChange({ operationId, conversationId: chat.id });
   }
   async function send(resume = false) {
+    if (externalGeneration?.running) return;
     if (blocked || waiting || (!resume && !draft.text.trim() && !draft.attachments.length)) return;
     if (!conversationId) {
       if (operation && !resume) await run((request) => createConversation(request, "send"));
@@ -892,7 +944,7 @@ function AgentsContent({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold">{labels.title}</h1>
-            {settings && (
+            {active && (settings || connectionSettings) && (
               <ModelSettings
                 client={settings}
                 labels={labels}
@@ -949,7 +1001,9 @@ function AgentsContent({
             aria-label={
               overrides?.newConversation ?? overrides?.conversation ?? agentsLabels.newConversation
             }
-            disabled={!conversationId || blocked}
+            disabled={
+              !conversationId || busy || loading || (!!conversation?.running && !reply?.running)
+            }
             onClick={() => {
               setError("");
               setFailedFile(null);
@@ -1391,10 +1445,10 @@ function AgentsContent({
                   <button
                     type="button"
                     className={outline}
-                    disabled={blocked}
+                    disabled={blocked || !!externalGeneration?.running}
                     onClick={() => void send(true)}
                   >
-                    {error ? labels.retry : labels.resume}
+                    {errorText ? labels.retry : labels.resume}
                   </button>
                 )}
                 {streaming ? (
@@ -1402,7 +1456,8 @@ function AgentsContent({
                     type="button"
                     className={outline}
                     onClick={() => {
-                      controller.current?.abort();
+                      if (reply?.running) reply.stop();
+                      else controller.current?.abort();
                       setStreaming(false);
                     }}
                   >
@@ -1416,6 +1471,7 @@ function AgentsContent({
                     disabled={
                       !operation ||
                       blocked ||
+                      !!externalGeneration?.running ||
                       !!waiting ||
                       (!draft.text.trim() && !draft.attachments.length)
                     }
@@ -1432,7 +1488,7 @@ function AgentsContent({
           </form>
         </div>
       </div>
-      {crop && imageCrop && (
+      {active && crop && imageCrop && (
         <ImageCropDialog
           file={crop}
           {...imageCrop}
@@ -1442,7 +1498,7 @@ function AgentsContent({
         />
       )}
       <Dialog.Root
-        open={deleting}
+        open={active && deleting}
         onOpenChange={(open) => {
           if (!busy) setDeleting(open);
         }}

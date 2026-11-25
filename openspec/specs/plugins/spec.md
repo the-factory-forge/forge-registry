@@ -3134,6 +3134,45 @@ the server companion’s administrator-managed website model connection.
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
 
+#### Scenario: Host-owned reply survives view navigation
+
+- **WHEN** the authenticated host supplies a generation snapshot independently of the selected chat view
+- **THEN** changing the displayed operation, conversation or intranet page detaches that view without cancelling the host's generation
+- **AND** returning displays the current text and final durable state, including pending approvals and failures
+- **AND** hiding a retained page closes its dialogs, explicit Stop cancels the owner and account changes discard the old owner's state
+- **AND** a tab-owned implementation does not claim persistence across reload or browser closure
+- **AND** hosts without that optional integration retain the existing view-owned cancellation behavior
+
+#### Scenario: Assistant describes its configured runtime
+
+- **WHEN** the saved website model connection makes a provider request
+- **THEN** trusted instructions identify the configured provider and API model ID without including credentials or guessing the underlying version behind an alias
+- **AND** instructions distinguish permission-bound site tools from a general browser, screen access and unsaved form values
+
+#### Scenario: Host-owned reply survives view navigation
+
+- **WHEN** the authenticated host supplies a generation snapshot independently of the selected chat view
+- **THEN** changing the displayed operation, conversation or intranet page detaches that view without cancelling the host's generation
+- **AND** returning displays the current text and durable outcome, including pending approvals and failures
+- **AND** hiding a retained page closes its dialogs, explicit Stop cancels the owner and account changes discard the old owner's state
+- **AND** a tab-owned implementation does not claim persistence across reload or browser closure
+
+#### Scenario: Assistant explains configured identity and site access
+
+- **WHEN** chat uses the saved website model connection
+- **THEN** trusted runtime instructions identify the configured provider and API model ID without including credentials
+- **AND** they distinguish authorized site tools from a general browser, screen access or unsaved forms
+- **AND** the assistant does not infer an underlying version behind a provider alias
+
+#### Scenario: Personal assistant settings without model administration
+
+- **WHEN** the host supplies personal assistant connection controls without a model-settings client
+- **THEN** the Settings button remains available and opens the external-assistant tab
+- **AND** the model tab remains visible but disabled with a localized administrator-only explanation
+- **AND** pressing the unavailable tab repeats the explanation through the existing informational notification without selecting the tab or loading model settings
+- **AND** the model form does not mount or request provider settings
+- **AND** hosts still authorize personal credentials and model administration independently on the server
+
 #### Scenario: Stable history across operations
 
 - **WHEN** staff start, switch or reopen a conversation in any operation
