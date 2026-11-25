@@ -3120,7 +3120,17 @@ proposal and execution module, without requiring a model provider. Hosts SHALL
 supply verified connection identity, current authorization and explicit installed
 operations. Tool scopes SHALL narrow host permissions. The installed business
 connectors SHALL retain their service adapters; attachment-dependent operations
-SHALL remain unavailable to external clients without a separate upload capability.
+SHALL remain unavailable without host-provided private storage. Staging SHALL bind
+bytes to the authenticated connection and require a separate reviewed write to
+place them in a business plugin. Authorized file reads SHALL return bounded chunks
+and reject continuation against a changed file version.
+
+#### Scenario: Transferring a private file
+
+- **WHEN** a permitted connection stages a file and approves its upload proposal
+- **THEN** the destination plugin receives the verified bytes once
+- **AND** another connection cannot use or discard the staging reference
+- **AND** file reads require current destination permissions and a matching version for subsequent chunks
 
 #### Scenario: External proposal execution
 

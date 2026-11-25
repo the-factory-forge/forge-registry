@@ -42,9 +42,7 @@ const attachmentInput = z.object({
   conversationId: id,
   name: z.string().min(1).max(250),
   contentType: z.string().regex(/^[\w.+-]+\/[\w.+-]+$/),
-  bytes: z
-    .instanceof(Uint8Array)
-    .refine((bytes) => bytes.length > 0 && bytes.length <= 25 * 1024 * 1024),
+  bytes: z.instanceof(Uint8Array),
 });
 const prefixSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*\/agents\/$/);
 const message = (
@@ -84,6 +82,7 @@ export interface AgentsServiceOptions<Context> {
   /** Resolve a fresh staff session. Return null for customers, anonymous or disabled accounts. */
   actor(context: Context): Promise<AgentActor | null>;
   attachments?: AgentAttachmentStore;
+  maxAttachmentBytes?: number;
   /** Resolve a host route from a successful service result, never from model output. */
   resultHref?(
     context: Context,
@@ -93,6 +92,10 @@ export interface AgentsServiceOptions<Context> {
 
 export function createAgentsService<Context>(options: AgentsServiceOptions<Context>) {
   const { store, runtime } = options;
+  const maxAttachmentBytes = parse(
+    z.number().int().positive().safe(),
+    options.maxAttachmentBytes ?? 25 * 1024 * 1024,
+  );
   const operations = new Map(options.operations.map((operation) => [operation.id, operation]));
   if (operations.size !== options.operations.length) throw new AgentsError("INVALID");
   for (const operation of operations.values()) {
@@ -350,6 +353,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
   }
   async function attach(context: Context, raw: unknown) {
     const input = parse(attachmentInput, raw);
+    if (input.bytes.length > maxAttachmentBytes) throw new AgentsError("LIMIT");
     const { ownerId } = await access(context, input.conversationId);
     const attachmentStore = options.attachments;
     if (!attachmentStore) throw new AgentsError("STORAGE");
@@ -486,6 +490,14 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
             return metadata(ready);
           }
           return attach(context, { ...input, conversationId });
+        },
+        async discard(attachmentId: string) {
+          const actor = await connectionActor(context);
+          const row = await store.getAttachment(parse(id, attachmentId), actor.id);
+          if (!row) throw new AgentsError("NOT_FOUND");
+          const { record } = await access(context, row.conversationId);
+          if (!record.connection || record.actions.length) throw new AgentsError("FORBIDDEN");
+          await remove(context, row.conversationId);
         },
         async read(operationId: string, toolName: string, input: unknown) {
           await connectionActor(context);

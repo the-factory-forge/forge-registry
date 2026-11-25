@@ -285,8 +285,8 @@ or public object URL is permitted.
 The browser adapter converts `File` to the service's
 `attach({ conversationId, name, contentType, bytes })` request. Convert
 `attachment(conversationId, id)` bytes back into a Blob for authorized previews.
-Attachments are limited to 25 MiB, ten per message; the destination plugin can
-enforce a smaller limit. The service verifies stored byte length and SHA-256
+Attachments default to 25 MiB, ten per message. Hosts can set
+`maxAttachmentBytes`; the destination plugin still enforces its own limits. The service verifies stored byte length and SHA-256
 before returning or using a file. Staging is explicitly initiated by file
 selection. Publishing or associating the file with a plugin record remains a
 separately approved action with that plugin's own byte validation.
@@ -415,3 +415,20 @@ For MCP, intersect the connection's `agents:<id>:read/write` scopes with current
 website permissions. Conversations always need read access to their operation;
 changes also need write access. An `agents:agents:*` grant alone gives no access
 to Blogs or another plugin through saved chats.
+
+## External file transfers
+
+Provide private `attachments` to `createAgentsMcpHandler` to expose upload tools
+and `agents_stage_file`. Inline staging accepts up to 512 KiB and binds the bytes
+to the current owner, connection and request ID. `agents_discard_file` removes an
+unused staged file. No staging call writes into a business plugin: that requires
+a separate proposal and execution with its unchanged review, including file metadata.
+For larger files, a host-owned authenticated binary endpoint can call the gateway's
+`stageFile(context, input)` with its own bounded body reader and rate limit.
+
+Pass `readFile(context, { scope, entryId })` to the Drive connector to enable
+`drive_read_file`. The adapter must authorize the exact entry, enforce its byte
+limit and return `{ name, contentType, bytes }`. Results contain 48 KiB chunks and
+a SHA-256 version. Send that version with subsequent offsets so an edit cannot
+mix different file versions. Signed storage URLs stay on the server. The existing
+`drive_download` still prepares a user-click download.

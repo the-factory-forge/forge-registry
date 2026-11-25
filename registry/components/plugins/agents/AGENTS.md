@@ -24,7 +24,7 @@ and the guide's linked shared access contract.
   `models.server.ts` supplies model discovery/runtime adapters. External execution
   can use the service without configuring a model runtime.
 - `server/mcp.server.ts` binds proposals to the authenticated connection and
-  narrows installed operations by scopes. It excludes attachment-dependent tools.
+  narrows installed operations by scopes. It exposes attachment-dependent tools only when the host supplies private storage.
   Matching review arguments establish payload integrity, not proof of a separate
   human approval; OAuth and client confirmation settings remain host/client concerns.
 

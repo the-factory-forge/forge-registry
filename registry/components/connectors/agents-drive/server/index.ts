@@ -24,6 +24,15 @@ export interface DriveAgentOptions<Context> extends AgentConnectorOptions<Contex
     context: Context,
     input: { scope: DriveScope; entryId: string },
   ): Promise<DriveEntry | DriveTrashEntry>;
+  /** Authorized bytes from private storage; enforce the host's transfer-size limit. */
+  readFile?(
+    context: Context,
+    input: { scope: DriveScope; entryId: string },
+  ): Promise<{
+    name: string;
+    contentType: string;
+    bytes: Uint8Array;
+  }>;
   renameSpace?(context: Context, scope: DriveScope, name: string): Promise<void>;
   space?(context: Context, scope: DriveScope): Promise<{ name: string }>;
   /** Optional existing folder/archive download adapter; URLs are resolved only on a user click. */
@@ -157,6 +166,41 @@ export function createDriveAgentOperation<Context>(options: DriveAgentOptions<Co
       },
     ),
   ];
+  if (options.readFile)
+    tools.push(
+      read(
+        "drive_read_file",
+        driveInputs.entry.extend({
+          offset: z.number().int().min(0).default(0),
+          version: z.string().optional(),
+        }),
+        async (context, input) => {
+          const file = await options.readFile!(context, input);
+          const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(file.bytes));
+          const version = Array.from(new Uint8Array(digest), (byte) =>
+            byte.toString(16).padStart(2, "0"),
+          ).join("");
+          if (
+            input.offset > file.bytes.length ||
+            (input.offset > 0 && input.version !== version) ||
+            (input.version && input.version !== version)
+          )
+            throw new AgentsError("STALE");
+          // Keep each result below the Agents result limit; the hash prevents mixing file versions.
+          const bytes = file.bytes.subarray(input.offset, input.offset + 48 * 1024);
+          return {
+            name: file.name,
+            contentType: file.contentType,
+            size: file.bytes.length,
+            sha256: version,
+            offset: input.offset,
+            base64: btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join("")),
+            nextOffset:
+              input.offset + bytes.length < file.bytes.length ? input.offset + bytes.length : null,
+          };
+        },
+      ),
+    );
   tools.push({
     name: "drive_download",
     description:

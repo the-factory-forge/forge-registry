@@ -7,7 +7,7 @@ const { createAgentsService } =
 const { createAgentsMcpHandler } =
   await import("../registry/components/plugins/agents/server/mcp.server.ts");
 
-function external() {
+function external(overrides = {}) {
   const f = fixture();
   const identity = {
     id: "staff",
@@ -19,6 +19,7 @@ function external() {
     store: f.store,
     operations: [f.operation],
     actor: async () => (active ? identity : null),
+    ...overrides,
   };
   const service = createAgentsService(options);
   const client = service.external({});
@@ -258,4 +259,164 @@ await test("conversation tools cannot bypass target-operation scopes through a s
   const result = await call("agents_execute", { proposalId: p.proposalId, review: p.preview });
   assert.equal(result.isError, true);
   assert.equal(f.state.writes, 0);
+});
+
+await test("MCP stages private bytes, reviews a Drive upload and reads consistent chunks", async () => {
+  const { createDriveAgentOperation } =
+    await import("../registry/components/connectors/agents-drive/server/index.ts");
+  const objects = new Map();
+  let uploaded;
+  let allowed = true;
+  let uploads = 0;
+  const operation = createDriveAgentOperation({
+    authorize: async () => true,
+    entry: async () => ({ id: "file", name: "check.bin", state: "ready", kind: "file" }),
+    client: () => ({
+      prepareUpload: async () => ({ id: "upload" }),
+      completeUpload: async () => {
+        uploads++;
+      },
+    }),
+    transferUpload: async (_ticket, file) => {
+      uploaded = new Uint8Array(await file.arrayBuffer());
+    },
+    readFile: async () => ({
+      name: "check.bin",
+      contentType: "application/octet-stream",
+      bytes: uploaded,
+    }),
+  });
+  operation.tools.find((tool) => tool.name === "drive_upload").authorize = async () => allowed;
+  const f = external({
+    operations: [operation],
+    attachments: {
+      keyPrefix: "test/agents/",
+      put: async (key, bytes) => objects.set(key, bytes),
+      get: async (key) => objects.get(key),
+      remove: async (key) => objects.delete(key),
+    },
+  });
+  f.identity.scopes = ["agents:drive:read", "agents:drive:write"];
+  const call = async (name, args) =>
+    (await f.rpc("tools/call", { name, arguments: args })).data.result;
+  const value = async (name, args) => {
+    const result = await call(name, args);
+    assert.ok(!result.isError, result.content[0].text);
+    return JSON.parse(result.content[0].text);
+  };
+  const bytes = Buffer.alloc(60 * 1024, 197);
+  const input = {
+    operationId: "drive",
+    requestId: "file",
+    name: "check.bin",
+    contentType: "application/octet-stream",
+    base64: bytes.toString("base64"),
+  };
+  const staged = await value("agents_stage_file", input);
+  assert.equal((await value("agents_stage_file", input)).id, staged.id);
+  assert.equal(objects.size, 1);
+  assert.equal(uploads, 0);
+  const scope = { type: "shared", id: "workspace" };
+  const p = await value("drive_upload", {
+    input: { scope, parentId: null, attachmentId: staged.id },
+    requestId: "upload",
+  });
+  assert.equal(p.status, "pending");
+  assert.equal(uploads, 0);
+  const decision = { proposalId: p.proposalId, review: p.preview };
+  assert.equal((await value("agents_execute", decision)).status, "succeeded");
+  await value("agents_execute", decision);
+  assert.equal(uploads, 1);
+  assert.deepEqual(Buffer.from(uploaded), bytes);
+  const first = await value("drive_read_file", {
+    scope,
+    entryId: "00000000-0000-4000-8000-000000000001",
+  });
+  const second = await value("drive_read_file", {
+    scope,
+    entryId: "00000000-0000-4000-8000-000000000001",
+    offset: first.nextOffset,
+    version: first.sha256,
+  });
+  assert.equal(second.nextOffset, null);
+  assert.deepEqual(
+    Buffer.concat([first, second].map((part) => Buffer.from(part.base64, "base64"))),
+    bytes,
+  );
+  uploaded[0] = 1;
+  assert.equal(
+    (
+      await call("drive_read_file", {
+        scope,
+        entryId: "00000000-0000-4000-8000-000000000001",
+        offset: first.nextOffset,
+        version: first.sha256,
+      })
+    ).content[0].text,
+    "STALE",
+  );
+  f.identity.connection.id = "other";
+  assert.equal(
+    (await call("agents_discard_file", { attachmentId: staged.id })).content[0].text,
+    "NOT_FOUND",
+  );
+  f.identity.connection.id = "grant";
+  await value("agents_discard_file", { attachmentId: staged.id });
+  assert.equal(objects.size, 0);
+  allowed = false;
+  await assert.rejects(f.mcp.stageFile({}, { ...input, bytes }), { code: "FORBIDDEN" });
+  assert.ok(
+    !(await f.rpc("tools/list")).data.result.tools.some(
+      (tool) => tool.name === "agents_stage_file",
+    ),
+  );
+  allowed = true;
+  f.identity.scopes = ["agents:drive:read"];
+  await assert.rejects(f.mcp.stageFile({}, { ...input, bytes }), { code: "FORBIDDEN" });
+  f.identity.scopes.push("agents:drive:write");
+  for (const base64 of ["Zh==", Buffer.alloc(512 * 1024 + 1).toString("base64")]) {
+    const result = await f.rpc("tools/call", {
+      name: "agents_stage_file",
+      arguments: { ...input, base64 },
+    });
+    assert.ok(result.data.error || result.data.result.isError);
+  }
+  const empty = await value("agents_stage_file", { ...input, requestId: "empty", base64: "" });
+  assert.equal(empty.size, 0);
+  f.revoke();
+  await assert.rejects(f.mcp.stageFile({}, { ...input, bytes: new Uint8Array() }), {
+    code: "FORBIDDEN",
+  });
+});
+
+await test("MCP hides upload tools without private storage and validates the host byte limit", async () => {
+  const { z } = await import("zod");
+  const operation = {
+    id: "blogs",
+    label: "Blogs",
+    authorize: async () => true,
+    tools: [
+      {
+        name: "upload",
+        kind: "write",
+        requiresAttachments: true,
+        schema: z.object({}),
+      },
+    ],
+  };
+  const f = external({ operations: [operation] });
+  const names = (await f.rpc("tools/list")).data.result.tools.map((tool) => tool.name);
+  assert.ok(!names.includes("upload") && !names.includes("agents_stage_file"));
+  const small = fixture({ maxAttachmentBytes: 1 });
+  const chat = await small.create();
+  await assert.rejects(
+    small.client.attach({
+      conversationId: chat.id,
+      name: "large.txt",
+      contentType: "text/plain",
+      bytes: new Uint8Array(2),
+    }),
+    { code: "LIMIT" },
+  );
+  assert.equal(small.objects.size, 0);
 });

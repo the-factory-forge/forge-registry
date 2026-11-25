@@ -76,9 +76,9 @@ require their corresponding host adapter; discovery does not grant permission.
 
 1. Run Registry on `http://127.0.0.1:3218` and `pnpm demo:mcp` in another terminal.
 2. Open `/en/agents`, then **Settings → External assistant**.
-3. Create a temporary key. Copy its URL, key and the test prompt to your local agent.
-4. Expand **MCP test records** and refresh results to inspect the server's articles
-   and recent calls. Revoke the key when finished.
+3. Create a temporary key. Supply the URL and key in your local client's MCP connection settings.
+4. Test `blogs_list`, then create, update and delete your own disposable article.
+   Revoke the key when finished.
 
 This panel is development-only. It uses the actual MCP handler, Blogs connector
 and review engine with disposable server-side records, separate from browser
@@ -115,11 +115,12 @@ codex mcp add forge-registry-demo --url http://127.0.0.1:3222/mcp --bearer-token
 
 Set that variable in the environment of the client you launch; this command alone
 does not supply a key to an already running desktop app. Alternatively, give the
-local agent the copied test prompt and key for a direct protocol test.
+local agent the endpoint and temporary key for a direct protocol test.
 
-Remote MCP currently excludes attachment-dependent tools; native WebMCP supports
-small staged uploads. Neither transport automatically turns download metadata
-into file bytes.
+MCP and WebMCP expose uploads when the host supplies private attachment storage.
+Inline staging is capped at 512 KiB. The Drive connector also exposes
+`drive_read_file` when the host supplies its authorized `readFile` adapter.
+Download metadata alone does not provide file bytes.
 
 ## Install and wire the host
 
