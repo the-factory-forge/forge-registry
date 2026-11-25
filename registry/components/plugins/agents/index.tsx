@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
+import { Toast } from "@base-ui/react/toast";
 import {
   DownloadIcon,
   EyeIcon,
@@ -145,12 +146,14 @@ function ModelSettings({
   labels,
   connectionSettings,
 }: {
-  client: AgentsSettingsClient;
+  client?: AgentsSettingsClient;
   labels: AgentsLabels;
   connectionSettings?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const restrictionId = `factory-agent-model-restriction-${useId()}`;
+  const { add } = Toast.useToastManager();
   return (
     <Dialog.Root
       open={open}
@@ -187,23 +190,43 @@ function ModelSettings({
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="model"
-                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                  disabled={!client}
+                  aria-describedby={!client ? restrictionId : undefined}
+                  onClickCapture={() => {
+                    // Explain the restriction before Base UI suppresses the disabled tab's click.
+                    if (!client)
+                      add({
+                        title: labels.modelSettingsRestricted,
+                        type: "info",
+                        data: { closeLabel: labels.close },
+                      });
+                  }}
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 data-active:border-primary data-active:text-foreground"
                 >
                   {labels.modelSettings}
                 </Tabs.Tab>
               </Tabs.List>
+              {!client && (
+                <p id={restrictionId} className="text-sm text-muted-foreground">
+                  {labels.modelSettingsRestricted}
+                </p>
+              )}
               <Tabs.Panel value="connection">{connectionSettings}</Tabs.Panel>
-              <Tabs.Panel value="model">
-                <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
-                {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
-              </Tabs.Panel>
+              {client && (
+                <Tabs.Panel value="model">
+                  <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
+                  {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+                </Tabs.Panel>
+              )}
             </Tabs.Root>
           ) : (
             <>
               <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
                 {labels.settingsDescription}
               </Dialog.Description>
-              {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+              {open && client && (
+                <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />
+              )}
             </>
           )}
         </Dialog.Popup>
@@ -891,7 +914,7 @@ function AgentsContent({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold">{labels.title}</h1>
-            {settings && (
+            {(settings || connectionSettings) && (
               <ModelSettings
                 client={settings}
                 labels={labels}

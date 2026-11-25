@@ -3,6 +3,8 @@ export const agentsLabels = {
   settings: "Settings",
   externalAssistant: "External assistant",
   modelSettings: "Model settings",
+  modelSettingsRestricted:
+    "Only administrators can configure the shared AI model. Ask an administrator to change it.",
   settingsDescription:
     "Choose the AI provider and model for this website. Saved changes apply to the next chat request for all staff.",
   provider: "Provider",

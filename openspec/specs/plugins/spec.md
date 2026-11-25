@@ -3052,6 +3052,15 @@ the server companion’s administrator-managed website model connection.
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
 
+#### Scenario: Personal assistant settings without model administration
+
+- **WHEN** the host supplies personal assistant connection controls without a model-settings client
+- **THEN** the Settings button remains available and opens the external-assistant tab
+- **AND** the model tab remains visible but disabled with a localized administrator-only explanation
+- **AND** pressing the unavailable tab repeats the explanation through the existing informational notification without selecting the tab or loading model settings
+- **AND** the model form does not mount or request provider settings
+- **AND** hosts still authorize personal credentials and model administration independently on the server
+
 #### Scenario: Stable history across operations
 
 - **WHEN** staff start, switch or reopen a conversation in any operation

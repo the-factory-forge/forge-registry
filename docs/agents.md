@@ -102,6 +102,13 @@ aborts the departed stream; late results cannot update the new view.
 Hosts may supply `AgentsPage.connectionSettings` to place their assistant access
 controls in the same Settings dialog. The content and its authenticated transport
 remain host-owned; model settings keep their existing administrator restriction.
+Settings is available when either connection controls or a model-settings client
+is supplied. With connection controls alone, the external-assistant tab remains
+usable and the model tab is disabled with an administrator-only explanation.
+The model form is not mounted and no model-settings request is made for that user.
+Pressing the unavailable tab keeps the external-assistant tab selected and uses
+the existing informational notification to explain that an administrator must
+change the shared model. The same explanation remains visible below the tabs.
 Registry uses this slot only in development for its [temporary MCP demo](./webmcp.md#test-remote-mcp-from-agents-settings).
 It does not create production account keys or change the Auth plugin's Security UI.
 
