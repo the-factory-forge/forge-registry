@@ -251,6 +251,11 @@ Connectors compare previews before execution, but do not add optimistic versions
 to services that do not already support them. Hosts needing stronger concurrent
 edit guarantees must provide transaction-bound adapters for those services.
 
+Reads and proposal preparation preserve compatible plugin errors (`NOT_FOUND`,
+`FORBIDDEN`, `INVALID`, `STORAGE`) across chat, MCP and WebMCP. Other failures become
+`RUNTIME` without exposing internal messages. Missing records are expected after
+deletion; a failed read does not mean the preceding deletion failed.
+
 A validation or authorization rejection before execution expires the proposal.
 Once execution starts, any thrown error becomes `unresolved`, blocks further turns and cannot
 be automatically replayed. A lost request older than two minutes is recovered on

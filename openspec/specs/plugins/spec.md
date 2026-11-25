@@ -2938,6 +2938,12 @@ the server companion’s administrator-managed website model connection.
 - **AND** result links survive reload and cannot be supplied through approvals or model output
 - **AND** uncertain outcomes block further execution until trusted host reconciliation
 
+#### Scenario: Reporting a missing plugin record
+
+- **WHEN** an authorized read or proposal preparation targets a deleted record
+- **THEN** the shared executor preserves the plugin's safe not-found code across chat, MCP and WebMCP
+- **AND** unexpected failures hide internal diagnostics, while an uncertain started write still requires reconciliation
+
 #### Scenario: Installing selected integrations
 
 - **WHEN** a host installs Agents

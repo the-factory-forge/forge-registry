@@ -67,7 +67,9 @@ await test("local HTTP MCP fixture authenticates, discovers and executes the sha
     "succeeded",
   );
   assert.ok(!(await call("blogs_list", { locale: "en" })).items.some((item) => item.id === id));
-  assert.equal((await rpc("tools/call", { name: "blogs_get", arguments: { id } })).isError, true);
+  const missing = await rpc("tools/call", { name: "blogs_get", arguments: { id } });
+  assert.equal(missing.isError, true);
+  assert.equal(missing.content[0].text, "NOT_FOUND");
 });
 
 await test("temporary demo keys rotate, expire and revoke; management requires the exact local origin", async (t) => {

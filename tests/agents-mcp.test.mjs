@@ -87,6 +87,28 @@ await test("external proposals need no runtime; reviews bind the exact arguments
   assert.deepEqual(await fixture({ store: f.store }).client.list("blogs"), []);
 });
 
+await test("MCP preserves compatible plugin errors without exposing private diagnostics", async () => {
+  for (const code of ["NOT_FOUND", "FORBIDDEN", "INVALID", "STORAGE", "DATABASE_INTERNAL"]) {
+    const f = external();
+    const fail = async () => {
+      throw Object.assign(new Error("private database details"), { code });
+    };
+    f.operation.tools[0].run = fail;
+    f.operation.tools[1].prepare = fail;
+    for (const [name, args] of [
+      ["get", {}],
+      ["save", { input: { value: "change" }, requestId: "failed-proposal" }],
+    ]) {
+      const { data } = await f.rpc("tools/call", { name, arguments: args });
+      assert.deepEqual(data.result, {
+        isError: true,
+        content: [{ type: "text", text: code === "DATABASE_INTERNAL" ? "RUNTIME" : code }],
+      });
+    }
+    assert.equal(f.state.writes, 0);
+  }
+});
+
 await test("external records are isolated from other grants, owners and intranet chat", async () => {
   const f = external();
   const p = await f.client.propose("blogs", "save", { value: "after" }, "request");

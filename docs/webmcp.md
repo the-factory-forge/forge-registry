@@ -103,6 +103,10 @@ The copied prompt covers creation, title/content changes and deletion of only th
 new test article. `blogs_list` reads a collection; `blogs_get` reads one article
 by ID. Both belong to the same Blogs plugin.
 
+After deletion, `blogs_get` returns `isError: true` with the text `NOT_FOUND`.
+Check `isError` before parsing a successful result as JSON. MCP text content can
+also be plain text, as described in the [tool result contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool-result).
+
 For Codex CLI, the locally verified command accepts a token environment variable:
 
 ```sh

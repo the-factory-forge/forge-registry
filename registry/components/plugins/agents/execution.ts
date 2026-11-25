@@ -37,6 +37,18 @@ export function toolResult(value: unknown): string {
     : text;
 }
 
+async function callPlugin<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof AgentsError) throw error;
+    const safe = z
+      .object({ code: z.enum(["NOT_FOUND", "FORBIDDEN", "INVALID", "STORAGE"]) })
+      .safeParse(error);
+    throw new AgentsError(safe.success ? safe.data.code : "RUNTIME");
+  }
+}
+
 export function actionMessage(action: AgentStoredAction, text: string): AgentMessage {
   return {
     id: crypto.randomUUID(),
@@ -73,7 +85,7 @@ export function createAgentExecutor<Context>(options: ExecutionOptions<Context>)
   async function read(context: Context, tool: AgentTool<Context>, raw: unknown, files: AgentFiles) {
     if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
     if (tool.kind !== "read") throw new AgentsError("INVALID");
-    return tool.run(context, parse(tool.schema, raw), files);
+    return callPlugin(() => tool.run(context, parse(tool.schema, raw), files));
   }
   async function prepare(
     context: Context,
@@ -86,7 +98,7 @@ export function createAgentExecutor<Context>(options: ExecutionOptions<Context>)
     if (tool.authorize && !(await tool.authorize(context))) throw new AgentsError("FORBIDDEN");
     if (tool.kind !== "write") throw new AgentsError("INVALID");
     const input = parse(tool.schema, raw);
-    const prepared = await tool.prepare(context, input, files);
+    const prepared = await callPlugin(() => tool.prepare(context, input, files));
     return {
       id: crypto.randomUUID(),
       callId,

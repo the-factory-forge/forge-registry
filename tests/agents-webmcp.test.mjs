@@ -7,6 +7,8 @@ import { fixture } from "./agents/fixture.mjs";
 const { createAgentsWebMcp } =
   await import("../registry/components/connectors/agents-webmcp/server/index.ts");
 const { agentTools } = await import("../registry/components/plugins/agents/server/tools.ts");
+const { AgentsError } = await import("../registry/components/plugins/agents/types.ts");
+const { BlogsError } = await import("../registry/components/plugins/blogs/utils.ts");
 
 function browserFixture() {
   const f = fixture();
@@ -57,6 +59,24 @@ function browserFixture() {
     client: adapter.client({ user: "staff", session: "one" }),
   };
 }
+
+await test("WebMCP preserves missing-record errors from plugin reads and proposal preparation", async () => {
+  const f = browserFixture();
+  const fail = async () => {
+    throw new BlogsError("NOT_FOUND");
+  };
+  f.operation.tools[0].run = fail;
+  f.operation.tools[1].prepare = fail;
+  for (const [name, input] of [
+    ["get", {}],
+    ["save", { input: { value: "change" }, requestId: "missing-record" }],
+  ])
+    await assert.rejects(
+      f.client.call(name, input),
+      (error) => error instanceof AgentsError && error.code === "NOT_FOUND",
+    );
+  assert.equal(f.state.writes, 0);
+});
 
 await test("WebMCP reuses stored reviews, current permissions and duplicate-free execution without a provider", async () => {
   const f = browserFixture();
