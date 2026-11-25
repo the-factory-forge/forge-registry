@@ -3,6 +3,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { NativeSelect } from "@/components/native-select";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import {
@@ -13,11 +14,18 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/components/plugins/projects";
+import { PROJECT_SORT_FIELDS } from "@/components/plugins/projects/types";
 import { EmbeddedDrivePreview } from "@/showroom/drive-preview";
 import { previewAssignees, usePluginsPreview } from "@/showroom/plugins-preview";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
+const embeddedProjectFields = PROJECT_SORT_FIELDS.filter((field) => field !== "owner");
 function useProjectList(customerId?: string) {
+  const order = useShowroomTableSort(
+    "projects",
+    customerId ? embeddedProjectFields : PROJECT_SORT_FIELDS,
+  );
   const state = usePluginsPreview();
   const { locale } = useShowroomParams();
   const [search, setSearch] = useState("");
@@ -25,6 +33,7 @@ function useProjectList(customerId?: string) {
   const base = `/${locale}/projects`;
   const context = customerId ? `?customerId=${encodeURIComponent(customerId)}` : "";
   return {
+    ...order,
     projects: state.projects.filter((project) =>
       [
         project.name,
@@ -88,7 +97,7 @@ export function ProjectsPreview() {
   const backHref = fromCustomer && customer ? `${customerBase}/${customer.id}/projects` : base;
   const appearance = {
     linkComponent: Link,
-    labels: { back: fromCustomer ? "Back to customer projects" : "Back to projects" },
+    labels: { back: fromCustomer ? "Customer projects" : "Projects" },
   };
   async function validateOwner(ownerId: string) {
     await state.beforeAction();
@@ -104,12 +113,9 @@ export function ProjectsPreview() {
     return (
       <div className="space-y-4">
         <h1 className="text-xl font-semibold">Project page not found</h1>
-        <Link
-          href={base}
-          className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-        >
+        <BackLink linkComponent={Link} href={base}>
           Back to projects
-        </Link>
+        </BackLink>
       </div>
     );
   if (projectId === "new")
@@ -147,17 +153,22 @@ export function ProjectsPreview() {
       </>
     );
   if (!project) return null;
+  const detailAppearance = {
+    ...appearance,
+    className: "showroom-page",
+    section: tab === "drive" ? ("drive" as const) : ("details" as const),
+    backHref,
+    sectionHrefs: {
+      details: `${base}/${project.id}${context}`,
+      drive: `${base}/${project.id}/drive${context}`,
+    },
+  };
+  if (state.directoryState === "loading")
+    return <ProjectDetailPage {...detailAppearance} project={null} />;
   return (
     <ProjectDetailPage
-      className="showroom-page"
-      {...appearance}
+      {...detailAppearance}
       project={project}
-      section={tab === "drive" ? "drive" : "details"}
-      backHref={backHref}
-      sectionHrefs={{
-        details: `${base}/${project.id}${context}`,
-        drive: `${base}/${project.id}/drive${context}`,
-      }}
       onStatusChange={listProps.onStatusChange}
       onSave={async (values) => {
         await validateOwner(project.ownerId);

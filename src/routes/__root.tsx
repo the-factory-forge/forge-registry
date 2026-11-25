@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { LoadingProvider } from "@/components/loading-indicator";
 import { isLocale } from "@/lib/i18n/config";
 import { ShowroomLink } from "@/showroom/routing";
@@ -59,12 +60,9 @@ export const Route = createRootRoute({
   notFoundComponent: () => (
     <ShowroomPreview width="narrow">
       <h1 className="text-2xl font-semibold">Page not found</h1>
-      <ShowroomLink
-        href="/"
-        className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-      >
+      <BackLink linkComponent={ShowroomLink} href="/">
         Back to all components
-      </ShowroomLink>
+      </BackLink>
     </ShowroomPreview>
   ),
   shellComponent: RootDocument,

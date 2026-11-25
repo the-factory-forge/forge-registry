@@ -16,14 +16,15 @@ import {
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
@@ -40,13 +41,24 @@ const initialPosts = [
   "A fresh perspective",
   "Small improvements",
 ].map((title, index) => ({
-  id: String(index),
+  id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
   title,
   author: ["Alex Morgan", "Zoë Martin", "Sam Rivera"][index % 3],
   category: ["Ideas", "Studio notes", "Working together"][index % 3],
   status: index % 2 === 0 ? "Published" : "Draft",
 }));
 
+const postSortField = z.enum({
+  Title: "title",
+  Author: "author",
+  Category: "category",
+  Status: "status",
+});
+const postSortFields = postSortField.options;
+const postSortQuery = z.object({
+  sort: postSortField,
+  direction: z.enum(["asc", "desc"]).default("asc"),
+});
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
   postPage: z.number().int().min(1).optional().catch(undefined),
@@ -55,11 +67,38 @@ const searchSchema = z.object({
 const titleSchema = z.string().trim().min(1).max(120);
 
 function TablePaginationExample() {
-  const { q: search = "", postPage: requestedPage = 1, cursor = 0 } = Route.useSearch();
+  const {
+    q: search = "",
+    postPage: requestedPage = 1,
+    cursor = 0,
+    sort: field,
+    direction = "asc",
+  } = Route.useSearch();
   const navigate = Route.useNavigate();
+  const headers = useTableSort(
+    {
+      sort: field ? { field, direction } : undefined,
+      onSortChange: (next, source) =>
+        void navigate({
+          search: (previous) => ({
+            ...previous,
+            sort: next.field,
+            direction: next.direction,
+            postPage: source === "restore" ? previous.postPage : undefined,
+          }),
+          hash: true,
+          resetScroll: false,
+          replace: source === "restore",
+        }),
+    },
+    undefined,
+    undefined,
+    { key: "table-pagination-posts", fields: postSortFields },
+  );
   const setPage = (page: number) =>
     void navigate({
       search: (previous) => ({ ...previous, postPage: page === 1 ? undefined : page }),
+      hash: true,
       resetScroll: false,
     });
   const [posts, setPosts] = useState(initialPosts);
@@ -90,11 +129,15 @@ function TablePaginationExample() {
       actionError: "Could not delete this post. Try again.",
     },
   });
-  const filteredPosts =
+  const orderedPosts = sortTableRows(
     state === "empty"
       ? []
-      : deletion.items.filter((post) => matchesTableSearch(search, post.title));
-  const total = filteredPosts.length;
+      : deletion.items.filter((post) => matchesTableSearch(search, post.title)),
+    headers.value,
+    (post, column) => post[column],
+    (post) => post.id,
+  );
+  const total = orderedPosts.length;
   const pageCount = Math.max(1, Math.ceil(total / 3));
   const page = Math.min(requestedPage, pageCount);
   return (
@@ -120,10 +163,10 @@ function TablePaginationExample() {
       }
     >
       <div className="space-y-6">
-        <ShowroomIntro title="Table search & pagination">
-          Search the posts, then page through the matching results. Changing the search returns to
-          the first page. Scroll horizontally: actions stay pinned on the right, even on mobile.
-          Sample edits and deletions reset on reload.
+        <ShowroomIntro title="Table search, sorting & pagination">
+          Search the posts or select a column heading to sort. Either change returns to the first
+          page. Row actions stay pinned on the right as you scroll horizontally. Sample edits and
+          deletions reset on reload.
         </ShowroomIntro>
         <section
           className={tablePanelClass}
@@ -144,6 +187,7 @@ function TablePaginationExample() {
                     postPage: undefined,
                   }),
                   replace: true,
+                  hash: true,
                   resetScroll: false,
                 });
               }}
@@ -158,13 +202,8 @@ function TablePaginationExample() {
             <table className={cn(tableClass, "min-w-[56rem]")}>
               <thead>
                 <tr className={tableRowClass}>
-                  <th scope="col" className={tableHeaderClass}>
-                    Title
-                  </th>
-                  {["Author", "Category", "Status"].map((label) => (
-                    <th key={label} scope="col" className={tableHeaderClass}>
-                      {label}
-                    </th>
+                  {Object.entries(postSortField.enum).map(([label, column]) => (
+                    <TableSortHeader key={column} field={column} label={label} {...headers} />
                   ))}
                   <th scope="col" className={tableActionHeaderClass}>
                     Actions
@@ -179,7 +218,7 @@ function TablePaginationExample() {
                     </td>
                   </tr>
                 ) : (
-                  filteredPosts.slice((page - 1) * 3, page * 3).map((post) => (
+                  orderedPosts.slice((page - 1) * 3, page * 3).map((post) => (
                     <tr key={post.id} className={tableRowClass}>
                       <td className={cn(tableCellClass, "min-w-64 font-medium")}>{post.title}</td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>{post.author}</td>
@@ -266,12 +305,14 @@ function TablePaginationExample() {
                   ...previous,
                   cursor: cursor === 1 ? undefined : cursor - 1,
                 }),
+                hash: true,
                 resetScroll: false,
               })
             }
             onNext={() =>
               void navigate({
                 search: (previous) => ({ ...previous, cursor: cursor + 1 }),
+                hash: true,
                 resetScroll: false,
               })
             }
@@ -357,12 +398,15 @@ function TablePaginationExample() {
 }
 
 export const Route = createFileRoute("/table-pagination")({
-  validateSearch: (search): z.infer<typeof searchSchema> => searchSchema.parse(search),
+  validateSearch: (search) => {
+    const sort = postSortQuery.safeParse(search).data;
+    return { ...searchSchema.parse(search), sort: sort?.sort, direction: sort?.direction };
+  },
   head: ({ match }) =>
     showroomHead({
-      title: "React table search and pagination demo",
+      title: "React table search, sorting and pagination demo",
       description:
-        "Try React table search and pagination together, with filtered totals, cursor navigation, keyboard controls and loading states.",
+        "Sort React table columns, search posts and page through results with keyboard controls and numbered or cursor navigation.",
       path: match.pathname,
       noIndex: match.status !== "success",
     }),

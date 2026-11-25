@@ -120,7 +120,7 @@ page's URL or form values and SHALL clear when dismissed.
 
 ### Requirement: Toggleable preview settings
 
-Demos with controls or navigation SHALL provide a Settings gear beside the panel title, with an accessible name, tooltip and visible expanded state. Settings SHALL start hidden below 40rem and open otherwise. Toggling SHALL retain control values and remain available when collapsed. Hidden controls SHALL leave layout and keyboard navigation. Demos without settings SHALL omit the toggle.
+Demos with controls or navigation SHALL provide a Settings gear beside the panel title, with an accessible name, tooltip and visible expanded state. With no saved choice, settings SHALL start hidden below 40rem and open otherwise. Toggling SHALL retain control values and remain available when collapsed. Hidden controls SHALL leave layout and keyboard navigation. Demos without settings SHALL omit the toggle.
 
 #### Scenario: Hiding and reopening settings
 
@@ -145,15 +145,16 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 #### Scenario: Collapsed settings on a smartphone
 
 - **WHEN** the reviewer hides settings below 40rem
-- **THEN** the gear shares a standard or narrow preview’s first row, including the blog editor’s Back to posts row
+- **THEN** the gear shares a standard or narrow preview’s first row, including the blog editor’s return link to Posts
 - **AND** the separate empty settings row disappears while preview controls remain usable without overlap
 - **AND** full application previews retain their full width below the gear, and tablet and desktop placement remain unchanged
 
 #### Scenario: Responsive initial visibility
 
-- **WHEN** a reviewer opens or reloads a demo on a smartphone below 40rem
+- **WHEN** a reviewer opens a demo without a saved settings preference on a smartphone below 40rem
 - **THEN** settings are collapsed and the gear remains available to open them
-- **AND** opening or reloading the demo at 40rem or wider starts with settings expanded
+- **AND** without a saved choice, opening the demo at 40rem or wider starts with settings expanded
+- **AND** a manual override survives reloads until the reviewer restores the initial viewport default
 - **AND** changing the viewport after toggling preserves the chosen visibility
 
 ### Requirement: Unified loading feedback
@@ -200,7 +201,7 @@ content's maximum width, without changing the URL or browser history.
 - **WHEN** a reviewer navigates within the showroom
 - **THEN** the current width remains active and ordinary Back/Forward navigation works
 - **WHEN** the document reloads
-- **THEN** the width returns to Big
+- **THEN** the chosen width is restored, and selecting Big removes the saved preference
 
 #### Scenario: Viewing on a smartphone
 

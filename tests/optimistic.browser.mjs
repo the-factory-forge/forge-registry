@@ -129,7 +129,7 @@ void test("menu order changes before save and rolls back on failure", async (t) 
 void test("blog publication state changes immediately and rolls back", async (t) => {
   const page = await preview(t, "/en/admin/blogs/b1000000-0000-4000-8000-000000000001");
   await page.getByLabel("Simulate action failures").check();
-  await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+  await page.getByRole("button", { name: "Publication status", exact: true }).click();
   await page.getByText("Draft", { exact: true }).waitFor({ timeout: 700 });
   await page.getByRole("alert").waitFor();
   await page.getByText("Published", { exact: true }).waitFor();

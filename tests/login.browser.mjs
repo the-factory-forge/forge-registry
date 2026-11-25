@@ -47,6 +47,61 @@ await suite("Login browser", async () => {
     assert.equal(await email.inputValue(), "member+verified@example.test");
   });
 
+  await test("password sign-in failures show a toast on each retry without moving the form", async (t) => {
+    const page = await preview(t, "/en/login");
+    await page.getByLabel("Simulate action failures").check();
+    const email = page.getByLabel("Email", { exact: true });
+    const password = page.getByLabel("Password", { exact: true });
+    const signIn = page.getByRole("button", { name: "Sign in", exact: true });
+    const loginError =
+      "Unable to sign in. Check your email and password, or contact your administrator.";
+    await email.fill("member@example.test");
+    await password.fill("example-password");
+    const emailTop = () =>
+      email.evaluate((input) => input.getBoundingClientRect().top + window.scrollY);
+    const initialTop = await emailTop();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await signIn.click();
+      await actionToast(page, loginError);
+      assert.equal(await emailTop(), initialTop);
+      assert.equal(await email.inputValue(), "member@example.test");
+      assert.equal(await password.inputValue(), "example-password");
+      assert.match(await password.getAttribute("aria-describedby"), /-error$/);
+    }
+
+    assert.equal(await page.getByTestId("callback-count").textContent(), "2");
+  });
+
+  await test("forgot password carries only the email across navigation and reload", async (t) => {
+    const page = await preview(t, "/en/login");
+    const email = "member+recovery@example.test";
+    const link = page.getByRole("link", { name: "Forgot password?", exact: true });
+    assert.equal(await link.getAttribute("href"), "/en/forgot-password");
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill("example-password");
+    await link.press("Enter");
+    await page.waitForURL("**/forgot-password?*");
+    const recoveryUrl = new URL(page.url());
+    assert.deepEqual([...recoveryUrl.searchParams], [["email", email]]);
+
+    const recoveryEmail = page.getByLabel("Email", { exact: true });
+    assert.equal(await recoveryEmail.inputValue(), email);
+    await recoveryEmail.fill("edited@example.test");
+    await page.reload();
+    assert.equal(await recoveryEmail.inputValue(), email);
+    assert.equal(await page.getByTestId("callback-count").textContent(), "0");
+
+    const sharedPage = await preview(t, recoveryUrl.pathname + recoveryUrl.search);
+    assert.equal(await sharedPage.getByLabel("Email", { exact: true }).inputValue(), email);
+
+    await page.goBack();
+    await page.waitForURL("**/login");
+    await page.goForward();
+    await page.waitForURL("**/forgot-password?*");
+    assert.equal(await recoveryEmail.inputValue(), email);
+  });
+
   await test("recovery validates email, blocks duplicates, and retains a failed draft", async (t) => {
     const page = await preview(t, "/en/forgot-password");
     const email = page.getByLabel("Email", { exact: true });
@@ -175,7 +230,10 @@ await suite("Login browser", async () => {
       if (view === "reset-password") {
         assert.equal(await password.count(), 0);
         assert.equal(await requestLink.count(), 0);
-        await page.getByRole("link", { name: "Back to sign in", exact: true }).waitFor();
+        const signIn = page
+          .getByLabel("Component preview", { exact: true })
+          .getByRole("link", { name: "Sign in", exact: true });
+        assert.equal(await signIn.getAttribute("href"), "/en/login");
       } else {
         assert.equal(await password.inputValue(), "");
         assert.equal(await password.getAttribute("type"), "password");
@@ -241,7 +299,7 @@ await suite("Login browser", async () => {
     await google.focus();
     await page.keyboard.press("Enter");
     await page.locator("#factory-auth-main-content form").evaluate((form) => form.requestSubmit());
-    await page.getByRole("alert").filter({ hasText: "Could not sign in with Google" }).waitFor();
+    await actionToast(page, "Could not sign in with Google. Please try again.");
     assert.equal(await page.getByTestId("callback-count").textContent(), "1");
     assert.equal(
       await page.getByLabel("Password", { exact: true }).inputValue(),
@@ -249,10 +307,9 @@ await suite("Login browser", async () => {
     );
     await page.getByLabel("Simulate action failures").uncheck();
     await google.click();
-    await page
-      .getByRole("status")
-      .filter({ hasText: "Google sign-in callback received." })
-      .waitFor();
+    const googleNotice = "Google sign-in callback received. No provider was contacted.";
+    await actionToast(page, googleNotice);
+    assert.equal(await page.getByText(googleNotice, { exact: true }).count(), 0);
     assert.equal(await google.isDisabled(), true);
     assert.equal(
       await page.getByRole("button", { name: "Sign in", exact: true }).isDisabled(),

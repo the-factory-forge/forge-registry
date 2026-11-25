@@ -11,7 +11,7 @@ export const projectLabels = {
   newDescription: "Add the project name, status, and description.",
   detailsTitle: "Project details",
   detailsDescription: "Update the name, status, and description for this project.",
-  back: "Back to projects",
+  back: "Projects",
   sections: "Project sections",
   details: "Details",
   drive: "Drive",

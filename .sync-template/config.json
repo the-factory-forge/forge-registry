@@ -21,12 +21,7 @@
   "deviations": [
     {
       "area": "Showroom uses simulated services",
-      "paths": [
-        "src/routes/",
-        "src/showroom/",
-        "src/lib/",
-        "package.json"
-      ],
+      "paths": ["src/routes/", "src/showroom/", "src/lib/", "package.json"],
       "decision": "Keep mock authentication/data and showroom providers. Exclude upstream live auth, application database, Query integration, Varlock, logging, React Compiler, devtools and test-runner conversion.",
       "reason": "Cove supplies the framework foundation; the showroom previews portable components without those application services. Better Auth/Drizzle dependencies used by server companions remain.",
       "evidence": "docs/showroom.md, .cove.jsonc and inspected showroom source."
@@ -48,12 +43,7 @@
     },
     {
       "area": "Registry delivery and development",
-      "paths": [
-        "package.json",
-        "Dockerfile",
-        "vite.config.ts",
-        "scripts/"
-      ],
+      "paths": ["package.json", "Dockerfile", "vite.config.ts", "scripts/"],
       "decision": "Keep Portless, Nitro deployment and official shadcn generation/consumer verification.",
       "reason": "The registry owns its distribution workflow and runtime configuration.",
       "evidence": "AGENTS.md and docs/showroom.md."

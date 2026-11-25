@@ -14,7 +14,10 @@ import {
   EmployeePhotoField,
   type EmployeePhotoFieldProps,
 } from "@/components/plugins/employees/employee-photo-field";
-import { EmployeeWebsiteStatus } from "@/components/plugins/employees/employee-website-status";
+import {
+  EmployeeWebsiteStatus,
+  employeeWebsiteStatusClass,
+} from "@/components/plugins/employees/employee-website-status";
 import { employeeLabels, type EmployeeLabels } from "@/components/plugins/employees/labels";
 import {
   isEmployeeAdmin,
@@ -31,6 +34,7 @@ import {
   inputClass,
   dialogClass,
 } from "@/components/plugins/employees/styles";
+import { StatusToggle } from "@/components/status-toggle";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { tableActionsClass } from "@/components/utils/table-styles";
@@ -164,25 +168,26 @@ function EmployeeActionsContent({
                     </Dialog.Title>
                     {employee.websitePublished !== undefined &&
                       (onSetWebsitePublished ? (
-                        <button
-                          type="button"
-                          aria-label={labels.website}
-                          aria-pressed={employee.websitePublished}
+                        <StatusToggle
+                          label={labels.website}
+                          pressed={employee.websitePublished}
                           disabled={disabled || pending}
-                          className="ml-auto inline-flex min-h-10 cursor-pointer items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:min-h-8"
-                          onClick={() =>
+                          className={cn(
+                            "ml-auto min-h-10 md:min-h-8",
+                            employeeWebsiteStatusClass[
+                              employee.websitePublished ? "visible" : "hidden"
+                            ],
+                          )}
+                          onPressedChange={(published) =>
                             void run(
                               "website",
-                              () => onSetWebsitePublished(employee.id, !employee.websitePublished),
+                              () => onSetWebsitePublished(employee.id, published),
                               () => notify(labels.websiteUpdated),
                             )
                           }
                         >
-                          <EmployeeWebsiteStatus
-                            published={employee.websitePublished}
-                            labels={labels}
-                          />
-                        </button>
+                          {employee.websitePublished ? labels.websiteVisible : labels.websiteHidden}
+                        </StatusToggle>
                       ) : (
                         <EmployeeWebsiteStatus
                           published={employee.websitePublished}

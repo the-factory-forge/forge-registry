@@ -257,6 +257,10 @@ responses cannot be revoked.
 
 ## Item editor lifetime
 
+While the first item request is pending, pass `item={null}` with the same Back
+link, locales and currency to show the loading editor. Omit `item` to create a dish.
+Supply the item and its callbacks when the request succeeds.
+
 Keep the `MenusClient` reference stable while editing. `MenuItemEditorPage` starts
 a fresh editor when the client or item ID changes, including creation/edit
 transitions; hosts do not need to key the page themselves. Earlier saves may
@@ -433,7 +437,8 @@ integrations can keep their current routes and operations.
 ## Unassigned dishes and category deletion
 
 The workspace keeps unassigned dishes below the menus, alongside the existing
-unattached-category section. Staff can find a preserved dish and assign it through
+unattached-category section. Both sections start closed and remember explicit toggles
+independently. A link with an unassigned-dish search opens its results. Staff can find a preserved dish and assign it through
 the item editor. No separate directory is needed for that recovery path. Unassigned
 dishes and their photos are excluded from public menus and print, even if the dish
 was previously visible. Their private files and labels remain available to staff.
@@ -453,3 +458,7 @@ Custom Drive adapters need the optional `deleteSpaces()` operation only for
 deleting a category and all its dishes atomically. `createDriveStorage` provides
 it. Older adapters can still preserve dishes; delete-all fails safely with a
 storage error until the adapter supports that operation.
+
+## Sorting menu items
+
+The item table starts in saved display order. Sorting a column affects the current view. Drag and keyboard moves are available in ascending Display order with an empty search. Select Display order ascending to resume moving items. Use `MenuItemsPage.sort` and `onSortChange` to bind the view to the host URL. The editor can forward file and trash sorting through `driveOrder`.

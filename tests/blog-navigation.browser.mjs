@@ -17,7 +17,7 @@ after(async () => {
 const title = (page) => page.getByRole("textbox", { name: "Title", exact: true });
 const dialog = (page) => page.getByRole("dialog", { name: "Keep your changes?", exact: true });
 const cancel = (page) => dialog(page).getByRole("button", { name: "Cancel", exact: true });
-const save = (page) => page.getByRole("button", { name: "Save draft", exact: true });
+const save = (page) => page.getByRole("button", { name: "Save", exact: true });
 const list = (page) => page.getByRole("heading", { name: "Blog posts", exact: true });
 async function editor(t) {
   const context = await browser.newContext();
@@ -53,7 +53,7 @@ void test("browser Back cancel preserves the blog draft and discard preserves Fo
   assert.equal(await dialog(page).count(), 0);
 });
 
-void test("browser Back saves the current language and shared settings before leaving", async (t) => {
+void test("browser Back saves the current language and shared settings before switching languages", async (t) => {
   const page = await editor(t);
   await page.getByRole("tab", { name: "Français", exact: true }).click();
   await title(page).fill("Brouillon enregistré avant retour");
@@ -63,12 +63,12 @@ void test("browser Back saves the current language and shared settings before le
   assert.equal(await cancel(page).isDisabled(), true);
   await page.keyboard.press("Escape");
   assert.equal(await dialog(page).isVisible(), true);
-  await list(page).waitFor();
-  assert.equal(new URL(page.url()).pathname, directory);
-  await page.shell.evaluate(() => history.forward());
-  await title(page).waitFor();
+  await page.getByRole("tab", { name: "English", exact: true, selected: true }).waitFor();
+  assert.equal(new URL(page.url()).search, "");
   assert.equal(await title(page).inputValue(), initialTitle);
-  await page.getByRole("tab", { name: "Français", exact: true }).click();
+  await page.shell.evaluate(() => history.forward());
+  await page.getByRole("tab", { name: "Français", exact: true, selected: true }).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get("lang"), "fr");
   assert.equal(await title(page).inputValue(), "Brouillon enregistré avant retour");
   assert.equal(
     await page.getByRole("combobox", { name: "Author", exact: true }).inputValue(),
@@ -101,6 +101,7 @@ void test("browser Back validation and storage errors retain the blog draft", as
 
 void test("Back during a pending blog save stays in the editor; saved drafts leave without a prompt", async (t) => {
   const page = await editor(t);
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await title(page).fill("Saved before leaving");
   await save(page).click();
   await page.shell.evaluate(() => history.back());
@@ -126,7 +127,7 @@ void test("reload warns about dirty drafts and confirmed link departures do not 
     await page.shell.evaluate(() => location.reload());
     await warning;
     assert.equal(await title(page).inputValue(), "Keep through reload");
-    await page.getByRole("link", { name: "← Back to posts", exact: true }).click();
+    await page.getByRole("link", { name: "Posts", exact: true }).click();
     await dialog(page).getByRole("button", { name: action, exact: true }).click();
     await list(page).waitFor();
     assert.deepEqual(warnings, ["beforeunload"]);

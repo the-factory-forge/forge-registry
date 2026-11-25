@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 
+import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 import { PreviewControls } from "@/showroom/preview-controls";
 
 const subscribeReady = () => () => {};
@@ -38,11 +39,15 @@ export function ShowroomPreview({
     () => window.matchMedia("(min-width: 40rem)").matches,
     () => null,
   );
-  const [settingsChoice, setSettingsChoice] = useState<boolean | null>(null);
-  if (settingsChoice === null && initialSettingsOpen !== null) {
-    setSettingsChoice(initialSettingsOpen);
+  const [initialDefault, setInitialDefault] = useState<boolean | null>(null);
+  if (initialDefault === null && initialSettingsOpen !== null) {
+    setInitialDefault(initialSettingsOpen);
   }
-  const settingsOpen = settingsChoice ?? true;
+  // Keep this visit’s initial layout while the reviewer resizes the preview.
+  const [settingsOpen, setSettingsOpen] = usePanelPreference(
+    viewPreferenceKey("showroom", "preview", "settings"),
+    initialDefault ?? true,
+  );
   const ready = useSyncExternalStore(
     subscribeReady,
     () => true,
@@ -61,7 +66,7 @@ export function ShowroomPreview({
       {(controls || navigation) && (
         <PreviewControls
           open={settingsOpen}
-          onToggle={() => setSettingsChoice(!settingsOpen)}
+          onToggle={() => setSettingsOpen(!settingsOpen)}
           navigation={navigation}
           notice={notice}
         >

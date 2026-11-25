@@ -111,6 +111,35 @@ host script manager and must resolve only when ready or reject on failure. The
 showroom uses it to simulate loading without contacting Google. The default
 loader uses `https://www.googletagmanager.com/gtag/js`; hosts own CSP allowances.
 
+## Loading the banner separately
+
+If the host lazy-loads its consent UI, a browser privacy filter can block the
+banner script on the first visit. Handle the rejected import where the host
+loads the banner. Keep the page outside its `Suspense` boundary.
+
+```tsx
+import { lazy, Suspense, type ReactNode } from "react";
+
+const SiteCookieBanner = lazy<() => ReactNode>(() =>
+  import("./site-cookie-banner").then(
+    (module) => ({ default: module.SiteCookieBanner }),
+    () => ({ default: () => null }),
+  ),
+);
+
+export function OptionalConsent() {
+  return (
+    <Suspense fallback={null}>
+      <SiteCookieBanner />
+    </Suspense>
+  );
+}
+```
+
+With the banner blocked, the host receives no consent callback and tracking
+stays off. To verify, block the banner script, reload the homepage, and use its
+navigation. Check that no analytics or advertising requests were made.
+
 ## Updating an existing installation
 
 Refresh `@forge/cookie-banner` and its linked `@forge/consent-analytics` dependency

@@ -34,7 +34,7 @@ for (const width of [1280, 390]) {
       );
       await page
         .getByRole("link", {
-          name: action === "categories" ? "Manage categories" : "← Back to posts",
+          name: action === "categories" ? "Manage categories" : "Posts",
           exact: true,
         })
         .click();
@@ -53,7 +53,7 @@ for (const width of [1280, 390]) {
       assert.equal((await document.text()).match(/aria-label="Showroom navigation"/g)?.length, 1);
       await page.locator('[data-preview-ready="true"]').waitFor();
       if (action === "categories") {
-        await page.getByRole("link", { name: "← Back to posts", exact: true }).click();
+        await page.getByRole("link", { name: "Posts", exact: true }).click();
       }
       await page.getByRole("heading", { name: "Blog posts", exact: true }).waitFor();
       await page.shell.waitForURL(base + directory);

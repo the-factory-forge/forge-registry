@@ -3,9 +3,9 @@
 import { Dialog } from "@base-ui/react/dialog";
 import {
   EllipsisIcon,
-  FileTextIcon,
+  EyeOffIcon,
   GitCompareArrowsIcon,
-  HistoryIcon,
+  GlobeIcon,
   PencilIcon,
   RefreshCwIcon,
   Trash2Icon,
@@ -252,12 +252,15 @@ export function BlogHistoryPanel<T = void>({
   labels,
   onSelect,
   onCompare,
+  onCompareWorking,
   onRetry,
   onClose,
+  onPublish,
+  onUnpublish,
   onDelete,
   onDeleted,
   disabled,
-  deleteDisabled = false,
+  dirty = false,
   formatDate,
   working,
 }: {
@@ -270,12 +273,15 @@ export function BlogHistoryPanel<T = void>({
   labels: BlogsLabels;
   onSelect: (header: BlogHistoryHeader) => void;
   onCompare: (header: BlogHistoryHeader) => void;
+  onCompareWorking?: () => void;
   onRetry: () => void;
   onClose: () => void;
+  onPublish?: () => void;
+  onUnpublish?: () => void;
   onDelete?: (version: BlogHistoryHeader, requestId: string) => Promise<T>;
   onDeleted?: (result: T) => void;
   disabled: boolean;
-  deleteDisabled?: boolean;
+  dirty?: boolean;
   formatDate: (iso: string) => string;
   working?: { origin?: BlogHistoryOrigin; header?: BlogHistoryHeader };
 }) {
@@ -319,44 +325,54 @@ export function BlogHistoryPanel<T = void>({
   return (
     <aside
       aria-label={`${labels.history} · ${headers[0]?.locale.toUpperCase() ?? ""}`}
-      className="min-w-0 space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground"
+      className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4 text-card-foreground"
     >
-      <header className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold">{labels.history}</h2>
-        <IconTooltip label={labels.closeHistory}>
-          <button
-            type="button"
-            className={iconButtonClass}
-            aria-label={labels.closeHistory}
-            onClick={onClose}
-          >
-            <XIcon aria-hidden="true" />
-          </button>
-        </IconTooltip>
+      <header className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold">{labels.history}</h2>
+          <IconTooltip label={labels.closeHistory}>
+            <button
+              type="button"
+              className={iconButtonClass}
+              aria-label={labels.closeHistory}
+              onClick={onClose}
+            >
+              <XIcon aria-hidden="true" />
+            </button>
+          </IconTooltip>
+        </div>
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {labels.historyCounts(
+            headers.filter((header) => header.state === "publication").length,
+            headers.filter((header) => header.state === "draft").length,
+          )}
+        </p>
       </header>
-      <p className="text-xs text-muted-foreground tabular-nums">
-        {labels.historyCounts(
-          headers.filter((header) => header.state === "publication").length,
-          headers.filter((header) => header.state === "draft").length,
-        )}
-      </p>
-      <div className="min-h-5">
-        <Feedback message={error} error />
-        {loading && <Feedback message={labels.loading} />}
-        {error && (
-          <button type="button" className={outlineButtonClass} onClick={onRetry} disabled={loading}>
-            {labels.retry}
-          </button>
-        )}
-      </div>
+      {(loading || error) && (
+        <div>
+          <Feedback message={error} error />
+          {loading && <Feedback message={labels.loading} />}
+          {error && (
+            <button
+              type="button"
+              className={outlineButtonClass}
+              onClick={onRetry}
+              disabled={loading}
+            >
+              {labels.retry}
+            </button>
+          )}
+        </div>
+      )}
       {!loading && !error && !rows.length && (
         <p className="py-8 text-sm text-muted-foreground">{labels.historyEmpty}</p>
       )}
       <ol ref={list} className="space-y-2" aria-busy={loading}>
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const source = sourceOf(row),
             isWorking = row.id === "working",
             isLive = row.id === publishedId;
+          const actionLabel = `${labels.actions}: ${isWorking ? labels.unsavedDraft : blogHistoryLabel(row, labels)}`;
           const chosen = row.id === (selectedId ?? (working ? "working" : currentId));
           return (
             <li key={row.id} data-history-id={row.id} className="flex min-w-0 items-start gap-2">
@@ -411,13 +427,13 @@ export function BlogHistoryPanel<T = void>({
                   </span>
                 )}
               </button>
-              {!isWorking && (
+              {(!isWorking || onCompareWorking) && (
                 <div className="shrink-0 pt-2">
                   <DropdownMenu>
-                    <IconTooltip label={`${labels.actions}: ${blogHistoryLabel(row, labels)}`}>
+                    <IconTooltip label={actionLabel}>
                       <DropdownMenuTrigger
                         className={iconButtonClass}
-                        aria-label={`${labels.actions}: ${blogHistoryLabel(row, labels)}`}
+                        aria-label={actionLabel}
                         disabled={disabled}
                         onFocus={(event) => {
                           actionTrigger.current = event.currentTarget;
@@ -430,19 +446,42 @@ export function BlogHistoryPanel<T = void>({
                       align="end"
                       className="min-w-40 rounded-xl motion-reduce:animate-none"
                     >
+                      {onPublish &&
+                        row.id === currentId &&
+                        !isLive &&
+                        (row.state === "draft" || (index === 0 && !publishedId)) && (
+                          <DropdownMenuItem
+                            className="min-h-10 rounded-md md:min-h-8"
+                            disabled={disabled}
+                            onClick={onPublish}
+                          >
+                            <GlobeIcon className="size-4 shrink-0" aria-hidden="true" />
+                            {labels.publishVersion}
+                          </DropdownMenuItem>
+                        )}
+                      {isLive && onUnpublish && (
+                        <DropdownMenuItem
+                          className="min-h-10 rounded-md md:min-h-8"
+                          disabled={disabled || dirty}
+                          onClick={onUnpublish}
+                        >
+                          <EyeOffIcon className="size-4 shrink-0" aria-hidden="true" />
+                          {labels.unpublish}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="min-h-10 rounded-md md:min-h-8"
-                        disabled={disabled}
-                        onClick={() => onCompare(row)}
+                        disabled={disabled || isLive}
+                        onClick={isWorking ? onCompareWorking : () => onCompare(row)}
                       >
                         <GitCompareArrowsIcon aria-hidden="true" />
                         {labels.compare}
                       </DropdownMenuItem>
-                      {onDelete && (
+                      {!isWorking && onDelete && (
                         <DropdownMenuItem
                           className="min-h-10 rounded-md md:min-h-8"
-                          variant={disabled || deleteDisabled || isLive ? "default" : "destructive"}
-                          disabled={disabled || deleteDisabled || isLive}
+                          variant={disabled || dirty || isLive ? "default" : "destructive"}
+                          disabled={disabled || dirty || isLive}
                           onClick={() => setDeleting(row)}
                         >
                           <Trash2Icon aria-hidden="true" />
@@ -471,7 +510,7 @@ export function BlogHistoryPanel<T = void>({
               ? labels.deleteDraft
               : `${labels.deleteVersion} ${blogHistoryLabel(deleting, labels)}`
           }
-          disabled={disabled || deleteDisabled || deleting.id === publishedId}
+          disabled={disabled || dirty || deleting.id === publishedId}
           onDelete={(requestId) => onDelete(deleting, requestId)}
           onDeleted={onDeleted}
           onClose={() => setDeleting(null)}
@@ -508,6 +547,7 @@ export function BlogHistoryReader({
   liveLabel,
   labels,
   categories,
+  onCompareToggle,
   onResume,
   onPublish,
   disabled,
@@ -517,19 +557,18 @@ export function BlogHistoryReader({
   formatDate = (iso) => new Date(iso).toLocaleString(),
   working = false,
   mode,
-  onModeChange,
 }: BlogsAppearanceProps & {
   version: BlogHistoryVersion;
   publication?: BlogPublication | null;
   liveLabel: string;
   labels: BlogsLabels;
   categories: BlogCategory[];
+  onCompareToggle?: () => void;
   onResume?: () => void;
   onPublish?: () => void;
   disabled: boolean;
   working?: boolean;
   mode: "read" | "compare";
-  onModeChange: (mode: "read" | "compare") => void;
 }) {
   const labelsId = `factory-blog-history-view-${useId()}`;
   const selectedLabel = working ? labels.unsavedDraft : blogHistoryLabel(version, labels);
@@ -599,67 +638,11 @@ export function BlogHistoryReader({
   return (
     <HistoryImageContext.Provider value={{ imageComponent, unavailable: labels.imageUnavailable }}>
       <section aria-labelledby={labelsId} className="flex min-w-0 flex-1 flex-col gap-6">
-        <header className="space-y-3">
-          <h2
-            id={labelsId}
-            aria-label={
-              mode === "compare" && publication
-                ? labels.comparisonTitle(liveLabel, selectedLabel)
-                : undefined
-            }
-            className="flex flex-wrap items-center gap-2 font-semibold"
-          >
-            <HistoryIcon className="size-4" aria-hidden="true" />
-            {mode === "compare" && publication ? (
-              <>
-                <span
-                  data-diff-side="before"
-                  className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1", removedTone)}
-                >
-                  <span aria-hidden="true">−</span>
-                  {liveLabel}
-                  {liveLabel !== labels.live && (
-                    <span className="font-normal">({labels.live})</span>
-                  )}
-                </span>
-                <span aria-hidden="true">→</span>
-                <span
-                  data-diff-side="after"
-                  className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1", addedTone)}
-                >
-                  <span aria-hidden="true">+</span>
-                  {selectedLabel}
-                </span>
-              </>
-            ) : (
-              selectedLabel
-            )}
-          </h2>
-          <p className="text-sm text-muted-foreground">{!working && labels.historyReadOnly}</p>
-        </header>
-        <fieldset className="flex flex-wrap items-center gap-2">
-          <legend className="sr-only">{labels.preview}</legend>
-          <button
-            type="button"
-            aria-pressed={mode === "read"}
-            className={mode === "read" ? primaryClass : outlineButtonClass}
-            disabled={disabled}
-            onClick={() => onModeChange("read")}
-          >
-            <FileTextIcon aria-hidden="true" />
-            {labels.read}
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "compare"}
-            className={mode === "compare" ? primaryClass : outlineButtonClass}
-            disabled={disabled}
-            onClick={() => onModeChange("compare")}
-          >
-            <GitCompareArrowsIcon aria-hidden="true" />
-            {labels.compare}
-          </button>
-        </fieldset>
+        <h2 id={labelsId} className="sr-only">
+          {mode === "compare" && publication
+            ? labels.comparisonTitle(liveLabel, selectedLabel)
+            : selectedLabel}
+        </h2>
         <dl className="grid gap-4 border-y border-border py-4 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">{labels.signature}</dt>
@@ -816,11 +799,30 @@ export function BlogHistoryReader({
             />
           </article>
         )}
-        <div className={cn(editorActionsClass, "mt-auto justify-start gap-2")}>
-          {onPublish && (
-            <button type="button" className={primaryClass} disabled={disabled} onClick={onPublish}>
-              {labels.publishVersion}
-            </button>
+        <div
+          className={cn(
+            editorActionsClass,
+            "mt-auto gap-2",
+            version.state === "publication" ? "justify-end" : "justify-start",
+          )}
+        >
+          {onCompareToggle && (
+            <IconTooltip label={labels.compare}>
+              <button
+                type="button"
+                className={cn(
+                  iconButtonClass,
+                  mode === "compare" &&
+                    "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+                )}
+                aria-label={labels.compare}
+                aria-pressed={mode === "compare"}
+                disabled={disabled}
+                onClick={onCompareToggle}
+              >
+                <GitCompareArrowsIcon aria-hidden="true" />
+              </button>
+            </IconTooltip>
           )}
           {onResume && (
             <button
@@ -831,6 +833,16 @@ export function BlogHistoryReader({
             >
               <PencilIcon aria-hidden="true" />
               {version.state === "draft" ? labels.continueDraft : labels.newReprise}
+            </button>
+          )}
+          {onPublish && (
+            <button
+              type="button"
+              className={cn(primaryClass, "ml-auto")}
+              disabled={disabled}
+              onClick={onPublish}
+            >
+              {labels.publishVersion}
             </button>
           )}
         </div>

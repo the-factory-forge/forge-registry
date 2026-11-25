@@ -11,6 +11,7 @@ export {
   MenuItemEditorPage,
   MenuTaxonomyPage,
   type MenuItemsPageProps,
+  type MenuItemEditorPageLoadingProps,
   type MenuItemEditorPageProps,
   type MenuTaxonomyPageProps,
 } from "@/components/plugins/menus/admin";

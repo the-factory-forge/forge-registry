@@ -4,7 +4,6 @@ import FullCalendar, { useCalendarController, type DatesSetInfo } from "@fullcal
 import classicTheme from "@fullcalendar/react/themes/classic";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import {
-  ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon,
@@ -15,6 +14,7 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { ComponentType } from "react";
 import { Temporal } from "temporal-polyfill";
 
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
@@ -770,10 +770,9 @@ export function ReservationNewPage({
   );
   return (
     <section className={cn(pageClass, className)}>
-      <HostLink className={buttonClass} href={backHref}>
-        <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+      <BackLink linkComponent={HostLink} href={backHref}>
         {labels.back}
-      </HostLink>
+      </BackLink>
       <h1 className="font-serif text-3xl font-semibold">{labels.newBooking}</h1>
       <ErrorNotice error={config.error} labels={labels} />
       {config.error ? (

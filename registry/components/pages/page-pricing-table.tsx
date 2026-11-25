@@ -4,15 +4,20 @@ import { useState } from "react";
 
 import { SectionHeading } from "@/components/section-heading";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import { type SectionVariant, sectionVariantClasses } from "@/components/utils/section-variants";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 
 export interface PricingItem {
+  id?: string;
   code?: string;
   name: string;
   description?: string;
   duration?: string;
+  durationMinutes?: number;
   price: string;
+  priceAmount?: number;
 }
 
 export const DEFAULT_PRICING_COLUMNS = {
@@ -23,7 +28,10 @@ export const DEFAULT_PRICING_COLUMNS = {
   price: "Price",
 };
 
-export interface PricingTableProps {
+type PricingField = keyof typeof DEFAULT_PRICING_COLUMNS;
+const pricingFields = Object.keys(DEFAULT_PRICING_COLUMNS) as PricingField[];
+const serviceOrder = { field: "name", direction: "asc" } as const;
+export interface PricingTableProps extends TableSortProps<PricingField> {
   searchLabel?: string;
   clearSearchLabel?: string;
   emptyMessage?: string;
@@ -51,6 +59,7 @@ export function PricingTable({
   columns,
   variant = "default",
   className,
+  ...sortProps
 }: PricingTableProps) {
   const [search, setSearch] = useState("");
   const filteredItems = items.filter((item) =>
@@ -63,6 +72,35 @@ export function PricingTable({
   const hasDuration = items.some((i) => i.duration);
   const hasDescription = items.some((i) => i.description);
 
+  const fields = pricingFields.filter((field) =>
+    field === "code"
+      ? hasCode
+      : field === "duration"
+        ? hasDuration
+        : field === "description"
+          ? hasDescription
+          : true,
+  );
+  const order = useTableSort<PricingField>(
+    sortProps,
+    serviceOrder,
+    (field) => fields.includes(field),
+    { owner: "page-pricing-table", key: "pricing", fields: pricingFields },
+  );
+  const selected = order.value ?? serviceOrder;
+  const numericPrice =
+    selected.field === "price" &&
+    items.every((item) => !item.price || item.priceAmount !== undefined);
+  const numericDuration =
+    selected.field === "duration" &&
+    items.every((item) => !item.duration || item.durationMinutes !== undefined);
+  const sortedItems = sortTableRows(
+    filteredItems,
+    selected,
+    (item, field) =>
+      numericPrice ? item.priceAmount : numericDuration ? item.durationMinutes : item[field],
+    (item) => item.id ?? item.code ?? item.name,
+  );
   return (
     <section
       className={cn(
@@ -86,24 +124,27 @@ export function PricingTable({
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b-2 border-secondary">
-                {hasCode && (
-                  <th className="px-4 py-3 font-semibold text-foreground">{cols.code}</th>
-                )}
-                <th className="px-4 py-3 font-semibold text-foreground">{cols.name}</th>
-                {hasDescription && (
-                  <th className="hidden px-4 py-3 font-semibold text-foreground md:table-cell">
-                    {cols.description}
-                  </th>
-                )}
-                {hasDuration && (
-                  <th className="px-4 py-3 font-semibold text-foreground">{cols.duration}</th>
-                )}
-                <th className="px-4 py-3 text-right font-semibold text-foreground">{cols.price}</th>
+                {fields.map((field) => (
+                  <TableSortHeader
+                    key={field}
+                    {...order}
+                    field={field}
+                    label={cols[field]}
+                    className={cn(
+                      "px-4 py-3 font-semibold text-foreground",
+                      field === "description" && "hidden md:table-cell",
+                      field === "price" && "text-right",
+                    )}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredItems.map((item) => (
-                <tr key={item.name} className="transition-colors hover:bg-muted/50">
+              {sortedItems.map((item) => (
+                <tr
+                  key={item.id ?? item.code ?? item.name}
+                  className="transition-colors hover:bg-muted/50"
+                >
                   {hasCode && (
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {item.code}

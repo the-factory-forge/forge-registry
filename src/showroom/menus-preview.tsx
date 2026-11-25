@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { createMenusAgentOperation } from "@/components/connectors/agents-menus/server";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -37,7 +38,9 @@ import {
   type MenuLabel,
   type MenusClient,
 } from "@/components/plugins/menus";
+import { MENU_SORT_FIELDS } from "@/components/plugins/menus/admin";
 import {
+  localized,
   nextWeekDates,
   placeMenuItems,
   reorderMenuItems,
@@ -47,7 +50,10 @@ import {
 } from "@/components/plugins/menus/model";
 import { MenuConfirmation } from "@/components/plugins/menus/ui";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { useShowroomDriveOrder } from "@/showroom/drive-preview";
 import { PluginWebMcp } from "@/showroom/plugin-webmcp";
+import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
+import { useShowroomTableSort } from "@/showroom/routing";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -679,12 +685,12 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
               </ul>
             )}
             <Link href={`/${locale}/admin/menus/items`}>Item list</Link>
-            <Link href="/fr/menus">French menu</Link>
           </>
         }
         controls={
           <>
-            {current === "items" && (
+            <PreviewLanguageSwitcher languages={locales.map(({ code }) => code)} />
+            {(current === "items" || mock.items.some(({ id }) => id === segments.at(-1))) && (
               <div className="grid gap-2">
                 <label htmlFor="factory-menu-directory-state">Directory state</label>
                 <NativeSelect
@@ -834,6 +840,8 @@ function FlatPublicPreview() {
 }
 
 export function MenuAdminPreview() {
+  const driveOrder = useShowroomDriveOrder();
+  const order = useShowroomTableSort("menuItems", MENU_SORT_FIELDS);
   const mock = useMock();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const listState = mock.listState;
@@ -994,7 +1002,9 @@ export function MenuAdminPreview() {
       <div className="showroom-page space-y-4">
         {menu && (
           <div>
-            <Link href={backHref}>Back to menu</Link>
+            <BackLink linkComponent={Link} href={backHref}>
+              Back to menu
+            </BackLink>
             <h1 className="mt-3 text-2xl font-semibold">Preview menu</h1>
             <p className="text-sm text-muted-foreground">Private preview of the saved menu.</p>
           </div>
@@ -1050,7 +1060,7 @@ export function MenuAdminPreview() {
                 printPreview: "Aperçu du menu à imprimer",
                 emptyPrintMenu:
                   "Aucun plat visible à imprimer. Rendez d'abord un plat visible dans la gestion du menu.",
-                back: "Retour aux plats",
+                back: "Plats",
                 soldOut: "Épuisé",
                 mildSpice: "Peu épicé",
                 mediumSpice: "Épicé",
@@ -1073,6 +1083,7 @@ export function MenuAdminPreview() {
         labels={
           id === "labels"
             ? {
+                back: "Menus",
                 allergensAndPreferences: "Allergens and preferences",
                 dietary: "Dietary preferences",
               }
@@ -1082,6 +1093,22 @@ export function MenuAdminPreview() {
         className="showroom-page"
       />
     );
+  const editorAppearance = {
+    backHref,
+    baseLocale,
+    className: "showroom-page",
+    currency: "CHF",
+    currencyLabel: menu?.currencyLabel,
+    labels: menu
+      ? { back: localized(menu.translations, locale, baseLocale).name }
+      : unassigned
+        ? { back: "Menus" }
+        : undefined,
+    linkComponent: Link,
+    locales,
+  };
+  if (item && listState === "loading")
+    return <MenuItemEditorPage {...editorAppearance} item={null} />;
   if (id === "new" || item)
     return (
       <>
@@ -1100,17 +1127,12 @@ export function MenuAdminPreview() {
           visibleOnCreate={scoped}
           initialCategoryId={typeof query.category === "string" ? query.category : undefined}
           displayLocale={scoped ? locale : undefined}
-          currencyLabel={menu?.currencyLabel}
+          {...editorAppearance}
           photoSettingsHref={menu && menu.kind !== "weekly" ? `${base}/settings` : undefined}
           labelsData={mock.labels}
-          locales={locales}
-          baseLocale={baseLocale}
-          currency="CHF"
-          backHref={backHref}
           labelsHref={`${directory}/${scoped || unassigned ? "labels" : "taxonomy"}`}
-          linkComponent={Link}
-          className="showroom-page"
           driveClient={driveClient}
+          driveOrder={driveOrder}
           driveTransfer={mock.drive.transfer}
           photoFolderId={typeof query.folder === "string" ? query.folder : null}
           getFolderHref={(folderId) => `${base}/${id}${folderId ? `?folder=${folderId}` : ""}`}
@@ -1145,6 +1167,7 @@ export function MenuAdminPreview() {
   if (id !== "items") return <p role="alert">Menu item not found.</p>;
   return (
     <MenuItemsPage
+      {...order}
       client={listClient}
       baseLocale={baseLocale}
       newHref={`${base}/new`}

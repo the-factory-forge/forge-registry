@@ -3,7 +3,7 @@ import { after, before, test, suite } from "node:test";
 
 import { actionToast } from "./action-toast-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
-import { openPreviewControls } from "./showroom-helpers.mjs";
+import { openPreviewControls, switchPreviewLanguage } from "./showroom-helpers.mjs";
 
 await suite("Reservations browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3215";
@@ -207,9 +207,13 @@ await suite("Reservations browser", async () => {
     await page.getByRole("link", { name: "Settings", exact: true }).click();
     await page.getByRole("link", { name: "Edit Alex", exact: true }).click();
     await page.getByLabel("Date", { exact: true }).fill(date);
-    await page.getByRole("button", { name: "Add date", exact: true }).click();
+    const addDate = page.getByRole("button", { name: "Add date", exact: true });
+    assert.equal(await addDate.innerText(), "Date");
+    await addDate.click();
     const exception = page.getByRole("group", { name: date, exact: true });
-    await exception.getByRole("button", { name: "Add interval", exact: true }).click();
+    const addInterval = exception.getByRole("button", { name: "Add interval", exact: true });
+    assert.equal(await addInterval.innerText(), "Interval");
+    await addInterval.click();
     await exception.getByLabel("Start", { exact: true }).fill("10:00");
     await exception.getByLabel("End", { exact: true }).fill("11:00");
     await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -489,7 +493,8 @@ await suite("Reservations browser", async () => {
       true,
     );
     await page.screenshot({ path: "/tmp/reservations-mobile.png", fullPage: true });
-    await page.getByRole("link", { name: "Français", exact: true }).click();
+    await switchPreviewLanguage(page, "Français");
+    await page.getByRole("link", { name: "Public booking", exact: true }).click();
     await page.getByRole("heading", { name: "Réserver un rendez-vous" }).waitFor();
     await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     assert.equal(await page.getByRole("button", { name: "Vérifier la réservation" }).count(), 1);
@@ -617,6 +622,26 @@ await suite("Reservations browser", async () => {
     await page.getByRole("link", { name: "Settings", exact: true }).click();
     assert.equal(await archiveResource.isDisabled(), true);
     assert.equal(await archiveService.isDisabled(), true);
+  });
+
+  await test("French resource editors name each plus button and show its object", async (t) => {
+    const page = await preview(t, "/fr/admin/reservations/settings/resources/new", {
+      viewport: { width: 390, height: 844 },
+    });
+    const monday = page.getByRole("group", { name: "Lundi", exact: true });
+    assert.equal(
+      await monday.getByRole("button", { name: "Ajouter une plage", exact: true }).innerText(),
+      "Plage",
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Ajouter une date", exact: true }).innerText(),
+      "Date",
+    );
+    await page.getByRole("combobox", { name: "Example", exact: true }).selectOption("apartment");
+    assert.equal(
+      await page.getByRole("button", { name: "Ajouter une fermeture", exact: true }).innerText(),
+      "Fermeture",
+    );
   });
 
   await test("settings list archive actions work in French, dark mode and stay mode on mobile", async (t) => {
@@ -944,7 +969,9 @@ await suite("Reservations browser", async () => {
       await page.getByRole("heading", { name: "Weekly working hours", exact: true }).count(),
       0,
     );
-    await page.getByRole("button", { name: "Add closure", exact: true }).click();
+    const addClosure = page.getByRole("button", { name: "Add closure", exact: true });
+    assert.equal(await addClosure.innerText(), "Closure");
+    await addClosure.click();
     await page.getByLabel("Blocked from", { exact: true }).fill(addDays(1));
     await page.getByLabel("Blocked through (inclusive)", { exact: true }).fill(addDays(2));
     await page.getByRole("button", { name: "Save", exact: true }).click();

@@ -115,7 +115,7 @@ void test("document exits warn while dirty; confirmed link navigation avoids a s
   await page.shell.evaluate(() => location.reload());
   await warning;
   assert.equal(await name(page).inputValue(), "Keep through reload");
-  await page.getByRole("link", { name: "Back to items", exact: true }).click();
+  await page.getByRole("link", { name: "Items", exact: true }).click();
   await dialog(page).getByRole("button", { name: "Discard changes", exact: true }).click();
   await page.getByRole("heading", { name: "Menu items", exact: true }).waitFor();
   assert.deepEqual(warnings, ["beforeunload"]);
@@ -132,7 +132,7 @@ void test("Back during an ordinary save stays put until persistence completes", 
     assert.equal(await dialog(page).count(), 0);
     assert.equal(await name(page).inputValue(), "Saved with pending Back");
     assert.notEqual(new URL(page.url()).pathname, directory);
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     await page.getByRole("heading", { name: "Menu items", exact: true }).waitFor();
     assert.equal(await dialog(page).count(), 0);
   }

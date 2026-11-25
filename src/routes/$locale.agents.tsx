@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+import { BackArrow, backLinkClass } from "@/components/back-link";
 import { createAgentConversationsOperation } from "@/components/connectors/agents-conversations/server";
 import { AgentsPage } from "@/components/plugins/agents";
 import { createAgentsMock } from "@/showroom/agents-mock";
@@ -162,11 +163,8 @@ function SampleRecord({
             : (record?.name ?? "This sample record is unavailable.")}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="min-h-10 cursor-pointer rounded-md border border-border px-3 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
-      >
+      <button type="button" onClick={onClose} className={backLinkClass}>
+        <BackArrow />
         Back to chat
       </button>
     </section>

@@ -182,7 +182,7 @@ await suite("Menu print browser", async () => {
         .evaluate((element) => element === document.activeElement),
       true,
     );
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     await page.getByRole("link", { name: "Print menu", exact: true }).click();
     assert.equal(await page.getByLabel("Menu title", { exact: true }).inputValue(), "Menu");
     assert.equal(await page.getByLabel("Footer text (optional)", { exact: true }).inputValue(), "");
@@ -242,7 +242,7 @@ await suite("Menu print browser", async () => {
       );
     }
     await printedFrame(page);
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     assert.equal(await page.locator("[data-menu-print-frame]").count(), 0);
   });
 
@@ -268,13 +268,13 @@ await suite("Menu print browser", async () => {
       .evaluate((image) => image.remove());
     await printedFrame(page);
     assert.equal(await page.getByRole("alert").count(), 0);
-    await page.getByRole("link", { name: "Back to items", exact: true }).click();
+    await page.getByRole("link", { name: "Items", exact: true }).click();
     for (const dish of ["Burrata with tomatoes", "House pasta"]) {
       await page.getByRole("link", { name: `Edit item: ${dish}`, exact: true }).click();
       await page.getByRole("checkbox", { name: "Visible on menu", exact: true }).uncheck();
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await actionToast(page, "Saved.");
-      await page.getByRole("link", { name: "Back to items", exact: true }).click();
+      await page.getByRole("link", { name: "Items", exact: true }).click();
     }
     await page.getByRole("link", { name: "Print menu", exact: true }).click();
     await page.getByRole("status").filter({ hasText: "There are no visible dishes" }).waitFor();

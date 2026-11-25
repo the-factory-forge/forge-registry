@@ -82,7 +82,7 @@ void test("optional employee photos crop to WebP and preserve the editor on inva
   const editor = page.getByRole("dialog", { name: "Edit employee", exact: true });
   await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Unsaved employee name");
   const field = editor.getByLabel("Employee photo", { exact: true });
-  const choosePhoto = editor.getByRole("button", { name: "Choose photo", exact: true });
+  const choosePhoto = editor.getByRole("button", { name: "Photo", exact: true });
   await choosePhoto.focus();
   const [chooser] = await Promise.all([
     page.waitForEvent("filechooser"),

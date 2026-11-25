@@ -1,42 +1,55 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowLeftIcon, CircleHelpIcon, EyeIcon, PlusIcon, XIcon } from "lucide-react";
+import { Toast } from "@base-ui/react/toast";
+import { CircleHelpIcon, EyeIcon, PlusIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link, type LinkProps } from "@/components/link";
-import { useLoadingActivity } from "@/components/loading-indicator";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
 import { SupportComposer } from "@/components/plugins/supports/composer";
 import {
   supportTypeShortLabels,
   supportsLabels,
   type SupportsLabels,
 } from "@/components/plugins/supports/labels";
-import { SUPPORT_PAGE_SIZE } from "@/components/plugins/supports/schema";
+import {
+  SUPPORT_DEFAULT_SORT,
+  SUPPORT_SORT_FIELDS,
+  SUPPORT_PAGE_SIZE,
+  supportSortSchema,
+  type SupportColumnSort,
+} from "@/components/plugins/supports/schema";
 import type {
   SupportActivity,
+  SupportSort,
   SupportTicket,
   SupportsClient,
 } from "@/components/plugins/supports/types";
 import {
   SupportAttachments,
   SupportMarkdown,
+  SupportPrioritySelect,
   SupportStatusBadge,
   SupportTypeBadge,
   buttonClass,
+  inputClass,
+  isSelectablePriority,
   primaryClass,
   supportError,
 } from "@/components/plugins/supports/ui";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import {
   tablePanelClass,
   tableClass,
-  tableHeaderClass,
   tableRowClass,
+  tableHeaderClass,
   tableCellClass,
   tableActionCellClass,
   tableActionHeaderClass,
@@ -47,6 +60,7 @@ import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
 export type * from "./types";
 export type { SupportsLabels } from "./labels";
 export { supportsLabels } from "./labels";
+export { SUPPORT_DEFAULT_SORT, SUPPORT_SORT_FIELDS } from "./schema";
 interface Appearance {
   className?: string;
   labels?: Partial<SupportsLabels>;
@@ -123,10 +137,14 @@ export function SupportCreateDialog({
 }
 export interface SupportsPageProps extends Appearance {
   client: SupportsClient;
+  renderStatus?: (ticketId: string) => ReactNode;
   tickets: readonly SupportTicket[];
   total: number;
   search: string;
   page: number;
+  sort?: SupportSort;
+  onSortChange?: TableSortProps<SupportColumnSort["field"]>["onSortChange"];
+  sortStorageKey?: string;
   onSearchChange: (search: string) => void;
   onPageChange: (page: number) => void;
   getTicketHref: (ticket: SupportTicket) => string;
@@ -135,13 +153,18 @@ export interface SupportsPageProps extends Appearance {
   loading?: boolean;
   error?: boolean;
   onRetry?: () => void;
+  onRefresh?: () => void;
 }
 function SupportsContent({
   client,
+  renderStatus,
   tickets,
   total,
   search,
   page,
+  sort,
+  onSortChange,
+  sortStorageKey,
   onSearchChange,
   onPageChange,
   getTicketHref,
@@ -150,6 +173,7 @@ function SupportsContent({
   loading,
   error,
   onRetry,
+  onRefresh,
   labels: overrides,
   linkComponent: TicketLink = Link,
   formatDate = formatDateDefault,
@@ -157,7 +181,25 @@ function SupportsContent({
 }: SupportsPageProps) {
   const labels = { ...supportsLabels, ...overrides };
   const toast = useActionToast();
-  const scope = useMemo(() => ({ client, search, page }), [client, search, page]);
+  const order = useTableSort<SupportColumnSort["field"]>(
+    {
+      sort: supportSortSchema.safeParse(sort).data,
+      onSortChange,
+      sortStorageKey,
+      sortLabels: labels,
+    },
+    SUPPORT_DEFAULT_SORT,
+    undefined,
+    onSortChange
+      ? { owner: "supports", key: "queue", legacyKey: "supports", fields: SUPPORT_SORT_FIELDS }
+      : undefined,
+  );
+  const activeSort = order.value ?? SUPPORT_DEFAULT_SORT;
+  const { field, direction } = activeSort;
+  const scope = useMemo(
+    () => ({ client, search, page, field, direction }),
+    [client, search, page, field, direction],
+  );
   const cancellation = useOptimisticAction(tickets, scope);
   useLoadingActivity(Boolean(loading));
   return (
@@ -175,6 +217,19 @@ function SupportsContent({
             clearLabel={labels.clearSearch}
             maxLength={250}
           />
+          {onRefresh && (
+            <IconTooltip label={labels.refresh}>
+              <button
+                type="button"
+                aria-label={labels.refresh}
+                disabled={loading}
+                className={cn(buttonClass, "size-10 rounded-md p-0 md:size-8")}
+                onClick={onRefresh}
+              >
+                <RefreshCwIcon className="size-4" aria-hidden="true" />
+              </button>
+            </IconTooltip>
+          )}
           <SupportCreateDialog client={client} labels={labels} onCreated={onCreated} />
         </div>
       </header>
@@ -183,13 +238,33 @@ function SupportsContent({
           <table className={tableClass}>
             <thead>
               <tr>
-                {[labels.ticketTitle, labels.status, labels.author, labels.updated].map(
-                  (label, index) => (
-                    <th key={index} scope="col" className={tableHeaderClass}>
-                      {label}
-                    </th>
-                  ),
-                )}
+                {(
+                  [
+                    ["title", labels.ticketTitle],
+                    ["status", labels.status],
+                    ["priority", labels.priority],
+                    ["author", labels.author],
+                    ["updatedAt", labels.updated],
+                  ] as const
+                ).map(([column, label]) => {
+                  if (column === "priority") {
+                    return client.setPriority ? (
+                      <th key={column} scope="col" className={tableHeaderClass}>
+                        {label}
+                      </th>
+                    ) : null;
+                  }
+
+                  return (
+                    <TableSortHeader
+                      key={column}
+                      field={column}
+                      label={label}
+                      {...order}
+                      onValueChange={onSortChange ? order.onValueChange : undefined}
+                    />
+                  );
+                })}
                 <th scope="col" className={tableActionHeaderClass}>
                   <span className="sr-only">{labels.actions}</span>
                 </th>
@@ -198,7 +273,7 @@ function SupportsContent({
             <tbody>
               {cancellation.error && (
                 <tr>
-                  <td colSpan={5} className="p-4">
+                  <td colSpan={client.setPriority ? 6 : 5} className="p-4">
                     <p role="alert" className="text-destructive">
                       {supportError(cancellation.error, {
                         ...labels,
@@ -210,7 +285,7 @@ function SupportsContent({
               )}
               {error && (
                 <tr>
-                  <td colSpan={5} className="p-4">
+                  <td colSpan={client.setPriority ? 6 : 5} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <p role="alert" className="text-destructive">
                         {labels.loadError}
@@ -226,7 +301,10 @@ function SupportsContent({
               )}
               {!tickets.length && !error && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={client.setPriority ? 6 : 5}
+                    className="p-8 text-center text-muted-foreground"
+                  >
                     <output>{loading ? labels.loading : labels.empty}</output>
                   </td>
                 </tr>
@@ -245,8 +323,19 @@ function SupportsContent({
                     </TicketLink>
                   </td>
                   <td className={tableCellClass}>
-                    <SupportStatusBadge status={ticket.status} labels={labels} />
+                    {renderStatus?.(ticket.id) ?? (
+                      <SupportStatusBadge status={ticket.status} labels={labels} />
+                    )}
                   </td>
+                  {client.setPriority && (
+                    <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                      {isSelectablePriority(ticket.priority) ? (
+                        labels[ticket.priority]
+                      ) : (
+                        <span className="text-muted-foreground">{labels.noPriority}</span>
+                      )}
+                    </td>
+                  )}
                   <td className={tableCellClass}>{ticket.author.name}</td>
                   <td className={cn(tableCellClass, "whitespace-nowrap tabular-nums")}>
                     <time dateTime={ticket.updatedAt}>{formatDate(ticket.updatedAt)}</time>
@@ -327,6 +416,8 @@ export function SupportsPage(props: SupportsPageProps) {
 }
 export interface SupportDetailPageProps extends Appearance {
   integrationContent?: ReactNode;
+  attachmentNote?: string;
+  statusBadge?: ReactNode;
   client: SupportsClient;
   ticket: SupportTicket;
   activity: readonly SupportActivity[];
@@ -336,25 +427,31 @@ export interface SupportDetailPageProps extends Appearance {
   loading?: boolean;
   error?: boolean;
 }
+export type SupportDetailPageLoadingProps = Pick<
+  SupportDetailPageProps,
+  "backHref" | "className" | "labels" | "linkComponent"
+> & { ticket: null };
+
 function DetailContent({
   integrationContent,
+  attachmentNote,
+  statusBadge,
   client,
   ticket,
   activity,
-  backHref,
   onChanged,
   onLoadMore,
   loading,
   error,
   labels: overrides,
-  linkComponent: TicketLink = Link,
   formatDate = formatDateDefault,
-  className,
 }: SupportDetailPageProps) {
   const labels = { ...supportsLabels, ...overrides };
   const toast = useActionToast();
   const scope = useMemo(() => ({ client, id: ticket.id }), [client, ticket.id]);
   const status = useOptimisticAction(ticket.status, scope);
+  const notifications = Toast.useToastManager();
+  const priority = useOptimisticAction(ticket.priority ?? null, scope);
   const [closeScope, setCloseScope] = useState<typeof scope | null>(null);
   const statusButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
@@ -376,7 +473,7 @@ function DetailContent({
   }
   useLoadingActivity(Boolean(loading));
   return (
-    <article className={cn("mx-auto max-w-4xl min-w-0 text-foreground", className)}>
+    <>
       <SupportComposer
         key={ticket.id}
         client={client}
@@ -398,20 +495,37 @@ function DetailContent({
           </button>
         }
       >
-        <TicketLink href={backHref} className={buttonClass}>
-          <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
-          {labels.back}
-        </TicketLink>
         <header className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <h1 className="min-w-0 text-2xl font-semibold break-words">{ticket.title}</h1>
-            <SupportStatusBadge status={status.value} labels={labels} />
+            {statusBadge ?? <SupportStatusBadge status={status.value} labels={labels} />}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <SupportTypeBadge type={ticket.type} labels={labels} />
             <span>{ticket.author.name}</span>
             <time dateTime={ticket.createdAt}>{formatDate(ticket.createdAt)}</time>
           </div>
+          {client.setPriority && (
+            <div className="w-fit max-w-full">
+              <SupportPrioritySelect
+                value={priority.value}
+                disabled={priority.pending}
+                labels={labels}
+                onChange={(next) => {
+                  void priority
+                    .run(
+                      () => next,
+                      () => client.setPriority!(ticket.id, next).finally(onChanged),
+                      () => toast(labels.prioritySaved),
+                    )
+                    .catch(() => {
+                      if (priority.isCurrent())
+                        notifications.add({ title: labels.priorityError, type: "error" });
+                    });
+                }}
+              />
+            </div>
+          )}
         </header>
         {integrationContent}
         {status.error && !confirming && (
@@ -430,7 +544,12 @@ function DetailContent({
           </div>
         )}
         <SupportMarkdown value={ticket.description} />
-        <SupportAttachments files={ticket.attachments} client={client} labels={labels} />
+        <SupportAttachments
+          files={ticket.attachments}
+          client={client}
+          labels={labels}
+          note={attachmentNote}
+        />
         <section className="space-y-5 border-t border-border pt-5" aria-label={labels.discussion}>
           <h2 className="text-lg font-semibold">{labels.discussion}</h2>
           {!activity.length && <p className="text-sm text-muted-foreground">{labels.noActivity}</p>}
@@ -456,7 +575,12 @@ function DetailContent({
                   </time>
                 </div>
                 {entry.body && <SupportMarkdown value={entry.body} />}
-                <SupportAttachments files={entry.attachments} client={client} labels={labels} />
+                <SupportAttachments
+                  files={entry.attachments}
+                  client={client}
+                  labels={labels}
+                  note={attachmentNote}
+                />
               </li>
             ))}
           </ol>
@@ -524,13 +648,41 @@ function DetailContent({
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-    </article>
+    </>
   );
 }
-export function SupportDetailPage(props: SupportDetailPageProps) {
+export function SupportDetailPage(props: SupportDetailPageProps | SupportDetailPageLoadingProps) {
+  const labels = { ...supportsLabels, ...props.labels };
+  useLoadingActivity(props.ticket === null);
   return (
     <ActionToastProvider closeLabel={props.labels?.close}>
-      <DetailContent key={props.ticket.id} {...props} />
+      <article
+        className={cn("mx-auto max-w-4xl min-w-0 space-y-6 text-foreground", props.className)}
+      >
+        <BackLink linkComponent={props.linkComponent ?? Link} href={props.backHref}>
+          {labels.back}
+        </BackLink>
+        {props.ticket === null ? (
+          <>
+            <header className="space-y-3">
+              <div className="flex min-h-8 items-start justify-between gap-3">
+                <LoadingSkeleton className="my-1 h-6 w-64 max-w-3/5" />
+                <LoadingBadge label={labels.loading} />
+              </div>
+              <LoadingSkeleton className="h-5 w-48 max-w-full" />
+            </header>
+            <div aria-busy="true" className="space-y-6">
+              <LoadingSkeleton className="h-12 w-full" />
+              <label className="block space-y-2 text-sm font-medium">
+                <span>{labels.reply}</span>
+                <textarea disabled className={cn(inputClass, "min-h-32 resize-y")} />
+              </label>
+            </div>
+          </>
+        ) : (
+          <DetailContent key={props.ticket.id} {...props} />
+        )}
+      </article>
     </ActionToastProvider>
   );
 }

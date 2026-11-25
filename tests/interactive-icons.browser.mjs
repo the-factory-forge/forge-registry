@@ -142,6 +142,30 @@ void test("navigation arrows respond to intent and stay still when disabled or m
   await translate(back.locator("svg"), "-2px");
 });
 
+void test("blog return links share the header arrow on hover and keyboard focus", async (t) => {
+  for (const width of [1280, 390]) {
+    const page = await preview(t, "/en/admin/blogs/b1000000-0000-4000-8000-000000000001", {
+      viewport: { width, height: 900 },
+    });
+    const back = page.getByRole("link", { name: "Posts", exact: true });
+    const arrow = back.locator(".lucide-arrow-left[aria-hidden=true]");
+    assert.equal(await arrow.isVisible(), true);
+    const bounds = await back.boundingBox();
+    await back.hover();
+    await translate(arrow, "-2px");
+    assert.deepEqual(await back.boundingBox(), bounds);
+    await page.mouse.move(0, 0);
+    await translate(arrow, "none");
+    await page.keyboard.press("Tab");
+    await back.focus();
+    await translate(arrow, "-2px");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await translate(arrow, "none");
+    await page.keyboard.press("Enter");
+    await page.waitForURL("**/en/admin/blogs");
+  }
+});
+
 void test("whole blog cards link to articles and animate arrows on hover and keyboard focus", async (t) => {
   for (const width of [1440, 390])
     for (const dark of [false, true]) {

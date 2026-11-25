@@ -1,5 +1,6 @@
 "use client";
 
+import { LoaderCircleIcon } from "lucide-react";
 import {
   createContext,
   useCallback,
@@ -34,6 +35,24 @@ export function useLoadingActivity(loading: boolean) {
   useEffect(() => {
     if (loading) return store?.start();
   }, [loading, store]);
+}
+
+export function LoadingBadge({ label }: { label: string }) {
+  return (
+    <output className="inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-full bg-status-not-started px-2 py-0.5 text-xs font-medium text-status-not-started-foreground">
+      <LoaderCircleIcon aria-hidden="true" className="size-3 shrink-0 motion-safe:animate-spin" />
+      {label}
+    </output>
+  );
+}
+
+export function LoadingSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn("rounded bg-foreground/15 motion-safe:animate-pulse", className)}
+    />
+  );
 }
 
 /** Track imperative actions too, including promises that resolve before a render. */
@@ -84,7 +103,7 @@ function ActivityBar({
       data-state={state}
       hidden={state === "idle"}
       className={cn(
-        "pointer-events-none fixed inset-x-0 top-0 z-[1100] h-1 overflow-hidden bg-primary/20 print:hidden",
+        "pointer-events-none fixed inset-x-0 top-0 z-45 h-1 overflow-hidden bg-primary/20 print:hidden",
         className,
       )}
     >

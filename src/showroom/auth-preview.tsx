@@ -1,4 +1,5 @@
 "use client";
+import { Toast } from "@base-ui/react/toast";
 import { useState } from "react";
 
 import {
@@ -21,11 +22,18 @@ const destinations = [
   ["account", "Account and security"],
   ["access-denied", "Access denied"],
 ];
-export function AuthPreview({ view = "login" }: { view?: View }) {
-  return <Preview key={view} view={view} />;
+export function AuthPreview({
+  view = "login",
+  defaultEmail,
+}: {
+  view?: View;
+  defaultEmail?: string;
+}) {
+  return <Preview key={view} view={view} defaultEmail={defaultEmail} />;
 }
-function Preview({ view }: { view: View }) {
+function Preview({ view, defaultEmail }: { view: View; defaultEmail?: string }) {
   const { locale } = useShowroomParams();
+  const { add } = Toast.useToastManager();
   const [fail, setFail] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [validLink, setValidLink] = useState(true);
@@ -174,12 +182,17 @@ function Preview({ view }: { view: View }) {
               }}
               onGoogleSignIn={async () => {
                 await perform();
-                setNotice("Google sign-in callback received. No provider was contacted.");
+                add({
+                  title: "Google sign-in callback received. No provider was contacted.",
+                  type: "info",
+                });
               }}
             />
           )}
           {view === "forgot-password" && (
             <ForgotPasswordForm
+              key={defaultEmail}
+              defaultEmail={defaultEmail}
               enabled={enabled}
               loginHref={`/${locale}/login`}
               linkComponent={ShowroomLink}

@@ -40,6 +40,7 @@ await test("projects installs customers without creating a reverse dependency or
   const item = manifest.items.find((entry) => entry.name === "projects");
   assert.equal(item.type, "registry:block");
   assert.deepEqual(item.registryDependencies, [
+    "@forge/back-link",
     "@forge/customers",
     "@forge/cn",
     "@forge/ui-shims",
@@ -54,6 +55,7 @@ await test("projects installs customers without creating a reverse dependency or
     "@forge/record-deletion",
     "@forge/loading-indicator",
     "@forge/dialog-submit",
+    "@forge/table-sort",
   ]);
   assert.deepEqual(item.dependencies, ["@base-ui/react", "lucide-react"]);
   const customersItem = manifest.items.find((entry) => entry.name === "customers");

@@ -19,7 +19,7 @@ const cases = [
     name: "blog categories",
     directory: "/en/admin/blogs",
     route: "/en/admin/blogs/categories",
-    link: "Manage categories",
+    link: "Categories",
     heading: "Blog posts",
     original: "Ideas & practice",
     save: "Save category",
@@ -36,7 +36,7 @@ const cases = [
   },
   {
     name: "menu labels",
-    directory: "/en/admin/menus",
+    directory: "/en/admin/menus/items",
     route: "/en/admin/menus/taxonomy",
     link: "Categories / Labels",
     heading: "Menu items",

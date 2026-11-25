@@ -90,6 +90,7 @@ void test("standalone blog saves its draft with the keyboard", async (t) => {
   t.after(() => page.close());
   await page.goto(`${baseURL}/en/admin/blogs/b1000000-0000-4000-8000-000000000004`);
   const title = page.getByRole("textbox", { name: "Title", exact: true });
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await title.fill("Shortcut draft");
   await title.press("Control+Enter");
   await actionToast(page, "Draft saved.");

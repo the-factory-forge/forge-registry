@@ -1,22 +1,28 @@
 "use client";
 
-import { ArrowLeftIcon, FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
+import { FolderKanbanIcon, PencilIcon, PlusIcon, UserRoundIcon } from "lucide-react";
 import { useRef } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
-import { useLoadingActivity } from "@/components/loading-indicator";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
 import { CustomerForm } from "@/components/plugins/customers/customer-form";
 import { customerLabels } from "@/components/plugins/customers/labels";
+import {
+  CUSTOMER_SORT_FIELDS,
+  customerDefaultSort,
+  type CustomerSortField,
+} from "@/components/plugins/customers/types";
 import type {
+  CustomerDetailPageLoadingProps,
   CustomerDetailPageProps,
   CustomerNewPageProps,
   CustomerSection,
   CustomersPageProps,
 } from "@/components/plugins/customers/types";
 import {
-  buttonClass,
   cardClass,
   CustomerActionButton,
   CustomerAvatar,
@@ -32,7 +38,9 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -51,6 +59,7 @@ export type {
   CustomerCreateValues,
   CustomerSection,
   CustomersPageProps,
+  CustomerDetailPageLoadingProps,
   CustomerDetailPageProps,
   CustomerNewPageProps,
 } from "@/components/plugins/customers/types";
@@ -74,9 +83,16 @@ function CustomersPageContent({
   className,
   labels: overrides,
   linkComponent: CustomerLink = Link,
+  ...sortProps
 }: CustomersPageProps) {
   useLoadingActivity(loading);
   const labels = { ...customerLabels, ...overrides };
+  const order = useTableSort<CustomerSortField>(
+    sortProps,
+    customerDefaultSort,
+    (field) => field !== "sync" || !!syncColumn?.sortValue,
+    { owner: "customers", key: "directory", legacyKey: "customers", fields: CUSTOMER_SORT_FIELDS },
+  );
   const optimistic = useOptimisticAction(suppliedCustomers);
   const root = useRef<HTMLElement>(null);
   const deletion = useRecordDeletion({
@@ -90,7 +106,23 @@ function CustomersPageContent({
     returnFocus: root,
     className: "max-w-md",
   });
-  const customers = deletion.items;
+  const customers = sortTableRows(
+    deletion.items,
+    order.value ?? order.defaultSort,
+    (customer, field) => {
+      switch (field) {
+        case "name":
+          return customerDisplayName(customer);
+        case "email":
+          return customer.email;
+        case "status":
+          return customer.emailVerified ? labels.verified : labels.unverified;
+        case "sync":
+          return syncColumn?.sortValue?.(customer);
+      }
+    },
+    (customer) => customer.id,
+  );
   const selectable = onDelete ? customers : [];
   const selection = useTableSelection(selectable, search ?? "");
   const selectionDisabled =
@@ -144,44 +176,31 @@ function CustomersPageContent({
                     />
                   </th>
                 )}
-                {[
-                  labels.customer,
-                  labels.email,
-                  labels.status,
-                  ...(syncColumn ? [syncColumn.label] : []),
-                  labels.actions,
-                ].map((label, index) => (
-                  <th
-                    scope="col"
-                    key={index}
-                    className={
-                      index === (syncColumn ? 4 : 3) ? tableActionHeaderClass : tableHeaderClass
-                    }
-                  >
-                    <div
-                      className={
-                        index === (syncColumn ? 4 : 3)
-                          ? "flex items-center justify-end gap-2"
-                          : undefined
-                      }
-                    >
-                      {label}
-                      {index === (syncColumn ? 4 : 3) && (
-                        <>
-                          {onDelete && (
-                            <TableBulkDelete
-                              selection={selection}
-                              getName={customerDisplayName}
-                              onDelete={(customer) => onDelete!(customer.id)}
-                              labels={labels}
-                              disabled={selectionDisabled}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                <TableSortHeader {...order} field="name" label={labels.customer} />
+                <TableSortHeader {...order} field="email" label={labels.email} />
+                <TableSortHeader {...order} field="status" label={labels.status} />
+                {syncColumn &&
+                  (syncColumn.sortValue ? (
+                    <TableSortHeader {...order} field="sync" label={syncColumn.label} />
+                  ) : (
+                    <th scope="col" className={tableHeaderClass}>
+                      {syncColumn.label}
+                    </th>
+                  ))}
+                <th scope="col" className={tableActionHeaderClass}>
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    {onDelete && (
+                      <TableBulkDelete
+                        selection={selection}
+                        getName={customerDisplayName}
+                        onDelete={(customer) => onDelete!(customer.id)}
+                        labels={labels}
+                        disabled={selectionDisabled}
+                      />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
@@ -309,70 +328,80 @@ function CustomersPageContent({
   );
 }
 
-function CustomerDetailPageContent({
-  customer: suppliedCustomer,
-  section = "about",
-  backHref,
-  sectionHrefs,
-  onSave,
-  onDelete,
-  onSetVerified,
-  emailChangeDescription,
-  projectsContent,
-  syncContent,
-  className,
-  labels: overrides,
-  linkComponent: CustomerLink = Link,
-}: CustomerDetailPageProps) {
+function CustomerDetailPageContent(
+  props: CustomerDetailPageProps | CustomerDetailPageLoadingProps,
+) {
+  const {
+    customer: suppliedCustomer,
+    section = "about",
+    sectionHrefs,
+    labels: overrides,
+    linkComponent: CustomerLink = Link,
+  } = props;
+  const ready = props.customer === null ? undefined : props;
+  const onDelete = ready?.onDelete;
+  const onSetVerified = ready?.onSetVerified;
   const labels = { ...customerLabels, ...overrides };
-  const optimistic = useOptimisticAction(suppliedCustomer, suppliedCustomer.id);
+  const optimistic = useOptimisticAction(suppliedCustomer, suppliedCustomer?.id);
   const customer = optimistic.value;
   return (
-    <div className={cn(pageClass, className)}>
-      <CustomerLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
-        {labels.back}
-      </CustomerLink>
+    <>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
-        <div className="flex min-w-0 items-center gap-4">
-          <CustomerAvatar customer={customer} large />
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold">{customerDisplayName(customer)}</h1>
-            <p className="truncate text-sm text-muted-foreground">{customer.email}</p>
-          </div>
-        </div>
-        <dl className="ml-auto flex flex-wrap justify-end gap-x-6 gap-y-2 self-start text-sm">
-          <div>
-            <dt className="sr-only">{labels.email}</dt>
-            <dd className="mt-1">
-              <CustomerStatusBadge
-                customer={customer}
-                labels={labels}
-                disabled={optimistic.pending}
-                onChange={
-                  onSetVerified
-                    ? (verified) =>
-                        optimistic.run(
-                          (row) => ({ ...row, emailVerified: verified }),
-                          () => onSetVerified(customer.id, verified),
-                        )
-                    : undefined
-                }
-              />
-            </dd>
-          </div>
-          {customer.banned && (
-            <div>
-              <dt className="text-muted-foreground">{labels.banned}</dt>
-              <dd className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-status-canceled px-2 py-0.5 text-xs font-medium text-status-canceled-foreground before:size-1.5 before:shrink-0 before:rounded-full before:bg-current">
-                {labels.yes}
-              </dd>
+        {ready && customer ? (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <CustomerAvatar customer={customer} large />
+              <div className="min-w-0">
+                <h1 className="truncate text-base font-semibold">
+                  {customerDisplayName(customer)}
+                </h1>
+                <p className="truncate text-sm text-muted-foreground">{customer.email}</p>
+              </div>
             </div>
-          )}
-        </dl>
+            <dl className="ml-auto flex min-h-11 max-w-full flex-wrap justify-end gap-x-6 gap-y-2 self-start text-sm sm:min-h-6">
+              <div>
+                <dt className="sr-only">{labels.email}</dt>
+                <dd className="mt-1">
+                  <CustomerStatusBadge
+                    customer={customer}
+                    labels={labels}
+                    disabled={optimistic.pending}
+                    onChange={
+                      onSetVerified
+                        ? (verified) =>
+                            optimistic.run(
+                              (row) => row && { ...row, emailVerified: verified },
+                              () => onSetVerified(customer.id, verified),
+                            )
+                        : undefined
+                    }
+                  />
+                </dd>
+              </div>
+              {customer.banned && (
+                <div>
+                  <dt className="text-muted-foreground">{labels.banned}</dt>
+                  <dd className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-status-canceled px-2 py-0.5 text-xs font-medium text-status-canceled-foreground before:size-1.5 before:shrink-0 before:rounded-full before:bg-current">
+                    {labels.yes}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </>
+        ) : (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <LoadingSkeleton className="size-16 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <LoadingSkeleton className="h-6 w-64 max-w-full" />
+                <LoadingSkeleton className="h-4 w-40 max-w-full" />
+              </div>
+            </div>
+            <div className="ml-auto flex min-h-11 max-w-full items-center self-start sm:min-h-6 sm:items-start">
+              <LoadingBadge label={labels.loading} />
+            </div>
+          </>
+        )}
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
         {(["about", "projects", "sync"] as const).map((tab: CustomerSection) => {
@@ -394,22 +423,23 @@ function CustomerDetailPageContent({
         })}
       </nav>
       {section === "about" ? (
-        <>
+        ready && customer ? (
           <CustomerForm
             key={customer.id}
             customer={customer}
             labels={labels}
             onSubmit={(values) =>
               optimistic.run(
-                (row) => ({
-                  ...row,
-                  ...values,
-                  emailVerified: row.email === values.email && row.emailVerified,
-                }),
-                () => onSave(values),
+                (row) =>
+                  row && {
+                    ...row,
+                    ...values,
+                    emailVerified: row.email === values.email && row.emailVerified,
+                  },
+                () => ready.onSave(values),
               )
             }
-            emailChangeDescription={emailChangeDescription}
+            emailChangeDescription={ready.emailChangeDescription}
             disabled={optimistic.pending}
             onDelete={
               onDelete
@@ -421,13 +451,21 @@ function CustomerDetailPageContent({
                 : undefined
             }
           />
-        </>
-      ) : section === "projects" ? (
-        projectsContent
-      ) : (
-        syncContent
-      )}
-    </div>
+        ) : (
+          <CustomerForm
+            customer={null}
+            labels={labels}
+            emailChangeDescription={props.emailChangeDescription}
+          />
+        )
+      ) : ready ? (
+        section === "projects" ? (
+          ready.projectsContent
+        ) : (
+          ready.syncContent
+        )
+      ) : null}
+    </>
   );
 }
 
@@ -442,13 +480,9 @@ export function CustomerNewPage({
   const labels = { ...customerLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <CustomerLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={CustomerLink} href={backHref}>
         {labels.back}
-      </CustomerLink>
+      </BackLink>
       <CustomerForm labels={labels} onSubmit={onCreate} />
     </div>
   );
@@ -462,10 +496,19 @@ export function CustomersPage(props: CustomersPageProps) {
   );
 }
 
-export function CustomerDetailPage(props: CustomerDetailPageProps) {
+export function CustomerDetailPage(
+  props: CustomerDetailPageProps | CustomerDetailPageLoadingProps,
+) {
+  const { className, backHref, labels, linkComponent } = props;
+  useLoadingActivity(props.customer === null);
   return (
     <ActionToastProvider>
-      <CustomerDetailPageContent key={props.customer.id} {...props} />
+      <div className={cn(pageClass, className)}>
+        <BackLink linkComponent={linkComponent ?? Link} href={backHref}>
+          {labels?.back ?? customerLabels.back}
+        </BackLink>
+        <CustomerDetailPageContent key={props.customer?.id} {...props} />
+      </div>
     </ActionToastProvider>
   );
 }

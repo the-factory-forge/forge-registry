@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 
-import { and, asc, desc, count, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, count, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 
 import type {
@@ -37,20 +38,29 @@ import {
   type GithubJob,
   type GithubJobPayload,
 } from "@/components/connectors/supports-github/server/schema";
-import { SupportsError, supportIdSchema } from "@/components/plugins/supports/schema";
+import {
+  SupportsError,
+  supportIdSchema,
+  supportPrioritySchema,
+} from "@/components/plugins/supports/schema";
 import type {
   SupportMutation,
   SupportsIntegration,
 } from "@/components/plugins/supports/server/integration";
+import type { SupportPriority, SupportType } from "@/components/plugins/supports/types";
 import type { DatabaseTransaction, PluginDatabase } from "@/components/utils/database";
 
 export interface SupportsGithubOptions<Context> {
   db: PluginDatabase;
   supports: SupportsIntegration<Context>;
   repository: GithubRepository;
+  issueTypes?: Record<SupportType, string>;
+  priorityField?: { id: number; options: Record<SupportPriority, string | null> };
   getAccessToken(): Promise<string>;
   webhookSecret: string;
   ticketUrl(ticketId: string): string;
+  /** Apply accepted inbound work before returning from a verified webhook. */
+  processWebhookOnReceipt?: boolean;
   /** Trusted operator identity; separate from ordinary staff browser permissions. */
   authorizeOperator(context: Context): Promise<boolean>;
   request?: typeof fetch;
@@ -70,6 +80,17 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
   const { db, supports } = options;
   const repository = repositoryConfig.parse(options.repository);
   const secret = z.string().min(20).parse(options.webhookSecret);
+  const field = z
+    .object({
+      id: z.number().int().positive(),
+      options: z.record(supportPrioritySchema, z.string().trim().min(1).nullable()),
+    })
+    .optional()
+    .parse(options.priorityField);
+  const issueTypes = z
+    .record(z.enum(["bug", "feature", "support"]), z.string().trim().min(1))
+    .optional()
+    .parse(options.issueTypes);
   const github = createGithubClient({ ...options, repository });
   const localUrl = (id: string) => {
     const url = new URL(options.ticketUrl(id));
@@ -101,6 +122,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
     direction: GithubJob["direction"],
     kind: GithubJob["kind"],
     payload: GithubJobPayload,
+    state: "pending" | "done" = "pending",
   ) {
     const [last] = await tx
       .select({ at: jobs.createdAt })
@@ -119,9 +141,17 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         direction,
         kind,
         payload,
+        state,
         createdAt: at,
       })
       .onConflictDoNothing();
+  }
+  async function queueInitialType(tx: DatabaseTransaction, id: string, issue?: GithubIssue) {
+    if (!issueTypes) return;
+    const key = `local:initial-type:${id}`;
+    const [existing] = await tx.select({ id: jobs.id }).from(jobs).where(eq(jobs.sourceKey, key));
+    // Keep the receipt so later sends preserve a maintainer's reclassification or removal.
+    if (!existing) await add(tx, id, key, "outbound", "type", {}, issue?.type ? "done" : "pending");
   }
   function outbound(
     body: string,
@@ -144,8 +174,13 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
     const source = localUrl(id);
     await add(tx, id, `local:create:${id}`, "outbound", "create", {
       title: ticket.title,
+      type: ticket.type,
       body: `Type: ${ticket.type}\n\n${outbound(ticket.description, ticket.author.name, source, ticket.attachments)}`,
     });
+    if (field && ticket.priority != null)
+      await add(tx, id, `local:initial-priority:${id}`, "outbound", "priority", {
+        priority: ticket.priority,
+      });
     for (const entry of activity) {
       await add(tx, id, `local:${entry.id}`, "outbound", "comment", {
         body: outbound(
@@ -168,6 +203,11 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       .discriminatedUnion("kind", [
         z.object({ kind: z.literal("create"), ticketId: supportIdSchema }),
         z.object({
+          kind: z.literal("priority"),
+          ticketId: supportIdSchema,
+          priority: supportPrioritySchema.nullable(),
+        }),
+        z.object({
           kind: z.enum(["comment", "status"]),
           ticketId: supportIdSchema,
           activityId: supportIdSchema,
@@ -180,6 +220,13 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       return; // Existing local-only tickets require an explicit export.
     }
     if (event.kind === "create") return;
+    if (event.kind === "priority") {
+      if (!field) return;
+      await add(tx, event.ticketId, `local:priority:${randomUUID()}`, "outbound", "priority", {
+        priority: event.priority,
+      });
+      return;
+    }
     const { activity } = await supports.snapshot(tx, event.ticketId);
     const entry = activity.find((item) => item.id === event.activityId);
     if (!entry || entry.kind !== event.kind) throw new SupportsGithubError("INVALID");
@@ -201,8 +248,11 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         : { status: entry.status!, baseRevision: binding.externalRevision },
     );
   }
+  const canResume = (job: GithubJob) =>
+    retryable(job.failure) ||
+    (job.failure === "UNCERTAIN" && ["create", "comment", "priority", "type"].includes(job.kind));
   function client(context: Context): SupportsGithubClient {
-    return {
+    const actions: SupportsGithubClient = {
       async get(id) {
         supportIdSchema.parse(id);
         await supports.authorize(context, "read", id);
@@ -213,6 +263,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           .select()
           .from(jobs)
           .where(and(eq(jobs.ticketId, id), inArray(jobs.state, [...activeStates])));
+        const outbound = work.filter((job) => job.direction === "outbound");
         const [lastStatus] = await db
           .select()
           .from(jobs)
@@ -243,9 +294,10 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           failure,
           pending: work.length,
           canRetry:
-            (state === "failed" || state === "blocked") &&
-            retryable(failure) &&
-            !work.some((job) => job.state === "blocked" && !retryable(job.failure)),
+            (!binding.failure || retryable(binding.failure)) &&
+            failure !== "REPOSITORY" &&
+            outbound.some((job) => job.state === "pending" || canResume(job)) &&
+            !outbound.some((job) => job.state === "blocked" && !canResume(job)),
         };
       },
       async exportTicket(id) {
@@ -257,6 +309,8 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           await supports.authorize(context, "comment", id);
           if (!existing) await createBinding(tx, id);
         });
+        await processTicket(id, "outbound");
+        return actions.get(id);
       },
       async retry(id) {
         supportIdSchema.parse(id);
@@ -271,9 +325,10 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           const blocked = await tx
             .select()
             .from(jobs)
-            .where(and(eq(jobs.ticketId, id), eq(jobs.state, "blocked")));
-          if (blocked.some((job) => !retryable(job.failure)))
-            throw new SupportsGithubError("CONFLICT");
+            .where(
+              and(eq(jobs.ticketId, id), eq(jobs.direction, "outbound"), eq(jobs.state, "blocked")),
+            );
+          if (blocked.some((job) => !canResume(job))) throw new SupportsGithubError("CONFLICT");
           await tx.update(bindings).set({ failure: null }).where(eq(bindings.ticketId, id));
           await tx
             .update(jobs)
@@ -281,13 +336,24 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
             .where(
               and(
                 eq(jobs.ticketId, id),
-                eq(jobs.state, "failed"),
-                inArray(jobs.failure, ["DELIVERY", "ACCESS"]),
+                eq(jobs.direction, "outbound"),
+                or(
+                  and(eq(jobs.state, "failed"), inArray(jobs.failure, ["DELIVERY", "ACCESS"])),
+                  // Both assignments check GitHub before retrying an uncertain write.
+                  and(
+                    inArray(jobs.kind, ["priority", "type"]),
+                    eq(jobs.state, "blocked"),
+                    eq(jobs.failure, "UNCERTAIN"),
+                  ),
+                ),
               ),
             );
         });
+        await processTicket(id, "outbound");
+        return actions.get(id);
       },
     };
+    return actions;
   }
   async function verifyIssue(binding: GithubBinding) {
     configured(binding);
@@ -441,7 +507,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
     if (input.event === "issue_comment" && !payload.comment)
       throw new SupportsGithubError("INVALID");
     const hash = digest(input.body);
-    return db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const receipt = await tx
         .insert(deliveries)
         .values({ id: deliveryId, fingerprint: hash })
@@ -450,7 +516,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       if (!receipt.length) {
         const [previous] = await tx.select().from(deliveries).where(eq(deliveries.id, deliveryId));
         if (previous.fingerprint !== hash) throw new SupportsGithubError("CONFLICT");
-        return { accepted: true };
+        if (!options.processWebhookOnReceipt) return { accepted: true };
       }
       const [found] = await tx
         .select()
@@ -459,7 +525,8 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           and(eq(bindings.repositoryId, repository.id), eq(bindings.issueId, payload.issue.id)),
         );
       // Unrelated issues are never imported; creation recovery discovers the original marker.
-      if (!found) return { accepted: false };
+      if (!found) return { accepted: !receipt.length };
+      if (!receipt.length) return { accepted: true, ticketId: found.ticketId };
       const binding = await locked(tx, found.ticketId);
       if (!binding) return { accepted: false };
       configured(binding);
@@ -473,13 +540,17 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           ["deleted", "transferred"].includes(payload.action) ? "missing" : "status",
           {},
         );
-      return { accepted: true };
+      return { accepted: true, ticketId: binding.ticketId };
     });
+    if (options.processWebhookOnReceipt && result.ticketId)
+      await processTicket(result.ticketId, "inbound");
+    return { accepted: result.accepted };
   }
   async function acquire(id: string) {
     return db.transaction(async (tx) => {
       const binding = await locked(tx, id);
-      if (!binding || (binding.leaseUntil && binding.leaseUntil > new Date())) return null;
+      if (!binding) return null;
+      if (binding.leaseUntil && binding.leaseUntil > new Date()) return undefined;
       if (binding.lease) {
         await tx
           .update(jobs)
@@ -493,6 +564,18 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         .where(eq(bindings.ticketId, id));
       return { ...binding, lease, leaseUntil: new Date(Date.now() + leaseMs) };
     });
+  }
+  async function acquireForRequest(id: string) {
+    // Request-driven delivery must take its turn after an overlapping worker or refresh.
+    const deadline = Date.now() + leaseMs;
+    let pause = 100;
+    let binding = await acquire(id);
+    while (binding === undefined && Date.now() < deadline) {
+      await delay(pause);
+      pause = Math.min(pause * 2, 2000);
+      binding = await acquire(id);
+    }
+    return binding;
   }
   async function fenced<T>(
     binding: GithubBinding,
@@ -513,7 +596,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
   async function release(binding: GithubBinding) {
     await db
       .update(bindings)
-      .set({ lease: null, leaseUntil: null })
+      .set({ lease: null, leaseUntil: null, reconciledAt: new Date() })
       .where(and(eq(bindings.ticketId, binding.ticketId), eq(bindings.lease, binding.lease!)));
   }
   async function fail(binding: GithubBinding, job: GithubJob | null, error: unknown) {
@@ -551,9 +634,36 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           .where(eq(jobs.id, job.id));
     });
   }
+  function priorityOption(job: GithubJob) {
+    const priority = supportPrioritySchema.nullable().parse(job.payload.priority);
+    if (!field) throw new SupportsGithubError("DELIVERY");
+    return priority === null ? null : field.options[priority];
+  }
+  async function issueType(binding: GithubBinding, job: GithubJob) {
+    if (!issueTypes) return undefined;
+    const type =
+      job.payload.type ??
+      (await fenced(binding, (tx) => supports.snapshot(tx, binding.ticketId))).ticket.type;
+    return issueTypes[type];
+  }
+  async function confirmIssueField(binding: GithubBinding, job: GithubJob, issue: GithubIssue) {
+    if (job.kind === "priority" && !field) throw new SupportsGithubError("DELIVERY");
+    const matches =
+      job.kind === "type"
+        ? Boolean(issue.type)
+        : (await github.priority(issue.number, field!.id)) === priorityOption(job);
+    if (!matches) return false;
+    await fenced(binding, async (tx) => {
+      await tx
+        .update(jobs)
+        .set({ state: "done", failure: null, payload: {} })
+        .where(eq(jobs.id, job.id));
+    });
+    return true;
+  }
   async function recoverUncertain(binding: GithubBinding, job: GithubJob) {
-    await github.verify();
     if (job.kind === "create") {
+      await github.verify();
       const found = (await github.issues()).filter(
         (issue) =>
           issue.user?.id === repository.botUserId &&
@@ -565,7 +675,9 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       await completeCreate(binding, job, found[0]);
       return true;
     }
-    await verifyIssue(binding);
+    const issue = await verifyIssue(binding);
+    if (job.kind === "priority" || job.kind === "type")
+      return confirmIssueField(binding, job, issue);
     if (job.kind === "comment") {
       const found = (await github.comments(binding.issueNumber!)).filter(
         (comment) => comment.user?.id === repository.botUserId && hasMarker(comment.body, job.id),
@@ -680,8 +792,12 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       }
       return;
     }
-    await github.verify();
-    if (job.kind !== "create") await verifyIssue(binding);
+    const linkedIssue = job.kind === "create" ? await github.verify() : await verifyIssue(binding);
+    if (
+      (job.kind === "priority" || job.kind === "type") &&
+      (await confirmIssueField(binding, job, linkedIssue!))
+    )
+      return;
     let reclose = false;
     if (job.kind === "status") {
       const { issue, events } = await confirmedStatus(binding);
@@ -715,6 +831,7 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         const issue = await github.create(
           job.payload.title!,
           `${job.payload.body}\n\n${marker(job.id)}`,
+          await issueType(binding, job),
         );
         written = true;
         await completeCreate(binding, job, issue);
@@ -725,6 +842,19 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         );
         written = true;
         await completeComment(binding, job, comment);
+      } else if (job.kind === "type") {
+        const type = await issueType(binding, job);
+        if (!type) throw new SupportsGithubError("DELIVERY");
+        const issue = await github.setType(linkedIssue!.number, type);
+        written = true;
+        if (issue.id !== binding.issueId || issue.type?.name !== type)
+          throw new SupportsGithubError("UNCERTAIN", true);
+        await confirmIssueField(binding, job, issue);
+      } else if (job.kind === "priority") {
+        await github.setPriority(binding.issueNumber!, field!.id, priorityOption(job));
+        written = true;
+        if (!(await confirmIssueField(binding, job, linkedIssue!)))
+          throw new SupportsGithubError("UNCERTAIN", true);
       } else {
         // GitHub only guarantees a new close reason when the state changes.
         if (reclose) {
@@ -756,11 +886,77 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
         });
       }
     } catch (error) {
+      const uncertain = written || (error instanceof SupportsGithubError && error.uncertain);
+      if (uncertain && (job.kind === "create" || job.kind === "comment")) {
+        // A failed lookup leaves the original write uncertain and prevents a duplicate send.
+        if (await recoverUncertain(binding, job).catch(() => false)) return;
+      }
       if (written) throw new SupportsGithubError("UNCERTAIN", true);
       throw error;
     }
   }
-  /** Trusted host scheduler, normally once per minute. No user credentials are accepted here. */
+  async function processTicket(id: string, direction?: "outbound" | "inbound") {
+    const binding = direction ? await acquireForRequest(id) : await acquire(id);
+    if (!binding) return 0;
+    let job: GithubJob | null = null;
+    let examined = 0;
+    try {
+      configured(binding);
+      if (binding.failure) return 0;
+      if (issueTypes && direction !== "inbound")
+        await fenced(binding, (tx) => queueInitialType(tx, id));
+      const query = db
+        .select()
+        .from(jobs)
+        .where(
+          and(
+            eq(jobs.ticketId, id),
+            inArray(jobs.state, [...activeStates]),
+            direction ? eq(jobs.direction, direction) : undefined,
+            or(isNull(jobs.failure), ne(jobs.failure, "TOO_LONG")),
+          ),
+        )
+        .orderBy(asc(jobs.createdAt), asc(jobs.id));
+      const work = await (direction ? query.limit(20) : query);
+      // The scheduler can still import a reply while an outbound write awaits confirmation.
+      const next =
+        work.find(
+          (entry) =>
+            entry.direction === "inbound" &&
+            entry.state !== "blocked" &&
+            entry.availableAt <= new Date(),
+        ) ?? work[0];
+      const batch = direction ? work : next ? [next] : [];
+      for (const entry of batch) {
+        job = entry;
+        if (
+          job.availableAt > new Date() ||
+          (job.state === "failed" && (direction === "outbound" || job.kind === "create"))
+        )
+          break;
+        examined++;
+        if (job.state === "blocked" || job.state === "sending") {
+          if (
+            (job.failure !== "UNCERTAIN" && job.state !== "sending") ||
+            !(await recoverUncertain(binding, job))
+          )
+            break;
+        } else {
+          await deliver(binding, job);
+        }
+        if (direction) {
+          const [current] = await db.select().from(bindings).where(eq(bindings.ticketId, id));
+          Object.assign(binding, current);
+        }
+      }
+    } catch (error) {
+      await fail(binding, job, error);
+    } finally {
+      await release(binding);
+    }
+    return examined;
+  }
+  /** Trusted host scheduler, normally once per minute. */
   async function process(limit = 20) {
     limitSchema.parse(limit);
     const candidates = await db
@@ -769,88 +965,56 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       .orderBy(asc(bindings.reconciledAt))
       .limit(50);
     let examined = 0;
-    for (const candidate of candidates) {
+    for (const { ticketId } of candidates) {
       if (examined >= limit) break;
-      const binding = await acquire(candidate.ticketId);
-      if (!binding) continue;
-      let job: GithubJob | null = null;
-      try {
-        configured(binding);
-        if (binding.failure) continue;
-        const work = await db
-          .select()
-          .from(jobs)
-          .where(and(eq(jobs.ticketId, binding.ticketId), inArray(jobs.state, [...activeStates])))
-          .orderBy(asc(jobs.createdAt), asc(jobs.id));
-        // Inbound comments can arrive while an outbound write is uncertain; keep them readable.
-        job =
-          work.find(
-            (entry) =>
-              entry.direction === "inbound" &&
-              entry.state !== "blocked" &&
-              entry.availableAt <= new Date(),
-          ) ??
-          work.find((entry) => entry.failure !== "TOO_LONG") ??
-          null;
-        if (!job || job.availableAt > new Date()) continue;
-        examined++;
-        if (job.state === "blocked" || job.state === "sending") {
-          if (job.failure === "UNCERTAIN" || job.state === "sending")
-            await recoverUncertain(binding, job);
-          continue;
-        }
-        await deliver(binding, job);
-      } catch (error) {
-        await fail(binding, job, error);
-      } finally {
-        await db
-          .update(bindings)
-          .set({ reconciledAt: new Date() })
-          .where(eq(bindings.ticketId, binding.ticketId));
-        await release(binding);
-      }
+      examined += await processTicket(ticketId);
     }
     return { examined, ...(await health()) };
   }
-  /** Trusted scheduler, normally every fifteen minutes; imports only already-linked issues. */
+  async function reconcileTicket(id: string) {
+    const binding = await acquire(id);
+    if (!binding) return 0;
+    try {
+      configured(binding);
+      if (binding.failure && !retryable(binding.failure)) return 0;
+      if (!binding.issueNumber) {
+        const [creation] = await db
+          .select()
+          .from(jobs)
+          .where(and(eq(jobs.sourceKey, `local:create:${id}`), eq(jobs.failure, "UNCERTAIN")));
+        return creation && (await recoverUncertain(binding, creation)) ? 1 : 0;
+      }
+      const { issue, events } = await confirmedStatus(binding);
+      const comments = await github.commentPage(binding.issueNumber, binding.commentPage);
+      await fenced(binding, async (tx, current) => {
+        await queueInitialType(tx, id, issue);
+        await observe(tx, current, issue, events);
+        for (const comment of comments) await importComment(tx, current, comment);
+        await tx
+          .update(bindings)
+          .set({
+            failure: null,
+            commentPage: comments.length === 100 ? current.commentPage + 1 : 1,
+          })
+          .where(eq(bindings.ticketId, id));
+      });
+      return 1;
+    } catch (error) {
+      await fail(binding, null, error);
+      return 0;
+    } finally {
+      await release(binding);
+    }
+  }
   async function reconcile(limit = 20) {
     limitSchema.parse(limit);
     const candidates = await db
-      .select()
+      .select({ ticketId: bindings.ticketId })
       .from(bindings)
       .orderBy(asc(bindings.reconciledAt))
       .limit(limit);
     let examined = 0;
-    for (const candidate of candidates) {
-      const binding = await acquire(candidate.ticketId);
-      if (!binding) continue;
-      try {
-        configured(binding);
-        if ((binding.failure && binding.failure !== "DELIVERY") || !binding.issueNumber) continue;
-        const { issue, events } = await confirmedStatus(binding);
-        const comments = await github.commentPage(binding.issueNumber, binding.commentPage);
-        await fenced(binding, async (tx, current) => {
-          await observe(tx, current, issue, events);
-          for (const comment of comments) await importComment(tx, current, comment);
-          await tx
-            .update(bindings)
-            .set({
-              failure: null,
-              commentPage: comments.length === 100 ? current.commentPage + 1 : 1,
-            })
-            .where(eq(bindings.ticketId, binding.ticketId));
-        });
-        examined++;
-      } catch (error) {
-        await fail(binding, null, error);
-      } finally {
-        await db
-          .update(bindings)
-          .set({ reconciledAt: new Date() })
-          .where(eq(bindings.ticketId, binding.ticketId));
-        await release(binding);
-      }
-    }
+    for (const { ticketId } of candidates) examined += await reconcileTicket(ticketId);
     return { examined, ...(await health()) };
   }
   async function health() {
@@ -914,6 +1078,8 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
           );
           if (!comment) throw new SupportsGithubError("INVALID");
           await completeComment(binding, job, comment);
+        } else if (job.kind === "priority" || job.kind === "type") {
+          if (!(await recoverUncertain(binding, job))) throw new SupportsGithubError("CONFLICT");
         } else {
           const { issue, events } = await confirmedStatus(binding);
           await fenced(binding, async (tx, current) => {
@@ -990,6 +1156,13 @@ export function createSupportsGithub<Context>(options: SupportsGithubOptions<Con
       };
     },
     receiveWebhook: safe(receiveWebhook),
+    send: (id: string) => processTicket(supportIdSchema.parse(id), "outbound"),
+    refresh: safe(async (context: Context, id: string) => {
+      supportIdSchema.parse(id);
+      await supports.authorize(context, "read", id);
+      await reconcileTicket(id);
+      await processTicket(id, "inbound");
+    }),
     process,
     reconcile,
     health,

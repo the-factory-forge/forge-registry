@@ -175,6 +175,11 @@ icon-only convention, with translated accessible names and deletion confirmation
 Add `IconTooltip` to every icon-only action, including familiar edit/delete icons. Reuse the same icon for the same
 action across plugins and hosts; do not add icons to every field or label.
 
+For a labeled return link, use `BackLink` from `@/components/back-link` and declare
+`@forge/back-link` in the importing registry item. Pass the host’s `linkComponent`
+and any navigation guard. The arrow moves on hover and keyboard focus and stays
+still with reduced motion. The blog editor and showroom header demonstrate this treatment.
+
 ### Button spacing
 
 Follow the shared [button spacing contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/shared-ui/spec.md#requirement-spacing-between-action-buttons).

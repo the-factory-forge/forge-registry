@@ -44,7 +44,9 @@ continues below the left panel when the form side is taller.
 checked by default; users can uncheck it before signing in. Reject its
 promise when authentication fails; resolve only after successful authentication
 and the host's cache refresh/navigation. The form handles pending state,
-password visibility, duplicate submission prevention, and generic failure copy.
+password visibility and duplicate submission prevention. Password and Google
+sign-in failures show translated, dismissible error toasts and retain the form
+values for retry.
 Supply `onGoogleSignIn(): Promise<void>` to show Google, the only social provider.
 Omit it when Google is not configured. The host performs OAuth and supplies a
 trusted callback URL. Credentials stay in the form and callback,
@@ -133,7 +135,7 @@ compact submit button for account security sections.
 
 | Component                                   | Host callback and state                                                                                                  |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `enabled`, `loginHref`                                                  |
+| `ForgotPasswordForm`                        | `onRequestReset(email): Promise<void>`, optional `defaultEmail`, `enabled`, `loginHref`                                  |
 | `ResetPasswordForm`                         | `onResetPassword(newPassword): Promise<void>`, required `validLink`, optional `enabled`, `loginHref`, `requestResetHref` |
 | `ChangePasswordForm` / `ChangePasswordPage` | `onChangePassword({ currentPassword, newPassword }): Promise<void>`                                                      |
 
@@ -145,11 +147,20 @@ Password forms default to 8–128 characters; set `minLength`, `maxLength`, and 
 translated `passwordHint` to match the server's policy. All components accept
 `className` and label overrides. Components with links accept `linkComponent`.
 
+The sign-in recovery link adds the entered email as an encoded `email` query
+parameter. On the recovery route, parse the optional string and pass it to
+`ForgotPasswordForm.defaultEmail`. If the router reuses the mounted route when
+the email changes, key the form by that parameter to refresh the prefill.
+A custom `linkComponent` must preserve the query string when routing. With
+TanStack Router, pass the pathname, query parameters and fragment as `to`,
+`search` and `hash`. Sharing the recovery page URL shares the email address.
+The visitor can edit it and must submit the form to request a reset link.
+
 When `requestResetHref` is provided, the reset form places “Request a new link”
 beside the new-password hint, wrapping below it on narrow screens. Invalid reset
 links retain that recovery action beneath the error. It is hidden when recovery
 is unavailable or the password reset succeeds. `loginHref` still controls the
-separate “Back to sign in” link.
+separate “Sign in” link.
 
 Every password input has a trailing eye button, including login, reset/change,
 account security and employee creation. Passwords start hidden; Show/Hide toggles
@@ -256,12 +267,13 @@ badge in the Website column and at the top right of the edit dialog. Omitted
 values show **Not provided** in the table and no dialog badge; account access or
 email verification never implies publication. Override `website`, `websiteVisible`,
 `websiteHidden` and `websiteUnknown` through `labels` for translations.
-To make the edit-dialog badge an immediate toggle, supply the optional
-`onSetWebsitePublished(id, published)` callback. Clicking it saves visibility
-independently of **Save changes**, preserving unsaved account fields. The directory
-previews the new status while pending, disables duplicate actions and restores
-the previous status with an error if saving fails. Without the callback the badge
-remains read-only. Account create/update payloads remain unchanged.
+Supplying the optional `onSetWebsitePublished(id, published)` callback
+replaces the edit-dialog badge with the shared [status toggle](./status-toggle.md).
+Activating it saves visibility independently of **Save changes**, preserving
+unsaved account fields. The directory previews the new status while pending,
+disables duplicate actions and restores the previous status with an error if saving
+fails. Without the callback the badge remains read-only. Account create/update
+payloads remain unchanged.
 The host must authorize and validate publication, persist the public-profile
 status and refresh employee data before resolving the callback. Override
 `websiteUpdated` and `websiteError` for translated feedback.
@@ -478,3 +490,7 @@ When Customers is installed, configure the employee service's `directory` adapte
 and host guards to exclude customer-profile members, even with role `user` or
 `admin`. Customers and Projects remain optional. See [plugin persistence](./persistence.md)
 for transaction-bound auth, membership filtering and the cutover workflow.
+
+## Agent key ordering
+
+The agent key table compares name, status, creation, last use and expiry. Dates use their timestamps and unused keys sort last by last use. On a first visit keys appear in ascending ID order. Later visits restore the last selected column and direction. Pass `sort` and `onSortChange` to store the selected order in the security route.

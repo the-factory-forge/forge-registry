@@ -1,7 +1,6 @@
 "use client";
 
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useLocation } from "@tanstack/react-router";
+import { useMatch, useNavigate, useSearch, useLocation } from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -12,7 +11,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { z } from "zod";
 
+import { BackLink } from "@/components/back-link";
 import { createBlogsAgentOperation } from "@/components/connectors/agents-blogs/server";
 import { NativeSelect } from "@/components/native-select";
 import {
@@ -23,12 +24,17 @@ import {
   BlogPostPage,
   BlogsPage,
   blogCapabilities,
+  type BlogEditorView,
 } from "@/components/plugins/blogs";
-import { articleListItem } from "@/components/plugins/blogs/utils";
+import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
+import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
 import { PluginWebMcp } from "@/showroom/plugin-webmcp";
+import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
+import { useShowroomTableSort } from "@/showroom/routing";
+import { useShowroomTablePage } from "@/showroom/routing";
 import {
   ShowroomLink as Link,
   useShowroomParams,
@@ -45,6 +51,7 @@ function usePreview() {
     [admin, setAdmin] = useState(true),
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
+    [simulateLoading, setSimulateLoading] = useState(false),
     [failUpload, setFailUpload] = useState(false),
     [cropImages, setCropImages] = useState(true),
     [state, setState] = useState("ready"),
@@ -83,6 +90,8 @@ function usePreview() {
     setReadOnly,
     fail,
     setFail,
+    simulateLoading,
+    setSimulateLoading,
     failUpload,
     setFailUpload,
     cropImages,
@@ -102,7 +111,15 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const selectId = `factory-showroom-blogs-${useId()}`;
   const { locale, segments } = useShowroomParams();
   const state = usePreview();
-  const article = state.mock.all().find((value) => value.id === segments[0]);
+  const adminRoute = useMatch({ from: "/_blogs/$locale/admin/blogs/$", shouldThrow: false });
+  const articles = state.mock.all();
+  const article = articles.find((value) => value.id === segments[0]);
+  const publicSlug = adminRoute ? undefined : segments[0];
+  const publicPost = publicSlug
+    ? articles.find((value) => value.translations[locale]?.published?.slug === publicSlug)
+    : undefined;
+  const hasArticleEditor = Boolean(adminRoute && article);
+  const canSimulateMissingImages = hasArticleEditor && state.historyEnabled;
   return (
     <Context.Provider value={state}>
       {path.includes("/admin/blogs") && (
@@ -123,11 +140,20 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
           <>
             <Link href={`/${locale}/blogs`}>Public blog</Link>
             <Link href={`/${locale}/admin/blogs`}>Manage posts</Link>
-            <Link href="/fr/blogs">French blog</Link>
           </>
         }
         controls={
           <>
+            <PreviewLanguageSwitcher
+              translatedPath={
+                publicSlug
+                  ? (code) => {
+                      const slug = publicPost?.translations[code]?.published?.slug;
+                      return slug && `/${code}/blogs/${slug}`;
+                    }
+                  : undefined
+              }
+            />
             <label htmlFor={`${selectId}-editor`} className="flex items-center gap-2">
               Editor
               <NativeSelect
@@ -164,6 +190,16 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               />
               Simulate action failures
             </label>
+            {article && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={state.simulateLoading}
+                  onChange={(event) => state.setSimulateLoading(event.target.checked)}
+                />
+                Simulate loading
+              </label>
+            )}
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -204,14 +240,25 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
                 Changes this post as another editor. The next save will conflict.
               </p>
             </div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={state.missingImages}
-                onChange={(event) => state.setMissingImages(event.target.checked)}
-              />
-              Simulate missing illustrations
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 has-disabled:text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={state.missingImages}
+                  disabled={!canSimulateMissingImages}
+                  aria-describedby={`${selectId}-missing-illustrations`}
+                  onChange={(event) => state.setMissingImages(event.target.checked)}
+                />
+                Simulate missing illustrations
+              </label>
+              <p id={`${selectId}-missing-illustrations`} className="text-xs text-muted-foreground">
+                {!hasArticleEditor
+                  ? "Open a post in Manage posts to try this simulation."
+                  : !state.historyEnabled
+                    ? "Enable History transport to simulate missing illustrations."
+                    : "Publish a draft with illustrations to see the omission warning."}
+              </p>
+            </div>
             <button
               onClick={() => {
                 state.mock.failNextUpload();
@@ -251,21 +298,60 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
     </Context.Provider>
   );
 }
+const historyVersionId = z.uuid();
+
+function readEditorView(search: Record<string, unknown>, defaultLocale: string): BlogEditorView {
+  return {
+    locale: blogLocales.find(({ code }) => code === search.lang)?.code ?? defaultLocale,
+    historyOpen: search.history === true,
+    versionId: historyVersionId.safeParse(search.version).data ?? null,
+    compare: search.compare === true,
+  };
+}
+
 export function BlogsAdminPreview() {
   const { locale: routeLocale, segments } = useShowroomParams();
   const locale = blogLocales.some((l) => l.code === routeLocale) ? routeLocale : "en";
   const state = useBlogsPreview(),
     navigate = useNavigate();
-  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard();
-  const currentArticle = state.mock.all().find((article) => article.id === segments[0]);
+  const query = useSearch({ strict: false });
+  const view = readEditorView(query, locale);
+  const { onNavigationStateChange, blockedNavigation } = useShowroomEditorGuard((current, next) => {
+    const from = readEditorView(current, locale);
+    const to = readEditorView(next, locale);
+    return from.locale !== to.locale || (to.versionId !== null && from.versionId !== to.versionId);
+  });
+  function changeView(change: Partial<BlogEditorView>) {
+    void navigate({
+      to: ".",
+      search: (previous) => {
+        const next = { ...readEditorView(previous, locale), ...change };
+        return {
+          ...previous,
+          lang: next.locale === locale ? undefined : next.locale,
+          history: next.historyOpen || undefined,
+          version: next.versionId ?? undefined,
+          compare: next.compare || undefined,
+        };
+      },
+      hash: true,
+      resetScroll: false,
+      // The editor already guarded the language or history selection.
+      ignoreBlocker: true,
+    });
+  }
+  const initialLoad = state.state === "loading";
+  const currentArticle = initialLoad
+    ? undefined
+    : state.mock.all().find((article) => article.id === segments[0]);
   const [lastArticle, setLastArticle] = useState(currentArticle);
   if (
     currentArticle &&
     (currentArticle.id !== lastArticle?.id || currentArticle.version !== lastArticle.version)
   )
     setLastArticle(currentArticle);
-  const [search, setSearch] = useState(""),
-    [page, setPage] = useState(1);
+  const order = useShowroomTableSort("blog", BLOG_SORT_FIELDS);
+  const { search, setSearch, page, setPage } = useShowroomTablePage("blog");
   const root = `/${routeLocale}/admin/blogs`,
     actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
     capabilities = blogCapabilities(actor);
@@ -302,21 +388,18 @@ export function BlogsAdminPreview() {
   if (segments[0]) {
     // Keep the editor mounted until its successful deletion callback navigates away.
     const article = currentArticle ?? (lastArticle?.id === segments[0] ? lastArticle : undefined);
-    if (!article)
+    if (!article && !initialLoad)
       return (
         <p role="alert" className="p-8">
           {common.labels.NOT_FOUND}{" "}
-          <Link
-            href={root}
-            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          >
+          <BackLink linkComponent={Link} href={root}>
             {common.labels.back}
-          </Link>
+          </BackLink>
         </p>
       );
-    return (
+    const editor = (
       <BlogEditPage
-        key={`${article.id}:${state.exampleRevision}`}
+        key={`${segments[0]}:${state.exampleRevision}`}
         onNavigationStateChange={onNavigationStateChange}
         blockedNavigation={blockedNavigation}
         {...common}
@@ -324,22 +407,39 @@ export function BlogsAdminPreview() {
           { id: "jordan", name: "Jordan Lee" },
           { id: "alex", name: "Alex Morgan" },
         ]}
-        capabilities={blogCapabilities(actor, article.shared.author?.id)}
+        capabilities={blogCapabilities(actor, article?.shared.author?.id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
             : false
         }
         imageCropLabels={blogsPreviewCropLabels[isLocale(routeLocale) ? routeLocale : "en"]}
-        article={article}
+        article={article ?? null}
         categories={state.mock.categories()}
-        assets={state.mock.assets(article.id)}
+        assets={state.mock.assets(segments[0])}
         locales={blogLocales}
         defaultLocale={locale}
+        view={{ state: view, onChange: changeView }}
         backHref={root}
         categoriesHref={`${root}/categories`}
         onDeleted={() => navigate({ href: root, ignoreBlocker: true })}
       />
+    );
+    const showLoadingPreview = state.simulateLoading && !!article;
+    return (
+      <>
+        {showLoadingPreview && (
+          <BlogEditPage
+            {...common}
+            article={null}
+            locales={blogLocales}
+            defaultLocale={locale}
+            view={{ state: view, onChange: changeView }}
+            backHref={root}
+          />
+        )}
+        <div hidden={showLoadingPreview}>{editor}</div>
+      </>
     );
   }
   const items =
@@ -355,19 +455,17 @@ export function BlogsAdminPreview() {
           .map((a) => articleListItem(a, locale, state.mock.categories()));
   return (
     <BlogsPage
+      {...order}
       {...common}
       capabilitiesForArticle={(post) => blogCapabilities(actor, post.author?.id)}
       data={{
-        items: items.slice((page - 1) * 6, page * 6),
+        items: sortBlogItems(items, order.sort, locale).slice((page - 1) * 6, page * 6),
         total: items.length,
         page,
         pageSize: 6,
       }}
       search={search}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
+      onSearchChange={setSearch}
       onPageChange={setPage}
       onSetPublished={async (id, locale, published, requestId) => {
         const article = state.mock.get(id);
@@ -423,12 +521,9 @@ export function BlogsPublicPreview() {
       return (
         <p role="alert" className="p-8">
           {common.labels.NOT_FOUND}{" "}
-          <Link
-            href={root}
-            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          >
+          <BackLink linkComponent={Link} href={root}>
             {common.labels.back}
-          </Link>
+          </BackLink>
         </p>
       );
     return (

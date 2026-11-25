@@ -36,7 +36,7 @@ the guides below own integration details and the specs own acceptance criteria.
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | [`agents`](../registry/components/plugins/agents/AGENTS.md)             | Private staff chat, administrator-managed model connection, saved conversations, attachments and reviewed plugin actions; optional external MCP tools                  | `agents-server`, `agents-mcp-server` | [Agents](./agents.md)                                                                 |
 | [`auth`](../registry/components/plugins/auth/AGENTS.md)                 | Sign-in/out, account profile/security, recovery, password changes and access-denied UI                                                                                 | Host auth provider                   | [Auth](./intranet-auth.md)                                                            |
-| [`supports`](../registry/components/plugins/supports/AGENTS.md)         | Staff-shared maintenance tickets, Markdown discussion, images and close/cancel/reopen actions                                                                          | `supports-storage`                   | [Support tickets](./supports.md)                                                      |
+| [`supports`](../registry/components/plugins/supports/AGENTS.md)         | Sortable staff ticket queue, Markdown discussion, images and close/cancel/reopen actions                                                                               | `supports-storage`                   | [Support tickets](./supports.md)                                                      |
 | [`employees`](../registry/components/plugins/employees/AGENTS.md)       | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                               | `employees-server`                   | [Employee UI](./intranet-auth.md#employee-ui), [photos and retention](./employees.md) |
 | [`customers`](../registry/components/plugins/customers/AGENTS.md)       | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                        | `customers-storage`                  | [Customers](./customers.md)                                                           |
 | [`projects`](../registry/components/plugins/projects/AGENTS.md)         | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                 | `projects-storage`                   | [Projects](./projects.md)                                                             |
@@ -260,6 +260,74 @@ submission checks the remaining fields. Translation errors reveal the applicable
 language. Client feedback supplements existing server validation and keeps drafts.
 Blog publication requirements appear only beside fields after a publish attempt;
 incomplete drafts remain saveable. Hosts can reuse the helper for their own editors.
+
+## Browser view preferences
+
+Use `forge:<owner>:<view>:<preference>[:<instance>]` for localStorage layout choices.
+Use the registry item name or `showroom` as the owner, stable kebab-case names
+for views and preferences, and an optional stable instance for independent copies.
+Build keys with `viewPreferenceKey` from `@/components/utils/view-preference`.
+For example, `forge:blogs:editor:history` applies across articles and languages,
+and `forge:intranet-sidebar:desktop:navigation` applies across intranet routes.
+
+Save a value only when the user chooses a non-default. Returning to the default
+removes that key. These choices are shared by visits in the same browser profile
+and origin. URL filters, record edits and modal workflows retain their existing owners.
+
+## Table sorting
+
+Install `@forge/table-sort` and render a `TableSortHeader` in the header row
+for each sortable column. Pass its `field`, translated `label`, the current
+`value` and `onValueChange`. Sort values have the shape `{ field, direction }`,
+with direction `"asc"` or `"desc"`. Only the active header keeps its arrow
+visible. Hover or keyboard focus reveals the arrow on other sortable headers.
+
+Each click on the active header reverses its direction. Selecting a different
+column starts it ascending, or in its configured direction for the default column.
+Each registry table saves the last column and direction selected in this browser’s
+localStorage. A valid sort in the URL takes precedence over the saved preference.
+On a first visit, or when the saved value is invalid or unavailable, the table
+uses its configured default or ascending UUID order.
+
+For a new table, call `useTableSort(props, defaultSort, undefined, { owner, key, fields })`
+with a stable table key and its list of sortable fields. Spread the result into
+each header. Use `sortStorageKey` for independent instances of the same table.
+
+In the query adapter, import `resolveTableSort` from
+`@/components/utils/table-sort-state`. It returns the selected order, the
+configured default, or `{ field: "id", direction: "asc" }`. Map `id` to the
+table’s UUID column.
+Validate the field and direction, order all matching rows with a stable
+tie-breaker, then take the page. The [table example](https://registry.the-corner.swiss/table-pagination)
+uses UUID order. The [Support queue](./supports.md#host-routes-and-navigation)
+defaults to the last update.
+
+| Record table                      | Default order                                      |
+| --------------------------------- | -------------------------------------------------- |
+| Customers, Projects and Employees | Displayed name, ascending                          |
+| Blog admin and Support            | Last update, newest first                          |
+| Drive spaces and files            | Name, ascending, with folders first within a space |
+| Drive trash                       | Deletion date, newest first                        |
+| Menu items                        | Saved display order                                |
+| Account agent keys                | UUID, ascending, with no active header             |
+| Public pricing                    | Service name, ascending                            |
+
+To bind a list to the URL, pass its explicit selection as `sort`, leaving it
+undefined when the link has none. In `onSortChange(sort, source)`, a `"select"`
+action writes the field and direction, pushes history and resets pagination.
+A `"restore"` action applies the saved preference, replaces the current history
+entry and preserves its page. Translate arrow actions through `sortLabels`.
+Complete collections also work with local state.
+For server-paged Blogs and Employees, pass the same selection to the list request
+on each change. A host supplying only one page must wire
+`onSortChange` to enable its sort controls. For Customers and Projects, pass the
+complete matching collection, including all authorized cursor pages if using
+the storage companion. Custom customer columns can supply a `syncColumn.sortValue`.
+For standalone tables, `sortTableRows` compares text and numbers, keeps missing
+values last and breaks ties by ascending ID.
+
+Pricing accepts `priceAmount` and `durationMinutes` for numeric comparisons across formatted prices and time units. When those values are absent, the table uses natural text ordering. Supply a stable `id`
+on each price row. Existing rows use their code or service name for ties.
 
 ## Table selection and bulk deletion
 

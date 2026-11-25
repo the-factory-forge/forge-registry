@@ -6,7 +6,8 @@ import { showroomHead } from "@/showroom/seo";
 export const Route = createFileRoute("/_menus/$locale/admin/menus/$")({
   validateSearch: (search: Record<string, unknown>) => ({
     menuSearch:
-      typeof search.menuSearch === "string" && /^[0-9a-f-]{36}$/i.test(search.menuSearch)
+      search.menuSearch === "unassigned" ||
+      (typeof search.menuSearch === "string" && /^[0-9a-f-]{36}$/i.test(search.menuSearch))
         ? search.menuSearch
         : undefined,
     menuQuery: typeof search.menuQuery === "string" ? search.menuQuery.slice(0, 100) : undefined,

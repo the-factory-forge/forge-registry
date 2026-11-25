@@ -23,13 +23,19 @@ import { DriveFolderMenu } from "@/components/plugins/drive/folder-menu";
 import { DriveFolderTree } from "@/components/plugins/drive/folder-tree";
 import { driveLabels } from "@/components/plugins/drive/labels";
 import { useDriveRecovery } from "@/components/plugins/drive/recovery";
+import {
+  DRIVE_SORT_FIELDS,
+  DRIVE_FILE_SORT_FIELDS,
+  driveDefaultSort,
+  type DriveSort,
+  type DriveFileSortField,
+} from "@/components/plugins/drive/types";
 import type {
   DriveBrowserProps,
   DriveClient,
   DriveEntry,
   DrivePageProps,
   DriveSpace,
-  DriveSort,
 } from "@/components/plugins/drive/types";
 import {
   buttonClass,
@@ -41,13 +47,12 @@ import {
   DriveToasts,
   DriveMutationOwner,
   DriveTitle,
-  SortHeading,
   EntryDialog,
   iconButtonClass,
   messageFor,
   outlineButtonClass,
 } from "@/components/plugins/drive/ui";
-import { useDriveListing } from "@/components/plugins/drive/use-listing";
+import { useDriveListing, useDriveTableOrder } from "@/components/plugins/drive/use-listing";
 import { useUploads } from "@/components/plugins/drive/use-uploads";
 import {
   DEFAULT_MAX_FILE_BYTES,
@@ -60,6 +65,7 @@ import { SubpageSidebar } from "@/components/subpage-sidebar";
 import { TablePagination } from "@/components/table-pagination";
 import { TableSearch } from "@/components/table-search";
 import { TableSelectionCheckbox, useTableSelection } from "@/components/table-selection";
+import { TableSortHeader } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import {
   tableActionCellClass,
@@ -86,16 +92,15 @@ export function DrivePage({
   linkComponent: HostLink = Link,
   className,
   locale,
+  ...sortProps
 }: DrivePageProps) {
   const labels = { ...driveLabels, ...overrides };
   const [search, setSearch] = useState("");
-  const [cursors, setCursors] = useState<string[]>([]);
-  const cursor = cursors.at(-1);
-  const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
-  const onSort = (next: DriveSort) => {
-    setSort(next);
-    setCursors([]);
-  };
+  const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveSort["field"]>(
+    sortProps,
+    driveDefaultSort,
+    { key: "spaces", fields: DRIVE_SORT_FIELDS },
+  );
   const [revision, setRevision] = useState(0);
   const load = useCallback(
     (signal: AbortSignal) => client.listSpaces({ search, cursor, sort, signal }),
@@ -143,15 +148,10 @@ export function DrivePage({
             </caption>
             <thead>
               <tr className={tableRowClass}>
-                <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
-                <SortHeading
-                  field="updatedAt"
-                  label={labels.modified}
-                  sort={sort}
-                  onSort={onSort}
-                />
-                <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
-                <SortHeading field="owner" label={labels.owner} sort={sort} onSort={onSort} />
+                <TableSortHeader {...order} field="name" label={labels.name} />
+                <TableSortHeader {...order} field="updatedAt" label={labels.modified} />
+                <TableSortHeader {...order} field="size" label={labels.size} />
+                <TableSortHeader {...order} field="owner" label={labels.owner} />
                 <th scope="col" className={tableActionHeaderClass}>
                   {labels.actions}
                 </th>
@@ -308,19 +308,23 @@ function Browser({
   linkComponent: HostLink = Link,
   locale,
   className,
+  trashOrder,
+  trashView: controlledTrashView,
+  onTrashViewChange,
+  ...sortProps
 }: DriveBrowserProps) {
   const labels = useMemo(() => ({ ...driveLabels, ...overrides }), [overrides]);
   const [search, setSearch] = useState("");
-  const [cursors, setCursors] = useState<string[]>([]);
-  const cursor = cursors.at(-1);
-  const [sort, setSort] = useState<DriveSort>({ field: "name", direction: "asc" });
-  const onSort = (next: DriveSort) => {
-    setSort(next);
-    setCursors([]);
-  };
+  const { order, sort, cursors, cursor, setCursors } = useDriveTableOrder<DriveFileSortField>(
+    sortProps,
+    driveDefaultSort,
+    { key: "files", fields: DRIVE_FILE_SORT_FIELDS },
+  );
   const [localRevision, setRevision] = useState(0);
   const revision = localRevision + refreshVersion;
-  const [trashView, setTrashView] = useState(false);
+  const [localTrashView, setLocalTrashView] = useState(false);
+  const trashView = onTrashViewChange ? !!controlledTrashView : localTrashView;
+  const setTrashView = onTrashViewChange ?? setLocalTrashView;
   const [foldersLoading, setFoldersLoading] = useState(true);
   const trashEnabled = !!(client.listTrash && client.trashEntry && client.restoreEntry);
   const load = useCallback(
@@ -373,8 +377,7 @@ function Browser({
     setPreviousParentId(parentId);
     setSearch("");
     setCursors([]);
-    setSort({ field: "name", direction: "asc" });
-    setTrashView(false);
+    setLocalTrashView(false);
     setFeedback(undefined);
     setFolderAction(undefined);
     setRemovedFolder(undefined);
@@ -509,6 +512,7 @@ function Browser({
     labels,
     locale,
     visible: trashView,
+    trashOrder,
     refreshKey: revision,
     onChanged: refresh,
     onDeleted: (entry) => {
@@ -962,14 +966,9 @@ function Browser({
                             />
                           </th>
                         )}
-                        <SortHeading field="name" label={labels.name} sort={sort} onSort={onSort} />
-                        <SortHeading
-                          field="updatedAt"
-                          label={labels.modified}
-                          sort={sort}
-                          onSort={onSort}
-                        />
-                        <SortHeading field="size" label={labels.size} sort={sort} onSort={onSort} />
+                        <TableSortHeader {...order} field="name" label={labels.name} />
+                        <TableSortHeader {...order} field="updatedAt" label={labels.modified} />
+                        <TableSortHeader {...order} field="size" label={labels.size} />
                         <th scope="col" className={tableHeaderClass}>
                           {labels.owner}
                         </th>

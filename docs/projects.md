@@ -55,6 +55,10 @@ The plugin prevents duplicate submissions and reports overridable generic
 feedback. The host owns persistence, access checks, reloading data, and
 navigation after creation/deletion. Hiding an action is not authorization.
 
+While the first project request is pending, pass `project={null}` with the same
+Back link and section links to show the loading summary and disabled Details
+fields. Supply the record and its callbacks when the request succeeds.
+
 ## Change status from a badge
 
 Click a status badge in the detail header or table to choose Requested, Prospect,
@@ -201,3 +205,7 @@ Pages default to 50 candidates, cap at 100 and authorize persisted ownership and
 each returned project. An empty authorized page can still have a next cursor.
 Compose `TablePagination` without an unfiltered total and retain URL-owned search,
 owner and page state. See the [bounded directory contract](./persistence.md#bounded-customer-and-project-directories).
+
+## List sorting
+
+The list sorts project names, displayed owner and assignee names, and status. The customer-scoped list omits the common owner column. Bind `sort` and `onSortChange` to the host URL and supply all matching projects. Both lists start with ascending project name and remember their selections independently.

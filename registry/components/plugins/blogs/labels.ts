@@ -10,15 +10,17 @@ export const blogsLabels = {
   newPost: "New post",
   create: "Create draft",
   edit: "Edit",
-  back: "Back to posts",
+  back: "Posts",
   categories: "Categories",
   manageCategories: "Manage categories",
   search: "Search posts",
   searchSubmit: "Search",
   allCategories: "All categories",
+  clearCategory: "Clear category filter",
   popularCategories: "Categories",
   empty: "No posts found.",
   loading: "Loading…",
+  loadingStatus: "loading",
   retry: "Retry",
   error: "Something went wrong. Please try again.",
   title: "Title",
@@ -41,7 +43,9 @@ export const blogsLabels = {
   publicationStatus: "Publication status",
   changed: "Unpublished changes",
   missing: "Not translated",
-  save: "Save draft",
+  save: "Save",
+  asDraft: "As draft",
+  saveDraft: "Save draft",
   publish: "Publish",
   unpublish: "Unpublish",
   saved: "Draft saved.",
@@ -64,6 +68,7 @@ export const blogsLabels = {
   alt: "Alternative text",
   noImage: "No image",
   upload: "Upload image",
+  photo: "Photo",
   uploading: "Uploading…",
   uploaded: "Image uploaded.",
   removeImage: "Remove image",
@@ -138,7 +143,7 @@ export const blogsLabels = {
   replaceDraftDescription:
     "Resuming this version will replace the current draft. Its changes will be lost when you save. Live content stays unchanged.",
   replaceDraft: "Replace draft",
-  publishVersion: "Publish draft",
+  publishVersion: "Publish",
   deleteVersion: "Delete version",
   deleteDraft: "Delete draft",
   versionDeleted: "Version deleted.",
@@ -176,7 +181,13 @@ export const blogsLabels = {
   pageLabel: (page: number, total: number) => `Page ${page} of ${total}`,
   categoryCount: (name: string, count: number) => `${name} (${count})`,
 };
-export type BlogsLabels = Omit<typeof blogsLabels, "close" | "createAction"> & {
+export type BlogsLabels = Omit<
+  typeof blogsLabels,
+  "clearCategory" | "close" | "createAction" | "loadingStatus" | "photo"
+> & {
+  loadingStatus?: string;
+  photo?: string;
+  clearCategory?: string;
   close?: string;
   createAction?: string;
 };

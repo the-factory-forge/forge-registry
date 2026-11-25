@@ -1,5 +1,6 @@
 import { parseMarkdown } from "@tanstack/markdown/parser";
 
+import { blogDefaultSort, type BlogQuery } from "@/components/plugins/blogs/types";
 import type {
   BlogArticle,
   BlogCategory,
@@ -9,6 +10,7 @@ import type {
   BlogPublicQuery,
   BlogShared,
 } from "@/components/plugins/blogs/types";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_MARKDOWN_BYTES = 1024 * 1024;
@@ -201,6 +203,34 @@ export function articleListItem(
           : "published",
     })),
   };
+}
+export function sortBlogItems(
+  rows: readonly BlogListItem[],
+  sort: BlogQuery["sort"],
+  locale?: string,
+) {
+  return sortTableRows(
+    rows,
+    sort ?? blogDefaultSort,
+    (row, field) => {
+      switch (field) {
+        case "title":
+          return row.title;
+        case "categories":
+          return row.categoryNames?.join(", ");
+        case "languages":
+          return row.translations.map((entry) => entry.locale).join(", ");
+        case "author":
+          return row.author?.name;
+        case "editor":
+          return row.editor.name;
+        case "updatedAt":
+          return Date.parse(row.updatedAt);
+      }
+    },
+    (row) => row.id,
+    locale,
+  );
 }
 export function publicPosts(articles: BlogArticle[], query: BlogPublicQuery) {
   const posts: BlogPost[] = articles.flatMap((article) => {

@@ -51,8 +51,8 @@ harnesses remain separate from the showroom.
 ## Updating from Cove
 
 Use the shared [sync-template skill](https://github.com/the-factory-forge/forge-skills/blob/main/skills/sync-template/SKILL.md)
-and [project config](../.agents/configs/.sync-template/config.json) for the next comparison. The
-[HTML report](../.agents/configs/.sync-template/report.html) records differences, exclusions and
+and [project config](../.sync-template/config.json) for the next comparison. The
+[HTML report](../.sync-template/report.html) records differences, exclusions and
 history, including the original `.cove.jsonc` marker. Cove remains the direct parent.
 
 1. Compare that revision with a fixed Cove commit and review its dependency,
@@ -208,7 +208,7 @@ these sizes are width constraints, not emulated devices.
 Demos render directly in the main document. Resizing preserves the mounted page,
 sample-data edits, unsaved drafts and settings without navigation or new history
 entries. Browser Back/Forward work normally. The width persists across client-side
-navigation and resets to Big on a full reload, which also resets sample data.
+navigation and reloads. Returning to Big clears the saved width. Reloading resets sample data.
 
 ## Shared preview frame
 
@@ -217,8 +217,8 @@ content; the frame places them in a right sidebar on desktop
 and above the preview below 64rem. An icon-only Settings button beside
 Preview controls shows or hides the panel content. Settings start hidden below 40rem and open on larger screens; hiding
 them preserves their values and leaves only the gear available to reopen them. Demos without settings omit the button
-and keep the full width. A manual visibility choice lasts until the frame remounts,
-including across viewport resizes. Reloading restores the default for the current width.
+and keep the full width. A manual visibility choice survives navigation and reloads. Toggling back to the
+initial viewport default removes the preference.
 Demo state and callbacks
 stay beside their examples. The shared header has a single sun/moon icon button
 that toggles Light/Dark mode. It also provides the first keyboard stop,
@@ -237,15 +237,15 @@ links retain the selected locale. Examples share Acme workspace branding and
 consistent people/project names where they represent the same records; specialized
 booking, restaurant, and public-page content retains its own meaning.
 
-Localized demos also show a language switch beside the theme control, using the
-configured French, English, German and Italian locales. Switching keeps the
-current page, query and hash, preserves in-memory demo state through client
-navigation, and saves the choice in `FORGE_LOCALE`. The directory and unlocalized
-examples omit the switch. The shared `LanguageSwitcher` accepts a `linkComponent`
-adapter; the showroom supplies `ShowroomLink` and explicit locale destinations.
+The Blogs, Menus and Reservations demos offer **Language** in the Preview controls
+sidebar. Blogs has French, English, German and Italian interface labels. On a
+public article, the switch links to its published translations using their own
+slugs. Menus and Reservations offer English and French. Switching preserves the
+query, hash and in-memory demo state. Editor navigation guards run before the
+new locale is saved in `FORGE_LOCALE`.
 
-The showroom defaults to Light and saves the selected Light/Dark mode under
-`forge-showroom-theme`. It applies that choice before paint, across routes and tabs,
+The showroom defaults to Light and stores Dark under
+`forge:showroom:appearance:theme`. Selecting Light removes the key. It applies that choice before paint, across routes and tabs,
 and to dialogs portaled to the document body. There is no System or Font control.
 The removed font provider/presets were private showroom code; the default CSS font
 stacks and portable components' typography remain intact.

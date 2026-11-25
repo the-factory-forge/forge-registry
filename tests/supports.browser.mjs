@@ -24,6 +24,12 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   });
   await page.goto(`${base}/en/intranet/supports`);
   await page.getByRole("table").waitFor();
+  assert.equal(await page.getByRole("columnheader").nth(2).textContent(), "Priority");
+  await page.getByRole("button", { name: "Refresh tickets", exact: true }).click();
+  const firstTicket = page.getByRole("row").filter({
+    has: page.getByRole("link", { name: "Bug: Contact form confirmation is missing", exact: true }),
+  });
+  assert.equal(await firstTicket.getByRole("cell").nth(2).textContent(), "No priority");
   await page.getByRole("button", { name: "Support ticket", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New support ticket" });
   await dialog.waitFor();
@@ -35,10 +41,38 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
     document.querySelector('[role="dialog"]')?.contains(document.activeElement),
   );
   await dialog.getByRole("textbox", { name: "Title", exact: true }).fill("Screenshot support test");
-  await dialog.getByRole("combobox", { name: "Type", exact: true }).selectOption("bug");
+  const type = dialog.getByRole("combobox", { name: "Type", exact: true });
+  const description = dialog.getByRole("textbox", { name: "Description", exact: true });
+  await type.selectOption("bug");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "Problem:\n1. I do …\n2. I see …\n\nI expected it to …",
+  );
+  assert.equal(await description.inputValue(), "");
+  const priority = dialog.getByRole("combobox", { name: "Priority" });
+  assert.deepEqual(await priority.getByRole("option").allTextContents(), [
+    "No priority",
+    "Urgent",
+    "High",
+    "Medium",
+    "Low",
+  ]);
+  await priority.selectOption({ label: "High" });
   const markdown =
     '**Visible description**\n\n```html\n<img onerror="alert(1)">\n```\n\n![External](https://support-tracker.invalid/pixel.png)\n\n[Unsafe](javascript:alert(1))\n\n<script>window.supportScriptRan=true</script>';
-  await dialog.getByRole("textbox", { name: "Description", exact: true }).fill(markdown);
+  await description.fill(markdown);
+  await type.selectOption("feature");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "I’d like to …\nThis would help me …",
+  );
+  await type.selectOption("support");
+  assert.equal(
+    await description.getAttribute("placeholder"),
+    "I need help with …\nI’ve already tried …",
+  );
+  assert.equal(await description.inputValue(), markdown);
+  await type.selectOption("bug");
   await dialog.getByLabel("Images", { exact: true }).setInputFiles([
     { name: "screen.png", mimeType: "image/png", buffer: png },
     { name: "follow-up.gif", mimeType: "image/gif", buffer: gif },
@@ -47,6 +81,11 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   await dialog.getByRole("button", { name: "Create ticket", exact: true }).click();
   await page.getByRole("heading", { name: "Screenshot support test", exact: true }).waitFor();
   await actionToast(page, "Ticket created.");
+  const savedPriority = page.getByRole("combobox", { name: "Priority" });
+  assert.equal(await savedPriority.inputValue(), "P1");
+  await savedPriority.selectOption({ label: "No priority" });
+  await actionToast(page, "Priority updated.");
+  assert.equal(await savedPriority.inputValue(), "");
   assert.equal(await page.locator("article figure").count(), 2);
   assert.equal(await page.locator('article a[href^="javascript:"]').count(), 0);
   assert.equal(await page.locator('article img[src*="support-tracker.invalid"]').count(), 0);
@@ -101,9 +140,102 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     }
   }
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await page.getByRole("link", { name: "Bug: Screenshot support test", exact: true }).waitFor();
   assert.deepEqual(errors, []);
+});
+
+await test("support sorting restores the selected field, direction and rows across pages, history and discussions", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const queue = `${base}/en/intranet/supports`;
+  const heading = (field) => page.getByRole("columnheader", { name: field, exact: true });
+  const button = (field) => heading(field).getByRole("button");
+  const opacity = (field) =>
+    heading(field)
+      .locator("svg")
+      .evaluate((arrow) => getComputedStyle(arrow).opacity);
+  const firstTicket = page.locator("tbody tr:first-child td:first-child a");
+  const view = async (field, direction, title) => {
+    await page
+      .locator(`th[aria-sort="${direction}"]`)
+      .getByRole("button", { name: field, exact: true })
+      .waitFor();
+    await firstTicket.filter({ hasText: title }).waitFor();
+    assert.equal(await page.locator("th[aria-sort]").count(), 1);
+    assert.equal(await opacity(field), "1");
+  };
+  await page.goto(`${queue}?search=website&page=2&keep=notes#queue`);
+  await view("Updated", "descending", "Website review 22");
+  assert.deepEqual(await page.locator("thead button").allTextContents(), [
+    "Title",
+    "Status",
+    "Created by",
+    "Updated",
+  ]);
+  assert.equal(await opacity("Title"), "0");
+  const titleBounds = await button("Title").boundingBox();
+  await button("Title").hover();
+  assert.equal(await opacity("Title"), "1");
+  assert.deepEqual(await button("Title").boundingBox(), titleBounds);
+  await page.mouse.move(0, 0);
+  await button("Title").focus();
+  await page.keyboard.press("Tab");
+  assert.equal(await opacity("Status"), "1");
+  assert.equal(await opacity("Title"), "0");
+  await page.keyboard.press("Enter");
+  await view("Status", "ascending", "Change the contact page layout");
+  assert.equal(await opacity("Updated"), "0");
+  const sortedUrl = new URL(page.url());
+  assert.equal(sortedUrl.searchParams.get("sort"), "status");
+  assert.equal(sortedUrl.searchParams.get("direction"), "asc");
+  assert.equal(sortedUrl.searchParams.get("search"), "website");
+  assert.equal(sortedUrl.searchParams.get("keep"), "notes");
+  assert.equal(sortedUrl.hash, "#queue");
+  assert(!sortedUrl.searchParams.has("page"));
+
+  await button("Status").click();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await page.reload();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await page.goBack();
+  await view("Status", "ascending", "Change the contact page layout");
+  await page.goForward();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  await firstTicket.click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
+  await view("Status", "descending", "Add opening hours to the contact page");
+  assert.equal(new URL(page.url()).searchParams.get("keep"), "notes");
+  assert.equal(new URL(page.url()).hash, "#queue");
+  await button("Status").click();
+  await view("Status", "ascending", "Change the contact page layout");
+  await button("Updated").click();
+  await view("Updated", "descending", "Add opening hours to the contact page");
+  await button("Updated").click();
+  await view("Updated", "ascending", "Website review 23");
+  await button("Updated").click();
+  await view("Updated", "descending", "Add opening hours to the contact page");
+  assert.equal(new URL(page.url()).searchParams.get("sort"), "updatedAt");
+  assert.equal(new URL(page.url()).searchParams.get("direction"), "desc");
+  await button("Created by").click();
+  await view("Created by", "ascending", "Update the team photo");
+  await page.setViewportSize({ width: 390, height: 840 });
+  await button("Title").click();
+  await view("Title", "ascending", "Change the contact page layout");
+  await button("Title").click();
+  await view("Title", "descending", "Website review 9");
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await button("Title").click();
+  await view("Title", "ascending", "Change the contact page layout");
+  await page.goto(queue);
+  await view("Title", "ascending", "Change the contact page layout");
+  await page.goto(`${queue}?sort=type&direction=desc`);
+  await view("Title", "descending", "Website review 9");
+  await page.goto(`${queue}?sort=status&direction=invalid`);
+  await view("Title", "ascending", "Change the contact page layout");
+  await page.goto(`${queue}?sort=updatedAt&direction=desc`);
+  await view("Updated", "descending", "Contact form confirmation is missing");
 });
 
 await test("support navigation, URL history, validation and pending dialog guards", async (t) => {
@@ -205,7 +337,7 @@ await test("support row actions view requests and cancel with rollback and retry
   await page.keyboard.press("Enter");
   await page.getByRole("heading", { name: title, exact: true }).waitFor();
   await page.getByText("I can reproduce this on mobile too.", { exact: true }).waitFor();
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await cancel.waitFor();
 
   await page.getByLabel("Delay actions", { exact: true }).check();
@@ -241,7 +373,7 @@ await test("support row actions view requests and cancel with rollback and retry
   assert.equal(await page.getByText("canceled this request", { exact: true }).count(), 1);
   await page.getByRole("button", { name: "Reopen ticket", exact: true }).click();
   await actionToast(page, "Ticket status updated.");
-  await page.getByRole("link", { name: "Back to support", exact: true }).click();
+  await page.getByRole("article").getByRole("link", { name: "Support", exact: true }).click();
   await row.getByText("Open", { exact: true }).waitFor();
 
   for (const width of [1440, 390]) {

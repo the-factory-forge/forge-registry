@@ -1,4 +1,18 @@
+import { tableSortLabels } from "@/components/utils/table-sort-state";
+
+const priorityLabels = {
+  priority: "Priority",
+  noPriority: "No priority",
+  P0: "Urgent",
+  P1: "High",
+  P2: "Medium",
+  P3: "Low",
+  prioritySaved: "Priority updated.",
+  priorityError: "Could not update the priority. Try again.",
+};
+
 export const supportsLabels = {
+  ...tableSortLabels,
   title: "Support",
   add: "Support ticket",
   createTitle: "New support ticket",
@@ -6,8 +20,12 @@ export const supportsLabels = {
   instructions: "Describe what you need help with and include screenshots if useful.",
   ticketTitle: "Title",
   description: "Description",
+  bugDescriptionPlaceholder: "Problem:\n1. I do …\n2. I see …\n\nI expected it to …",
+  featureDescriptionPlaceholder: "I’d like to …\nThis would help me …",
+  supportDescriptionPlaceholder: "I need help with …\nI’ve already tried …",
   type: "Type",
   chooseType: "Choose a type",
+  ...priorityLabels,
   bug: "Bug",
   feature: "Feature",
   support: "Support",
@@ -22,11 +40,12 @@ export const supportsLabels = {
   cancelTicket: "Cancel request",
   cancelError: "Could not cancel this request. Please try again.",
   search: "Search tickets",
+  refresh: "Refresh tickets",
   clearSearch: "Clear search",
   empty: "No support tickets found.",
   loading: "Loading tickets…",
   loadError: "Could not load tickets. Please try again.",
-  back: "Back to support",
+  back: "Support",
   discussion: "Discussion",
   noActivity: "No replies yet.",
   reply: "Reply",
@@ -64,7 +83,11 @@ export const supportsLabels = {
   loadMore: "Load more activity",
   total: (count: number) => `${count} tickets`,
 };
-export type SupportsLabels = typeof supportsLabels;
+export type SupportsLabels = Omit<
+  typeof supportsLabels,
+  keyof typeof tableSortLabels | keyof typeof priorityLabels | "refresh"
+> &
+  Partial<typeof tableSortLabels & typeof priorityLabels & Pick<typeof supportsLabels, "refresh">>;
 
 export const supportTypeShortLabels = {
   bug: supportsLabels.bug,

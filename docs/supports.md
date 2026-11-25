@@ -1,6 +1,6 @@
 # Support tickets
 
-`supports` provides a shared staff queue for website maintenance: a searchable,
+`supports` provides a shared staff queue for website maintenance with a sortable, searchable,
 paginated table, short creation dialog and a ticket discussion page. All staff
 can view every ticket, post replies and close, cancel or reopen it. Customer and anonymous
 accounts are excluded. The companion `supports-storage` persists records in
@@ -42,24 +42,42 @@ footerItems={[
 profile section. `IntranetShell` passes it through. The host supplies localized
 labels, paths, the link adapter and the active pathname.
 
-Use `SupportsPage` with `client`, `tickets`, `total`, controlled `search`/`page`,
+Use `SupportsPage` with `client`, `tickets`, `total`, controlled `search`, `sort` and `page`,
 their change callbacks, `getTicketHref`, `onCreated` and `onChanged` to refresh the
 list after cancellation. After creation,
 `onCreated(ticket)` can navigate to its discussion. Use `SupportDetailPage` with
 `ticket`, `activity`, `client`, `backHref` and `onChanged`. Both expose `labels`,
 `className`, `linkComponent` and `formatDate`; English is the default.
 
+Pass `onRefresh` to show a localized refresh button beside the queue search. The host decides which displayed tickets to recheck.
+
 The discussion keeps Close ticket (or Reopen ticket) and Post reply in a sticky
 bottom bar. Closing uses danger styling and requires confirmation; canceling
 preserves the reply draft. Failed closure keeps the dialog open for retry.
 
-Read through shared query keys in the route loader and component. Include search,
-page, ticket and activity cursor in those keys. Search applies to title and
-description before the fixed 20-row page; latest activity sorts first. The host
-must validate URL search state, reset page when search changes and retain unrelated
-parameters and the fragment. Default to empty search/page 1. Live search may
-replace history; pagination adds history entries. Reload and Back/Forward must
-restore both controls and results.
+Pass the URL’s explicit `sort` to `SupportsPage`. For the list request, use
+`client.list({ search, sort, page })` with the effective order. On a first visit
+the queue uses `SUPPORT_DEFAULT_SORT` (Updated, newest first). Selecting **Title**,
+**Status** or **Created by** starts ascending. Each click on the active heading
+reverses its direction, and the queue remembers the last choice in this browser.
+The active arrow stays visible. Other arrows appear on hover or keyboard focus.
+
+Title orders by ticket type first, then by title within each type. Reversing
+Title reverses both comparisons. Status uses the status key and Created by uses
+the saved author name. Ties use newest update, then descending ticket ID.
+The storage companion orders all matches before taking the 20-row page.
+Hosts can omit `sort` and `onSortChange` to keep a read-only default order.
+
+Include search, sort and page in list query keys, and ticket and activity cursor
+in detail keys. The showroom accepts URLs such as `?sort=title&direction=desc`.
+Existing `sort=type` links select the combined Title order.
+When the link has no valid sort, pass `sort={undefined}` so the table can
+restore its saved choice. In `onSortChange(sort, source)`, write the field and
+direction to the URL and use them for the list query. A user click pushes a
+history entry and resets to page 1. A `"restore"` replaces the current entry and
+preserves its page. Search changes also reset the page and may replace history. Preserve
+unrelated parameters and the fragment through pagination and discussion links.
+Reload and Back/Forward restore the controls and results.
 
 `client.get(id, cursor?)` returns the ticket and 50 chronological activity entries,
 with `nextCursor` when more exist. Accumulate subsequent pages and pass an
@@ -68,6 +86,11 @@ ticket and list. Reload activity after a write so comments and status events sta
 ordered. Refetch on page entry. Clear private caches on sign-out or lost access;
 do not retain denied data behind an error banner.
 
+While the first ticket request is pending, pass `ticket={null}` with the same Back
+link to show the loading discussion. Supply the ticket, activity and callbacks
+when the request succeeds. Keep passing the loaded ticket with `loading` during
+a background refresh.
+
 ## Forms and discussion
 
 Creation requires a title (200 characters), Markdown description (5,000) and an
@@ -75,6 +98,15 @@ explicit `bug`, `feature` or `support` selection. Replies accept up to 5,000
 characters and require text or at least one image. Each submission accepts up to
 five PNG/JPEG/WebP/GIF images of 10 MiB each. Images are not cropped.
 
+Hosts that expose `client.setPriority(id, value)` enable priority on creation, in
+the queue and on the discussion. The selector shows No priority, Urgent, High,
+Medium and Low. They correspond to `null` and `P0` through `P3`. Storage also
+accepts legacy `P4` and displays it as No priority. An edit requires the same
+staff permission as a status change. Updating priority leaves ticket status alone.
+
+The new ticket description shows an example for the selected type. Hosts can
+translate each example through the `bugDescriptionPlaceholder`,
+`featureDescriptionPlaceholder` and `supportDescriptionPlaceholder` labels.
 Descriptions and replies use a Markdown textarea without a preview toggle.
 Saved content disables raw HTML and uses sanitized links.
 Remote embedded images are suppressed; uploaded attachments are displayed
@@ -98,15 +130,19 @@ event. Submitted content has no edit/delete actions. Author `{id, name}` snapsho
 stay as posted after account renaming or deletion. There are no email notifications
 or per-user unread indicators in this version.
 
-Update the UI and storage companion together so `canceled` is accepted by server
-validation. Status columns already store text, so no database migration or
-reclassification of existing closed requests is needed.
+Update the UI and storage companion together so server validation accepts
+`canceled`. Existing closed requests keep their status.
 
 ## Server wiring and authorization
 
 Compose the exported tables and the shared `pluginLocks` table in the host's
 Drizzle schema, then generate, review and apply an additive migration using the
 [persistence workflow](./persistence.md). Installation never applies migrations.
+Before upgrading `supports-storage`, apply the generated migration that adds
+`supports_ticket.author_name`. PostgreSQL derives this column from each saved
+author snapshot, including existing tickets. Custom list adapters can order by
+their existing author-name field. Include the nullable `supports_ticket.priority`
+column and its P0–P4 check in the reviewed migration. Existing rows start with no priority.
 Use a separate host database/schema per site; an S3 prefix is not database tenancy.
 
 ```ts
@@ -143,7 +179,7 @@ be consistent across tickets, not a per-record visibility filter.
 
 Expose request-scoped operations through `supports.client(context)`. The
 `SupportsClient` browser contract contains list/get/create/comment/setStatus,
-upload/cancelUpload and getAttachment. Keep session resolution, CSRF protection,
+optional setPriority, upload/cancelUpload and getAttachment. Keep session resolution, CSRF protection,
 transport validation, rate limiting and credentials server-side. Never accept an
 actor or arbitrary context from the browser. Denied reads should clear host caches.
 
@@ -179,7 +215,7 @@ until expiry; do not log or persist them as canonical references.
 
 Run `await supports.maintenance()` from a trusted host scheduler, for example once
 per hour, and alert on its returned `failed` count. Each call examines at most 50
-eligible records; run additional bounded calls for a backlog. It rotates failed
+eligible records. Request-driven hosts can pass a smaller limit, such as `supports.maintenance(1)` after an upload. It rotates failed
 records, retries deletion safely and preserves tombstones against late upload
 retries. `cancelUpload` marks an unattached image for cleanup before object deletion.
 Installation does not create a scheduler. Do not apply a bucket expiry rule to the
@@ -190,7 +226,7 @@ final Supports object prefix or remove metadata for failed cleanup.
 [Supports–GitHub](./supports-github.md) supplies private issue delivery through
 separately installed connector source. Core Supports has no provider fields or
 connector dependency. Its optional server `onMutation(transaction, event)` commits
-connector work alongside creates, replies and status changes. Enqueue failure
+connector work alongside creates, replies, priority edits and status changes. Enqueue failure
 rolls back the local submission; remote delivery happens after commit.
 
 The trusted server `integration` port exposes authorization, transaction locking,

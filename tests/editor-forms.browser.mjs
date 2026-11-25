@@ -46,41 +46,37 @@ for (const width of [1440, 390]) {
     if (width === 390)
       await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
     await page.getByLabel("Author", { exact: true }).selectOption("jordan");
-    const save = page.getByRole("button", { name: "Save draft", exact: true });
+    const save = page.getByRole("button", { name: "Save", exact: true });
     const publish = page.getByRole("button", { name: "Publish", exact: true });
     await page.getByRole("textbox", { name: "Title", exact: true }).scrollIntoViewIfNeeded();
-    await sticky(save);
+    await sticky(publish);
     assert.equal(await page.getByText("Publishing requires", { exact: false }).count(), 0);
     const title = page.getByRole("textbox", { name: "Title", exact: true });
     const slug = page.getByRole("textbox", { name: "Slug", exact: true });
     const markdown = page.getByRole("textbox", { name: "Markdown", exact: true });
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
     await title.fill(" ");
     await slug.fill("");
     await save.click();
     await actionToast(page, "Draft saved.");
+    await page.getByRole("checkbox", { name: "As draft", exact: true }).uncheck();
     await publish.click();
     await focused(page, title);
     await page.screenshot({ path: `/tmp/editor-validation-${width}.png` });
     await title.fill("Corrected title");
     assert.equal(await title.evaluate((node) => node === document.activeElement), true);
     assert.equal(await title.getAttribute("aria-invalid"), "false");
-    await save.click();
-    await actionToast(page, "Draft saved.");
     await publish.click();
     await focused(page, slug);
     await slug.fill("corrected-title");
-    await save.click();
-    await actionToast(page, "Draft saved.");
     await publish.click();
     await focused(page, markdown);
-    await sticky(save);
+    await sticky(publish);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       true,
     );
     await markdown.fill("Ready to publish.");
-    await save.click();
-    await actionToast(page, "Draft saved.");
     await publish.click();
     await actionToast(page, "This language is now published.");
     assert.equal(
@@ -121,9 +117,11 @@ void test("publishing points to a selected category missing its translation", as
   await page.getByRole("textbox", { name: "Slug", exact: true }).fill("article");
   await page.getByRole("textbox", { name: "Markdown", exact: true }).fill("Contenu");
   const category = page.getByRole("checkbox", { name: "English only", exact: true });
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await category.check();
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await actionToast(page, "Draft saved.");
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).uncheck();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await focused(page, category);
   await page.getByRole("alert").filter({ hasText: "Translate this category" }).waitFor();

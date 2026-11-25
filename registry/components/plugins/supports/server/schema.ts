@@ -1,7 +1,18 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 import type {
   SupportAuthor,
+  SupportPriority,
   SupportStatus,
   SupportType,
 } from "@/components/plugins/supports/types";
@@ -14,11 +25,16 @@ export const supportsTickets = pgTable(
     description: text("description").notNull(),
     type: text("type").$type<SupportType>().notNull(),
     status: text("status").$type<SupportStatus>().notNull().default("open"),
+    priority: text("priority").$type<SupportPriority>(),
     author: jsonb("author").$type<SupportAuthor>().notNull(),
+    authorName: text("author_name").generatedAlwaysAs(sql`author->>'name'`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("supports_ticket_updated").on(table.updatedAt, table.id)],
+  (table) => [
+    index("supports_ticket_updated").on(table.updatedAt, table.id),
+    check("supports_ticket_priority", sql`${table.priority} in ('P0', 'P1', 'P2', 'P3', 'P4')`),
+  ],
 );
 
 export const supportsActivity = pgTable(

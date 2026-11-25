@@ -44,6 +44,31 @@ await suite("Subpage sidebar browser", async () => {
     return page.getByRole("navigation", { name: label, exact: true });
   }
 
+  await test("desktop navigation remembers its position and mobile drawers leave it alone", async (t) => {
+    const page = await preview(t, "/en/intranet-sidebar");
+    const toggle = page.getByRole("button", { name: "Toggle side navigation", exact: true });
+    const saved = () =>
+      page.evaluate(() => localStorage.getItem("forge:intranet-sidebar:desktop:navigation"));
+    assert.equal(await saved(), null);
+    await toggle.click();
+    await page.reload();
+    assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+    assert.equal(await saved(), "closed");
+    await page.setViewportSize({ width: 390, height: 900 });
+    await toggle.click();
+    await page.getByRole("dialog").waitFor();
+    await page.keyboard.press("Escape");
+    assert.equal(await saved(), "closed");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page
+      .locator('[data-slot="sidebar"][data-state="collapsed"]')
+      .waitFor({ state: "attached" });
+    await toggle.press("Control+b");
+    assert.equal(await saved(), null);
+    await page.reload();
+    assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  });
+
   async function createFolder(page, name) {
     await openDriveFolderDialog(page);
     const dialog = page.getByRole("dialog", { name: "New folder", exact: true });

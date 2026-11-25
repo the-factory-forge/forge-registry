@@ -23,6 +23,7 @@ import {
 } from "@/components/sidebar-navigation";
 import { cn } from "@/components/utils/cn";
 import { useSidebarMobile } from "@/components/utils/use-sidebar-mobile";
+import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
 export type IntranetLinkProps = SidebarLinkProps;
 export type IntranetNavItem = SidebarNavItem;
@@ -98,7 +99,10 @@ export function IntranetSidebarProvider({
   onFocusCapture,
   ...props
 }: IntranetSidebarProviderProps) {
-  const [localOpen, setLocalOpen] = React.useState(defaultOpen);
+  const [localOpen, setLocalOpen] = usePanelPreference(
+    viewPreferenceKey("intranet-sidebar", "desktop", "navigation"),
+    defaultOpen,
+  );
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isMobile = useSidebarMobile();
   const open = controlledOpen ?? localOpen;
@@ -111,7 +115,7 @@ export function IntranetSidebarProvider({
       if (controlledOpen === undefined) setLocalOpen(!open);
       onOpenChange?.(!open);
     }
-  }, [isMobile, controlledOpen, open, onOpenChange]);
+  }, [isMobile, controlledOpen, open, onOpenChange, setLocalOpen]);
 
   React.useEffect(() => {
     if (!isMobile && !open && sidebarHadFocus.current) {

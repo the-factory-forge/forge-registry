@@ -3,18 +3,26 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { BackLink } from "@/components/back-link";
 import {
   CustomersPage,
   CustomerDetailPage,
   CustomerNewPage,
   type CustomerFormValues,
 } from "@/components/plugins/customers";
+import { CUSTOMER_SORT_FIELDS } from "@/components/plugins/customers/types";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { CustomerProjectsPreview } from "@/showroom/projects-preview";
+import { useShowroomTableSort } from "@/showroom/routing";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 
+const customerFields = CUSTOMER_SORT_FIELDS.filter((field) => field !== "sync");
 export function CustomersPreview() {
   const state = usePluginsPreview();
+  const order = useShowroomTableSort(
+    "customers",
+    state.showIntegration ? CUSTOMER_SORT_FIELDS : customerFields,
+  );
   const params = useShowroomParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -69,25 +77,27 @@ export function CustomersPreview() {
       return (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
-          <Link
-            href={base}
-            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
-          >
+          <BackLink linkComponent={Link} href={base}>
             Back to customers
-          </Link>
+          </BackLink>
         </div>
       );
+    const detailAppearance = {
+      className: "showroom-page",
+      section: tab === "projects" ? ("projects" as const) : ("about" as const),
+      backHref: base,
+      sectionHrefs: {
+        about: `${base}/${customerId}`,
+        projects: `${base}/${customerId}/projects`,
+      },
+      linkComponent: Link,
+    };
+    if (state.directoryState === "loading")
+      return <CustomerDetailPage {...detailAppearance} customer={null} />;
     return (
       <CustomerDetailPage
-        className="showroom-page"
+        {...detailAppearance}
         customer={customer}
-        section={tab === "projects" ? "projects" : "about"}
-        backHref={base}
-        sectionHrefs={{
-          about: `${base}/${customerId}`,
-          projects: `${base}/${customerId}/projects`,
-        }}
-        linkComponent={Link}
         onDelete={onDelete}
         onSetVerified={onSetVerified}
         onSave={async (values: CustomerFormValues) => {
@@ -110,6 +120,7 @@ export function CustomersPreview() {
   const query = search.trim().toLowerCase();
   return (
     <CustomersPage
+      {...order}
       className="showroom-page"
       customers={customers.filter((customer) =>
         [customer.name, customer.companyName, customer.email].some((value) =>
@@ -138,7 +149,9 @@ export function CustomersPreview() {
           : undefined
       }
       syncColumn={
-        state.showIntegration ? { label: "Host sync", render: () => "Not connected" } : undefined
+        state.showIntegration
+          ? { label: "Host sync", render: () => "Not connected", sortValue: () => "Not connected" }
+          : undefined
       }
       toolbar={
         state.showIntegration ? (

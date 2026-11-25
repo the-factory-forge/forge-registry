@@ -18,6 +18,21 @@
       "dependencies": ["cn"]
     },
     {
+      "name": "back-link",
+      "type": "registry:ui",
+      "title": "Back link",
+      "description": "Return navigation with a labeled, motion-aware arrow and host link support.",
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn", "@forge/ui-shims"],
+      "files": [
+        {
+          "path": "registry/components/back-link.tsx",
+          "type": "registry:component",
+          "target": "@components/back-link.tsx"
+        }
+      ]
+    },
+    {
       "name": "table-styles",
       "type": "registry:lib",
       "title": "Plugin table styles",
@@ -73,6 +88,7 @@
           "target": "@components/utils/loading-store.ts"
         }
       ],
+      "dependencies": ["lucide-react"],
       "registryDependencies": ["@forge/cn"]
     },
     {
@@ -105,6 +121,20 @@
       "registryDependencies": ["@forge/cn"]
     },
     {
+      "name": "status-toggle",
+      "type": "registry:ui",
+      "title": "Status toggle",
+      "description": "Compact toggle button for changing a visible status, with a switch indicator and a stable accessible label.",
+      "files": [
+        {
+          "path": "registry/components/status-toggle.tsx",
+          "type": "registry:component",
+          "target": "@components/status-toggle.tsx"
+        }
+      ],
+      "registryDependencies": ["@forge/cn"]
+    },
+    {
       "name": "table-pagination",
       "type": "registry:ui",
       "title": "Table pagination",
@@ -118,6 +148,39 @@
       ],
       "dependencies": ["lucide-react"],
       "registryDependencies": ["@forge/cn", "@forge/table-styles", "@forge/icon-tooltip"]
+    },
+    {
+      "name": "view-preference",
+      "type": "registry:lib",
+      "title": "View preferences",
+      "description": "Browser-local layout choices scoped to their owning view. Restoring a default removes its key.",
+      "files": [
+        {
+          "path": "registry/components/utils/view-preference.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/view-preference.ts"
+        }
+      ]
+    },
+    {
+      "name": "table-sort",
+      "type": "registry:ui",
+      "title": "Table sorting",
+      "description": "Sortable table headers with keyboard controls, remembered per-table ordering and a UUID fallback.",
+      "files": [
+        {
+          "path": "registry/components/table-sort.tsx",
+          "type": "registry:component",
+          "target": "@components/table-sort.tsx"
+        },
+        {
+          "path": "registry/components/utils/table-sort-state.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-sort-state.ts"
+        }
+      ],
+      "dependencies": ["lucide-react", "zod@4.6.7"],
+      "registryDependencies": ["@forge/view-preference", "@forge/cn", "@forge/table-styles"]
     },
     {
       "name": "table-selection",
@@ -744,7 +807,8 @@
         "@forge/cn",
         "@forge/section-heading",
         "@forge/section-variants",
-        "@forge/table-search"
+        "@forge/table-search",
+        "@forge/table-sort"
       ]
     },
     {
@@ -869,6 +933,7 @@
       "description": "Responsive intranet sidenav with customer branding, configurable nested navigation, a Better Auth-compatible user profile, and built-in or external toggle controls.",
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/view-preference",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/auth",
@@ -955,6 +1020,7 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
@@ -967,7 +1033,8 @@
         "@forge/table-selection",
         "@forge/record-deletion",
         "@forge/loading-indicator",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/table-sort"
       ]
     },
     {
@@ -1009,6 +1076,7 @@
       ],
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/customers",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1022,7 +1090,8 @@
         "@forge/table-selection",
         "@forge/record-deletion",
         "@forge/loading-indicator",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/table-sort"
       ]
     },
     {
@@ -1046,7 +1115,8 @@
         "@forge/subpage-sidebar",
         "@forge/action-toast",
         "@forge/table-selection",
-        "@forge/loading-indicator"
+        "@forge/loading-indicator",
+        "@forge/table-sort"
       ],
       "files": [
         {
@@ -1184,6 +1254,9 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/status-toggle",
+        "@forge/back-link",
+        "@forge/view-preference",
         "@forge/dropdown-menu",
         "@forge/table-pagination",
         "@forge/cn",
@@ -1196,10 +1269,12 @@
         "@forge/icon-tooltip",
         "@forge/editor-form",
         "@forge/image-crop",
+        "@forge/photo-picker",
         "@forge/table-selection",
         "@forge/content-sidebar-layout",
         "@forge/loading-indicator",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/table-sort"
       ],
       "files": [
         {
@@ -1332,6 +1407,8 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/back-link",
+        "@forge/view-preference",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/drive",
@@ -1347,7 +1424,8 @@
         "@forge/loading-indicator",
         "@forge/image-with-fallback",
         "@forge/image-crop",
-        "@forge/lightbox"
+        "@forge/lightbox",
+        "@forge/table-sort"
       ],
       "files": [
         {
@@ -1575,6 +1653,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/action-toast",
@@ -1582,7 +1661,8 @@
         "@forge/table-selection",
         "@forge/loading-indicator",
         "@forge/table-styles",
-        "@forge/dialog-submit"
+        "@forge/dialog-submit",
+        "@forge/table-sort"
       ],
       "dependencies": ["lucide-react", "@base-ui/react"]
     },
@@ -1644,6 +1724,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/status-toggle",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1656,7 +1737,9 @@
         "@forge/icon-tooltip",
         "@forge/table-selection",
         "@forge/image-crop",
-        "@forge/loading-indicator"
+        "@forge/photo-picker",
+        "@forge/loading-indicator",
+        "@forge/table-sort"
       ],
       "dependencies": ["@base-ui/react", "lucide-react", "zod@^4.0.0"]
     },
@@ -1728,6 +1811,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",
@@ -1874,6 +1958,21 @@
         }
       ],
       "dependencies": ["react-email@6.11.3"]
+    },
+    {
+      "name": "photo-picker",
+      "type": "registry:ui",
+      "title": "Photo picker",
+      "description": "A keyboard-accessible image file picker with an upload button beside or over a preview.",
+      "files": [
+        {
+          "path": "registry/components/photo-picker.tsx",
+          "type": "registry:component",
+          "target": "@components/photo-picker.tsx"
+        }
+      ],
+      "dependencies": ["lucide-react"],
+      "registryDependencies": ["@forge/cn"]
     },
     {
       "name": "image-crop",
@@ -2339,7 +2438,7 @@
       "name": "supports",
       "type": "registry:block",
       "title": "Support",
-      "description": "Shared staff tickets with Markdown, image attachments, discussion and open, closed or canceled status. Host-owned authorization and routing.",
+      "description": "Sortable staff ticket queue with Markdown discussions, image attachments and open, closed or canceled status. Host-owned authorization and routing.",
       "files": [
         {
           "path": "registry/components/plugins/supports/index.tsx",
@@ -2373,11 +2472,13 @@
         }
       ],
       "registryDependencies": [
+        "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
         "@forge/table-styles",
         "@forge/table-search",
         "@forge/table-pagination",
+        "@forge/table-sort",
         "@forge/native-select",
         "@forge/action-toast",
         "@forge/optimistic-action",
@@ -2449,6 +2550,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "registryDependencies": [
         "@forge/supports",
+        "@forge/action-toast",
         "@forge/icon-tooltip",
         "@forge/optimistic-action",
         "@forge/cn"

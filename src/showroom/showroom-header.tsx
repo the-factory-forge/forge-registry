@@ -1,12 +1,11 @@
 "use client";
 
 import { useLocation } from "@tanstack/react-router";
-import { ArrowLeftIcon, LayoutGridIcon } from "lucide-react";
+import { LayoutGridIcon } from "lucide-react";
 
+import { BackArrow, backLinkClass } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { cn } from "@/components/utils/cn";
-import { isLocale, localeNames, locales, localeShort } from "@/lib/i18n/config";
 import { DeviceControl } from "@/showroom/device-preview";
 import { ShowroomLink as Link } from "@/showroom/routing";
 import { ShowroomSearch } from "@/showroom/showroom-search";
@@ -15,8 +14,6 @@ import { ThemeControl } from "@/showroom/theme-control";
 export function ShowroomHeader() {
   const location = useLocation();
   const isList = location.pathname === "/";
-  const locale = location.pathname.split("/")[1];
-  const Icon = isList ? LayoutGridIcon : ArrowLeftIcon;
 
   return (
     <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
@@ -49,16 +46,16 @@ export function ShowroomHeader() {
           <Link
             href="/"
             aria-current={isList ? "page" : undefined}
-            className="group/showroom-back inline-flex min-h-10 items-center gap-2 rounded-xl px-2 text-sm font-medium hover:bg-primary/5 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:text-primary sm:px-3"
+            className={cn(
+              backLinkClass,
+              "aria-[current=page]:text-primary [&_svg]:hidden sm:[&_svg]:block",
+            )}
           >
-            <Icon
-              className={cn(
-                "hidden size-4 shrink-0 sm:block",
-                !isList &&
-                  "motion-safe:transition-transform motion-safe:duration-150 motion-safe:group-hover/showroom-back:-translate-x-0.5 motion-safe:group-focus-visible/showroom-back:-translate-x-0.5",
-              )}
-              aria-hidden="true"
-            />
+            {isList ? (
+              <LayoutGridIcon className="size-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <BackArrow />
+            )}
             All components
           </Link>
         </div>
@@ -66,25 +63,6 @@ export function ShowroomHeader() {
           <ShowroomSearch />
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {isLocale(locale) && (
-            <LanguageSwitcher
-              locale={locale}
-              locales={locales}
-              localeNames={localeNames}
-              localeShort={localeShort}
-              localeHrefs={Object.fromEntries(
-                locales.map((nextLocale) => [
-                  nextLocale,
-                  location.href.replace(/^\/[^/]+/, `/${nextLocale}`),
-                ]),
-              )}
-              onLocaleChange={(nextLocale) => {
-                document.cookie = `FORGE_LOCALE=${nextLocale}; Max-Age=31536000; Path=/; SameSite=Lax`;
-              }}
-              linkComponent={Link}
-              className="min-h-10 min-w-10 justify-center rounded-xl px-2 hover:bg-accent hover:text-accent-foreground [&_svg]:hidden sm:[&_svg]:block"
-            />
-          )}
           <ThemeControl />
           <DeviceControl />
           <IconTooltip label="GitHub repository">

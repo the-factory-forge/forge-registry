@@ -3,6 +3,8 @@ import {
   employeeIdSchema,
   EMPLOYEE_PAGE_SIZE,
   isEmployeeAdmin,
+  sortEmployees,
+  type EmployeeSort,
   listEmployeesSchema,
   setEmployeeBanSchema,
   updateEmployeeSchema,
@@ -16,7 +18,7 @@ import {
 export interface EmployeesAuthApi {
   listUsers(input: {
     headers: Headers;
-    query: { limit: number; offset: number; sortBy: string; sortDirection: "asc" };
+    query: { limit: number; offset: number; sortBy: string; sortDirection: "asc" | "desc" };
   }): Promise<{ users: Employee[]; total: number }>;
   createUser(input: {
     headers: Headers;
@@ -54,6 +56,12 @@ export interface EmployeeServiceOptions {
   /** Required when Customers is installed: exclude profiles before pagination and mutations. */
   directory?: {
     list(offset: number, limit: number): Promise<{ users: Employee[]; total: number }>;
+    /** Optional native ordering for large directories, applied before the offset. */
+    listSorted?(
+      offset: number,
+      limit: number,
+      sort: EmployeeSort,
+    ): Promise<{ users: Employee[]; total: number }>;
     contains(id: string): Promise<boolean>;
   };
 }
@@ -75,16 +83,43 @@ export function createEmployeeService({
     if (directory && (!(await directory.contains(actorId)) || !(await directory.contains(id))))
       throw new Error("Employee access required.");
   }
+  async function listEmployees(offset: number, sort?: EmployeeSort) {
+    await requireEmployee();
+    const list = (start: number, limit: number) =>
+      directory
+        ? directory.list(start, limit)
+        : api.listUsers({
+            headers,
+            query: { limit, offset: start, sortBy: "name", sortDirection: "asc" },
+          });
+    if (!sort) return list(offset, EMPLOYEE_PAGE_SIZE);
+    if (directory?.listSorted) return directory.listSorted(offset, EMPLOYEE_PAGE_SIZE, sort);
+    if (!directory && (sort.field === "name" || sort.field === "email"))
+      return api.listUsers({
+        headers,
+        query: {
+          limit: EMPLOYEE_PAGE_SIZE,
+          offset,
+          sortBy: sort.field,
+          sortDirection: sort.direction,
+        },
+      });
+    // Legacy directories and host-computed columns need the full authorized result.
+    const rows: Employee[] = [];
+    let batch;
+    do {
+      batch = await list(rows.length, EMPLOYEE_PAGE_SIZE);
+      rows.push(...batch.users);
+    } while (batch.users.length && rows.length < batch.total);
+    return {
+      users: sortEmployees(rows, sort).slice(offset, offset + EMPLOYEE_PAGE_SIZE),
+      total: rows.length,
+    };
+  }
   return {
     list(input: unknown) {
-      const { offset } = listEmployeesSchema.parse(input);
-      return requireEmployee().then(() => {
-        if (directory) return directory.list(offset, EMPLOYEE_PAGE_SIZE);
-        return api.listUsers({
-          headers,
-          query: { limit: EMPLOYEE_PAGE_SIZE, offset, sortBy: "name", sortDirection: "asc" },
-        });
-      });
+      const { offset, sort } = listEmployeesSchema.parse(input);
+      return listEmployees(offset, sort);
     },
     async create(input: unknown, invitationURL: string) {
       const data = createEmployeeSchema.parse(input);

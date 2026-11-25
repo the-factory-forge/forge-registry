@@ -6,6 +6,7 @@ import {
   supportCommentSchema,
   supportImageType,
   supportQuerySchema,
+  supportPrioritySchema,
 } from "@/components/plugins/supports/schema";
 import type {
   SupportActivity,
@@ -16,6 +17,7 @@ import type {
 
 export function createSupportsMock() {
   const author = { id: "alex", name: "Alex Morgan" };
+  const jordan = { id: "jordan", name: "Jordan Lee" };
   const tickets: SupportTicket[] = Array.from({ length: 23 }, (_, index) => ({
     id: `sample-${index + 1}`,
     title:
@@ -34,7 +36,7 @@ export function createSupportsMock() {
         : "Please review this part of the website with the maintenance team.",
     type: index % 3 === 0 ? "bug" : index % 3 === 1 ? "feature" : "support",
     status: index === 2 ? "closed" : index === 3 ? "canceled" : "open",
-    author,
+    author: index % 2 === 0 ? author : jordan,
     attachments: [],
     createdAt: new Date(Date.UTC(2026, 9, 25 - index)).toISOString(),
     updatedAt: new Date(Date.UTC(2026, 9, 25 - index)).toISOString(),
@@ -45,7 +47,7 @@ export function createSupportsMock() {
       [
         {
           id: "reply-1",
-          author: { id: "jordan", name: "Jordan Lee" },
+          author: jordan,
           kind: "comment",
           body: "I can reproduce this on mobile too.",
           status: null,
@@ -77,12 +79,22 @@ export function createSupportsMock() {
   }
   const client: SupportsClient = {
     async list(input) {
-      const { search, page } = supportQuerySchema.parse(input);
+      const { search, page, sort } = supportQuerySchema.parse(input);
+      const value = (ticket: SupportTicket) =>
+        sort.field === "author" ? ticket.author.name : ticket[sort.field];
       const found = tickets
         .filter((entry) =>
           `${entry.title} ${entry.description}`.toLowerCase().includes(search.toLowerCase()),
         )
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id));
+        .sort((a, b) => {
+          const byType = sort.field === "title" ? a.type.localeCompare(b.type) : 0;
+          const order = byType || value(a).localeCompare(value(b));
+          return (
+            (sort.direction === "asc" ? order : -order) ||
+            b.updatedAt.localeCompare(a.updatedAt) ||
+            b.id.localeCompare(a.id)
+          );
+        });
       return {
         items: structuredClone(
           found.slice((page - 1) * SUPPORT_PAGE_SIZE, page * SUPPORT_PAGE_SIZE),
@@ -115,6 +127,7 @@ export function createSupportsMock() {
         title: input.title,
         description: input.description,
         type: input.type,
+        priority: input.priority ?? null,
         status: "open",
         author,
         createdAt: now,
@@ -161,6 +174,15 @@ export function createSupportsMock() {
       activity.set(row.id, [...(activity.get(row.id) ?? []), entry]);
       row.updatedAt = now;
       mutations.set(input.requestId, { fingerprint, id: row.id });
+    },
+    async setPriority(id, priority) {
+      await before();
+      const row = find(id);
+      const value = supportPrioritySchema.nullable().parse(priority);
+      if ((row.priority ?? null) !== value) {
+        row.priority = value;
+        row.updatedAt = new Date().toISOString();
+      }
     },
     async setStatus(id, status) {
       await before();

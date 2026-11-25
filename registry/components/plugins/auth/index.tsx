@@ -1,5 +1,6 @@
 "use client";
 
+import { Toast } from "@base-ui/react/toast";
 import {
   ArrowBigUpDashIcon,
   ArrowRightIcon,
@@ -77,6 +78,7 @@ export interface LoginFormProps {
   defaultEmail?: string;
   verificationStatus?: "success" | "error";
   enabled?: boolean;
+  /** Recovery page that accepts the current email as an optional query parameter. */
   forgotPasswordHref?: string;
   onGoogleSignIn?: () => Promise<void>;
   labels?: Partial<LoginLabels>;
@@ -87,6 +89,18 @@ const inputClass =
   "h-12 w-full rounded-lg border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
 const buttonClass =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 cursor-pointer disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+
+function recoveryHref(href: string, email: string) {
+  if (!email) return href;
+  const hashIndex = href.indexOf("#");
+  const destination = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hash = href.slice(destination.length);
+  const queryIndex = destination.indexOf("?");
+  const path = queryIndex === -1 ? destination : destination.slice(0, queryIndex);
+  const search = new URLSearchParams(queryIndex === -1 ? "" : destination.slice(queryIndex));
+  search.set("email", email);
+  return `${path}?${search}${hash}`;
+}
 
 export function LoginForm(props: LoginFormProps) {
   return (
@@ -109,6 +123,8 @@ function LoginFormContent({
 }: LoginFormProps) {
   const labels = { ...loginLabels, ...overrides };
   const toast = useActionToast();
+  const { add } = Toast.useToastManager();
+  const form = useRef<HTMLFormElement>(null);
   const verificationNotified = useRef(false);
   useEffect(() => {
     if (verificationStatus !== "success" || verificationNotified.current) return;
@@ -116,12 +132,20 @@ function LoginFormContent({
     toast(labels.emailVerified);
   }, [verificationStatus, labels.emailVerified, toast]);
   const id = `factory-login-${useId()}`;
+  const [email, setEmail] = useState<string>();
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const action = useAuthAction();
   const [method, setMethod] = useState<"password" | "google">("password");
   const { pending, failed } = action;
   const googlePending = pending && method === "google";
+  const passwordFailed = failed && method === "password";
+  const errorId = passwordFailed ? `${id}-error` : undefined;
+
+  function notifyFailure(title: string) {
+    if (form.current) add({ title, type: "error" });
+  }
+
   return (
     <div className={cn("flex flex-col gap-7", className)}>
       <div>
@@ -147,12 +171,13 @@ function LoginFormContent({
           {labels.verificationError}
         </p>
       )}
-      {failed && (
-        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
-          {method === "google" ? labels.googleError : labels.loginError}
+      {passwordFailed && (
+        <p id={errorId} hidden>
+          {labels.loginError}
         </p>
       )}
       <form
+        ref={form}
         onKeyDownCapture={submitFormOnShortcut}
         method="post"
         onSubmit={(event) => {
@@ -162,15 +187,18 @@ function LoginFormContent({
           const password = data.get("password");
           if (typeof email !== "string" || typeof password !== "string") return;
           if (!enabled) return;
-          void action.run(async () => {
-            setMethod("password");
-            await onSignIn({
-              email: email.trim(),
-              password,
-              rememberMe: data.get("rememberMe") === "on",
-            });
-            setShowPassword(false);
-          });
+          void action.run(
+            async () => {
+              setMethod("password");
+              await onSignIn({
+                email: email.trim(),
+                password,
+                rememberMe: data.get("rememberMe") === "on",
+              });
+              setShowPassword(false);
+            },
+            () => notifyFailure(labels.loginError),
+          );
         }}
         className="grid gap-5"
         aria-busy={pending}
@@ -182,6 +210,7 @@ function LoginFormContent({
             name="email"
             type="email"
             defaultValue={defaultEmail}
+            onChange={(event) => setEmail(event.currentTarget.value)}
             autoComplete="username"
             autoCapitalize="none"
             spellCheck={false}
@@ -189,7 +218,7 @@ function LoginFormContent({
             className={inputClass}
             readOnly={action.disabled}
             disabled={action.disabled || !enabled}
-            aria-describedby={failed ? `${id}-error` : undefined}
+            aria-describedby={errorId}
             required
           />
         </div>
@@ -211,9 +240,7 @@ function LoginFormContent({
               readOnly={action.disabled}
               disabled={action.disabled || !enabled}
               aria-describedby={
-                [failed && `${id}-error`, capsLock && `${id}-caps-lock`]
-                  .filter(Boolean)
-                  .join(" ") || undefined
+                [errorId, capsLock && `${id}-caps-lock`].filter(Boolean).join(" ") || undefined
               }
               required
             />
@@ -262,7 +289,7 @@ function LoginFormContent({
           </label>
           {forgotPasswordHref && (
             <LoginLink
-              href={forgotPasswordHref}
+              href={recoveryHref(forgotPasswordHref, (email ?? defaultEmail ?? "").trim())}
               className="font-medium text-primary hover:underline"
             >
               {labels.forgotPassword}
@@ -294,10 +321,13 @@ function LoginFormContent({
             pending={googlePending}
             disabled={action.disabled || !enabled}
             onClick={() =>
-              void action.run(async () => {
-                setMethod("google");
-                await onGoogleSignIn();
-              })
+              void action.run(
+                async () => {
+                  setMethod("google");
+                  await onGoogleSignIn();
+                },
+                () => notifyFailure(labels.googleError),
+              )
             }
           />
         </>

@@ -1,22 +1,24 @@
 "use client";
 
-import { ArrowLeftIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
-import { useLoadingActivity } from "@/components/loading-indicator";
-import {
-  buttonClass,
-  cardClass,
-  iconButtonClass,
-  primaryButtonClass,
-} from "@/components/plugins/customers/ui";
+import { LoadingBadge, LoadingSkeleton, useLoadingActivity } from "@/components/loading-indicator";
+import { cardClass, iconButtonClass, primaryButtonClass } from "@/components/plugins/customers/ui";
 import { customerDisplayName } from "@/components/plugins/customers/utils";
 import { projectLabels } from "@/components/plugins/projects/labels";
 import { ProjectForm } from "@/components/plugins/projects/project-form";
+import {
+  PROJECT_SORT_FIELDS,
+  projectDefaultSort,
+  type ProjectSortField,
+} from "@/components/plugins/projects/types";
 import type {
+  ProjectDetailPageLoadingProps,
   ProjectDetailPageProps,
   ProjectStatus,
   ProjectNewPageProps,
@@ -32,14 +34,15 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
@@ -54,6 +57,7 @@ export type {
   ProjectsAppearanceProps,
   ProjectsListProps,
   ProjectsPageProps,
+  ProjectDetailPageLoadingProps,
   ProjectDetailPageProps,
   ProjectNewPageProps,
 } from "@/components/plugins/projects/types";
@@ -78,9 +82,20 @@ function ProjectsListContent({
   labels: overrides,
   linkComponent: ProjectLink = Link,
   className,
+  ...sortProps
 }: ProjectsListProps) {
   useLoadingActivity(!!loading);
   const labels = { ...projectLabels, ...overrides };
+  const order = useTableSort<ProjectSortField>(
+    sortProps,
+    projectDefaultSort,
+    (field) => field !== "owner" || customerId === undefined,
+    {
+      owner: "projects",
+      key: customerId === undefined ? "projects" : "customer-projects",
+      fields: PROJECT_SORT_FIELDS,
+    },
+  );
   const optimistic = useOptimisticAction(suppliedProjects);
   const projects = optimistic.value;
   const error = loadError || (optimistic.error ? labels.actionError : undefined);
@@ -105,6 +120,25 @@ function ProjectsListContent({
     loading || !!loadError || optimistic.pending || deletion.pending || selection.pending;
   const owners = new Map(customers.map((customer) => [customer.id, customer]));
   const assigned = new Map(assignees.map((assignee) => [assignee.id, assignee]));
+  const sortedProjects = sortTableRows(
+    deletion.items,
+    order.value ?? order.defaultSort,
+    (project, field) => {
+      switch (field) {
+        case "name":
+          return project.name;
+        case "owner": {
+          const owner = owners.get(project.ownerId);
+          return owner && customerDisplayName(owner);
+        }
+        case "assignee":
+          return project.assigneeId && assigned.get(project.assigneeId)?.name;
+        case "status":
+          return labels[project.status];
+      }
+    },
+    (project) => project.id,
+  );
   return (
     <section
       ref={root}
@@ -159,50 +193,30 @@ function ProjectsListContent({
                   />
                 </th>
               )}
-              {[
-                labels.name,
-                ...(customerId === undefined ? [labels.owner] : []),
-                labels.assignee,
-                labels.status,
-                labels.actions,
-              ].map((label, index) => (
-                <th
-                  key={index}
-                  scope="col"
-                  className={
-                    index === (customerId === undefined ? 4 : 3)
-                      ? tableActionHeaderClass
-                      : tableHeaderClass
-                  }
-                >
-                  <div
-                    className={
-                      index === (customerId === undefined ? 4 : 3)
-                        ? "flex items-center justify-end gap-2"
-                        : undefined
-                    }
-                  >
-                    {label}
-                    {index === (customerId === undefined ? 4 : 3) && (
-                      <>
-                        {onDelete && (
-                          <TableBulkDelete
-                            selection={selection}
-                            getName={(project) => project.name}
-                            onDelete={(project) => onDelete!(project.id)}
-                            labels={labels}
-                            disabled={selectionDisabled}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                </th>
-              ))}
+              <TableSortHeader {...order} field="name" label={labels.name} />
+              {customerId === undefined && (
+                <TableSortHeader {...order} field="owner" label={labels.owner} />
+              )}
+              <TableSortHeader {...order} field="assignee" label={labels.assignee} />
+              <TableSortHeader {...order} field="status" label={labels.status} />
+              <th scope="col" className={tableActionHeaderClass}>
+                <div className="flex items-center justify-end gap-2">
+                  {labels.actions}
+                  {onDelete && (
+                    <TableBulkDelete
+                      selection={selection}
+                      getName={(project) => project.name}
+                      onDelete={(project) => onDelete!(project.id)}
+                      labels={labels}
+                      disabled={selectionDisabled}
+                    />
+                  )}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
-            {deletion.items.map((project) => {
+            {sortedProjects.map((project) => {
               const owner = owners.get(project.ownerId);
               const assignee = project.assigneeId ? assigned.get(project.assigneeId) : undefined;
               return (
@@ -328,55 +342,61 @@ export function ProjectsPage({ className, ...props }: ProjectsPageProps) {
   );
 }
 
-function ProjectDetailPageContent({
-  project: suppliedProject,
-  section = "details",
-  backHref,
-  sectionHrefs,
-  onSave,
-  onDelete,
-  onStatusChange,
-  driveContent,
-  className,
-  labels: overrides,
-  linkComponent: ProjectLink = Link,
-}: ProjectDetailPageProps) {
+function ProjectDetailPageContent(props: ProjectDetailPageProps | ProjectDetailPageLoadingProps) {
+  const {
+    project: suppliedProject,
+    section = "details",
+    sectionHrefs,
+    labels: overrides,
+    linkComponent: ProjectLink = Link,
+  } = props;
+  const ready = props.project === null ? undefined : props;
+  const onDelete = ready?.onDelete;
   const labels = { ...projectLabels, ...overrides };
-  const optimistic = useOptimisticAction(suppliedProject, suppliedProject.id);
+  const optimistic = useOptimisticAction(suppliedProject, suppliedProject?.id);
   const project = optimistic.value;
   const [statusUpdate, setStatusUpdate] = useState<{ status: ProjectStatus }>();
   return (
-    <div className={cn(pageClass, className)}>
-      <ProjectLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
-        {labels.back}
-      </ProjectLink>
+    <>
       <header className={cn(cardClass, "flex flex-wrap items-center gap-4")}>
-        <ProjectAvatar name={project.name} image={project.posterImage} large />
-        <div className="min-w-0 flex-1 basis-40">
-          <h1 className="text-xl font-semibold break-words">{project.name}</h1>
-        </div>
-        <div className="ml-auto self-start">
-          <ProjectStatusBadge
-            status={project.status}
-            name={project.name}
-            labels={labels}
-            disabled={optimistic.pending}
-            onChange={async (status) => {
-              await optimistic.run(
-                (row) => ({ ...row, status }),
-                () =>
-                  onStatusChange
-                    ? onStatusChange(project.id, status)
-                    : onSave({ ...projectFormValues(project), status }),
-                () => setStatusUpdate({ status }),
-              );
-            }}
-          />
-        </div>
+        {ready && project ? (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <ProjectAvatar name={project.name} image={project.posterImage} large />
+              <h1 className="min-w-0 text-xl font-semibold break-words">{project.name}</h1>
+            </div>
+            <div className="ml-auto min-h-10 max-w-full self-start sm:min-h-6">
+              <ProjectStatusBadge
+                status={project.status}
+                name={project.name}
+                labels={labels}
+                disabled={optimistic.pending}
+                onChange={async (status) => {
+                  await optimistic.run(
+                    (row) => row && { ...row, status },
+                    () =>
+                      ready.onStatusChange
+                        ? ready.onStatusChange(project.id, status)
+                        : ready.onSave({ ...projectFormValues(project), status }),
+                    () => setStatusUpdate({ status }),
+                  );
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex w-full min-w-0 items-center gap-4 sm:w-auto sm:flex-1">
+              <LoadingSkeleton className="size-16 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <LoadingSkeleton className="h-6 w-64 max-w-full" />
+              </div>
+            </div>
+            <div className="ml-auto flex min-h-10 max-w-full items-center self-start sm:min-h-6 sm:items-start">
+              <LoadingBadge label={labels.loading} />
+            </div>
+          </>
+        )}
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
         {(["details", "drive"] as const).map((tab) => (
@@ -394,32 +414,36 @@ function ProjectDetailPageContent({
         ))}
       </nav>
       {section === "details" ? (
-        <ProjectForm
-          key={project.id}
-          project={project}
-          statusUpdate={statusUpdate}
-          labels={labels}
-          onSubmit={(values) =>
-            optimistic.run(
-              (row) => ({ ...row, ...values }),
-              () => onSave(values),
-            )
-          }
-          disabled={optimistic.pending}
-          onDelete={
-            onDelete
-              ? (id) =>
-                  optimistic.run(
-                    (row) => row,
-                    () => onDelete(id),
-                  )
-              : undefined
-          }
-        />
+        ready && project ? (
+          <ProjectForm
+            key={project.id}
+            project={project}
+            statusUpdate={statusUpdate}
+            labels={labels}
+            onSubmit={(values) =>
+              optimistic.run(
+                (row) => row && { ...row, ...values },
+                () => ready.onSave(values),
+              )
+            }
+            disabled={optimistic.pending}
+            onDelete={
+              onDelete
+                ? (id) =>
+                    optimistic.run(
+                      (row) => row,
+                      () => onDelete(id),
+                    )
+                : undefined
+            }
+          />
+        ) : (
+          <ProjectForm project={null} labels={labels} />
+        )
       ) : (
-        driveContent
+        ready?.driveContent
       )}
-    </div>
+    </>
   );
 }
 
@@ -433,13 +457,9 @@ export function ProjectNewPage({
   const labels = { ...projectLabels, ...overrides };
   return (
     <div className={cn(pageClass, className)}>
-      <ProjectLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
+      <BackLink linkComponent={ProjectLink} href={backHref}>
         {labels.back}
-      </ProjectLink>
+      </BackLink>
       <header className={cn(cardClass, "space-y-1.5")}>
         <h1 className="font-semibold">{labels.newTitle}</h1>
         <p className="text-sm text-muted-foreground">{labels.newDescription}</p>
@@ -457,10 +477,17 @@ export function ProjectsList(props: ProjectsListProps) {
   );
 }
 
-export function ProjectDetailPage(props: ProjectDetailPageProps) {
+export function ProjectDetailPage(props: ProjectDetailPageProps | ProjectDetailPageLoadingProps) {
+  const { className, backHref, labels, linkComponent } = props;
+  useLoadingActivity(props.project === null);
   return (
     <ActionToastProvider>
-      <ProjectDetailPageContent key={props.project.id} {...props} />
+      <div className={cn(pageClass, className)}>
+        <BackLink linkComponent={linkComponent ?? Link} href={backHref}>
+          {labels?.back ?? projectLabels.back}
+        </BackLink>
+        <ProjectDetailPageContent key={props.project?.id} {...props} />
+      </div>
     </ActionToastProvider>
   );
 }

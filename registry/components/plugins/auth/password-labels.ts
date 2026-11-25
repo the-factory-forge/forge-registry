@@ -10,7 +10,7 @@ export const passwordLabels = {
   resetRequestError: "We could not process your request. Please try again in a moment.",
   resetUnavailable:
     "Password recovery is currently unavailable. Contact your administrator to restore access.",
-  backToLogin: "Back to sign in",
+  backToLogin: "Sign in",
   resetTitle: "Set a new password",
   resetDescription: "Choose a new password for your team account.",
   currentPassword: "Current password",

@@ -52,22 +52,60 @@ guidance. The requirements below remain the behavioral contract.
 
 ## Requirements
 
+### Requirement: Record table sorting
+
+Record list tables SHALL expose column sort arrows for their comparable data.
+The active header SHALL show its direction. Other sortable headers SHALL show an
+arrow on hover or keyboard focus. Selecting a different header SHALL activate
+that column. Each selection of the active header SHALL reverse its direction.
+
+Record tables SHALL save each table’s last user-selected column and direction
+under an owner- and view-scoped localStorage key. Selecting the configured default SHALL remove the saved order. On a new visit, a valid explicit URL sort SHALL take precedence
+over that preference. Without a valid URL or saved order, the table SHALL use
+its configured default with a visible arrow, or ascending UUID order with no
+active header. Sorting SHALL work when browser storage is unavailable.
+
+Hosts SHALL apply the order across authorized matching rows before pagination.
+A user selection SHALL reset the page. Restoring a preference SHALL preserve
+the requested page and replace the current history entry. URL-bound tables SHALL
+restore the order on reload and Back/Forward. Menu item sorting SHALL preserve
+the saved display order and restrict manual moves to that order.
+
+#### Scenario: Sorting tickets across pages
+
+- **WHEN** staff select Created by on the second page of matching tickets
+- **THEN** the queue returns to the first page with every matching ticket ordered by author before pagination
+- **AND** returning from a discussion restores that page and order
+
 ### Requirement: Supports plugin
 
-Supports SHALL provide a staff-shared website maintenance queue with a searchable,
+Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,
 paginated table, short creation dialog and dedicated discussion page. Tickets
 SHALL have a required title, Markdown description and explicit `bug`, `feature`
 or `support` type. They SHALL start `open`; every authorized staff member may
 comment, close, cancel or reopen any ticket. Customer accounts SHALL be excluded through
 fresh membership checks, not inferred from the shared `user`/`admin` roles.
 
+#### Scenario: Guiding a new ticket description
+
+- **WHEN** staff select a ticket type in the creation dialog
+- **THEN** the empty description shows a translatable placeholder prompting for steps, observed behavior and expected behavior for bugs, the requested change and its benefit for features, or the help needed and what was tried for support
+- **AND** changing the type preserves the description draft
+
 #### Scenario: Creating and discussing a ticket
 
 - **WHEN** staff submit a valid title, description and type
-- **THEN** a locally saved ticket appears in the shared list, ordered by latest activity
+- **THEN** a locally saved ticket appears in the shared list, ordered by latest activity by default
 - **AND** its discussion shows Markdown, authorized image attachments and chronological replies/status changes
 - **AND** comments preserve closed or canceled status until an explicit reopen
 - **AND** submitted content has no edit/delete action and author names remain as posted after account changes
+
+#### Scenario: Setting an optional priority
+
+- **WHEN** the host exposes priority editing and staff create or update a ticket
+- **THEN** they can select Urgent, High, Medium, Low or No priority and see the saved value in the queue and discussion
+- **AND** the queue shows Priority immediately after Status
+- **AND** existing tickets without a priority and legacy P4 tickets display No priority
 
 #### Scenario: Viewing and canceling from the queue
 
@@ -96,11 +134,23 @@ fresh membership checks, not inferred from the shared `user`/`admin` roles.
 - **THEN** raw HTML is disabled, links are sanitized and remote images are not fetched
 - **AND** images are displayed only through separately authorized attachments
 
+#### Scenario: Ordering the Support queue
+
+- **WHEN** staff open the queue without a valid URL sort or saved preference
+- **THEN** Updated shows its descending arrow and the most recently updated tickets appear first
+- **WHEN** staff select Title, Status, Created by or Updated by pointer or keyboard
+- **THEN** only the active header persistently displays an arrow and exposes its sort direction to assistive technology
+- **AND** other sortable headers reveal their arrows on hover or keyboard focus
+- **AND** each selection of the active header reverses its direction and saves that order for the next visit
+- **AND** Title orders by type and then title within each type, reversing both together
+- **AND** the service orders all matching tickets before pagination, breaking ties by newest update and descending ticket ID
+
 #### Scenario: Restoring a table view
 
-- **WHEN** staff search, paginate, reload or traverse browser history
+- **WHEN** staff search, sort, paginate, reload, return from a discussion or traverse browser history
 - **THEN** host-owned URL state restores both controls and results
 - **AND** search filters titles/descriptions before the fixed 20-row page
+- **AND** choosing a sort resets the page and records its field and direction while preserving search and unrelated URL state
 - **AND** new/create remains a labeled primary action and the installed host may place Support above the sidebar profile
 
 ### Requirement: Support persistence and private images
@@ -157,6 +207,13 @@ reveal the required language, and scroll to and focus the first invalid field in
 form order. Each error SHALL have destructive styling and an associated inline
 message. Editing SHALL clear field feedback without moving focus. Server validation
 SHALL remain authoritative.
+
+#### Scenario: Loading a standalone record
+
+- **WHEN** a host renders a pending blog, menu item, customer, project or support ticket
+- **THEN** Back remains available, a title skeleton and a translated neutral loading badge identify the pending record, and the editor shows its first fields disabled
+- **AND** the screen contributes to the shared loading indicator and respects reduced motion
+- **AND** record actions and host-supplied record content become available only when the record arrives
 
 #### Scenario: Correcting an item
 
@@ -403,6 +460,12 @@ profile/security components (`AccountPage`, `AccountSecurity`, `AgentKeys`).
   The host SHALL own sessions, OAuth, password policy, reset-token validation,
   email delivery, rate limiting and navigation. Auth SHALL NOT install a provider.
 
+#### Scenario: Sign-in fails
+
+- **WHEN** password or Google sign-in fails
+- **THEN** the shared error toast announces the translated message for that method without moving the form
+- **AND** entered credentials remain available for retry
+
 #### Scenario: Authentication before hydration
 
 - **WHEN** authentication forms or sign-in/out controls are server-rendered before their client handlers are ready
@@ -410,6 +473,13 @@ profile/security components (`AccountPage`, `AccountSecurity`, `AgentKeys`).
 - **AND** authentication forms declare POST so native submission cannot put credentials in a URL
 - **AND** after hydration, host callbacks, validation, duplicate prevention and failure recovery remain available
 - **AND** this behavior does not require a host router or framework-specific hook
+
+#### Scenario: Opening a prefilled recovery page
+
+- **WHEN** a visitor follows the login recovery link after entering an email
+- **THEN** the link carries the encoded email as a query parameter
+- **AND** the host can use that parameter to prefill the editable recovery form when opening, sharing or reloading the link
+- **AND** the reset request still requires form submission
 
 #### Scenario: Password recovery
 
@@ -737,12 +807,12 @@ edit/delete dialogs and verification actions.
 
 - **WHEN** a host offers employee profile publication
 - **THEN** Hosts MAY supply public-profile visibility independently of account access.
-  The edit-dialog status SHALL become an immediate toggle only when the host
-  provides a visibility callback. The directory SHALL preview the change while
-  pending and restore the previous status on failure, preserving unsaved account
-  fields. The host SHALL authorize, validate and persist publication separately
-  from account updates and refresh the employee data. Without the callback, the
-  status SHALL remain read-only.
+  The edit-dialog status SHALL show the shared switch indicator and act as an
+  immediate toggle only when the host provides a visibility callback. The directory
+  SHALL preview the change while pending and restore the previous status on
+  failure, preserving unsaved account fields. The host SHALL authorize, validate
+  and persist publication separately from account updates and refresh the employee
+  data. Without the callback, the status SHALL remain read-only.
 
 #### Scenario: Inviting an employee
 
@@ -1384,6 +1454,12 @@ with chronological history and detailed comparison.
   Published, unpublished changes and draft SHALL use success, pending and
   not-started colors in both list and editor.
 
+#### Scenario: Opening an article before its data arrives
+
+- **WHEN** a host renders the editor with a pending article
+- **THEN** Back remains available, the title has a skeleton and a gray status badge on the right shows translated loading text and a spinner that respects reduced motion
+- **AND** the first card displays disabled title, slug and summary controls until the article loads, then displays the article values with the editor’s normal permissions
+
 #### Scenario: Reading a blog status
 
 - **WHEN** a blog translation is published, has unpublished changes, or is a draft
@@ -1411,18 +1487,37 @@ with chronological history and detailed comparison.
 - **THEN** its status becomes unpublished changes
 - **AND** the public page retains its previous publication until staff publish again
 
+#### Scenario: Choosing whether to save a draft or publish
+
+- **WHEN** staff with publication permission save with As draft checked
+- **THEN** the editor action is labeled Save and saves only the selected language's draft
+- **AND** As draft starts unchecked, so the same action is labeled Publish and saves and publishes that language with the existing publication checks and image review
+- **AND** a failed publication leaves any successfully saved draft available for retry
+- **AND** the editor status switch controls whether the saved translation is live
+
 #### Scenario: Scrolling the editor history
 
 - **WHEN** staff scroll an article with history open on desktop
-- **THEN** the comparison and History buttons stick together with the history panel below the host header offset
-- **AND** long timelines scroll inside the panel while the buttons remain visible
+- **THEN** the history panel sticks below the host header offset
+- **AND** long timelines scroll inside the panel and its close action remains available
 - **AND** narrow layouts retain the controls and expanded history in normal page flow
 
 #### Scenario: Opening and closing History
 
-- **WHEN** the Blog History panel opens by default or through its toggle
-- **THEN** the toggle has a filled primary treatment and exposes `aria-expanded="true"`
-- **AND** closing through the toggle, panel close action or mobile version selection restores its inactive outline and `aria-expanded="false"`
+- **GIVEN** History starts closed at every viewport width in the default editor view
+- **WHEN** staff open it through its toggle or restore a view with History open
+- **THEN** the icon-only toggle has a filled primary treatment and exposes `aria-expanded="true"`
+- **AND** it sits beside the publication status in the editor and in the toolbar when reviewing history, with a translated accessible name and tooltip
+- **AND** closing through the toggle, panel close action or mobile version selection restores its inactive outline and `aria-expanded="false"` and clears the open state
+
+#### Scenario: Restoring the blog editor view from its URL
+
+- **WHEN** a host binds the editor view to its URL and staff open, reload or traverse a deep link
+- **THEN** the editor restores the article language, History visibility, selected retained snapshot and comparison mode
+- **AND** the default language, closed panel, editable draft and read mode are omitted from the URL
+- **AND** a language switch resets the snapshot and comparison while keeping History visibility
+- **AND** browser history changes that switch language or enter a different snapshot retain draft navigation protection
+- **AND** hosts can keep the existing uncontrolled editor behavior by omitting the view binding
 
 #### Scenario: Computing a draft save
 
@@ -1490,6 +1585,18 @@ omission under the recovery contract.
 - **THEN** Markdown and metadata persist together in PostgreSQL
 - **AND** a database failure leaves the previous draft and publication intact
 - **AND** the operation creates no Markdown object or object-ledger entry
+
+### Requirement: Blog editor photo selection
+
+The thumbnail and banner fields SHALL retain large previews and offer image
+uploads through a Photo button at the bottom right of each preview when uploads
+are allowed. Existing asset selection and alternative text editing SHALL remain
+available independently of uploading.
+
+#### Scenario: Selecting a new thumbnail or banner
+
+- **WHEN** an editor activates Photo for a thumbnail or banner
+- **THEN** the file picker opens for that field and the existing crop and upload rules apply
 
 ### Requirement: Optional blog image storage
 
@@ -1606,11 +1713,19 @@ restore the prior status and show an error.
 
 #### Scenario: Toggling a live translation
 
-- **WHEN** staff activate a Published or Unpublished changes badge
+- **WHEN** staff activate a publication switch that is on
 - **THEN** only that translation is unpublished immediately, preserving its draft
-- **AND** activating its Draft badge publishes the saved revision if valid, after historical-return confirmation when required
-- **AND** the separate Publish action can publish revisions without unpublishing first
+- **AND** the editor labels a saved draft Draft even while the switch is on
+- **AND** turning the switch back on publishes the saved revision if valid, after historical-return confirmation when required
+- **AND** the editor’s Publish action can publish revisions without unpublishing first
 - **AND** table badges remain read-only without the host's `onSetPublished` callback
+
+#### Scenario: Opening the live version's History menu
+
+- **WHEN** staff open the live version's actions menu
+- **THEN** Compare is disabled because that version is the comparison baseline
+- **AND** Unpublish is available to staff with publication permission when no changes are pending or unsaved
+- **AND** unpublishing uses the existing editor operation, preserving the saved draft and retained history
 
 #### Scenario: A badge would discard later publications
 
@@ -1818,6 +1933,18 @@ Authorization, validation, concurrency, image recovery and idempotency SHALL rem
 - **THEN** it becomes a new live publication and v18 is removed only because it is the oldest of six publications
 - **AND** v22, v26, v36 and v37 remain retained, with no additional deletion caused by the source's age
 
+#### Scenario: Publishing from the draft's History menu
+
+- **WHEN** staff with publication permission open the current saved draft's actions menu with no unsaved changes
+- **THEN** Publish appears first and uses the same version-bound plan and missing-image confirmation as the editor
+- **AND** unsaved working drafts and staff without publication permission do not offer this action
+
+#### Scenario: Publishing the newest saved version when nothing is live
+
+- **WHEN** staff with publication permission open the first History row's menu and that row is the current saved version with no live publication or unsaved changes
+- **THEN** Publish appears first and uses the same version-bound plan, including when the current saved version is a previously unpublished publication
+- **AND** older publications still require resuming and saving as a draft before publication
+
 #### Scenario: A stale or failed confirmation
 
 - **WHEN** article state changes after a missing-image plan was displayed, or authorization, validation, image checking or persistence fails
@@ -1940,6 +2067,8 @@ content SHALL have an explicit comparison empty state.
 - **WHEN** staff open the history panel
 - **THEN** one chronological list shows publication numbers, a translated unnumbered draft, authors, times, states and separate publication/draft counts
 - **AND** no reprise lanes appear
+- **AND** selecting the current publication shows the editor, including when returning from an older version
+- **AND** when a separate saved draft exists, selecting the live publication opens its read-only preview
 
 #### Scenario: Comparing a small text change
 
@@ -1952,10 +2081,12 @@ content SHALL have an explicit comparison empty state.
 #### Scenario: Switching reading and comparison
 
 - **WHEN** staff inspect a saved state or compare their current draft
-- **THEN** Read and Compare are both available as explicit selected modes
-- **AND** comparison names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
-- **AND** the reference endpoint uses the same red semantic treatment and minus marker as removed values, while the selected endpoint uses the green treatment and plus marker of added values
-- **AND** switching to Read and back to Compare preserves the selection and working content
+- **THEN** selecting a saved history row opens its read preview, or the editor when the row represents the current publication
+- **AND** the row's Compare action opens the comparison against the live publication
+- **AND** the Compare toggle in a historical publication's footer switches between preview and comparison without changing the selected version
+- **AND** the toggle appears immediately before Resume as draft when that action is available
+- **AND** the accessible comparison heading names both endpoints, such as v22 (live) to Draft, including the translated unsaved-draft distinction
+- **AND** switching views through the history panel preserves working content
 - **AND** title, slug, summary, author, categories and image differences remain included, with an explanation that unchanged fields are hidden
 
 #### Scenario: Inspecting on a narrow screen
@@ -1967,7 +2098,7 @@ content SHALL have an explicit comparison empty state.
 
 #### Scenario: Comparing a working draft and captured fields
 
-- **WHEN** staff compare the current draft, including unsaved edits, or a selected history version
+- **WHEN** staff choose Compare from the actions menu of a saved version or unsaved draft
 - **THEN** the reference remains the live publication in the selected language
 - **AND** the existing paragraph/word diff, whitespace handling and bounded fallback remain available
 - **AND** comparison covers title, slug, summary, signature, thumbnail, banner, their alternative text, categories and Markdown
@@ -3071,6 +3202,37 @@ server methods, persistence, installation and production acceptance boundaries.
 - **WHEN** authorized staff confirm Send to GitHub for an existing ticket
 - **THEN** the original description, complete saved discussion, author attribution and current status export exactly once, including concurrent replies
 - **AND** installation itself exports no old ticket and creates no repository
+
+#### Scenario: Sending a ticket after an outage
+
+- **WHEN** the first delivery fails and the connector knows the issue was not created
+- **THEN** the ticket and later replies remain saved locally, including after the connection recovers and the worker runs again
+- **WHEN** authorized staff select **Send to GitHub**
+- **THEN** the existing job resumes and delivers one issue and its queued replies in order
+- **AND** an uncertain write remains subject to marker reconciliation and guarded recovery
+
+#### Scenario: Retrying an unsent discussion
+
+- **WHEN** an authorized viewer opens the queue or discussion before an issue is confirmed
+- **THEN** the host can display a gray Pending badge and staff can use it to send or check delivery
+- **AND** a failed attempt shows a disconnected icon and an error toast
+- **AND** image access guidance appears only alongside actual attachments
+- **WHEN** a create or comment acknowledgement is lost
+- **THEN** a matching receipt from the configured App confirms the write and retry cannot duplicate it
+
+#### Scenario: Request-driven delivery
+
+- **WHEN** a host sends a ticket after its local transaction commits
+- **THEN** only that ticket’s eligible outbound jobs run, preserving receipts and queued order
+- **WHEN** the host enables immediate webhook processing or staff refresh the discussion
+- **THEN** accepted remote activity can appear without waiting for scheduled processing, and a refresh never sends queued outbound writes
+
+#### Scenario: Mapping ticket metadata
+
+- **WHEN** a host configures its organization's issue types and Priority field
+- **THEN** delivery assigns its native issue type once and synchronizes priority on creation, subsequent edits and clearing
+- **AND** later GitHub type changes and unrelated issue fields are preserved
+- **AND** hosts can use either mapping independently
 
 #### Scenario: Synchronizing replies and status
 

@@ -35,8 +35,8 @@ function Home() {
 
   return (
     <ShowroomPreview>
-      <header className="max-w-3xl pt-4 pb-8 sm:pt-8 sm:pb-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl">
+      <header className="max-w-3xl pt-4 pb-8 @min-[40rem]/showroom:pt-8 @min-[40rem]/showroom:pb-10">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance text-foreground @min-[40rem]/showroom:text-4xl">
           Showcase
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
@@ -84,7 +84,7 @@ function Home() {
           placeholder="Search titles or keywords..."
           alwaysExpanded
           size="default"
-          className="w-full sm:w-72"
+          className="w-full @min-[40rem]/showroom:w-72 [&_input]:text-base @min-[48rem]/showroom:[&_input]:text-sm"
         />
       </div>
 
@@ -96,7 +96,10 @@ function Home() {
         </output>
       </div>
 
-      <section aria-label="Examples" className="grid gap-4 pb-8 sm:grid-cols-2 lg:grid-cols-3">
+      <section
+        aria-label="Examples"
+        className="grid grid-cols-1 gap-4 pb-8 @min-[40rem]/showroom:grid-cols-2 @min-[64rem]/showroom:grid-cols-3"
+      >
         {visibleExamples.length === 0 && (
           <div className="col-span-full rounded-2xl border border-dashed border-border px-6 py-14 text-center">
             <SearchIcon className="mx-auto mb-4 size-6 text-muted-foreground" aria-hidden="true" />
@@ -115,7 +118,7 @@ function Home() {
             <Link
               key={example.href}
               href={example.href}
-              className="group flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-5 text-card-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none sm:p-6"
+              className="group flex min-w-0 flex-col rounded-2xl border border-border/70 bg-card p-5 text-card-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none @min-[40rem]/showroom:p-6"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h2 className="flex min-w-0 items-center gap-3 text-lg font-semibold text-card-foreground group-hover:text-primary">
@@ -135,12 +138,12 @@ function Home() {
               {example.tags && (
                 <ul
                   aria-label={`Included in ${example.title}`}
-                  className="mt-4 flex [scrollbar-width:none] gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                  className="mt-4 flex flex-wrap gap-2"
                 >
                   {example.tags.map((tag) => (
                     <li
                       key={tag}
-                      className="shrink-0 rounded-md border border-border px-2 py-1 text-xs whitespace-nowrap text-muted-foreground"
+                      className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground"
                     >
                       {tag}
                     </li>

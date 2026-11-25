@@ -271,7 +271,8 @@ Plugin cards may use different radii; inspect their shared classes before edits.
 ### Navigation and previews
 
 The shared header contains the official Corner icon, All components navigation,
-Light/Dark control, repository link, and a language switch on localized demos.
+search, Light/Dark and device controls, and the repository link. Translated plugin
+demos put their language switch in the Preview controls sidebar.
 Skip to preview is the first keyboard stop. Each demo supplies its own settings
 to the shared preview frame, which owns positioning and responsive behavior.
 ShowroomIntro supplies consistent demo headings and instructions where the component
@@ -280,6 +281,9 @@ Action and field labels use sentence case throughout the administrative plugins.
 Primary actions use a short verb when their section already names the resource:
 Invite in Employees and Create in resource lists. Keep objects that distinguish
 actions, descriptive form headings and explicit destructive confirmations.
+Beside a gear or return arrow, name the destination. Beside a plus that adds a
+specific item, show the item name and give the button its full translated action
+name for assistive technology.
 
 ## Do's and Don'ts
 

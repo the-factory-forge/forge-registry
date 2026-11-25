@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { LinkProps } from "@/components/link";
 import type { DriveLabels } from "@/components/plugins/drive/labels";
 import type { DriveTransfer } from "@/components/plugins/drive/transfer";
+import type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
 
 export interface DriveScope {
   type: string;
@@ -53,10 +54,27 @@ export interface DrivePageResult<T> {
   items: T[];
   nextCursor?: string;
 }
-export interface DriveSort {
-  field: "name" | "updatedAt" | "size" | "owner";
-  direction: "asc" | "desc";
+export const DRIVE_SORT_FIELDS = ["name", "updatedAt", "size", "owner"] as const;
+export type DriveSort = TableSort<(typeof DRIVE_SORT_FIELDS)[number]>;
+export const DRIVE_FILE_SORT_FIELDS = DRIVE_SORT_FIELDS.filter((field) => field !== "owner");
+export type DriveFileSortField = (typeof DRIVE_FILE_SORT_FIELDS)[number];
+export const driveDefaultSort = { field: "name", direction: "asc" } as const;
+export const TRASH_SORT_FIELDS = ["name", "originalPath", "deletedAt", "expiresAt"] as const;
+export type DriveTrashSort = TableSort<(typeof TRASH_SORT_FIELDS)[number]>;
+export const trashDefaultSort = { field: "deletedAt", direction: "desc" } as const;
+/** Older trash callers could supply file-only fields, which used deletion-date order. */
+export function resolveTrashSort(sort?: DriveTrashSort | DriveSort): DriveTrashSort {
+  switch (sort?.field) {
+    case "name":
+    case "originalPath":
+    case "deletedAt":
+    case "expiresAt":
+      return { field: sort.field, direction: sort.direction };
+    default:
+      return trashDefaultSort;
+  }
 }
+
 export interface DriveQuery {
   /** Apply ordering before pagination. Defaults to name ascending. */
   sort?: DriveSort;
@@ -102,7 +120,9 @@ export interface DriveClient {
   duplicateEntry?(input: { scope: DriveScope; entryId: string; name: string }): Promise<void>;
   previewDelete(input: { scope: DriveScope; entryId: string }): Promise<DriveDeletePreview>;
   deleteEntry(input: { scope: DriveScope; entryId: string; token: string }): Promise<void>;
-  listTrash?(input: DriveQuery & { scope: DriveScope }): Promise<DriveTrashResult>;
+  listTrash?(
+    input: Omit<DriveQuery, "sort"> & { scope: DriveScope; sort?: DriveTrashSort | DriveSort },
+  ): Promise<DriveTrashResult>;
   trashEntry?(input: { scope: DriveScope; entryId: string; token: string }): Promise<void>;
   restoreEntry?(input: {
     scope: DriveScope;
@@ -126,7 +146,7 @@ export interface DriveAppearanceProps {
   linkComponent?: ComponentType<LinkProps>;
   locale?: string;
 }
-export interface DrivePageProps extends DriveAppearanceProps {
+export interface DrivePageProps extends DriveAppearanceProps, TableSortProps<DriveSort["field"]> {
   client: DriveClient;
   getSpaceHref: (space: DriveSpace) => string;
 }
@@ -137,7 +157,11 @@ export interface DriveBrowserView {
   trash: boolean;
   selected: { id: string; name: string; kind: DriveEntry["kind"] }[];
 }
-export interface DriveBrowserProps extends DriveAppearanceProps {
+export interface DriveBrowserProps
+  extends DriveAppearanceProps, TableSortProps<DriveFileSortField> {
+  trashOrder?: TableSortProps<DriveTrashSort["field"]>;
+  trashView?: boolean;
+  onTrashViewChange?: (visible: boolean) => void;
   /** Report visible context to the host; clear it on unmount. */
   onViewChange?: (view: DriveBrowserView | undefined) => void;
   /** Increment after an action outside this browser changes Drive. */

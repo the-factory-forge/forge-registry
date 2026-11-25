@@ -94,7 +94,7 @@ await suite("Projects browser", async () => {
       form.requestSubmit();
     });
     await page.getByRole("heading", { name: "Fresh project", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
     await page.getByRole("row").filter({ hasText: "Fresh project" }).waitFor();
     assert.equal(await page.getByRole("row").filter({ hasText: "Fresh project" }).count(), 1);
   });
@@ -115,7 +115,7 @@ await suite("Projects browser", async () => {
     const summary = page.locator("header").filter({ hasText: "Updated website" });
     assert.equal(await summary.getByRole("link").count(), 0);
     assert.equal(await summary.locator("p").count(), 0);
-    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
     const row = page.getByRole("row").filter({ hasText: "Updated website" });
     await row.getByText("Acme Studio", { exact: true }).waitFor();
     await row.getByText("Jordan Lee", { exact: true }).waitFor();
@@ -142,7 +142,7 @@ await suite("Projects browser", async () => {
     assert.equal(await page.getByText(/Host Drive content/).count(), 0);
     await page.getByLabel("Host integration example").check();
     await page.getByText(/Host Drive content for Sam's project/).waitFor();
-    await page.getByRole("link", { name: "Back to customer projects", exact: true }).click();
+    await page.getByRole("link", { name: "Customer projects", exact: true }).click();
     await page.getByRole("row").filter({ hasText: "Sam's project" }).waitFor();
     await page.getByRole("link", { name: "Project directory", exact: true }).click();
     await page.getByRole("row").filter({ hasText: "Studio website" }).waitFor();
@@ -153,7 +153,7 @@ await suite("Projects browser", async () => {
     await assertBasicFields(page);
     await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await actionToast(page, "Project updated");
-    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
     await page
       .getByRole("row")
       .filter({ hasText: "Studio website" })
@@ -263,7 +263,7 @@ await suite("Projects browser", async () => {
         );
         for (const [view, link] of [
           ["detail", null],
-          ["list", "Back to projects"],
+          ["list", "Projects"],
           ["new", "Create"],
         ]) {
           if (link) await page.getByRole("link", { name: link, exact: true }).click();
@@ -314,7 +314,7 @@ await suite("Projects browser", async () => {
     assert.equal(await name.inputValue(), "Unsaved project name");
     assert.equal(await status.inputValue(), "prospect");
     await page.getByRole("heading", { name: "Studio website", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
     const row = page.getByRole("row").filter({ hasText: "Studio website" });
     const tableBadge = row.getByRole("button", { name: /Change status/ });
     assert.match(await tableBadge.innerText(), /Prospect/);
@@ -327,7 +327,7 @@ await suite("Projects browser", async () => {
     await badge.click();
     await page.getByRole("menuitemradio", { name: "Requested", exact: true }).click();
     await actionToast(page, "Project updated");
-    await page.getByRole("link", { name: "Back to projects", exact: true }).click();
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
     await page.getByLabel("Directory state").selectOption("loading");
     assert.equal(await tableBadge.isDisabled(), true);
     await page.getByLabel("Directory state").selectOption("ready");

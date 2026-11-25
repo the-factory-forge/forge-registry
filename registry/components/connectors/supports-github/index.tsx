@@ -1,15 +1,21 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { RefreshCwIcon } from "lucide-react";
+import { Toast } from "@base-ui/react/toast";
+import { RefreshCwIcon, UnplugIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { ActionToastProvider } from "@/components/action-toast";
 import type {
   SupportsGithubClient,
   SupportsGithubConnection,
 } from "@/components/connectors/supports-github/contracts";
 import { IconTooltip } from "@/components/icon-tooltip";
-import { buttonClass, primaryClass } from "@/components/plugins/supports/ui";
+import {
+  buttonClass,
+  primaryClass,
+  supportStatusBadgeClass,
+} from "@/components/plugins/supports/ui";
 import { cn } from "@/components/utils/cn";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
 export type * from "@/components/connectors/supports-github/contracts";
@@ -18,35 +24,70 @@ export const supportsGithubLabels = {
   title: "GitHub",
   unlinked: "Not connected",
   pending: "Delivery pending",
+  pendingStatus: "Pending",
   synchronized: "Synchronized",
   failed: "Delivery failed",
   blocked: "Delivery blocked",
+  unconfirmed: "Awaiting GitHub confirmation",
   loading: "Loading connection…",
   loadError: "Could not load the connection.",
   actionError: "The action failed. Refresh the connection and try again.",
   refresh: "Refresh GitHub connection",
   issue: "View GitHub issue",
   send: "Send to GitHub",
+  savedForSend: "Your ticket is saved here. Send it to GitHub when the connection is back.",
   retry: "Retry delivery",
   cancel: "Cancel",
   saving: "Saving…",
   confirmTitle: "Send this discussion to GitHub?",
   confirmDescription:
-    "This sends the original description, all saved replies, author names, and current status to the site's private repository. Images stay in their original system and are linked, not copied.",
-  images: "Images are not copied. Viewing originals requires access to their source system.",
+    "This sends the title, type, description, saved replies, author names, status, and any assigned priority to the site's private repository. Any attached images are shared as links.",
+  images: "Viewing these images from GitHub requires access to this discussion.",
   DELIVERY:
     "GitHub could not be reached or rejected the delivery. Retry after checking the connection.",
-  ACCESS: "GitHub access needs to be restored before delivery can resume.",
+  ACCESS:
+    "GitHub denied access. Ask an administrator to check the GitHub App installation, then retry.",
   REPOSITORY:
     "The configured repository changed or is unavailable for private support. Contact maintenance.",
   UNCERTAIN:
-    "GitHub may have received this write. Maintenance must reconcile it before it can be resent.",
+    "GitHub may have received this change. Retry to check for confirmation. Contact maintenance if it stays unconfirmed.",
   MISSING: "The linked issue was deleted, moved, or is inaccessible. Contact maintenance.",
   TOO_LONG: "A reply exceeded the import limit. Read the original on GitHub.",
   STALE_STATUS:
     "A newer GitHub status replaced an older queued change. Change the ticket status again if needed.",
 };
-export type SupportsGithubLabels = typeof supportsGithubLabels;
+export type SupportsGithubLabels = Omit<
+  typeof supportsGithubLabels,
+  "pendingStatus" | "unconfirmed" | "savedForSend"
+> &
+  Partial<Pick<typeof supportsGithubLabels, "pendingStatus" | "unconfirmed" | "savedForSend">>;
+
+function useGithubAction(
+  scope: { client: SupportsGithubClient; ticketId: string },
+  labels: typeof supportsGithubLabels,
+) {
+  const mutation = useMutationAction(scope);
+  const { add } = Toast.useToastManager();
+  function run(
+    action: () => Promise<SupportsGithubConnection | void>,
+    settled: (connection: SupportsGithubConnection | null) => void,
+  ) {
+    return mutation.run(
+      () =>
+        action()
+          .then((result) => result ?? scope.client.get(scope.ticketId))
+          .catch(() => null),
+      (connection) => {
+        if (!connection) add({ title: labels.actionError, type: "error" });
+        else if (connection.failure) add({ title: labels[connection.failure], type: "error" });
+        else if (connection.state === "pending") add({ title: labels.pending, type: "info" });
+        settled(connection);
+      },
+    );
+  }
+  return { pending: mutation.pending, run };
+}
+
 export interface SupportGithubCardProps {
   ticketId: string;
   client: SupportsGithubClient;
@@ -54,15 +95,24 @@ export interface SupportGithubCardProps {
   /** Host data revision: reload delivery state after a local ticket mutation. */
   revision?: unknown;
   onChanged?: () => void;
+  onRefresh?: () => Promise<void>;
   labels?: Partial<SupportsGithubLabels>;
   className?: string;
 }
-export function SupportGithubCard({
+export function SupportGithubCard(props: SupportGithubCardProps) {
+  return (
+    <ActionToastProvider>
+      <GithubCard {...props} />
+    </ActionToastProvider>
+  );
+}
+function GithubCard({
   ticketId,
   client,
   canWrite = true,
   revision,
   onChanged,
+  onRefresh,
   labels: overrides,
   className,
 }: SupportGithubCardProps) {
@@ -74,10 +124,7 @@ export function SupportGithubCard({
     value?: SupportsGithubConnection;
     error?: boolean;
   }>();
-  const [confirmScope, setConfirmScope] = useState<typeof scope | null>(null);
-  const mutation = useMutationAction(scope);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const cancel = useRef<HTMLButtonElement>(null);
+  const mutation = useGithubAction(scope, labels);
   useEffect(() => {
     let active = true;
     void client
@@ -94,11 +141,19 @@ export function SupportGithubCard({
   }, [client, ticketId, scope, refresh, revision]);
   const current = loaded?.scope === scope ? loaded : undefined;
   const connection = current?.value;
-  const confirming = confirmScope === scope;
-  const change = (action: () => Promise<void>) => {
-    void mutation.run(action, () => {
-      setConfirmScope(null);
-      setRefresh((value) => value + 1);
+  const awaitingSend =
+    connection?.canRetry &&
+    connection.issueUrl === null &&
+    connection.failure != null &&
+    connection.failure !== "UNCERTAIN";
+  const refreshConnection = () => {
+    setRefresh((value) => value + 1);
+    onChanged?.();
+  };
+  const change = (action: () => Promise<SupportsGithubConnection | void>) => {
+    void mutation.run(action, (value) => {
+      if (value) setLoaded({ scope, value });
+      else setRefresh((previous) => previous + 1);
       onChanged?.();
     });
   };
@@ -117,7 +172,7 @@ export function SupportGithubCard({
         <div className="flex items-center gap-2">
           <span aria-live="polite" className="text-sm text-muted-foreground">
             {connection
-              ? labels[connection.state]
+              ? labels[connection.failure === "UNCERTAIN" ? "unconfirmed" : connection.state]
               : current?.error
                 ? labels.loadError
                 : labels.loading}
@@ -128,24 +183,18 @@ export function SupportGithubCard({
               aria-label={labels.refresh}
               className={cn(buttonClass, "size-10 p-0 md:size-8")}
               disabled={mutation.pending}
-              onClick={() => setRefresh((value) => value + 1)}
+              onClick={() =>
+                change(async () => {
+                  await onRefresh?.();
+                  return client.get(ticketId);
+                })
+              }
             >
               <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
             </button>
           </IconTooltip>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">{labels.images}</p>
-      {connection?.failure && (
-        <p role="alert" className="text-sm text-destructive">
-          {labels[connection.failure]}
-        </p>
-      )}
-      {mutation.error && !confirming && (
-        <p role="alert" className="text-sm text-destructive">
-          {labels.actionError}
-        </p>
-      )}
       <div className="flex flex-wrap gap-2">
         {issueUrl && (
           <a href={issueUrl} target="_blank" rel="noopener noreferrer" className={buttonClass}>
@@ -153,27 +202,106 @@ export function SupportGithubCard({
           </a>
         )}
         {connection?.state === "unlinked" && (
-          <button
-            ref={trigger}
-            type="button"
-            disabled={!canWrite || mutation.pending}
-            className={primaryClass}
-            onClick={() => setConfirmScope(scope)}
-          >
-            {labels.send}
-          </button>
+          <SupportGithubSendButton
+            key={ticketId}
+            ticketId={ticketId}
+            client={client}
+            action="export"
+            canWrite={canWrite && !mutation.pending}
+            labels={labels}
+            onChanged={refreshConnection}
+          />
         )}
         {connection?.canRetry && (
           <button
             type="button"
-            className={buttonClass}
+            className={awaitingSend ? primaryClass : buttonClass}
             disabled={!canWrite || mutation.pending}
             onClick={() => change(() => client.retry(ticketId))}
           >
-            {mutation.pending ? labels.saving : labels.retry}
+            {mutation.pending ? labels.saving : awaitingSend ? labels.send : labels.retry}
           </button>
         )}
       </div>
+    </section>
+  );
+}
+
+type SendButtonProps = Pick<
+  SupportGithubCardProps,
+  "ticketId" | "client" | "canWrite" | "labels" | "onChanged"
+> & {
+  action: "export" | "retry";
+  badge?: boolean;
+  failed?: boolean;
+};
+export function SupportGithubSendButton(props: SendButtonProps) {
+  return (
+    <ActionToastProvider>
+      <SendButton {...props} />
+    </ActionToastProvider>
+  );
+}
+function SendButton({
+  ticketId,
+  client,
+  action,
+  badge = false,
+  failed = false,
+  canWrite = true,
+  labels: overrides,
+  onChanged,
+}: SendButtonProps) {
+  const labels = { ...supportsGithubLabels, ...overrides };
+  const scope = useMemo(() => ({ ticketId, client }), [ticketId, client]);
+  const [confirmScope, setConfirmScope] = useState<typeof scope | null>(null);
+  const [failedScope, setFailedScope] = useState<typeof scope | null>(null);
+  const confirming = confirmScope === scope;
+  const mutation = useGithubAction(scope, labels);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const disconnected = failed || failedScope === scope;
+  const hint = disconnected ? `${labels.failed} – ${labels.retry}` : labels.send;
+  const StatusIcon = disconnected && !mutation.pending ? UnplugIcon : RefreshCwIcon;
+  const send = () => {
+    void mutation.run(
+      () => (action === "export" ? client.exportTicket(ticketId) : client.retry(ticketId)),
+      (connection) => {
+        setConfirmScope(null);
+        setFailedScope(!connection || connection.failure ? scope : null);
+        onChanged?.();
+      },
+    );
+  };
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        disabled={!canWrite || mutation.pending}
+        aria-busy={mutation.pending}
+        aria-haspopup={action === "export" && canWrite ? "dialog" : undefined}
+        aria-label={badge ? `${labels.pendingStatus} – ${hint}` : undefined}
+        title={badge && canWrite ? hint : undefined}
+        className={
+          badge
+            ? cn(
+                supportStatusBadgeClass,
+                "min-h-6 scroll-me-24 bg-status-not-started text-status-not-started-foreground underline-offset-2 focus-visible:outline-2 focus-visible:outline-ring enabled:hover:underline aria-busy:cursor-wait",
+                (canWrite || disconnected) && "before:hidden",
+              )
+            : primaryClass
+        }
+        onClick={() => (action === "export" ? setConfirmScope(scope) : send())}
+      >
+        {badge && (canWrite || disconnected) && (
+          <StatusIcon
+            aria-hidden="true"
+            className={cn("size-3 shrink-0", mutation.pending && "motion-safe:animate-spin")}
+          />
+        )}
+        {badge ? labels.pendingStatus : labels.send}
+      </button>
       <Dialog.Root
         open={confirming}
         onOpenChange={(open) => {
@@ -191,11 +319,6 @@ export function SupportGithubCard({
             <Dialog.Description className="text-sm text-muted-foreground">
               {labels.confirmDescription}
             </Dialog.Description>
-            {mutation.error && (
-              <p role="alert" className="text-sm text-destructive">
-                {labels.actionError}
-              </p>
-            )}
             <div className="flex flex-wrap justify-end gap-2">
               <Dialog.Close ref={cancel} disabled={mutation.pending} className={buttonClass}>
                 {labels.cancel}
@@ -205,7 +328,7 @@ export function SupportGithubCard({
                 disabled={!canWrite || mutation.pending}
                 aria-busy={mutation.pending}
                 className={primaryClass}
-                onClick={() => change(() => client.exportTicket(ticketId))}
+                onClick={send}
               >
                 {mutation.pending ? labels.saving : labels.send}
               </button>
@@ -213,6 +336,6 @@ export function SupportGithubCard({
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
-    </section>
+    </>
   );
 }

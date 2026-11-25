@@ -6,6 +6,8 @@ export const SUPPORT_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const SUPPORT_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 export const supportIdSchema = z.string().min(1).max(200);
 export const supportStatusSchema = z.enum(["open", "closed", "canceled"]);
+export const supportPrioritySchema = z.enum(["P0", "P1", "P2", "P3", "P4"]);
+export type SupportPriority = z.infer<typeof supportPrioritySchema>;
 const attachments = z
   .array(supportIdSchema)
   .max(SUPPORT_MAX_IMAGES)
@@ -18,6 +20,7 @@ export const supportCreateSchema = z.object({
     .max(5000)
     .refine((value) => value.trim().length > 0),
   type: z.enum(["bug", "feature", "support"]),
+  priority: supportPrioritySchema.optional(),
   attachmentIds: attachments,
 });
 export const supportCommentInputSchema = z
@@ -30,9 +33,23 @@ export const supportCommentInputSchema = z
 export const supportCommentSchema = supportCommentInputSchema.safeExtend({
   requestId: supportIdSchema,
 });
+export const SUPPORT_SORT_FIELDS = ["title", "status", "author", "updatedAt"] as const;
+export const supportSortSchema = z.object({
+  field: z
+    .enum([...SUPPORT_SORT_FIELDS, "type"])
+    .transform((field) => (field === "type" ? "title" : field)),
+  direction: z.enum(["asc", "desc"]),
+});
+export type SupportSort = z.input<typeof supportSortSchema>;
+export type SupportColumnSort = z.output<typeof supportSortSchema>;
+export const SUPPORT_DEFAULT_SORT = {
+  field: "updatedAt",
+  direction: "desc",
+} as const satisfies SupportSort;
 export const supportQuerySchema = z.object({
   search: z.string().trim().max(250).default(""),
   page: z.number().int().min(1).max(1000000).default(1),
+  sort: supportSortSchema.default(SUPPORT_DEFAULT_SORT),
 });
 export class SupportsError extends Error {
   code: "INVALID" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "STORAGE" | "STORAGE_NOT_CONFIGURED";

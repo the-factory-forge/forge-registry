@@ -55,6 +55,7 @@ import type {
   BlogsStorageOptions,
   BlogsTransaction,
 } from "@/components/plugins/blogs/server/types";
+import type { BlogListItem } from "@/components/plugins/blogs/types";
 import type {
   BlogArticle,
   BlogEditor,
@@ -78,6 +79,7 @@ import type {
 } from "@/components/plugins/blogs/types";
 import {
   articleListItem,
+  sortBlogItems,
   assertBlog,
   BlogsError,
   imageType,
@@ -1022,9 +1024,26 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       for (const { document } of records)
         if (await options.authorize(context, "read", document.id)) allowed.push(document);
       const categories = await allCategories(db);
-      const visible = allowed.slice((page - 1) * pageSize, page * pageSize);
-      await refreshAuthorNames(db, visible.flatMap(authorFields));
-      const items = visible.map((document) => articleListItem(document, input.locale, categories));
+      const pageStart = (page - 1) * pageSize;
+      let items: BlogListItem[];
+      if (!input.sort || (input.sort.field === "updatedAt" && input.sort.direction === "desc")) {
+        const visible = allowed.slice(pageStart, pageStart + pageSize);
+        await refreshAuthorNames(
+          db,
+          visible.map((article) => article.shared),
+        );
+        items = visible.map((article) => articleListItem(article, input.locale, categories));
+      } else {
+        const summaries = allowed.map((article) =>
+          articleListItem(article, input.locale, categories),
+        );
+        if (input.sort.field === "author") await refreshAuthorNames(db, summaries);
+        items = sortBlogItems(summaries, input.sort, input.locale).slice(
+          pageStart,
+          pageStart + pageSize,
+        );
+        if (input.sort.field !== "author") await refreshAuthorNames(db, items);
+      }
       return { items, total: allowed.length, page, pageSize };
     });
   }

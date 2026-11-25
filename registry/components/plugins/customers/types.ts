@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import type { LinkProps } from "@/components/link";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
+import type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
 
 export type CustomerSection = "about" | "projects" | "sync";
 
@@ -35,7 +36,15 @@ export interface CustomersAppearanceProps {
   linkComponent?: ComponentType<LinkProps>;
 }
 
-export interface CustomersPageProps extends CustomersAppearanceProps {
+export const CUSTOMER_SORT_FIELDS = ["name", "email", "status", "sync"] as const;
+export type CustomerSortField = (typeof CUSTOMER_SORT_FIELDS)[number];
+export const customerDefaultSort = {
+  field: "name",
+  direction: "asc",
+} as const satisfies TableSort<CustomerSortField>;
+
+export interface CustomersPageProps
+  extends TableSortProps<CustomerSortField>, CustomersAppearanceProps {
   customers: readonly Customer[];
   search: string;
   onSearchChange: (search: string) => void;
@@ -47,7 +56,11 @@ export interface CustomersPageProps extends CustomersAppearanceProps {
   onSetVerified?: (customerId: string, verified: boolean) => Promise<void>;
   onImpersonate?: (customerId: string) => Promise<void>;
   toolbar?: ReactNode;
-  syncColumn?: { label: string; render: (customer: Customer) => ReactNode };
+  syncColumn?: {
+    label: string;
+    render: (customer: Customer) => ReactNode;
+    sortValue?: (customer: Customer) => string | number | null;
+  };
 }
 
 export interface CustomerDetailPageProps extends CustomersAppearanceProps {
@@ -62,6 +75,17 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
   projectsContent?: ReactNode;
   syncContent?: ReactNode;
 }
+
+export type CustomerDetailPageLoadingProps = Pick<
+  CustomerDetailPageProps,
+  | "className"
+  | "labels"
+  | "linkComponent"
+  | "section"
+  | "backHref"
+  | "sectionHrefs"
+  | "emailChangeDescription"
+> & { customer: null };
 
 export interface CustomerNewPageProps extends CustomersAppearanceProps {
   backHref: string;

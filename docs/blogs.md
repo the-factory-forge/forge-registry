@@ -56,10 +56,25 @@ stylesheet does not ship with the item; forge-template supplies the defaults.
 
 ## Editing and publishing
 
-The editor's status badge toggles publication for the selected language immediately.
-Save unsaved edits first. Published and Unpublished changes both mean the language
-is live; clicking either unpublishes it. The existing Publish action still publishes
-a saved revision without first taking the live translation offline.
+While the article is loading, render `BlogEditPage` with `article={null}`,
+`backHref`, `locales` and `defaultLocale`. Supply the same labels and link adapter
+as the loaded editor. Back stays available, a skeleton occupies the title and a
+gray status badge shows a spinner and `loadingStatus`. Title, slug and summary
+stay visible and disabled. Pass the loaded article and its normal editing props
+when ready. During background refreshes, keep passing the loaded article to
+preserve unsaved edits. Handle load failures in the host route.
+
+The small switch in the editor's status badge toggles publication for the selected
+language. The editor shows **Draft** when there is a saved draft, including when
+an earlier version is still live. The switch indicates whether the language is
+live and is available once local edits are saved.
+
+For staff with publication permission, **Publish** saves and publishes the selected
+language with the usual validation and image review. Check **As draft** to switch
+the button to **Save** and retain the current public version. If publication
+fails after saving, use **Publish** again to retry. The leave dialog always saves
+a draft. Hosts that override editor labels should localize `publish`, `save`,
+`asDraft`, and `saveDraft` (used by the leave dialog).
 
 `BlogsPage` accepts an optional `onSetPublished(id, locale, published, requestId)`
 callback. With this callback and `capabilities.publish`, the table's language pills
@@ -314,6 +329,10 @@ unnecessary because transfers use the host endpoint.
 
 ## Crop new thumbnail and banner uploads
 
+Both previews use `@forge/photo-picker` with a **Photo** upload button in the
+lower-right corner. The asset selectors and alternative text fields remain available.
+Override `labels.photo` to translate the button.
+
 `BlogEditPage` crops thumbnail and banner images by default at 1200×900 and
 1600×900 respectively. Override `imageDimensions`, for example
 `{ thumbnail: { width: 1200, height: 675 } }`, to crop only those configured fields,
@@ -336,7 +355,7 @@ the article title as its accessible name and a visible keyboard focus outline.
 The Read more arrow moves up and right on card hover or keyboard focus, and stays
 still when reduced motion is requested.
 
-Article language switching belongs in the host navbar. `BlogPostPage` does not
+The host owns article language navigation. The showroom places it in the Preview controls sidebar. `BlogPostPage` does not
 render language links or accept a `translations` prop; remove that prop when
 updating existing integrations and keep published locale URLs in the host navigation.
 
@@ -582,12 +601,29 @@ Existing hosts without the optional client retain ordinary controls. Historical 
 uses the ordinary draft save before publication.
 
 The editor uses [`@forge/content-sidebar-layout`](./content-sidebar-layout.md),
-included by the Blogs registry dependency. On desktop, the comparison and History buttons stick with the right-hand panel,
-below the host's `--intranet-top-offset` (default `0rem`). Long timelines scroll
-inside the panel. On mobile, the controls and expanded history stay in page flow.
+included by the Blogs registry dependency. The icon-only History button sits beside
+the publication status in the editor and in the toolbar when reviewing history.
+On desktop, the panel sticks below the host's `--intranet-top-offset` (default
+`0rem`), and long timelines scroll inside it. On mobile, the controls and expanded
+history stay in page flow.
 
-The right-hand panel reads headers and loads only the selected body. Selection
-is read-only; Save, Discard and Cancel protect dirty work before inspection,
+The showroom restores the editor view from its URL. It records `lang` for a
+non-default article language, `history=true` for the open panel, `version` for
+a retained snapshot UUID, and `compare=true` for comparison. Comparison without
+a version uses the working draft. The default URL opens the editable draft in
+the route's default article language with History closed. A language switch
+clears the version and comparison and keeps the panel state.
+
+Hosts can bind their router through `BlogEditPage.view` using a validated
+`state: BlogEditorView` and an `onChange` callback that merges the supplied
+partial state into the current view. Omit defaults and preserve unrelated
+search, the hash and scroll position when updating the URL. When `view` is
+omitted, History keeps its existing browser preference across visits and the
+editor keeps language and version selections locally. The mobile listing also
+remembers whether its category panel is open.
+
+The right-hand panel reads headers and loads a snapshot body on demand for
+read-only inspection. Save, Discard and Cancel protect dirty work before inspection,
 resumption, language changes and the editor's Back link. Reloading or leaving the
 page also uses the browser's native warning while a draft is dirty or an operation
 is pending. Confirmed Save or Discard departures clear that warning synchronously.
@@ -609,29 +645,40 @@ while dirty or saving.
 
 `src/showroom/blogs-preview.tsx` uses `useShowroomEditorGuard` from
 `src/showroom/routing.tsx`, sharing the TanStack Router adapter with the Menu editor.
-It guards pathname changes without adding history entries.
+It guards pathname changes and browser history transitions that change the
+article language or enter a different retained version. The editor guards its
+own language and history controls before the adapter commits their URL change.
 The editor owns native unload protection, so the adapter disables the router's
 additional `beforeunload` handler. A successful, explicitly confirmed deletion
 bypasses blocking when returning to the list. Other hosts must wire their router;
 installing the component alone cannot intercept SPA history transitions.
 
 History shows numbered publications and the optional unnumbered draft in
-chronological order. The editor labels Read and Compare as explicit modes.
-Comparison names both endpoints, for example v22 (live) to Draft. It compares
-title, slug, summary, author, categories and images along with Markdown; unchanged
-fields remain hidden and the interface states that rule.
-The reference endpoint and removed values share the red semantic treatment and
-minus marker; the selected endpoint and added values share green and plus.
+chronological order. The accessible comparison heading names both endpoints,
+for example v22 (live) to Draft. The view compares title, slug, summary, author,
+categories and images along with Markdown. The view states that unchanged
+fields are hidden.
 Changed metadata, including title, slug and summary, uses two stacked rows with
 the same treatments as Markdown. Accessible removed/added text supplements color.
 Every comparison block has a visible label; the Markdown block has its own
 heading and accessible section name, using the existing translated Markdown label.
 Unsaved input has a preview without a saved number. Mobile starts collapsed and
 returns focus to the selected content. Each saved version has a right-aligned
-actions menu with Compare and, when permitted, Delete. Selecting a row opens its
-read preview; Compare opens that version against the live publication. The
-working draft can also be compared before saving. Deletion requires confirmation,
-is disabled while unsaved work is present and always protects the live row.
+actions menu with Compare and, when permitted, Delete. Publish appears first
+for the current saved draft when the user can publish and has no unsaved changes.
+When the selected language has no live publication, the first row also offers
+Publish if it is the current saved version. Both use the editor's publication plan
+and missing-image review.
+The live version offers Unpublish to users with publication permission and
+disables Compare. Unpublish affects only the selected language and is disabled
+while unsaved work is present.
+Selecting the publication currently in the editor shows the editable form. Other
+saved rows open their read previews. Choose Compare from a saved version’s or unsaved draft’s actions menu
+to compare it with the live publication. The Compare icon in a historical
+publication's footer toggles between its read preview and comparison. It sits
+immediately before Resume as draft when that action is available. Deletion
+requires confirmation, is disabled while unsaved work is present and always
+protects the live row.
 
 Resuming a publication asks for confirmation when a saved draft exists, even
 when it is clean. Cancel preserves that draft. Confirm prepares local input; only
@@ -694,3 +741,7 @@ reviewed process; source installation does not run a migration or deployment.
 `tests/blogs-storage/history.integration.mjs` uses a disposable schema and bucket
 for retention, confirmation, authorization, rollback, image lifecycle, migration
 and fresh-process persistence. Run it with the companion's storage suite.
+
+## Admin table ordering
+
+Bind `BlogsPage.sort` and `onSortChange` to the host URL and pass the sort to `client.list`. The storage companion orders authorized results before taking the page. Title and category names use the requested locale. On a first visit the most recently updated articles appear first. Later visits use the last selected order unless the URL supplies one.

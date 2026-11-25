@@ -603,6 +603,22 @@ await test("private Drive persistence and storage recovery", async (t) => {
       assert.equal((await ordered("size", "desc")).items[1].name, "File-00.txt");
       await rejected(ordered("name; drop table drive_entry", "asc"), "INVALID");
       await rejected(ordered("name", "desc; drop table drive_entry"), "INVALID");
+      const recovering = createDriveStorage({ ...options, trash: {} }).client("editor");
+      await pool`update drive_entry set state='trashed', trash_root_id=id, original_path=name, deleted_at=updated_at, expires_at=updated_at+interval '30 days' where space_id=${spaceId} and kind='file'`;
+      for (const field of ["name", "originalPath", "deletedAt", "expiresAt"]) {
+        const sort = { field, direction: "desc" };
+        const first = await recovering.listTrash({ scope, sort });
+        const next = await recovering.listTrash({ scope, sort, cursor: first.nextCursor });
+        assert.equal(first.items[0].name, "File-51.txt");
+        assert.deepEqual(
+          next.items.map((row) => row.name),
+          ["File-01.txt", "File-00.txt"],
+        );
+      }
+      await rejected(
+        recovering.listTrash({ scope, sort: { field: "other", direction: "asc" } }),
+        "INVALID",
+      );
       await pool`delete from drive_entry where space_id=${spaceId}`;
       await pool`delete from drive_space where id=${spaceId}`;
     },

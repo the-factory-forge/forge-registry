@@ -3,11 +3,20 @@ import type { ComponentType } from "react";
 import type { ImageProps } from "@/components/image";
 import type { LinkProps } from "@/components/link";
 import type { BlogsLabels } from "@/components/plugins/blogs/labels";
+import type { TableSort } from "@/components/utils/table-sort-state";
 
 export interface BlogEditor {
   id: string;
   name: string;
 }
+export interface BlogEditorView {
+  locale: string;
+  historyOpen: boolean;
+  /** Retained history entry to inspect, or null for the working draft. */
+  versionId: string | null;
+  compare: boolean;
+}
+
 export interface BlogLocale {
   code: string;
   name: string;
@@ -140,13 +149,24 @@ export interface BlogPage<T> {
   page: number;
   pageSize: number;
 }
+export const BLOG_SORT_FIELDS = [
+  "title",
+  "categories",
+  "languages",
+  "author",
+  "editor",
+  "updatedAt",
+] as const;
+export type BlogSortField = (typeof BLOG_SORT_FIELDS)[number];
+export const blogDefaultSort = { field: "updatedAt", direction: "desc" } as const;
 export interface BlogQuery {
+  sort?: TableSort<BlogSortField>;
   search?: string;
   page?: number;
   pageSize?: number;
   locale: string;
 }
-export interface BlogPublicQuery extends BlogQuery {
+export interface BlogPublicQuery extends Omit<BlogQuery, "sort"> {
   categoryId?: string;
 }
 export interface BlogPublicPage extends BlogPage<Omit<BlogPost, "markdown">> {

@@ -5,7 +5,7 @@ import { Tabs } from "@base-ui/react/tabs";
 import {
   XIcon,
   HistoryIcon,
-  GitCompareArrowsIcon,
+  LoaderCircleIcon,
   RefreshCwIcon,
   Bold,
   Code,
@@ -22,12 +22,13 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type SubmitEvent,
-  useSyncExternalStore,
   type RefObject,
 } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
@@ -35,6 +36,7 @@ import { ContentSidebarLayout } from "@/components/layouts/content-sidebar-layou
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
+import { PhotoPicker } from "@/components/photo-picker";
 import {
   BlogHistoryPanel,
   BlogHistoryReader,
@@ -49,6 +51,7 @@ import type {
   BlogCategory,
   BlogContent,
   BlogEditor,
+  BlogEditorView,
   BlogHistoryHeader,
   BlogHistoryVersion,
   BlogHistoryOrigin,
@@ -71,11 +74,7 @@ import {
   primaryClass,
   useBlogAction,
 } from "@/components/plugins/blogs/ui";
-import {
-  languageTabClass,
-  blogStatusClass,
-  publicationToggleClass,
-} from "@/components/plugins/blogs/ui";
+import { languageTabClass, blogStatusClass } from "@/components/plugins/blogs/ui";
 import {
   hasUnpublishedChanges,
   MAX_IMAGE_BYTES,
@@ -85,16 +84,11 @@ import {
   slugify,
 } from "@/components/plugins/blogs/utils";
 import { emptyContent } from "@/components/plugins/blogs/utils";
+import { StatusToggle } from "@/components/status-toggle";
 import { cn } from "@/components/utils/cn";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
-function subscribeHistoryDesktop(callback: () => void) {
-  const query = window.matchMedia("(min-width: 1024px)");
-  query.addEventListener("change", callback);
-  return () => query.removeEventListener("change", callback);
-}
-const historyDesktopSnapshot = () => window.matchMedia("(min-width: 1024px)").matches;
-
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
+import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
 export interface BlogEditPageProps extends BlogsAppearanceProps {
   /** Covers are cropped by default; false retains original uploads. */
@@ -107,6 +101,11 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   assets: BlogAsset[];
   locales: BlogLocale[];
   defaultLocale: string;
+  /** Host-owned navigation state, such as validated URL search parameters. */
+  view?: {
+    state: BlogEditorView;
+    onChange: (change: Partial<BlogEditorView>) => void;
+  };
   backHref: string;
   /** Host route for category management; shown only to category managers. */
   categoriesHref?: string;
@@ -120,40 +119,78 @@ export interface BlogEditPageProps extends BlogsAppearanceProps {
   onNavigationStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
   onDeleted: () => void;
 }
-function BlogEditPageContent(props: BlogEditPageProps) {
-  return <Editor key={props.article.id} {...props} />;
-}
-function Editor(props: BlogEditPageProps) {
-  const [locale, setLocale] = useState(props.defaultLocale);
+export type BlogEditPageLoadingProps = Pick<
+  BlogEditPageProps,
+  "backHref" | "className" | "defaultLocale" | "labels" | "linkComponent" | "locales" | "view"
+> & { article: null };
+
+function Editor({
+  props,
+  navigationRef,
+}: {
+  props: BlogEditPageProps | BlogEditPageLoadingProps;
+  navigationRef: RefObject<(next: () => void) => void>;
+}) {
+  const [localLocale, setLocale] = useState(props.defaultLocale);
+  const locale = props.view?.state.locale ?? localLocale;
   const labels = { ...blogsLabels, ...props.labels };
-  const navigationRef = useRef<(next: () => void) => void>((next) => next());
+  useLoadingActivity(props.article === null);
   return (
-    <section className={cn(pageClass, props.className)}>
-      <BackLink {...props} onLeave={(next) => navigationRef.current(next)} />
-      <Tabs.Root
-        value={locale}
-        onValueChange={(value) => navigationRef.current(() => setLocale(value as string))}
+    <Tabs.Root
+      value={locale}
+      onValueChange={(value: string) =>
+        navigationRef.current(() => {
+          if (props.view) props.view.onChange({ locale: value, versionId: null, compare: false });
+          else setLocale(value);
+        })
+      }
+    >
+      <Tabs.List
+        aria-label={labels.language}
+        className="flex gap-1 overflow-x-auto border-b border-border"
       >
-        <Tabs.List
-          aria-label={labels.language}
-          className="flex gap-1 overflow-x-auto border-b border-border"
-        >
-          {props.locales.map((l) => (
-            <Tabs.Tab key={l.code} type="button" value={l.code} className={languageTabClass}>
-              {l.name}
-            </Tabs.Tab>
-          ))}
-        </Tabs.List>
-        <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
+        {props.locales.map((l) => (
+          <Tabs.Tab
+            key={l.code}
+            type="button"
+            value={l.code}
+            disabled={props.article === null}
+            className={languageTabClass}
+          >
+            {l.name}
+          </Tabs.Tab>
+        ))}
+      </Tabs.List>
+      <Tabs.Panel key={locale} value={locale} className="space-y-6 pt-6">
+        {props.article === null ? (
+          <div className="@container/blog-editor space-y-6">
+            <header className="flex min-h-10 items-start justify-between gap-3 md:min-h-9">
+              <div
+                aria-hidden="true"
+                className="my-1.5 h-6 w-64 max-w-3/5 rounded bg-foreground/15 motion-safe:animate-pulse"
+              />
+              <output
+                className={cn(
+                  "inline-flex min-h-6 shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
+                  blogStatusClass.draft,
+                )}
+              >
+                <LoaderCircleIcon aria-hidden="true" className="size-3 motion-safe:animate-spin" />
+                {props.labels?.loadingStatus ?? props.labels?.loading ?? blogsLabels.loadingStatus}
+              </output>
+            </header>
+            <BlogDetailsCard labels={labels} disabled />
+          </div>
+        ) : (
           <BlogEditorClient value={props.client}>
             <EditorForm {...props} locale={locale} navigationRef={navigationRef} />
           </BlogEditorClient>
-        </Tabs.Panel>
-      </Tabs.Root>
-    </section>
+        )}
+      </Tabs.Panel>
+    </Tabs.Root>
   );
 }
-function BackLink({
+function BlogEditorBackLink({
   linkComponent: BlogLink = Link,
   backHref,
   labels: overrides,
@@ -162,7 +199,8 @@ function BackLink({
   onLeave?: (next: () => void) => void;
 }) {
   return (
-    <BlogLink
+    <BackLink
+      linkComponent={BlogLink}
       href={backHref}
       onClick={
         onLeave
@@ -181,10 +219,9 @@ function BackLink({
             }
           : undefined
       }
-      className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
     >
-      ← {{ ...blogsLabels, ...overrides }.back}
-    </BlogLink>
+      {{ ...blogsLabels, ...overrides }.back}
+    </BackLink>
   );
 }
 function BlogLeaveDialog({
@@ -276,6 +313,65 @@ function BlogLeaveDialog({
   );
 }
 
+type BlogDetailsKey = "title" | "slug" | "summary";
+
+function BlogDetailsCard({
+  labels,
+  disabled,
+  editor,
+}: {
+  labels: BlogsLabels;
+  disabled: boolean;
+  editor?: {
+    id: string;
+    fields: Pick<ReturnType<typeof useEditorValidation>, "field" | "message">;
+    content: BlogContent;
+    onChange: (key: BlogDetailsKey, value: string) => void;
+  };
+}) {
+  function inputProps(key: BlogDetailsKey) {
+    return {
+      "aria-label": labels[key],
+      ...editor?.fields.field(`${editor.id}-${key}`),
+      value: editor?.content[key] ?? "",
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        editor?.onChange(key, event.target.value),
+    };
+  }
+  return (
+    <fieldset
+      disabled={disabled}
+      className={cn(cardClass, "grid min-w-0 gap-5 @min-[32rem]/blog-editor:grid-cols-2")}
+    >
+      <label className="space-y-2 text-sm font-medium">
+        <span>{labels.title}</span>
+        <input maxLength={250} className={inputClass} {...inputProps("title")} />
+        {editor?.fields.message(`${editor.id}-title`)}
+      </label>
+      <label className="space-y-2 text-sm font-medium">
+        <span>{labels.slug}</span>
+        <input
+          maxLength={120}
+          className={inputClass}
+          {...inputProps("slug")}
+          pattern="[a-z0-9]+(-[a-z0-9]+)*"
+        />
+        {editor?.fields.message(`${editor.id}-slug`)}
+      </label>
+      <label className="space-y-2 text-sm font-medium @min-[32rem]/blog-editor:col-span-2">
+        <span>{labels.summary}</span>
+        <textarea
+          rows={3}
+          maxLength={2000}
+          className={cn(inputClass, "h-auto py-3")}
+          {...inputProps("summary")}
+        />
+        {editor?.fields.message(`${editor.id}-summary`)}
+      </label>
+    </fieldset>
+  );
+}
+
 function EditorForm({
   client,
   article,
@@ -283,6 +379,7 @@ function EditorForm({
   assets: initialAssets,
   categoriesHref,
   locale,
+  view,
   capabilities,
   onSaved,
   onDirtyChange,
@@ -310,10 +407,32 @@ function EditorForm({
   const labels = { ...blogsLabels, ...overrides },
     id = `factory-blog-form-${useId()}`,
     textarea = useRef<HTMLTextAreaElement>(null);
+  const [localHistoryOpen, setLocalHistoryOpen] = usePanelPreference(
+    viewPreferenceKey("blogs", "editor", "history"),
+  );
+  const [localSelection, setLocalSelection] = useState<
+    Pick<BlogEditorView, "versionId" | "compare">
+  >({
+    versionId: null,
+    compare: false,
+  });
+  const historyOpen = view?.state.historyOpen ?? localHistoryOpen;
+  function changeHistory(change: Partial<Omit<BlogEditorView, "locale">>) {
+    if (view) {
+      view.onChange(change);
+    } else {
+      const { historyOpen, ...selection } = change;
+      if (historyOpen !== undefined) setLocalHistoryOpen(historyOpen);
+      setLocalSelection((previous) => ({ ...previous, ...selection }));
+    }
+  }
+  const selection = view?.state ?? localSelection;
   const draft = useBlogDraft({
     client,
     article,
     locale,
+    selection: client.history ? selection : { versionId: null, compare: false },
+    changeHistory,
     labels,
     navigationRef,
     onSaved,
@@ -334,17 +453,11 @@ function EditorForm({
     error: historyError,
   } = history;
   const [assets, setAssets] = useState(initialAssets);
-  const [historyChoice, setHistoryOpen] = useState<boolean>();
   const contentArea = useRef<HTMLDivElement>(null);
   const historyTrigger = useRef<HTMLButtonElement>(null);
-  const desktop = useSyncExternalStore(
-    subscribeHistoryDesktop,
-    historyDesktopSnapshot,
-    () => false,
-  );
-  const historyOpen = historyChoice ?? desktop;
   const { formRef, ...fields } = useEditorValidation();
   const [validation, setValidation] = useState("");
+  const [asDraft, setAsDraft] = useState(false);
   const [crop, setCrop] = useState<{
     file: File;
     target: "thumbnailId" | "bannerId";
@@ -357,7 +470,7 @@ function EditorForm({
     setValidation("");
   }
   const readOnly = !capabilities.edit;
-  const StatusBadge = capabilities.publish ? "button" : "span";
+  const publishOnSave = capabilities.publish && !asDraft;
   function field<K extends keyof BlogContent>(key: K, value: BlogContent[K]) {
     setValidation("");
     fields.clear(`${id}-${key}`);
@@ -394,12 +507,13 @@ function EditorForm({
   }
   async function save(event?: SubmitEvent<HTMLFormElement>, continueNavigation = false) {
     event?.preventDefault();
-    if (pending) return false;
-    if (!validate()) {
+    if (pending || readOnly) return false;
+    const publishing = publishOnSave && !continueNavigation;
+    if (!validate(publishing)) {
       draft.leave.cancel();
       return false;
     }
-    return draft.save(continueNavigation);
+    return draft.save(continueNavigation, publishing);
   }
   async function publish(remove = false) {
     if (pending) return;
@@ -458,6 +572,15 @@ function EditorForm({
     alt: "thumbnailAlt" | "bannerAlt",
     label: string,
   ) {
+    const imageId = shared[target];
+    const preview = imageId ? (
+      <BlogImage
+        src={safeAssetUrl(assetUrl(imageId))}
+        alt={content[alt]}
+        className="aspect-video max-h-48 w-full rounded-2xl object-cover"
+      />
+    ) : null;
+    const photo = labels.photo ?? blogsLabels.photo;
     return (
       <div className="space-y-3">
         <label htmlFor={`${id}-${target}`} className="text-sm font-medium">
@@ -476,33 +599,26 @@ function EditorForm({
             </option>
           ))}
         </NativeSelect>
-        {shared[target] && (
-          <BlogImage
-            src={safeAssetUrl(assetUrl(shared[target]!))}
-            alt={content[alt]}
-            className="aspect-video max-h-48 w-full rounded-2xl object-cover"
+        {capabilities.upload ? (
+          <PhotoPicker
+            layout="overlay"
+            buttonLabel={photo}
+            buttonAriaLabel={`${photo} — ${label}`}
+            inputLabel={`${labels.upload} — ${label}`}
+            onSelect={(file) => selectImage(file, target)}
+            preview={
+              preview ?? (
+                <div className="flex aspect-video max-h-48 w-full items-center justify-center rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
+                  {labels.noImage}
+                </div>
+              )
+            }
           />
-        )}
-        {capabilities.upload && (
-          <label className="block space-y-2 text-sm">
-            {labels.upload}
-            <input
-              aria-label={`${labels.upload} — ${label}`}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="block w-full text-sm file:mr-3 file:rounded-xl file:border-0 file:bg-muted file:px-3 file:py-2"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) selectImage(file, target);
-              }}
-            />
-          </label>
+        ) : (
+          preview
         )}
         <label className="block space-y-2 text-sm">
-          <span>
-            {label} · {labels.alt}
-          </span>
+          <span>{labels.alt}</span>
           <input
             className={inputClass}
             maxLength={1000}
@@ -549,11 +665,14 @@ function EditorForm({
       </span>
     </label>
   );
+  function historyPanelAfterSelection() {
+    return historyOpen && window.matchMedia("(min-width: 1024px)").matches;
+  }
+  function focusHistoryContent() {
+    requestAnimationFrame(() => contentArea.current?.focus());
+  }
   function inspect(header: BlogHistoryHeader, mode: "read" | "compare" = "read") {
-    history.inspect(header, mode, () => {
-      if (!window.matchMedia("(min-width: 1024px)").matches) setHistoryOpen(false);
-      requestAnimationFrame(() => contentArea.current?.focus());
-    });
+    history.inspect(header, mode, historyPanelAfterSelection(), focusHistoryContent);
   }
   function resume(version: BlogHistoryVersion) {
     history.resume(version, () => {
@@ -561,12 +680,15 @@ function EditorForm({
       requestAnimationFrame(() => contentArea.current?.focus());
     });
   }
-  const currentHeader = headers.find(
-    (header) => header.id === base.translations[locale]?.history?.currentId,
-  );
-  const liveHeader = headers.find(
-    (header) => header.id === base.translations[locale]?.history?.publishedId,
-  );
+  const translationHistory = base.translations[locale]?.history;
+  const currentId = translationHistory?.currentId ?? null;
+  const publishedId = translationHistory?.publishedId ?? null;
+  const currentHeader = headers.find((header) => header.id === currentId);
+  const liveHeader = headers.find((header) => header.id === publishedId);
+  const publishSavedVersion =
+    client.history && capabilities.publish && !dirty && currentId !== publishedId && currentHeader
+      ? () => void draft.publish()
+      : undefined;
   const workingPreview = dirty ? { origin, header: currentHeader } : undefined;
   const workingVersion: BlogHistoryVersion = {
     ...(currentHeader ?? {
@@ -595,6 +717,26 @@ function EditorForm({
     shared,
     author: shared.author,
   };
+  const viewingHistory = Boolean(selectedId || compareWorking);
+  const showRecovery = draft.feedback?.error || publication.feedback?.error;
+  const historyToggle = client.history && (
+    <IconTooltip label={labels.history}>
+      <button
+        type="button"
+        className={cn(
+          iconButtonClass,
+          historyOpen &&
+            "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
+        )}
+        ref={historyTrigger}
+        aria-label={labels.history}
+        aria-expanded={historyOpen}
+        onClick={() => changeHistory({ historyOpen: !historyOpen })}
+      >
+        <HistoryIcon className="size-4 shrink-0" aria-hidden="true" />
+      </button>
+    </IconTooltip>
+  );
   return (
     <>
       {publication.dialog}
@@ -613,16 +755,17 @@ function EditorForm({
         pending={pending}
         labels={labels}
         feedback={draft.feedback}
-        saveLabel={labels.save}
+        saveLabel={labels.saveDraft}
         onCancel={draft.leave.cancel}
         onDiscard={draft.leave.discard}
         onSave={() => void save(undefined, true)}
       />
       <ContentSidebarLayout
         toolbar={
-          client.history && (
+          client.history &&
+          (showRecovery || viewingHistory) && (
             <div className="flex flex-wrap justify-end gap-2">
-              {(draft.feedback?.error || publication.feedback?.error) && (
+              {showRecovery && (
                 <IconTooltip label={labels.refreshArticle}>
                   <button
                     aria-label={labels.refreshArticle}
@@ -635,7 +778,7 @@ function EditorForm({
                   </button>
                 </IconTooltip>
               )}
-              {(selectedId || compareWorking) && (
+              {viewingHistory && (
                 <button
                   type="button"
                   className={outlineButtonClass}
@@ -645,31 +788,7 @@ function EditorForm({
                   {labels.returnToDraft}
                 </button>
               )}
-              {!selectedId && !compareWorking && (
-                <button
-                  type="button"
-                  className={outlineButtonClass}
-                  disabled={pending}
-                  onClick={history.compareDraft}
-                >
-                  <GitCompareArrowsIcon aria-hidden="true" />
-                  {labels.compareDraft}
-                </button>
-              )}
-              <button
-                type="button"
-                className={cn(
-                  outlineButtonClass,
-                  historyOpen && primaryClass,
-                  historyOpen && "border-primary",
-                )}
-                ref={historyTrigger}
-                aria-expanded={historyOpen}
-                onClick={() => setHistoryOpen(!historyOpen)}
-              >
-                <HistoryIcon aria-hidden="true" />
-                {labels.history}
-              </button>
+              {viewingHistory && historyToggle}
             </div>
           )
         }
@@ -679,22 +798,28 @@ function EditorForm({
             <BlogHistoryPanel
               headers={headers}
               selectedId={selectedId}
-              currentId={base.translations[locale]?.history?.currentId ?? null}
-              publishedId={base.translations[locale]?.history?.publishedId ?? null}
+              currentId={currentId}
+              publishedId={publishedId}
               loading={historyLoading}
               error={historyError}
               labels={labels}
               onSelect={inspect}
               onCompare={(header) => inspect(header, "compare")}
+              onCompareWorking={() => {
+                history.compareDraft(historyPanelAfterSelection());
+                focusHistoryContent();
+              }}
               onRetry={history.retry}
               onClose={() => {
-                setHistoryOpen(false);
+                changeHistory({ historyOpen: false });
                 historyTrigger.current?.focus();
               }}
               disabled={pending}
-              deleteDisabled={dirty}
+              dirty={dirty}
               formatDate={(iso) => formatDate(iso, locale)}
               working={workingPreview}
+              onPublish={publishSavedVersion}
+              onUnpublish={capabilities.publish ? () => void publish(true) : undefined}
               onDelete={capabilities.delete ? history.delete : undefined}
               onDeleted={history.accept}
             />
@@ -706,7 +831,7 @@ function EditorForm({
           tabIndex={-1}
           className="@container/blog-editor flex min-w-0 flex-col gap-6 focus-visible:outline-2 focus-visible:outline-ring"
         >
-          {(selectedId || compareWorking) && (
+          {viewingHistory && (
             <div className="flex min-h-80 flex-1 flex-col" aria-busy={bodyLoading}>
               {bodyLoading && <Feedback message={labels.loading} />}
               {bodyError && (
@@ -724,7 +849,6 @@ function EditorForm({
                   version={selected ?? workingVersion}
                   working={compareWorking && (dirty || !currentHeader)}
                   mode={historyMode}
-                  onModeChange={history.changeMode}
                   publication={base.translations[locale]?.published}
                   liveLabel={liveHeader ? blogHistoryLabel(liveHeader, labels) : labels.live}
                   labels={labels}
@@ -734,27 +858,22 @@ function EditorForm({
                   linkComponent={BlogLink}
                   formatDate={formatDate}
                   disabled={pending}
+                  onCompareToggle={
+                    selected?.state === "publication" && selected.id !== publishedId
+                      ? history.toggleCompare
+                      : undefined
+                  }
                   onResume={selected && capabilities.publish ? () => resume(selected) : undefined}
                   onPublish={
-                    selected &&
-                    selected.state === "draft" &&
-                    selected.id === base.translations[locale]?.history?.currentId &&
-                    capabilities.publish &&
-                    selected.id !== base.translations[locale]?.history?.publishedId
-                      ? () =>
-                          void publication.prepare({
-                            id: base.id,
-                            version: base.version,
-                            locale,
-                            versionId: selected.id,
-                          })
+                    selected?.state === "draft" && selected.id === currentId
+                      ? publishSavedVersion
                       : undefined
                   }
                 />
               )}
             </div>
           )}
-          <div hidden={!!selectedId || compareWorking} className="space-y-6">
+          <div hidden={viewingHistory} className="space-y-6">
             {dirty && origin && (
               <p className="rounded-lg bg-primary/10 p-3 text-sm text-foreground">
                 {labels.unsavedDraft} ·{" "}
@@ -766,13 +885,6 @@ function EditorForm({
                       )
                     : labels.sourceUnavailable,
                 )}
-              </p>
-            )}
-            {currentHeader && !dirty && (
-              <p className="text-sm text-muted-foreground">
-                {currentHeader.state === "draft"
-                  ? labels.draft
-                  : blogHistoryLabel(currentHeader, labels)}
               </p>
             )}
             {crop && !readOnly && capabilities.upload && (
@@ -789,33 +901,33 @@ function EditorForm({
             )}
             <header className="space-y-2">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <h1 className="min-w-0 flex-1 font-serif text-3xl font-semibold wrap-anywhere">
+                <h1 className="min-w-0 grow basis-52 font-serif text-3xl font-semibold wrap-anywhere">
                   {content.title || labels.newPost}
                 </h1>
-                <StatusBadge
-                  type={capabilities.publish ? "button" : undefined}
-                  aria-label={capabilities.publish ? labels.publicationStatus : undefined}
-                  aria-pressed={capabilities.publish ? status !== "draft" : undefined}
-                  disabled={
-                    capabilities.publish
-                      ? pending || dirty || !base.translations[locale]
-                      : undefined
-                  }
-                  onClick={
-                    capabilities.publish ? () => void publish(status !== "draft") : undefined
-                  }
-                  className={cn(
-                    "ml-auto inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
-                    blogStatusClass[status],
-                    capabilities.publish && publicationToggleClass,
+                <div className="ml-auto flex items-center gap-2">
+                  {capabilities.publish ? (
+                    <StatusToggle
+                      label={labels.publicationStatus}
+                      pressed={status !== "draft"}
+                      disabled={pending || dirty || !base.translations[locale]}
+                      onPressedChange={(pressed) => void publish(!pressed)}
+                      className={blogStatusClass[status]}
+                    >
+                      {labels[status === "changed" ? "draft" : status]}
+                    </StatusToggle>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+                        blogStatusClass[status],
+                      )}
+                    >
+                      {labels[status === "changed" ? "draft" : status]}
+                    </span>
                   )}
-                >
-                  {labels[status]}
-                </StatusBadge>
+                  {!viewingHistory && historyToggle}
+                </div>
               </div>
-              {!base.translations[locale] && (
-                <p className="text-sm text-muted-foreground">{labels.translationHint}</p>
-              )}
               {readOnly && <Feedback message={labels.readOnly} />}
             </header>
             <form
@@ -826,49 +938,11 @@ function EditorForm({
               className="space-y-6"
               aria-busy={pending}
             >
-              <fieldset
+              <BlogDetailsCard
+                labels={labels}
                 disabled={pending || readOnly}
-                className={cn(cardClass, "grid min-w-0 gap-5 @min-[32rem]/blog-editor:grid-cols-2")}
-              >
-                <label className="space-y-2 text-sm font-medium">
-                  <span>{labels.title}</span>
-                  <input
-                    maxLength={250}
-                    className={inputClass}
-                    {...fields.field(`${id}-title`)}
-                    aria-label={labels.title}
-                    value={content.title}
-                    onChange={(e) => field("title", e.target.value)}
-                  />
-                  {fields.message(`${id}-title`)}
-                </label>
-                <label className="space-y-2 text-sm font-medium">
-                  <span>{labels.slug}</span>
-                  <input
-                    maxLength={120}
-                    className={inputClass}
-                    {...fields.field(`${id}-slug`)}
-                    aria-label={labels.slug}
-                    value={content.slug}
-                    onChange={(e) => field("slug", e.target.value)}
-                    pattern="[a-z0-9]+(-[a-z0-9]+)*"
-                  />
-                  {fields.message(`${id}-slug`)}
-                </label>
-                <label className="space-y-2 text-sm font-medium @min-[32rem]/blog-editor:col-span-2">
-                  <span>{labels.summary}</span>
-                  <textarea
-                    rows={3}
-                    maxLength={2000}
-                    className={cn(inputClass, "h-auto py-3")}
-                    {...fields.field(`${id}-summary`)}
-                    aria-label={labels.summary}
-                    value={content.summary}
-                    onChange={(e) => field("summary", e.target.value)}
-                  />
-                  {fields.message(`${id}-summary`)}
-                </label>
-              </fieldset>
+                editor={{ id, fields, content, onChange: field }}
+              />
               <fieldset disabled={pending || readOnly} className={cn(cardClass, "space-y-5")}>
                 <legend className="sr-only">{labels.shared}</legend>
                 <div>
@@ -1081,37 +1155,34 @@ function EditorForm({
                     onDeleted={onDeleted}
                   />
                 )}
-                <div className="ml-auto flex flex-wrap justify-end gap-2">
-                  {capabilities.publish && (
-                    <>
-                      {status !== "published" && (
-                        <button
-                          type="button"
-                          className={buttonClass}
-                          disabled={pending || dirty || !base.translations[locale]}
-                          onClick={() => void publish()}
-                        >
-                          {labels.publish}
-                        </button>
-                      )}
-                      {base.translations[locale]?.published && (
-                        <button
-                          type="button"
-                          className={buttonClass}
-                          disabled={pending || dirty}
-                          onClick={() => void publish(true)}
-                        >
-                          {labels.unpublish}
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {capabilities.edit && (
-                    <button type="submit" disabled={pending} className={primaryClass}>
-                      {pending ? labels.pending : labels.save}
+                {(!readOnly || (capabilities.publish && status !== "published")) && (
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+                    {!readOnly && capabilities.publish && (
+                      <label className="flex min-h-8 cursor-pointer items-center gap-2 text-sm has-disabled:cursor-not-allowed has-disabled:opacity-50">
+                        <input
+                          type="checkbox"
+                          className="size-4 shrink-0 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          checked={asDraft}
+                          disabled={pending}
+                          onChange={(event) => setAsDraft(event.target.checked)}
+                        />
+                        {labels.asDraft}
+                      </label>
+                    )}
+                    <button
+                      type={readOnly ? "button" : "submit"}
+                      disabled={pending || (readOnly && (dirty || !base.translations[locale]))}
+                      className={primaryClass}
+                      onClick={readOnly ? () => void publish() : undefined}
+                    >
+                      {pending
+                        ? labels.pending
+                        : readOnly || publishOnSave
+                          ? labels.publish
+                          : labels.save}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </form>
           </div>
@@ -1309,10 +1380,17 @@ function BlogCategoryEditorContent({
   );
 }
 
-export function BlogEditPage(props: BlogEditPageProps) {
+export function BlogEditPage(props: BlogEditPageProps | BlogEditPageLoadingProps) {
+  const navigationRef = useRef<(next: () => void) => void>((next) => next());
   return (
     <ActionToastProvider>
-      <BlogEditPageContent {...props} />
+      <section className={cn(pageClass, props.className)}>
+        <BlogEditorBackLink
+          {...props}
+          onLeave={props.article === null ? undefined : (next) => navigationRef.current(next)}
+        />
+        <Editor key={props.article?.id} props={props} navigationRef={navigationRef} />
+      </section>
     </ActionToastProvider>
   );
 }
@@ -1322,6 +1400,8 @@ function useBlogDraft({
   client,
   article,
   locale,
+  selection: { versionId: selectedId, compare },
+  changeHistory,
   labels,
   navigationRef,
   onSaved,
@@ -1332,6 +1412,8 @@ function useBlogDraft({
   client: BlogsClient;
   article: BlogArticle;
   locale: string;
+  selection: Pick<BlogEditorView, "versionId" | "compare">;
+  changeHistory: (change: Partial<Omit<BlogEditorView, "locale">>) => void;
   labels: BlogsLabels;
   navigationRef: RefObject<(next: () => void) => void>;
   onSaved?: (article: BlogArticle) => void;
@@ -1368,7 +1450,6 @@ function useBlogDraft({
     error?: unknown;
   }>({ headers: [] });
   const [historyRefresh, setHistoryRefresh] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bodyResult, setBodyResult] = useState<{
     client: BlogsClient;
     version: number;
@@ -1377,8 +1458,7 @@ function useBlogDraft({
     value?: BlogHistoryVersion;
     error?: unknown;
   }>();
-  const [compareWorking, setCompareWorking] = useState(false);
-  const [historyMode, setHistoryMode] = useState<"read" | "compare">("read");
+  const compareWorking = compare && !selectedId;
   const publication = useHistoryPublication(client, labels, accept);
   const pending = action.pending || publication.pending;
   const editor = useBlogEditorState(dirty, pending, onNavigationStateChange);
@@ -1490,16 +1570,15 @@ function useBlogDraft({
   }, [client, base.id, base.version, locale, selectedId, historyRefresh]);
 
   function returnToDraft() {
-    setSelectedId(null);
+    if (selectedId || compare) changeHistory({ versionId: null, compare: false });
     setBodyResult(undefined);
-    setCompareWorking(false);
   }
-  function accept(result: BlogArticle) {
+  function accept(result: BlogArticle, keepView = false) {
     baseRef.current = result;
     replacementConsent.current = null;
     setReplacement(null);
     setOrigin(undefined);
-    returnToDraft();
+    if (!keepView) returnToDraft();
     setBase(result);
     setContent({ ...emptyContent, ...result.translations[locale]?.draft });
     setShared(structuredClone(result.translations[locale]?.shared ?? result.shared));
@@ -1509,14 +1588,18 @@ function useBlogDraft({
   function requestReplacement(next: () => void) {
     setReplacement({ version: baseRef.current.version, scope: action.scope, next });
   }
-  async function save(continueNavigation = false) {
+  async function save(continueNavigation: boolean, publishOnSave: boolean) {
     if (pending) return false;
+    if (publishOnSave && !dirty && base.translations[locale]) {
+      await publish();
+      return true;
+    }
     if (
       origin &&
       (replacementConsent.current?.version !== base.version ||
         replacementConsent.current.scope !== action.scope)
     ) {
-      requestReplacement(() => void save(continueNavigation));
+      requestReplacement(() => void save(continueNavigation, publishOnSave));
       return false;
     }
     const next = continueNavigation ? (blockedNavigation?.proceed ?? leave) : null;
@@ -1536,9 +1619,10 @@ function useBlogDraft({
           origin,
           requestId,
         }),
-      labels.saved,
+      publishOnSave ? undefined : labels.saved,
       (saved) => {
-        accept(saved);
+        accept(saved, !!next);
+        if (publishOnSave) void publish(false, saved);
         if (continueNavigation) {
           setLeave(null);
           if (next) editor.resume(next);
@@ -1547,20 +1631,19 @@ function useBlogDraft({
     );
     return !!result;
   }
-  async function publish(remove = false) {
-    if (pending || dirty) return;
-    const versionId = base.translations[locale]?.history?.currentId;
+  async function publish(remove = false, article = base) {
+    const versionId = article.translations[locale]?.history?.currentId;
     if (!remove && client.history && versionId) {
-      await publication.prepare({ id: base.id, version: base.version, locale, versionId });
+      await publication.prepare({ id: article.id, version: article.version, locale, versionId });
       return;
     }
     setOptimisticStatus({ scope: action.scope, value: remove ? "draft" : "published" });
     await action.run(
-      JSON.stringify([remove ? "unpublish" : "publish", base.version, locale]),
+      JSON.stringify([remove ? "unpublish" : "publish", article.version, locale]),
       (requestId) =>
         client[remove ? "unpublish" : "publish"]({
-          id: base.id,
-          version: base.version,
+          id: article.id,
+          version: article.version,
           locale,
           requestId,
         }),
@@ -1646,7 +1729,7 @@ function useBlogDraft({
       discard: () => {
         if (pending) return;
         const next = blockedNavigation?.proceed ?? leave;
-        accept(base);
+        accept(base, !!next);
         setLeave(null);
         if (next) editor.resume(next);
       },
@@ -1664,23 +1747,29 @@ function useBlogDraft({
       bodyError:
         !bodyLoading && bodyResult?.error ? errorMessage(bodyResult.error, labels) : undefined,
       compareWorking,
-      mode: historyMode,
-      changeMode: (mode: "read" | "compare") => {
-        setHistoryMode(mode);
-      },
+      mode: compare ? ("compare" as const) : ("read" as const),
+      toggleCompare: () => changeHistory({ compare: !compare }),
       retry: () => {
         setHistoryRefresh((value) => value + 1);
       },
       returnToDraft,
-      compareDraft: () => {
-        setHistoryMode("compare");
-        setCompareWorking(true);
-      },
-      inspect: (header: BlogHistoryHeader, mode: "read" | "compare", onEntered: () => void) => {
+      compareDraft: (historyOpen: boolean) =>
+        changeHistory({ versionId: null, compare: true, historyOpen }),
+      inspect: (
+        header: BlogHistoryHeader,
+        mode: "read" | "compare",
+        historyOpen: boolean,
+        onEntered: () => void,
+      ) => {
         navigationRef.current(() => {
-          setSelectedId(header.id);
-          setHistoryMode(mode);
-          setCompareWorking(false);
+          const currentId = baseRef.current.translations[locale]?.history?.currentId;
+          const isDefault =
+            mode === "read" && header.state === "publication" && header.id === currentId;
+          changeHistory({
+            versionId: isDefault ? null : header.id,
+            compare: mode === "compare",
+            historyOpen,
+          });
           onEntered();
         });
       },

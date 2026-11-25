@@ -47,8 +47,9 @@ const inputs = (page) => page.evaluate(() => window.draftTest.calls.save.map((ca
 const title = (page) => page.getByRole("textbox", { name: "Title", exact: true });
 const panel = (page) => page.getByRole("complementary", { name: "History · EN", exact: true });
 const leave = (page) => page.getByRole("dialog", { name: "Keep your changes?", exact: true });
-const save = (page) => page.getByRole("button", { name: "Save draft", exact: true });
+const save = (page) => page.getByRole("button", { name: "Save", exact: true });
 async function history(page) {
+  await page.getByRole("button", { name: "History", exact: true }).click();
   await calls(page, "list", 1);
   await resolve(page, "list", 0);
   await panel(page).locator('ol[aria-busy="false"]').waitFor();
@@ -63,6 +64,7 @@ async function inspect(page, number) {
 
 void test("late history responses cannot replace the current client or selection", async (t) => {
   const page = await fixture(t);
+  await page.getByRole("button", { name: "History", exact: true }).click();
   await calls(page, "list", 1);
   await page.evaluate(() => {
     window.draftTest.correct();
@@ -140,6 +142,7 @@ void test("explicit refresh rebases a resumed dirty draft without replacing its 
     window.draftTest.correct();
     window.draftTest.hold("save", true);
   });
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await save(page).click();
   await calls(page, "save", 1);
   await reject(page, "save", 0, "CONFLICT");
@@ -168,10 +171,47 @@ void test("explicit refresh rebases a resumed dirty draft without replacing its 
   assert.equal(await page.evaluate(() => window.draftTest.dirtyChanges.at(-1)), false);
 });
 
+for (const legacy of [false, true]) {
+  void test(`Publish saves the revision and can retry without another draft save (${legacy ? "legacy" : "history"} client)`, async (t) => {
+    const page = await fixture(t, legacy);
+    const asDraft = page.getByRole("checkbox", { name: "As draft", exact: true });
+    const publish = page.getByRole("button", { name: "Publish", exact: true });
+    assert.equal(await asDraft.isChecked(), false);
+    const operation = legacy ? "publish" : "historyPublish";
+    await page.evaluate((kind) => window.draftTest.hold(kind, true), operation);
+    await title(page).fill("Publish this revision");
+    await publish.click();
+    await calls(page, "save", 1);
+    await calls(page, operation, 1);
+    const firstRequest = await page.evaluate(
+      (kind) => window.draftTest.calls[kind][0].input,
+      operation,
+    );
+    assert.equal(firstRequest.version, (await inputs(page))[0].version + 1);
+    assert.equal(await asDraft.isDisabled(), true);
+    await reject(page, operation, 0, "STORAGE");
+    await page.getByRole("alert").filter({ hasText: "Storage is unavailable" }).waitFor();
+    assert.equal(await title(page).inputValue(), "Publish this revision");
+    await publish.click();
+    await calls(page, operation, 2);
+    assert.equal((await inputs(page)).length, 1);
+    if (legacy) {
+      const retry = await page.evaluate(() => window.draftTest.calls.publish[1].input);
+      assert.equal(retry.requestId, firstRequest.requestId);
+    }
+    await resolve(page, operation, 1);
+    await actionToast(page, "This language is now published.");
+    assert.equal(
+      await page.evaluate(() => window.draftTest.current().translations.en.published.title),
+      "Publish this revision",
+    );
+  });
+}
+
 void test("clients without history retain direct publication and edit sessions reset only at navigation boundaries", async (t) => {
   const page = await fixture(t, true);
   assert.equal(await page.getByRole("button", { name: "History", exact: true }).count(), 0);
-  await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+  await page.getByRole("button", { name: "Publication status", exact: true }).click();
   await actionToast(page, "This language is no longer public.");
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await actionToast(page, "This language is now published.");
@@ -258,7 +298,7 @@ for (const replacement of ["article", "client", "unmount"]) {
       window.draftTest.correct();
       window.draftTest.hold("article", true);
     });
-    await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+    await page.getByRole("button", { name: "Publication status", exact: true }).click();
     await page.getByRole("button", { name: "Refresh article", exact: true }).click();
     await calls(page, "article", 1);
     await page.evaluate((replacement) => {
@@ -278,6 +318,7 @@ for (const replacement of ["article", "client", "unmount"]) {
 void test("client replacement preserves inputs and an old failure cannot unlock or notify a newer save", async (t) => {
   const page = await fixture(t, true);
   await page.evaluate(() => window.draftTest.hold("save", true));
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await title(page).fill("Keep this unsaved draft");
   await save(page).click();
   await calls(page, "save", 1);
@@ -303,7 +344,7 @@ for (const operation of ["publish", "unpublish", "upload", "delete"]) {
   void test(`obsolete ${operation} cannot accept results or produce feedback`, async (t) => {
     const page = await fixture(t, true);
     if (operation === "publish") {
-      await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+      await page.getByRole("button", { name: "Publication status", exact: true }).click();
       await actionToast(page, "This language is no longer public.");
       await page.evaluate(() => {
         window.draftTest.accepted.length = 0;
@@ -313,7 +354,7 @@ for (const operation of ["publish", "unpublish", "upload", "delete"]) {
     if (operation === "publish") {
       await page.getByRole("button", { name: "Publish", exact: true }).click();
     } else if (operation === "unpublish") {
-      await page.getByRole("button", { name: "Unpublish", exact: true }).click();
+      await page.getByRole("button", { name: "Publication status", exact: true }).click();
     } else if (operation === "upload") {
       await page.getByLabel("Insert image", { exact: true }).setInputFiles({
         name: "tiny.png",
@@ -348,7 +389,7 @@ for (const operation of ["publish", "unpublish", "upload", "delete"]) {
       );
     if (operation === "unpublish")
       assert.equal(
-        await page.getByRole("button", { name: "Unpublish", exact: true }).isEnabled(),
+        await page.getByRole("button", { name: "Publication status", exact: true }).isEnabled(),
         true,
       );
   });
@@ -361,7 +402,7 @@ void test("obsolete history plan cannot start publication or reopen a confirmati
   await calls(page, "body", 1);
   await resolve(page, "body", 0);
   await page.evaluate(() => window.draftTest.hold("plan", true));
-  await page.getByRole("button", { name: "Publish draft", exact: true }).click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
   await calls(page, "plan", 1);
   await page.evaluate(() => window.draftTest.replaceClient());
   await calls(page, "list", 2);
@@ -380,7 +421,7 @@ void test("client replacement discards a prepared publication confirmation", asy
   await inspect(page, "Draft");
   await calls(page, "body", 1);
   await resolve(page, "body", 0);
-  await page.getByRole("button", { name: "Publish draft", exact: true }).click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
   await page.getByRole("dialog", { name: "Review publication", exact: true }).waitFor();
   await page.evaluate(() => window.draftTest.replaceClient());
   await flush(page);
@@ -399,7 +440,7 @@ for (const operation of ["historyPublish", "historyDelete"]) {
       await inspect(page, "Draft");
       await calls(page, "body", 1);
       await resolve(page, "body", 0);
-      await page.getByRole("button", { name: "Publish draft", exact: true }).click();
+      await page.getByRole("button", { name: "Publish", exact: true }).click();
       await page
         .getByRole("dialog", { name: "Review publication", exact: true })
         .getByLabel("Publish without the missing illustrations", { exact: true })
@@ -447,6 +488,7 @@ void test("category save preserves inputs after client replacement and suppresse
 void test("returning to the same client object does not revive its old save", async (t) => {
   const page = await fixture(t, true);
   await page.evaluate(() => window.draftTest.hold("save", true));
+  await page.getByRole("checkbox", { name: "As draft", exact: true }).check();
   await title(page).fill("Retain across A B A");
   await save(page).click();
   await calls(page, "save", 1);
@@ -558,7 +600,7 @@ void test("history publication previews status only after confirmation and rolls
   await calls(page, "body", 1);
   await resolve(page, "body", 0);
   await page.evaluate(() => window.draftTest.hold("historyPublish", true));
-  await page.getByRole("button", { name: "Publish draft", exact: true }).click();
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
   const confirm = page.getByRole("dialog", { name: "Review publication", exact: true });
   await confirm.waitFor();
   const badge = page.locator('button[aria-label="Publication status"]');

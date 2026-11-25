@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { actionToast } from "./action-toast-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
 
 const base = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
@@ -24,14 +25,12 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
   await page.getByLabel("Simulate GitHub failure").check();
   await card.getByRole("button", { name: "Send to GitHub", exact: true }).click();
   await dialog.getByRole("button", { name: "Send to GitHub", exact: true }).click();
-  await dialog.getByRole("alert").waitFor();
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await actionToast(page, "The action failed.");
+  assert.equal(await card.getByRole("alert").count(), 0);
   await page.getByLabel("Simulate GitHub failure").uncheck();
   await card.getByRole("button", { name: "Send to GitHub", exact: true }).click();
   await dialog.getByRole("button", { name: "Send to GitHub", exact: true }).click();
-  await card.getByText("Delivery pending", { exact: true }).waitFor();
-  assert.equal(await remote.getByText("No delivery yet.").count(), 1);
-  await page.getByRole("button", { name: "Run delivery worker", exact: true }).click();
   await card.getByText("Synchronized", { exact: true }).waitFor();
   await remote.getByText(/Jordan Lee: I can reproduce/).waitFor();
   await page.getByRole("textbox", { name: "Reply", exact: true }).fill("@maintainer A local reply");
@@ -52,7 +51,7 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
   await page.getByRole("button", { name: "Close on GitHub", exact: true }).click();
   await page.getByRole("button", { name: "Reopen ticket", exact: true }).waitFor();
   await page.getByRole("button", { name: "Simulate uncertain write" }).click();
-  await card.getByText("Delivery blocked", { exact: true }).waitFor();
+  await card.getByText("Awaiting GitHub confirmation", { exact: true }).waitFor();
   assert.equal(await card.getByRole("button", { name: "Retry delivery" }).count(), 0);
   await page.getByRole("button", { name: "Simulate operator recovery" }).click();
   await card.getByText("Synchronized", { exact: true }).waitFor();
@@ -60,6 +59,26 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
   await page.getByRole("heading", { name: "New website request" }).waitFor();
   await card.getByText("Delivery pending", { exact: true }).waitFor();
   assert.equal(await card.getByRole("button", { name: "Send to GitHub" }).count(), 0);
+  const worker = page.getByRole("button", { name: "Run delivery worker", exact: true });
+  const send = card.getByRole("button", { name: "Send to GitHub", exact: true });
+  await page.getByLabel("Simulate GitHub failure").check();
+  const badge = page.getByRole("button", { name: /^Pending/ });
+  await badge.focus();
+  await page.keyboard.press("Enter");
+  await actionToast(page, "GitHub could not be reached");
+  assert.equal(await card.getByRole("alert").count(), 0);
+  assert.match(await badge.getAttribute("aria-label"), /Delivery failed/);
+  assert.equal(await badge.locator("svg.lucide-unplug").count(), 1);
+  const note = "Viewing these images from GitHub requires access to this discussion.";
+  assert.equal(await page.getByText(note, { exact: true }).count(), 0);
+  await page.getByLabel("Simulate GitHub failure").uncheck();
+  await page.getByRole("textbox", { name: "Reply", exact: true }).fill("Still saved locally");
+  await page.getByRole("button", { name: "Post reply", exact: true }).click();
+  await worker.click();
+  await remote.getByText("No delivery yet.").waitFor();
+  await page.getByLabel("Read-only connection").check();
+  assert(await send.isDisabled());
+  await page.getByLabel("Read-only connection").uncheck();
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const theme of ["light", "dark"]) {
@@ -75,5 +94,22 @@ await test("Supports–GitHub export, delayed delivery, both directions and guar
       });
     }
   }
+  await badge.focus();
+  await page.keyboard.press("Enter");
+  await card.getByText("Synchronized", { exact: true }).waitFor();
+  await remote.getByText("Alex Morgan: Still saved locally", { exact: true }).waitFor();
+  await badge.waitFor({ state: "hidden" });
+  await page.getByLabel("Images", { exact: true }).setInputFiles({
+    name: "proof.gif",
+    mimeType: "image/gif",
+    buffer: Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64"),
+  });
+  await page.getByRole("button", { name: "Post reply", exact: true }).click();
+  await page
+    .locator("li")
+    .filter({ has: page.getByRole("img", { name: "proof.gif" }) })
+    .getByText(note, { exact: true })
+    .waitFor();
+  assert.equal(await card.getByText(note, { exact: true }).count(), 0);
   assert.deepEqual(errors, []);
 });

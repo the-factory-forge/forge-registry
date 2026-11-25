@@ -16,6 +16,7 @@ import {
 } from "@/components/plugins/supports/schema";
 import type {
   SupportsClient,
+  SupportPriority,
   SupportTicket,
   SupportType,
 } from "@/components/plugins/supports/types";
@@ -23,6 +24,7 @@ import {
   buttonClass,
   primaryClass,
   inputClass,
+  SupportPrioritySelect,
   supportError,
 } from "@/components/plugins/supports/ui";
 import { cn } from "@/components/utils/cn";
@@ -58,6 +60,7 @@ export function SupportComposer({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [type, setType] = useState<SupportType | "">("");
+  const [priority, setPriority] = useState<SupportPriority | null>(null);
   const [files, setFiles] = useState<SelectedFile[]>([]);
   const [error, setError] = useState("");
   const selected = useRef(files);
@@ -94,6 +97,7 @@ export function SupportComposer({
       title,
       description: body,
       type,
+      priority: priority ?? undefined,
       body,
       id: ticketId,
       attachmentIds: files.map((file) => file.requestId),
@@ -118,7 +122,7 @@ export function SupportComposer({
           }
         }
         const attachmentIds = files.map((file) => file.attachmentId!);
-        const fingerprint = JSON.stringify([title, body, type, attachmentIds]);
+        const fingerprint = JSON.stringify([title, body, type, priority, attachmentIds]);
         if (attempt.current?.fingerprint !== fingerprint)
           attempt.current = { fingerprint, requestId: crypto.randomUUID() };
         const requestId = attempt.current.requestId;
@@ -127,7 +131,14 @@ export function SupportComposer({
           return undefined;
         }
         return client.create(
-          supportCreateSchema.parse({ title, description: body, type, attachmentIds, requestId }),
+          supportCreateSchema.parse({
+            title,
+            description: body,
+            type,
+            priority: priority ?? undefined,
+            attachmentIds,
+            requestId,
+          }),
         );
       },
       (created) => {
@@ -137,6 +148,7 @@ export function SupportComposer({
         setTitle("");
         setBody("");
         setType("");
+        setPriority(null);
         attempt.current = null;
         toast(created ? labels.created : labels.posted);
         if (created) onCreated?.(created);
@@ -176,24 +188,29 @@ export function SupportComposer({
                   onChange={(event) => setTitle(event.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <label htmlFor={`${id}-type`} className="text-sm font-medium">
-                  {labels.type} <span aria-hidden="true">*</span>
-                </label>
-                <NativeSelect
-                  id={`${id}-type`}
-                  required
-                  className={inputClass}
-                  value={type}
-                  onChange={(event) => setType(event.target.value as SupportType)}
-                >
-                  <option value="">{labels.chooseType}</option>
-                  {(["bug", "feature", "support"] as const).map((value) => (
-                    <option key={value} value={value}>
-                      {labels[value]}
-                    </option>
-                  ))}
-                </NativeSelect>
+              <div className={cn("grid gap-4", client.setPriority && "sm:grid-cols-2")}>
+                <div className="space-y-2">
+                  <label htmlFor={`${id}-type`} className="text-sm font-medium">
+                    {labels.type} <span aria-hidden="true">*</span>
+                  </label>
+                  <NativeSelect
+                    id={`${id}-type`}
+                    required
+                    className={inputClass}
+                    value={type}
+                    onChange={(event) => setType(event.target.value as SupportType)}
+                  >
+                    <option value="">{labels.chooseType}</option>
+                    {(["bug", "feature", "support"] as const).map((value) => (
+                      <option key={value} value={value}>
+                        {labels[value]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </div>
+                {client.setPriority && (
+                  <SupportPrioritySelect value={priority} onChange={setPriority} labels={labels} />
+                )}
               </div>
             </>
           )}
@@ -204,7 +221,12 @@ export function SupportComposer({
             </label>
             <textarea
               id={`${id}-body`}
-              className={cn(inputClass, "min-h-32 resize-y")}
+              className={cn(
+                inputClass,
+                "resize-y placeholder:text-muted-foreground",
+                ticketId ? "min-h-32" : "min-h-36",
+              )}
+              placeholder={!ticketId && type ? labels[`${type}DescriptionPlaceholder`] : undefined}
               required={!ticketId}
               maxLength={5000}
               value={body}

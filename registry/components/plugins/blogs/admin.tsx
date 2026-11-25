@@ -13,12 +13,18 @@ import {
 } from "react";
 
 import { ActionToastProvider } from "@/components/action-toast";
+import { BackLink } from "@/components/back-link";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { BlogCategoryEditor, type BlogEditPageProps } from "@/components/plugins/blogs/editor";
 import { useHistoryPublication } from "@/components/plugins/blogs/history";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
+import {
+  BLOG_SORT_FIELDS,
+  blogDefaultSort,
+  type BlogSortField,
+} from "@/components/plugins/blogs/types";
 import type {
   BlogArticle,
   BlogCapabilities,
@@ -49,6 +55,7 @@ import {
   blogStatusClass,
   publicationToggleClass,
 } from "@/components/plugins/blogs/ui";
+import { sortBlogItems } from "@/components/plugins/blogs/utils";
 import { hasUnpublishedChanges } from "@/components/plugins/blogs/utils";
 import { TableSearch } from "@/components/table-search";
 import {
@@ -56,6 +63,7 @@ import {
   TableSelectionCheckbox,
   useTableSelection,
 } from "@/components/table-selection";
+import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import {
@@ -64,14 +72,17 @@ import {
   tableActionsClass,
   tableCellClass,
   tableClass,
-  tableHeaderClass,
   tablePanelClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
 import { retainRemovedItems, useOptimisticAction } from "@/components/utils/use-optimistic-action";
-export { BlogEditPage, type BlogEditPageProps } from "@/components/plugins/blogs/editor";
+export {
+  BlogEditPage,
+  type BlogEditPageProps,
+  type BlogEditPageLoadingProps,
+} from "@/components/plugins/blogs/editor";
 
-export interface BlogsPageProps extends BlogsAppearanceProps {
+export interface BlogsPageProps extends BlogsAppearanceProps, TableSortProps<BlogSortField> {
   data: BlogPage<BlogListItem>;
   search: string;
   onSearchChange: (value: string) => void;
@@ -113,10 +124,20 @@ function BlogsPageContent({
   linkComponent: BlogLink = Link,
   formatDate = (iso) => new Date(iso).toISOString().slice(0, 10),
   className,
+  ...sortProps
 }: BlogsPageProps) {
   useLoadingActivity(!!loading);
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, useContext(BlogEditorClient));
+  const complete = suppliedData.total <= suppliedData.items.length;
+  const order = useTableSort<BlogSortField>(
+    sortProps,
+    blogDefaultSort,
+    undefined,
+    complete || sortProps.onSortChange
+      ? { owner: "blogs", key: "posts", legacyKey: "blog", fields: BLOG_SORT_FIELDS }
+      : undefined,
+  );
   const toggleAction = useBlogAction(labels);
   const historyPublication = useHistoryPublication(client, labels, (result) => {
     void optimistic.run(
@@ -164,10 +185,15 @@ function BlogsPageContent({
   const articleCapabilities = (post: BlogListItem) =>
     capabilitiesForArticle?.(post) ?? capabilities;
   const showDelete = !!onDelete && (capabilities.delete || !!capabilitiesForArticle);
+  const orderedItems =
+    complete && !sortProps.onSortChange ? sortBlogItems(data.items, order.value) : data.items;
   const selectable = showDelete
     ? data.items.filter((post) => articleCapabilities(post).delete)
     : [];
-  const selection = useTableSelection(selectable, `${search}:${suppliedData.page}`);
+  const selection = useTableSelection(
+    selectable,
+    JSON.stringify([search, suppliedData.page, order.value]),
+  );
   const selectionDisabled =
     loading ||
     !!loadError ||
@@ -235,7 +261,7 @@ function BlogsPageContent({
             {capabilities.manageCategories && (
               <BlogLink href={categoriesHref} className={outlineButtonClass}>
                 <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
-                {labels.manageCategories}
+                {labels.categories}
               </BlogLink>
             )}
             {capabilities.create && (
@@ -267,36 +293,31 @@ function BlogsPageContent({
                     />
                   </th>
                 )}
-                {[
-                  labels.title,
-                  labels.categories,
-                  labels.languages,
-                  labels.author,
-                  labels.editor,
-                  labels.modified,
-                  labels.actions,
-                ].map((label, index) => (
-                  <th
-                    key={label}
-                    scope="col"
-                    className={index === 6 ? tableActionHeaderClass : tableHeaderClass}
-                  >
-                    <div
-                      className={index === 6 ? "flex items-center justify-end gap-2" : undefined}
-                    >
-                      {label}
-                      {index === 6 && showDelete && (
-                        <TableBulkDelete
-                          selection={selection}
-                          getName={(post) => post.title}
-                          onDelete={(post, requestId) => onDelete!(post.id, requestId)}
-                          labels={labels}
-                          disabled={selectionDisabled}
-                        />
-                      )}
-                    </div>
-                  </th>
+                {BLOG_SORT_FIELDS.map((field) => (
+                  <TableSortHeader
+                    key={field}
+                    {...order}
+                    onValueChange={
+                      complete || sortProps.onSortChange ? order.onValueChange : undefined
+                    }
+                    field={field}
+                    label={field === "updatedAt" ? labels.modified : labels[field]}
+                  />
                 ))}
+                <th scope="col" className={tableActionHeaderClass}>
+                  <div className="flex items-center justify-end gap-2">
+                    {labels.actions}
+                    {showDelete && (
+                      <TableBulkDelete
+                        selection={selection}
+                        getName={(post) => post.title}
+                        onDelete={(post, requestId) => onDelete!(post.id, requestId)}
+                        labels={labels}
+                        disabled={selectionDisabled}
+                      />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
@@ -318,7 +339,7 @@ function BlogsPageContent({
                   </td>
                 </tr>
               )}
-              {retainRemovedItems(data.items, suppliedData.items, optimistic.pending).map(
+              {retainRemovedItems(orderedItems, suppliedData.items, optimistic.pending).map(
                 (post) => {
                   const canPublish = articleCapabilities(post).publish && !!onSetPublished;
                   const StatusBadge = canPublish ? "button" : "span";
@@ -482,12 +503,9 @@ function BlogNewPageContent({
   }
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        ← {labels.back}
-      </BlogLink>
+      <BackLink linkComponent={BlogLink} href={backHref}>
+        {labels.back}
+      </BackLink>
       <h1 className="font-serif text-3xl font-semibold">{labels.newPost}</h1>
       <form
         onKeyDownCapture={submitFormOnShortcut}
@@ -611,12 +629,9 @@ function BlogCategoriesPageContent({
   );
   return (
     <section className={cn(pageClass, className)}>
-      <BlogLink
-        href={backHref}
-        className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
-      >
-        ← {labels.back}
-      </BlogLink>
+      <BackLink linkComponent={BlogLink} href={backHref}>
+        {labels.back}
+      </BackLink>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl font-semibold">{labels.categories}</h1>
         {capabilities.manageCategories && (

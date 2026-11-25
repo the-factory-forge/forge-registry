@@ -1,0 +1,18 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "status-toggle",
+  "title": "Status toggle",
+  "description": "Compact toggle button for changing a visible status, with a switch indicator and a stable accessible label.",
+  "registryDependencies": [
+    "@forge/cn"
+  ],
+  "files": [
+    {
+      "path": "registry/components/status-toggle.tsx",
+      "content": "\"use client\";\n\nimport type { ReactNode } from \"react\";\n\nimport { cn } from \"@/components/utils/cn\";\n\nexport interface StatusToggleProps {\n  pressed: boolean;\n  label: string;\n  children: ReactNode;\n  onPressedChange: (pressed: boolean) => void;\n  disabled?: boolean;\n  className?: string;\n}\n\nexport function StatusToggle({\n  pressed,\n  label,\n  children,\n  onPressedChange,\n  disabled,\n  className,\n}: StatusToggleProps) {\n  return (\n    <button\n      type=\"button\"\n      aria-label={label}\n      aria-pressed={pressed}\n      disabled={disabled}\n      onClick={() => onPressedChange(!pressed)}\n      className={cn(\n        \"inline-flex min-h-6 cursor-pointer items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50\",\n        className,\n      )}\n    >\n      <span\n        aria-hidden=\"true\"\n        className={cn(\n          \"flex h-3 w-5 shrink-0 items-center rounded-full bg-current/20 px-0.5\",\n          pressed && \"justify-end\",\n        )}\n      >\n        <span className=\"size-2 rounded-full bg-current\" />\n      </span>\n      {children}\n    </button>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/status-toggle.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

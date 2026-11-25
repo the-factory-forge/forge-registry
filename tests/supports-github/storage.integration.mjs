@@ -35,7 +35,7 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
   for (const statement of await generatedMigration({}, { ...core, ...schema, pluginLocks }))
     await pool.unsafe(statement);
   const secret = "disposable-webhook-secret-only";
-  async function fixture() {
+  async function fixture(mappings = {}) {
     for (const table of [
       schema.supportsGithubMessages,
       schema.supportsGithubJobs,
@@ -72,6 +72,7 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
       request: remote.request,
       getAccessToken: async () => "test-installation-token",
       webhookSecret: secret,
+      ...mappings,
       ticketUrl: (id) => `https://site.example/intranet/supports/${id}`,
       authorizeOperator: async (context) => context === "operator",
     };
@@ -183,7 +184,8 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
         f.remote.settings.denied = true;
         await f.connector.process();
         assert.equal((await f.ui.get(ticket.id)).failure, "UNCERTAIN");
-        await assert.rejects(f.ui.retry(ticket.id));
+        assert.equal((await f.ui.retry(ticket.id)).failure, "UNCERTAIN");
+        assert.equal(f.remote.issues.length, 1);
       } finally {
         await pool.unsafe(`drop trigger reject_completion on supports_github_job`);
         await pool.unsafe(`drop function reject_completion()`);
@@ -232,6 +234,10 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
       const { ticket } = await f.linked();
       for (const context of ["customer", "anonymous"]) {
         await assert.rejects(
+          f.connector.refresh(context, ticket.id),
+          (error) => error.code === "FORBIDDEN",
+        );
+        await assert.rejects(
           f.connector.client(context).get(ticket.id),
           (error) => error.code === "FORBIDDEN",
         );
@@ -257,19 +263,103 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
     f.remote.settings.lose = "create";
     const ticket = await f.create();
     await f.connector.process();
-    assert.equal((await f.ui.get(ticket.id)).failure, "UNCERTAIN");
-    await assert.rejects(f.ui.retry(ticket.id), (error) => error.code === "CONFLICT");
+    assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
     await f.drain(2);
     assert.equal(f.remote.issues.length, 1);
     f.remote.settings.lose = "comment";
     await f.comment(ticket.id, "Hello @maintainer");
     await f.connector.process();
-    assert.equal((await f.ui.get(ticket.id)).failure, "UNCERTAIN");
+    assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
     await f.drain(2);
     assert.equal(f.remote.comments.get(1).length, 1);
     assert.match(f.remote.comments.get(1)[0].body, /@maintainer/);
     assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
   });
+  await t.test(
+    "request-driven hosts deliver one ticket and import signed replies and missed activity without a worker",
+    async () => {
+      const f = await fixture({ processWebhookOnReceipt: true });
+      const first = await f.create();
+      const second = await f.create();
+      await f.connector.send(first.id);
+      assert.equal(f.remote.issues.length, 1);
+      assert.equal((await f.ui.get(second.id)).state, "pending");
+      const entry = f.remote.externalComment(1, "From a signed webhook");
+      await f.webhook(1, "created", entry);
+      assert.equal((await f.staff.get(first.id)).activity[0].body, entry.body);
+      f.remote.externalComment(1, "Missed webhook");
+      await f.comment(first.id, "Local reply");
+      await f.connector.refresh("staff", first.id);
+      assert.equal(
+        (await f.staff.get(first.id)).activity.filter((item) => item.body === "Missed webhook")
+          .length,
+        1,
+      );
+      assert.equal(f.remote.comments.get(1).length, 2);
+      await f.connector.send(first.id);
+      assert.equal(f.remote.comments.get(1).length, 3);
+      assert.equal((await f.ui.get(first.id)).state, "synchronized");
+    },
+  );
+  await t.test(
+    "a trusted receipt that appears later unlocks delivery without a second create",
+    async () => {
+      const f = await fixture();
+      f.remote.settings.lose = "create";
+      f.remote.settings.hideIssueReceipts = true;
+      const ticket = await f.create();
+      assert.equal((await f.ui.retry(ticket.id)).failure, "UNCERTAIN");
+      assert.equal((await f.ui.retry(ticket.id)).failure, "UNCERTAIN");
+      f.remote.settings.hideIssueReceipts = false;
+      await f.connector.refresh("staff", ticket.id);
+      assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
+      assert.equal(f.remote.calls.filter((call) => call.method === "POST").length, 1);
+    },
+  );
+  await t.test(
+    "a text-only ticket maps native type and priority and survives lost acknowledgements",
+    async () => {
+      const f = await fixture({
+        issueTypes: { bug: "Defect", feature: "Feature", support: "Question" },
+        priorityField: {
+          id: 83,
+          options: { P0: "Urgent", P1: "High", P2: "Medium", P3: "Low", P4: null },
+        },
+      });
+      f.remote.settings.lose = "create";
+      f.remote.settings.omitTypeOnCreate = true;
+      const ticket = await f.create({ priority: "P1" });
+      assert.equal((await f.ui.retry(ticket.id)).state, "synchronized");
+      const [issue] = f.remote.issues;
+      assert.equal(f.remote.issues.length, 1);
+      assert.equal(issue.type.name, "Defect");
+      assert.doesNotMatch(issue.body, /image|attachment/i);
+      const priority = () =>
+        f.remote.fields.get(issue.number).find((field) => field.issue_field_id === 83);
+      assert.equal(priority().single_select_option.name, "High");
+      issue.type = { name: "Question" };
+      f.remote.settings.lose = "priority";
+      await f.staff.setPriority(ticket.id, "P2");
+      await f.ui.retry(ticket.id);
+      await f.ui.retry(ticket.id);
+      assert.equal(priority().single_select_option.name, "Medium");
+      const fieldPosts = () =>
+        f.remote.calls.filter(
+          (call) => call.method === "POST" && call.path.endsWith("/issue-field-values"),
+        );
+      assert.equal(fieldPosts().length, 2);
+      await f.staff.setPriority(ticket.id, null);
+      assert.equal((await f.ui.retry(ticket.id)).state, "synchronized");
+      assert.equal(priority(), undefined);
+      assert.equal(f.remote.fields.get(issue.number)[0].value, "Keep this field");
+      assert.equal(issue.type.name, "Question");
+      assert.equal(
+        f.remote.calls.filter((call) => call.method === "POST" && call.path.endsWith("/issues"))
+          .length,
+        1,
+      );
+    },
+  );
   await t.test(
     "uncertain writes without a remote match require explicit operator recovery",
     async () => {
@@ -297,6 +387,30 @@ await test("Supports–GitHub transactional delivery and recovery", async (t) =>
       assert.equal(f.remote.issues.length, 1);
     },
   );
+  await t.test("a failed first delivery waits for staff to send the saved discussion", async () => {
+    const f = await fixture();
+    const ticket = await f.create();
+    f.remote.settings.fail = "create";
+    await f.connector.process();
+    assert.equal((await f.ui.get(ticket.id)).canRetry, true);
+    await f.comment(ticket.id, "First follow-up");
+    await f.comment(ticket.id, "Second follow-up");
+
+    f.remote.settings.fail = null;
+    await pool`update supports_github_job set available_at = now() where ticket_id = ${ticket.id}`;
+    await f.connector.reconcile();
+    await f.drain();
+    assert.equal(f.remote.issues.length, 0);
+    assert.equal((await f.staff.get(ticket.id)).activity.length, 2);
+    await Promise.all([f.ui.retry(ticket.id), f.ui.retry(ticket.id)]);
+    await f.drain();
+    assert.equal(f.remote.issues.length, 1);
+    const replies = f.remote.comments.get(1);
+    assert.equal(replies.length, 2);
+    assert.match(replies[0].body, /First follow-up/);
+    assert.match(replies[1].body, /Second follow-up/);
+    assert.equal((await f.ui.get(ticket.id)).state, "synchronized");
+  });
   await t.test(
     "private repository validation, safe retry and changed configuration preserve local content",
     async () => {

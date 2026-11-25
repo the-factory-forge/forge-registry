@@ -56,6 +56,7 @@ await test("Drive UI ships independently; only the companion contains storage de
     "@forge/action-toast",
     "@forge/table-selection",
     "@forge/loading-indicator",
+    "@forge/table-sort",
   ]);
   assert.deepEqual(ui.dependencies, ["@base-ui/react", "lucide-react", "fflate@0.8.3"]);
   assert.deepEqual(server.registryDependencies, ["@forge/drive", "@forge/database"]);

@@ -4,9 +4,12 @@ import { Markdown } from "@tanstack/markdown/react";
 import { useEffect, useState } from "react";
 
 import { actionToastButtonClass } from "@/components/action-toast";
+import { NativeSelect } from "@/components/native-select";
 import type { SupportsLabels } from "@/components/plugins/supports/labels";
+import { supportPrioritySchema } from "@/components/plugins/supports/schema";
 import type {
   SupportAttachment,
+  SupportPriority,
   SupportStatus,
   SupportType,
   SupportsClient,
@@ -17,6 +20,42 @@ export const buttonClass = `${actionToastButtonClass} border border-border`;
 export const primaryClass = `${actionToastButtonClass} bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground`;
 export const inputClass =
   "min-h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
+export function isSelectablePriority(priority: SupportPriority | null | undefined) {
+  return priority != null && priority !== "P4";
+}
+export function SupportPrioritySelect({
+  value,
+  onChange,
+  labels,
+  disabled,
+}: {
+  value: SupportPriority | null;
+  onChange: (value: SupportPriority | null) => void;
+  labels: SupportsLabels;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="block space-y-2 text-sm font-medium text-foreground">
+      <span>{labels.priority}</span>
+      <NativeSelect
+        aria-label={labels.priority}
+        className={inputClass}
+        disabled={disabled}
+        value={isSelectablePriority(value) ? value : ""}
+        onChange={(event) =>
+          onChange(event.target.value ? supportPrioritySchema.parse(event.target.value) : null)
+        }
+      >
+        <option value="">{labels.noPriority}</option>
+        {supportPrioritySchema.options.filter(isSelectablePriority).map((code) => (
+          <option key={code} value={code}>
+            {labels[code]}
+          </option>
+        ))}
+      </NativeSelect>
+    </label>
+  );
+}
 export function SupportMarkdown({ value }: { value: string }) {
   return (
     <div className="min-w-0 space-y-3 text-sm leading-7 break-words [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l [&_blockquote]:border-border [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:ml-5 [&_ol]:list-decimal [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_table]:block [&_table]:overflow-x-auto [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:p-2 [&_ul]:list-disc">
@@ -37,6 +76,7 @@ export function SupportTypeBadge({ type, labels }: { type: SupportType; labels: 
   return <span className={cn(supportBadgeClass, "text-muted-foreground")}>{labels[type]}</span>;
 }
 
+export const supportStatusBadgeClass = `${supportBadgeClass} gap-1.5 before:size-1.5 before:shrink-0 before:rounded-full before:bg-current`;
 export function SupportStatusBadge({
   status,
   labels,
@@ -47,8 +87,7 @@ export function SupportStatusBadge({
   return (
     <span
       className={cn(
-        supportBadgeClass,
-        "gap-1.5 before:size-1.5 before:shrink-0 before:rounded-full before:bg-current",
+        supportStatusBadgeClass,
         status === "open"
           ? "bg-status-pending text-status-pending-foreground"
           : status === "closed"
@@ -141,16 +180,21 @@ export function SupportAttachments({
   files,
   client,
   labels,
+  note,
 }: {
   files: readonly SupportAttachment[];
   client: SupportsClient;
   labels: SupportsLabels;
+  note?: string;
 }) {
   return files.length ? (
-    <div className="flex flex-wrap gap-3">
-      {files.map((file) => (
-        <Attachment key={file.id} file={file} client={client} labels={labels} />
-      ))}
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-3">
+        {files.map((file) => (
+          <Attachment key={file.id} file={file} client={client} labels={labels} />
+        ))}
+      </div>
+      {note && <p className="text-sm text-muted-foreground">{note}</p>}
     </div>
   ) : null;
 }

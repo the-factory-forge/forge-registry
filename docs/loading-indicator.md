@@ -21,6 +21,8 @@ import {
 ```
 
 Use the host's actual navbar offset instead of `top-14` when its height differs.
+Place the bar below the navbar's bottom edge if the navbar uses a higher
+stacking layer. The default bar layer sits behind dialogs and their backdrops.
 The fixed, pointer-transparent bar preserves page layout and focus. It uses
 semantic primary colors and a bar that fills from the left, holds below full
 while loading, then fills completely over 300ms before disappearing. Reduced-motion

@@ -1,9 +1,11 @@
 import { useNavigate, useSearch, useLocation } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { createSupportsAgentOperation } from "@/components/connectors/agents-supports/server";
 import { IntranetShell } from "@/components/layouts/intranet-shell";
 import {
+  SUPPORT_DEFAULT_SORT,
   SupportDetailPage,
   SupportsPage,
   type SupportDetail,
@@ -21,10 +23,16 @@ export function SupportsPreview() {
   const id = segments[0];
   const base = `/${locale}/intranet/supports`;
   const navigate = useNavigate({ from: "/$locale/intranet/supports/$" });
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const query = useSearch({ strict: false });
+  const location = useLocation();
+  const query = useSearch({ from: "/_supports/$locale/intranet_/supports/$" });
   const search = query.search ?? "";
   const page = Number(query.page ?? 1);
+  const urlSort = useMemo(
+    () =>
+      query.sort && query.direction ? { field: query.sort, direction: query.direction } : undefined,
+    [query.sort, query.direction],
+  );
+  const sort = urlSort ?? SUPPORT_DEFAULT_SORT;
   const [list, setList] = useState<SupportPage>({ items: [], total: 0 });
   const [detail, setDetail] = useState<SupportDetail>();
   const [loading, setLoading] = useState(true);
@@ -55,7 +63,9 @@ export function SupportsPreview() {
             }));
         } else {
           const result =
-            mode === "empty" ? { items: [], total: 0 } : await mock.client.list({ search, page });
+            mode === "empty"
+              ? { items: [], total: 0 }
+              : await mock.client.list({ search, page, sort });
           if (current === generation.current && !signal?.aborted) setList(result);
         }
       } catch {
@@ -65,7 +75,7 @@ export function SupportsPreview() {
           setLoading(false);
       }
     },
-    [mock, id, search, page, mode, segments.length],
+    [mock, id, search, page, sort, mode, segments.length],
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -73,11 +83,8 @@ export function SupportsPreview() {
     return () => controller.abort();
   }, [load]);
   useEffect(() => () => mock.dispose(), [mock]);
-  const queryString = new URLSearchParams({
-    ...(search ? { search } : {}),
-    ...(page > 1 ? { page: String(page) } : {}),
-  }).toString();
-  const backHref = `${base}${queryString ? `?${queryString}` : ""}`;
+  const listState = `${location.searchStr}${location.hash ? `#${location.hash}` : ""}`;
+  const backHref = `${base}${listState}`;
   return (
     <>
       <PluginWebMcp
@@ -138,7 +145,7 @@ export function SupportsPreview() {
           user={{ name: "Alex Morgan", email: "alex@example.com" }}
           profileHref={`/${locale}/account`}
           onSignOut={async () => {}}
-          pathname={pathname}
+          pathname={location.pathname}
           linkComponent={ShowroomLink}
           groups={[
             {
@@ -166,7 +173,9 @@ export function SupportsPreview() {
           contentClassName="showroom-inset"
         >
           {id ? (
-            detail?.ticket.id === id ? (
+            mode === "loading" || (detail?.ticket.id !== id && !error) ? (
+              <SupportDetailPage ticket={null} backHref={backHref} linkComponent={ShowroomLink} />
+            ) : detail?.ticket.id === id ? (
               <SupportDetailPage
                 client={mock.client}
                 ticket={detail.ticket}
@@ -180,10 +189,10 @@ export function SupportsPreview() {
               />
             ) : (
               <div className="space-y-4">
-                <ShowroomLink href={backHref}>Back to support</ShowroomLink>
-                <p role={error ? "alert" : "status"}>
-                  {error ? "Ticket not found. Demo tickets reset on reload." : "Loading ticket…"}
-                </p>
+                <BackLink linkComponent={ShowroomLink} href={backHref}>
+                  Back to support
+                </BackLink>
+                <p role="alert">Ticket not found. Demo tickets reset on reload.</p>
               </div>
             )
           ) : (
@@ -193,6 +202,20 @@ export function SupportsPreview() {
               total={mode === "empty" ? 0 : list.total}
               search={search}
               page={page}
+              sort={urlSort}
+              onSortChange={(next, source) =>
+                void navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    sort: next.field,
+                    direction: next.direction,
+                    page: source === "restore" ? previous.page : undefined,
+                  }),
+                  resetScroll: false,
+                  hash: true,
+                  replace: source === "restore",
+                })
+              }
               onSearchChange={(value) =>
                 void navigate({
                   search: (previous) => ({
@@ -216,19 +239,19 @@ export function SupportsPreview() {
                 })
               }
               onChanged={() => void load()}
-              getTicketHref={(ticket) =>
-                `${base}/${ticket.id}${queryString ? `?${queryString}` : ""}`
-              }
+              getTicketHref={(ticket) => `${base}/${ticket.id}${listState}`}
               onCreated={(ticket) =>
                 void navigate({
                   to: "/$locale/intranet/supports/$",
                   params: { locale, _splat: ticket.id },
-                  search: { search: undefined, page: undefined },
+                  search: true,
+                  hash: true,
                 })
               }
               linkComponent={ShowroomLink}
               loading={loading}
               error={error}
+              onRefresh={() => void load()}
               onRetry={() => void load()}
             />
           )}

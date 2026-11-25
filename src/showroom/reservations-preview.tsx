@@ -22,6 +22,7 @@ import {
   type ReservationLabels,
 } from "@/components/plugins/reservations";
 import { PluginWebMcp } from "@/showroom/plugin-webmcp";
+import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { createReservationsMock } from "@/showroom/reservations-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
@@ -43,6 +44,7 @@ const french: ReservationLabels = {
   blockedDates: "Dates bloquées",
   blockedFrom: "Bloqué du",
   blockedThrough: "Bloqué jusqu’au (inclus)",
+  closure: "Fermeture",
   addClosure: "Ajouter une fermeture",
   closuresHelp:
     "Les hébergements actifs sont disponibles en continu, sauf réservations et dates bloquées. Les deux dates de fermeture sont incluses.",
@@ -153,6 +155,7 @@ const french: ReservationLabels = {
   eligibleResources: "Ressources disponibles",
   hours: "Horaires hebdomadaires",
   exceptions: "Horaires particuliers et fermetures",
+  hoursInterval: "Plage",
   addHours: "Ajouter une plage",
   remove: "Supprimer",
   addException: "Ajouter une date",
@@ -214,13 +217,11 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
             <Link href={`/${locale}/reservations`}>Public booking</Link>
             <Link href={`/${locale}/admin/reservations`}>Staff calendar</Link>
             <Link href={`/${locale}/admin/reservations/settings`}>Settings</Link>
-            <Link href={locale === "fr" ? "/en/reservations" : "/fr/reservations"}>
-              {locale === "fr" ? "English" : "Français"}
-            </Link>
           </>
         }
         controls={
           <div className="space-y-4">
+            <PreviewLanguageSwitcher languages={["en", "fr"]} />
             <label htmlFor={`${selectId}-example`} className="grid gap-2">
               Example
               <NativeSelect

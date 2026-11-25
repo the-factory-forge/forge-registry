@@ -128,7 +128,7 @@ for (const path of [
   "/en/customers",
   "/en/projects",
   "/en/admin/blogs",
-  "/en/admin/menus",
+  "/en/admin/menus/items",
   "/en/drive/project/portal",
 ]) {
   void test(`${path}: mixed selection, select all/none, keyboard, confirmation and stable layout`, async (t) => {
@@ -272,7 +272,7 @@ void test("employee bulk deletion protects the signed-in administrator and respe
 });
 
 void test("menu bulk deletion preserves items with linked Drive files", async (t) => {
-  const page = await preview(t, "/en/admin/menus");
+  const page = await preview(t, "/en/admin/menus/items");
   await page.getByRole("checkbox", { name: "Select all rows", exact: true }).check();
   await bulk(page).click();
   await dialog(page).getByRole("button", { name: "Delete", exact: true }).click();

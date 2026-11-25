@@ -2,9 +2,14 @@
 
 Install `@forge/supports-github` and `@forge/supports-github-server` alongside
 Supports. This connector sends staff website requests to one host-configured
-private repository per site. New tickets automatically create issues; existing
-tickets require staff to confirm **Send to GitHub**. Installation performs no
-repository creation, export, migration or network request.
+private repository per site. New tickets queue for automatic issue creation.
+If GitHub is unreachable or rejects the first delivery before an issue is created,
+the ticket and subsequent replies stay local until staff select **Send to GitHub**.
+Selecting Pending or Send to GitHub runs the existing delivery job and sends saved replies in order.
+If GitHub may already have created the issue, marker reconciliation and operator
+recovery apply. Tickets that predate the connector still require staff to confirm
+their export. Installation performs no repository creation, export, migration or
+network request.
 
 The [showroom](https://registry.the-corner.swiss/connectors/supports-github) uses
 in-memory data. The registry owns this implementation and its
@@ -39,6 +44,12 @@ const github = createSupportsGithub<Context>({
   repository: { id: repositoryId, installationId, botUserId, owner, name },
   getAccessToken: () => credentials.installationToken(installationId),
   webhookSecret,
+  // Optional. Use the enabled issue types and single-select options from this organization.
+  issueTypes: { bug: "Bug", feature: "Feature", support: "Task" },
+  priorityField: {
+    id: priorityFieldId,
+    options: { P0: "Urgent", P1: "High", P2: "Medium", P3: "Low", P4: null },
+  },
   ticketUrl: (id) => `https://site.example/intranet/supports/${encodeURIComponent(id)}`,
   authorizeOperator: async (context) => isTrustedMaintenanceOperator(context),
 });
@@ -74,17 +85,40 @@ labels, assignees, milestones and other automation remain host-owned. See GitHub
 
 For every browser request, reconstruct `github.client(context)` from the fresh
 session. Expose only `get(ticketId)`, `exportTicket(ticketId)` and `retry(ticketId)`
-through the host's authenticated transport and CSRF protection. These operations
+through the host's authenticated transport and CSRF protection. To check GitHub
+on an explicit refresh, expose a staff-read endpoint that calls `github.refresh(context, ticketId)`.
+It verifies provider receipts and imports new remote activity. These operations
 check Supports staff membership and host permissions. Historical export requires
 read and comment permission; safe retry requires comment permission. Customers
 and anonymous callers are rejected even if they have the same auth role as staff.
 
 Mount the card through the generic slot, pass host translations through `labels`,
-and refresh `revision` after a local mutation or host polling:
+and refresh `revision` after a local mutation or host polling. Use the same
+`pendingBadge(id)` callback for the queue's `renderStatus` and the discussion
+below. Load connection state only for tickets the viewer may read.
 
 ```tsx
+function pendingBadge(id: string) {
+  const connection = connections.get(id);
+  if (!connection || connection.issueUrl) return undefined;
+  const historical = connection.state === "unlinked";
+  return (
+    <SupportGithubSendButton
+      badge
+      ticketId={id}
+      client={githubTransport}
+      action={historical ? "export" : "retry"}
+      failed={Boolean(connection.failure)}
+      canWrite={canComment && (historical || connection.canRetry)}
+      onChanged={reload}
+    />
+  );
+}
+
 <SupportDetailPage
   {...detailProps}
+  statusBadge={pendingBadge(ticket.id)}
+  attachmentNote={supportsGithubLabels.images}
   integrationContent={
     <SupportGithubCard
       ticketId={ticket.id}
@@ -92,17 +126,29 @@ and refresh `revision` after a local mutation or host polling:
       revision={dataRevision}
       canWrite={canComment}
       onChanged={reload}
+      onRefresh={() => refreshGithub(ticket.id)}
     />
   }
-/>
+/>;
 ```
 
-The slot adds no provider dependency to Supports. `supports.integration` is a
+An unsent ticket shows a gray Pending badge. A failed attempt shows a disconnected
+icon and an error toast. The attachment note appears beside actual images only.
+A linked ticket shows its ordinary workflow status. `supports.integration` is a
 trusted server port, not a browser transport: validated imports bypass ordinary
 staff authorship but never generate outbound mutations. `onMutation` runs inside
 the local transaction. An enqueue failure rolls back content, attachment claims
 and mutation receipts; the existing composer retains its draft. Provider requests
 run later, so GitHub downtime does not prevent local saves.
+
+## Request-driven delivery
+
+After a local mutation commits, a host can call the server-only `github.send(ticketId)`
+to deliver that ticket's eligible outbound jobs. A failed first creation still requires
+staff retry. Set `processWebhookOnReceipt: true` to import a verified webhook before
+acknowledging it. An explicit staff refresh reconciles the linked issue and applies
+pending inbound replies without sending local drafts. These operations use the same
+durable jobs and ticket leases as the scheduled workers.
 
 ## Webhooks and workers
 
@@ -153,7 +199,14 @@ and use a permitted retry, or the operator procedure below.
 An export includes the original description, every saved reply and historical
 status entry with author attribution, then the current status. The snapshot and
 binding are locked with local mutations; concurrent replies appear exactly once.
-Type is issue-body metadata. New replies are comments in both directions. All
+Type is always included in the issue body. With `issueTypes` configured, the
+connector also sets the native GitHub issue type once. Later GitHub triage takes
+precedence. With `priorityField` configured, setting or clearing priority updates
+only that native issue field. A null option clears the assignment. Both mappings
+are optional and belong to the host. Repository labels are independent.
+See [GitHub issue field values](https://docs.github.com/en/rest/issues/issue-field-values).
+
+New replies are comments in both directions. All
 imported comments are visible to all authorized site staff, including comments
 from repository collaborators who are not site staff.
 
@@ -200,7 +253,10 @@ host's protected audit system without copying disclosed content.
 For `UNCERTAIN`, first inspect the job and repository. Successful issue/comment
 writes carry `<!-- forge-supports:JOB_UUID -->` at the end of the body. Recovery
 requires the configured App bot author and exact marker. The worker searches provider
-records before attempting any resend; an unknown outcome stays blocked.
+records after a lost acknowledgement. Staff can retry to repeat that lookup.
+An unknown create or comment stays blocked until its receipt is found or an
+operator verifies the outcome. A native field assignment reads its current
+value before another write.
 
 - If an issue exists, call `recover(context, {ticketId, jobId,
   resolution: "delivered", remoteId: issueNumber})`. For comments, `remoteId` is

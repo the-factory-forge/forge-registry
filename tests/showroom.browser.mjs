@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, test, suite } from "node:test";
 
 import { chromium } from "./showroom-browser.mjs";
+import { openPreviewControls, switchPreviewLanguage } from "./showroom-helpers.mjs";
 
 await suite("Showroom browser", async () => {
   const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
@@ -524,8 +525,8 @@ await suite("Showroom browser", async () => {
     }
   });
 
-  await test("header language switching retains URL context and respects unsaved editor guards", async (t) => {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await test("plugin sidebar language switching retains URL context and respects unsaved editor guards", async (t) => {
+    const context = await browser.newContext({ viewport: { width: 320, height: 800 } });
     t.after(() => context.close());
     const page = await context.newPage();
     const errors = [];
@@ -537,14 +538,16 @@ await suite("Showroom browser", async () => {
     await name.fill("Unsaved menu translation");
     const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     await header.getByRole("button", { name: "Dark mode", exact: true }).click();
+    const sidebar = page.getByRole("complementary", { name: "Preview controls" });
+    const switcher = sidebar.getByRole("button", { name: "Language", exact: true });
+    assert.equal(await header.getByRole("button", { name: "Language" }).count(), 0);
+    assert.equal(await switcher.isVisible(), false);
+    await openPreviewControls(page);
     for (const [locale, language] of [
       ["fr", "Français"],
-      ["de", "Deutsch"],
-      ["it", "Italiano"],
       ["en", "English"],
     ]) {
-      await page.setViewportSize({ width: 320, height: 800 });
-      await header.getByRole("button", { name: "Language", exact: true }).press("Enter");
+      await switcher.press("Enter");
       await page.shell.getByRole("menuitem", { name: language, exact: true }).click();
       if (locale === "fr") {
         const confirmation = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
@@ -555,16 +558,17 @@ await suite("Showroom browser", async () => {
         await confirmation.waitFor({ state: "hidden" });
         assert.equal(page.url(), `${baseURL}/en${destination}`);
         assert.equal(await name.inputValue(), "Unsaved menu translation");
-        await header.getByRole("button", { name: "Language", exact: true }).click();
+        assert.equal(
+          (await context.cookies()).some((cookie) => cookie.name === "FORGE_LOCALE"),
+          false,
+        );
+        await switcher.click();
         await page.getByRole("menuitem", { name: language, exact: true }).click();
         await confirmation.getByRole("button", { name: "Save", exact: true }).click();
       }
       await page.waitForURL(`${baseURL}/${locale}${destination}`);
       assert.equal(await name.inputValue(), "Unsaved menu translation");
-      assert.equal(
-        (await header.getByRole("button", { name: "Language", exact: true }).textContent()).trim(),
-        locale.toUpperCase(),
-      );
+      assert.equal((await switcher.textContent()).trim(), locale.toUpperCase());
       assert.equal(
         (await context.cookies()).find((cookie) => cookie.name === "FORGE_LOCALE")?.value,
         locale,
@@ -575,9 +579,37 @@ await suite("Showroom browser", async () => {
       );
       assert.equal((await header.locator("..").boundingBox()).height, 56);
     }
-    for (const path of ["/", "/newsletter", "/table-search"]) {
+    await page.goBack();
+    await page.waitForURL(`${baseURL}/fr${destination}`);
+    assert.equal((await switcher.textContent()).trim(), "FR");
+    await page.goForward();
+    await page.waitForURL(`${baseURL}/en${destination}`);
+    await page.reload();
+    await openPreviewControls(page);
+    assert.equal((await switcher.textContent()).trim(), "EN");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${baseURL}/en/blogs/make-room-for-better-ideas#article`);
+    await switchPreviewLanguage(page, "Français");
+    await page.waitForURL(`${baseURL}/fr/blogs/faire-place-idees#article`);
+    await page.getByRole("heading", { name: "Faire de la place aux idées" }).waitFor();
+    await switcher.click();
+    assert.deepEqual(await page.getByRole("menuitem").allTextContents(), ["Français", "English"]);
+    await page.keyboard.press("Escape");
+    await page.goto(`${baseURL}/en/blogs/a-quieter-kind-of-productivity`);
+    assert.equal(await switcher.count(), 0);
+    await page.goto(`${baseURL}/en/admin/blogs`);
+    await switchPreviewLanguage(page, "Deutsch");
+    await page.waitForURL(`${baseURL}/de/admin/blogs`);
+    await switchPreviewLanguage(page, "Italiano");
+    await page.waitForURL(`${baseURL}/it/admin/blogs`);
+
+    for (const path of ["/", "/newsletter", "/en/projects", "/fr/login"]) {
       await page.goto(baseURL + path);
-      assert.equal(await header.getByRole("button", { name: "Language", exact: true }).count(), 0);
+      assert.equal(
+        await page.getByRole("button", { name: "Language", includeHidden: true }).count(),
+        0,
+      );
     }
     assert.deepEqual(errors, []);
   });
@@ -604,7 +636,12 @@ await suite("Showroom browser", async () => {
       await page.setViewportSize({ width, height: 900 });
       await page.reload();
       await page.locator('[data-preview-ready="true"]').waitFor();
-      assert.equal(await panel.isVisible(), defaultOpen);
+      assert.equal(await panel.isVisible(), !defaultOpen);
+      await toggle.click();
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("forge:showroom:preview:settings")),
+        null,
+      );
     }
     assert.deepEqual(errors, []);
   });
@@ -626,7 +663,7 @@ await suite("Showroom browser", async () => {
         });
         if (await themeButton.count()) await themeButton.click();
         const toggle = page.getByRole("button", { name: "Settings", exact: true });
-        if (width < 640) await toggle.click();
+        await openPreviewControls(page);
         const panel = page.locator("#factory-showroom-controls");
         const heading = page.getByRole("heading", { name: "Preview controls", exact: true });
         assert.equal(await toggle.textContent(), "");
@@ -704,7 +741,7 @@ await suite("Showroom browser", async () => {
       await page.getByRole("link", { name: "Make room for better ideas", exact: true }).click();
       const toggle = page.getByRole("button", { name: "Settings", exact: true });
       assert.equal(await toggle.getAttribute("aria-expanded"), "false");
-      const back = page.getByRole("link", { name: "← Back to posts", exact: true });
+      const back = page.getByRole("link", { name: "Posts", exact: true });
       const backBox = await back.boundingBox();
       const toggleBox = await toggle.boundingBox();
       assert.equal(toggleBox.y, backBox.y);
@@ -739,6 +776,7 @@ await suite("Showroom browser", async () => {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(baseURL + path);
         const toggle = page.getByRole("button", { name: "Settings", exact: true });
+        await openPreviewControls(page);
         for (const open of [true, false]) {
           assert.equal(await toggle.getAttribute("aria-expanded"), String(open));
           const preview = await page.locator("#factory-showroom-preview").boundingBox();
@@ -807,7 +845,7 @@ await suite("Showroom browser", async () => {
       for (const path of ["/en/login", "/en/projects", "/en/blogs", "/en/intranet-sidebar"]) {
         await page.goto(baseURL + path);
         await page.locator('[data-preview-ready="true"]').waitFor();
-        await page.getByRole("button", { name: "Settings", exact: true }).click();
+        await openPreviewControls(page);
         assert.equal(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,
