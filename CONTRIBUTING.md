@@ -81,6 +81,11 @@ independent of the customer's primary color and readable in both themes.
 
 ## File placement
 
+[The Structures template](.structures/config.json) records these boundaries and
+existing module naming conventions for automated audits. It preserves TanStack
+route names and generated files. Distribution tests also check portable imports,
+declared dependencies and generated output.
+
 | Type                                                     | Source directory                      | Install target                 |
 | -------------------------------------------------------- | ------------------------------------- | ------------------------------ |
 | Components that render their own UI                      | `registry/components/`                | `@components/*`                |
