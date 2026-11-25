@@ -153,7 +153,7 @@ export function DeleteControl({
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-32 space-y-5 overflow-y-auto rounded-2xl border border-border bg-popover px-6 text-popover-foreground shadow-xl">
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {label}
@@ -175,7 +175,7 @@ export function DeleteControl({
           {error ? <ErrorMessage message={errorMessage} /> : null}
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Close className={outlineButton} disabled={pending}>
               {cancel}

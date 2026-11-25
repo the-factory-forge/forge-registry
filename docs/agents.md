@@ -94,8 +94,25 @@ message. The page exposes this as Continue/Retry.
 
 Keep `AgentsClient` identity stable while its authenticated scope is unchanged.
 Keep the optional settings client stable too. Replacing either client clears drafts
-and aborts old UI requests, including pending settings results. Changing operation or chat
-aborts the departed stream; late results cannot update the new view.
+and aborts old UI requests, including pending settings results. By default, changing
+operation or chat aborts the departed stream; late results cannot update the new view.
+
+A host that keeps working during intranet navigation owns the generation outside
+the selected chat view. Pass its snapshot through `AgentsPage.generation` with
+`conversationId`, accumulated `text`, `running`, optional `error` and `stop()`.
+The host drains `AgentsClient.send` independently; departing views detach without
+aborting that owner. Pass `active={false}` when hiding a retained page so its
+settings, crop and deletion dialogs close. Neither prop installs a background worker.
+Reset the owner on sign-out/account changes, expose a return-to-chat link and
+explicit Stop, and prevent concurrent sends while another generation is running.
+Reloading or closing the tab can still interrupt this tab-owned work. Existing
+stored approvals, permission checks and uncertain-write recovery remain required.
+
+The saved model runtime supplies its configured provider and API model ID in
+trusted instructions, without the key. It explains that installed tools reach
+site data with current employee permissions, including on local hosts, while
+screen access, unsaved forms and a general browser are not implied. Hosts may add
+their site's name; API aliases do not establish an underlying model version.
 
 ## Administrator-managed model connection
 

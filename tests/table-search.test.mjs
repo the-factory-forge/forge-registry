@@ -26,6 +26,7 @@ await test("table search ships its helper and every table plugin declares the de
     "employees",
     "customers",
     "projects",
+    "products",
     "blogs",
     "menus",
     "drive",

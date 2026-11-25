@@ -293,7 +293,10 @@ export function SupportComposer({
                   <span className="block text-xs break-words">{entry.file.name}</span>
                   <IconTooltip label={`${labels.remove}: ${entry.file.name}`}>
                     <button
-                      className={cn(buttonClass, "absolute top-1 right-1 size-8 bg-background p-0")}
+                      className={cn(
+                        buttonClass,
+                        "absolute top-1 right-1 size-8 bg-background p-0 enabled:text-destructive enabled:hover:text-destructive",
+                      )}
                       type="button"
                       aria-label={`${labels.remove}: ${entry.file.name}`}
                       onClick={() => void remove(entry)}

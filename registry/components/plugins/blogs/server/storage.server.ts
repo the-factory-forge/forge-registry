@@ -91,6 +91,7 @@ import {
 } from "@/components/plugins/blogs/utils";
 import { databaseErrorCode } from "@/components/utils/database";
 import { lockPlugin, containsPattern } from "@/components/utils/database";
+import { resolvePublicIdentifier } from "@/components/utils/public-identifier";
 import { storageFilename } from "@/components/utils/storage-filename";
 
 type ObjectRow = typeof objects.$inferSelect;
@@ -614,7 +615,6 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
           now = new Date().toISOString();
         const article = createArticle(id, input.title, input.locale, editor, now);
         const draft = article.translations[input.locale].draft;
-        if (!draft.slug) draft.slug = `post-${id.slice(0, 8)}`;
         try {
           await uniqueSlug(tx, id, input.locale, draft.slug);
         } catch (error) {
@@ -1210,25 +1210,27 @@ export function createBlogsStorage<Context>(options: BlogsStorageOptions<Context
       }),
     );
   }
-  async function getPublished(l: string, slug: string): Promise<BlogPost | null> {
+  async function getPublished(l: string, identifier: string): Promise<BlogPost | null> {
     l = parseBlogInput(z.string(), l);
-    slug = parseBlogInput(z.string().max(120), slug);
+    identifier = parseBlogInput(z.string().max(120), identifier);
     locale(l);
-    assertBlog(typeof slug === "string" && slug.length <= 120);
     return guard(() =>
       db.transaction(async (tx) => {
         await lock(tx);
-        const [row] = await tx
-          .select({ id: translations.articleId, publication: translations.publication })
-          .from(translations)
-          .where(
-            and(
-              eq(translations.locale, l),
-              eq(translations.kind, "publication"),
-              eq(translations.slug, slug),
-            ),
-          )
-          .limit(1);
+        const row = await resolvePublicIdentifier(identifier, async (field, value) => {
+          const [match] = await tx
+            .select({ id: translations.articleId, publication: translations.publication })
+            .from(translations)
+            .where(
+              and(
+                eq(translations.locale, l),
+                eq(translations.kind, "publication"),
+                eq(field === "id" ? translations.articleId : translations.slug, value),
+              ),
+            )
+            .limit(1);
+          return match;
+        });
         if (row) {
           assertBlog(row.publication, "STORAGE");
           await refreshAuthorNames(tx, [row.publication.shared]);

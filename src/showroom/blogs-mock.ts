@@ -31,6 +31,7 @@ import {
   publicPosts,
   slugify,
 } from "@/components/plugins/blogs/utils";
+import { resolvePublicIdentifier } from "@/components/utils/public-identifier";
 
 export const blogLocales = [
   { code: "en", name: "English" },
@@ -493,8 +494,6 @@ export function createBlogsMock() {
             config.editor,
             new Date().toISOString(),
           );
-          if (!article.translations[input.locale].draft.slug)
-            article.translations[input.locale].draft.slug = `post-${article.id.slice(0, 8)}`;
           unique(article, input.locale);
           articles = [article, ...articles];
           return article;
@@ -798,13 +797,17 @@ export function createBlogsMock() {
     assets: (id: string) => structuredClone(assets.filter((a) => a.postId === id)),
     assetUrl: (id: string) => urls.get(id) ?? "",
     listPublished: (q: Parameters<typeof publicPosts>[1]) => publicPosts(articles, q),
-    getPublished: (locale: string, slug: string) => {
-      const article = articles.find((a) => a.translations[locale]?.published?.slug === slug);
-      const publication = article?.translations[locale]?.published;
-      return article && publication
-        ? { ...structuredClone(publication), id: article.id, locale }
-        : null;
-    },
+    getPublished: (locale: string, identifier: string) =>
+      resolvePublicIdentifier(identifier, (field, value) => {
+        const article = articles.find((article) => {
+          const publication = article.translations[locale]?.published;
+          return publication && (field === "id" ? article.id : publication.slug) === value;
+        });
+        const publication = article?.translations[locale]?.published;
+        return article && publication
+          ? { ...structuredClone(publication), id: article.id, locale }
+          : null;
+      }),
     all: () => structuredClone(articles),
     dispose: () => {
       for (const url of urls.values()) if (url.startsWith("blob:")) URL.revokeObjectURL(url);

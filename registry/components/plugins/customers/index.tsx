@@ -189,7 +189,7 @@ function CustomersPageContent({
                   ))}
                 <th scope="col" className={tableActionHeaderClass}>
                   <div className="flex items-center justify-end gap-2">
-                    {labels.actions}
+                    <span className="sr-only">{labels.actions}</span>
                     {onDelete && (
                       <TableBulkDelete
                         selection={selection}

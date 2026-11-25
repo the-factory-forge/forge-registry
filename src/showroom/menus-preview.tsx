@@ -212,12 +212,12 @@ function createMock(composed = false) {
         {
           id: "regular",
           priceMinor: 2850,
-          translations: { en: "Regular", fr: "Normale", de: "Normal", it: "Normale" },
+          translations: { en: "Regular", fr: "Normale" },
         },
         {
           id: "large",
           priceMinor: 3450,
-          translations: { en: "Large", fr: "Grande", de: "Groß", it: "Grande" },
+          translations: { en: "Large", fr: "Grande" },
         },
       ],
       position: 0,
@@ -689,7 +689,7 @@ export function MenusPreviewProvider({ children }: { children: ReactNode }) {
         }
         controls={
           <>
-            <PreviewLanguageSwitcher languages={locales.map(({ code }) => code)} />
+            <PreviewLanguageSwitcher />
             {(current === "items" || mock.items.some(({ id }) => id === segments.at(-1))) && (
               <div className="grid gap-2">
                 <label htmlFor="factory-menu-directory-state">Directory state</label>

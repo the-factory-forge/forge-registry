@@ -231,21 +231,22 @@
 
 @container showroom (min-width: 64rem) {
   .showroom-frame[data-has-controls="true"] {
+    --showroom-controls-width: 5.5rem;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) var(--showroom-controls-width);
     align-items: start;
   }
   .showroom-frame[data-has-controls="true"][data-controls-open="true"] {
-    grid-template-columns: minmax(0, 1fr) 18rem;
+    --showroom-controls-width: 18rem;
   }
   .showroom-controls {
-    grid-column: 2;
-    grid-row: 1;
-    position: sticky;
+    position: fixed;
     top: var(--showroom-top-offset);
+    inset-inline-end: calc((100% - 100cqw) / 2);
+    width: var(--showroom-controls-width);
     max-height: var(--showroom-preview-height);
     overflow: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
   }
   .showroom-frame[data-controls-open="true"] > .showroom-controls {
     height: var(--showroom-preview-height);

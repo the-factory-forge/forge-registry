@@ -7,9 +7,6 @@ export async function openPreviewControls(page) {
 
 export async function switchPreviewLanguage(page, language) {
   await openPreviewControls(page);
-  await page
-    .getByRole("complementary", { name: "Preview controls" })
-    .getByRole("button", { name: "Language", exact: true })
-    .click();
-  await page.getByRole("menuitem", { name: language, exact: true }).click();
+  const controls = page.getByRole("complementary", { name: "Preview controls" });
+  await controls.getByRole("link", { name: `switch language to ${language}` }).click();
 }

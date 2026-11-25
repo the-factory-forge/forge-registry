@@ -4,6 +4,8 @@ import { ArrowRightIcon, PencilIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
+import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { showroomHead } from "@/showroom/seo";
 import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
@@ -45,7 +47,10 @@ function IconTooltipExample() {
         </IconTooltip>
         <Dialog.Root>
           <IconTooltip label="Delete example">
-            <Dialog.Trigger aria-label="Delete example" className={buttonClass}>
+            <Dialog.Trigger
+              aria-label="Delete example"
+              className={cn(buttonClass, destructiveActionClass)}
+            >
               <Trash2Icon className="size-4" aria-hidden="true" />
             </Dialog.Trigger>
           </IconTooltip>

@@ -816,8 +816,8 @@ void test("comparison identifies both sides, includes changed fields and draft s
     .waitFor();
 });
 
-for (const ui of [
-  {
+void test("Blogs fields, actions, dialogs and routes follow the French interface", async (t) => {
+  const ui = {
     locale: "fr",
     status: "État de publication",
     content: "FR",
@@ -841,133 +841,76 @@ for (const ui of [
     useImage: "Utiliser l’image",
     error: "Une erreur est survenue. Veuillez réessayer.",
     publicTitle: "Notre blog",
-  },
-  {
-    locale: "de",
-    status: "Veröffentlichungsstatus",
-    content: "EN",
-    title: "Titel",
-    summary: "Zusammenfassung",
-    draft: "Entwurf",
-    history: "Verlauf",
-    actions: "Aktionen",
-    compare: "Vergleichen",
-    live: "online",
-    back: "Beiträge",
-    save: "Speichern",
-    asDraft: "Als Entwurf",
-    saved: "Entwurf gespeichert.",
-    returnToDraft: "Zurück zum Entwurf",
-    resume: "Als Entwurf übernehmen",
-    replaceTitle: "Aktuellen Entwurf ersetzen?",
-    cancel: "Abbrechen",
-    upload: "Bild hochladen — Vorschaubild",
-    crop: "Bild zuschneiden",
-    useImage: "Bild verwenden",
-    error: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
-    publicTitle: "Unser Blog",
-  },
-  {
-    locale: "it",
-    status: "Stato di pubblicazione",
-    content: "EN",
-    title: "Titolo",
-    summary: "Riepilogo",
-    draft: "Bozza",
-    history: "Cronologia",
-    actions: "Azioni",
-    compare: "Confronta",
-    live: "online",
-    back: "Articoli",
-    save: "Salva",
-    asDraft: "Come bozza",
-    saved: "Bozza salvata.",
-    returnToDraft: "Torna alla bozza",
-    resume: "Riprendi come bozza",
-    replaceTitle: "Sostituire la bozza attuale?",
-    cancel: "Annulla",
-    upload: "Carica immagine — Miniatura",
-    crop: "Ritaglia immagine",
-    useImage: "Usa immagine",
-    error: "Si è verificato un errore. Riprova.",
-    publicTitle: "Il nostro blog",
-  },
-]) {
-  void test(`Blogs fields, actions, dialogs and routes follow the ${ui.locale} interface`, async (t) => {
-    const page = await preview(t, false);
-    await page.goto(`${base}/${ui.locale}/admin/blogs/${article}?history=true`);
-    await loadExample(page);
-    const history = page.getByRole("complementary", {
-      name: `${ui.history} · ${ui.content}`,
-      exact: true,
-    });
-    await history
-      .getByRole("button", { name: `${ui.actions}: ${ui.draft}`, exact: true })
-      .waitFor();
-    await page.getByRole("textbox", { name: ui.summary, exact: true }).waitFor();
-    const status = page.getByRole("button", { name: ui.status, exact: true });
-    assert.equal(await status.textContent(), ui.draft);
-    await page.getByRole("textbox", { name: ui.title, exact: true }).fill(`Localized ${ui.locale}`);
-    const asDraft = page.getByRole("checkbox", { name: ui.asDraft, exact: true });
-    assert.equal(await asDraft.isChecked(), false);
-    await asDraft.check();
-    await page.getByRole("button", { name: ui.save, exact: true }).click();
-    await actionToast(page, ui.saved);
-    const draftActions = `${ui.actions}: ${ui.draft}`;
-    const compareDraft = async () => {
-      await history.getByRole("button", { name: draftActions, exact: true }).click();
-      await page
-        .getByRole("menu", { name: draftActions, exact: true })
-        .getByRole("menuitem", { name: ui.compare, exact: true })
-        .click();
-    };
-    await compareDraft();
-    const heading = `v22 (${ui.live}) → ${ui.draft}`;
-    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
-    await page
-      .getByRole("region", { name: "Markdown", exact: true })
-      .getByRole("heading", { name: "Markdown", level: 3, exact: true })
-      .waitFor();
-    await history.getByRole("button", { name: new RegExp(`^${ui.draft}\\b`) }).click();
-    await page.getByRole("heading", { name: ui.draft, exact: true }).waitFor();
-    await compareDraft();
-    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
-    await history.getByRole("button", { name: /^v18\b/ }).click();
-    await page.getByRole("button", { name: ui.resume, exact: true }).click();
-    const replacement = page.getByRole("dialog", { name: ui.replaceTitle, exact: true });
-    await replacement.getByRole("button", { name: ui.cancel, exact: true }).click();
-    await page.getByRole("button", { name: ui.returnToDraft, exact: true }).click();
-    await page.getByLabel(ui.upload, { exact: true }).setInputFiles({
-      name: "localized.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6f4sAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    });
-    const crop = page.getByRole("dialog", { name: ui.crop, exact: true });
-    await crop.getByRole("button", { name: ui.useImage, exact: true }).waitFor();
-    await crop.getByRole("button", { name: ui.cancel, exact: true }).click();
-    await page.getByRole("link", { name: ui.back, exact: true }).click();
-    await page.locator('[data-preview-ready="true"]').waitFor();
-    assert.equal(new URL(page.url()).pathname, `/${ui.locale}/admin/blogs`);
-    await page
-      .getByRole("link", {
-        name: new RegExp(
-          `^${ui.locale === "fr" ? "Modifier" : ui.locale === "de" ? "Bearbeiten" : "Modifica"}:`,
-        ),
-      })
-      .first()
-      .waitFor();
-    await page.getByRole("link", { name: "Public blog", exact: true }).click();
-    await page.getByRole("heading", { name: ui.publicTitle, exact: true }).waitFor();
-    await page.locator('[data-preview-ready="true"]').waitFor();
-    const settings = page.getByRole("button", { name: "Settings", exact: true });
-    if ((await settings.getAttribute("aria-expanded")) === "false") await settings.click();
-    await page.getByLabel("Directory state", { exact: true }).selectOption("error");
-    await page.getByRole("alert").filter({ hasText: ui.error }).waitFor();
+  };
+  const page = await preview(t, false);
+  await page.goto(`${base}/${ui.locale}/admin/blogs/${article}?history=true`);
+  await loadExample(page);
+  const history = page.getByRole("complementary", {
+    name: `${ui.history} · ${ui.content}`,
+    exact: true,
   });
-}
+  await history.getByRole("button", { name: `${ui.actions}: ${ui.draft}`, exact: true }).waitFor();
+  await page.getByRole("textbox", { name: ui.summary, exact: true }).waitFor();
+  const status = page.getByRole("button", { name: ui.status, exact: true });
+  assert.equal(await status.textContent(), ui.draft);
+  await page.getByRole("textbox", { name: ui.title, exact: true }).fill(`Localized ${ui.locale}`);
+  const asDraft = page.getByRole("checkbox", { name: ui.asDraft, exact: true });
+  assert.equal(await asDraft.isChecked(), false);
+  await asDraft.check();
+  await page.getByRole("button", { name: ui.save, exact: true }).click();
+  await actionToast(page, ui.saved);
+  const draftActions = `${ui.actions}: ${ui.draft}`;
+  const compareDraft = async () => {
+    await history.getByRole("button", { name: draftActions, exact: true }).click();
+    await page
+      .getByRole("menu", { name: draftActions, exact: true })
+      .getByRole("menuitem", { name: ui.compare, exact: true })
+      .click();
+  };
+  await compareDraft();
+  const heading = `v22 (${ui.live}) → ${ui.draft}`;
+  await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+  await page
+    .getByRole("region", { name: "Markdown", exact: true })
+    .getByRole("heading", { name: "Markdown", level: 3, exact: true })
+    .waitFor();
+  await history.getByRole("button", { name: new RegExp(`^${ui.draft}\\b`) }).click();
+  await page.getByRole("heading", { name: ui.draft, exact: true }).waitFor();
+  await compareDraft();
+  await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+  await history.getByRole("button", { name: /^v18\b/ }).click();
+  await page.getByRole("button", { name: ui.resume, exact: true }).click();
+  const replacement = page.getByRole("dialog", { name: ui.replaceTitle, exact: true });
+  await replacement.getByRole("button", { name: ui.cancel, exact: true }).click();
+  await page.getByRole("button", { name: ui.returnToDraft, exact: true }).click();
+  await page.getByLabel(ui.upload, { exact: true }).setInputFiles({
+    name: "localized.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6f4sAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  const crop = page.getByRole("dialog", { name: ui.crop, exact: true });
+  await crop.getByRole("button", { name: ui.useImage, exact: true }).waitFor();
+  await crop.getByRole("button", { name: ui.cancel, exact: true }).click();
+  await page.getByRole("link", { name: ui.back, exact: true }).click();
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  assert.equal(new URL(page.url()).pathname, `/${ui.locale}/admin/blogs`);
+  await page
+    .getByRole("link", {
+      name: /^Modifier:/,
+    })
+    .first()
+    .waitFor();
+  await page.getByRole("link", { name: "Public blog", exact: true }).click();
+  await page.getByRole("heading", { name: ui.publicTitle, exact: true }).waitFor();
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const settings = page.getByRole("button", { name: "Settings", exact: true });
+  if ((await settings.getAttribute("aria-expanded")) === "false") await settings.click();
+  await page.getByLabel("Directory state", { exact: true }).selectOption("error");
+  await page.getByRole("alert").filter({ hasText: ui.error }).waitFor();
+});
 
 void test("publishing an unedited historical draft prunes only the oldest publication and isolates French", async (t) => {
   const page = await preview(t);

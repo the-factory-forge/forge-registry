@@ -148,7 +148,7 @@ export function useRecordDeletion<T extends { id: string }>({
           >
             <div
               data-dialog-header
-              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
                 {label}
@@ -172,7 +172,7 @@ export function useRecordDeletion<T extends { id: string }>({
             </div>
             <div
               data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Close
                 ref={cancelRef}

@@ -3,11 +3,9 @@ import { defaultLocale, type Locale } from "./config";
 // oxlint-disable-next-line typescript/no-explicit-any
 export type Dictionary = Record<string, any>;
 
-const dictionaries: Record<string, () => Promise<Dictionary>> = {
+const dictionaries: Record<Locale, () => Promise<Dictionary>> = {
   fr: () => import("./fr.json").then((m) => m.default),
   en: () => import("./en.json").then((m) => m.default),
-  de: () => import("./de.json").then((m) => m.default),
-  it: () => import("./it.json").then((m) => m.default),
 };
 
 export async function getDictionary(locale: Locale): Promise<Dictionary> {

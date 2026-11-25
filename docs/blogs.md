@@ -374,9 +374,11 @@ color at either level, including its child guide. Preserve translated labels,
 post counts, filtering and visible keyboard focus in both themes.
 
 Call `storage.listPublished({ locale, search, categoryId, page, pageSize })` and
-`storage.getPublished(locale, slug)` in server loaders. `publicCategories()`
+`storage.getPublished(locale, identifier)` in server loaders. The identifier can be the article UUID or the current published slug for that language. `publicCategories()`
 provides taxonomy labels; show only categories with published counts. Return a
-404 when `getPublished` returns `null`. The host sets canonical/alternate URLs,
+404 when `getPublished` returns `null`. Import `publicRecordRedirect` and `publicRecordPath` from `@/components/utils/public-identifier`, installed with Blogs. Build article links with `publicRecordPath(blogsPath, post)`. When `publicRecordRedirect(blogsPath, identifier, post)` returns a path, redirect there, keeping the query and fragment and replacing the browser history entry. Each translation uses its own published slug. Existing UUID-shaped slugs retain priority on an exact match. New article slugs reserve UUIDs for ID links.
+
+The host sets canonical/alternate URLs,
 Open Graph metadata, and indexing rules. Authenticated preview/admin routes need
 `noindex` and private/no-store responses.
 
@@ -703,8 +705,8 @@ deliberately making its next save conflict. **History transport** demonstrates a
 existing custom client without history; **Simulate missing illustrations**
 exercises confirmed omission. All example data is in memory and resets on reload.
 
-The Blogs interface uses complete English, French, German and Italian labels in
-the showroom, including fields, statuses, errors, confirmations and image cropping.
+The Blogs interface uses complete English and French labels in the showroom,
+including fields, statuses, errors, confirmations and image cropping.
 These dictionaries stay in `src/showroom/blogs-labels.ts`; consumers continue to
 supply their own `labels` and `imageCropLabels`. Admin routes retain the chosen
 interface language while the demo article content remains English/French. The

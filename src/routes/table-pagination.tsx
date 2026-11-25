@@ -206,7 +206,7 @@ function TablePaginationExample() {
                     <TableSortHeader key={column} field={column} label={label} {...headers} />
                   ))}
                   <th scope="col" className={tableActionHeaderClass}>
-                    Actions
+                    <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>

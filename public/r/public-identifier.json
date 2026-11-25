@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "public-identifier",
+  "title": "Public identifiers",
+  "description": "Resolve published records by slug or UUID and build their canonical paths.",
+  "files": [
+    {
+      "path": "registry/components/utils/public-identifier.ts",
+      "content": "/** Public URLs accept a saved slug or a PostgreSQL UUID in the same path segment. */\nexport const publicSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;\nexport const publicIdPattern = /^[\\da-f]{8}-(?:[\\da-f]{4}-){3}[\\da-f]{12}$/i;\n\nexport function slugify(value: string, maxLength = 120) {\n  return value\n    .normalize(\"NFKD\")\n    .replace(/[\\u0300-\\u036f]/g, \"\")\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, \"-\")\n    .replace(/^-/, \"\")\n    .slice(0, maxLength)\n    .replace(/-$/, \"\");\n}\n\nexport interface PublicIdentifier {\n  id: string;\n  slug?: string | null;\n}\n\nfunction canonicalIdentifier(record: PublicIdentifier) {\n  return record.slug || record.id;\n}\n\nexport function publicRecordPath(basePath: string, record: PublicIdentifier) {\n  return basePath.replace(/\\/$/, \"\") + \"/\" + encodeURIComponent(canonicalIdentifier(record));\n}\n\nexport function publicRecordRedirect(\n  basePath: string,\n  identifier: string,\n  record: PublicIdentifier,\n) {\n  return identifier === canonicalIdentifier(record) ? null : publicRecordPath(basePath, record);\n}\n\n/** The caller scopes every lookup to visible records in the requested locale. */\nexport async function resolvePublicIdentifier<T>(\n  identifier: string,\n  findPublished: (\n    field: \"slug\" | \"id\",\n    value: string,\n  ) => T | undefined | null | Promise<T | undefined | null>,\n): Promise<T | null> {\n  if (typeof identifier !== \"string\") return null;\n  // An exact published slug keeps its existing URL, including older UUID-shaped slugs.\n  if (publicSlugPattern.test(identifier)) {\n    const record = await findPublished(\"slug\", identifier);\n    if (record != null) return record;\n  }\n  if (publicIdPattern.test(identifier))\n    return (await findPublished(\"id\", identifier.toLowerCase())) ?? null;\n  return null;\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/public-identifier.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

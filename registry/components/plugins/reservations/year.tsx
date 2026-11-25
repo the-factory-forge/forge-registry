@@ -63,7 +63,7 @@ export function ReservationYearView({
                     scope="row"
                     className={cn(
                       tableHeaderClass,
-                      "sticky left-0 z-10 border-r border-b border-border bg-background py-2",
+                      "sticky left-0 z-10 border-r border-b border-border bg-background py-2 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80",
                     )}
                   >
                     {monthFormat

@@ -12,6 +12,7 @@ import {
 } from "@/components/plugins/auth/account-styles";
 import { passwordLabels, type PasswordLabels } from "@/components/plugins/auth/password-labels";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 
 export interface AccountSecurityData {
   signInMethod: string | null;
@@ -190,7 +191,11 @@ export function AccountSecurity({
                   {!session.current && (
                     <button
                       type="button"
-                      className={cn(accountButtonClass, "shrink-0 self-start sm:self-center")}
+                      className={cn(
+                        accountButtonClass,
+                        destructiveActionClass,
+                        "shrink-0 self-start sm:self-center",
+                      )}
                       disabled={error || revoking !== null}
                       onClick={async () => {
                         if (revokeLock.current) return;

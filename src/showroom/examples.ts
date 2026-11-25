@@ -255,6 +255,16 @@ export const examples = (
       ],
     },
     {
+      href: "/en/products",
+      category: "Plugin",
+      title: "Products",
+      icon: pluginIcons.products,
+      description:
+        "Create products with characteristics and optional prices, then publish them in a public catalog.",
+      tags: ["Product catalog", "Publishing"],
+      keywords: ["products", "catalog", "price", "characteristics", "publish"],
+    },
+    {
       href: "/en/menus",
       category: "Plugin",
       title: "Menus",

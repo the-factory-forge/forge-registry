@@ -41,6 +41,7 @@ import type {
   AgentConversation,
   AgentConversationSummary,
   AgentOperation,
+  AgentErrorCode,
   AgentModelOption,
   AgentModelProvider,
   AgentModelSettings,
@@ -49,6 +50,7 @@ import type {
 } from "@/components/plugins/agents/types";
 import { safeAgentResultHref } from "@/components/plugins/agents/types";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
@@ -67,6 +69,16 @@ const bubble =
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** The host can keep this page mounted during navigation without leaving dialogs open. */
+  active?: boolean;
+  /** Host-owned generation can outlive the currently displayed conversation. */
+  generation?: {
+    conversationId: string;
+    text: string;
+    running: boolean;
+    error?: AgentErrorCode;
+    stop(): void;
+  };
   /** Reload after an external action while retaining unsent drafts. */
   refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
@@ -445,7 +457,7 @@ function ModelSettingsForm({
           {saved && (
             <button
               type="button"
-              className={outline}
+              className={cn(outline, destructiveActionClass)}
               onClick={() => {
                 if (!disconnecting) {
                   setDisconnecting(true);
@@ -672,6 +684,8 @@ export function AgentActionReview({
 }
 function AgentsContent({
   client,
+  active = true,
+  generation: externalGeneration,
   refreshVersion,
   settings,
   connectionSettings,
@@ -709,14 +723,29 @@ function AgentsContent({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState<unknown>(null);
-  const errorText = error || (loadError ? failure(loadError, labels) : "");
-  const [streaming, setStreaming] = useState(false);
-  const [stream, setStream] = useState("");
+  const reply =
+    externalGeneration?.conversationId === conversationId ? externalGeneration : undefined;
+  const errorText =
+    error ||
+    (loadError ? failure(loadError, labels) : "") ||
+    (reply?.error ? failure({ code: reply.error }, labels) : "");
+  const [localStreaming, setStreaming] = useState(false);
+  const [localStream, setStream] = useState("");
+  const streaming = localStreaming || !!reply?.running;
+  const stream = reply?.running ? reply.text : localStream;
   const [revision, setRevision] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [crop, setCrop] = useState<File | null>(null);
   const [attachmentOption, setAttachmentOption] = useState("0");
   const [failedFile, setFailedFile] = useState<File | null>(null);
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active) {
+      setCrop(null);
+      setDeleting(false);
+    }
+  }
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
   const pending = useRef(false);
@@ -726,7 +755,7 @@ function AgentsContent({
   const draft: AgentDrafts[string] = drafts[key] ?? { text: "", attachments: [] };
   const operation = operations.find((operation) => operation.id === operationId);
   const started = !!conversation?.messages.length;
-  const blocked = busy || loading || !!conversation?.running;
+  const blocked = busy || loading || !!conversation?.running || streaming;
   const waiting = conversation?.actions.some(
     (action) => action.status === "pending" || action.status === "unresolved",
   );
@@ -819,6 +848,7 @@ function AgentsContent({
     onSelectionChange({ operationId, conversationId: chat.id });
   }
   async function send(resume = false) {
+    if (externalGeneration?.running) return;
     if (blocked || waiting || (!resume && !draft.text.trim() && !draft.attachments.length)) return;
     if (!conversationId) {
       if (operation && !resume) await run((request) => createConversation(request, "send"));
@@ -914,7 +944,7 @@ function AgentsContent({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold">{labels.title}</h1>
-            {(settings || connectionSettings) && (
+            {active && (settings || connectionSettings) && (
               <ModelSettings
                 client={settings}
                 labels={labels}
@@ -923,7 +953,7 @@ function AgentsContent({
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground [@media(max-height:600px)]:hidden">
-            {labels.privateConversations}
+            {labels.privateConversations} · {operation?.label ?? labels.allOperations}
           </p>
         </div>
         <button
@@ -971,7 +1001,9 @@ function AgentsContent({
             aria-label={
               overrides?.newConversation ?? overrides?.conversation ?? agentsLabels.newConversation
             }
-            disabled={!conversationId || blocked}
+            disabled={
+              !conversationId || busy || loading || (!!conversation?.running && !reply?.running)
+            }
             onClick={() => {
               setError("");
               setFailedFile(null);
@@ -1313,7 +1345,7 @@ function AgentsContent({
                       <button
                         type="button"
                         aria-label={`${labels.removeAttachment}: ${file.name}`}
-                        className={button}
+                        className={cn(button, destructiveActionClass)}
                         disabled={blocked}
                         onClick={() =>
                           updateDraft({
@@ -1394,7 +1426,7 @@ function AgentsContent({
                   <IconTooltip label={labels.deleteConversation}>
                     <button
                       type="button"
-                      className={button}
+                      className={cn(button, destructiveActionClass)}
                       aria-label={labels.deleteConversation}
                       disabled={blocked}
                       onClick={() => {
@@ -1413,10 +1445,10 @@ function AgentsContent({
                   <button
                     type="button"
                     className={outline}
-                    disabled={blocked}
+                    disabled={blocked || !!externalGeneration?.running}
                     onClick={() => void send(true)}
                   >
-                    {error ? labels.retry : labels.resume}
+                    {errorText ? labels.retry : labels.resume}
                   </button>
                 )}
                 {streaming ? (
@@ -1424,7 +1456,8 @@ function AgentsContent({
                     type="button"
                     className={outline}
                     onClick={() => {
-                      controller.current?.abort();
+                      if (reply?.running) reply.stop();
+                      else controller.current?.abort();
                       setStreaming(false);
                     }}
                   >
@@ -1438,6 +1471,7 @@ function AgentsContent({
                     disabled={
                       !operation ||
                       blocked ||
+                      !!externalGeneration?.running ||
                       !!waiting ||
                       (!draft.text.trim() && !draft.attachments.length)
                     }
@@ -1454,7 +1488,7 @@ function AgentsContent({
           </form>
         </div>
       </div>
-      {crop && imageCrop && (
+      {active && crop && imageCrop && (
         <ImageCropDialog
           file={crop}
           {...imageCrop}
@@ -1464,7 +1498,7 @@ function AgentsContent({
         />
       )}
       <Dialog.Root
-        open={deleting}
+        open={active && deleting}
         onOpenChange={(open) => {
           if (!busy) setDeleting(open);
         }}
