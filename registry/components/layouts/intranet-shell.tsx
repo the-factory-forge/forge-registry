@@ -97,7 +97,11 @@ export function IntranetShell({
         {wrapContent ? (
           <div
             data-slot="intranet-content"
-            className={cn("flex-1 p-4 sm:p-6 print:p-0", contentClassName)}
+            className={cn(
+              "flex-1 px-4 pb-4 sm:px-6 sm:pb-6 print:p-0",
+              showTopbar && "pt-4 sm:pt-6",
+              contentClassName,
+            )}
           >
             {children}
           </div>

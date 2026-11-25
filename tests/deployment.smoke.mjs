@@ -13,7 +13,7 @@ await test("the sitemap lists canonical public demos and robots advertises it", 
   const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url);
   assert.equal(new Set(urls).size, urls.length, "no duplicate locations");
   assert.ok(urls.includes(`${origin}/`));
-  for (const locale of ["fr", "en", "de", "it"]) {
+  for (const locale of ["fr", "en"]) {
     assert.ok(urls.includes(`${origin}/${locale}/projects`));
     assert.ok(urls.includes(`${origin}/${locale}/contact`));
   }

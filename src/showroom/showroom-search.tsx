@@ -85,7 +85,7 @@ export function ShowroomSearch() {
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
         <Dialog.Popup
           initialFocus={inputRef}
-          className="fixed top-[10dvh] left-1/2 z-50 flex h-[min(32rem,80dvh)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground outline-none"
+          className="fixed top-[10dvh] left-1/2 z-50 flex h-[min(32rem,80dvh)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground backdrop-blur-sm outline-none supports-[backdrop-filter]:bg-popover/70"
         >
           <Dialog.Title className="sr-only">Search registry</Dialog.Title>
           <Dialog.Description className="sr-only">
@@ -179,13 +179,15 @@ export function ShowroomSearch() {
                     }}
                     className="block rounded-lg p-3 hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                   >
-                    <span
-                      data-showroom-category={result.category}
-                      className="inline-block rounded-md bg-showroom-category px-2 py-1 text-xs font-medium text-showroom-category-foreground"
-                    >
-                      {result.category}
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 font-semibold break-words">{result.title}</span>
+                      <span
+                        data-showroom-category={result.category}
+                        className="shrink-0 rounded-md bg-showroom-category px-2 py-1 text-xs font-medium text-showroom-category-foreground"
+                      >
+                        {result.category}
+                      </span>
                     </span>
-                    <span className="mt-1 block font-semibold">{result.title}</span>
                     <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
                       {result.description}
                     </span>

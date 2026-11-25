@@ -601,9 +601,7 @@ await suite("Blogs browser", async () => {
       await page.screenshot({ path: `/tmp/forge-blog-auto-search-${theme}.png`, fullPage: true });
     }
     await search.fill("pending");
-    await page.getByRole("button", { name: "Language", exact: true }).press("Enter");
-    await page.clock.runFor(50);
-    await page.getByRole("menuitem", { name: "Français", exact: true }).press("Enter");
+    await page.getByRole("link", { name: "FR, switch language to Français" }).press("Enter");
     await page.clock.runFor(500);
     assert.equal(new URL(page.url()).pathname, "/fr/blogs");
     assert.notEqual(new URL(page.url()).searchParams.get("search"), "pending");

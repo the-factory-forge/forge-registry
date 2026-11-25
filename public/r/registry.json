@@ -18,6 +18,19 @@
       "dependencies": ["cn"]
     },
     {
+      "name": "destructive-action",
+      "type": "registry:lib",
+      "title": "Destructive action styles",
+      "description": "Semantic danger colors for enabled destructive buttons.",
+      "files": [
+        {
+          "path": "registry/components/utils/destructive-action.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/destructive-action.ts"
+        }
+      ]
+    },
+    {
       "name": "back-link",
       "type": "registry:ui",
       "title": "Back link",
@@ -37,11 +50,17 @@
       "type": "registry:lib",
       "title": "Plugin table styles",
       "description": "Shared semantic layout classes for plugin data tables.",
+      "registryDependencies": ["@forge/cn"],
       "files": [
         {
           "path": "registry/components/utils/table-styles.ts",
           "type": "registry:lib",
           "target": "@components/utils/table-styles.ts"
+        },
+        {
+          "path": "registry/components/utils/table-controls.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/table-controls.ts"
         }
       ]
     },

@@ -146,6 +146,23 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 - **AND** a manual override survives reloads until the reviewer restores the initial viewport default
 - **AND** changing the viewport after toggling preserves the chosen visibility
 
+### Requirement: Showroom language switching
+
+Localized showroom routes SHALL support English and French. Preview language
+controls SHALL switch directly to the other language and name the destination.
+
+#### Scenario: Switching the preview language
+
+- **WHEN** a reviewer activates the preview language toggle by pointer or keyboard
+- **THEN** the same demo opens in the other language with its query and hash intact
+- **AND** editor navigation guards run before the locale preference is saved
+
+#### Scenario: Viewing a translated public article
+
+- **WHEN** a reviewer opens a public article
+- **THEN** the toggle appears only if the other language is published
+- **AND** it links to that translation's slug
+
 ### Requirement: Unified loading feedback
 
 The showroom SHALL show one shared loading indicator below the navbar for plugin data loading and route navigation. It SHALL appear immediately, remain visible until all activity ends, and hide 300ms later. New activity SHALL cancel a pending hide. The indicator SHALL preserve layout and focus, allow pointer interaction, expose a translated accessible name and respect reduced motion.

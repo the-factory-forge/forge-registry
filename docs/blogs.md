@@ -703,8 +703,8 @@ deliberately making its next save conflict. **History transport** demonstrates a
 existing custom client without history; **Simulate missing illustrations**
 exercises confirmed omission. All example data is in memory and resets on reload.
 
-The Blogs interface uses complete English, French, German and Italian labels in
-the showroom, including fields, statuses, errors, confirmations and image cropping.
+The Blogs interface uses complete English and French labels in the showroom,
+including fields, statuses, errors, confirmations and image cropping.
 These dictionaries stay in `src/showroom/blogs-labels.ts`; consumers continue to
 supply their own `labels` and `imageCropLabels`. Admin routes retain the chosen
 interface language while the demo article content remains English/French. The

@@ -45,7 +45,7 @@ function Home() {
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border/70 py-4">
+      <div className="showroom-sticky z-30 flex flex-wrap items-center justify-between gap-4 border-y border-border/70 bg-background py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 print:static">
         <fieldset className="flex min-w-0 flex-wrap gap-2">
           <legend className="sr-only">Filter by type</legend>
           {types.map((option) => {

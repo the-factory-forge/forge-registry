@@ -228,6 +228,8 @@ await suite("Showroom browser", async () => {
     const endpoint = await fetch(`${baseURL}/r/projects.json`);
     assert.match(endpoint.headers.get("content-type"), /application\/json/);
     assert.equal((await endpoint.json()).name, "projects");
+    assert.equal((await fetch(`${baseURL}/de/login`)).status, 404);
+    assert.equal((await fetch(`${baseURL}/it/admin/blogs`)).status, 404);
     assert.equal((await fetch(`${baseURL}/xx/customers`)).status, 404);
     assert.equal((await fetch(`${baseURL}/missing-page`)).status, 404);
   });
@@ -236,7 +238,7 @@ await suite("Showroom browser", async () => {
     const context = await browser.newContext();
     t.after(() => context.close());
     const page = await context.newPage();
-    for (const locale of ["fr", "en", "de", "it"]) {
+    for (const locale of ["fr", "en"]) {
       await page.goto(`${baseURL}/${locale}/login`);
       await page.locator('[data-preview-ready="true"]').waitFor();
       const signIn = page
@@ -452,7 +454,7 @@ await suite("Showroom browser", async () => {
       "/en/reset-password",
       "/en/access-denied",
       ...samplePages,
-      ...["fr", "en", "de", "it"].flatMap((locale) => [
+      ...["fr", "en"].flatMap((locale) => [
         `/${locale}/contact`,
         `/${locale}/login`,
         `/${locale}/projects/new`,
@@ -539,16 +541,19 @@ await suite("Showroom browser", async () => {
     const header = page.shell.getByRole("navigation", { name: "Showroom navigation" });
     await header.getByRole("button", { name: "Dark mode", exact: true }).click();
     const sidebar = page.getByRole("complementary", { name: "Preview controls" });
-    const switcher = sidebar.getByRole("button", { name: "Language", exact: true });
-    assert.equal(await header.getByRole("button", { name: "Language" }).count(), 0);
+    const switcher = sidebar.getByRole("link", { name: /switch language to/ });
+    const menu = sidebar.getByRole("button", { name: "Language", exact: true });
+    assert.equal(await header.getByRole("link", { name: /switch language to/ }).count(), 0);
     assert.equal(await switcher.isVisible(), false);
     await openPreviewControls(page);
+    assert.equal(await menu.count(), 0);
     for (const [locale, language] of [
       ["fr", "Français"],
       ["en", "English"],
     ]) {
-      await switcher.press("Enter");
-      await page.shell.getByRole("menuitem", { name: language, exact: true }).click();
+      const target = sidebar.getByRole("link", { name: `switch language to ${language}` });
+      assert.equal((await target.textContent()).trim(), locale.toUpperCase());
+      await target.press("Enter");
       if (locale === "fr") {
         const confirmation = page.getByRole("dialog", { name: "Keep your changes?", exact: true });
         await confirmation
@@ -562,13 +567,11 @@ await suite("Showroom browser", async () => {
           (await context.cookies()).some((cookie) => cookie.name === "FORGE_LOCALE"),
           false,
         );
-        await switcher.click();
-        await page.getByRole("menuitem", { name: language, exact: true }).click();
+        await target.click();
         await confirmation.getByRole("button", { name: "Save", exact: true }).click();
       }
       await page.waitForURL(`${baseURL}/${locale}${destination}`);
       assert.equal(await name.inputValue(), "Unsaved menu translation");
-      assert.equal((await switcher.textContent()).trim(), locale.toUpperCase());
       assert.equal(
         (await context.cookies()).find((cookie) => cookie.name === "FORGE_LOCALE")?.value,
         locale,
@@ -581,33 +584,38 @@ await suite("Showroom browser", async () => {
     }
     await page.goBack();
     await page.waitForURL(`${baseURL}/fr${destination}`);
-    assert.equal((await switcher.textContent()).trim(), "FR");
+    assert.equal((await switcher.textContent()).trim(), "EN");
     await page.goForward();
     await page.waitForURL(`${baseURL}/en${destination}`);
     await page.reload();
     await openPreviewControls(page);
-    assert.equal((await switcher.textContent()).trim(), "EN");
+    assert.equal((await switcher.textContent()).trim(), "FR");
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`${baseURL}/en/blogs/make-room-for-better-ideas#article`);
     await switchPreviewLanguage(page, "Français");
     await page.waitForURL(`${baseURL}/fr/blogs/faire-place-idees#article`);
     await page.getByRole("heading", { name: "Faire de la place aux idées" }).waitFor();
-    await switcher.click();
-    assert.deepEqual(await page.getByRole("menuitem").allTextContents(), ["Français", "English"]);
-    await page.keyboard.press("Escape");
+    assert.equal(await menu.count(), 0);
+    await switchPreviewLanguage(page, "English");
+    await page.waitForURL(`${baseURL}/en/blogs/make-room-for-better-ideas#article`);
     await page.goto(`${baseURL}/en/blogs/a-quieter-kind-of-productivity`);
     assert.equal(await switcher.count(), 0);
-    await page.goto(`${baseURL}/en/admin/blogs`);
-    await switchPreviewLanguage(page, "Deutsch");
-    await page.waitForURL(`${baseURL}/de/admin/blogs`);
-    await switchPreviewLanguage(page, "Italiano");
-    await page.waitForURL(`${baseURL}/it/admin/blogs`);
+    assert.equal(await menu.count(), 0);
+    const editor = "/admin/blogs/b1000000-0000-4000-8000-000000000001";
+    await page.goto(`${baseURL}/en${editor}`);
+    assert.equal(await menu.count(), 0);
+    await switchPreviewLanguage(page, "Français");
+    await page.waitForURL(`${baseURL}/fr${editor}`);
+    await page.getByRole("textbox", { name: "Titre", exact: true }).waitFor();
+    await switchPreviewLanguage(page, "English");
+    await page.waitForURL(`${baseURL}/en${editor}`);
+    await page.getByRole("textbox", { name: "Title", exact: true }).waitFor();
 
     for (const path of ["/", "/newsletter", "/en/projects", "/fr/login"]) {
       await page.goto(baseURL + path);
       assert.equal(
-        await page.getByRole("button", { name: "Language", includeHidden: true }).count(),
+        await page.getByRole("link", { name: /switch language to/, includeHidden: true }).count(),
         0,
       );
     }
@@ -780,7 +788,9 @@ await suite("Showroom browser", async () => {
         for (const open of [true, false]) {
           assert.equal(await toggle.getAttribute("aria-expanded"), String(open));
           const preview = await page.locator("#factory-showroom-preview").boundingBox();
-          const rail = await page.locator(".showroom-controls").boundingBox();
+          const controls = page.getByRole("complementary", { name: "Preview controls" });
+          assert.equal(await controls.evaluate((el) => getComputedStyle(el).position), "fixed");
+          const rail = await controls.boundingBox();
           const expectedLeft = Math.max(
             0,
             Math.min((width - preview.width) / 2, rail.x - preview.width),
