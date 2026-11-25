@@ -261,6 +261,100 @@ await test("conversation tools cannot bypass target-operation scopes through a s
   assert.equal(f.state.writes, 0);
 });
 
+await test("MCP preserves conversations_decide attachment reviews for approval and rejection", async () => {
+  const { z } = await import("zod");
+  const { send } = await import("./agents/fixture.mjs");
+  const { agentTools } = await import("../registry/components/plugins/agents/server/tools.ts");
+  const { createAgentConversationsOperation } =
+    await import("../registry/components/connectors/agents-conversations/server/index.ts");
+  const { write } = agentTools();
+
+  for (const [decision, approve, expected] of [
+    ["agents_execute", true, "succeeded"],
+    ["agents_execute", false, "rejected"],
+    ["agents_reject", true, "pending"],
+  ]) {
+    let attachmentId;
+    let writes = 0;
+    const operation = {
+      id: "blogs",
+      label: "Blogs",
+      instructions: "Use the supplied file.",
+      authorize: async () => true,
+      tools: [
+        write("deposit", z.object({ attachmentId: z.string() }), {
+          before: async () => null,
+          attachments: (input) => [input.attachmentId],
+          run: async () => {
+            writes++;
+            return "File deposited.";
+          },
+        }),
+      ],
+    };
+    const f = fixture({
+      operations: [operation],
+      runtime: {
+        async *stream() {
+          yield { type: "tool", name: "deposit", input: { attachmentId } };
+        },
+      },
+    });
+    const chat = await f.create();
+    const file = await f.client.attach({
+      conversationId: chat.id,
+      name: "review.txt",
+      contentType: "text/plain",
+      bytes: new TextEncoder().encode("File to review"),
+    });
+    attachmentId = file.id;
+    const pending = await send(f.client, chat.id, "deposit", { attachmentIds: [file.id] });
+    const action = pending.chat.actions[0];
+    assert.deepEqual(action.preview.attachments, [file]);
+
+    const remote = external({
+      operations: [
+        createAgentConversationsOperation({
+          authorize: async () => true,
+          client: () => f.client,
+          authorizeOperation: async (_context, id, kind) =>
+            remote.identity.scopes.includes(`agents:${id}:${kind}`),
+        }),
+      ],
+    });
+    remote.identity.scopes.push("agents:agents:read", "agents:agents:write");
+    const call = async (name, args) =>
+      (await remote.rpc("tools/call", { name, arguments: args })).data.result;
+    const prepared = await call("conversations_decide", {
+      input: { conversationId: chat.id, actionId: action.id, approve },
+      requestId: "review-file",
+    });
+    assert.ok(!prepared.isError, JSON.stringify(prepared));
+    const proposal = JSON.parse(prepared.content[0].text);
+    assert.deepEqual(proposal.preview.attachments, [file]);
+    assert.equal((await f.client.get(chat.id)).actions[0].status, "pending");
+    assert.equal(writes, 0);
+
+    const changed = structuredClone(proposal.preview);
+    changed.attachments[0].name = "different.txt";
+    const invalid = await call(decision, { proposalId: proposal.proposalId, review: changed });
+    assert.equal(invalid.isError, true);
+    assert.equal(invalid.content[0].text, "INVALID");
+    assert.equal(writes, 0);
+
+    const input = { proposalId: proposal.proposalId, review: proposal.preview };
+    const result = await call(decision, input);
+    assert.ok(!result.isError, JSON.stringify(result));
+    assert.equal(
+      JSON.parse(result.content[0].text).status,
+      decision === "agents_reject" ? "rejected" : "succeeded",
+    );
+    assert.deepEqual(await call(decision, input), result);
+    assert.equal((await f.client.get(chat.id)).actions[0].status, expected);
+    assert.equal(writes, expected === "succeeded" ? 1 : 0);
+  }
+});
+
 await test("MCP stages private bytes, reviews a Drive upload and reads consistent chunks", async () => {
   const { createDriveAgentOperation } =
     await import("../registry/components/connectors/agents-drive/server/index.ts");
