@@ -2201,6 +2201,7 @@
       "description": "Operation-based staff chat with saved conversations, attachments and per-action approvals.",
       "dependencies": ["lucide-react"],
       "registryDependencies": [
+        "@forge/destructive-action",
         "@forge/action-toast",
         "@forge/icon-tooltip",
         "@forge/image-crop",
