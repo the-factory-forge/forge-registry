@@ -145,6 +145,26 @@ await test("support workflow preserves drafts, renders safe Markdown and keeps c
   assert.deepEqual(errors, []);
 });
 
+await test("the Support table header keeps its actions usable when mobile search collapses", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 820 },
+    reducedMotion: "reduce",
+  });
+  await page.goto(`${base}/en/intranet/supports`);
+  const panel = page.locator(".bg-card").filter({ has: page.getByRole("table") });
+  const header = panel.locator("header");
+  const title = header.getByRole("heading", { name: "Support", exact: true });
+  await title.waitFor();
+  assert.equal(await title.locator("svg").count(), 0);
+  await header.getByRole("button", { name: "Refresh tickets", exact: true }).waitFor();
+  await header.getByRole("button", { name: "Search tickets", exact: true }).click();
+  await header.getByRole("searchbox").waitFor();
+  await header.getByRole("button", { name: "Support ticket", exact: true }).click();
+  await page.getByRole("dialog", { name: "New support ticket" }).waitFor();
+});
+
 await test("support sorting restores the selected field, direction and rows across pages, history and discussions", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
