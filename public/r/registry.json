@@ -1687,6 +1687,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/destructive-action",
         "@forge/back-link",
         "@forge/cn",
         "@forge/ui-shims",
