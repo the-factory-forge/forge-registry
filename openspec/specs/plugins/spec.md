@@ -468,7 +468,7 @@ SHALL submit through their existing primary form button on Cmd+Enter on macOS or
 Ctrl+Enter on Windows/Linux. The shortcut SHALL preserve native validation,
 disabled states, pending guards and failure recovery. It SHALL apply only to
 keyboard events inside the form or its active dialog, ignore repeated or composing
-key events and leave ordinary Enter behavior intact. It SHALL NOT activate
+key events and leave ordinary Enter behavior intact outside the Agents composer. It SHALL NOT activate
 unrelated actions or skip a confirmation step.
 
 #### Scenario: Submit a form with the keyboard
@@ -481,7 +481,8 @@ unrelated actions or skip a confirmation step.
 
 - **WHEN** an operation is selected and the composer can send a message
 - **THEN** Cmd+Enter or Ctrl+Enter sends the current draft once
-- **AND** ordinary Enter inserts a newline
+- **AND** ordinary Enter sends once and Shift+Enter inserts a newline
+- **AND** empty drafts, repeated keys and composing input do not send
 - **AND** the shortcut does not approve a proposed agent action
 
 #### Scenario: Disabled or unrelated actions
@@ -3102,25 +3103,27 @@ the server companion’s administrator-managed website model connection.
 
 #### Scenario: Selecting an operation and returning to a conversation
 
-- **WHEN** staff select an operation from a card showing its title and description
+- **WHEN** staff select an operation from the new-conversation cards
   and create or reopen a chat
-- **THEN** only that user's conversations for the operation are listed
+- **THEN** that user's private conversations from all accessible operations remain listed
 - **AND** reload and Back/Forward restore operation and conversation selection
 - **AND** switching chats preserves drafts and invalidates departed async UI results
 - **AND** the first Send creates the chat for the selected operation and submits the message once
-- **AND** New conversation opens an unsaved draft without a separate Start action
+- **AND** one New conversation action opens an unsaved draft and is disabled while already in an unsaved draft
 - **AND** explicit file staging preserves the draft and existing private upload/crop behavior
-- **AND** operation cards remain visible in new empty chats, including after reload
-- **AND** the selected card has a persistent active state
+- **AND** the operation cards remain visible only in empty chats, including after reload
 - **AND** chat titles carry the plugin icon and a saved conversation retains its operation
-- **AND** choosing another card before the first message leaves the empty chat without changing it
-- **AND** leaving for All operations preserves the saved chat's operation
+- **AND** choosing another operation preserves drafts without modifying saved chats or filtering the history
+- **AND** user messages align right with a primary tint and agent replies align left on a neutral surface
+- **AND** Settings stays beside the page title, opens a dialog and adds no conversation header
+- **AND** the chat fills its sized host container, with a bounded reading column and independently scrolling messages and history
+- **AND** mobile users can switch between history and chat without changing the selected chat
 - **AND** labels, keyboard controls, both themes and narrow layouts remain usable
 
 #### Scenario: Configuring the website model
 
-- **WHEN** an administrator opens Settings in the chat header
-- **THEN** Settings replaces the operation selector and offers OpenAI, Anthropic and DeepSeek
+- **WHEN** an administrator opens Settings beside the page title
+- **THEN** a dialog offers OpenAI, Anthropic and DeepSeek
 - **AND** the administrator supplies an API key, loads account models and saves one model for the website
 - **AND** settings reads, model listing, saving and disconnecting require fresh server-side administrator authorization
 - **AND** provider keys are encrypted on the server with a separate host secret and never returned to the browser or stored in chats, URLs or browser storage
@@ -3130,6 +3133,13 @@ the server companion’s administrator-managed website model connection.
 - **AND** failed updates preserve the saved connection; disconnecting preserves conversations
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
+- **AND** failed showroom model requests explain the sample key and simulated-failure controls without implying a live provider connection
+
+#### Scenario: Assistant describes its configured runtime
+
+- **WHEN** the saved website model connection makes a provider request
+- **THEN** trusted instructions identify the configured provider and API model ID without including credentials or guessing the underlying version behind an alias
+- **AND** instructions distinguish permission-bound site tools from a general browser, screen access and unsaved form values
 
 #### Scenario: Reply language follows the current site locale by default
 
@@ -3140,13 +3150,38 @@ the server companion’s administrator-managed website model connection.
 - **AND** prior assistant replies and tool output do not establish the user's preferred language
 - **AND** hosts that omit the optional locale retain their existing instructions
 
-#### Scenario: Viewing history without an operation filter
+#### Scenario: Host-owned reply survives view navigation
 
-- **WHEN** no operation is selected
+- **WHEN** the authenticated host supplies a generation snapshot independently of the selected chat view
+- **THEN** changing the displayed operation, conversation or intranet page detaches that view without cancelling the host's generation
+- **AND** returning displays the current text and durable outcome, including pending approvals and failures
+- **AND** hiding a retained page closes its dialogs, explicit Stop cancels the owner and account changes discard the old owner's state
+- **AND** a tab-owned implementation does not claim persistence across reload or browser closure
+
+#### Scenario: Assistant explains configured identity and site access
+
+- **WHEN** chat uses the saved website model connection
+- **THEN** trusted runtime instructions identify the configured provider and API model ID without including credentials
+- **AND** they distinguish authorized site tools from a general browser, screen access or unsaved forms
+- **AND** the assistant does not infer an underlying version behind a provider alias
+
+#### Scenario: Personal assistant settings without model administration
+
+- **WHEN** the host supplies personal assistant connection controls without a model-settings client
+- **THEN** the Settings button remains available and opens the external-assistant tab
+- **AND** the model tab remains visible but disabled with a localized administrator-only explanation
+- **AND** pressing the unavailable tab repeats the explanation through the existing informational notification without selecting the tab or loading model settings
+- **AND** the model form does not mount or request provider settings
+- **AND** hosts still authorize personal credentials and model administration independently on the server
+
+#### Scenario: Stable history across operations
+
+- **WHEN** staff start, switch or reopen a conversation in any operation
 - **THEN** the sidebar combines the user's private chats from all currently accessible operations
 - **AND** the most recently updated chats appear first with their plugin icons
 - **AND** selecting a chat restores its saved operation and conversation URL
-- **AND** selecting an operation filters the history to that operation
+- **AND** selecting an operation does not filter or resize the history
+- **AND** current selection, plugin labels and relative date groups identify the saved chats
 
 #### Scenario: Executing plugin actions
 

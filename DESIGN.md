@@ -236,6 +236,18 @@ Keep the active treatment recognizable on hover, preserve a separate focus ring,
 and expose the corresponding native or ARIA state. State changes must not resize
 the control. Verify opening and every closing path in both themes and at narrow widths.
 
+### Agents chat
+
+The Settings control sits beside the page title and opens the existing dialog.
+The chat has no additional header. History uses a stable neutral desktop column
+(15rem), relative date groups and operation labels. The current conversation has
+a subtle primary tint. On mobile, Conversations toggles the history. User messages
+align right with a primary tint; agent replies align left on a neutral surface.
+Domain cards belong only to the empty-chat view. The transcript and composer share
+a centered 64rem maximum width. The page fills its host container; messages and
+history scroll independently. On mobile, history replaces the chat until a
+conversation is selected or Conversations is toggled again.
+
 ### Inputs
 
 Administrative plugin inputs use a 40px minimum height, lg corners, semantic borders,

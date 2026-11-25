@@ -100,14 +100,38 @@ message. The page exposes this as Continue/Retry.
 
 Keep `AgentsClient` identity stable while its authenticated scope is unchanged.
 Keep the optional settings client stable too. Replacing either client clears drafts
-and aborts old UI requests, including pending settings results. Changing operation or chat
-aborts the departed stream; late results cannot update the new view.
+and aborts old UI requests, including pending settings results. By default, changing
+operation or chat aborts the departed stream; late results cannot update the new view.
+
+A host that keeps working during intranet navigation owns the generation outside
+the selected chat view. Pass its snapshot through `AgentsPage.generation` with
+`conversationId`, accumulated `text`, `running`, optional `error` and `stop()`.
+The host drains `AgentsClient.send` independently; departing views detach without
+aborting that owner. Pass `active={false}` when hiding a retained page so its
+settings, crop and deletion dialogs close. Neither prop installs a background worker.
+Reset the owner on sign-out/account changes, expose a return-to-chat link and
+explicit Stop, and prevent concurrent sends while another generation is running.
+Reloading or closing the tab can still interrupt this tab-owned work. Existing
+stored approvals, permission checks and uncertain-write recovery remain required.
+
+The saved model runtime supplies its configured provider and API model ID in
+trusted instructions, without the key. It explains that installed tools reach
+site data with current employee permissions, including on local hosts, while
+screen access, unsaved forms and a general browser are not implied. Hosts may add
+their site's name; API aliases do not establish an underlying model version.
 
 ## Administrator-managed model connection
 
 Hosts may supply `AgentsPage.connectionSettings` to place their assistant access
 controls in the same Settings dialog. The content and its authenticated transport
 remain host-owned; model settings keep their existing administrator restriction.
+Settings is available when either connection controls or a model-settings client
+is supplied. With connection controls alone, the external-assistant tab remains
+usable and the model tab is disabled with an administrator-only explanation.
+The model form is not mounted and no model-settings request is made for that user.
+Pressing the unavailable tab keeps the external-assistant tab selected and uses
+the existing informational notification to explain that an administrator must
+change the shared model. The same explanation remains visible below the tabs.
 Registry uses this slot only in development for its [temporary MCP demo](./webmcp.md#test-remote-mcp-from-agents-settings).
 It does not create production account keys or change the Auth plugin's Security UI.
 
@@ -180,36 +204,37 @@ configure hosting secrets, apply migrations, publish routes or deploy a website.
 The showroom accepts only the literal sample key `demo` and persists only sample
 provider/model metadata in browser-session storage. Its next scripted response
 names that sample model; it never calls providers or saves real API keys.
+Failed sample requests explain the demo key and simulated-failure controls while
+preserving the saved sample connection.
 
 ## Page and navigation
 
 `AgentsPage` accepts an optional `refreshVersion` to reload externally changed conversations without discarding drafts, plus `client`, controlled `operationId` and `conversationId`,
 `onSelectionChange`, translated `labels`, optional administrator-only `settings`,
-`cropLabels` and `className`. Settings replaces the former header operation selector;
-operation cards and All operations retain selection and navigation.
-Hosts parse operation/conversation IDs at their route boundary and bind selections
-to URL history. Missing selection shows selectable operation cards with titles
-and descriptions. The cards also remain visible in new, empty chats, with the
-current operation marked as selected. Unknown or unauthorized selections show
-unavailable feedback. Once an operation is selected, staff can type and send
-immediately. The first Send creates the saved chat and submits that message;
-there is no separate Start action. Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux)
-activates Send; Enter inserts a newline. The shortcut respects disabled and pending
-states and never approves an agent proposal. New conversation opens an unsaved draft.
+`cropLabels` and `className`. Settings sits beside the page title and opens its
+existing dialog; the conversation has no additional header. Domain cards appear only in empty chats. Hosts validate selection in the URL and restore it on
+reload and Back/Forward. Unknown or unauthorized selections show unavailable feedback.
+The first Send creates the saved chat and submits the draft once. Enter sends;
+Shift+Enter inserts a newline. Cmd+Enter and Ctrl+Enter remain supported. Empty
+drafts, disabled/pending controls, repeated keys and composing input do not send.
+These shortcuts never approve an agent proposal. One New conversation action opens
+an unsaved draft, retains drafts for each operation and is disabled in an unsaved chat.
 Explicit file selection may create a chat to stage private attachments before
 its first message, preserving the typed draft through upload and crop recovery.
 A conversation's operation cannot be changed. Its plugin icon identifies each
-chat in the history. After the first message, All operations returns to the chooser.
-Choosing a different card before then leaves the empty chat and selects the new
-operation; it never changes the saved conversation's operation.
-All operations leaves the current chat to choose another operation; it does not
-change the saved chat's plugin. Reload and Back/Forward restore the same selected
-operation and chat. Message text, files, credentials and approval payloads never belong in
+chat in the history. Selecting an operation in an empty chat never changes a saved
+conversation's operation. Message text, files, credentials and approval payloads never belong in
 the URL. Refresh does not create another history entry.
 
-With no operation selected, the history combines the current user's chats from
-all accessible operations, most recent first. Selecting an operation filters the
-history. Opening a chat selects its saved operation and conversation in the URL.
+The history always combines the current user's chats from all accessible operations,
+most recent first, with plugin labels and date groups. Selection changes retain the
+list while it refreshes. On mobile, Conversations switches between full-height history and chat views.
+Opening a chat restores its operation and conversation in the URL. User messages
+align right with the host's primary tint; agent replies use a neutral surface on the left.
+The transcript and composer share a centered 64rem maximum width. Give the page
+a sized flex/grid parent or an explicit height through `className`; it fills that
+space and scrolls messages and history independently. The host shell owns the
+available viewport height.
 The page uses the existing authenticated `operations()` and `list(operationId)`
 methods; hosts do not need an additional history endpoint.
 

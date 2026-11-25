@@ -2,11 +2,13 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
+import { Toast } from "@base-ui/react/toast";
 import {
   DownloadIcon,
   EyeIcon,
   EyeOffIcon,
   LinkIcon,
+  PanelLeftIcon,
   PaperclipIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -39,6 +41,7 @@ import type {
   AgentConversation,
   AgentConversationSummary,
   AgentOperation,
+  AgentErrorCode,
   AgentModelOption,
   AgentModelProvider,
   AgentModelSettings,
@@ -61,9 +64,21 @@ const outline = `${button} border border-border bg-background hover:bg-accent di
 const primary = `${button} bg-primary text-primary-foreground hover:opacity-90`;
 const field =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
+const bubble =
+  "min-w-0 max-w-[min(90%,65ch)] rounded-xl rounded-tl-sm border border-border bg-card px-4 py-3 text-card-foreground";
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** The host can keep this page mounted during navigation without leaving dialogs open. */
+  active?: boolean;
+  /** Host-owned generation can outlive the currently displayed conversation. */
+  generation?: {
+    conversationId: string;
+    text: string;
+    running: boolean;
+    error?: AgentErrorCode;
+    stop(): void;
+  };
   /** Reload after an external action while retaining unsent drafts. */
   refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
@@ -87,9 +102,13 @@ export function AgentsPage(props: AgentsPageProps) {
     version: 0,
   });
   const [drafts, setDrafts] = useState<AgentDrafts>({});
+  const [operations, setOperations] = useState<AgentOperation[]>([]);
+  const [history, setHistory] = useState<AgentConversationSummary[]>([]);
   if (identity.client !== props.client || identity.settings !== props.settings) {
     setIdentity({ client: props.client, settings: props.settings, version: identity.version + 1 });
     setDrafts({});
+    setOperations([]);
+    setHistory([]);
   }
   return (
     <ActionToastProvider closeLabel={props.labels?.close}>
@@ -98,6 +117,10 @@ export function AgentsPage(props: AgentsPageProps) {
         {...props}
         drafts={drafts}
         setDrafts={setDrafts}
+        operations={operations}
+        setOperations={setOperations}
+        history={history}
+        setHistory={setHistory}
       />
     </ActionToastProvider>
   );
@@ -111,6 +134,11 @@ function OperationIcon({ id }: { id: string }) {
     ? pluginIcons[id as keyof typeof pluginIcons]
     : pluginIcons.agents;
   return <Icon className="size-4 shrink-0" aria-hidden="true" />;
+}
+async function listHistory(client: AgentsClient, operations: AgentOperation[]) {
+  return (await Promise.all(operations.map((operation) => client.list(operation.id))))
+    .flat()
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id));
 }
 function failure(error: unknown, labels: AgentsLabels) {
   const code = error && typeof error === "object" && "code" in error ? error.code : null;
@@ -136,12 +164,14 @@ function ModelSettings({
   labels,
   connectionSettings,
 }: {
-  client: AgentsSettingsClient;
+  client?: AgentsSettingsClient;
   labels: AgentsLabels;
   connectionSettings?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const restrictionId = `factory-agent-model-restriction-${useId()}`;
+  const { add } = Toast.useToastManager();
   return (
     <Dialog.Root
       open={open}
@@ -150,7 +180,7 @@ function ModelSettings({
       }}
     >
       <Dialog.Trigger className={outline}>
-        <SettingsIcon className="size-4" aria-hidden="true" />
+        <SettingsIcon className="size-4 shrink-0" aria-hidden="true" />
         {labels.settings}
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -178,23 +208,43 @@ function ModelSettings({
                 </Tabs.Tab>
                 <Tabs.Tab
                   value="model"
-                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                  disabled={!client}
+                  aria-describedby={!client ? restrictionId : undefined}
+                  onClickCapture={() => {
+                    // Explain the restriction before Base UI suppresses the disabled tab's click.
+                    if (!client)
+                      add({
+                        title: labels.modelSettingsRestricted,
+                        type: "info",
+                        data: { closeLabel: labels.close },
+                      });
+                  }}
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 data-active:border-primary data-active:text-foreground"
                 >
                   {labels.modelSettings}
                 </Tabs.Tab>
               </Tabs.List>
+              {!client && (
+                <p id={restrictionId} className="text-sm text-muted-foreground">
+                  {labels.modelSettingsRestricted}
+                </p>
+              )}
               <Tabs.Panel value="connection">{connectionSettings}</Tabs.Panel>
-              <Tabs.Panel value="model">
-                <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
-                {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
-              </Tabs.Panel>
+              {client && (
+                <Tabs.Panel value="model">
+                  <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
+                  {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+                </Tabs.Panel>
+              )}
             </Tabs.Root>
           ) : (
             <>
               <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
                 {labels.settingsDescription}
               </Dialog.Description>
-              {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+              {open && client && (
+                <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />
+              )}
             </>
           )}
         </Dialog.Popup>
@@ -642,6 +692,8 @@ export function AgentActionReview({
 }
 function AgentsContent({
   client,
+  active = true,
+  generation: externalGeneration,
   refreshVersion,
   settings,
   connectionSettings,
@@ -653,25 +705,55 @@ function AgentsContent({
   className,
   drafts,
   setDrafts,
-}: AgentsPageProps & { drafts: AgentDrafts; setDrafts: Dispatch<SetStateAction<AgentDrafts>> }) {
+  operations,
+  setOperations,
+  history,
+  setHistory,
+}: AgentsPageProps & {
+  drafts: AgentDrafts;
+  setDrafts: Dispatch<SetStateAction<AgentDrafts>>;
+  operations: AgentOperation[];
+  setOperations: Dispatch<SetStateAction<AgentOperation[]>>;
+  history: AgentConversationSummary[];
+  setHistory: Dispatch<SetStateAction<AgentConversationSummary[]>>;
+}) {
   const labels = { ...agentsLabels, ...overrides };
   const notify = useActionToast();
   const uid = `factory-agents-${useId()}`;
-  const [operations, setOperations] = useState<AgentOperation[]>([]);
-  const [history, setHistory] = useState<AgentConversationSummary[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [today] = useState(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
   const [conversation, setConversation] = useState<AgentConversation | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState<unknown>(null);
-  const errorText = error || (loadError ? failure(loadError, labels) : "");
-  const [streaming, setStreaming] = useState(false);
-  const [stream, setStream] = useState("");
+  const reply =
+    externalGeneration?.conversationId === conversationId ? externalGeneration : undefined;
+  const errorText =
+    error ||
+    (loadError ? failure(loadError, labels) : "") ||
+    (reply?.error ? failure({ code: reply.error }, labels) : "");
+  const [localStreaming, setStreaming] = useState(false);
+  const [localStream, setStream] = useState("");
+  const streaming = localStreaming || !!reply?.running;
+  const stream = reply?.running ? reply.text : localStream;
   const [revision, setRevision] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [crop, setCrop] = useState<File | null>(null);
   const [attachmentOption, setAttachmentOption] = useState("0");
   const [failedFile, setFailedFile] = useState<File | null>(null);
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active) {
+      setCrop(null);
+      setDeleting(false);
+    }
+  }
   const controller = useRef<AbortController | null>(null);
   const generation = useRef(0);
   const pending = useRef(false);
@@ -680,6 +762,11 @@ function AgentsContent({
   const key = conversationId ?? operationId ?? "";
   const draft: AgentDrafts[string] = drafts[key] ?? { text: "", attachments: [] };
   const operation = operations.find((operation) => operation.id === operationId);
+  const started = !!conversation?.messages.length;
+  const blocked = busy || loading || !!conversation?.running || streaming;
+  const waiting = conversation?.actions.some(
+    (action) => action.status === "pending" || action.status === "unresolved",
+  );
   const imageCrop = operation?.attachmentOptions?.[Number(attachmentOption)]?.crop;
   const updateDraft = (value: Partial<typeof draft>) =>
     setDrafts((current) => ({
@@ -692,24 +779,17 @@ function AgentsContent({
     const availableOperations = client.operations();
     Promise.all([
       availableOperations,
-      operationId
-        ? client.list(operationId)
-        : availableOperations
-            .then((operations) =>
-              Promise.all(operations.map((operation) => client.list(operation.id))),
-            )
-            .then((histories) =>
-              histories
-                .flat()
-                .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id)),
-            ),
+      availableOperations.then((operations) => listHistory(client, operations)),
       conversationId ? client.get(conversationId) : Promise.resolve(null),
     ])
       .then(([ops, chats, chat]) => {
         if (request !== generation.current) return;
         setOperations(ops);
         setHistory(chats);
-        if (chat && chat.operationId !== operationId) {
+        if (
+          (operationId && !ops.some((operation) => operation.id === operationId)) ||
+          (chat && chat.operationId !== operationId)
+        ) {
           setLoadError({ code: "NOT_FOUND" });
           return;
         }
@@ -726,7 +806,7 @@ function AgentsContent({
       generation.current = request + 1;
       abort();
     };
-  }, [client, operationId, conversationId, revision, refreshVersion]);
+  }, [client, operationId, conversationId, revision, refreshVersion, setOperations, setHistory]);
   useEffect(() => {
     const element = transcript.current;
     if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 160)
@@ -737,7 +817,7 @@ function AgentsContent({
     if (!conversationId) return;
     const [chat, chats] = await Promise.all([
       client.get(conversationId),
-      client.list(operationId!),
+      listHistory(client, operations),
     ]);
     if (current(request)) {
       setConversation(chat);
@@ -776,6 +856,8 @@ function AgentsContent({
     onSelectionChange({ operationId, conversationId: chat.id });
   }
   async function send(resume = false) {
+    if (externalGeneration?.running) return;
+    if (blocked || waiting || (!resume && !draft.text.trim() && !draft.attachments.length)) return;
     if (!conversationId) {
       if (operation && !resume) await run((request) => createConversation(request, "send"));
       return;
@@ -852,37 +934,57 @@ function AgentsContent({
       disposed = true;
     };
   });
-  const started = !!conversation?.messages.length;
-  const blocked = busy || loading || !!conversation?.running;
-  const waiting = conversation?.actions.some(
-    (action) => action.status === "pending" || action.status === "unresolved",
-  );
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const historyGroup = (updatedAt: string) => {
+    const date = new Date(updatedAt);
+    return date >= today ? labels.today : date >= yesterday ? labels.yesterday : labels.earlier;
+  };
   return (
     <section
-      className={cn("flex min-h-[38rem] min-w-0 flex-col bg-background text-foreground", className)}
+      className={cn(
+        "flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background text-foreground",
+        className,
+      )}
       aria-label={labels.title}
     >
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-border pb-4 [@media(max-height:600px)]:pb-2">
         <div>
-          <h1 className="text-2xl font-semibold">{labels.title}</h1>
-          {operation?.description && (
-            <p className="mt-1 text-sm text-muted-foreground">{operation.description}</p>
-          )}
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">{labels.title}</h1>
+            {active && (settings || connectionSettings) && (
+              <ModelSettings
+                client={settings}
+                labels={labels}
+                connectionSettings={connectionSettings}
+              />
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground [@media(max-height:600px)]:hidden">
+            {labels.privateConversations} · {operation?.label ?? labels.allOperations}
+          </p>
         </div>
-        {settings && (
-          <ModelSettings
-            client={settings}
-            labels={labels}
-            connectionSettings={connectionSettings}
-          />
-        )}
-      </header>
-      <div className="grid min-h-0 flex-1 md:grid-cols-[14rem_minmax(0,1fr)]">
-        <nav
-          aria-label={labels.conversations}
-          className="space-y-3 border-b border-border py-4 md:border-e md:border-b-0 md:pe-4"
+        <button
+          type="button"
+          className={cn(historyOpen ? primary : outline, "md:hidden")}
+          aria-expanded={historyOpen}
+          aria-controls={`${uid}-history`}
+          onClick={() => setHistoryOpen((open) => !open)}
         >
-          <div className="flex items-center justify-between gap-2">
+          <PanelLeftIcon aria-hidden="true" className="size-4 shrink-0" />
+          {labels.conversations}
+        </button>
+      </header>
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)]">
+        <nav
+          id={`${uid}-history`}
+          aria-label={labels.conversations}
+          className={cn(
+            "min-h-0 min-w-0 flex-col gap-3 border-b border-border bg-muted/40 p-3 md:flex md:border-e md:border-b-0",
+            historyOpen ? "flex" : "hidden",
+          )}
+        >
+          <div className="flex shrink-0 items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">{labels.conversations}</h2>
             <IconTooltip label={labels.refresh}>
               <button
@@ -903,13 +1005,14 @@ function AgentsContent({
           </div>
           <button
             type="button"
-            className={cn(outline, "w-full")}
+            className={cn(outline, "w-full shrink-0")}
             aria-label={
               overrides?.newConversation ?? overrides?.conversation ?? agentsLabels.newConversation
             }
-            disabled={!operation || blocked}
+            disabled={
+              !conversationId || busy || loading || (!!conversation?.running && !reply?.running)
+            }
             onClick={() => {
-              setDrafts((drafts) => ({ ...drafts, [operationId!]: { text: "", attachments: [] } }));
               setError("");
               setFailedFile(null);
               setCrop(null);
@@ -917,47 +1020,62 @@ function AgentsContent({
             }}
           >
             <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-            {overrides?.conversation ?? overrides?.newConversation ?? agentsLabels.conversation}
+            {overrides?.newConversation ?? overrides?.conversation ?? agentsLabels.newConversation}
           </button>
-          {(operationId || conversationId) && (
-            <button
-              type="button"
-              className={cn(outline, "w-full")}
-              onClick={() => onSelectionChange({ operationId: null, conversationId: null })}
-            >
-              {labels.allOperations}
-            </button>
-          )}
-          <ul className="flex max-h-40 gap-1 overflow-auto md:max-h-[32rem] md:flex-col">
-            {history.map((chat) => (
-              <li key={chat.id} className="min-w-40 md:min-w-0">
-                <button
-                  type="button"
-                  aria-current={chat.id === conversationId ? "page" : undefined}
-                  className={cn(
-                    button,
-                    "w-full items-start justify-start text-start break-words",
-                    chat.id === conversationId
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-accent",
-                  )}
-                  onClick={() =>
-                    onSelectionChange({ operationId: chat.operationId, conversationId: chat.id })
-                  }
-                >
-                  <span className="mt-0.5">
-                    <OperationIcon id={chat.operationId} />
-                  </span>
-                  <span className="min-w-0">{chat.title || labels.untitled}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
           {!history.length && !loading && (
             <p className="text-sm text-muted-foreground">{labels.emptyHistory}</p>
           )}
+          <ul className="min-h-0 flex-1 space-y-1 overflow-auto overscroll-contain">
+            {history.map((chat, index) => (
+              <li key={chat.id} className="min-w-0">
+                {(index === 0 ||
+                  historyGroup(chat.updatedAt) !== historyGroup(history[index - 1]!.updatedAt)) && (
+                  <h3 className="mt-5 mb-2 px-3 text-xs font-medium text-muted-foreground">
+                    {historyGroup(chat.updatedAt)}
+                  </h3>
+                )}
+                <IconTooltip label={chat.title || labels.untitled}>
+                  <button
+                    type="button"
+                    aria-label={chat.title || labels.untitled}
+                    aria-describedby={`${uid}-history-${chat.id}`}
+                    aria-current={chat.id === conversationId ? "page" : undefined}
+                    className={cn(
+                      button,
+                      "w-full min-w-0 items-start justify-start text-start",
+                      chat.id === conversationId
+                        ? "bg-primary/15 text-foreground"
+                        : "hover:bg-muted",
+                    )}
+                    onClick={() => {
+                      setHistoryOpen(false);
+                      onSelectionChange({ operationId: chat.operationId, conversationId: chat.id });
+                    }}
+                  >
+                    <span className="mt-0.5">
+                      <OperationIcon id={chat.operationId} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{chat.title || labels.untitled}</span>
+                      <span
+                        id={`${uid}-history-${chat.id}`}
+                        className="mt-1 block text-xs text-muted-foreground"
+                      >
+                        {operations.find((operation) => operation.id === chat.operationId)?.label}
+                      </span>
+                    </span>
+                  </button>
+                </IconTooltip>
+              </li>
+            ))}
+          </ul>
         </nav>
-        <div className="flex min-w-0 flex-col md:ps-6">
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-col bg-muted/15 px-3 md:flex md:px-6",
+            historyOpen ? "hidden" : "flex",
+          )}
+        >
           {errorText && (
             <div
               role="alert"
@@ -986,112 +1104,130 @@ function AgentsContent({
             aria-live="polite"
             aria-relevant="additions"
             className={cn(
-              "min-h-72 flex-1 space-y-6 py-6 [overflow-wrap:anywhere]",
-              started && "max-h-[36rem] overflow-auto",
+              "min-h-0 flex-1 space-y-6 overflow-auto overscroll-contain py-6 [overflow-wrap:anywhere] [@media(max-height:600px)]:py-2",
+              started && "mx-auto w-full max-w-5xl",
             )}
           >
             {loading ? (
               <output className="block text-sm text-muted-foreground">{labels.loading}</output>
             ) : !started ? (
               <div className="space-y-4">
+                <h2 className="text-2xl font-semibold">{labels.emptyChat}</h2>
                 <p className="text-sm text-muted-foreground">
                   {operations.length ? labels.chooseFirst : labels.noOperations}
                 </p>
-                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {operations.map((op, index) => (
-                    <li key={op.id} className="min-w-0">
-                      <button
-                        type="button"
-                        aria-labelledby={`${uid}-operation-${index}-title`}
-                        aria-describedby={`${uid}-operation-${index}-description`}
-                        className={cn(
-                          "flex h-full w-full cursor-pointer flex-col gap-2 rounded-xl border p-4 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
-                          op.id === operationId
-                            ? "border-primary bg-primary/5 text-foreground hover:bg-primary/10"
-                            : "border-border bg-card text-card-foreground hover:border-primary/50 hover:bg-accent",
-                        )}
-                        aria-pressed={op.id === operationId}
-                        disabled={blocked}
-                        onClick={() => {
-                          if (op.id !== operationId)
-                            onSelectionChange({ operationId: op.id, conversationId: null });
-                        }}
-                      >
-                        <span
-                          id={`${uid}-operation-${index}-title`}
-                          className="flex items-center gap-2 font-semibold"
+                {!!operations.length && (
+                  <ul
+                    aria-label={labels.operation}
+                    className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                  >
+                    {operations.map((op, index) => (
+                      <li key={op.id} className="min-w-0">
+                        <button
+                          type="button"
+                          aria-labelledby={`${uid}-operation-${index}-title`}
+                          aria-describedby={`${uid}-operation-${index}-description`}
+                          className={cn(
+                            "flex h-full w-full cursor-pointer flex-col gap-2 rounded-xl border p-4 text-start focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
+                            op.id === operationId
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border bg-card text-card-foreground hover:border-primary/50 hover:bg-muted",
+                          )}
+                          aria-pressed={op.id === operationId}
+                          disabled={blocked}
+                          onClick={() => {
+                            if (op.id !== operationId)
+                              onSelectionChange({ operationId: op.id, conversationId: null });
+                          }}
                         >
-                          <OperationIcon id={op.id} />
-                          {op.label}
-                        </span>
-                        <span
-                          id={`${uid}-operation-${index}-description`}
-                          className="text-sm leading-6 text-muted-foreground"
-                        >
-                          {op.description}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                          <span
+                            id={`${uid}-operation-${index}-title`}
+                            className="flex items-center gap-2 font-semibold"
+                          >
+                            <OperationIcon id={op.id} />
+                            {op.label}
+                          </span>
+                          <span
+                            id={`${uid}-operation-${index}-description`}
+                            className="text-sm leading-6 text-muted-foreground"
+                          >
+                            {op.description}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ) : null}
             {conversation?.messages.map((entry) => (
               <Fragment key={entry.id}>
-                <article className="min-w-0">
-                  <h2 className="mb-2 text-xs font-semibold text-muted-foreground">
+                <article
+                  data-role={entry.role}
+                  className={cn(
+                    "flex min-w-0 flex-col gap-2",
+                    entry.role === "user" ? "items-end" : "items-start",
+                  )}
+                >
+                  <h2 className="text-xs font-medium text-muted-foreground">
                     {entry.role === "user"
                       ? labels.you
                       : entry.role === "assistant"
                         ? labels.assistant
                         : labels.tool}
                   </h2>
-                  {entry.role === "tool" ? (
-                    <details>
-                      <summary className="cursor-pointer text-sm focus-visible:outline-2 focus-visible:outline-ring">
-                        {labels.result}
-                      </summary>
-                      <pre className="mt-2 max-h-48 overflow-auto text-xs break-all whitespace-pre-wrap">
-                        {entry.text}
-                      </pre>
-                    </details>
-                  ) : (
-                    <p className="max-w-prose text-sm leading-7 whitespace-pre-wrap">
-                      {entry.text}
-                    </p>
-                  )}
-                  {!!entry.attachments.length && (
-                    <div className="mt-3 flex flex-wrap gap-4">
-                      {entry.attachments.map((file) => (
-                        <AttachmentView
-                          key={file.id}
-                          client={client}
-                          conversationId={conversation.id}
-                          attachment={file}
-                          labels={labels}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {entry.download && client.download && (
-                    <button
-                      type="button"
-                      className={outline}
-                      onClick={() =>
-                        void run(async () => {
-                          const file = await client.download!(conversation.id, entry.id);
-                          const link = document.createElement("a");
-                          link.href = file.url;
-                          link.download = file.name;
-                          link.rel = "noreferrer";
-                          link.click();
-                        })
-                      }
-                    >
-                      <DownloadIcon aria-hidden="true" className="size-4" />
-                      {labels.download}
-                    </button>
-                  )}
+                  <div
+                    className={cn(
+                      bubble,
+                      entry.role === "user" &&
+                        "rounded-tl-xl rounded-tr-sm border-transparent bg-primary/15 text-foreground",
+                    )}
+                  >
+                    {entry.role === "tool" ? (
+                      <details>
+                        <summary className="cursor-pointer text-sm focus-visible:outline-2 focus-visible:outline-ring">
+                          {labels.result}
+                        </summary>
+                        <pre className="mt-2 max-h-48 overflow-auto text-xs break-all whitespace-pre-wrap">
+                          {entry.text}
+                        </pre>
+                      </details>
+                    ) : (
+                      <p className="text-sm leading-7 whitespace-pre-wrap">{entry.text}</p>
+                    )}
+                    {!!entry.attachments.length && (
+                      <div className="mt-3 flex flex-wrap gap-4">
+                        {entry.attachments.map((file) => (
+                          <AttachmentView
+                            key={file.id}
+                            client={client}
+                            conversationId={conversation.id}
+                            attachment={file}
+                            labels={labels}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {entry.download && client.download && (
+                      <button
+                        type="button"
+                        className={outline}
+                        onClick={() =>
+                          void run(async () => {
+                            const file = await client.download!(conversation.id, entry.id);
+                            const link = document.createElement("a");
+                            link.href = file.url;
+                            link.download = file.name;
+                            link.rel = "noreferrer";
+                            link.click();
+                          })
+                        }
+                      >
+                        <DownloadIcon aria-hidden="true" className="size-4" />
+                        {labels.download}
+                      </button>
+                    )}
+                  </div>
                 </article>
                 {conversation.actions
                   .filter((action) => action.messageId === entry.id)
@@ -1147,11 +1283,13 @@ function AgentsContent({
               </Fragment>
             ))}
             {stream && (
-              <article>
+              <article data-role="assistant" className="flex min-w-0 flex-col items-start gap-2">
                 <h2 className="mb-2 text-xs font-semibold text-muted-foreground">
                   {labels.assistant}
                 </h2>
-                <p className="max-w-prose text-sm leading-7 whitespace-pre-wrap">{stream}</p>
+                <div className={bubble}>
+                  <p className="text-sm leading-7 whitespace-pre-wrap">{stream}</p>
+                </div>
               </article>
             )}
             {busy && (
@@ -1160,38 +1298,48 @@ function AgentsContent({
           </div>
           <form
             onKeyDownCapture={submitFormOnShortcut}
-            className={cn(
-              "space-y-3 border-t border-border bg-background pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
-              started &&
-                "sticky bottom-0 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80",
-            )}
+            className="mx-auto mb-[max(0.5rem,env(safe-area-inset-bottom))] w-full max-w-5xl shrink-0 space-y-3 rounded-xl border border-border bg-background p-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring md:p-4 [@media(max-height:600px)]:space-y-2 [@media(max-height:600px)]:p-2"
             onSubmit={(event) => {
               event.preventDefault();
               void send();
             }}
           >
-            {conversation?.canResume && !waiting && (
-              <button
-                type="button"
-                className={outline}
-                disabled={blocked}
-                onClick={() => void send(true)}
-              >
-                {error ? labels.retry : labels.resume}
-              </button>
-            )}
             <label htmlFor={`${uid}-message`} className="sr-only">
               {labels.message}
             </label>
             <textarea
               id={`${uid}-message`}
-              rows={3}
+              rows={2}
               maxLength={32000}
-              className={cn(field, "resize-y leading-6")}
+              className={cn(
+                field,
+                "max-h-[min(12rem,25dvh)] resize-y border-0 bg-transparent px-1 leading-6 focus-visible:outline-none [@media(max-height:600px)]:h-10",
+              )}
               placeholder={labels.placeholder}
               disabled={!operation || blocked || waiting}
               value={draft.text}
               onChange={(event) => updateDraft({ text: event.target.value })}
+              onKeyDown={(event) => {
+                if (
+                  event.key !== "Enter" ||
+                  event.shiftKey ||
+                  event.ctrlKey ||
+                  event.metaKey ||
+                  event.altKey ||
+                  event.nativeEvent.isComposing ||
+                  event.nativeEvent.keyCode === 229 ||
+                  event.defaultPrevented
+                )
+                  return;
+                event.preventDefault();
+                if (
+                  !event.repeat &&
+                  !blocked &&
+                  !waiting &&
+                  (draft.text.trim() || draft.attachments.length)
+                )
+                  event.currentTarget.form?.requestSubmit();
+              }}
             />
             {!!draft.attachments.length && (
               <ul aria-label={labels.attachments} className="flex flex-wrap gap-2">
@@ -1249,6 +1397,7 @@ function AgentsContent({
                     onClick={() => picker.current?.click()}
                   >
                     <PaperclipIcon aria-hidden="true" className="size-4" />
+                    <span className="hidden sm:inline">{labels.attach}</span>
                   </button>
                 </IconTooltip>
                 <input
@@ -1264,7 +1413,7 @@ function AgentsContent({
                     else void upload(file);
                   }}
                 />
-                {!!operation?.attachmentOptions?.length && (
+                {operation?.attachmentOptions && operation.attachmentOptions.length > 1 && (
                   <div className="max-w-48">
                     <NativeSelect
                       aria-label={labels.imageUse}
@@ -1299,38 +1448,55 @@ function AgentsContent({
                   </IconTooltip>
                 )}
               </div>
-              {streaming ? (
-                <button
-                  type="button"
-                  className={outline}
-                  onClick={() => {
-                    controller.current?.abort();
-                    setStreaming(false);
-                  }}
-                >
-                  <SquareIcon aria-hidden="true" className="size-4" />
-                  {labels.stop}
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className={primary}
-                  disabled={
-                    !operation ||
-                    blocked ||
-                    !!waiting ||
-                    (!draft.text.trim() && !draft.attachments.length)
-                  }
-                >
-                  <SendHorizontalIcon aria-hidden="true" className="size-4" />
-                  {labels.send}
-                </button>
-              )}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {conversation?.canResume && !waiting && (
+                  <button
+                    type="button"
+                    className={outline}
+                    disabled={blocked || !!externalGeneration?.running}
+                    onClick={() => void send(true)}
+                  >
+                    {errorText ? labels.retry : labels.resume}
+                  </button>
+                )}
+                {streaming ? (
+                  <button
+                    type="button"
+                    className={outline}
+                    onClick={() => {
+                      if (reply?.running) reply.stop();
+                      else controller.current?.abort();
+                      setStreaming(false);
+                    }}
+                  >
+                    <SquareIcon aria-hidden="true" className="size-4" />
+                    {labels.stop}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className={primary}
+                    disabled={
+                      !operation ||
+                      blocked ||
+                      !!externalGeneration?.running ||
+                      !!waiting ||
+                      (!draft.text.trim() && !draft.attachments.length)
+                    }
+                  >
+                    <SendHorizontalIcon aria-hidden="true" className="size-4" />
+                    {labels.send}
+                  </button>
+                )}
+              </div>
             </div>
+            <p className="hidden text-center text-xs text-muted-foreground md:block">
+              {labels.keyboardHelp}
+            </p>
           </form>
         </div>
       </div>
-      {crop && imageCrop && (
+      {active && crop && imageCrop && (
         <ImageCropDialog
           file={crop}
           {...imageCrop}
@@ -1340,7 +1506,7 @@ function AgentsContent({
         />
       )}
       <Dialog.Root
-        open={deleting}
+        open={active && deleting}
         onOpenChange={(open) => {
           if (!busy) setDeleting(open);
         }}

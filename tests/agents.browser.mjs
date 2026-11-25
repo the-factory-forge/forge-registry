@@ -17,9 +17,9 @@ await test("Agents: operation selection, individual approvals, saved history and
     await page.getByRole("textbox", { name: "Message", exact: true }).isDisabled(),
     true,
   );
-  const operationCard = page.getByRole("button", { name: "Blogs", exact: true });
-  await operationCard.waitFor();
-  assert.equal(await operationCard.textContent(), "BlogsWork with blogs.");
+  const blogs = page.getByRole("button", { name: "Blogs", exact: true });
+  await blogs.waitFor();
+  assert.equal(await blogs.textContent(), "BlogsWork with blogs.");
   assert.equal(
     await page.getByRole("button", { name: "Example workflow", exact: true }).textContent(),
     "Example workflowA host-defined operation can combine selected plugin tools.",
@@ -29,16 +29,15 @@ await test("Agents: operation selection, individual approvals, saved history and
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get("operation"), "review");
   await page.goBack();
-  await operationCard.waitFor();
+  await blogs.waitFor();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await operationCard.focus();
-  await page.keyboard.press("Enter");
+  await blogs.click();
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get("operation"), "blogs");
   assert.equal(new URL(page.url()).searchParams.get("operation"), "blogs");
-  assert.equal(await operationCard.getAttribute("aria-pressed"), "true");
+  assert.equal(await blogs.getAttribute("aria-pressed"), "true");
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
-  await operationCard.waitFor();
+  await blogs.waitFor();
   assert.equal(
     await page
       .getByRole("region", { name: "Agents", exact: true })
@@ -49,7 +48,6 @@ await test("Agents: operation selection, individual approvals, saved history and
   await page.getByRole("textbox", { name: "Message", exact: true }).fill("Updated article");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
-  assert.equal(await operationCard.count(), 0);
   assert.equal(await page.getByRole("combobox", { name: "Operation", exact: true }).count(), 0);
   assert.equal(await page.getByText("Updated article", { exact: true }).count(), 3);
   assert.equal(await page.getByRole("link", { name: "Open record", exact: true }).count(), 0);
@@ -68,9 +66,9 @@ await test("Agents: operation selection, individual approvals, saved history and
   await record.getByText("Updated article", { exact: true }).waitFor();
   await record.getByRole("button", { name: "Back to chat", exact: true }).click();
   await page.getByRole("textbox", { name: "Message", exact: true }).fill("Unsent draft");
-  await page.getByRole("button", { name: "All operations", exact: true }).click();
+  await page.getByRole("button", { name: "New conversation", exact: true }).click();
   await page.getByRole("button", { name: "Employees", exact: true }).click();
-  await page.getByText("No conversations yet.", { exact: true }).waitFor();
+  await history.getByRole("button", { name: "Updated article", exact: true }).waitFor();
   await page.goBack();
   await page.goBack();
   await page.getByText("Completed", { exact: true }).waitFor();
@@ -156,7 +154,7 @@ await test("Agents: file cropping, approved previews, mobile themes and deletion
   await region.getByRole("img").waitFor();
   const directory = process.env.AGENTS_SCREENSHOT_DIR;
   if (directory) await mkdir(directory, { recursive: true });
-  for (const width of [1440, 390]) {
+  for (const width of [2560, 1440, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const theme of ["light", "dark"]) {
       await page.evaluate((theme) => {
@@ -165,6 +163,16 @@ await test("Agents: file cropping, approved previews, mobile themes and deletion
         document.documentElement.style.colorScheme = theme;
       }, theme);
       await region.scrollIntoViewIfNeeded();
+      const log = await page.getByRole("log", { name: "Message", exact: true }).boundingBox();
+      assert.ok(log.width <= 1024, "the reading column stays bounded on wide displays");
+      const composer = await page
+        .locator("form")
+        .filter({ has: page.getByRole("textbox", { name: "Message", exact: true }) })
+        .boundingBox();
+      assert.ok(
+        composer.y >= log.y + log.height - 1,
+        "the composer must not cover the conversation or approvals",
+      );
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         true,
@@ -208,7 +216,7 @@ await test("Agents: deletion errors stay inside the confirmation dialog", async 
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
 });
-await test("Agents: operation cards remain visible in drafts and the first message starts the chat", async (t) => {
+await test("Agents: domain cards preserve drafts and the first message starts the chat", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
   const page = await context.newPage();
@@ -230,31 +238,32 @@ await test("Agents: operation cards remain visible in drafts and the first messa
   );
   const emptyURL = page.url();
   await page.reload();
-  const blogs = page.getByRole("button", { name: "Blogs", exact: true });
+  const operation = page.getByRole("button", { name: "Blogs", exact: true });
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
-  assert.equal(await blogs.count(), 1, "new empty chats must show the operation cards");
-  assert.equal(await blogs.getAttribute("aria-pressed"), "true");
-  await blogs.click();
+  await operation.waitFor();
+  assert.equal(await operation.getAttribute("aria-pressed"), "true");
+  await operation.click();
   assert.equal(page.url(), emptyURL, "selecting the current operation preserves the empty chat");
+  const message = page.getByRole("textbox", { name: "Message", exact: true });
+  await message.fill("My blog draft");
   await page.getByRole("button", { name: "Employees", exact: true }).click();
   assert.equal(new URL(page.url()).searchParams.get("operation"), "employees");
   assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
-  await page.getByRole("button", { name: "All operations", exact: true }).click();
-  assert.equal(new URL(page.url()).searchParams.has("operation"), false);
   await page.goBack();
-  await page.goBack();
-  await blogs.waitFor();
+  await operation.waitFor();
   assert.equal(page.url(), emptyURL);
+  assert.equal(await message.inputValue(), "My blog draft");
   await page.getByRole("textbox", { name: "Message", exact: true }).fill("My first task");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
-  assert.equal(await blogs.count(), 0);
   assert.equal(await page.getByRole("combobox", { name: "Operation", exact: true }).count(), 0);
+  assert.equal(await page.getByRole("list", { name: "Operation", exact: true }).count(), 0);
   const newConversation = page.getByRole("button", { name: "New conversation", exact: true });
-  assert.equal(await newConversation.innerText(), "Conversation");
+  assert.equal(await newConversation.innerText(), "New conversation");
   await newConversation.click();
-  await blogs.waitFor();
-  assert.equal(await blogs.getAttribute("aria-pressed"), "true");
+  await operation.waitFor();
+  assert.equal(await operation.getAttribute("aria-pressed"), "true");
+  assert.equal(await newConversation.isDisabled(), true);
   assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
   assert.equal(await page.getByRole("textbox", { name: "Message", exact: true }).inputValue(), "");
   assert.equal(
@@ -297,7 +306,7 @@ await test("Agents: first-message creation failure preserves the draft and retry
   await page.reload();
   await page.getByText("Awaiting approval", { exact: true }).waitFor();
 });
-await test("Agents: unfiltered history lists all plugins and opens each chat in its operation", async (t) => {
+await test("Agents: history always lists all plugins and opens each chat in its operation", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
   const page = await context.newPage();
@@ -306,19 +315,22 @@ await test("Agents: unfiltered history lists all plugins and opens each chat in 
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText(/The sample record is/).waitFor();
   const blogsURL = page.url();
-  await page.getByRole("button", { name: "All operations", exact: true }).click();
+  await page.getByRole("button", { name: "New conversation", exact: true }).click();
   await page.getByRole("button", { name: "Employees", exact: true }).click();
   await page.getByRole("textbox", { name: "Message", exact: true }).fill("list employee records");
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText(/The sample record is/).waitFor();
   const employeesURL = page.url();
-  await page.getByRole("button", { name: "All operations", exact: true }).click();
+  await page.getByRole("button", { name: "New conversation", exact: true }).click();
   const history = page.getByRole("navigation", { name: "Conversations", exact: true });
   await history.getByRole("button", { name: "list blog records", exact: true }).waitFor();
-  assert.deepEqual(await history.getByRole("list").getByRole("button").allTextContents(), [
-    "list employee records",
-    "list blog records",
-  ]);
+  assert.deepEqual(
+    await history
+      .getByRole("list")
+      .getByRole("button")
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))),
+    ["list employee records", "list blog records"],
+  );
   assert.equal(await history.locator("svg.lucide-users").count(), 1);
   assert.equal(await history.locator("svg.lucide-newspaper").count(), 1);
   await page.reload();
@@ -331,7 +343,7 @@ await test("Agents: unfiltered history lists all plugins and opens each chat in 
   assert.equal(page.url(), blogsURL);
   assert.equal(
     await history.getByRole("button", { name: "list employee records", exact: true }).count(),
-    0,
+    1,
   );
   await page.goBack();
   await history.getByRole("button", { name: "list employee records", exact: true }).waitFor();
@@ -343,9 +355,80 @@ await test("Agents: unfiltered history lists all plugins and opens each chat in 
   assert.equal(page.url(), employeesURL);
   assert.equal(new URL(page.url()).searchParams.get("operation"), "employees");
 });
+await test("Agents: Enter sends once, Shift+Enter and composition preserve the draft, mobile history toggles", async (t) => {
+  const context = await browser.newContext();
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.goto(`${baseURL}/en/agents?operation=employees`);
+  const message = page.getByRole("textbox", { name: "Message", exact: true });
+  await message.fill("");
+  await message.press("Enter");
+  assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
+  await message.fill("list");
+  await message.press("Shift+Enter");
+  assert.equal(await message.inputValue(), "list\n");
+  await message.dispatchEvent("keydown", { key: "Enter", isComposing: true });
+  await message.dispatchEvent("keydown", { key: "Enter", keyCode: 229 });
+  assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
+  await message.press("Enter");
+  await page.getByText(/The sample record is/).waitFor();
+  await page.getByRole("button", { name: "Stop", exact: true }).waitFor({ state: "hidden" });
+  const chats = await page.evaluate(() =>
+    Object.values(JSON.parse(sessionStorage.getItem("forge-agents-preview-v1")).chats),
+  );
+  assert.equal(chats.length, 1);
+  assert.equal(chats[0].messages.filter((entry) => entry.role === "user").length, 1);
+  const user = await page.locator('article[data-role="user"] > div').boundingBox();
+  const agent = await page.locator('article[data-role="assistant"] > div').last().boundingBox();
+  assert.ok(user.x + user.width / 2 > agent.x + agent.width / 2);
+  assert.equal(await page.getByRole("button", { name: "All operations", exact: true }).count(), 0);
+  const history = page.getByRole("navigation", { name: "Conversations", exact: true });
+  const directory = process.env.AGENTS_SCREENSHOT_DIR;
+  if (directory) {
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert.equal(
+        await page
+          .getByRole("region", { name: "Agents", exact: true })
+          .getByRole("button", { name: "Settings", exact: true })
+          .innerText(),
+        "Settings",
+      );
+      for (const theme of ["light", "dark"]) {
+        await page.evaluate((theme) => {
+          document.documentElement.classList.toggle("dark", theme === "dark");
+          document.documentElement.classList.toggle("light", theme === "light");
+          document.documentElement.style.colorScheme = theme;
+        }, theme);
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+        );
+        await page
+          .getByRole("region", { name: "Agents", exact: true })
+          .screenshot({ path: `${directory}/chat-${width}-${theme}.png` });
+      }
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 900 });
+  const toggle = page.getByRole("button", { name: "Conversations", exact: true });
+  assert.equal(await history.isVisible(), false);
+  await toggle.click();
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  await history.getByRole("button", { name: "list", exact: true }).click();
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await history.isVisible(), false);
+});
 await test("Agents: administrator model settings save, reload and drive the demo chat", async (t) => {
   const context = await browser.newContext();
   t.after(() => context.close());
+  // Keep this settings test independent of the separately started MCP demo.
+  await context.route("**/demo/state", (route) =>
+    route.fulfill({
+      headers: { "access-control-allow-origin": new URL(baseURL).origin },
+      json: { resource: new URL("/mcp", route.request().url()).href, expiresAt: null },
+    }),
+  );
   const page = await context.newPage();
   const providerRequests = [];
   page.on("request", (request) => {
@@ -393,6 +476,20 @@ await test("Agents: administrator model settings save, reload and drive the demo
     ),
     false,
   );
+  assert.equal(
+    await dialog.getByRole("alert").textContent(),
+    "Demo request failed. Use the sample key “demo” and turn off “Simulate failure”, then retry. Saved settings are unchanged.",
+  );
+  await page.setViewportSize({ width: 390, height: 650 });
+  const closeAfterError = dialog.getByRole("button", { name: "Close", exact: true });
+  await closeAfterError.hover();
+  await page.getByRole("tooltip", { name: "Close", exact: true }).waitFor();
+  await closeAfterError.click();
+  await dialog.waitFor({ state: "hidden" });
+  await settings.click();
+  await dialog.getByRole("tab", { name: "Model settings", exact: true }).click();
+  assert.equal(await dialog.getByLabel("Model", { exact: true }).inputValue(), "demo-openai");
+  await dialog.getByLabel("Provider", { exact: true }).selectOption("anthropic");
   await key.fill("demo");
   await dialog.getByRole("button", { name: "Load models", exact: true }).click();
   await dialog.getByLabel("Model", { exact: true }).selectOption("demo-anthropic");
@@ -450,7 +547,38 @@ await test("Agents: administrator model settings save, reload and drive the demo
     .waitFor();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByLabel("Read-only tools", { exact: true }).check();
-  assert.equal(await settings.count(), 0);
+  assert.equal(await settings.count(), 1);
+  await settings.click();
+  assert.equal(
+    await dialog
+      .getByRole("tab", { name: "External assistant", exact: true })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  assert.equal(
+    await dialog.getByRole("tab", { name: "Model settings", exact: true }).isDisabled(),
+    true,
+  );
+  await dialog
+    .getByText(
+      "Only administrators can configure the shared AI model. Ask an administrator to change it.",
+      { exact: true },
+    )
+    .waitFor();
+  const unavailableModel = dialog.getByRole("tab", { name: "Model settings", exact: true });
+  const bounds = await unavailableModel.boundingBox();
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page
+    .getByRole("region", { name: "Notifications", exact: true })
+    .getByText(
+      "Only administrators can configure the shared AI model. Ask an administrator to change it.",
+      { exact: true },
+    )
+    .waitFor();
+  assert.equal(await unavailableModel.getAttribute("aria-selected"), "false");
+  assert.equal(await dialog.getByLabel("API key", { exact: true }).count(), 0);
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
   assert.deepEqual(providerRequests, []);
 });
 await browser.close();

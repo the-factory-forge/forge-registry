@@ -180,6 +180,10 @@ for (const provider of ["openai", "anthropic", "deepseek"]) {
     const instructions = provider === "anthropic" ? request.system : request.messages[0].content;
     assert.ok(instructions.includes("Current interface locale: de."));
     assert.ok(!instructions.includes("Current interface locale: fr."));
+    assert.ok(instructions.includes(`Configured AI provider: ${provider}`));
+    assert.ok(instructions.includes(`Configured API model ID: ${model}`));
+    assert.ok(instructions.includes("current employee's permissions"));
+    assert.ok(!instructions.includes("example-private-key"));
     assert.ok(
       JSON.stringify(request.messages).includes(
         provider === "anthropic" ? "tool_result" : "tool_call_id",
