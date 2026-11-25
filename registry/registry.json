@@ -1442,6 +1442,7 @@
         "zod@4.6.7"
       ],
       "registryDependencies": [
+        "@forge/destructive-action",
         "@forge/back-link",
         "@forge/view-preference",
         "@forge/cn",
@@ -1451,6 +1452,7 @@
         "@forge/table-search",
         "@forge/dialog-submit",
         "@forge/native-select",
+        "@forge/status-toggle",
         "@forge/action-toast",
         "@forge/optimistic-action",
         "@forge/icon-tooltip",

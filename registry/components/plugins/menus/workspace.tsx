@@ -67,6 +67,7 @@ import {
   primary,
 } from "@/components/plugins/menus/ui";
 import { moveMenuEntry, useMenuDrag } from "@/components/plugins/menus/use-menu-drag";
+import { StatusToggle } from "@/components/status-toggle";
 import { TableSearch, matchesTableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
@@ -86,6 +87,7 @@ export interface MenuWorkspaceProps {
   dishHref: (menuId: string, itemId?: string, categoryId?: string) => string;
   linkComponent?: ComponentType<LinkProps>;
   copy?: (text: string) => string;
+  /** @deprecated Visibility changes no longer require confirmation. */
   staffKey?: string;
   search?: { menuId: string; value: string };
   onSearchChange?: (menuId: string, value: string) => void;
@@ -785,16 +787,17 @@ function MenuSettings({
   menu,
   onSave,
   onCancel,
-  inDialog = false,
+  formId,
   onPendingChange,
 }: {
   menu?: MenuCard;
-  inDialog?: boolean;
+  formId?: string;
   onPendingChange?: (pending: boolean) => void;
   onSave: (input: MenuCardInput) => Promise<unknown>;
   onCancel: () => void;
 }) {
   const { copy, currency, baseLocale } = useWorkspace();
+  const inDialog = !!formId;
   const [draft, setDraft] = useState(menu ?? emptyMenu);
   const [selectedLocale, setSelectedLocale] = useState(baseLocale);
   const baseNameInput = useRef<HTMLInputElement>(null);
@@ -810,7 +813,8 @@ function MenuSettings({
   useMenuDraftGuard(JSON.stringify(draft) !== JSON.stringify(menu ?? emptyMenu), pending);
   return (
     <form
-      className="grid gap-4 border-y border-border py-6 sm:grid-cols-2"
+      id={formId}
+      className={cn("grid gap-4 py-6 sm:grid-cols-2", !inDialog && "border-y border-border")}
       onSubmit={(event) => {
         event.preventDefault();
         if (!draft.translations[baseLocale]?.name.trim()) {
@@ -1011,14 +1015,16 @@ function MenuSettings({
           {error}
         </p>
       )}
-      <div className="flex flex-wrap gap-2 sm:col-span-2">
-        <button className={primary} disabled={pending}>
-          {pending ? copy("Saving…") : copy("Save")}
-        </button>
-        <button type="button" className={outlineButton} disabled={pending} onClick={onCancel}>
-          {copy("Cancel")}
-        </button>
-      </div>
+      {!inDialog && (
+        <div className="flex flex-wrap gap-2 sm:col-span-2">
+          <button className={primary} disabled={pending}>
+            {pending ? copy("Saving…") : copy("Save")}
+          </button>
+          <button type="button" className={outlineButton} disabled={pending} onClick={onCancel}>
+            {copy("Cancel")}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
@@ -1151,7 +1157,6 @@ function MenuWorkspaceSection({
     today,
     previewHref,
     dishHref,
-    staffKey,
     search,
     onSearchChange,
     initialSettingsMenuId,
@@ -1165,6 +1170,7 @@ function MenuWorkspaceSection({
   const [settings, setSettings] = useState(initialSettingsMenuId === menu.id);
   const [settingsPending, setSettingsPending] = useState(false);
   const settingsOpen = settings;
+  const settingsFormId = `factory-menu-settings-form-${useId()}`;
   function closeSettings() {
     setSettings(false);
   }
@@ -1177,16 +1183,7 @@ function MenuWorkspaceSection({
   const pendingRef = useRef(false);
   const [error, setError] = useState("");
   const reducedMotion = useReducedMotion();
-  const [confirmation, setConfirmation] = useState<{
-    title: string;
-    description: string;
-    label: string;
-    destructive?: boolean;
-    rememberVisibility?: boolean;
-    execute: () => Promise<unknown>;
-  } | null>(null);
-  const [rememberVisibility, setRememberVisibility] = useState(false);
-  const visibilityPreference = staffKey && `forge:menus:skip-visibility-confirmation:${staffKey}`;
+  const [deletingDishId, setDeletingDishId] = useState<string>();
   const copyRequest = useRef<string | null>(null);
   const items = useQuery({
     queryKey: [...workspaceKey, "items", menu.id],
@@ -1300,7 +1297,7 @@ function MenuWorkspaceSection({
           onClose={() => setDeletingCategory(undefined)}
         />
       )}
-      <header className="sticky top-[var(--menu-workspace-top,0px)] z-20 -mx-1 mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-1 py-4">
+      <header className="sticky top-[var(--menu-workspace-top,0px)] z-20 -mx-1 mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background px-1 py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
         <h2 className="min-w-0 font-serif text-2xl font-semibold wrap-anywhere">
           {rootName(menu, locale, baseLocale)}
         </h2>
@@ -1338,46 +1335,24 @@ function MenuWorkspaceSection({
               </Dropdown.Item>
             </Actions>
           )}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={menu.published}
-            title={stateText}
-            aria-label={`${copy("Menu publication")} ${rootName(menu, locale, baseLocale)}`}
-            disabled={pending || !hydrated}
-            onClick={() => {
-              setError("");
-              setConfirmation({
-                title: menu.published ? copy("Unpublish this menu?") : copy("Publish this menu?"),
-                description: menu.published
-                  ? copy("This menu will no longer be visible on the website.")
-                  : copy("Visible dishes will appear on the website during the selected period."),
-                label: menu.published ? copy("Unpublish") : copy("Publish"),
-                execute: () => client.saveCard({ ...menu, published: !menu.published }),
-              });
-            }}
-            className={cn(
-              outlineButton,
-              "min-h-11",
-              menu.published &&
-                "border-status-success bg-status-success text-status-success-foreground",
-            )}
-          >
-            <span
+          <span title={stateText}>
+            <StatusToggle
+              label={`${copy("Menu publication")} ${rootName(menu, locale, baseLocale)}`}
+              pressed={menu.published}
+              disabled={pending || !hydrated}
+              onPressedChange={(published) =>
+                void run(() => client.saveCard({ ...menu, published }))
+              }
               className={cn(
-                "relative h-5 w-8 rounded-full border border-current",
-                menu.published && "bg-status-success-foreground/15",
+                "min-h-11 md:min-h-6",
+                menu.published
+                  ? "bg-status-success text-status-success-foreground"
+                  : "bg-status-not-started text-status-not-started-foreground",
               )}
             >
-              <span
-                className={cn(
-                  "absolute top-0.5 left-0.5 size-3.5 rounded-full bg-current transition-transform motion-reduce:transition-none",
-                  menu.published && "translate-x-3",
-                )}
-              />
-            </span>
-            {menu.published ? copy("Published") : copy("Unpublished")}
-          </button>
+              {menu.published ? copy("Published") : copy("Unpublished")}
+            </StatusToggle>
+          </span>
         </div>
       </header>
       {(menu.startDate || menu.endDate) && (
@@ -1403,8 +1378,8 @@ function MenuWorkspaceSection({
       >
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(52rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
-            <div className="sticky -top-6 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border bg-popover px-6 py-3">
+          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[min(52rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 scroll-py-24 overflow-y-auto rounded-2xl border border-border bg-popover px-6 pt-6 text-popover-foreground shadow-xl">
+            <div className="sticky -top-6 z-10 -mx-6 flex items-center justify-between gap-3 border-b border-border bg-popover px-6 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80">
               <Dialog.Title className="text-xl font-semibold">
                 {copy("Menu settings")} · {rootName(menu, locale, baseLocale)}
               </Dialog.Title>
@@ -1420,13 +1395,16 @@ function MenuWorkspaceSection({
               {copy("Menu name, translations, display and dates.")}
             </Dialog.Description>
             <MenuSettings
-              inDialog
+              formId={settingsFormId}
               onPendingChange={setSettingsPending}
               menu={menu}
               onSave={(input) => client.saveCard(input)}
               onCancel={closeSettings}
             />
-            <div className="mt-4 flex justify-end">
+            <div
+              data-dialog-footer
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-popover px-6 pt-4 pb-6 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
+            >
               <DeleteControl
                 disabled={settingsPending}
                 label={copy("Delete this menu")}
@@ -1435,48 +1413,35 @@ function MenuWorkspaceSection({
                 errorMessage={copy("Could not delete this menu.")}
                 onDelete={() => client.removeCard(menu.id, menu.version)}
               />
+              <button
+                type="submit"
+                form={settingsFormId}
+                className={primary}
+                disabled={settingsPending}
+              >
+                {settingsPending ? copy("Saving…") : copy("Save")}
+              </button>
             </div>
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>
       <MenuConfirmation
-        open={!!confirmation}
-        title={confirmation?.title ?? ""}
-        description={confirmation?.description ?? ""}
-        confirm={confirmation?.label ?? ""}
-        destructive={confirmation?.destructive}
+        open={!!deletingDishId}
+        title={copy("Delete this dish?")}
+        description={copy("This cannot be undone.")}
+        confirm={copy("Delete dish")}
+        destructive
         cancel={copy("Cancel")}
         pending={pending}
         error={error}
-        onCancel={() => setConfirmation(null)}
+        onCancel={() => setDeletingDishId(undefined)}
         onConfirm={() => {
-          if (confirmation)
-            void run(confirmation.execute).then((success) => {
-              if (!success) return;
-              if (visibilityPreference && confirmation.rememberVisibility && rememberVisibility) {
-                try {
-                  window.localStorage.setItem(visibilityPreference, "true");
-                } catch {
-                  // The visibility update still succeeds if browser storage is unavailable.
-                }
-              }
-              setConfirmation(null);
+          if (deletingDishId)
+            void run(() => client.remove(deletingDishId)).then((success) => {
+              if (success) setDeletingDishId(undefined);
             });
         }}
-      >
-        {confirmation?.rememberVisibility && (
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={rememberVisibility}
-              disabled={pending}
-              className="accent-primary"
-              onChange={(event) => setRememberVisibility(event.target.checked)}
-            />
-            {copy("Don’t remind me again")}
-          </label>
-        )}
-      </MenuConfirmation>
+      />
       {error && (
         <p role="alert" className="my-4 text-sm text-destructive">
           {error}
@@ -1661,25 +1626,19 @@ function MenuWorkspaceSection({
                       {copy("Edit category")}
                     </Dropdown.Item>
                     <Dropdown.Item
-                      disabled={menu.kind === "weekly"}
-                      onClick={() => {
-                        setError("");
-                        setConfirmation({
-                          title: copy("Remove this category from the menu?"),
-                          description: copy(
-                            "The category and its dishes are kept. Other menus stay unchanged.",
-                          ),
-                          label: copy("Remove"),
-                          execute: () =>
-                            client.saveCard({
-                              ...menu,
-                              categoryIds: menu.categoryIds.filter((value) => value !== id),
-                              weeklySections: (menu.weeklySections ?? []).filter(
-                                (value) => value.categoryId !== id,
-                              ),
-                            }),
-                        });
-                      }}
+                      className="not-data-disabled:text-destructive"
+                      disabled={menu.kind === "weekly" || pending}
+                      onClick={() =>
+                        void run(() =>
+                          client.saveCard({
+                            ...menu,
+                            categoryIds: menu.categoryIds.filter((value) => value !== id),
+                            weeklySections: (menu.weeklySections ?? []).filter(
+                              (value) => value.categoryId !== id,
+                            ),
+                          }),
+                        )
+                      }
                     >
                       <UnlinkIcon aria-hidden="true" className="size-4" />
                       {copy("Remove from this menu")}
@@ -1688,7 +1647,7 @@ function MenuWorkspaceSection({
                       <>
                         <Dropdown.Separator className="my-1 border-t border-border" />
                         <Dropdown.Item
-                          className="text-destructive"
+                          className="not-data-disabled:text-destructive"
                           disabled={pending || !items.isSuccess}
                           onClick={() => setDeletingCategory(category)}
                         >
@@ -1786,40 +1745,14 @@ function MenuWorkspaceSection({
                               dish.visible &&
                                 "border-status-success-foreground/30 bg-status-success text-status-success-foreground hover:bg-status-success/65 hover:text-status-success-foreground",
                             )}
-                            onClick={() => {
-                              const saveVisibility = () =>
+                            onClick={() =>
+                              void run(() =>
                                 client.save(dish.id, dish.version, {
                                   ...dish,
                                   visible: !dish.visible,
-                                });
-                              if (!shared && visibilityPreference) {
-                                try {
-                                  if (
-                                    window.localStorage.getItem(visibilityPreference) === "true"
-                                  ) {
-                                    void run(saveVisibility);
-                                    return;
-                                  }
-                                } catch {
-                                  // Confirmation remains available without browser storage.
-                                }
-                              }
-                              setError("");
-                              setRememberVisibility(false);
-                              setConfirmation({
-                                title: dish.visible
-                                  ? copy("Hide this dish?")
-                                  : copy("Show this dish?"),
-                                description: shared
-                                  ? copy("This change applies to every menu using this category.")
-                                  : copy("This change applies to this menu."),
-                                label: dish.visible
-                                  ? copy("Stop showing")
-                                  : copy("Show on this menu"),
-                                rememberVisibility: !shared && !!visibilityPreference,
-                                execute: saveVisibility,
-                              });
-                            }}
+                                }),
+                              )
+                            }
                           >
                             {dish.visible ? (
                               <EyeIcon aria-hidden="true" />
@@ -1890,15 +1823,11 @@ function MenuWorkspaceSection({
                               </Dropdown.Portal>
                             </Dropdown.SubmenuRoot>
                             <Dropdown.Item
+                              className="not-data-disabled:text-destructive"
                               disabled={locked || pending}
                               onClick={() => {
                                 setError("");
-                                setConfirmation({
-                                  title: copy("Delete this dish?"),
-                                  description: copy("This cannot be undone."),
-                                  label: copy("Delete dish"),
-                                  execute: () => client.remove(dish.id),
-                                });
+                                setDeletingDishId(dish.id);
                               }}
                             >
                               <Trash2Icon aria-hidden="true" className="size-4" />

@@ -21,7 +21,7 @@ const plugins = [
   { route: "/en/customers", control: "Directory state", search: "Search customers" },
   { route: "/en/projects", control: "Directory state", search: "Search projects" },
   {
-    route: "/en/admin/menus",
+    route: "/en/admin/menus/items",
     control: "Directory state",
     search: "Search menu items",
     replacesClient: true,
@@ -123,7 +123,7 @@ void test("plugin tables retain headers, loaded rows and paging through loading,
       await page.getByLabel("Preview as").selectOption("user");
       assert.equal(await page.locator("main table").count(), 0);
     }
-    if (plugin.route === "/en/admin/menus") {
+    if (plugin.route === "/en/admin/menus/items") {
       await state.selectOption("empty");
       await page.waitForFunction(
         () => document.querySelector("main table")?.getAttribute("aria-busy") !== "true",

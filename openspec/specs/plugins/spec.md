@@ -2268,6 +2268,14 @@ protection independently of the Blog editor, preserving the existing page interf
 - **AND** success SHALL advance only the accepted version without overwriting later edits; failure SHALL retain the draft and version for retry
 - **AND** existing server version checks SHALL continue to reject conflicting writes
 
+#### Scenario: Applying reversible changes in the Menus workspace
+
+- **WHEN** staff toggle menu publication or dish visibility, or remove a category from a menu
+- **THEN** the workspace SHALL submit the change without a confirmation dialog, prevent duplicate submissions and report save failures
+- **AND** removing a category SHALL preserve its dishes and other menu memberships
+- **AND** shared category editing SHALL still require staff to unlock that category before toggling a dish
+- **AND** permanent deletion SHALL still require confirmation
+
 #### Scenario: Filtering visible dishes
 
 - **WHEN** a visitor filters a supplied public menu
@@ -2317,6 +2325,12 @@ protection independently of the Blog editor, preserving the existing page interf
 - **AND** loaded rows remain visible and further writes wait for refresh to settle
 - **AND** failed reads retain accepted rows with retry, while failed writes retain dialog drafts and confirmations
 - **AND** responses from an earlier client session cannot change or refresh the current client's taxonomy
+
+#### Scenario: Creating labels from grouped management
+
+- **WHEN** staff use Create beside Allergens or Dietary preferences
+- **THEN** the shared label editor SHALL create a label of that section’s type without asking staff to select a type
+- **AND** the saved label SHALL appear in that section
 
 #### Scenario: Editing label icons
 
