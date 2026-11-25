@@ -15,10 +15,13 @@ import {
   menuCategoryInputSchema,
   menuLabelInputSchema,
   menuOrderSchema,
+  menuCardInputSchema,
+  menuItemGroupOrderSchema,
 } from "@/components/plugins/menus/model";
-import type { MenusClient } from "@/components/plugins/menus/types";
+import type { MenusClient, MenuCardsClient } from "@/components/plugins/menus/types";
 
 export interface MenusAgentOptions<Context> extends AgentConnectorOptions<Context, MenusClient> {
+  cards?(this: void, context: Context): MenuCardsClient;
   /** Use the existing menu-item Drive scope, validate bytes and return the completed entry ID. */
   uploadImage?(
     context: Context,
@@ -80,6 +83,40 @@ export function createMenusAgentOperation<Context>(options: MenusAgentOptions<Co
       effects: ["Deletes the selected label."],
     }),
   ];
+  if (options.cards) {
+    const cards = options.cards;
+    const versioned = agentRecord.extend({ version: agentVersion });
+    const card = async (c: Context, i: { id?: string }) => {
+      if (!i.id) return null;
+      const found = (await cards(c).listCards()).find((row) => row.id === i.id);
+      if (!found) throw new AgentsError("NOT_FOUND");
+      return found;
+    };
+    tools.push(
+      read("menus_list_cards", z.object({}), (c) => cards(c).listCards()),
+      read("menus_list_card_items", agentRecord, (c, i) => cards(c).listItems(i.id)),
+      write("menus_save_card", menuCardInputSchema, {
+        before: card,
+        run: (c, i) => cards(c).saveCard(i),
+        effects: ["Published menu changes affect the public website."],
+      }),
+      write("menus_delete_card", versioned, {
+        before: card,
+        run: (c, i) => cards(c).removeCard(i.id, i.version),
+        effects: ["Removes this menu from the website."],
+      }),
+      write("menus_place_items", z.object({ groups: menuItemGroupOrderSchema }), {
+        before: (c) => options.client(c).list(),
+        run: (c, i) => cards(c).placeItems(i.groups),
+        effects: ["Moves and reorders dishes across menu sections."],
+      }),
+      write("menus_next_week", versioned, {
+        before: card,
+        run: (c, i, _files, requestId) => cards(c).nextWeek(i.id, i.version, requestId),
+        effects: ["Creates a draft copy for the next week."],
+      }),
+    );
+  }
   if (options.uploadImage)
     tools.push(
       write("menus_upload_image", agentRecord.extend({ attachmentId: agentId }), {

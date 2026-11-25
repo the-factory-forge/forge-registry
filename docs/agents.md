@@ -15,19 +15,21 @@ Its browser-session mock is not production storage or authorization.
 pnpm dlx shadcn@4.22.1 add @forge/agents @forge/agents-server @forge/agents-blogs-server
 ```
 
-Install only the required connectors. Neither Agents item installs the seven
+Install only the required connectors. Neither Agents item installs the
 business plugins automatically. Connectors are server-only source; their
 dependencies include the existing plugin contracts and service schemas.
 
-| Connector                    | Factory                            | Host integration                                                                                                                                                   |
-| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `agents-blogs-server`        | `createBlogsAgentOperation`        | An authenticated `BlogsClient`, including history when enabled                                                                                                     |
-| `agents-employees-server`    | `createEmployeesAgentOperation`    | A fresh admin employee service, authorized exact lookup, trusted invitation/verification URLs; optional deletion-retention, photo and website-publication adapters |
-| `agents-customers-server`    | `createCustomersAgentOperation`    | The existing Customers service client                                                                                                                              |
-| `agents-projects-server`     | `createProjectsAgentOperation`     | The existing Projects service client; customer ownership remains required                                                                                          |
-| `agents-drive-server`        | `createDriveAgentOperation`        | The scoped Drive client and authorized exact entry lookup; optional space-name adapters                                                                            |
-| `agents-menus-server`        | `createMenusAgentOperation`        | The Menus client; optional image upload through the existing menu-item Drive scope                                                                                 |
-| `agents-reservations-server` | `createReservationsAgentOperation` | The staff Reservations client and authorized exact lookup without management secrets                                                                               |
+| Connector                     | Factory                             | Host integration                                                                                                                                                   |
+| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `agents-blogs-server`         | `createBlogsAgentOperation`         | An authenticated `BlogsClient`, including history when enabled                                                                                                     |
+| `agents-employees-server`     | `createEmployeesAgentOperation`     | A fresh admin employee service, authorized exact lookup, trusted invitation/verification URLs; optional deletion-retention, photo and website-publication adapters |
+| `agents-customers-server`     | `createCustomersAgentOperation`     | The existing Customers service client                                                                                                                              |
+| `agents-projects-server`      | `createProjectsAgentOperation`      | The existing Projects service client; customer ownership remains required                                                                                          |
+| `agents-drive-server`         | `createDriveAgentOperation`         | The scoped Drive client and authorized exact entry lookup; optional space-name adapters                                                                            |
+| `agents-menus-server`         | `createMenusAgentOperation`         | The Menus client; optional composed-menu client and image upload through the existing menu-item Drive scope                                                        |
+| `agents-reservations-server`  | `createReservationsAgentOperation`  | The staff Reservations client and authorized exact lookup without management secrets                                                                               |
+| `agents-supports-server`      | `createSupportsAgentOperation`      | The staff Supports client, retaining ticket visibility and attachment ownership                                                                                    |
+| `agents-conversations-server` | `createAgentConversationsOperation` | The current user's Agents client and a required target-operation permission/scope check                                                                            |
 
 Each factory takes `client(context)` and `authorize(context)`. Resolve current
 permissions in these callbacks; a cached role or a browser capability is not
@@ -78,10 +80,16 @@ budget, rate limits, request timeouts and model selection stay in the host.
 `AgentsClient` is the browser's authenticated transport contract. Bind its
 operations/list/create/get/remove/decide methods to host endpoints. Stream `send`
 events over the host's streaming transport and forward cancellation. The service
-accepts only user text, attachment references, a request ID and an optional resume
+accepts only user text, attachment references, a request ID, an optional interface locale and an optional resume
 flag. It builds history from the database; submitted assistant/system messages or
 replacement action arguments cannot establish authority. Keep provider errors
 and credentials out of public responses.
+
+Supply the selected page language as `locale` in each `send` request, including
+continuations. The service validates the language tag and uses it as the default
+for ambiguous greetings or test text. Clear user language or an explicit language
+request takes precedence. Hosts should restrict the locale to their installed
+languages and supply their site's default when older clients omit it.
 
 `send` emits incremental text and an initial durable conversation. Always reload
 `get` after completion, cancellation or failure to obtain final messages and
@@ -96,6 +104,12 @@ and aborts old UI requests, including pending settings results. Changing operati
 aborts the departed stream; late results cannot update the new view.
 
 ## Administrator-managed model connection
+
+Hosts may supply `AgentsPage.connectionSettings` to place their assistant access
+controls in the same Settings dialog. The content and its authenticated transport
+remain host-owned; model settings keep their existing administrator restriction.
+Registry uses this slot only in development for its [temporary MCP demo](./webmcp.md#test-remote-mcp-from-agents-settings).
+It does not create production account keys or change the Auth plugin's Security UI.
 
 Pass an `AgentsSettingsClient` as `AgentsPage.settings` only for website
 administrators. The header Settings button opens a provider, API key and model
@@ -169,7 +183,7 @@ names that sample model; it never calls providers or saves real API keys.
 
 ## Page and navigation
 
-`AgentsPage` accepts `client`, controlled `operationId` and `conversationId`,
+`AgentsPage` accepts an optional `refreshVersion` to reload externally changed conversations without discarding drafts, plus `client`, controlled `operationId` and `conversationId`,
 `onSelectionChange`, translated `labels`, optional administrator-only `settings`,
 `cropLabels` and `className`. Settings replaces the former header operation selector;
 operation cards and All operations retain selection and navigation.
@@ -243,6 +257,11 @@ Connectors compare previews before execution, but do not add optimistic versions
 to services that do not already support them. Hosts needing stronger concurrent
 edit guarantees must provide transaction-bound adapters for those services.
 
+Reads and proposal preparation preserve compatible plugin errors (`NOT_FOUND`,
+`FORBIDDEN`, `INVALID`, `STORAGE`) across chat, MCP and WebMCP. Other failures become
+`RUNTIME` without exposing internal messages. Missing records are expected after
+deletion; a failed read does not mean the preceding deletion failed.
+
 A validation or authorization rejection before execution expires the proposal.
 Once execution starts, any thrown error becomes `unresolved`, blocks further turns and cannot
 be automatically replayed. A lost request older than two minutes is recovered on
@@ -272,8 +291,8 @@ or public object URL is permitted.
 The browser adapter converts `File` to the service's
 `attach({ conversationId, name, contentType, bytes })` request. Convert
 `attachment(conversationId, id)` bytes back into a Blob for authorized previews.
-Attachments are limited to 25 MiB, ten per message; the destination plugin can
-enforce a smaller limit. The service verifies stored byte length and SHA-256
+Attachments default to 25 MiB, ten per message. Hosts can set
+`maxAttachmentBytes`; the destination plugin still enforces its own limits. The service verifies stored byte length and SHA-256
 before returning or using a file. Staging is explicitly initiated by file
 selection. Publishing or associating the file with a plugin record remains a
 separately approved action with that plugin's own byte validation.
@@ -321,6 +340,10 @@ verify its real provider, session/transport protection, quotas, migrations, S3
 privacy/lifecycle rules and adopted domain adapters before deployment.
 
 ## External assistants (optional MCP)
+
+For assistants using the current browser session and page context, install the
+separate [WebMCP connector](./webmcp.md). Both adapters reuse the same executor;
+WebMCP adds a visible website review and optional private staging.
 
 Install `@forge/agents-mcp-server` and the installed business connectors. It uses
 the official TypeScript MCP SDK's Streamable HTTP transport, including stateless
@@ -374,7 +397,8 @@ The shared `createAgentsService` also exposes a trusted `external(context)` API 
 makes `runtime` optional. Sending a chat message without a runtime reports
 `NOT_CONFIGURED`; external calls require no model settings. Chat calls already use
 the extracted execution module directly and keep their existing approval UI.
-External records have a connection binding and `source=mcp`; no transcript is
+External proposals have a connection binding and `source=mcp`; private WebMCP
+staging uses `source=staging`. No transcript is
 synchronized. Existing rows need an additive host migration for the `source`
 column with default `chat`. Stores must implement insert-only `create`, including
 under concurrent retries. Do not replace stored proposals on ID conflict.
@@ -384,3 +408,33 @@ consent, account Security and migrations. Installation makes it available; it re
 its installed Employees connector. Registry publication and installation into
 other customer sites are separate actions; no customer is enabled by this source
 change. The local client fixtures are not live Claude/ChatGPT acceptance tests.
+
+Conversation tools can list, read, create and remove the current user's chats,
+send a message, attach a staged file and decide a stored business proposal.
+Decisions show the inner proposal's full target, changes and effects before
+execution. Sending uses the host model and its billing; the showroom uses a mock.
+Supports tools reuse the staff queue's create/comment/status/upload operations;
+they add no ticket editing, deletion or notification system.
+
+`createAgentConversationsOperation` requires `authorizeOperation(context, id, kind)`.
+For MCP, intersect the connection's `agents:<id>:read/write` scopes with current
+website permissions. Conversations always need read access to their operation;
+changes also need write access. An `agents:agents:*` grant alone gives no access
+to Blogs or another plugin through saved chats.
+
+## External file transfers
+
+Provide private `attachments` to `createAgentsMcpHandler` to expose upload tools
+and `agents_stage_file`. Inline staging accepts up to 512 KiB and binds the bytes
+to the current owner, connection and request ID. `agents_discard_file` removes an
+unused staged file. No staging call writes into a business plugin: that requires
+a separate proposal and execution with its unchanged review, including file metadata.
+For larger files, a host-owned authenticated binary endpoint can call the gateway's
+`stageFile(context, input)` with its own bounded body reader and rate limit.
+
+Pass `readFile(context, { scope, entryId })` to the Drive connector to enable
+`drive_read_file`. The adapter must authorize the exact entry, enforce its byte
+limit and return `{ name, contentType, bytes }`. Results contain 48 KiB chunks and
+a SHA-256 version. Send that version with subsequent offsets so an edit cannot
+mix different file versions. Signed storage URLs stay on the server. The existing
+`drive_download` still prepares a user-click download.

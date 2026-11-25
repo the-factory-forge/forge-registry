@@ -21,7 +21,7 @@ export interface AgentMcpActor extends AgentActor {
 }
 export interface AgentsMcpOptions<Context> extends Omit<
   AgentsServiceOptions<Context>,
-  "runtime" | "actor" | "attachments"
+  "runtime" | "actor"
 > {
   resource: string;
   /** Verify the token, active grant and current account/resource permissions on every call. */
@@ -41,6 +41,16 @@ const review = z.object({
   ),
   effects: z.array(z.string()),
   attachmentIds: z.array(z.string()).optional(),
+  attachments: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        contentType: z.string(),
+        size: z.number().int().nonnegative(),
+      }),
+    )
+    .optional(),
 });
 
 /** OAuth and request rate limiting are host-owned; this adapter never accepts browser identity fields. */
@@ -70,7 +80,7 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
       );
     },
     tools: operation.tools
-      .filter((tool) => !tool.requiresAttachments)
+      .filter((tool) => !tool.requiresAttachments || !!options.attachments)
       .map((tool): AgentTool<Context> =>
         tool.kind === "read"
           ? {
@@ -96,10 +106,49 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
   const names = operations.flatMap((operation) => operation.tools.map((tool) => tool.name));
   if (
     new Set(names).size !== names.length ||
-    names.some((name) => ["agents_execute", "agents_reject", "agents_proposal"].includes(name))
+    names.some((name) =>
+      [
+        "agents_execute",
+        "agents_reject",
+        "agents_proposal",
+        "agents_stage_file",
+        "agents_discard_file",
+      ].includes(name),
+    )
   )
     throw new AgentsError("INVALID");
   const service = createAgentsService({ ...options, operations });
+  async function canStage(context: Context, operation: AgentServerOperation<Context>) {
+    const actor = await options.actor(context);
+    if (
+      !options.attachments ||
+      !actor?.scopes.includes(agentScope(operation.id, "write")) ||
+      !(await operation.authorize(context))
+    )
+      return false;
+    for (const tool of operation.tools)
+      if (
+        tool.kind === "write" &&
+        tool.requiresAttachments &&
+        (!tool.authorize || (await tool.authorize(context)))
+      )
+        return true;
+    return false;
+  }
+  async function stageFile(
+    context: Context,
+    input: {
+      operationId: string;
+      requestId: string;
+      name: string;
+      contentType: string;
+      bytes: Uint8Array;
+    },
+  ) {
+    const operation = operations.find((operation) => operation.id === input.operationId);
+    if (!operation || !(await canStage(context, operation))) throw new AgentsError("FORBIDDEN");
+    return service.external(context).stage(input);
+  }
   async function result(context: Context, tool: string, run: () => Promise<unknown>) {
     try {
       const value = await run();
@@ -125,6 +174,7 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
     }
   }
   return {
+    stageFile,
     reconcile: (ownerId: string, conversationId: string, actionId: string, result: string) =>
       service.reconcile(ownerId, conversationId, actionId, result),
     removeOwner: (ownerId: string) => service.removeOwner(ownerId),
@@ -149,6 +199,7 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
           for (const operation of operations) {
             if (!(await operation.authorize(context))) continue;
             for (const tool of operation.tools) {
+              if (tool.authorize && !(await tool.authorize(context))) continue;
               if (!actor.scopes.includes(agentScope(operation.id, tool.kind))) continue;
               if (tool.kind === "read") {
                 server.registerTool(
@@ -191,6 +242,56 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
               }
             }
           }
+          const uploadOperations: string[] = [];
+          for (const operation of operations)
+            if (await canStage(context, operation)) uploadOperations.push(operation.id);
+          if (uploadOperations.length) {
+            server.registerTool(
+              "agents_stage_file",
+              {
+                description:
+                  "Stage up to 512 KiB of file bytes privately for this connection. Does not upload to a business plugin yet. Use the returned attachment ID in an upload proposal, then review and execute it. Larger transfers require a host-provided authenticated file endpoint.",
+                inputSchema: z.object({
+                  operationId: z.enum(uploadOperations),
+                  requestId: proposalId,
+                  name: z.string().min(1).max(250),
+                  contentType: z.string().regex(/^[\w.+-]+\/[\w.+-]+$/),
+                  base64: z
+                    .string()
+                    .max(4 * Math.ceil((512 * 1024) / 3))
+                    .regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
+                }),
+                annotations: {
+                  readOnlyHint: false,
+                  destructiveHint: false,
+                  idempotentHint: true,
+                  openWorldHint: false,
+                },
+              },
+              (input) =>
+                result(context, "agents_stage_file", async () => {
+                  const bytes = Buffer.from(input.base64, "base64");
+                  if (bytes.length > 512 * 1024 || bytes.toString("base64") !== input.base64)
+                    throw new AgentsError("INVALID");
+                  return stageFile(context, { ...input, bytes });
+                }),
+            );
+          }
+          if (options.attachments)
+            server.registerTool(
+              "agents_discard_file",
+              {
+                description:
+                  "Remove a staged file owned by this connection. Existing proposals using it will no longer execute.",
+                inputSchema: z.object({ attachmentId: proposalId }),
+                annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+              },
+              ({ attachmentId }) =>
+                result(context, "agents_discard_file", async () => {
+                  await client.discard(attachmentId);
+                  return { discarded: true };
+                }),
+            );
           server.registerTool(
             "agents_proposal",
             {

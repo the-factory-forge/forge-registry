@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "folders": {
+    "libraryName": "Forge Registry",
+    "structures": [
+      {
+        "id": "registry-root",
+        "name": "Forge Registry",
+        "type": "container",
+        "children": [
+          {
+            "id": "registry-registry",
+            "name": "registry",
+            "type": "folder",
+            "children": [
+              {
+                "id": "registry-registry-registry-json",
+                "name": "registry.json",
+                "type": "file"
+              },
+              {
+                "id": "registry-registry-components",
+                "name": "components",
+                "type": "folder",
+                "children": [
+                  {
+                    "id": "registry-registry-components-layouts",
+                    "name": "layouts",
+                    "type": "folder"
+                  },
+                  {
+                    "id": "registry-registry-components-pages",
+                    "name": "pages",
+                    "type": "folder"
+                  },
+                  {
+                    "id": "registry-registry-components-plugins",
+                    "name": "plugins",
+                    "type": "folder"
+                  },
+                  {
+                    "id": "registry-registry-components-connectors",
+                    "name": "connectors",
+                    "type": "folder"
+                  },
+                  {
+                    "id": "registry-registry-components-utils",
+                    "name": "utils",
+                    "type": "folder"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "registry-src",
+            "name": "src",
+            "type": "folder",
+            "children": [
+              {
+                "id": "registry-src-routes",
+                "name": "routes",
+                "type": "folder"
+              },
+              {
+                "id": "registry-src-showroom",
+                "name": "showroom",
+                "type": "folder"
+              },
+              {
+                "id": "registry-src-lib",
+                "name": "lib",
+                "type": "folder"
+              },
+              {
+                "id": "registry-src-styles",
+                "name": "styles",
+                "type": "folder"
+              },
+              {
+                "id": "registry-src-routetree-gen-ts",
+                "name": "routeTree.gen.ts",
+                "type": "file"
+              }
+            ]
+          },
+          {
+            "id": "registry-public",
+            "name": "public",
+            "type": "folder",
+            "children": [
+              {
+                "id": "registry-public-r",
+                "name": "r",
+                "type": "folder"
+              }
+            ]
+          },
+          {
+            "id": "registry-tests",
+            "name": "tests",
+            "type": "folder"
+          },
+          {
+            "id": "registry-scripts",
+            "name": "scripts",
+            "type": "folder"
+          },
+          {
+            "id": "registry-docs",
+            "name": "docs",
+            "type": "folder"
+          },
+          {
+            "id": "registry-concepts",
+            "name": "concepts",
+            "type": "folder"
+          },
+          {
+            "id": "registry-openspec",
+            "name": "openspec",
+            "type": "folder"
+          },
+          {
+            "id": "registry-structures",
+            "name": ".structures",
+            "type": "folder",
+            "children": [
+              {
+                "id": "registry-structures-config-json",
+                "name": "config.json",
+                "type": "file"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "documentation": {
+      "registry-registry-components-layouts": "# Layouts\n\nReusable compositions that arrange other components.\n",
+      "registry-registry-components-pages": "# Page sections\n\nPage-building sections use the existing `page-` filename and item prefix.\n\n```structures-rules\n{\n  \"rules\": [\n    {\n      \"id\": \"page-prefix\",\n      \"match\": \"**/*.{ts,tsx,mts,cts}\",\n      \"name\": \"page-[a-z0-9-]+\\\\.(?:ts|tsx|mts|cts)\"\n    }\n  ]\n}\n```\n",
+      "registry-registry-components-plugins": "# Plugins\n\nEach plugin owns its UI, types, labels and supporting logic. Optional persistence and service companions stay in its server/ directory. Plugin-specific helpers remain with the plugin; shared consumer-facing helpers belong in utils/. Each plugin has its own AGENTS.md.\n",
+      "registry-registry-components-connectors": "# Connectors\n\nEach named directory owns one optional integration and its server companion. Agents business connectors reuse plugin services. Host sessions, OAuth wiring and customer-specific adapters remain in consuming websites.\n",
+      "registry-registry-components-utils": "# Utilities\n\nShared consumer-facing nonvisual helpers, hooks, data, providers and styles. Helpers used only by one plugin stay with that plugin.\n",
+      "registry-registry-components": "# Portable components\n\nDirect files render reusable UI. The five child directories separate layouts, page sections, plugins, connectors and nonvisual utilities. Published import paths remain stable.\n\n## Module naming rules\n\nUse kebab-case basenames and folder names. Preserve dot suffixes such as `.server.ts`, declarations and existing `index.ts` entry points. Placement follows CONTRIBUTING.md and the distribution checks in tests/registry-structure.test.mjs.\n\n```structures-rules\n{\n  \"rules\": [\n    {\n      \"id\": \"module-names\",\n      \"match\": \"**/*.{ts,tsx,mts,cts}\",\n      \"case\": \"kebab-case\"\n    },\n    {\n      \"id\": \"folder-names\",\n      \"match\": \"**\",\n      \"kind\": \"folder\",\n      \"case\": \"kebab-case\"\n    },\n    {\n      \"id\": \"portable-source-placement\",\n      \"match\": \"**/*.{ts,tsx,mts,cts}\",\n      \"path\": \"(?:[^/]+\\\\.(?:ts|tsx|mts|cts)|(?:connectors|layouts|pages|plugins|utils)/.+)\"\n    }\n  ]\n}\n```\n",
+      "registry-registry-registry-json": "# Registry manifest\n\nOwns shipped files, installation targets and dependencies. Generated public/r output comes from this manifest.\n",
+      "registry-registry": "# Distributable source\n\nPortable source and the shadcn manifest. Registry files cannot import showroom code or depend on its framework; tests/registry-distribution.mjs checks those imports and declared dependencies.\n",
+      "registry-src-routes": "# File routes\n\nTanStack route entry points and page composition. Preserve framework names such as __root.tsx, $locale.agents.tsx and pathless _plugins routes; do not apply ordinary kebab-case renames here.\n",
+      "registry-src-showroom": "# Preview adapters\n\nShowroom-only mocks, preview controls, framework adapters and demo integrations. Temporary MCP settings belong here and are never distributed to customer sites.\n",
+      "registry-src-lib": "# Showroom support\n\nApplication-owned helpers, locale dictionaries and providers. These files are not registry items.\n",
+      "registry-src-styles": "# Showroom styles\n\nApplication theme and global styles. Reusable component styles remain in their registry-owned location.\n",
+      "registry-src-routetree-gen-ts": "# Generated routes\n\nTanStack-generated route tree, committed after route changes. Never hand-edit or rename it.\n",
+      "registry-src": "# Showroom application\n\nTanStack Start application, kept separate from portable registry source. Existing aliases in tsconfig.json resolve @/components into registry/ and other @/ imports into src/.\n\n## Module naming rules\n\nUse kebab-case TypeScript basenames outside routes. Keep existing `.server.ts`, `.d.ts` and other role suffixes. Preserve TanStack route filenames and generated routeTree.gen.ts.\n\n```structures-rules\n{\n  \"rules\": [\n    {\n      \"id\": \"showroom-module-names\",\n      \"match\": \"**/*.{ts,tsx,mts,cts}\",\n      \"exclude\": [\n        \"routes/**\",\n        \"routeTree.gen.ts\"\n      ],\n      \"case\": \"kebab-case\"\n    }\n  ]\n}\n```\n",
+      "registry-tests": "# Tests\n\nNode unit tests, browser journeys, integration suites and their fixtures. Keep test helpers with their suite, such as tests/agents/mcp-client.mjs. Integration containers and migrations remain within their existing test directories.\n\n## Module naming rules\n\nUse kebab-case basenames. Preserve `.test.mjs`, `.browser.mjs`, `.integration.mjs`, `.fixture.tsx` and existing fixture/helper extensions.\n\n```structures-rules\n{\n  \"rules\": [\n    {\n      \"id\": \"test-module-names\",\n      \"match\": \"**/*.{ts,tsx,mts,cts,mjs,cjs}\",\n      \"case\": \"kebab-case\"\n    }\n  ]\n}\n```\n",
+      "registry-scripts": "# Repository scripts\n\nLocal development and maintenance entry points, including the disposable demo-mcp.mjs server. These are not installed registry items.\n\n## Module naming rules\n\nUse kebab-case source basenames, preserving the existing language and module extension.\n\n```structures-rules\n{\n  \"rules\": [\n    {\n      \"id\": \"script-module-names\",\n      \"match\": \"**/*.{ts,tsx,mts,cts,mjs,cjs,js}\",\n      \"case\": \"kebab-case\"\n    }\n  ]\n}\n```\n",
+      "registry-structures-config-json": "# Saved template\n\nMaintained folder policy for Structures audits. Website exports, if requested, are derived copies.\n",
+      "registry-structures": "# Structures configuration\n\nThe saved local folder and naming policy. Skill scripts stay in the installed Structures skill.\n",
+      "registry-public-r": "# Generated registry items\n\nOfficial shadcn build output. Regenerate with pnpm registry:sync; do not edit individual item JSON by hand.\n",
+      "registry-public": "# Public files\n\nStatic showroom assets and generated registry distribution.\n",
+      "registry-docs": "# Integration and maintenance guides\n\nRegistry usage, host wiring, testing and contribution workflows. Observable requirements remain in OpenSpec.\n",
+      "registry-concepts": "# Registry decisions\n\nRegistry-specific architecture decisions; shared Forge decisions remain in forge-specs.\n",
+      "registry-openspec": "# Registry specifications\n\nRegistry-owned behavior and change proposals. Shared host contracts and template requirements belong to forge-specs.\n",
+      "registry-root": "# Forge Registry\n\nPortable source in registry/, showroom integration in src/, generated artifacts in public/r/, and verification in tests/. The tree is curated; omitted paths are allowed. It neither scaffolds files nor introduces core/shared directories.\n\n## Template source\n\nDerived from the local forge-registry repository root (.), revision fa649440cffda1fccfaa4eead491f4bda4a76192. No previous template was present. Sources: AGENTS.md, CONTRIBUTING.md#file-placement, docs/showroom.md#boundaries, docs/agent-workflow.md, registry/registry.json, tsconfig.json and tests/registry-distribution.mjs.\n\n## Validation boundaries\n\nStructures checks the executable naming and placement rules below. Existing registry distribution tests check source ownership, framework independence, imports, manifests and generated output. Public library consumers live in other repositories, so this profile does not infer ownership moves from local usage alone. Preserve framework routes, generated output and installed skill contents. Git history and build caches are not source.\n\n```structures-rules\n{\n  \"ignore\": [\n    \"public/r/**\",\n    \"src/routeTree.gen.ts\",\n    \".agents/skills/**\",\n    \"node_modules/**\",\n    \".git/**\",\n    \".output/**\",\n    \".tanstack/**\",\n    \"dist/**\",\n    \".next/**\"\n  ],\n  \"required\": [\n    \"registry/registry.json\",\n    \"registry/components\",\n    \"src/routes\",\n    \"src/showroom\",\n    \"tests\"\n  ]\n}\n```\n"
+    }
+  }
+}

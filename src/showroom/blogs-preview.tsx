@@ -6,6 +6,7 @@ import {
   useNavigate,
   useRouteContext,
   useSearch,
+  useLocation,
 } from "@tanstack/react-router";
 import {
   createContext,
@@ -20,6 +21,7 @@ import {
 import { z } from "zod";
 
 import { BackLink } from "@/components/back-link";
+import { createBlogsAgentOperation } from "@/components/connectors/agents-blogs/server";
 import { NativeSelect } from "@/components/native-select";
 import {
   BlogCategoriesPage,
@@ -37,6 +39,7 @@ import { publicRecordPath } from "@/components/utils/public-identifier";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales } from "@/showroom/blogs-mock";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { useShowroomTableSort } from "@/showroom/routing";
 import { useShowroomTablePage } from "@/showroom/routing";
@@ -112,6 +115,7 @@ function useBlogsPreview() {
   return value;
 }
 export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
+  const path = useLocation({ select: (location) => location.pathname });
   const selectId = `factory-showroom-blogs-${useId()}`;
   const { locale, segments } = useShowroomParams();
   const state = usePreview();
@@ -126,6 +130,18 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const canSimulateMissingImages = hasArticleEditor && state.historyEnabled;
   return (
     <Context.Provider value={state}>
+      {path.includes("/admin/blogs") && (
+        <PluginWebMcp
+          operations={[
+            createBlogsAgentOperation<undefined>({
+              client: () => state.client,
+              authorize: async () => true,
+            }),
+          ]}
+          revision={`${state.editor}:${state.admin}:${state.readOnly}:${state.historyEnabled}:${state.exampleRevision}`}
+          context={{ plugin: "blogs", recordId: path.split("/admin/blogs/")[1]?.split("/")[0] }}
+        />
+      )}
       <ShowroomPreview
         notice={previewDataNotice}
         navigation={

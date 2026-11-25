@@ -3131,6 +3131,15 @@ the server companion’s administrator-managed website model connection.
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
 
+#### Scenario: Reply language follows the current site locale by default
+
+- **WHEN** the host supplies the selected page locale with a chat request
+- **THEN** the service validates the language tag and includes it in trusted runtime instructions
+- **AND** ambiguous greetings, test messages and nonsensical text use that locale as the default
+- **AND** a clearly different user language or explicit language request takes precedence
+- **AND** prior assistant replies and tool output do not establish the user's preferred language
+- **AND** hosts that omit the optional locale retain their existing instructions
+
 #### Scenario: Viewing history without an operation filter
 
 - **WHEN** no operation is selected
@@ -3151,12 +3160,19 @@ the server companion’s administrator-managed website model connection.
 - **AND** result links survive reload and cannot be supplied through approvals or model output
 - **AND** uncertain outcomes block further execution until trusted host reconciliation
 
+#### Scenario: Reporting a missing plugin record
+
+- **WHEN** an authorized read or proposal preparation targets a deleted record
+- **THEN** the shared executor preserves the plugin's safe not-found code across chat, MCP and WebMCP
+- **AND** unexpected failures hide internal diagnostics, while an uncertain started write still requires reconciliation
+
 #### Scenario: Installing selected integrations
 
 - **WHEN** a host installs Agents
 - **THEN** the base UI and server companion do not install every business plugin
 - **AND** separately installable server connectors cover Blogs, Employees, Customers,
-  Projects, Drive, Menus and Reservations through their existing service contracts
+  Projects, Drive, Menus, Reservations and Supports through their existing service contracts
+- **AND** optional conversation tools use the current user's Agents client without exposing provider settings or account security
 - **AND** employee administration retains administrator checks and retention adapters
 - **AND** Auth owns sessions while Mailing remains behind configured notification actions
 - **AND** host-defined workflows use trusted instructions and explicit allowed tools
@@ -3180,14 +3196,32 @@ the server companion’s administrator-managed website model connection.
 - **AND** cancellation does not imply rollback of an already-started approved write
 - **AND** stale executing writes are marked unresolved rather than replayed
 
+#### Scenario: Reviewing an action inside a conversation
+
+- **WHEN** an assistant proposes approving a saved chat action
+- **THEN** the review shows that action's target, changes and effects
+- **AND** changed proposals and lost permissions prevent execution
+- **AND** conversation tools retain the connection's read/write scopes for the target operation
+- **AND** refreshing externally changed chats preserves unsent drafts
+
 ### Requirement: External assistant tools reuse durable Agents execution
 
 The registry SHALL provide optional MCP tools over its shared Agents read,
 proposal and execution module, without requiring a model provider. Hosts SHALL
 supply verified connection identity, current authorization and explicit installed
-operations. Tool scopes SHALL narrow host permissions. The seven existing business
+operations. Tool scopes SHALL narrow host permissions. The installed business
 connectors SHALL retain their service adapters; attachment-dependent operations
-SHALL remain unavailable to external clients without a separate upload capability.
+SHALL remain unavailable without host-provided private storage. Staging SHALL bind
+bytes to the authenticated connection and require a separate reviewed write to
+place them in a business plugin. Authorized file reads SHALL return bounded chunks
+and reject continuation against a changed file version.
+
+#### Scenario: Transferring a private file
+
+- **WHEN** a permitted connection stages a file and approves its upload proposal
+- **THEN** the destination plugin receives the verified bytes once
+- **AND** another connection cannot use or discard the staging reference
+- **AND** file reads require current destination permissions and a matching version for subsequent chunks
 
 #### Scenario: External proposal execution
 
@@ -3203,6 +3237,47 @@ SHALL remain unavailable to external clients without a separate upload capabilit
 
 - **WHEN** a host continues to use the existing Agents chat client
 - **THEN** its approval UI, durable storage and recovery rules remain compatible and external records are excluded from its conversation list
+
+### Requirement: WebMCP connector
+
+The optional WebMCP connector SHALL expose host-selected page context and installed
+Agents operations to a compatible browser assistant, using the current website
+session. Hosts SHALL retain authentication, routes, permissions and context
+selection. The connector SHALL reuse Agents execution without a model provider.
+
+#### Scenario: Acting on the current page
+
+- **WHEN** an authorized assistant requests context or an installed operation
+- **THEN** the host supplies explicit current-page state and the server rechecks current access
+- **AND** no credential, arbitrary unsaved form value or account-security action is exposed
+
+#### Scenario: Reviewing a browser request
+
+- **WHEN** a tool proposes a business write
+- **THEN** the website presents its stored review before execution
+- **AND** stale input, revoked access and another session cannot authorize the write
+- **AND** retrying an approved request returns its durable outcome without replaying it
+
+#### Scenario: Staging a private file
+
+- **WHEN** an authorized operation supports private attachments
+- **THEN** bounded staging remains isolated to the user and session
+- **AND** the eventual plugin upload requires its own reviewed action and integrity check
+- **AND** the review identifies the file's name, size and destination from the prepared proposal before approval
+
+#### Scenario: A previous decision returns after navigation
+
+- **WHEN** the context or authenticated client changes while a decision is pending
+- **THEN** that decision's success or failure cannot replace or disable a newer review
+- **AND** an already approved write retains its durable outcome without refreshing the departed context
+
+#### Scenario: Leaving or using an unsupported page
+
+- **WHEN** the page context is replaced or the integration unmounts
+- **THEN** its tools are removed and unapproved reviews are cancelled
+- **AND** cancellation does not promise rollback of an approved write
+- **WHEN** the browser has no WebMCP API
+- **THEN** the ordinary website remains usable
 
 ### Requirement: Supports–GitHub connector
 

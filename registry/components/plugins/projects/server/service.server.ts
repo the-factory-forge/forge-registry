@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
+import { projectStatusSchema, projectInputSchema } from "@/components/plugins/projects/inputs";
 import type { ProjectsSchema } from "@/components/plugins/projects/server/schema";
 import {
   containsPattern,
@@ -12,21 +13,7 @@ import {
 } from "@/components/utils/database";
 
 const idSchema = z.string().min(1).max(250);
-export const projectStatusSchema = z.enum([
-  "requested",
-  "prospect",
-  "under-construction",
-  "production",
-]);
-export const projectInputSchema = z.object({
-  name: z.string().trim().min(1).max(200),
-  status: projectStatusSchema.default("requested"),
-  description: z
-    .string()
-    .trim()
-    .max(5000)
-    .transform((value) => value || null),
-});
+export { projectStatusSchema, projectInputSchema } from "@/components/plugins/projects/inputs";
 export type ProjectsAction = "read" | "create" | "edit" | "delete";
 export class ProjectsError extends Error {
   code: "INVALID" | "FORBIDDEN" | "NOT_FOUND" | "IN_USE" | "STORAGE";

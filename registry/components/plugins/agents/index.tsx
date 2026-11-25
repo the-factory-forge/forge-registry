@@ -1,6 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { Tabs } from "@base-ui/react/tabs";
 import {
   DownloadIcon,
   EyeIcon,
@@ -63,8 +64,12 @@ const field =
 
 export interface AgentsPageProps {
   client: AgentsClient;
+  /** Reload after an external action while retaining unsent drafts. */
+  refreshVersion?: number;
   /** Supply only for website administrators; the host must also authorize server requests. */
   settings?: AgentsSettingsClient;
+  /** Optional host-owned assistant connection controls; the host authorizes their transport. */
+  connectionSettings?: React.ReactNode;
   operationId: string | null;
   conversationId: string | null;
   onSelectionChange: (selection: {
@@ -120,7 +125,21 @@ function failure(error: unknown, labels: AgentsLabels) {
   return labels.error;
 }
 
-function ModelSettings({ client, labels }: { client: AgentsSettingsClient; labels: AgentsLabels }) {
+function settingsFailure(error: unknown, fallback: string, notConfigured: string) {
+  return error && typeof error === "object" && "code" in error && error.code === "NOT_CONFIGURED"
+    ? notConfigured
+    : fallback;
+}
+
+function ModelSettings({
+  client,
+  labels,
+  connectionSettings,
+}: {
+  client: AgentsSettingsClient;
+  labels: AgentsLabels;
+  connectionSettings?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
@@ -138,17 +157,46 @@ function ModelSettings({ client, labels }: { client: AgentsSettingsClient; label
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-dark/50" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg border border-border bg-popover p-6 text-popover-foreground">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <Dialog.Title className="text-lg font-semibold">{labels.modelSettings}</Dialog.Title>
+            <Dialog.Title className="text-lg font-semibold">
+              {connectionSettings ? labels.settings : labels.modelSettings}
+            </Dialog.Title>
             <IconTooltip label={labels.close}>
               <Dialog.Close aria-label={labels.close} disabled={busy} className={button}>
                 <XIcon aria-hidden="true" className="size-4" />
               </Dialog.Close>
             </IconTooltip>
           </div>
-          <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
-            {labels.settingsDescription}
-          </Dialog.Description>
-          {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+          {connectionSettings ? (
+            <Tabs.Root defaultValue="connection" className="space-y-5">
+              <Tabs.List aria-label={labels.settings} className="flex gap-4 border-b border-border">
+                <Tabs.Tab
+                  value="connection"
+                  disabled={busy}
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                >
+                  {labels.externalAssistant}
+                </Tabs.Tab>
+                <Tabs.Tab
+                  value="model"
+                  className="min-h-10 cursor-pointer border-b-2 border-transparent px-1 text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring data-active:border-primary data-active:text-foreground"
+                >
+                  {labels.modelSettings}
+                </Tabs.Tab>
+              </Tabs.List>
+              <Tabs.Panel value="connection">{connectionSettings}</Tabs.Panel>
+              <Tabs.Panel value="model">
+                <p className="mb-6 text-sm text-muted-foreground">{labels.settingsDescription}</p>
+                {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+              </Tabs.Panel>
+            </Tabs.Root>
+          ) : (
+            <>
+              <Dialog.Description className="mb-6 text-sm leading-6 text-muted-foreground">
+                {labels.settingsDescription}
+              </Dialog.Description>
+              {open && <ModelSettingsForm client={client} labels={labels} setBusy={setBusy} />}
+            </>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -194,8 +242,9 @@ function ModelSettingsForm({
           setModels([{ id: value.model, label: value.model }]);
         }
       })
-      .catch(() => {
-        if (!disposed) setError(labels.settingsLoadError);
+      .catch((error: unknown) => {
+        if (!disposed)
+          setError(settingsFailure(error, labels.settingsLoadError, labels.settingsNotConfigured));
       })
       .finally(() => {
         if (!disposed) setLoading(false);
@@ -205,18 +254,19 @@ function ModelSettingsForm({
       active.current = false;
       setBusy(false);
     };
-  }, [client, labels.settingsLoadError, setBusy]);
-  async function run(action: () => Promise<() => void>) {
+  }, [client, labels.settingsLoadError, labels.settingsNotConfigured, setBusy]);
+  async function run(action: () => Promise<() => void>, blockDismissal = true) {
     if (locked.current) return;
     locked.current = true;
     setPending(true);
-    setBusy(true);
+    setBusy(blockDismissal);
     setError("");
     try {
       const update = await action();
       if (active.current) update();
-    } catch {
-      if (active.current) setError(labels.settingsError);
+    } catch (error: unknown) {
+      if (active.current)
+        setError(settingsFailure(error, labels.settingsError, labels.settingsNotConfigured));
     } finally {
       locked.current = false;
       if (active.current) {
@@ -324,7 +374,7 @@ function ModelSettingsForm({
                 setModel(choices.some((choice) => choice.id === model) ? model : "");
                 if (!choices.length) setError(labels.noModels);
               };
-            })
+            }, false)
           }
         >
           {labels.loadModels}
@@ -462,18 +512,20 @@ function AttachmentView({
     </div>
   );
 }
-function ActionView({
+export function AgentActionReview({
   action,
   disabled,
   decide,
   labels,
   children,
+  renderAttachment,
 }: {
   action: AgentAction;
   disabled: boolean;
   decide: (approve: boolean) => void;
   labels: AgentsLabels;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  renderAttachment?: (file: AgentAttachment) => React.ReactNode;
 }) {
   const resultHref =
     action.status === "succeeded" ? safeAgentResultHref(action.resultHref) : undefined;
@@ -517,6 +569,22 @@ function ActionView({
           </div>
         ))}
       </dl>
+      {!!action.preview.attachments?.length && (
+        <ul aria-label={labels.attachments} className="space-y-2 text-sm">
+          {action.preview.attachments.map((file) => (
+            <li key={file.id} className="break-words">
+              {renderAttachment ? renderAttachment(file) : <span>{file.name}</span>}
+              <p className="text-xs text-muted-foreground">
+                {new Intl.NumberFormat(undefined, { style: "unit", unit: "byte" }).format(
+                  file.size,
+                )}
+                {" · "}
+                {file.contentType}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
       {children}
       {!!action.preview.effects.length && (
         <div>
@@ -574,7 +642,9 @@ function ActionView({
 }
 function AgentsContent({
   client,
+  refreshVersion,
   settings,
+  connectionSettings,
   operationId,
   conversationId,
   onSelectionChange,
@@ -656,7 +726,7 @@ function AgentsContent({
       generation.current = request + 1;
       abort();
     };
-  }, [client, operationId, conversationId, revision]);
+  }, [client, operationId, conversationId, revision, refreshVersion]);
   useEffect(() => {
     const element = transcript.current;
     if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 160)
@@ -799,7 +869,13 @@ function AgentsContent({
             <p className="mt-1 text-sm text-muted-foreground">{operation.description}</p>
           )}
         </div>
-        {settings && <ModelSettings client={settings} labels={labels} />}
+        {settings && (
+          <ModelSettings
+            client={settings}
+            labels={labels}
+            connectionSettings={connectionSettings}
+          />
+        )}
       </header>
       <div className="grid min-h-0 flex-1 md:grid-cols-[14rem_minmax(0,1fr)]">
         <nav
@@ -1020,11 +1096,19 @@ function AgentsContent({
                 {conversation.actions
                   .filter((action) => action.messageId === entry.id)
                   .map((action) => (
-                    <ActionView
+                    <AgentActionReview
                       key={action.id}
                       action={action}
                       labels={labels}
                       disabled={blocked}
+                      renderAttachment={(file) => (
+                        <AttachmentView
+                          client={client}
+                          conversationId={conversation.id}
+                          attachment={file}
+                          labels={labels}
+                        />
+                      )}
                       decide={(approve) =>
                         void run(async (request) => {
                           const chat = await client.decide({
@@ -1043,21 +1127,22 @@ function AgentsContent({
                         })
                       }
                     >
-                      {action.preview.attachmentIds?.map((id) => {
-                        const file = conversation.messages
-                          .flatMap((message) => message.attachments)
-                          .find((file) => file.id === id);
-                        return file ? (
-                          <AttachmentView
-                            key={id}
-                            client={client}
-                            conversationId={conversation.id}
-                            attachment={file}
-                            labels={labels}
-                          />
-                        ) : null;
-                      })}
-                    </ActionView>
+                      {!action.preview.attachments &&
+                        action.preview.attachmentIds?.map((id) => {
+                          const file = conversation.messages
+                            .flatMap((message) => message.attachments)
+                            .find((file) => file.id === id);
+                          return file ? (
+                            <AttachmentView
+                              key={id}
+                              client={client}
+                              conversationId={conversation.id}
+                              attachment={file}
+                              labels={labels}
+                            />
+                          ) : null;
+                        })}
+                    </AgentActionReview>
                   ))}
               </Fragment>
             ))}

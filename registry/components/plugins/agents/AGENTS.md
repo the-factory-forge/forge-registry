@@ -1,6 +1,6 @@
 # Agents
 
-Agents provides private operation-based staff chat and optional external MCP tools.
+Agents provides private operation-based staff chat and optional MCP/WebMCP tools.
 Read the [integration guide](../../../../docs/agents.md),
 [Agents requirements](../../../../openspec/specs/plugins/spec.md#requirement-agents-plugin)
 and, for MCP changes, the
@@ -14,7 +14,8 @@ and the guide's linked shared access contract.
 - `server/service.server.ts` resolves fresh actors and operation access, owns
   conversations, server history and attachment lifecycle, and coordinates runtime
   turns. `store.server.ts` and `schema.ts` persist records and serialized changes.
-- `server/execution.server.ts` is the common execution path for chat and MCP.
+- `execution.ts` is the common execution path for chat, MCP and WebMCP.
+  The old server import re-exports it; showroom mocks use the same pure executor.
   Reads validate input and call existing services. Writes first store their input,
   review and snapshot; execution revalidates them and runs only stored arguments.
   A started write with an uncertain result becomes unresolved and requires trusted
@@ -23,7 +24,7 @@ and the guide's linked shared access contract.
   `models.server.ts` supplies model discovery/runtime adapters. External execution
   can use the service without configuring a model runtime.
 - `server/mcp.server.ts` binds proposals to the authenticated connection and
-  narrows installed operations by scopes. It excludes attachment-dependent tools.
+  narrows installed operations by scopes. It exposes attachment-dependent tools only when the host supplies private storage.
   Matching review arguments establish payload integrity, not proof of a separate
   human approval; OAuth and client confirmation settings remain host/client concerns.
 
@@ -39,6 +40,11 @@ routing. Cancellation cannot promise rollback of an already-started write. Clean
 and unresolved records must survive failures and process restarts.
 
 ## Checks
+
+The optional `connectors/agents-webmcp` adapter owns native browser registration
+and visible reviews; hosts own transport, session identity and selected context.
+See [WebMCP integration](../../../../docs/webmcp.md),
+`tests/agents-webmcp.test.mjs` and `tests/agents-webmcp.browser.mjs`.
 
 Use [service tests](../../../../tests/agents.test.mjs),
 [connector tests](../../../../tests/agents-connectors.test.mjs),

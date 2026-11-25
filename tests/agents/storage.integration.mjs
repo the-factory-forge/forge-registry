@@ -33,8 +33,9 @@ await test("generated Drizzle schema, durable approvals, concurrent processes an
   });
   const db = drizzle({ client: pool });
   const bucket = `agents-${randomUUID()}`;
+  const endpoint = process.env.AGENTS_TEST_S3_URL ?? "http://127.0.0.1:19039";
   const s3 = new S3Client({
-    endpoint: "http://127.0.0.1:19039",
+    endpoint,
     region: "us-east-1",
     forcePathStyle: true,
     credentials: { accessKeyId: "drive_test", secretAccessKey: "local_drive_test_only" },
@@ -72,7 +73,7 @@ await test("generated Drizzle schema, durable approvals, concurrent processes an
   });
   assert.equal((await f.client.attachment(chat.id, file.id)).bytes.length, 13);
   const row = (await store.attachments(chat.id, "staff"))[0];
-  const unsigned = await fetch(`http://127.0.0.1:19039/${bucket}/${row.key}`);
+  const unsigned = await fetch(`${endpoint}/${bucket}/${row.key}`);
   assert.equal(unsigned.status, 403);
   const { chat: proposal } = await send(f.client, chat.id, "after");
   // A separately constructed service models a fresh process using the same persisted state.
@@ -87,6 +88,38 @@ await test("generated Drizzle schema, durable approvals, concurrent processes an
   assert.equal((await second.client.get(chat.id)).actions[0].status, "succeeded");
   await assert.rejects(f.service.client("other").get(chat.id), { code: "NOT_FOUND" });
   assert.equal((await f.client.list("blogs"))[0].title, "after");
+  const external = fixture({
+    store,
+    attachments,
+    actor: async (id) => ({ id, connection: { id: "browser-session", clientId: "webmcp" } }),
+  }).service.external("staff");
+  const staged = await external.stage({
+    operationId: "blogs",
+    requestId: "old-file",
+    name: "staged.txt",
+    contentType: "text/plain",
+    bytes: new TextEncoder().encode("staged bytes"),
+  });
+  const stagedRow = await store.getAttachment(staged.id, "staff");
+  await store.change(stagedRow.conversationId, "staff", (record) => {
+    record.updatedAt = "2000-01-01T00:00:00.000Z";
+  });
+  assert.deepEqual(await store.expiredStaging("staff", new Date().toISOString()), [
+    stagedRow.conversationId,
+  ]);
+  assert.deepEqual(await store.expiredStaging("other", new Date().toISOString()), []);
+  await external.stage({
+    operationId: "blogs",
+    requestId: "fresh-file",
+    name: "fresh.txt",
+    contentType: "text/plain",
+    bytes: new TextEncoder().encode("fresh bytes"),
+  });
+  assert.equal(await store.getAttachment(staged.id, "staff"), null);
+  await assert.rejects(
+    s3.send(new GetObjectCommand({ Bucket: bucket, Key: stagedRow.key })),
+    (error) => error.$metadata.httpStatusCode === 404,
+  );
   await f.service.removeOwner("staff");
   assert.equal((await store.owned("staff")).length, 0);
   await assert.rejects(

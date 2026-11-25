@@ -41,6 +41,8 @@ export interface AgentPreview {
   changes: { label: string; before?: string; after: string }[];
   effects: string[];
   attachmentIds?: string[];
+  /** File identity captured with the stored proposal, without bytes or storage URLs. */
+  attachments?: AgentAttachment[];
 }
 export type AgentActionStatus =
   | "pending"
@@ -87,6 +89,8 @@ export interface AgentsClient {
       text: string;
       attachmentIds: string[];
       resume?: boolean;
+      /** Selected host interface language, used when the user’s language is unclear. */
+      locale?: string;
     },
     signal: AbortSignal,
   ): AsyncIterable<AgentEvent>;

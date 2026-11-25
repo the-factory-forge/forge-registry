@@ -15,7 +15,7 @@ import {
   listEmployeesSchema,
   type Employee,
 } from "@/components/plugins/employees/schema";
-import { createEmployeeService } from "@/components/plugins/employees/server/employees.server";
+import type { createEmployeeService } from "@/components/plugins/employees/server/employees.server";
 
 export interface EmployeesAgentOptions<Context> extends AgentConnectorOptions<
   Context,

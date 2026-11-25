@@ -36,15 +36,24 @@ const sendInput = z.object({
   requestId: id,
   text: z.string().trim().max(32000),
   attachmentIds: z.array(id).max(10),
+  locale: z
+    .string()
+    .max(64)
+    .refine((value) => {
+      try {
+        return Intl.getCanonicalLocales(value).length === 1;
+      } catch {
+        return false;
+      }
+    })
+    .optional(),
   resume: z.boolean().default(false),
 });
 const attachmentInput = z.object({
   conversationId: id,
   name: z.string().min(1).max(250),
   contentType: z.string().regex(/^[\w.+-]+\/[\w.+-]+$/),
-  bytes: z
-    .instanceof(Uint8Array)
-    .refine((bytes) => bytes.length > 0 && bytes.length <= 25 * 1024 * 1024),
+  bytes: z.instanceof(Uint8Array),
 });
 const prefixSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*\/agents\/$/);
 const message = (
@@ -84,6 +93,7 @@ export interface AgentsServiceOptions<Context> {
   /** Resolve a fresh staff session. Return null for customers, anonymous or disabled accounts. */
   actor(context: Context): Promise<AgentActor | null>;
   attachments?: AgentAttachmentStore;
+  maxAttachmentBytes?: number;
   /** Resolve a host route from a successful service result, never from model output. */
   resultHref?(
     context: Context,
@@ -93,6 +103,10 @@ export interface AgentsServiceOptions<Context> {
 
 export function createAgentsService<Context>(options: AgentsServiceOptions<Context>) {
   const { store, runtime } = options;
+  const maxAttachmentBytes = parse(
+    z.number().int().positive().safe(),
+    options.maxAttachmentBytes ?? 25 * 1024 * 1024,
+  );
   const operations = new Map(options.operations.map((operation) => [operation.id, operation]));
   if (operations.size !== options.operations.length) throw new AgentsError("INVALID");
   for (const operation of operations.values()) {
@@ -127,8 +141,12 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         const { ownerId, record } = await access(context, conversationId);
         if (record.deleting) throw new AgentsError("NOT_FOUND");
         const row = await store.getAttachment(parse(id, attachmentId), ownerId);
-        if (!row || row.conversationId !== conversationId || row.state !== "ready")
-          throw new AgentsError("NOT_FOUND");
+        if (!row || row.state !== "ready") throw new AgentsError("NOT_FOUND");
+        if (row.conversationId !== conversationId) {
+          // External proposals may reference staged files from the same owner and connection only.
+          if (!record.connection) throw new AgentsError("NOT_FOUND");
+          await access(context, row.conversationId);
+        }
         if (!options.attachments) throw new AgentsError("STORAGE");
         try {
           const bytes = await options.attachments.get(row.key);
@@ -261,13 +279,23 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         const record = await checkRun();
         let called = false;
         for await (const event of runtime.stream({
-          instructions: operation.instructions,
+          instructions: input.locale
+            ? `${operation.instructions} Current interface locale: ${input.locale}. Use it as the default reply language for ambiguous greetings, test messages or nonsensical text. Adapt when the user clearly uses or explicitly requests another language. Determine the user's language from user messages, not previous assistant replies or tool output.`
+            : operation.instructions,
           messages: record.messages,
-          tools: operation.tools.map((tool) => ({
-            name: tool.name,
-            description: tool.description,
-            inputSchema: z.toJSONSchema(tool.schema, { io: "input" }),
-          })),
+          tools: (
+            await Promise.all(
+              operation.tools.map(async (tool) =>
+                !tool.authorize || (await tool.authorize(context)) ? tool : null,
+              ),
+            )
+          )
+            .filter((tool) => tool !== null)
+            .map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              inputSchema: z.toJSONSchema(tool.schema, { io: "input" }),
+            })),
           signal,
         })) {
           await checkRun();
@@ -338,6 +366,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
   }
   async function attach(context: Context, raw: unknown) {
     const input = parse(attachmentInput, raw);
+    if (input.bytes.length > maxAttachmentBytes) throw new AgentsError("LIMIT");
     const { ownerId } = await access(context, input.conversationId);
     const attachmentStore = options.attachments;
     if (!attachmentStore) throw new AgentsError("STORAGE");
@@ -400,13 +429,18 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
       },
     };
   }
-  const noExternalFiles: AgentFiles = {
-    async get() {
-      throw new AgentsError("NOT_FOUND");
-    },
-  };
+  function externalFiles(context: Context): AgentFiles {
+    return {
+      async get(attachmentId) {
+        const actor = await connectionActor(context);
+        const row = await store.getAttachment(parse(id, attachmentId), actor.id);
+        if (!row) throw new AgentsError("NOT_FOUND");
+        return files(context, row.conversationId).get(attachmentId);
+      },
+    };
+  }
   return {
-    /** Trusted MCP adapter entry point. Identity and connection come only from the host. */
+    /** Trusted external adapter entry point. Identity and connection come only from the host. */
     external(context: Context) {
       async function proposal(proposalId: string) {
         await connectionActor(context);
@@ -416,12 +450,74 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         return { proposalId: conversation.id, operationId: conversation.operationId, ...action };
       }
       return {
+        async stage(raw: unknown) {
+          const input = parse(
+            attachmentInput
+              .omit({ conversationId: true })
+              .extend({ operationId: id, requestId: id }),
+            raw,
+          );
+          const actor = await connectionActor(context);
+          await permit(context, input.operationId);
+          // Proposals expire in 30 minutes; abandoned staging is reclaimed on the owner's next upload.
+          const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          for (const expired of (await store.expiredStaging?.(actor.id, cutoff)) ?? [])
+            await removeOwned(expired, actor.id);
+          const conversationId = createHash("sha256")
+            .update(
+              JSON.stringify([
+                actor.id,
+                actor.connection,
+                "file",
+                input.operationId,
+                input.requestId,
+              ]),
+            )
+            .digest("hex");
+          await store.create({
+            id: conversationId,
+            ownerId: actor.id,
+            connection: actor.connection,
+            operationId: input.operationId,
+            title: "File transfer",
+            updatedAt: new Date().toISOString(),
+            messages: [],
+            actions: [],
+            run: null,
+            requests: [],
+            downloads: {},
+            canResume: false,
+          });
+          await access(context, conversationId);
+          const ready = (await store.attachments(conversationId, actor.id)).find(
+            (file) => file.state === "ready",
+          );
+          if (ready) {
+            if (
+              ready.name !== input.name ||
+              ready.contentType !== input.contentType ||
+              ready.sha256 !== createHash("sha256").update(input.bytes).digest("hex")
+            )
+              throw new AgentsError("INVALID");
+            await files(context, conversationId).get(ready.id);
+            return metadata(ready);
+          }
+          return attach(context, { ...input, conversationId });
+        },
+        async discard(attachmentId: string) {
+          const actor = await connectionActor(context);
+          const row = await store.getAttachment(parse(id, attachmentId), actor.id);
+          if (!row) throw new AgentsError("NOT_FOUND");
+          const { record } = await access(context, row.conversationId);
+          if (!record.connection || record.actions.length) throw new AgentsError("FORBIDDEN");
+          await remove(context, row.conversationId);
+        },
         async read(operationId: string, toolName: string, input: unknown) {
           await connectionActor(context);
           const operation = await permit(context, operationId);
           const tool = operation.tools.find((tool) => tool.name === toolName);
           if (!tool) throw new AgentsError("INVALID");
-          return executor.read(context, tool, input, noExternalFiles);
+          return executor.read(context, tool, input, externalFiles(context));
         },
         async propose(operationId: string, toolName: string, raw: unknown, requestId: string) {
           const actor = await connectionActor(context);
@@ -438,7 +534,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
               context,
               tool,
               input,
-              noExternalFiles,
+              externalFiles(context),
               messageId,
               requestId,
             );
@@ -542,6 +638,8 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
           const download = record.downloads[parse(id, messageId)];
           const tool = download && operation.tools.find((tool) => tool.name === download.tool);
           if (!tool || tool.kind !== "read" || !tool.download) throw new AgentsError("NOT_FOUND");
+          if (tool.authorize && !(await tool.authorize(context)))
+            throw new AgentsError("FORBIDDEN");
           return tool.download(context, parse(tool.schema, download.input));
         },
         async cleanup(conversationId: string) {

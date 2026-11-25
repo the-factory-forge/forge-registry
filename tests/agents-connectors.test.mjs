@@ -3,7 +3,17 @@ import test from "node:test";
 
 import { fixture, send } from "./agents/fixture.mjs";
 
-const names = ["blogs", "employees", "customers", "projects", "drive", "menus", "reservations"];
+const names = [
+  "blogs",
+  "employees",
+  "customers",
+  "projects",
+  "drive",
+  "menus",
+  "reservations",
+  "supports",
+  "conversations",
+];
 const factories = {};
 for (const name of names)
   factories[name] = Object.values(
@@ -43,6 +53,7 @@ for (const name of names) {
             calls.push({ method, args });
             if (method === "list") return name === "employees" ? { users: [values], total: 1 } : [];
             if (method === "get") return { ...entry, ...values };
+            if (method === "operations") return [{ id: "blogs", label: "Blogs" }];
             if (method === "configuration") return { services: [], resources: [], settings: {} };
             if (method === "listSpaces") return { items: [] };
             if (method === "create" && name === "employees")
@@ -56,6 +67,7 @@ for (const name of names) {
       },
     );
     const operation = factories[name]({
+      authorizeOperation: async () => permitted,
       client: () => proxy,
       authorize: async () => permitted,
       get: async () => ({ ...entry, ...values }),
@@ -116,6 +128,25 @@ for (const name of names) {
           labelIds: [],
           translations: { en: { name: "Dish", description: "" } },
         },
+        method: "create",
+      },
+      supports: {
+        read: "supports_list",
+        readInput: {},
+        write: "supports_create",
+        writeInput: {
+          title: "Ticket",
+          description: "Please check",
+          type: "support",
+          attachmentIds: [],
+        },
+        method: "create",
+      },
+      conversations: {
+        read: "conversations_operations",
+        readInput: {},
+        write: "conversations_create",
+        writeInput: { operationId: "blogs" },
         method: "create",
       },
       reservations: {
@@ -325,4 +356,41 @@ await test("Employee retention confirms the reviewed related-record token withou
   });
   assert.equal(previews, 2);
   assert.equal(confirmed, 1);
+});
+
+await test("Supports priority requires the installed method and a reviewed action", async () => {
+  const calls = [];
+  const client = {
+    get: async () => ({ ticket: { id, priority: "P3" } }),
+    setPriority: async (...input) => {
+      calls.push(input);
+    },
+  };
+  const operation = factories.supports({ authorize: async () => true, client: () => client });
+  const priority = operation.tools.find((tool) => tool.name === "supports_set_priority");
+  assert.equal(await priority.authorize({}), true);
+  const f = fixture({
+    operations: [operation],
+    runtime: {
+      async *stream() {
+        yield { type: "tool", name: priority.name, input: { id, priority: "P1" } };
+      },
+    },
+  });
+  const chat = await f.client.create("supports");
+  const proposal = await send(f.client, chat.id, "raise priority");
+  assert.equal(
+    proposal.chat.actions[0].preview.changes.find((change) => change.label === "priority").before,
+    "P3",
+  );
+  assert.equal(calls.length, 0);
+  await f.client.decide({
+    conversationId: chat.id,
+    actionId: proposal.chat.actions[0].id,
+    approve: true,
+  });
+  assert.deepEqual(calls, [[id, "P1"]]);
+  delete client.setPriority;
+  assert.equal(await priority.authorize({}), false);
+  await assert.rejects(send(f.client, chat.id, "raise priority"), { code: "FORBIDDEN" });
 });

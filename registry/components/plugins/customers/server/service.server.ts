@@ -1,6 +1,7 @@
 import { eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
+import { customerInputSchema } from "@/components/plugins/customers/inputs";
 import type {
   CustomerUserTable,
   CustomersSchema,
@@ -16,20 +17,7 @@ import {
 } from "@/components/utils/database";
 
 const idSchema = z.string().min(1).max(250);
-const contactField = z
-  .string()
-  .trim()
-  .max(2000)
-  .transform((value) => value || null);
-export const customerInputSchema = z.object({
-  name: z.string().trim().min(1).max(200),
-  email: z.string().trim().toLowerCase().pipe(z.email()),
-  companyName: contactField,
-  phoneNumber: contactField,
-  street: contactField,
-  city: contactField,
-  addressComplement: contactField,
-});
+export { customerInputSchema } from "@/components/plugins/customers/inputs";
 export type CustomersAction = "read" | "create" | "edit" | "delete" | "verify" | "invite";
 export class CustomersError extends Error {
   code: "INVALID" | "FORBIDDEN" | "NOT_FOUND" | "CONFLICT" | "IN_USE" | "STORAGE";

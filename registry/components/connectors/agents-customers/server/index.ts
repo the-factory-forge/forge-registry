@@ -6,10 +6,8 @@ import {
   agentOperation,
   type AgentConnectorOptions,
 } from "@/components/plugins/agents/server/tools";
-import {
-  createCustomersService,
-  customerInputSchema,
-} from "@/components/plugins/customers/server/service.server";
+import { customerInputSchema } from "@/components/plugins/customers/inputs";
+import type { createCustomersService } from "@/components/plugins/customers/server/service.server";
 import { directoryQuerySchema } from "@/components/utils/database";
 
 type Client<Context> = ReturnType<ReturnType<typeof createCustomersService<Context>>["client"]>;

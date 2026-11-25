@@ -25,7 +25,7 @@ the homepage and existing example catalog, expanding localized demos to each sup
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,
 controls and navigation. The shared `examples` catalog in `src/showroom/examples.ts` SHALL
 list composed components, page sections, layouts and plugins, excluding basic
-controls and feedback helpers. Their demos and non-visual helpers SHALL be linked
+controls, feedback helpers and the shared WebMCP website capability. Their demos and non-visual helpers SHALL be linked
 from item guides or parent examples. The shared header owns persisted Light/Dark
 selection; font and System controls are excluded.
 
@@ -36,11 +36,35 @@ selection; font and System controls are excluded.
 - **AND** representative interactions and relevant loading, empty and error states work
 - **AND** light/dark, narrow layouts and keyboard interaction remain usable
 
-#### Scenario: Reviewing a basic control
+#### Scenario: Reviewing an unlisted capability
 
-- **WHEN** a reviewer browses All or Component on the showroom homepage
-- **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, do not appear as standalone cards
-- **AND** their existing demo URLs and registry installation remain available
+- **WHEN** a reviewer browses the showroom catalog or global search
+- **THEN** basic controls and feedback helpers, including native selects, icon tooltips and action toasts, and WebMCP do not appear as standalone entries
+- **AND** registry installation remains available; WebMCP is demonstrated inside the plugin previews
+
+#### Scenario: Reviewing WebMCP without an AI provider
+
+- **WHEN** a reviewer opens a documented plugin preview in a supported browser
+- **THEN** native DevTools can discover and call its tools without an AI provider
+- **AND** business writes show the shared approval review and update the sample data only after approval
+- **AND** the retired standalone WebMCP demo is no longer routed
+
+#### Scenario: Testing business plugins through native tools
+
+- **WHEN** a reviewer opens a staff preview for Blogs, Customers, Employees, Projects, Drive, Menus, Reservations, Supports or Agents
+- **THEN** a compatible browser discovers its installed business tools and current context
+- **AND** approved changes update the same sample records used by the ordinary interface
+- **AND** rejection, stale reviews and revoked permissions prevent changes
+- **AND** public previews expose no staff administration tools, and unsupported browsers retain ordinary controls
+
+#### Scenario: Comparing remote MCP with WebMCP
+
+- **WHEN** a reviewer starts the documented local MCP fixture without an AI provider
+- **THEN** an authenticated MCP client can read and review Blogs changes using the shared business connector
+- **AND** local Agents settings can create an expiring key, replace or revoke it, and display a bounded test prompt
+- **AND** a client can create, read, update and delete its disposable article with stored review before each mutation
+- **AND** key management stays development-only and accepts only the configured local showroom origin
+- **AND** the guide distinguishes its disposable data from the browser demos and production authentication
 
 ### Requirement: Barebones mailing examples
 

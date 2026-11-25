@@ -6,11 +6,17 @@ external service. An **adapter** implements one of the connector's interfaces
 for its provider or host. Connectors install through `@forge`, like plugins;
 there is no runtime loader or universal synchronization protocol.
 
-| Item                                         | Connects                            | Example                                                                  | Guide                         |
-| -------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------- |
-| `customers-bexio`                            | Customers and the Bexio contact API | [Showcase](https://registry.the-corner.swiss/connectors/customers-bexio) | [Setup](./customers-bexio.md) |
-| `projects-drive`                             | Projects and Forge Drive            | [Showcase](https://registry.the-corner.swiss/connectors/projects-drive)  | [Setup](./projects-drive.md)  |
-| `supports-github` / `supports-github-server` | Supports and private GitHub issues  | [Showcase](https://registry.the-corner.swiss/connectors/supports-github) | [Setup](./supports-github.md) |
+| Item                                         | Connects                                 | Example                                                                  | Guide                            |
+| -------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------ | -------------------------------- |
+| `customers-bexio`                            | Customers and the Bexio contact API      | [Showcase](https://registry.the-corner.swiss/connectors/customers-bexio) | [Setup](./customers-bexio.md)    |
+| `projects-drive`                             | Projects and Forge Drive                 | [Showcase](https://registry.the-corner.swiss/connectors/projects-drive)  | [Setup](./projects-drive.md)     |
+| `supports-github` / `supports-github-server` | Supports and private GitHub issues       | [Showcase](https://registry.the-corner.swiss/connectors/supports-github) | [Setup](./supports-github.md)    |
+| `agents-webmcp` / `agents-webmcp-server`     | Browser assistants and Agents operations | Installed plugin admin previews                                          | [Setup and testing](./webmcp.md) |
+
+WebMCP is a site-wide browser integration, packaged as an optional connector to
+Agents operations. Hosts can mount its browser adapter once in the authenticated
+layout to expose the installed operations permitted for the current user. Its
+packaging does not require a separate showroom card for each plugin.
 
 Install only the relationship needed by a website. The connector declares both
 its own files and the existing items it uses. Base plugins do not acquire a
@@ -25,20 +31,25 @@ Keep host adapters outside registry-managed files. Installation does not activat
 connections, grant permissions or migrate deployed data. A folder scope or hidden
 button never grants access.
 
-The showroom's **Connector** category and search list the three examples. Their
-**Adapters and installation** sections identify each interface and its role.
+The showroom's **Connector** category and search list Customers–Bexio,
+Projects–Drive and Supports–GitHub. WebMCP has no standalone catalog entry;
+its tools are demonstrated inside supported plugin admin previews. The three
+listed examples' **Adapters and installation** sections identify each interface
+and its role.
 Browser-only in-memory adapters demonstrate actions, read-only behavior and
 repeatable failures; they do not implement production authorization or access
 live Bexio/GitHub/S3 services. Demo controls remain showroom code.
 
-These connectors add no template configuration or shared host contract. Their
-behavior and specification belong to this repository. They do not change the
-existing TC Bexio installation or any deployed project's storage.
+The connectors' reusable behavior belongs to this repository. WebMCP also follows
+Forge Specs' shared agent-access guarantees; its [guide](./webmcp.md) describes
+the host integration. Installation changes no Template configuration, existing
+TC Bexio connection or deployed project's storage.
 
 ## Agents connectors
 
-The seven `agents-{plugin}-server` items connect Agents to existing Blogs,
-Employees, Customers, Projects, Drive, Menus and Reservations services. They are
-server-only relationships, documented with the [Agents plugin](./agents.md), and
-share its showroom rather than adding seven independent UI demos. Install only
-the relationships used by the host; the base plugins do not depend on Agents.
+The eight `agents-{plugin}-server` items connect Agents to existing Blogs,
+Employees, Customers, Projects, Drive, Menus, Reservations and Supports services.
+`agents-conversations-server` separately exposes the current user's private
+conversation tools to MCP and WebMCP. These server-only relationships are
+documented with the [Agents plugin](./agents.md) and share its showroom. Install
+only the relationships used by the host; the base plugins do not depend on Agents.

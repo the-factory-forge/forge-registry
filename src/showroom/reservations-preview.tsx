@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { createReservationsAgentOperation } from "@/components/connectors/agents-reservations/server";
 import { NativeSelect } from "@/components/native-select";
+import { AgentsError } from "@/components/plugins/agents/types";
 import {
   ReservationBookingPage,
   ReservationManagePage,
@@ -19,6 +21,7 @@ import {
   ReservationSettingsPage,
   type ReservationLabels,
 } from "@/components/plugins/reservations";
+import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { createReservationsMock } from "@/showroom/reservations-mock";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
@@ -182,6 +185,7 @@ function useMock() {
 }
 
 export function ReservationsPreviewProvider({ children }: { children: ReactNode }) {
+  const path = useLocation({ select: (location) => location.pathname });
   const selectId = `factory-showroom-reservations-${useId()}`;
   const [mock] = useState(createReservationsMock);
   const { locale } = useShowroomParams();
@@ -189,6 +193,23 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
   const last = mock.reservations.at(-1);
   return (
     <Context.Provider value={mock}>
+      {path.includes("/admin/reservations") && (
+        <PluginWebMcp
+          operations={[
+            createReservationsAgentOperation<undefined>({
+              client: () => mock.adminClient,
+              authorize: async () => true,
+              get: async (_context, id) => {
+                const record = mock.reservations.find((row) => row.id === id);
+                if (!record) throw new AgentsError("NOT_FOUND");
+                return structuredClone(record);
+              },
+            }),
+          ]}
+          revision={`${mock.generation}`}
+          context={{ plugin: "reservations", date: mock.initialDate }}
+        />
+      )}
       <ShowroomPreview
         notice={previewDataNotice}
         navigation={

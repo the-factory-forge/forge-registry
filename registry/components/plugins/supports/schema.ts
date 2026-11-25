@@ -23,14 +23,16 @@ export const supportCreateSchema = z.object({
   priority: supportPrioritySchema.optional(),
   attachmentIds: attachments,
 });
-export const supportCommentSchema = z
+export const supportCommentInputSchema = z
   .object({
-    requestId: supportIdSchema,
     id: supportIdSchema,
     body: z.string().max(5000),
     attachmentIds: attachments,
   })
   .refine((value) => value.body.trim().length > 0 || value.attachmentIds.length > 0);
+export const supportCommentSchema = supportCommentInputSchema.safeExtend({
+  requestId: supportIdSchema,
+});
 export const SUPPORT_SORT_FIELDS = ["title", "status", "author", "updatedAt"] as const;
 export const supportSortSchema = z.object({
   field: z
