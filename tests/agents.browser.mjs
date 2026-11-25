@@ -476,6 +476,20 @@ await test("Agents: administrator model settings save, reload and drive the demo
     ),
     false,
   );
+  assert.equal(
+    await dialog.getByRole("alert").textContent(),
+    "Demo request failed. Use the sample key “demo” and turn off “Simulate failure”, then retry. Saved settings are unchanged.",
+  );
+  await page.setViewportSize({ width: 390, height: 650 });
+  const closeAfterError = dialog.getByRole("button", { name: "Close", exact: true });
+  await closeAfterError.hover();
+  await page.getByRole("tooltip", { name: "Close", exact: true }).waitFor();
+  await closeAfterError.click();
+  await dialog.waitFor({ state: "hidden" });
+  await settings.click();
+  await dialog.getByRole("tab", { name: "Model settings", exact: true }).click();
+  assert.equal(await dialog.getByLabel("Model", { exact: true }).inputValue(), "demo-openai");
+  await dialog.getByLabel("Provider", { exact: true }).selectOption("anthropic");
   await key.fill("demo");
   await dialog.getByRole("button", { name: "Load models", exact: true }).click();
   await dialog.getByLabel("Model", { exact: true }).selectOption("demo-anthropic");

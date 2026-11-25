@@ -198,6 +198,8 @@ configure hosting secrets, apply migrations, publish routes or deploy a website.
 The showroom accepts only the literal sample key `demo` and persists only sample
 provider/model metadata in browser-session storage. Its next scripted response
 names that sample model; it never calls providers or saves real API keys.
+Failed sample requests explain the demo key and simulated-failure controls while
+preserving the saved sample connection.
 
 ## Page and navigation
 

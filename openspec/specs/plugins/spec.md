@@ -3133,6 +3133,7 @@ the server companion’s administrator-managed website model connection.
 - **AND** failed updates preserve the saved connection; disconnecting preserves conversations
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
+- **AND** failed showroom model requests explain the sample key and simulated-failure controls without implying a live provider connection
 
 #### Scenario: Assistant describes its configured runtime
 
