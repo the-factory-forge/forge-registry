@@ -7,11 +7,13 @@ import {
   agentTools,
   type AgentConnectorOptions,
 } from "@/components/plugins/agents/server/tools";
+import { AgentsError } from "@/components/plugins/agents/types";
 import {
   supportCreateSchema,
   supportCommentInputSchema,
   supportIdSchema,
   supportQuerySchema,
+  supportPrioritySchema,
   supportStatusSchema,
 } from "@/components/plugins/supports/schema";
 import type { SupportsClient } from "@/components/plugins/supports/types";
@@ -42,6 +44,21 @@ export function createSupportsAgentOperation<Context>(
       before,
       run: (c, i) => options.client(c).setStatus(i.id, i.status),
     }),
+    {
+      ...write(
+        "supports_set_priority",
+        record.extend({ priority: supportPrioritySchema.nullable() }),
+        {
+          before,
+          run: (c, i) => {
+            const client = options.client(c);
+            if (!client.setPriority) throw new AgentsError("FORBIDDEN");
+            return client.setPriority(i.id, i.priority);
+          },
+        },
+      ),
+      authorize: async (c) => !!options.client(c).setPriority,
+    },
     write("supports_upload", z.object({ attachmentId: agentId }), {
       before: async () => null,
       attachments: (i) => [i.attachmentId],

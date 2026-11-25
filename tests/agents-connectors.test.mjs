@@ -357,3 +357,36 @@ await test("Employee retention confirms the reviewed related-record token withou
   assert.equal(previews, 2);
   assert.equal(confirmed, 1);
 });
+
+await test("Supports priority requires the installed method and a reviewed action", async () => {
+  const calls = [];
+  const client = {
+    get: async () => ({ id, priority: "P3" }),
+    setPriority: async (...input) => {
+      calls.push(input);
+    },
+  };
+  const operation = factories.supports({ authorize: async () => true, client: () => client });
+  const priority = operation.tools.find((tool) => tool.name === "supports_set_priority");
+  assert.equal(await priority.authorize({}), true);
+  const f = fixture({
+    operations: [operation],
+    runtime: {
+      async *stream() {
+        yield { type: "tool", name: priority.name, input: { id, priority: "P1" } };
+      },
+    },
+  });
+  const chat = await f.client.create("supports");
+  const proposal = await send(f.client, chat.id, "raise priority");
+  assert.equal(calls.length, 0);
+  await f.client.decide({
+    conversationId: chat.id,
+    actionId: proposal.chat.actions[0].id,
+    approve: true,
+  });
+  assert.deepEqual(calls, [[id, "P1"]]);
+  delete client.setPriority;
+  assert.equal(await priority.authorize({}), false);
+  await assert.rejects(send(f.client, chat.id, "raise priority"), { code: "FORBIDDEN" });
+});
