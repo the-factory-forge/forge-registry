@@ -361,7 +361,7 @@ await test("Employee retention confirms the reviewed related-record token withou
 await test("Supports priority requires the installed method and a reviewed action", async () => {
   const calls = [];
   const client = {
-    get: async () => ({ id, priority: "P3" }),
+    get: async () => ({ ticket: { id, priority: "P3" } }),
     setPriority: async (...input) => {
       calls.push(input);
     },
@@ -379,6 +379,10 @@ await test("Supports priority requires the installed method and a reviewed actio
   });
   const chat = await f.client.create("supports");
   const proposal = await send(f.client, chat.id, "raise priority");
+  assert.equal(
+    proposal.chat.actions[0].preview.changes.find((change) => change.label === "priority").before,
+    "P3",
+  );
   assert.equal(calls.length, 0);
   await f.client.decide({
     conversationId: chat.id,

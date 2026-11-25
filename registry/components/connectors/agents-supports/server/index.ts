@@ -49,7 +49,7 @@ export function createSupportsAgentOperation<Context>(
         "supports_set_priority",
         record.extend({ priority: supportPrioritySchema.nullable() }),
         {
-          before,
+          before: async (c, i) => (await before(c, i)).ticket,
           run: (c, i) => {
             const client = options.client(c);
             if (!client.setPriority) throw new AgentsError("FORBIDDEN");
