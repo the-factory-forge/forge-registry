@@ -3141,6 +3141,15 @@ the server companion’s administrator-managed website model connection.
 - **THEN** trusted instructions identify the configured provider and API model ID without including credentials or guessing the underlying version behind an alias
 - **AND** instructions distinguish permission-bound site tools from a general browser, screen access and unsaved form values
 
+#### Scenario: Reply language follows the current site locale by default
+
+- **WHEN** the host supplies the selected page locale with a chat request
+- **THEN** the service validates the language tag and includes it in trusted runtime instructions
+- **AND** ambiguous greetings, test messages and nonsensical text use that locale as the default
+- **AND** a clearly different user language or explicit language request takes precedence
+- **AND** prior assistant replies and tool output do not establish the user's preferred language
+- **AND** hosts that omit the optional locale retain their existing instructions
+
 #### Scenario: Host-owned reply survives view navigation
 
 - **WHEN** the authenticated host supplies a generation snapshot independently of the selected chat view

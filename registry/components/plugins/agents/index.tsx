@@ -153,6 +153,12 @@ function failure(error: unknown, labels: AgentsLabels) {
   return labels.error;
 }
 
+function settingsFailure(error: unknown, fallback: string, notConfigured: string) {
+  return error && typeof error === "object" && "code" in error && error.code === "NOT_CONFIGURED"
+    ? notConfigured
+    : fallback;
+}
+
 function ModelSettings({
   client,
   labels,
@@ -286,8 +292,9 @@ function ModelSettingsForm({
           setModels([{ id: value.model, label: value.model }]);
         }
       })
-      .catch(() => {
-        if (!disposed) setError(labels.settingsLoadError);
+      .catch((error: unknown) => {
+        if (!disposed)
+          setError(settingsFailure(error, labels.settingsLoadError, labels.settingsNotConfigured));
       })
       .finally(() => {
         if (!disposed) setLoading(false);
@@ -297,18 +304,19 @@ function ModelSettingsForm({
       active.current = false;
       setBusy(false);
     };
-  }, [client, labels.settingsLoadError, setBusy]);
-  async function run(action: () => Promise<() => void>) {
+  }, [client, labels.settingsLoadError, labels.settingsNotConfigured, setBusy]);
+  async function run(action: () => Promise<() => void>, blockDismissal = true) {
     if (locked.current) return;
     locked.current = true;
     setPending(true);
-    setBusy(true);
+    setBusy(blockDismissal);
     setError("");
     try {
       const update = await action();
       if (active.current) update();
-    } catch {
-      if (active.current) setError(labels.settingsError);
+    } catch (error: unknown) {
+      if (active.current)
+        setError(settingsFailure(error, labels.settingsError, labels.settingsNotConfigured));
     } finally {
       locked.current = false;
       if (active.current) {
@@ -416,7 +424,7 @@ function ModelSettingsForm({
                 setModel(choices.some((choice) => choice.id === model) ? model : "");
                 if (!choices.length) setError(labels.noModels);
               };
-            })
+            }, false)
           }
         >
           {labels.loadModels}

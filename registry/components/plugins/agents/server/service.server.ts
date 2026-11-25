@@ -36,6 +36,17 @@ const sendInput = z.object({
   requestId: id,
   text: z.string().trim().max(32000),
   attachmentIds: z.array(id).max(10),
+  locale: z
+    .string()
+    .max(64)
+    .refine((value) => {
+      try {
+        return Intl.getCanonicalLocales(value).length === 1;
+      } catch {
+        return false;
+      }
+    })
+    .optional(),
   resume: z.boolean().default(false),
 });
 const attachmentInput = z.object({
@@ -268,7 +279,9 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         const record = await checkRun();
         let called = false;
         for await (const event of runtime.stream({
-          instructions: operation.instructions,
+          instructions: input.locale
+            ? `${operation.instructions} Current interface locale: ${input.locale}. Use it as the default reply language for ambiguous greetings, test messages or nonsensical text. Adapt when the user clearly uses or explicitly requests another language. Determine the user's language from user messages, not previous assistant replies or tool output.`
+            : operation.instructions,
           messages: record.messages,
           tools: (
             await Promise.all(

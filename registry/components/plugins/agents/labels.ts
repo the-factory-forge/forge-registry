@@ -21,6 +21,8 @@ export const agentsLabels = {
   noModels: "No models are available for this key. Check your provider account and try again.",
   save: "Save",
   settingsSaved: "Model settings saved. The next chat request will use this connection.",
+  settingsNotConfigured:
+    "AI model setup is incomplete on the server. Contact the person who manages this website’s hosting.",
   settingsLoadError: "Settings could not be loaded. Close and reopen Settings to retry.",
   settingsError:
     "Could not connect. Check your key, model and provider access, then retry. Saved settings are unchanged.",

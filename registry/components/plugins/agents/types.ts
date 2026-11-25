@@ -89,6 +89,8 @@ export interface AgentsClient {
       text: string;
       attachmentIds: string[];
       resume?: boolean;
+      /** Selected host interface language, used when the user’s language is unclear. */
+      locale?: string;
     },
     signal: AbortSignal,
   ): AsyncIterable<AgentEvent>;
