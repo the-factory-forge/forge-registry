@@ -244,3 +244,24 @@ reject the old key; browser storage contains no key. All 206 unit tests and 30
 targeted browser tests pass, with format/lint/types, build and a shadcn consumer
 installation. Desktop and mobile were inspected. The production build omits the
 temporary-key panel. A real local assistant remains a separate acceptance check.
+
+## Local adoption check — 25 November 2026
+
+The reusable source through `53d81487c71ceba6c0da59bd08150f2f00bd99cc` is adopted
+on local Template and SiniGest branches. This includes remote private-file staging,
+Drive byte reads, shared WebMCP and reviewed Support priority changes. The temporary
+prompt/test-record blocks were removed from showroom Settings; local MCP URL/key
+controls remain. WebMCP remains absent from marketplace Connector listings.
+
+Registry checks pass: 215 unit tests, generated distribution, formatting/types,
+Structures (seven rules), production build, clean shadcn installation and consumer
+TypeScript. The 22 targeted browser scenarios cover native tools across the nine
+plugin previews and the temporary-key MCP Blogs cycle. The later Support priority
+addition is covered by its unit test and Template's native/remote host test.
+
+Template verifies OAuth, personal keys, Employees and Support, including private
+image bytes and a French approval/rejection dialog. SiniGest verifies those access
+paths for its installed Employees, Customers, Drive, Profile and Agents operations.
+See each site's `docs/registry-sync.md` for exact source, migrations and checks.
+No provider keys, real customer data, publication or deployment were used. Actual
+assistant-app acceptance and HTTPS production storage remain separate checks.
