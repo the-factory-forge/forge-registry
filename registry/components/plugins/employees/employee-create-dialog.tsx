@@ -81,7 +81,7 @@ export function EmployeeCreateDialog({
         <Dialog.Popup className={dialogClass} onKeyDownCapture={submitDialogOnShortcut}>
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0"
+            className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
           >
             <div className="flex items-start justify-between gap-3">
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
@@ -107,7 +107,7 @@ export function EmployeeCreateDialog({
               <p role="alert">{labels.invitationFailed}</p>
               <div
                 data-dialog-footer
-                className="sticky bottom-0 z-10 -mx-6 flex justify-end bg-background px-6 pt-0 pb-5"
+                className="sticky bottom-0 z-10 -mx-6 flex justify-end bg-background px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
               >
                 <Dialog.Close className={outlineButtonClass}>{labels.close}</Dialog.Close>
               </div>
@@ -168,7 +168,7 @@ export function EmployeeCreateDialog({
               )}
               <div
                 data-dialog-footer
-                className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5"
+                className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
               >
                 <Dialog.Close type="button" className={outlineButtonClass} disabled={pending}>
                   {labels.cancel}

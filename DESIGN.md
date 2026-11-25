@@ -191,6 +191,13 @@ a faint primary tint and stronger border. Preview controls use the same faint
 tint with small shadows on select fields; dialogs use larger shadows above a
 backdrop. Exact shadow values live in the sidecar.
 
+### Sticky surfaces
+
+Frost sticky content headers, action footers and pinned table cells. Use their
+semantic background token as the opaque fallback. Where backdrop filtering is
+supported, use `backdrop-blur-sm` and the same token at 80% opacity. Main
+navigation and sidebars use opaque surfaces.
+
 ## Shapes
 
 Directory cards use the 2xl radius; administrative form and preview controls use lg. Search,
@@ -277,13 +284,15 @@ Skip to preview is the first keyboard stop. Each demo supplies its own settings
 to the shared preview frame, which owns positioning and responsive behavior.
 ShowroomIntro supplies consistent demo headings and instructions where the component
 has none. Notices below controls explain sample-data resets or simulated actions.
-Action and field labels use sentence case throughout the administrative plugins.
-Primary actions use a short verb when their section already names the resource:
-Invite in Employees and Create in resource lists. Keep objects that distinguish
-actions, descriptive form headings and explicit destructive confirmations.
-Beside a gear or return arrow, name the destination. Beside a plus that adds a
-specific item, show the item name and give the button its full translated action
-name for assistive technology.
+
+### Action labels
+
+Use sentence case for actions and fields. When a heading identifies the resource,
+use the verb alone, such as **Create** in Products or **Invite** in Employees.
+A decorative plus can accompany **Create**. Include the object when it distinguishes
+choices, such as **New folder** beside **Upload files**. Name the destination beside
+a gear or return arrow. Keep form headings and destructive confirmations specific.
+Include the visible label in the control’s translated accessible name.
 
 ## Do's and Don'ts
 

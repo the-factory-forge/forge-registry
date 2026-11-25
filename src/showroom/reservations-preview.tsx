@@ -221,7 +221,7 @@ export function ReservationsPreviewProvider({ children }: { children: ReactNode 
         }
         controls={
           <div className="space-y-4">
-            <PreviewLanguageSwitcher languages={["en", "fr"]} />
+            <PreviewLanguageSwitcher />
             <label htmlFor={`${selectId}-example`} className="grid gap-2">
               Example
               <NativeSelect

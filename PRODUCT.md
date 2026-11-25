@@ -38,8 +38,8 @@ credentials, and integrations. Shared contracts live in `forge-spec`; see the
 ## Operating context
 
 Developers browse the showroom directory, search or filter its examples, and open
-demos to inspect interactions. Localized demos support French, English, German,
-and Italian. The showroom provides shared preview controls and saved Light/Dark
+demos to inspect interactions. Localized demos support English and French.
+The showroom provides shared preview controls and saved Light/Dark
 selection. Demo records use mock data; reloading resets in-memory changes.
 
 Developers install named items with shadcn, wire host adapters, and validate them

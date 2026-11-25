@@ -4,6 +4,39 @@ import { test } from "node:test";
 import { actionToast } from "./action-toast-helpers.mjs";
 import { chromium } from "./showroom-browser.mjs";
 
+await test("an administrator can toggle website visibility directly in an employee row", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`${process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100"}/en/employees`);
+  await page.locator('[data-preview-ready="true"]').waitFor();
+  const row = page.getByRole("row").filter({ hasText: "Sam Rivera" });
+  const toggle = row.getByRole("button", { name: "Website: Sam Rivera", exact: true });
+  const failures = page.getByLabel("Simulate action failures", { exact: true });
+  const error = row.getByRole("alert").filter({ hasText: "Could not change website visibility" });
+
+  await failures.check();
+  await toggle.click();
+  await row.getByRole("button", { name: "Website: Sam Rivera", pressed: true }).waitFor();
+  assert.equal(await toggle.isDisabled(), true);
+  await error.waitFor();
+  assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+
+  await failures.uncheck();
+  await toggle.press("Space");
+  await actionToast(page, "Website visibility updated.");
+  await row.getByText("Visible on website", { exact: true }).waitFor();
+  await error.waitFor({ state: "hidden" });
+  await toggle.click();
+  await actionToast(page, "Website visibility updated.");
+  await row.getByText("Hidden on website", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: "Website: Alex Morgan" }).getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.equal(await page.getByRole("dialog", { name: "Edit employee" }).count(), 0);
+});
+
 await test("website visibility saves immediately, preserves account drafts and rolls back failures", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());

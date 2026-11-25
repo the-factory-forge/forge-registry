@@ -19,6 +19,7 @@ import {
 import { useTableSelection, type TableDeletionOptions } from "@/components/table-selection";
 import { TableSortHeader, useTableSort, type TableSortProps } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { sortTableRows } from "@/components/utils/table-sort-state";
 import { tableActionCellClass, tableActionHeaderClass } from "@/components/utils/table-styles";
@@ -76,7 +77,7 @@ function KeyDialog({
         <Dialog.Popup className={accountDialogClass}>
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 space-y-2 bg-popover px-6 pt-5 pb-0"
+            className="sticky top-0 z-20 -mx-6 space-y-2 bg-popover px-6 pt-5 pb-0 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <div className="flex items-start justify-between gap-3">
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
@@ -252,6 +253,7 @@ function AgentKeysContent({
                             bulkDisabled
                               ? "bg-background text-foreground disabled:hover:bg-background"
                               : "border-transparent",
+                            destructiveActionClass,
                           )}
                           aria-label={`${labels.deleteSelectedKeys} (${selectedKeys.length})`}
                           disabled={bulkDisabled}
@@ -311,7 +313,11 @@ function AgentKeysContent({
                       <IconTooltip label={`${labels.delete} ${key.name}`}>
                         <button
                           type="button"
-                          className={cn(accountButtonClass, "size-10 border-transparent p-0")}
+                          className={cn(
+                            accountButtonClass,
+                            destructiveActionClass,
+                            "size-10 border-transparent p-0",
+                          )}
                           aria-label={`${labels.delete} ${key.name}`}
                           disabled={error || loading || pending}
                           onClick={() => {
@@ -404,7 +410,7 @@ function AgentKeysContent({
           </div>
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <button
               type="button"
@@ -445,7 +451,7 @@ function AgentKeysContent({
         </div>
         <div
           data-dialog-footer
-          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
         >
           <button type="button" className={accountButtonClass} onClick={closeSecret}>
             {labels.done}
@@ -491,7 +497,7 @@ function AgentKeysContent({
         </div>
         <div
           data-dialog-footer
-          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5"
+          className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
         >
           <button
             type="button"

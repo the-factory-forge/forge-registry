@@ -170,7 +170,7 @@ export function SupportsPreview() {
             { id: "supports", label: "Support", href: base, icon: <pluginIcons.supports /> },
           ]}
           showTopbar={false}
-          contentClassName="showroom-inset"
+          contentClassName="showroom-inset pt-0!"
         >
           {id ? (
             mode === "loading" || (detail?.ticket.id !== id && !error) ? (

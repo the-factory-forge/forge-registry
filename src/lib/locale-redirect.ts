@@ -7,6 +7,7 @@ const localizedDemos = new Set([
   "intranet-sidebar",
   "customers",
   "projects",
+  "products",
   "drive",
   "blogs",
   "admin",

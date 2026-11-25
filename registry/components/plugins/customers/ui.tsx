@@ -234,9 +234,11 @@ export function StatusBadge<T extends string>({
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
-        <div className="min-h-5 max-w-64 px-2" aria-busy={action.pending}>
-          <Feedback feedback={action.feedback} />
-        </div>
+        {action.feedback && (
+          <div className="max-w-64 px-2">
+            <Feedback feedback={action.feedback} />
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

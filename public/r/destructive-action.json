@@ -1,0 +1,15 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "destructive-action",
+  "title": "Destructive action styles",
+  "description": "Semantic danger colors for enabled destructive buttons.",
+  "files": [
+    {
+      "path": "registry/components/utils/destructive-action.ts",
+      "content": "export const destructiveActionClass =\n  \"enabled:border-destructive/30 enabled:bg-destructive/2 enabled:text-destructive enabled:hover:border-destructive enabled:hover:bg-destructive/3 enabled:hover:text-destructive dark:enabled:bg-destructive/20 dark:enabled:hover:bg-destructive/30\";\n",
+      "type": "registry:lib",
+      "target": "@components/utils/destructive-action.ts"
+    }
+  ],
+  "type": "registry:lib"
+}

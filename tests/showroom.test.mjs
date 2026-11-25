@@ -16,7 +16,7 @@ await test("showroom route metadata keeps canonical and social URLs consistent a
   assert.equal(meta(contact, "og:description"), meta(contact, "description"));
   assert.equal(meta(contact, "twitter:description"), meta(contact, "description"));
   assert.equal(contact.links[0].href, "https://registry.the-corner.swiss/en/contact");
-  for (const locale of ["fr", "en", "de", "it"]) {
+  for (const locale of ["fr", "en"]) {
     assert.equal(
       showroomHead({
         title: "Authentication demo",
@@ -41,8 +41,9 @@ await test("showroom route metadata keeps canonical and social URLs consistent a
 await test("locale redirects retain queries, saved choices and language negotiation", () => {
   for (const { headers, locale } of [
     { headers: {}, locale: "fr" },
-    { headers: { "accept-language": "es, de-CH;q=0.9, en;q=0.8" }, locale: "de" },
-    { headers: { cookie: "FORGE_LOCALE=it", "accept-language": "de" }, locale: "it" },
+    { headers: { "accept-language": "es, de-CH;q=0.9, en;q=0.8" }, locale: "en" },
+    { headers: { cookie: "FORGE_LOCALE=it", "accept-language": "de" }, locale: "fr" },
+    { headers: { cookie: "FORGE_LOCALE=en", "accept-language": "fr" }, locale: "en" },
     { headers: { cookie: "NEXT_LOCALE=en" }, locale: "en" },
     { headers: { cookie: "FORGE_LOCALE=invalid", "accept-language": "en-US" }, locale: "en" },
   ]) {
@@ -63,6 +64,8 @@ await test("locale middleware leaves static registry delivery and existing route
     "/",
     "/newsletter",
     "/cookie-banner",
+    "/sitemap.xml",
+    "/robots.txt",
     "/en/projects",
     "/fr/blogs",
     "/r/projects.json",

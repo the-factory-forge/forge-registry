@@ -15,6 +15,7 @@ import {
 } from "@/components/plugins/menus/save-with-photo";
 import { field, outlineButton } from "@/components/plugins/menus/ui";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 
 export function DishPhotoField({
   labels,
@@ -154,7 +155,11 @@ export function DishPhotoField({
           {entryName && !photo && <p className="text-sm wrap-anywhere">{entryName}</p>}
           <div className="flex flex-wrap items-center gap-3">
             {(photo || entryId) && (
-              <button type="button" className={outlineButton} onClick={onRemove}>
+              <button
+                type="button"
+                className={cn(outlineButton, destructiveActionClass)}
+                onClick={onRemove}
+              >
                 <UnlinkIcon className="size-4 shrink-0" aria-hidden="true" />
                 {labels.removePhoto}
               </button>

@@ -276,7 +276,7 @@ function MenuItemsPageContent({
                 ))}
                 <th scope="col" className={tableActionHeaderClass}>
                   <div className="flex items-center justify-end gap-2">
-                    {labels.actions}
+                    <span className="sr-only">{labels.actions}</span>
                     <TableBulkDelete
                       selection={selection}
                       getName={(item) => item.translations[baseLocale]?.name ?? item.id}
@@ -632,34 +632,36 @@ function MenuTaxonomyPageContent({
             </section>
           )}
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">{labels.labels}</h2>
-              <MenuTaxonomyEditor
-                blockedNavigation={blockedNavigation}
-                onNavigationStateChange={onNavigationStateChange}
-                disabled={disabled}
-                key="new-label"
-                kind="label"
-                locales={locales}
-                baseLocale={baseLocale}
-                labels={labels}
-                onSave={async (input) => {
-                  await taxonomy.saveLabel({
-                    kind: input.kind ?? "allergen",
-                    icon: input.icon,
-                    position: input.position,
-                    translations: input.translations,
-                  });
-                }}
-              />
-            </div>
+            {labelsOnly && <h2 className="text-xl font-semibold">{labels.labels}</h2>}
             {(labelsOnly ? (["allergen", "dietary"] as const) : [undefined]).map((kind) => (
               <div key={kind ?? "all"} className="space-y-2">
-                {kind && (
-                  <h3 className="text-sm font-semibold">
-                    {kind === "allergen" ? labels.allergens : labels.dietary}
-                  </h3>
-                )}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {kind ? (
+                    <h3 className="text-sm font-semibold">
+                      {kind === "allergen" ? labels.allergens : labels.dietary}
+                    </h3>
+                  ) : (
+                    <h2 className="text-xl font-semibold">{labels.labels}</h2>
+                  )}
+                  <MenuTaxonomyEditor
+                    blockedNavigation={blockedNavigation}
+                    onNavigationStateChange={onNavigationStateChange}
+                    disabled={disabled}
+                    kind="label"
+                    fixedLabelKind={kind}
+                    locales={locales}
+                    baseLocale={baseLocale}
+                    labels={labels}
+                    onSave={async (input) => {
+                      await taxonomy.saveLabel({
+                        kind: input.kind ?? "allergen",
+                        icon: input.icon,
+                        position: input.position,
+                        translations: input.translations,
+                      });
+                    }}
+                  />
+                </div>
                 <ul className="divide-y divide-border rounded-2xl border border-border">
                   {retainRemovedItems(
                     data.labelsData,

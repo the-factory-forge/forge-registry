@@ -8,7 +8,9 @@ export const tableRowClass =
   "group border-b border-border hover:bg-muted/50 [&>*]:[border-bottom:inherit]";
 export const tableCellClass = "p-2 align-middle";
 export const tableActionCellClass =
-  "w-px p-2 text-right align-middle whitespace-nowrap sticky right-0 z-10 bg-card/80 backdrop-blur-md group-hover:bg-muted/80";
+  "w-px p-2 text-right align-middle whitespace-nowrap sticky right-0 z-10 bg-card backdrop-blur-sm group-hover:bg-muted supports-[backdrop-filter]:bg-card/80 supports-[backdrop-filter]:group-hover:bg-muted/80";
 export const tableActionHeaderClass = `${tableActionCellClass} h-10 font-medium`;
 export const tableActionsClass = "flex items-center justify-end gap-2";
 export const tableFooterClass = "mt-5 flex flex-wrap items-center justify-end gap-3";
+
+export const tablePageClass = "mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6";

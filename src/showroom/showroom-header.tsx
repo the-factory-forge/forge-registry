@@ -16,7 +16,7 @@ export function ShowroomHeader() {
   const isList = location.pathname === "/";
 
   return (
-    <header className="sticky top-0 z-40 h-(--showroom-header-height) shrink-0 border-b border-border bg-background text-foreground print:hidden">
+    <header className="fixed inset-x-0 top-0 z-40 h-(--showroom-header-height) border-b border-border bg-background text-foreground print:hidden">
       <nav aria-label="Showroom navigation" className="showroom-header-inner relative">
         <a
           href="#factory-showroom-preview"

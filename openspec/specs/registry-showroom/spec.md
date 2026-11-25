@@ -7,6 +7,19 @@ Read `docs/showroom.md` for its layout and development procedures.
 
 ## Requirements
 
+### Requirement: Public showroom sitemap
+
+The showroom SHALL serve `/sitemap.xml` as XML and reference it from `/robots.txt`.
+Locations SHALL use the page metadata's canonical HTTPS origin and derive from
+the homepage and existing example catalog, expanding localized demos to each supported language.
+
+#### Scenario: Discovering the public examples
+
+- **WHEN** a crawler requests the sitemap without a session or locale preference
+- **THEN** both endpoints SHALL respond directly with HTTP 200
+- **AND** sitemap locations SHALL resolve to canonical, indexable demo pages
+- **AND** login previews, sample record details, editor URLs and query parameters SHALL be excluded
+
 ### Requirement: Discoverable showroom examples
 
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,
@@ -156,6 +169,23 @@ Demos with controls or navigation SHALL provide a Settings gear beside the panel
 - **AND** without a saved choice, opening the demo at 40rem or wider starts with settings expanded
 - **AND** a manual override survives reloads until the reviewer restores the initial viewport default
 - **AND** changing the viewport after toggling preserves the chosen visibility
+
+### Requirement: Showroom language switching
+
+Localized showroom routes SHALL support English and French. Preview language
+controls SHALL switch directly to the other language and name the destination.
+
+#### Scenario: Switching the preview language
+
+- **WHEN** a reviewer activates the preview language toggle by pointer or keyboard
+- **THEN** the same demo opens in the other language with its query and hash intact
+- **AND** editor navigation guards run before the locale preference is saved
+
+#### Scenario: Viewing a translated public article
+
+- **WHEN** a reviewer opens a public article
+- **THEN** the toggle appears only if the other language is published
+- **AND** it links to that translation's slug
 
 ### Requirement: Unified loading feedback
 

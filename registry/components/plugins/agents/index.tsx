@@ -47,6 +47,7 @@ import type {
 } from "@/components/plugins/agents/types";
 import { safeAgentResultHref } from "@/components/plugins/agents/types";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
 
@@ -406,7 +407,7 @@ function ModelSettingsForm({
           {saved && (
             <button
               type="button"
-              className={outline}
+              className={cn(outline, destructiveActionClass)}
               onClick={() => {
                 if (!disconnecting) {
                   setDisconnecting(true);
@@ -856,9 +857,9 @@ function AgentsContent({
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
         <div>
           <h1 className="text-2xl font-semibold">{labels.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {operation?.description ?? labels.chooseFirst}
-          </p>
+          {operation?.description && (
+            <p className="mt-1 text-sm text-muted-foreground">{operation.description}</p>
+          )}
         </div>
         {settings && (
           <ModelSettings
@@ -1153,7 +1154,8 @@ function AgentsContent({
             onKeyDownCapture={submitFormOnShortcut}
             className={cn(
               "space-y-3 border-t border-border bg-background pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
-              started && "sticky bottom-0",
+              started &&
+                "sticky bottom-0 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80",
             )}
             onSubmit={(event) => {
               event.preventDefault();
@@ -1195,7 +1197,7 @@ function AgentsContent({
                       <button
                         type="button"
                         aria-label={`${labels.removeAttachment}: ${file.name}`}
-                        className={button}
+                        className={cn(button, destructiveActionClass)}
                         disabled={blocked}
                         onClick={() =>
                           updateDraft({
@@ -1275,7 +1277,7 @@ function AgentsContent({
                   <IconTooltip label={labels.deleteConversation}>
                     <button
                       type="button"
-                      className={button}
+                      className={cn(button, destructiveActionClass)}
                       aria-label={labels.deleteConversation}
                       disabled={blocked}
                       onClick={() => {

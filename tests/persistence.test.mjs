@@ -39,6 +39,7 @@ await test("persistence installs schema source with pinned Drizzle, never creati
     "reservations",
     "customers",
     "projects",
+    "products",
     "supports",
   ].map((name) => `${name}-storage`);
   for (const name of [...names, "customers-bexio-server"]) {
