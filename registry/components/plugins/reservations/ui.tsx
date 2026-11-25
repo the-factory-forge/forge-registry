@@ -14,11 +14,13 @@ import {
   type ReservationSlot,
 } from "@/components/plugins/reservations/types";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { useActionLifetime, useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export const buttonClass =
   "inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed";
+export const destructiveButtonClass = cn(buttonClass, destructiveActionClass);
 export const iconButtonClass = cn(buttonClass, "size-10 shrink-0 p-0 md:size-8");
 export const primaryClass = cn(
   buttonClass,
@@ -159,7 +161,7 @@ export function Modal({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-popover px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-xl font-semibold break-words">
               {title}

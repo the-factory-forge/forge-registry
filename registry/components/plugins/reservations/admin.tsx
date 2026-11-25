@@ -44,6 +44,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  destructiveButtonClass,
   iconButtonClass,
   primaryClass,
   fieldClass,
@@ -578,7 +579,7 @@ export function ReservationsCalendar({
           )}
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             {canManage && (
               <>
@@ -596,7 +597,7 @@ export function ReservationsCalendar({
                       {labels.approve}
                     </button>
                     <button
-                      className={buttonClass}
+                      className={destructiveButtonClass}
                       disabled={action.busy || changes.pending}
                       onClick={() => setDialog("rejected")}
                     >
@@ -614,7 +615,7 @@ export function ReservationsCalendar({
                       {labels.reschedule}
                     </button>
                     <button
-                      className={buttonClass}
+                      className={destructiveButtonClass}
                       disabled={action.busy || changes.pending}
                       onClick={() => setDialog("cancelled")}
                     >
@@ -636,7 +637,7 @@ export function ReservationsCalendar({
                   </button>
                 )}
                 <button
-                  className={buttonClass}
+                  className={destructiveButtonClass}
                   disabled={action.busy || changes.pending}
                   onClick={() => setDialog("link")}
                 >
@@ -677,7 +678,7 @@ export function ReservationsCalendar({
           <ErrorNotice error={action.error} labels={labels} />
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-2 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
           >
             <button
               className={cn(buttonClass, "hover:bg-primary/5 hover:text-primary")}
@@ -687,7 +688,7 @@ export function ReservationsCalendar({
               {labels.back}
             </button>
             <button
-              className={primaryClass}
+              className={destructiveButtonClass}
               disabled={action.busy || changes.pending}
               onClick={() => {
                 void action.run(async () => {

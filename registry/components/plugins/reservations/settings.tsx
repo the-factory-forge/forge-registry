@@ -28,6 +28,7 @@ import type {
 } from "@/components/plugins/reservations/types";
 import {
   buttonClass,
+  destructiveButtonClass,
   iconButtonClass,
   primaryClass,
   fieldClass,
@@ -570,7 +571,7 @@ function HoursEditor({
           <IconTooltip label={`${labels.remove} ${hours.start}–${hours.end}`}>
             <button
               type="button"
-              className={cn(buttonClass, "size-10 p-0")}
+              className={cn(destructiveButtonClass, "size-10 p-0")}
               aria-label={`${labels.remove} ${hours.start}–${hours.end}`}
               onClick={() => onChange(value.filter((_, j) => j !== i))}
             >
@@ -713,7 +714,7 @@ function ResourceEditor({
                 <IconTooltip label={`${labels.remove} ${block.from}–${block.through}`}>
                   <button
                     type="button"
-                    className={cn(buttonClass, "size-10 p-0")}
+                    className={cn(destructiveButtonClass, "size-10 p-0")}
                     aria-label={`${labels.remove} ${block.from}–${block.through}`}
                     onClick={() =>
                       change({
@@ -802,7 +803,7 @@ function ResourceEditor({
                     <IconTooltip label={`${labels.remove} ${day}`}>
                       <button
                         type="button"
-                        className={cn(buttonClass, "size-10 p-0")}
+                        className={cn(destructiveButtonClass, "size-10 p-0")}
                         aria-label={`${labels.remove} ${day}`}
                         onClick={() => {
                           const exceptions = { ...draft.exceptions };
@@ -857,7 +858,7 @@ function ArchiveButton({
     <IconTooltip label={label}>
       <button
         type="button"
-        className={cn(buttonClass, "size-10 p-0 text-destructive")}
+        className={cn(destructiveButtonClass, "size-10 p-0")}
         aria-label={label}
         disabled={disabled}
         onClick={onClick}
@@ -891,7 +892,7 @@ function ArchiveDialog({
       <ErrorNotice error={error} labels={labels} />
       <div
         data-dialog-footer
-        className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5"
+        className="sticky bottom-0 z-10 -mx-6 flex flex-wrap gap-3 bg-popover px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-popover/80"
       >
         <button
           type="button"
@@ -903,7 +904,7 @@ function ArchiveDialog({
         </button>
         <button
           type="button"
-          className={primaryClass}
+          className={destructiveButtonClass}
           disabled={pending}
           onClick={() => {
             void onArchive();
