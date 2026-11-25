@@ -7,6 +7,19 @@ Read `docs/showroom.md` for its layout and development procedures.
 
 ## Requirements
 
+### Requirement: Public showroom sitemap
+
+The showroom SHALL serve `/sitemap.xml` as XML and reference it from `/robots.txt`.
+Locations SHALL use the page metadata's canonical HTTPS origin and derive from
+the homepage and existing example catalog, expanding localized demos to each supported language.
+
+#### Scenario: Discovering the public examples
+
+- **WHEN** a crawler requests the sitemap without a session or locale preference
+- **THEN** both endpoints SHALL respond directly with HTTP 200
+- **AND** sitemap locations SHALL resolve to canonical, indexable demo pages
+- **AND** login previews, sample record details, editor URLs and query parameters SHALL be excluded
+
 ### Requirement: Discoverable showroom examples
 
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,

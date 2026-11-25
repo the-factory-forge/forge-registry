@@ -63,6 +63,8 @@ await test("locale middleware leaves static registry delivery and existing route
     "/",
     "/newsletter",
     "/cookie-banner",
+    "/sitemap.xml",
+    "/robots.txt",
     "/en/projects",
     "/fr/blogs",
     "/r/projects.json",

@@ -159,6 +159,11 @@ Canonical URLs omit search parameters and trailing slashes. The localized `/logi
 page is the authentication example's canonical URL. Sample record details, editing
 flows, and missing pages use `noindex, follow` and omit canonical links.
 
+`/sitemap.xml` lists the homepage and demos from `src/showroom/examples.ts`, expanding
+localized examples across the supported languages. It uses the same canonical origin
+as page metadata, excludes the login preview and contains no sample record or editor URLs.
+`/robots.txt` advertises this dynamically generated sitemap for crawlers and Search Console.
+
 This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.

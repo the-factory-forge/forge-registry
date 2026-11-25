@@ -3,6 +3,39 @@ import test from "node:test";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3100";
 
+await test("the sitemap lists canonical public demos and robots advertises it", async () => {
+  const origin = "https://registry.the-corner.swiss";
+  const response = await fetch(`${baseURL}/sitemap.xml`, { redirect: "manual" });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /application\/xml/);
+  const xml = await response.text();
+  assert.match(xml, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
+  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, url]) => url);
+  assert.equal(new Set(urls).size, urls.length, "no duplicate locations");
+  assert.ok(urls.includes(`${origin}/`));
+  for (const locale of ["fr", "en", "de", "it"]) {
+    assert.ok(urls.includes(`${origin}/${locale}/projects`));
+    assert.ok(urls.includes(`${origin}/${locale}/contact`));
+  }
+  assert.ok(urls.includes(`${origin}/connectors/projects-drive`));
+  for (const value of urls) {
+    const url = new URL(value);
+    assert.equal(url.origin, origin);
+    assert.equal(url.search + url.hash, "", value);
+    assert.doesNotMatch(url.pathname, /\/(?:admin|api|auth|login)(?:\/|$)/, value);
+    assert.doesNotMatch(url.pathname, /\/(?:new|acme|website)(?:\/|$)/, value);
+    const page = await fetch(baseURL + url.pathname, { redirect: "manual" });
+    assert.equal(page.status, 200, value);
+    const html = await page.text();
+    assert.ok(html.includes(`rel="canonical" href="${value}"`), value);
+    assert.doesNotMatch(html, /name="robots" content="noindex/, value);
+  }
+  const robots = await fetch(`${baseURL}/robots.txt`, { redirect: "manual" });
+  assert.equal(robots.status, 200);
+  assert.match(robots.headers.get("content-type"), /text\/plain/);
+  assert.ok((await robots.text()).includes(`Sitemap: ${origin}/sitemap.xml`));
+});
+
 await test("the deployed showroom serves public demos, assets and registry JSON without auth", async () => {
   for (const [path, heading] of [
     ["/", "Showcase"],

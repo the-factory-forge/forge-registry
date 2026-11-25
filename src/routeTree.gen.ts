@@ -25,7 +25,9 @@ import { Route as LightboxRouteImport } from './routes/lightbox'
 import { Route as NativeSelectRouteImport } from './routes/native-select'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PageHeroRouteImport } from './routes/page-hero'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SectionAnchorRouteImport } from './routes/section-anchor'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SubpageSidebarRouteImport } from './routes/subpage-sidebar'
 import { Route as TablePaginationRouteImport } from './routes/table-pagination'
 import { Route as TableSearchRouteImport } from './routes/table-search'
@@ -129,9 +131,19 @@ const PageHeroRoute = PageHeroRouteImport.update({
   path: '/page-hero',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SectionAnchorRoute = SectionAnchorRouteImport.update({
   id: '/section-anchor',
   path: '/section-anchor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SubpageSidebarRoute = SubpageSidebarRouteImport.update({
@@ -289,7 +301,9 @@ export interface FileRoutesByFullPath {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -330,7 +344,9 @@ export interface FileRoutesByTo {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -377,7 +393,9 @@ export interface FileRoutesById {
   '/native-select': typeof NativeSelectRoute
   '/newsletter': typeof NewsletterRoute
   '/page-hero': typeof PageHeroRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/section-anchor': typeof SectionAnchorRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/subpage-sidebar': typeof SubpageSidebarRoute
   '/table-pagination': typeof TablePaginationRoute
   '/table-search': typeof TableSearchRoute
@@ -420,7 +438,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -461,7 +481,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -507,7 +529,9 @@ export interface FileRouteTypes {
     | '/native-select'
     | '/newsletter'
     | '/page-hero'
+    | '/robots.txt'
     | '/section-anchor'
+    | '/sitemap.xml'
     | '/subpage-sidebar'
     | '/table-pagination'
     | '/table-search'
@@ -554,7 +578,9 @@ export interface RootRouteChildren {
   NativeSelectRoute: typeof NativeSelectRoute
   NewsletterRoute: typeof NewsletterRoute
   PageHeroRoute: typeof PageHeroRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SectionAnchorRoute: typeof SectionAnchorRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SubpageSidebarRoute: typeof SubpageSidebarRoute
   TablePaginationRoute: typeof TablePaginationRoute
   TableSearchRoute: typeof TableSearchRoute
@@ -688,11 +714,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PageHeroRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/section-anchor': {
       id: '/section-anchor'
       path: '/section-anchor'
       fullPath: '/section-anchor'
       preLoaderRoute: typeof SectionAnchorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/subpage-sidebar': {
@@ -972,7 +1012,9 @@ const rootRouteChildren: RootRouteChildren = {
   NativeSelectRoute: NativeSelectRoute,
   NewsletterRoute: NewsletterRoute,
   PageHeroRoute: PageHeroRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SectionAnchorRoute: SectionAnchorRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SubpageSidebarRoute: SubpageSidebarRoute,
   TablePaginationRoute: TablePaginationRoute,
   TableSearchRoute: TableSearchRoute,
