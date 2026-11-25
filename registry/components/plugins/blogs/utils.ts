@@ -9,8 +9,12 @@ import type {
   BlogPost,
   BlogPublicQuery,
   BlogShared,
+  BlogTranslation,
 } from "@/components/plugins/blogs/types";
+import { publicIdPattern, publicSlugPattern } from "@/components/utils/public-identifier";
 import { sortTableRows } from "@/components/utils/table-sort-state";
+
+export { slugify } from "@/components/utils/public-identifier";
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_MARKDOWN_BYTES = 1024 * 1024;
@@ -48,17 +52,24 @@ export function assertBlog(
   if (!condition) throw new BlogsError(code);
 }
 export function validId(id: unknown): asserts id is string {
-  assertBlog(typeof id === "string" && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(id));
+  assertBlog(typeof id === "string" && publicIdPattern.test(id));
 }
-export function slugify(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 120);
+/** Existing drafts, publications and retained versions can keep a pre-existing UUID slug. */
+export function validArticleSlug(
+  slug: string,
+  translation?: BlogTranslation,
+  restoredSlug?: string,
+) {
+  return (
+    slug === "" ||
+    (publicSlugPattern.test(slug) &&
+      (!publicIdPattern.test(slug) ||
+        slug === translation?.draft.slug ||
+        slug === translation?.published?.slug ||
+        slug === restoredSlug))
+  );
 }
+
 export function validateContent(
   content: BlogContent,
   maxBytes = MAX_MARKDOWN_BYTES,
@@ -74,7 +85,7 @@ export function validateContent(
       content.bannerAlt.length <= 1000,
   );
   assertBlog(new TextEncoder().encode(content.markdown).length <= maxBytes);
-  assertBlog(content.slug === "" || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(content.slug));
+  assertBlog(content.slug === "" || publicSlugPattern.test(content.slug));
   assertBlog(content.slug.length <= 120);
   if (publishing) assertBlog(content.title.trim() && content.slug && content.markdown.trim());
   return {

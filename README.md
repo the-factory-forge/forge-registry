@@ -126,18 +126,19 @@ supply their own translations and theme configuration.
 
 ### Libs
 
-| Name                                                                            | Description                                                                   |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `consent-analytics`                                                             | Consent-driven Google Analytics and Ads loading, event gating, and retry      |
-| `cn`                                                                            | Class-name utility (re-exports `cn`)                                          |
-| [optimistic-action](./docs/optimistic-actions.md)                               | TanStack Query mutations with temporary UI updates and rollback               |
-| [record-deletion](./docs/optimistic-actions.md#customers-and-projects-deletion) | Shared Customers/Projects confirmation, optimistic removal and focus recovery |
-| `table-styles`                                                                  | Shared layout classes for plugin tables                                       |
-| `section-variants`                                                              | Shared SectionVariant type and color map for themeable sections               |
-| `build-metadata`                                                                | Canonical, hreflang, Open Graph, Twitter cards                                |
-| `json-ld`                                                                       | Organization, Breadcrumb, FAQ, Service schemas                                |
-| `privacy-content`                                                               | Reference privacy-policy content in fr/en/de/it for site adaptation           |
-| `footer-helpers`                                                                | Builds footer props from site data, including attribution defaults            |
+| Name                                                                            | Description                                                                               |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`public-identifier`](registry/components/utils/public-identifier.ts)           | Published-record lookup by slug or UUID and canonical detail paths for Products and Blogs |
+| `consent-analytics`                                                             | Consent-driven Google Analytics and Ads loading, event gating, and retry                  |
+| `cn`                                                                            | Class-name utility (re-exports `cn`)                                                      |
+| [optimistic-action](./docs/optimistic-actions.md)                               | TanStack Query mutations with temporary UI updates and rollback                           |
+| [record-deletion](./docs/optimistic-actions.md#customers-and-projects-deletion) | Shared Customers/Projects confirmation, optimistic removal and focus recovery             |
+| `table-styles`                                                                  | Shared layout classes for plugin tables                                                   |
+| `section-variants`                                                              | Shared SectionVariant type and color map for themeable sections                           |
+| `build-metadata`                                                                | Canonical, hreflang, Open Graph, Twitter cards                                            |
+| `json-ld`                                                                       | Organization, Breadcrumb, FAQ, Service schemas                                            |
+| `privacy-content`                                                               | Reference privacy-policy content in fr/en/de/it for site adaptation                       |
+| `footer-helpers`                                                                | Builds footer props from site data, including attribution defaults                        |
 
 The `@forge/cn` helper re-exports [shadcn's `cn`](https://github.com/shadcn-ui/cn)
 for Tailwind CSS 4 and requires Node.js 22 or later. Existing consumers keep their

@@ -1454,6 +1454,14 @@ with chronological history and detailed comparison.
   Published, unpublished changes and draft SHALL use success, pending and
   not-started colors in both list and editor.
 
+#### Scenario: Opening a published article by ID or slug
+
+- **WHEN** a visitor opens an article UUID or a published slug in a specific language
+- **THEN** Blogs uses the public identifier resolver shared with Products and shows the current publication for that language
+- **AND** an ID link redirects to the publication’s slug, preserving the locale, query and fragment
+- **AND** an unpublished or missing translation returns 404
+- **AND** existing UUID-shaped slugs keep their exact links and new article slugs reserve UUIDs
+
 #### Scenario: Opening an article before its data arrives
 
 - **WHEN** a host renders the editor with a pending article

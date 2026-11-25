@@ -374,9 +374,11 @@ color at either level, including its child guide. Preserve translated labels,
 post counts, filtering and visible keyboard focus in both themes.
 
 Call `storage.listPublished({ locale, search, categoryId, page, pageSize })` and
-`storage.getPublished(locale, slug)` in server loaders. `publicCategories()`
+`storage.getPublished(locale, identifier)` in server loaders. The identifier can be the article UUID or the current published slug for that language. `publicCategories()`
 provides taxonomy labels; show only categories with published counts. Return a
-404 when `getPublished` returns `null`. The host sets canonical/alternate URLs,
+404 when `getPublished` returns `null`. Import `publicRecordRedirect` and `publicRecordPath` from `@/components/utils/public-identifier`, installed with Blogs. Build article links with `publicRecordPath(blogsPath, post)`. When `publicRecordRedirect(blogsPath, identifier, post)` returns a path, redirect there, keeping the query and fragment and replacing the browser history entry. Each translation uses its own published slug. Existing UUID-shaped slugs retain priority on an exact match. New article slugs reserve UUIDs for ID links.
+
+The host sets canonical/alternate URLs,
 Open Graph metadata, and indexing rules. Authenticated preview/admin routes need
 `noindex` and private/no-store responses.
 

@@ -77,6 +77,7 @@ import {
 import { languageTabClass, blogStatusClass } from "@/components/plugins/blogs/ui";
 import {
   hasUnpublishedChanges,
+  validArticleSlug,
   MAX_IMAGE_BYTES,
   MAX_MARKDOWN_BYTES,
   normalizeCategories,
@@ -86,6 +87,7 @@ import {
 import { emptyContent } from "@/components/plugins/blogs/utils";
 import { StatusToggle } from "@/components/status-toggle";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
 import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
@@ -266,7 +268,7 @@ function BlogLeaveDialog({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
           >
             <Dialog.Title className="min-w-0 flex-1 font-semibold break-words">
               {title ?? labels.unsavedTitle}
@@ -288,14 +290,14 @@ function BlogLeaveDialog({
           <Feedback {...feedback} />
           <div
             data-dialog-footer
-            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+            className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
           >
             <Dialog.Close className={outlineButtonClass} disabled={pending}>
               {labels.cancel}
             </Dialog.Close>
             <button
               type="button"
-              className={outlineButtonClass}
+              className={cn(outlineButtonClass, destructiveActionClass)}
               disabled={pending}
               onClick={onDiscard}
             >
@@ -497,7 +499,13 @@ function EditorForm({
         }
       }
     }
-    if (content.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(content.slug)) {
+    if (
+      !validArticleSlug(
+        content.slug,
+        base.translations[locale],
+        origin ? selected?.content.slug : undefined,
+      )
+    ) {
       issues[`${id}-slug`] = labels.slugInvalid;
     }
     if (new TextEncoder().encode(content.markdown).length > maxMarkdownBytes) {

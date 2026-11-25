@@ -1,6 +1,12 @@
 "use client";
 
-import { useMatch, useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  useLoaderData,
+  useMatch,
+  useNavigate,
+  useRouteContext,
+  useSearch,
+} from "@tanstack/react-router";
 import {
   createContext,
   useContext,
@@ -27,9 +33,10 @@ import {
 } from "@/components/plugins/blogs";
 import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
+import { publicRecordPath } from "@/components/utils/public-identifier";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
-import { blogLocales, createBlogsMock } from "@/showroom/blogs-mock";
+import { blogLocales } from "@/showroom/blogs-mock";
 import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
 import { useShowroomTableSort } from "@/showroom/routing";
 import { useShowroomTablePage } from "@/showroom/routing";
@@ -44,8 +51,8 @@ const previewClassName =
   "showroom-page [&_img[src^='https://assets.the-corner.swiss/images/']]:object-contain [&_img[src^='https://assets.the-corner.swiss/images/']]:mix-blend-multiply dark:[&_img[src^='https://assets.the-corner.swiss/images/']]:mix-blend-screen dark:[&_img[src^='https://assets.the-corner.swiss/images/']]:invert";
 
 function usePreview() {
-  const [mock] = useState(createBlogsMock),
-    [editor, setEditor] = useState("jordan"),
+  const { blogsMock: mock } = useRouteContext({ from: "/_blogs" });
+  const [editor, setEditor] = useState("jordan"),
     [admin, setAdmin] = useState(true),
     [readOnly, setReadOnly] = useState(false),
     [fail, setFail] = useState(false),
@@ -112,9 +119,9 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
   const articles = state.mock.all();
   const article = articles.find((value) => value.id === segments[0]);
   const publicSlug = adminRoute ? undefined : segments[0];
-  const publicPost = publicSlug
-    ? articles.find((value) => value.translations[locale]?.published?.slug === publicSlug)
-    : undefined;
+  const publicId = useMatch({ from: "/_blogs/$locale/blogs/$", shouldThrow: false })?.loaderData
+    ?.id;
+  const publicPost = publicId ? articles.find((value) => value.id === publicId) : undefined;
   const hasArticleEditor = Boolean(adminRoute && article);
   const canSimulateMissingImages = hasArticleEditor && state.historyEnabled;
   return (
@@ -133,8 +140,13 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
               translatedPath={
                 publicSlug
                   ? (code) => {
-                      const slug = publicPost?.translations[code]?.published?.slug;
-                      return slug && `/${code}/blogs/${slug}`;
+                      const translation = publicPost?.translations[code]?.published;
+                      return publicPost && translation
+                        ? publicRecordPath(`/${code}/blogs`, {
+                            id: publicPost.id,
+                            slug: translation.slug,
+                          })
+                        : undefined;
                     }
                   : undefined
               }
@@ -475,8 +487,22 @@ export function BlogsAdminPreview() {
     />
   );
 }
+export function BlogPublicNotFound() {
+  const { locale } = useShowroomParams();
+  const labels = blogsPreviewLabels[isLocale(locale) ? locale : "en"];
+  return (
+    <p role="alert" className="p-8">
+      {labels.NOT_FOUND}{" "}
+      <BackLink linkComponent={Link} href={`/${locale}/blogs`}>
+        {labels.back}
+      </BackLink>
+    </p>
+  );
+}
+
 export function BlogsPublicPreview() {
-  const { locale, segments } = useShowroomParams(),
+  const post = useLoaderData({ from: "/_blogs/$locale/blogs/$" });
+  const { locale } = useShowroomParams(),
     params = useSearch({ strict: false }),
     navigate = useNavigate(),
     state = useBlogsPreview();
@@ -500,17 +526,7 @@ export function BlogsPublicPreview() {
     if (next.page && next.page > 1) query.set("page", String(next.page));
     return `${root}${query.size ? `?${query}` : ""}`;
   }
-  if (segments[0]) {
-    const post = state.mock.getPublished(locale, segments[0]);
-    if (!post)
-      return (
-        <p role="alert" className="p-8">
-          {common.labels.NOT_FOUND}{" "}
-          <BackLink linkComponent={Link} href={root}>
-            {common.labels.back}
-          </BackLink>
-        </p>
-      );
+  if (post) {
     return (
       <BlogPostPage
         {...common}
@@ -548,7 +564,7 @@ export function BlogsPublicPreview() {
         search={search}
         categoryId={category}
         actionHref={root}
-        postHref={(post) => `${root}/${post.slug}`}
+        postHref={(post) => publicRecordPath(root, post)}
         categoryHref={(id) => href({ category: id })}
         pageHref={(next) => href({ page: next })}
         loading={state.state === "loading"}

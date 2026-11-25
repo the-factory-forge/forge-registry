@@ -48,6 +48,7 @@ import {
 } from "@/components/plugins/blogs/ui";
 import { safeAssetUrl } from "@/components/plugins/blogs/utils";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { editorActionsClass } from "@/components/utils/editor-form";
 
 const removedTone = "bg-status-canceled/40 text-status-canceled-foreground";
@@ -129,7 +130,7 @@ export function useHistoryPublication(
           >
             <div
               data-dialog-header
-              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+              className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
                 {labels.publishReview}
@@ -186,7 +187,7 @@ export function useHistoryPublication(
                 </div>
                 <div
                   data-dialog-footer
-                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5"
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
                 >
                   <Dialog.Close className={outlineButtonClass} disabled={action.pending}>
                     {labels.cancel}
@@ -226,7 +227,11 @@ export function useHistoryPublication(
                   )}
                   <button
                     type="button"
-                    className={primaryClass}
+                    className={
+                      plan.discarded.length || omit
+                        ? cn(outlineButtonClass, destructiveActionClass)
+                        : primaryClass
+                    }
                     disabled={action.pending || (!!plan.missingAssetIds.length && !omit)}
                     onClick={() => void execute(plan, omit)}
                   >

@@ -83,9 +83,16 @@ void test("trusted authors, collaborative drafts, deleted signatures and languag
       });
     let article = await author.create({ ...request(), title: "Article", locale: "en" });
     article = await save(author, article);
+    assert.equal(await storage.getPublished("en", article.id), null);
     article = await author.publish(mutation(article));
+    assert.equal(await storage.getPublished("fr", article.id), null);
     article = await save(author, article, article.shared, "fr");
     article = await author.publish(mutation(article, "fr"));
+    for (const language of ["en", "fr"]) {
+      const post = await storage.getPublished(language, article.id.toUpperCase());
+      assert.equal(post.slug, `article-${language}`);
+      assert.deepEqual(await storage.getPublished(language, post.slug), post);
+    }
     assert.equal((await colleague.list({ locale: "en" })).total, 1);
     article = await save(
       colleague,

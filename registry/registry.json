@@ -4,6 +4,19 @@
   "homepage": "https://github.com/the-factory-forge/forge-registry",
   "items": [
     {
+      "name": "public-identifier",
+      "type": "registry:lib",
+      "title": "Public identifiers",
+      "description": "Resolve published records by slug or UUID and build their canonical paths.",
+      "files": [
+        {
+          "path": "registry/components/utils/public-identifier.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/public-identifier.ts"
+        }
+      ]
+    },
+    {
       "name": "cn",
       "type": "registry:lib",
       "title": "cn Utility",
@@ -1273,6 +1286,8 @@
       "description": "Multilingual Markdown articles, localized version history, category-aware administration and public pages.",
       "dependencies": ["@tanstack/markdown@0.0.16", "@base-ui/react", "lucide-react", "diff@9.0.0"],
       "registryDependencies": [
+        "@forge/public-identifier",
+        "@forge/destructive-action",
         "@forge/status-toggle",
         "@forge/back-link",
         "@forge/view-preference",
@@ -1369,7 +1384,7 @@
         "@aws-sdk/client-s3",
         "zod@4.6.7"
       ],
-      "registryDependencies": ["@forge/blogs", "@forge/database"],
+      "registryDependencies": ["@forge/public-identifier", "@forge/blogs", "@forge/database"],
       "files": [
         {
           "path": "registry/components/plugins/blogs/server/index.ts",

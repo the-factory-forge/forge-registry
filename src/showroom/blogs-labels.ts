@@ -120,7 +120,8 @@ export const blogsPreviewLabels: Record<Locale, BlogsLabels> = {
     translationHint: "Rédigez cette version linguistique et enregistrez-la comme brouillon.",
     required: "Complétez les champs obligatoires.",
     fieldRequired: "Ce champ est obligatoire pour publier.",
-    slugInvalid: "Utilisez des minuscules, des chiffres et un seul trait d’union entre les mots.",
+    slugInvalid:
+      "Utilisez des minuscules, des chiffres et un seul trait d’union entre les mots. Les identifiants d’article sont réservés.",
     contentTooLong: "Le contenu dépasse la taille autorisée. Raccourcissez-le avant d’enregistrer.",
     categoryTranslationRequired:
       "Traduisez le nom de cette catégorie dans Gérer les catégories, ou désélectionnez-la.",
