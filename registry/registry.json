@@ -1760,6 +1760,7 @@
         }
       ],
       "registryDependencies": [
+        "@forge/destructive-action",
         "@forge/status-toggle",
         "@forge/table-pagination",
         "@forge/cn",

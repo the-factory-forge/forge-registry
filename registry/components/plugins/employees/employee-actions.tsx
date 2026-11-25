@@ -37,7 +37,11 @@ import {
 import { StatusToggle } from "@/components/status-toggle";
 import { cn } from "@/components/utils/cn";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
-import { tableActionsClass } from "@/components/utils/table-styles";
+import {
+  tableActionCellClass,
+  tableActionsClass,
+  tableCellClass,
+} from "@/components/utils/table-styles";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
 export interface EmployeeActionCallbacks {
   deletion?: EmployeeDeletionAdapter;
@@ -71,7 +75,8 @@ function EmployeeActionsContent({
   labels: overrides,
   className,
   disabled = false,
-}: EmployeeActionsProps) {
+  tableCells = false,
+}: EmployeeActionsProps & { tableCells?: boolean }) {
   const labels = { ...employeeLabels, ...overrides };
   const id = `factory-employee-edit-${useId()}`;
   const [editing, setEditing] = useState(false);
@@ -94,7 +99,35 @@ function EmployeeActionsContent({
     setFeedback(null);
     return mutation.run(action, accept);
   }
-  return (
+  function websiteStatus(label: string, className?: string) {
+    const published = employee.websitePublished;
+    if (published === undefined || !onSetWebsitePublished) {
+      return <EmployeeWebsiteStatus published={published} labels={labels} className={className} />;
+    }
+    return (
+      <StatusToggle
+        label={label}
+        pressed={published}
+        disabled={disabled || pending}
+        className={cn(
+          "min-h-10 md:min-h-8",
+          employeeWebsiteStatusClass[published ? "visible" : "hidden"],
+          className,
+        )}
+        onPressedChange={(next) =>
+          void run(
+            "website",
+            () => onSetWebsitePublished(employee.id, next),
+            () => notify(labels.websiteUpdated),
+          )
+        }
+      >
+        {published ? labels.websiteVisible : labels.websiteHidden}
+      </StatusToggle>
+    );
+  }
+
+  const actions = (
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className={tableActionsClass}>
         <IconTooltip label={`${emailAction} ${employee.name}`}>
@@ -159,7 +192,7 @@ function EmployeeActionsContent({
             >
               <div
                 data-dialog-header
-                className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0"
+                className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
@@ -167,34 +200,7 @@ function EmployeeActionsContent({
                       {labels.editTitle}
                     </Dialog.Title>
                     {employee.websitePublished !== undefined &&
-                      (onSetWebsitePublished ? (
-                        <StatusToggle
-                          label={labels.website}
-                          pressed={employee.websitePublished}
-                          disabled={disabled || pending}
-                          className={cn(
-                            "ml-auto min-h-10 md:min-h-8",
-                            employeeWebsiteStatusClass[
-                              employee.websitePublished ? "visible" : "hidden"
-                            ],
-                          )}
-                          onPressedChange={(published) =>
-                            void run(
-                              "website",
-                              () => onSetWebsitePublished(employee.id, published),
-                              () => notify(labels.websiteUpdated),
-                            )
-                          }
-                        >
-                          {employee.websitePublished ? labels.websiteVisible : labels.websiteHidden}
-                        </StatusToggle>
-                      ) : (
-                        <EmployeeWebsiteStatus
-                          published={employee.websitePublished}
-                          labels={labels}
-                          className="ml-auto"
-                        />
-                      ))}
+                      websiteStatus(labels.website, "ml-auto")}
                   </div>
                   <IconTooltip label={labels.close}>
                     <Dialog.Close
@@ -295,7 +301,7 @@ function EmployeeActionsContent({
                 )}
                 <div
                   data-dialog-footer
-                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5"
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
                 >
                   <button
                     type="button"
@@ -351,7 +357,7 @@ function EmployeeActionsContent({
               <Dialog.Popup className={dialogClass}>
                 <div
                   data-dialog-header
-                  className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0"
+                  className="sticky top-0 z-20 -mx-6 space-y-2 bg-background px-6 pt-5 pb-0 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
@@ -379,7 +385,7 @@ function EmployeeActionsContent({
                 )}
                 <div
                   data-dialog-footer
-                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5"
+                  className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-3 bg-background px-6 pt-0 pb-5 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
                 >
                   <button
                     type="button"
@@ -430,6 +436,20 @@ function EmployeeActionsContent({
       )}
     </div>
   );
+  if (!tableCells) return actions;
+  return (
+    <>
+      <td className={cn(tableCellClass, "whitespace-nowrap")}>
+        {websiteStatus(`${labels.website}: ${employee.name}`)}
+        {failedAction === "website" && !editing && (
+          <p role="alert" className="max-w-60 text-xs whitespace-normal text-destructive">
+            {labels.websiteError}
+          </p>
+        )}
+      </td>
+      <td className={tableActionCellClass}>{actions}</td>
+    </>
+  );
 }
 
 export function EmployeeActions(props: EmployeeActionsProps) {
@@ -438,4 +458,8 @@ export function EmployeeActions(props: EmployeeActionsProps) {
       <EmployeeActionsContent key={`${props.currentUserId}:${props.employee.id}`} {...props} />
     </ActionToastProvider>
   );
+}
+
+export function EmployeeTableActionCells(props: EmployeeActionsProps) {
+  return <EmployeeActionsContent {...props} tableCells />;
 }

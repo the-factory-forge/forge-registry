@@ -807,7 +807,7 @@ edit/delete dialogs and verification actions.
 
 - **WHEN** a host offers employee profile publication
 - **THEN** Hosts MAY supply public-profile visibility independently of account access.
-  The edit-dialog status SHALL show the shared switch indicator and act as an
+  The directory and edit-dialog statuses SHALL show the shared switch indicator and act as an
   immediate toggle only when the host provides a visibility callback. The directory
   SHALL preview the change while pending and restore the previous status on
   failure, preserving unsaved account fields. The host SHALL authorize, validate
@@ -838,7 +838,7 @@ edit/delete dialogs and verification actions.
 
 #### Scenario: Toggling an employee's website visibility
 
-- **WHEN** an administrator activates the edit-dialog visibility toggle
+- **WHEN** an administrator activates the visibility toggle in an employee row or its edit dialog
 - **THEN** the host visibility callback runs without submitting account edits
 - **AND** duplicate actions are disabled until it finishes
 - **AND** a failed save restores the prior status and shows a retryable error

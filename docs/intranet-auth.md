@@ -268,7 +268,7 @@ values show **Not provided** in the table and no dialog badge; account access or
 email verification never implies publication. Override `website`, `websiteVisible`,
 `websiteHidden` and `websiteUnknown` through `labels` for translations.
 Supplying the optional `onSetWebsitePublished(id, published)` callback
-replaces the edit-dialog badge with the shared [status toggle](./status-toggle.md).
+turns the badge in each employee row and its edit dialog into a [status toggle](./status-toggle.md).
 Activating it saves visibility independently of **Save changes**, preserving
 unsaved account fields. The directory previews the new status while pending,
 disables duplicate actions and restores the previous status with an error if saving
