@@ -1430,6 +1430,89 @@
       ]
     },
     {
+      "name": "products",
+      "type": "registry:block",
+      "title": "Products",
+      "description": "Public product catalog and staff tools for adding, editing, publishing and deleting products.",
+      "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
+      "registryDependencies": [
+        "@forge/public-identifier",
+        "@forge/destructive-action",
+        "@forge/action-toast",
+        "@forge/back-link",
+        "@forge/icon-tooltip",
+        "@forge/photo-picker",
+        "@forge/ui-shims",
+        "@forge/loading-indicator",
+        "@forge/status-toggle",
+        "@forge/table-sort",
+        "@forge/table-search",
+        "@forge/table-styles",
+        "@forge/cn",
+        "@forge/dialog-submit",
+        "@forge/editor-form",
+        "@forge/optimistic-action",
+        "@forge/record-deletion"
+      ],
+      "files": [
+        {
+          "path": "registry/components/plugins/products/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/products/model.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/model.ts"
+        },
+        {
+          "path": "registry/components/plugins/products/presentation.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/presentation.ts"
+        },
+        {
+          "path": "registry/components/plugins/products/lists.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/products/lists.tsx"
+        },
+        {
+          "path": "registry/components/plugins/products/product-media.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/products/product-media.tsx"
+        },
+        {
+          "path": "registry/components/plugins/products/product-form.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/products/product-form.tsx"
+        }
+      ]
+    },
+    {
+      "name": "products-storage",
+      "type": "registry:block",
+      "title": "Products storage",
+      "description": "PostgreSQL catalog with private products, staff authorization and version-checked writes.",
+      "dependencies": ["drizzle-orm@1.0.0-rc.4", "zod@4.6.7"],
+      "registryDependencies": ["@forge/public-identifier", "@forge/products", "@forge/database"],
+      "files": [
+        {
+          "path": "registry/components/plugins/products/server/index.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/server/index.ts"
+        },
+        {
+          "path": "registry/components/plugins/products/server/schema.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/server/schema.ts"
+        },
+        {
+          "path": "registry/components/plugins/products/server/service.server.ts",
+          "type": "registry:lib",
+          "target": "@components/plugins/products/server/service.server.ts"
+        }
+      ]
+    },
+    {
       "name": "menus",
       "type": "registry:block",
       "title": "Menus",

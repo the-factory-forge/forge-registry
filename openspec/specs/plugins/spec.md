@@ -77,6 +77,66 @@ the saved display order and restrict manual moves to that order.
 - **THEN** the queue returns to the first page with every matching ticket ordered by author before pagination
 - **AND** returning from a discussion restores that page and order
 
+### Requirement: Products plugin
+
+Products SHALL supply a staff directory, a shared create/edit form, a public catalog and individual published product pages. Hosts SHALL supply a currency, interface translations, routes, authorization and data. The optional Products storage companion SHALL provide a Drizzle schema and version-checked operations.
+
+#### Scenario: Creating a private product
+
+- **WHEN** authorized staff save a name, optionally adding a description, ordered characteristic label–value pairs and a nonnegative price in minor units
+- **THEN** the new product is private and absent from public reads
+- **AND** incomplete pairs or invalid prices are rejected and failed form saves retain the draft for retry
+
+#### Scenario: Editing product translations
+
+- **WHEN** the host supplies multiple content languages
+- **THEN** the editor shows a tab for each language and preserves unsaved edits when switching tabs
+- **AND** one save applies the primary content and optional translations together, requiring a name for each filled language and complete characteristic pairs
+- **AND** price and publication status are shared, and catalog reads use the requested translation or fall back to the primary content
+
+#### Scenario: Showing optional product images
+
+- **WHEN** staff save a product with any combination of thumbnail, banner and ordered gallery photos
+- **THEN** the catalog shows the thumbnail and the detail page shows the banner and gallery when supplied
+- **AND** visitors can swipe or use keyboard-operable controls to browse multiple photos. A single photo has no navigation controls and an empty gallery takes no space.
+- **AND** removing images does not change publication or translated content. A name-only product can still be created and published.
+- **AND** failed photo uploads retain the previous image and the rest of the draft for retry
+
+#### Scenario: Publishing and maintaining a product
+
+- **WHEN** staff publish a name-only or more detailed product
+- **THEN** visitors see it in primary-name alphabetical order with its saved details, including a supplied zero price
+- **AND** saving edits to a published product updates its public details
+- **AND** unpublishing removes it from the catalog and preserves its data for republication
+- **AND** staff can toggle publication with the status badge. Without the host publication callback, the badge is read-only.
+
+#### Scenario: Opening a public product
+
+- **WHEN** a visitor follows a catalog link or opens a published product by UUID or its optional unique slug
+- **THEN** the page shows that product in the requested language using the catalog’s translation fallback
+- **AND** a UUID visit replaces the URL with the current slug when present, preserving the locale and query. A product without a slug keeps its UUID URL.
+- **AND** unknown, private and deleted products return the same not-found result by either identifier
+
+#### Scenario: Deleting a product
+
+- **WHEN** staff with deletion permission confirm the directory row’s Delete product action
+- **THEN** the product is permanently removed from the staff directory and public catalog
+- **AND** canceling preserves the record, and a failed deletion restores the row and offers a retry
+- **AND** the action is available only when the host supplies the deletion callback
+
+#### Scenario: Finding a product in the staff directory
+
+- **WHEN** staff search by name
+- **THEN** the directory filters before paging, with the current query and page owned by the host URL
+- **AND** the toolbar, column headings and footer remain available for empty results and while loading
+
+#### Scenario: Reading pages and applying writes
+
+- **WHEN** visitors request a catalog page
+- **THEN** the server filters published records before sorting and pagination and returns only catalog fields
+- **WHEN** a staff read or write lacks permission, or a write has a stale version
+- **THEN** the service rejects that operation without changing the product
+
 ### Requirement: Supports plugin
 
 Supports SHALL provide a staff-shared website maintenance queue with a sortable, searchable,

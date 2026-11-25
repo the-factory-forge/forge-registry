@@ -17,6 +17,7 @@ export * from "./agent-key.schema";
 export { pluginLocks } from "@/components/utils/database";
 export * from "@/components/plugins/drive/server/schema";
 export * from "@/components/plugins/blogs/server/schema";
+export * from "@/components/plugins/products/server/schema";
 export * from "@/components/plugins/menus/server/schema";
 export * from "@/components/plugins/reservations/server/schema";
 export * from "@/components/plugins/supports/server/schema";

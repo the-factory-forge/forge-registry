@@ -19,6 +19,12 @@ const plugins = [
     pagination: true,
   },
   { route: "/en/customers", control: "Directory state", search: "Search customers" },
+  {
+    route: "/en/admin/products",
+    control: "List state",
+    search: "Search products",
+    pagination: true,
+  },
   { route: "/en/projects", control: "Directory state", search: "Search projects" },
   {
     route: "/en/admin/menus/items",
@@ -66,7 +72,7 @@ void test("plugin tables retain headers, loaded rows and paging through loading,
         }
         assert.equal((await table.locator("thead").boundingBox()).y, headerY);
         const mutations = table.getByRole("button", {
-          name: /Delete|Remove|Send verification|Reorder/,
+          name: /Delete|Remove|Send verification|Reorder|Publication status/,
         });
         for (const button of await mutations.all())
           assert.equal(await button.isDisabled(), true, plugin.route);

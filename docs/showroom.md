@@ -239,10 +239,11 @@ links retain the selected locale. Examples share Acme workspace branding and
 consistent people/project names where they represent the same records; specialized
 booking, restaurant, and public-page content retains its own meaning.
 
-The Blogs, Menus and Reservations demos offer **Language** in the Preview
-controls sidebar. It shows the destination language and switches
+The Blogs, Menus, Products and Reservations demos offer **Language** in the
+Preview controls sidebar. It shows the destination language and switches
 between English and French in one click. On a public article, the toggle is
 available when the other language is published and uses that translation's slug.
+The Products catalog and detail pages display saved translations when available.
 Switching preserves the query, hash and in-memory demo state. Editor navigation
 guards run before the new locale is saved in `FORGE_LOCALE`.
 
