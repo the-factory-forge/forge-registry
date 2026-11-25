@@ -102,6 +102,7 @@ function AgentsPreview() {
           />
         ) : (
           <AgentsPage
+            className="h-[calc(100dvh-8rem)]"
             refreshVersion={revision}
             client={mock.client}
             settings={readOnly ? undefined : mock.settings}

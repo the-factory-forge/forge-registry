@@ -179,31 +179,30 @@ names that sample model; it never calls providers or saves real API keys.
 
 `AgentsPage` accepts an optional `refreshVersion` to reload externally changed conversations without discarding drafts, plus `client`, controlled `operationId` and `conversationId`,
 `onSelectionChange`, translated `labels`, optional administrator-only `settings`,
-`cropLabels` and `className`. Settings replaces the former header operation selector;
-operation cards and All operations retain selection and navigation.
-Hosts parse operation/conversation IDs at their route boundary and bind selections
-to URL history. Missing selection shows selectable operation cards with titles
-and descriptions. The cards also remain visible in new, empty chats, with the
-current operation marked as selected. Unknown or unauthorized selections show
-unavailable feedback. Once an operation is selected, staff can type and send
-immediately. The first Send creates the saved chat and submits that message;
-there is no separate Start action. Cmd+Enter (macOS) or Ctrl+Enter (Windows/Linux)
-activates Send; Enter inserts a newline. The shortcut respects disabled and pending
-states and never approves an agent proposal. New conversation opens an unsaved draft.
+`cropLabels` and `className`. Settings sits beside the page title and opens its
+existing dialog; the conversation has no additional header. Domain cards appear only in empty chats. Hosts validate selection in the URL and restore it on
+reload and Back/Forward. Unknown or unauthorized selections show unavailable feedback.
+The first Send creates the saved chat and submits the draft once. Enter sends;
+Shift+Enter inserts a newline. Cmd+Enter and Ctrl+Enter remain supported. Empty
+drafts, disabled/pending controls, repeated keys and composing input do not send.
+These shortcuts never approve an agent proposal. One New conversation action opens
+an unsaved draft, retains drafts for each operation and is disabled in an unsaved chat.
 Explicit file selection may create a chat to stage private attachments before
 its first message, preserving the typed draft through upload and crop recovery.
 A conversation's operation cannot be changed. Its plugin icon identifies each
-chat in the history. After the first message, All operations returns to the chooser.
-Choosing a different card before then leaves the empty chat and selects the new
-operation; it never changes the saved conversation's operation.
-All operations leaves the current chat to choose another operation; it does not
-change the saved chat's plugin. Reload and Back/Forward restore the same selected
-operation and chat. Message text, files, credentials and approval payloads never belong in
+chat in the history. Selecting an operation in an empty chat never changes a saved
+conversation's operation. Message text, files, credentials and approval payloads never belong in
 the URL. Refresh does not create another history entry.
 
-With no operation selected, the history combines the current user's chats from
-all accessible operations, most recent first. Selecting an operation filters the
-history. Opening a chat selects its saved operation and conversation in the URL.
+The history always combines the current user's chats from all accessible operations,
+most recent first, with plugin labels and date groups. Selection changes retain the
+list while it refreshes. On mobile, Conversations switches between full-height history and chat views.
+Opening a chat restores its operation and conversation in the URL. User messages
+align right with the host's primary tint; agent replies use a neutral surface on the left.
+The transcript and composer share a centered 64rem maximum width. Give the page
+a sized flex/grid parent or an explicit height through `className`; it fills that
+space and scrolls messages and history independently. The host shell owns the
+available viewport height.
 The page uses the existing authenticated `operations()` and `list(operationId)`
 methods; hosts do not need an additional history endpoint.
 
