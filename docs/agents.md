@@ -80,10 +80,16 @@ budget, rate limits, request timeouts and model selection stay in the host.
 `AgentsClient` is the browser's authenticated transport contract. Bind its
 operations/list/create/get/remove/decide methods to host endpoints. Stream `send`
 events over the host's streaming transport and forward cancellation. The service
-accepts only user text, attachment references, a request ID and an optional resume
+accepts only user text, attachment references, a request ID, an optional interface locale and an optional resume
 flag. It builds history from the database; submitted assistant/system messages or
 replacement action arguments cannot establish authority. Keep provider errors
 and credentials out of public responses.
+
+Supply the selected page language as `locale` in each `send` request, including
+continuations. The service validates the language tag and uses it as the default
+for ambiguous greetings or test text. Clear user language or an explicit language
+request takes precedence. Hosts should restrict the locale to their installed
+languages and supply their site's default when older clients omit it.
 
 `send` emits incremental text and an initial durable conversation. Always reload
 `get` after completion, cancellation or failure to obtain final messages and

@@ -3131,6 +3131,15 @@ the server companion’s administrator-managed website model connection.
 - **AND** ordinary staff retain chat access without configuration access
 - **AND** the showroom accepts only a sample key and never calls a live provider
 
+#### Scenario: Reply language follows the current site locale by default
+
+- **WHEN** the host supplies the selected page locale with a chat request
+- **THEN** the service validates the language tag and includes it in trusted runtime instructions
+- **AND** ambiguous greetings, test messages and nonsensical text use that locale as the default
+- **AND** a clearly different user language or explicit language request takes precedence
+- **AND** prior assistant replies and tool output do not establish the user's preferred language
+- **AND** hosts that omit the optional locale retain their existing instructions
+
 #### Scenario: Viewing history without an operation filter
 
 - **WHEN** no operation is selected
