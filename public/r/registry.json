@@ -1133,6 +1133,7 @@
       "description": "Scoped file browser with folder-tree navigation, uploads, downloads and optional trash.",
       "dependencies": ["@base-ui/react", "lucide-react", "fflate@0.8.3"],
       "registryDependencies": [
+        "@forge/destructive-action",
         "@forge/table-pagination",
         "@forge/cn",
         "@forge/ui-shims",

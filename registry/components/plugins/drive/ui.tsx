@@ -34,6 +34,7 @@ import { useDriveDeletion } from "@/components/plugins/drive/use-deletion";
 import type { useUploads } from "@/components/plugins/drive/use-uploads";
 import { errorCode, validName } from "@/components/plugins/drive/utils";
 import { cn } from "@/components/utils/cn";
+import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitDialogOnShortcut } from "@/components/utils/dialog-submit";
 import { useActionLifetime } from "@/components/utils/use-optimistic-action";
 
@@ -219,7 +220,10 @@ export function DriveToasts({
                     <>
                       {upload.canRetry && (
                         <button
-                          className={actionToastButtonClass}
+                          className={cn(
+                            actionToastButtonClass,
+                            upload.state === "cancelFailed" && destructiveActionClass,
+                          )}
                           onClick={() => currentQueue.current.retry(upload.id)}
                         >
                           <RefreshCwIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -228,7 +232,7 @@ export function DriveToasts({
                       )}
                       {upload.canCancel && (
                         <button
-                          className={actionToastButtonClass}
+                          className={cn(actionToastButtonClass, destructiveActionClass)}
                           onClick={() => currentQueue.current.cancel(upload.id)}
                         >
                           {labels.cancel}
@@ -535,7 +539,7 @@ export function EntryDialog({
         >
           <div
             data-dialog-header
-            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2"
+            className="sticky top-0 z-20 -mx-6 mb-0 flex items-start justify-between gap-3 bg-card px-6 pt-5 pb-2 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
           >
             <Dialog.Title className="min-w-0 flex-1 text-lg font-semibold break-words">
               {title}
@@ -605,7 +609,7 @@ export function EntryDialog({
             </div>
             <div
               data-dialog-footer
-              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 py-5"
+              className="sticky bottom-0 z-10 -mx-6 flex flex-wrap justify-end gap-2 bg-card px-6 py-5 backdrop-blur-sm supports-[backdrop-filter]:bg-card/80"
             >
               <Dialog.Close className={outlineButtonClass} disabled={pending}>
                 {labels.cancel}

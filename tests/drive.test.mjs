@@ -41,6 +41,7 @@ await test("Drive UI ships independently; only the companion contains storage de
   const ui = manifest.items.find((item) => item.name === "drive");
   const server = manifest.items.find((item) => item.name === "drive-storage");
   assert.deepEqual(ui.registryDependencies, [
+    "@forge/destructive-action",
     "@forge/table-pagination",
     "@forge/cn",
     "@forge/ui-shims",
