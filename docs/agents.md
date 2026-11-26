@@ -207,6 +207,14 @@ names that sample model; it never calls providers or saves real API keys.
 Failed sample requests explain the demo key and simulated-failure controls while
 preserving the saved sample connection.
 
+Both Settings tabs remain visible in the public showroom. **Model settings**
+demonstrates the shared intranet connection. **External assistant** simulates
+creating, copying, replacing, expiring and revoking a one-hour token. Its example
+URL and `demo_` token do not authenticate a real MCP client. Only the expiry is
+stored in the browser session; closing the dialog clears the displayed token.
+The development-only [local MCP fixture](./webmcp.md#test-remote-mcp-from-agents-settings)
+still provides a real protocol test with disposable Blogs records.
+
 ## Page and navigation
 
 `AgentsPage` accepts an optional `refreshVersion` to reload externally changed conversations without discarding drafts, plus `client`, controlled `operationId` and `conversationId`,

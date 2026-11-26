@@ -23,7 +23,7 @@ await test("Agents settings creates a temporary MCP key for reviewed CRUD and re
     .getByRole("button", { name: "Settings", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
-  await dialog.getByRole("button", { name: "Create temporary key", exact: true }).click();
+  await dialog.getByRole("button", { name: "Replace key", exact: true }).click();
   const field = dialog.getByLabel("Temporary key", { exact: true });
   await field.waitFor();
   assert.equal(await field.getAttribute("type"), "password");

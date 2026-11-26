@@ -74,6 +74,10 @@ require their corresponding host adapter; discovery does not grant permission.
 
 ## Test remote MCP from Agents Settings
 
+The public showroom displays both Settings tabs with an interactive simulation.
+Its example URL and one-hour `demo_` tokens cannot connect an external client.
+For a real local MCP test, use the development fixture below.
+
 1. Run `pnpm dev` for Registry, then
    `SHOWROOM_ORIGIN=https://forge-registry.localhost pnpm demo:mcp` in another terminal.
    Use the exact origin printed by Portless if your configuration changes it.
@@ -82,7 +86,7 @@ require their corresponding host adapter; discovery does not grant permission.
 4. Test `blogs_list`, then create, update and delete your own disposable article.
    Revoke the key when finished.
 
-This panel is development-only. It uses the actual MCP handler, Blogs connector
+This real connection is development-only. It uses the actual MCP handler, Blogs connector
 and review engine with disposable server-side records, separate from browser
 previews. The key expires after one hour. Creating another key invalidates the
 previous one immediately; closing Settings clears the displayed secret.

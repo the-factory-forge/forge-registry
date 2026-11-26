@@ -106,10 +106,10 @@ function AgentsPreview() {
             refreshVersion={revision}
             client={mock.client}
             settings={readOnly ? undefined : mock.settings}
-            connectionSettings={import.meta.env.DEV ? <McpDemoSettings /> : undefined}
+            connectionSettings={<McpDemoSettings simulated={!import.meta.env.DEV} />}
             labels={{
               settingsDescription:
-                "Demo only. Enter “demo” as the API key, load a sample model and save it. No AI provider is contacted.",
+                "One shared AI connection serves all employees in your intranet. Try this demo with the API key “demo”, then load and save a sample model. No AI provider is contacted.",
               keyHelp: "Use the sample key “demo”. Real API keys are rejected and never saved.",
               settingsError:
                 "Demo request failed. Use the sample key “demo” and turn off “Simulate failure”, then retry. Saved settings are unchanged.",
