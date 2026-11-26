@@ -403,6 +403,10 @@ checks; passing a caller-supplied user ID is not authentication. See the shared
 [contract](https://github.com/the-factory-forge/forge-specs/blob/main/openspec/specs/agent-access/spec.md)
 and [approval decision](https://github.com/the-factory-forge/forge-specs/blob/main/concepts/adr/0018-external-intranet-agents.md).
 
+The adapter leaves the `Connection` response header to the HTTP server. This
+prevents a proxy from reusing a connection that the client requested to close.
+Keep `Cache-Control: no-store` and `Vary: Authorization` on MCP responses.
+
 ```ts
 import { createAgentsMcpHandler } from "@/components/plugins/agents/server/mcp.server";
 

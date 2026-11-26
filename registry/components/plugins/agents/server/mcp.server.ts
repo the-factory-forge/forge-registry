@@ -339,6 +339,8 @@ export function createAgentsMcpHandler<Context>(options: AgentsMcpOptions<Contex
         { legacy: "stateless", maxSubscriptions: 0, maxRequestBodySize: 1024 * 1024 },
       );
       const response = await handler.fetch(request);
+      // Let the HTTP server manage connection lifetime, including client-requested closes.
+      response.headers.delete("Connection");
       response.headers.set("Cache-Control", "no-store");
       response.headers.set("Vary", "Authorization");
       return response;

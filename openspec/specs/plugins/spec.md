@@ -3279,6 +3279,12 @@ and reject continuation against a changed file version.
 - **WHEN** an authorized connection prepares a write and later supplies its identifier and unchanged review
 - **THEN** the shared executor checks ownership, current permission and the stored snapshot before applying only the stored input
 
+#### Scenario: Repeated requests through an HTTP proxy
+
+- **WHEN** a client sends MCP requests through a proxy with either a closing or persistent connection
+- **THEN** the adapter leaves connection lifetime to the HTTP server
+- **AND** a previous response cannot force reuse of a connection the client closed
+
 #### Scenario: Duplicate or interrupted execution
 
 - **WHEN** the external client retries a completed or uncertain action
@@ -3321,6 +3327,12 @@ selection. The connector SHALL reuse Agents execution without a model provider.
 - **WHEN** the context or authenticated client changes while a decision is pending
 - **THEN** that decision's success or failure cannot replace or disable a newer review
 - **AND** an already approved write retains its durable outcome without refreshing the departed context
+
+#### Scenario: Refreshing a completed browser action
+
+- **WHEN** a decision succeeds or requires reconciliation in the current context
+- **THEN** the host receives the affected operation ID to refresh that operation's data
+- **AND** existing callbacks that ignore the operation ID remain compatible
 
 #### Scenario: Leaving or using an unsupported page
 
