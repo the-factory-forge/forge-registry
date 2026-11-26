@@ -32,9 +32,18 @@ For file selection, supply `uploadImage(file)` to `ProductForm`. The adapter ret
 
 The host owns file storage, authorization and cleanup. Validate the file contents on the server, scope uploads to the site and Products, and authorize private previews and public image reads against current publication. Clean up abandoned or removed uploads once no saved product references them. The storage companion saves image references and descriptions in PostgreSQL. On update, omitting `media` preserves it; passing `media: {}` clears it.
 
+## Product categories
+
+Products owns its category tree. Each product can belong to multiple main categories and subcategories. Selecting a child includes its parent. Clearing a parent in the editor also clears its children. Assignments apply across languages. Category names use the selected translation when available and fall back to the primary name.
+
+- Read the complete tree with `staff.categories()` and pass it to `ProductForm.categories` and `ProductDirectory.categories`. Pass `categoriesHref` to the directory for authorized managers. The showroom also links to `/:locale/admin/products/categories` from Preview navigation.
+- Render `ProductCategoriesPage` with the tree, the same ordered content languages as the product form, and a directory back link. Supply `onSave(input, current?)` and `onDelete(id, version)` to authorized managers. Call `staff.saveCategory` or `staff.deleteCategory` and refresh host data on success. Both mutations require the host's `manageCategories` permission. Failed edits retain the draft. Duplicate primary names under one parent are rejected.
+- Use `service.publicCategories()` for catalog filters. Only categories assigned to published products are returned. Bind `ProductCatalog.categoryId` and `onCategoryChange` to the URL and pass the selected ID to `publicList({ categoryId, locale, cursor })`. Reset the cursor when the filter changes. A parent matches all products assigned to its children, once per product. Use `productCategoryNames(product, categories, locale)` for the detail page's `categoryNames`.
+- To clear a product's assignments, save `categoryIds: []`. Omitting `categoryIds` on update preserves them. Remove assignments before moving or deleting a category. Remove or move subcategories before deleting their parent. Refresh cached category menus, lists and affected details after changes.
+
 ## Optional storage
 
-Compose the exported `products` table into the host’s existing Drizzle schema, generate and review a migration, and apply it through the host migration workflow. See the [persistence guide](./persistence.md). Installing either item copies source only.
+Compose the exported `products`, `productCategories` and `productCategoryAssignments` tables, plus `pluginLocks` from `@/components/utils/database`, into the host’s existing Drizzle schema, generate and review a migration, and apply it through the host migration workflow. See the [persistence guide](./persistence.md). Installing either item copies source only.
 
 ```ts
 // Host server module. db and requireProductPermission are host-owned.
@@ -47,7 +56,7 @@ const product = await staff.create({ name: "Notebook" });
 await staff.setPublished(product.id, product.version, true);
 ```
 
-For an existing Products installation, generate an additive migration for the `translations` JSONB column on `forge_product`. Its default of `{}` preserves existing content as the primary language. Add the nullable, unique `slug` column. Existing products keep their UUID URLs. Add the non-null `media` JSONB column with default `{}` for products without images. Apply the migration before running the updated storage companion.
+For an existing Products installation, generate an additive migration for the category and assignment tables and the shared plugin lock table if absent. Existing products start uncategorized. Older installations also need the migration for the `translations` JSONB column on `forge_product`. Its default of `{}` preserves existing content as the primary language. Add the nullable, unique `slug` column. Existing products keep their UUID URLs. Add the non-null `media` JSONB column with default `{}` for products without images. Apply the migration before running the updated storage companion.
 
 The staff service checks `read`, `create`, `edit`, `publish`, or `delete` against fresh host authorization on every operation. Staff reads include private records. The public query returns catalog fields only, in case-insensitive primary name order with ID as the tie-breaker. Both lists return `{ items, nextCursor }` and accept a decimal offset cursor. Pages default to 50 rows and allow at most 100.
 

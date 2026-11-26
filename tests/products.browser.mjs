@@ -384,3 +384,67 @@ await test("Product photos can be uploaded, removed and browsed on a phone", asy
   await slider.getByText("1 / 2").waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
+
+await test("Product categories can be managed, assigned across branches and cleared with their parent", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+  await page.goto(base + "/en/admin/products");
+  const stage = page.getByRole("main", { name: "Component preview" });
+  const nav = page.getByRole("navigation", { name: "Preview navigation" });
+  await nav.getByRole("link", { name: "Categories" }).click();
+  await page.waitForURL(base + "/en/admin/products/categories");
+  const dialog = page.getByRole("dialog");
+  await stage.getByRole("button", { name: "Create", exact: true }).click();
+  await dialog.getByRole("textbox", { name: "Name (English)" }).fill("Gifts");
+  await dialog.getByRole("textbox", { name: "Name (Français)" }).fill("Cadeaux");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await stage.getByRole("button", { name: "Gifts", exact: true }).waitFor();
+  await stage.getByRole("button", { name: "Create", exact: true }).click();
+  await dialog.getByRole("combobox", { name: "Parent category" }).selectOption({ label: "Gifts" });
+  await dialog.getByRole("textbox", { name: "Name (English)" }).fill("Gift sets");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await stage.getByRole("button", { name: "Gift sets", exact: true }).waitFor();
+  await nav.getByRole("link", { name: "Staff directory" }).click();
+  await stage.getByRole("link", { name: "Linen notebook", exact: true }).click();
+  const check = (name) => stage.getByRole("checkbox", { name, exact: true });
+  await check("Stationery").uncheck();
+  assert.equal(await check("Notebooks").isChecked(), false);
+  await check("Notebooks").check();
+  await check("Gift sets").check();
+  assert.equal(await check("Stationery").isChecked(), true);
+  assert.equal(await check("Gifts").isChecked(), true);
+  await stage.getByRole("button", { name: "Save", exact: true }).click();
+  await stage
+    .getByRole("cell")
+    .filter({ hasText: "Stationery, Notebooks, Gifts, Gift sets" })
+    .waitFor();
+  await nav.getByRole("link", { name: "Public catalog" }).click();
+  await stage.getByRole("link", { name: "Linen notebook" }).click();
+  await stage.getByText("Stationery, Notebooks, Gifts, Gift sets").waitFor();
+});
+
+await test("Public category filters retain the locale and survive reload and browser history", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+  await page.goto(base + "/fr/products?ref=demo#catalog");
+  const select = page.getByRole("combobox", { name: "Categories", exact: true });
+  const child = select.getByRole("option", { name: "Papeterie / Carnets" });
+  const id = await child.getAttribute("value");
+  await select.selectOption(id);
+  await page.waitForURL((u) => u.searchParams.get("category") === id);
+  assert.equal(new URL(page.url()).searchParams.get("ref"), "demo");
+  assert.equal(new URL(page.url()).hash, "#catalog");
+  await page.reload();
+  assert.equal(await select.inputValue(), id);
+  await page.getByRole("link", { name: "Carnet en lin" }).waitFor();
+  await select.selectOption("");
+  await page.waitForURL((u) => !u.searchParams.has("category"));
+  await page.goBack();
+  assert.equal(await select.inputValue(), id);
+  await page.goForward();
+  assert.equal(await select.inputValue(), "");
+});

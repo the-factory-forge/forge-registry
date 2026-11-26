@@ -1433,9 +1433,10 @@
       "name": "products",
       "type": "registry:block",
       "title": "Products",
-      "description": "Public product catalog and staff tools for adding, editing, publishing and deleting products.",
+      "description": "Public product catalog with category filters and staff tools for managing products and their two-level categories.",
       "dependencies": ["@base-ui/react", "lucide-react", "zod@4.6.7"],
       "registryDependencies": [
+        "@forge/native-select",
         "@forge/public-identifier",
         "@forge/destructive-action",
         "@forge/action-toast",
@@ -1479,6 +1480,11 @@
           "path": "registry/components/plugins/products/product-media.tsx",
           "type": "registry:component",
           "target": "@components/plugins/products/product-media.tsx"
+        },
+        {
+          "path": "registry/components/plugins/products/product-categories.tsx",
+          "type": "registry:component",
+          "target": "@components/plugins/products/product-categories.tsx"
         },
         {
           "path": "registry/components/plugins/products/product-form.tsx",

@@ -47,6 +47,7 @@ export type ProductPhoto = z.output<typeof productPhotoSchema>;
 export type ProductMedia = z.output<typeof productMediaSchema>;
 
 export const productInputSchema = productContentSchema.extend({
+  categoryIds: z.array(z.uuid()).optional(),
   media: productMediaSchema.optional(),
   slug: productSlugSchema.nullish(),
   translations: productTranslationsSchema.optional(),
@@ -58,12 +59,106 @@ export type CatalogProduct = ProductContent & {
   id: string;
   slug?: string | null;
   media?: ProductMedia;
+  categoryIds?: string[];
   priceMinor: number | null;
 };
 export interface Product extends CatalogProduct {
   translations?: z.output<typeof productTranslationsSchema>;
   published: boolean;
   version: number;
+}
+
+export const productCategoryInputSchema = z.object({
+  name: productText.min(1).max(150),
+  translations: z.record(productLocaleSchema, productText.min(1).max(150)).default({}),
+  parentId: z.uuid().nullable(),
+});
+export type ProductCategoryInput = z.input<typeof productCategoryInputSchema>;
+export type ProductCategory = z.output<typeof productCategoryInputSchema> & {
+  id: string;
+  version: number;
+};
+export type CategoryRevision = Pick<ProductCategory, "id" | "version">;
+export interface ProductCategoriesClient {
+  categories(): Promise<ProductCategory[]>;
+  saveCategory(input: ProductCategoryInput, current?: CategoryRevision): Promise<ProductCategory>;
+  deleteCategory(id: string, version: number): Promise<void>;
+}
+
+export class ProductsError extends Error {
+  readonly code:
+    | "INVALID"
+    | "FORBIDDEN"
+    | "NOT_FOUND"
+    | "CONFLICT"
+    | "SLUG_TAKEN"
+    | "CATEGORY_IN_USE"
+    | "CATEGORY_NAME_TAKEN";
+  constructor(code: ProductsError["code"]) {
+    super(code);
+    this.code = code;
+  }
+}
+
+export function productCategoryName(category: ProductCategory, locale: string) {
+  return category.translations[locale] ?? category.name;
+}
+
+export function productCategoryNames(
+  product: CatalogProduct,
+  categories: readonly ProductCategory[],
+  locale: string,
+) {
+  return categories
+    .filter((c) => product.categoryIds?.includes(c.id))
+    .map((c) => productCategoryName(c, locale));
+}
+
+export function productCategorySelection(
+  ids: readonly string[],
+  categories: readonly Pick<ProductCategory, "id" | "parentId">[],
+) {
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const selected = new Set<string>();
+  for (const id of ids) {
+    const category = byId.get(id);
+    if (!category) throw new ProductsError("INVALID");
+    if (category.parentId) selected.add(category.parentId);
+    selected.add(id);
+  }
+  return [...selected];
+}
+
+export function validateProductCategory(
+  input: ProductCategoryInput,
+  categories: readonly ProductCategory[],
+  current?: CategoryRevision,
+  assigned = false,
+) {
+  const parsed = productCategoryInputSchema.safeParse(input);
+  if (!parsed.success) throw new ProductsError("INVALID");
+  const value = parsed.data;
+  const previous = current && categories.find((c) => c.id === current.id);
+  if (current && previous?.version !== current.version) throw new ProductsError("CONFLICT");
+  if (previous && previous.parentId !== value.parentId && assigned)
+    throw new ProductsError("CATEGORY_IN_USE");
+  if (
+    value.parentId &&
+    (value.parentId === current?.id ||
+      !categories.some((c) => c.id === value.parentId && c.parentId === null) ||
+      categories.some((c) => c.parentId === current?.id))
+  )
+    throw new ProductsError("INVALID");
+  if (
+    categories.some(
+      (c) =>
+        c.id !== current?.id &&
+        c.parentId === value.parentId &&
+        c.name.toLowerCase() === value.name.toLowerCase(),
+    )
+  )
+    throw new ProductsError("CATEGORY_NAME_TAKEN");
+  return value;
 }
 
 export const productSortFields = ["name", "priceMinor", "published"] as const;
@@ -86,6 +181,7 @@ export function catalogProduct(
     id,
     ...(product.media && Object.keys(product.media).length > 0 && { media: product.media }),
     ...(product.slug && { slug: product.slug }),
+    ...(product.categoryIds?.length && { categoryIds: product.categoryIds }),
     name,
     description,
     characteristics,

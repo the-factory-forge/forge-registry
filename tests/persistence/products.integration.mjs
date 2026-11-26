@@ -10,7 +10,7 @@ const { createProductsService } =
   await import("../../registry/components/plugins/products/server/index.ts");
 import { initializeStorage } from "./migrations.mjs";
 
-await test("Products PostgreSQL publishing lifecycle, bounded public reads, competing writes and deletion", async (t) => {
+async function fixture(t) {
   const ns = "products_" + randomUUID().replaceAll("-", "");
   const url = "postgres://drive_test:local_drive_test_only@127.0.0.1:55439/drive_test";
   const root = postgres(url, { max: 1, onnotice: () => {} });
@@ -30,6 +30,11 @@ await test("Products PostgreSQL publishing lifecycle, bounded public reads, comp
   const staff = service.client("staff"),
     other = service.client("visitor");
   const rejects = (promise, code) => assert.rejects(promise, (e) => e.code === code);
+  return { permissions, service, staff, other, rejects };
+}
+
+await test("Products PostgreSQL publishing lifecycle, bounded public reads, competing writes and deletion", async (t) => {
+  const { permissions, service, staff, other, rejects } = await fixture(t);
   const privateRow = await staff.create({ name: "A private product", published: true });
   const first = await staff.create({ name: "zebra", slug: "sample-tree" });
   for (const key of [first.id, first.slug, randomUUID(), "missing", "../invalid"])
@@ -177,4 +182,72 @@ await test("Products PostgreSQL publishing lifecycle, bounded public reads, comp
     (await staff.list()).items.map((p) => p.name),
     ["apricot"],
   );
+});
+
+await test("Products owns a two-level taxonomy and filters published assignments before pagination", async (t) => {
+  const { permissions, service, staff, other, rejects } = await fixture(t);
+  const root = { name: "Paper", parentId: null, translations: { fr: "Papier" } };
+  await rejects(staff.saveCategory(root), "FORBIDDEN");
+  await rejects(other.categories(), "FORBIDDEN");
+  permissions.add("manageCategories");
+  const paper = await staff.saveCategory(root);
+  const pads = await staff.saveCategory({ name: "Pads", parentId: paper.id });
+  const books = await staff.saveCategory({ name: "Books", parentId: paper.id });
+  const gifts = await staff.saveCategory({ name: "Gifts", parentId: null });
+  await rejects(staff.saveCategory({ ...root, name: "paper" }), "CATEGORY_NAME_TAKEN");
+  await rejects(staff.saveCategory({ name: "Deep", parentId: pads.id }), "INVALID");
+  await rejects(staff.saveCategory({ ...root, parentId: paper.id }, paper), "INVALID");
+  await rejects(staff.saveCategory({ ...root, parentId: gifts.id }, paper), "INVALID");
+  await rejects(staff.deleteCategory(paper.id, paper.version), "CATEGORY_IN_USE");
+  assert.equal((await staff.categories()).length, 4);
+
+  const record = await staff.create({ name: "Notepad", categoryIds: [pads.id, books.id, pads.id] });
+  const selected = new Set([paper.id, pads.id, books.id]);
+  assert.deepEqual(new Set(record.categoryIds), selected);
+  assert.deepEqual(await service.publicCategories(), []);
+  assert.deepEqual(await service.publicList({ categoryId: paper.id }), {
+    items: [],
+    nextCursor: null,
+  });
+  await rejects(staff.deleteCategory(pads.id, pads.version), "CATEGORY_IN_USE");
+  await rejects(staff.saveCategory({ name: "Pads", parentId: gifts.id }, pads), "CATEGORY_IN_USE");
+  await rejects(
+    staff.save(record.id, record.version, { name: "Lost", categoryIds: [randomUUID()] }),
+    "INVALID",
+  );
+  assert.equal((await staff.get(record.id)).name, "Notepad");
+  const saved = await staff.save(record.id, record.version, { name: "Notepad" });
+  assert.deepEqual(new Set(saved.categoryIds), selected);
+  const published = await staff.setPublished(record.id, saved.version, true);
+  const otherProduct = await staff.create({ name: "A gift", categoryIds: [gifts.id] });
+  await staff.setPublished(otherProduct.id, otherProduct.version, true);
+  assert.deepEqual(new Set((await service.publicGet(record.id)).categoryIds), selected);
+  for (const id of selected) {
+    const page = await service.publicList({ categoryId: id, pageSize: 1 });
+    assert.deepEqual(
+      page.items.map((p) => p.id),
+      [record.id],
+    );
+    assert.equal(page.nextCursor, null);
+  }
+  const writes = await Promise.allSettled(
+    ["Small pads", "Large pads"].map((name) =>
+      staff.saveCategory({ name, parentId: paper.id }, pads),
+    ),
+  );
+  const latest = writes.find((result) => result.status === "fulfilled").value;
+  assert.equal(writes.find((result) => result.status === "rejected").reason.code, "CONFLICT");
+  const publicCategories = await service.publicCategories();
+  assert.equal(publicCategories.find((c) => c.id === pads.id).name, latest.name);
+  assert.equal(publicCategories.find((c) => c.id === paper.id).translations.fr, "Papier");
+  await staff.save(record.id, published.version, { name: "Notepad", categoryIds: [] });
+  assert.deepEqual(
+    (await service.publicCategories()).map((c) => c.id),
+    [gifts.id],
+  );
+  await rejects(staff.deleteCategory(pads.id, pads.version), "CONFLICT");
+  await staff.deleteCategory(pads.id, latest.version);
+  await staff.deleteCategory(books.id, books.version);
+  await staff.deleteCategory(paper.id, paper.version);
+  await rejects(other.deleteCategory(gifts.id, gifts.version), "FORBIDDEN");
 });

@@ -87,6 +87,18 @@ Products SHALL supply a staff directory, a shared create/edit form, a public cat
 - **THEN** the new product is private and absent from public reads
 - **AND** incomplete pairs or invalid prices are rejected and failed form saves retain the draft for retry
 
+#### Scenario: Organizing products by category
+
+- **WHEN** authorized staff manage product categories
+- **THEN** they can create or rename main categories and their direct subcategories with translated names and a primary-language fallback
+- **AND** a stale write fails, an assigned category cannot move or be deleted, and a category with children cannot move below another category or be deleted
+- **WHEN** staff select subcategories across several branches for a product
+- **THEN** their parents are selected too, clearing a parent clears its children, and the assignments apply across product languages
+- **AND** an existing or new product may have no assignments
+- **WHEN** a visitor filters the catalog by a category
+- **THEN** only published products in that category appear, each once, before pagination, and the URL restores the selection on reload and history navigation
+- **AND** product categories and assignments are independent of Blogs
+
 #### Scenario: Editing product translations
 
 - **WHEN** the host supplies multiple content languages

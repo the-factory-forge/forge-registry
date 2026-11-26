@@ -10,6 +10,9 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import type { LinkProps } from "@/components/link";
 import { LoadingBadge, useLoadingActivity } from "@/components/loading-indicator";
 import {
+  productCategorySelection,
+  productCategoryName,
+  type ProductCategory,
   editableProductPrice,
   parseProductPrice,
   productPriceFormat,
@@ -26,6 +29,7 @@ import {
   productsLabels,
   type ProductsLabels,
 } from "@/components/plugins/products/presentation";
+import { ProductCategoryTree } from "@/components/plugins/products/product-categories";
 import { ProductMediaFields } from "@/components/plugins/products/product-media";
 import { cn } from "@/components/utils/cn";
 import { destructiveActionClass } from "@/components/utils/destructive-action";
@@ -44,6 +48,7 @@ export interface ProductFormProps {
   locale?: string;
   /** The first language owns the primary fields and is the catalog fallback. */
   locales?: readonly { code: string; name: string }[];
+  categories?: readonly ProductCategory[];
   labels?: ProductsLabels;
   /** Store the file and return its durable HTTPS URL or site-relative path. */
   uploadImage?: (file: File) => Promise<string>;
@@ -75,6 +80,7 @@ type Draft = Omit<ProductContent, "characteristics"> & {
 };
 function Editor({
   product,
+  categories,
   client,
   currency,
   locale = "en",
@@ -111,6 +117,10 @@ function Editor({
   function changeDraft(change: Partial<Draft>) {
     setDrafts((current) => ({ ...current, [language]: { ...current[language], ...change } }));
   }
+  const [selectedIds, setCategoryIds] = useState(product?.categoryIds ?? []);
+  const categoryIds = categories
+    ? selectedIds.filter((id) => categories.some((c) => c.id === id))
+    : selectedIds;
   const [media, setMedia] = useState<ProductMedia>(product?.media ?? {});
   const [uploading, setUploading] = useState(false);
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -185,6 +195,7 @@ function Editor({
     const input = {
       ...content[primary],
       slug: savedSlug,
+      ...(categories && { categoryIds }),
       media: savedMedia,
       priceMinor,
       ...(locales.length > 1 && { translations }),
@@ -367,6 +378,38 @@ function Editor({
             />
             {message(priceId)}
           </div>
+          {categories && categories.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="font-medium">{labels.categories}</legend>
+              <ProductCategoryTree
+                categories={categories}
+                render={(category) => (
+                  <label className="flex min-h-9 cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(category.id)}
+                      onChange={(e) => {
+                        if (e.target.checked)
+                          setCategoryIds(
+                            productCategorySelection([...categoryIds, category.id], categories),
+                          );
+                        else {
+                          const removed = new Set([
+                            category.id,
+                            ...categories
+                              .filter((c) => c.parentId === category.id)
+                              .map((c) => c.id),
+                          ]);
+                          setCategoryIds(categoryIds.filter((id) => !removed.has(id)));
+                        }
+                      }}
+                    />
+                    {productCategoryName(category, language)}
+                  </label>
+                )}
+              />
+            </fieldset>
+          )}
           <ProductMediaFields
             media={media}
             onChange={setMedia}

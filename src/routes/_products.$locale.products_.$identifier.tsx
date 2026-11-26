@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { catalogProduct, ProductDetail } from "@/components/plugins/products";
+import { catalogProduct, productCategoryNames, ProductDetail } from "@/components/plugins/products";
 import { resolvePublicIdentifier } from "@/components/utils/public-identifier";
 import { PreviewLanguageSwitcher } from "@/showroom/preview-language-switcher";
-import { getProductsPreviewStore, previewProductImageUrl } from "@/showroom/products-preview";
+import {
+  ProductsPreviewNavigation,
+  getProductsPreviewStore,
+  previewProductImageUrl,
+} from "@/showroom/products-preview";
 import { requireCanonicalRecord } from "@/showroom/public-record";
 import { ShowroomLink } from "@/showroom/routing";
 import { notFoundHead, showroomHead } from "@/showroom/seo";
@@ -20,10 +24,14 @@ export const Route = createFileRoute("/_products/$locale/products_/$identifier")
           (product) => product.published && product[field] === value,
         ),
       );
-      return catalogProduct(
+      const product = catalogProduct(
         requireCanonicalRecord(record, identifier, `/${locale}/products`, location),
         locale,
       );
+      return {
+        ...product,
+        categoryNames: productCategoryNames(product, getProductsPreviewStore().categories, locale),
+      };
     },
   },
   head: ({ loaderData, match }) =>
@@ -41,9 +49,14 @@ function ProductDetailPreview() {
   const product = Route.useLoaderData();
   const { locale } = Route.useParams();
   return (
-    <ShowroomPreview width="narrow" controls={<PreviewLanguageSwitcher />}>
+    <ShowroomPreview
+      width="narrow"
+      navigation={<ProductsPreviewNavigation />}
+      controls={<PreviewLanguageSwitcher />}
+    >
       <ProductDetail
         product={product}
+        categoryNames={product.categoryNames}
         imageUrl={previewProductImageUrl}
         locale={locale}
         currency="CHF"

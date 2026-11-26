@@ -1,7 +1,13 @@
 "use client";
 
 import { PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
-import { useRef, type ComponentType, type MouseEventHandler, type ReactNode } from "react";
+import {
+  Fragment,
+  useRef,
+  type ComponentType,
+  type MouseEventHandler,
+  type ReactNode,
+} from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
@@ -9,7 +15,11 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { Link, type LinkProps } from "@/components/link";
 import { LoadingBadge, useLoadingActivity } from "@/components/loading-indicator";
+import { NativeSelect } from "@/components/native-select";
 import {
+  productCategoryName,
+  productCategoryNames,
+  type ProductCategory,
   defaultProductSort,
   productPriceFormat,
   productSortFields,
@@ -19,7 +29,11 @@ import {
   type ProductsClient,
   type ProductSort,
 } from "@/components/plugins/products/model";
-import { productsLabels, type ProductListProps } from "@/components/plugins/products/presentation";
+import {
+  productButtonClass,
+  productsLabels,
+  type ProductListProps,
+} from "@/components/plugins/products/presentation";
 import { ProductGallery } from "@/components/plugins/products/product-media";
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { StatusToggle } from "@/components/status-toggle";
@@ -30,6 +44,7 @@ import { iconButtonClass, primaryClass } from "@/components/utils/table-controls
 import {
   tableClass,
   tableCellClass,
+  tableHeaderClass,
   tableRowClass,
   tableActionCellClass,
   tableActionsClass,
@@ -109,12 +124,14 @@ export interface ProductDetailProps extends Pick<
   "currency" | "locale" | "labels" | "className" | "imageUrl"
 > {
   product: CatalogProduct;
+  categoryNames?: readonly string[];
   backHref: string;
   linkComponent?: ComponentType<LinkProps>;
 }
 
 export function ProductDetail({
   product,
+  categoryNames,
   currency,
   locale = "en",
   labels,
@@ -148,6 +165,12 @@ export function ProductDetail({
           </h1>
         }
       />
+      {!!categoryNames?.length && (
+        <dl className="text-sm">
+          <dt className="font-medium">{labels?.categories ?? productsLabels.categories}</dt>
+          <dd>{categoryNames.join(", ")}</dd>
+        </dl>
+      )}
       {gallery.length > 0 && (
         <ProductGallery
           key={product.id}
@@ -162,11 +185,17 @@ export function ProductDetail({
 }
 
 export interface ProductCatalogProps extends ProductListProps {
+  categories?: readonly ProductCategory[];
+  categoryId?: string;
+  onCategoryChange?: (id: string | undefined) => void;
   products: readonly CatalogProduct[];
   getProductHref?: (product: CatalogProduct) => string;
   linkComponent?: ComponentType<LinkProps>;
 }
 export function ProductCatalog({
+  categories,
+  categoryId,
+  onCategoryChange,
   products,
   getProductHref,
   imageUrl,
@@ -186,6 +215,32 @@ export function ProductCatalog({
   return (
     <section className={cn("min-w-0 space-y-5", className)}>
       <h1 className="text-3xl font-semibold tracking-tight">{labels.catalog}</h1>
+      {onCategoryChange && !!categories?.length && (
+        <label className="grid max-w-md gap-1 text-sm font-medium">
+          {labels.categories}
+          <NativeSelect
+            className="min-h-10 rounded-lg border border-input bg-background px-3"
+            value={categoryId ?? ""}
+            onChange={(e) => onCategoryChange(e.target.value || undefined)}
+          >
+            <option value="">{labels.allCategories}</option>
+            {categories
+              .filter((c) => !c.parentId)
+              .map((parent) => (
+                <Fragment key={parent.id}>
+                  <option value={parent.id}>{productCategoryName(parent, locale)}</option>
+                  {categories
+                    .filter((c) => c.parentId === parent.id)
+                    .map((child) => (
+                      <option key={child.id} value={child.id}>
+                        {productCategoryName(parent, locale)} / {productCategoryName(child, locale)}
+                      </option>
+                    ))}
+                </Fragment>
+              ))}
+          </NativeSelect>
+        </label>
+      )}
       <ListState {...{ loading, error, onRetry, labels }} />
       {!error &&
         !loading &&
@@ -240,6 +295,8 @@ export interface ProductDirectoryProps
   onSortChange: NonNullable<TableSortProps<ProductSort["field"]>["onSortChange"]>;
   search?: string;
   onSearchChange?: (value: string) => void;
+  categories?: readonly ProductCategory[];
+  categoriesHref?: string;
   createHref?: string;
   getEditHref?: (id: string) => string;
   onSetPublished?: ProductsClient["setPublished"];
@@ -248,6 +305,7 @@ export interface ProductDirectoryProps
 }
 
 function ProductRow({
+  categoryNames,
   product,
   format,
   labels,
@@ -257,6 +315,7 @@ function ProductRow({
   onSetPublished,
   onDelete,
 }: {
+  categoryNames?: string;
   product: Product;
   format: Intl.NumberFormat;
   labels: typeof productsLabels;
@@ -304,6 +363,13 @@ function ProductRow({
           </span>
         )}
       </th>
+      {categoryNames !== undefined && (
+        <td className={tableCellClass}>
+          <p className="max-w-48 truncate" title={categoryNames}>
+            {categoryNames || "—"}
+          </p>
+        </td>
+      )}
       <td className={tableCellClass}>
         {product.priceMinor === null ? "—" : formatProductPrice(product.priceMinor, format)}
       </td>
@@ -364,6 +430,8 @@ function ProductDirectoryContent({
   onRetry,
   pagination,
   className,
+  categories,
+  categoriesHref,
   createHref,
   getEditHref,
   onSetPublished,
@@ -420,6 +488,11 @@ function ProductDirectoryContent({
                 clearLabel={labels.clearSearch}
               />
             )}
+            {categoriesHref && (
+              <HostLink href={categoriesHref} className={productButtonClass}>
+                {labels.categories}
+              </HostLink>
+            )}
             {createHref && (
               <HostLink className={primaryClass} href={createHref}>
                 <PlusIcon aria-hidden="true" className="size-4 shrink-0" />
@@ -441,6 +514,11 @@ function ProductDirectoryContent({
             <thead>
               <tr className={tableRowClass}>
                 <TableSortHeader {...headers} field="name" label={labels.name} />
+                {categories && (
+                  <th scope="col" className={tableHeaderClass}>
+                    {labels.categories}
+                  </th>
+                )}
                 <TableSortHeader {...headers} field="priceMinor" label={labels.price} />
                 <TableSortHeader {...headers} field="published" label={labels.status} />
                 <th scope="col" className={tableActionHeaderClass}>
@@ -451,7 +529,7 @@ function ProductDirectoryContent({
             <tbody className="[&_tr:last-child]:border-0">
               {(error || !deletion.items.length) && (
                 <tr>
-                  <td colSpan={4} className={cn(tableCellClass, "py-8")}>
+                  <td colSpan={categories ? 5 : 4} className={cn(tableCellClass, "py-8")}>
                     {error || loading ? (
                       <ListState {...{ loading, error, onRetry, labels }} />
                     ) : (
@@ -466,6 +544,9 @@ function ProductDirectoryContent({
                 deletion.items.map((product) => (
                   <ProductRow
                     key={product.id}
+                    categoryNames={
+                      categories && productCategoryNames(product, categories, locale).join(", ")
+                    }
                     {...{ product, format, labels, HostLink, onSetPublished }}
                     loading={Boolean(loading)}
                     editHref={getEditHref?.(product.id)}
