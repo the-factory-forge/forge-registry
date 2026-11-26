@@ -250,6 +250,10 @@ The transcript and composer share a centered 64rem maximum width. Give the page
 a sized flex/grid parent or an explicit height through `className`; it fills that
 space and scrolls messages and history independently. The host shell owns the
 available viewport height.
+The scroll target spans the full conversation panel, including the space beside
+the centered messages. Keep every host wrapper in the bounded flex/grid height
+chain so wheel input scrolls the conversation while the header and composer stay
+in place. Ordinary intranet pages retain their normal page scrolling.
 The page uses the existing authenticated `operations()` and `list(operationId)`
 methods; hosts do not need an additional history endpoint.
 
@@ -291,6 +295,13 @@ and a boolean; it cannot substitute the tool, target or payload. The server
 rechecks ownership, current operation access, schema and preview before execution.
 Only one turn or approval executes in a conversation at a time. Success and
 rejection remain in history; repeated approval never repeats the operation.
+
+Preparing a proposal does not execute it. Runtime guidance asks for genuinely
+missing required information or consequential ambiguity, then calls the write
+tool without an extra chat confirmation. The displayed action remains the
+approval boundary. For an explicitly fictitious Support ticket, the tool permits
+labelled sample title/description and a neutral support type; priority is optional
+and no requested files means an empty attachment list.
 
 The existing business services remain authoritative for atomic version checks.
 Connectors compare previews before execution, but do not add optimistic versions

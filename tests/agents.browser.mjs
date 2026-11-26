@@ -581,4 +581,38 @@ await test("Agents: administrator model settings save, reload and drive the demo
   await dialog.waitFor({ state: "hidden" });
   assert.deepEqual(providerRequests, []);
 });
+await test("Agents: wheel scrolling at either edge stays in the conversation", async (t) => {
+  const context = await browser.newContext({ viewport: { width: 2100, height: 900 } });
+  t.after(() => context.close());
+  const page = await context.newPage();
+  await page.goto(`${baseURL}/en/agents`);
+  await page.getByRole("button", { name: "Blogs", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Message", exact: true })
+    .fill("list\n" + "Sample line\n".repeat(80));
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.getByText(/No records were changed\./).waitFor();
+  const region = page.getByRole("region", { name: "Agents", exact: true });
+  const transcript = region.getByRole("log");
+  const area = await region.boundingBox();
+  for (const edge of ["left", "right"]) {
+    await transcript.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    const before = await transcript.evaluate((el) => el.scrollTop);
+    assert.ok(before > 0, "the long conversation must overflow");
+    const box = await transcript.boundingBox();
+    const pageTop = await page.evaluate(() => window.scrollY);
+    await page.mouse.move(
+      edge === "left" ? box.x + 20 : area.x + area.width - 64,
+      box.y + box.height / 2,
+    );
+    await page.mouse.wheel(0, -400);
+    await page.waitForFunction(
+      (before) => (document.querySelector('[role="log"]')?.scrollTop ?? before) < before,
+      before,
+    );
+    assert.equal(await page.evaluate(() => window.scrollY), pageTop);
+  }
+});
 await browser.close();

@@ -3120,6 +3120,13 @@ the server companion’s administrator-managed website model connection.
 - **AND** mobile users can switch between history and chat without changing the selected chat
 - **AND** labels, keyboard controls, both themes and narrow layouts remain usable
 
+#### Scenario: Scrolling a wide conversation
+
+- **WHEN** staff use the wheel over either side of a long conversation panel
+- **THEN** the conversation scrolls within its sized host container
+- **AND** the centered reading column does not reduce the horizontal scroll target
+- **AND** the header and composer remain in place without scrolling the surrounding page
+
 #### Scenario: Configuring the website model
 
 - **WHEN** an administrator opens Settings beside the page title
@@ -3195,6 +3202,14 @@ the server companion’s administrator-managed website model connection.
 - **AND** successful actions can link to a record through a host-derived local route
 - **AND** result links survive reload and cannot be supplied through approvals or model output
 - **AND** uncertain outcomes block further execution until trusted host reconciliation
+
+#### Scenario: Preparing a requested test ticket
+
+- **WHEN** staff explicitly request a fictitious test ticket
+- **THEN** tool guidance permits labelled sample title and description and a neutral support type unless specified otherwise
+- **AND** optional priority and absent attachments do not require another confirmation
+- **AND** the runtime prepares the displayed proposal without executing the business change
+- **AND** approval and fresh authorization remain required before creation
 
 #### Scenario: Reporting a missing plugin record
 

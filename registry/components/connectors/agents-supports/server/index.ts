@@ -30,11 +30,15 @@ export function createSupportsAgentOperation<Context>(
     read("supports_get", record.extend({ cursor: supportIdSchema.optional() }), (c, i) =>
       options.client(c).get(i.id, i.cursor),
     ),
-    write("supports_create", supportCreateSchema.omit({ requestId: true }), {
-      before: async () => null,
-      run: (c, i, _files, requestId) => options.client(c).create({ ...i, requestId }),
-      effects: ["Creates a ticket visible to the website's staff."],
-    }),
+    {
+      ...write("supports_create", supportCreateSchema.omit({ requestId: true }), {
+        before: async () => null,
+        run: (c, i, _files, requestId) => options.client(c).create({ ...i, requestId }),
+        effects: ["Creates a ticket visible to the website's staff."],
+      }),
+      description:
+        "create a ticket. For an explicitly fictitious test ticket, use clearly labelled sample title and description and type support unless the user specifies otherwise. Priority is optional: omit it when unspecified. Use an empty attachmentIds list when no files are requested.",
+    },
     write("supports_comment", supportCommentInputSchema, {
       before,
       run: (c, i, _files, requestId) => options.client(c).comment({ ...i, requestId }),

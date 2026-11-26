@@ -1105,7 +1105,7 @@ function AgentsContent({
             aria-relevant="additions"
             className={cn(
               "min-h-0 flex-1 space-y-6 overflow-auto overscroll-contain py-6 [overflow-wrap:anywhere] [@media(max-height:600px)]:py-2",
-              started && "mx-auto w-full max-w-5xl",
+              started && "[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-5xl",
             )}
           >
             {loading ? (
