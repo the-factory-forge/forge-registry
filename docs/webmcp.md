@@ -171,7 +171,7 @@ reads/proposals, but allow an approved write to record its outcome.
   client={stableAuthenticatedClient}
   contextKey={`${page.id}:${permissionsRevision}`}
   getContext={() => ({ page: page.id, recordId: selectedRecordId })}
-  onChange={() => refreshPluginData()}
+  onChange={(operationId) => refreshPluginData(operationId)}
 />
 ```
 
@@ -181,6 +181,11 @@ fields: current page, record, folder and selection. Do not return credentials,
 arbitrary DOM/form contents or hidden records. `getContext` is read anew on each
 call; changing `contextKey` replaces tools and cancels unapproved reviews.
 Drive's optional `onViewChange` and `refreshVersion` props support this wiring.
+
+`onChange` receives the operation ID after a successful or unresolved decision in
+the current context. Refresh only that operation's affected data. Existing
+callbacks without parameters remain compatible; a completed decision from a
+departed context does not refresh the new page.
 
 The connector does not infer actions from HTML. It registers installed operation
 tools and their schemas, plus `website_context` and `webmcp_proposal`. Optional

@@ -16,6 +16,7 @@ export function mountReviewFixture(replacement: "context" | "client", fails: boo
   const proposals = new Map<string, WebMcpProposal>();
   const outcomes: string[] = [];
   const refreshes: number[] = [];
+  const changedOperations: string[] = [];
   const client: AgentsWebMcpClient = {
     catalog: async () => [
       {
@@ -64,8 +65,9 @@ export function mountReviewFixture(replacement: "context" | "client", fails: boo
       client: clients[replacement === "client" ? version : 0],
       contextKey: replacement === "context" ? String(version) : "stable",
       getContext: () => ({ version }),
-      onChange: () => {
+      onChange: (operationId) => {
         refreshes.push(version);
+        changedOperations.push(operationId);
       },
     });
   }
@@ -73,5 +75,12 @@ export function mountReviewFixture(replacement: "context" | "client", fails: boo
   document.body.append(container);
   const root = createRoot(container);
   root.render(createElement(Host));
-  return { replace: () => replace(), release, outcomes, refreshes, unmount: () => root.unmount() };
+  return {
+    replace: () => replace(),
+    release,
+    outcomes,
+    refreshes,
+    changedOperations,
+    unmount: () => root.unmount(),
+  };
 }

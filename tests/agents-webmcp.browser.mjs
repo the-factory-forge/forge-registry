@@ -69,10 +69,12 @@ for (const replacement of ["context", "client"]) {
         const state = await page.evaluate(() => ({
           outcomes: window.fixture.outcomes,
           refreshes: window.fixture.refreshes,
+          changedOperations: window.fixture.changedOperations,
         }));
         assert.ok(state.outcomes.includes("2:succeeded"));
         if (approve && !fails) assert.ok(state.outcomes.includes("1:succeeded"));
         assert.deepEqual(state.refreshes, [1]);
+        assert.deepEqual(state.changedOperations, ["test"]);
       });
     }
   }

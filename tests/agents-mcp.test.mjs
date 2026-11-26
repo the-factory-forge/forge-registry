@@ -24,7 +24,7 @@ function external(overrides = {}) {
   const service = createAgentsService(options);
   const client = service.external({});
   const mcp = createAgentsMcpHandler({ ...options, resource: "https://intranet.example/api/mcp" });
-  async function rpc(method, params = {}, origin) {
+  async function rpc(method, params = {}, origin, connection) {
     const response = await mcp.handle(
       new Request("https://intranet.example/api/mcp", {
         method: "POST",
@@ -33,6 +33,7 @@ function external(overrides = {}) {
           Accept: "application/json, text/event-stream",
           "MCP-Protocol-Version": "2025-11-25",
           ...(origin ? { Origin: origin } : {}),
+          ...(connection ? { Connection: connection } : {}),
         },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       }),
@@ -61,6 +62,19 @@ function external(overrides = {}) {
     },
   };
 }
+
+await test("MCP SSE leaves connection lifetime to the HTTP server", async () => {
+  const f = external();
+  for (const connection of ["close", "keep-alive"]) {
+    for (let call = 0; call < 4; call++) {
+      const { response, data } = await f.rpc("ping", {}, undefined, connection);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("connection"), null);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.deepEqual(data.result, {});
+    }
+  }
+});
 
 await test("external proposals need no runtime; reviews bind the exact arguments and retries never replay", async () => {
   const f = external();

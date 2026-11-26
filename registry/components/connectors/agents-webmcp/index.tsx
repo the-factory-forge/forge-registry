@@ -27,7 +27,7 @@ export interface AgentsWebMcpProps {
   contextKey: string;
   /** Explicit host-owned page state only; omit secrets and arbitrary form contents. */
   getContext: () => unknown;
-  onChange?: () => void | Promise<void>;
+  onChange?: (operationId: string) => void | Promise<void>;
   labels?: Partial<AgentsLabels> & { reviewTitle?: string; reviewDescription?: string };
 }
 
@@ -150,7 +150,7 @@ export function AgentsWebMcp({
         setProposal(value);
         if (value.status === "succeeded" || value.status === "unresolved") {
           try {
-            await callbacks.current.onChange?.();
+            await callbacks.current.onChange?.(value.operationId);
           } catch {
             if (current()) setError(labels.unavailable);
           }
