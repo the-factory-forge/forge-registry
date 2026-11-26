@@ -3,6 +3,7 @@ import {
   HeadContent,
   isNotFound,
   notFound,
+  redirect,
   Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
@@ -16,9 +17,13 @@ import { notFoundHead } from "@/showroom/seo";
 import { ShowroomHeader } from "@/showroom/showroom-header";
 import { ShowroomLoading } from "@/showroom/showroom-loading";
 import { ShowroomPreview } from "@/showroom/showroom-preview";
+import { SiteConsent } from "@/showroom/site-consent";
 import { themeScript } from "@/showroom/theme-control";
 
 import appCss from "@/styles/globals.css?url";
+
+const cookieDemoDocument =
+  typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/cookie-banner";
 
 export const Route = createRootRoute({
   validateSearch: (
@@ -38,8 +43,15 @@ export const Route = createRootRoute({
       ),
     ),
   }),
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location, preload }) => {
     if ("locale" in params && !isLocale(String(params.locale))) throw notFound();
+    // Keep the simulated Google queue and the real site tag in separate documents.
+    if (
+      !preload &&
+      typeof window !== "undefined" &&
+      cookieDemoDocument !== (location.pathname.replace(/\/$/, "") === "/cookie-banner")
+    )
+      throw redirect({ href: location.href, reloadDocument: true });
   },
   head: ({ matches }) => {
     const missing = matches.length === 1 || matches.some((match) => isNotFound(match.error));
@@ -81,6 +93,7 @@ function RootDocument({ children }: { children: ReactNode }) {
           <ShowroomLoading />
           <ActionToastProvider>
             <div className="showroom-content min-w-0 flex-1">{children}</div>
+            <SiteConsent />
           </ActionToastProvider>
         </LoadingProvider>
         <Scripts />

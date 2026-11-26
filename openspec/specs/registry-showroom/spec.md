@@ -20,6 +20,34 @@ the homepage and existing example catalog, expanding localized demos to each sup
 - **AND** sitemap locations SHALL resolve to canonical, indexable demo pages
 - **AND** login previews, sample record details, editor URLs and query parameters SHALL be excluded
 
+### Requirement: Consent-controlled showroom analytics
+
+The root shell SHALL provide the existing CookieBanner and a persistent Cookie
+settings action, using a showroom-specific storage key. Only statistics consent
+SHALL be offered. The Registry Website GA4 tag SHALL load only after statistics
+consent, restore saved choices and disable collection after withdrawal. Loading
+failures SHALL NOT interrupt navigation. The host SHALL send one pageview per
+visited pathname after consent and route rendering, using the destination page's
+title, without query strings, fragments or duplicates.
+
+#### Scenario: Choosing and revising statistics consent
+
+- **WHEN** a visitor has not consented or saves a selection with statistics disabled
+- **THEN** the site SHALL NOT load the Google tag
+- **WHEN** the visitor accepts statistics
+- **THEN** the Registry Website stream SHALL be configured once per document
+- **AND** reopening Cookie settings SHALL allow withdrawal and stop collection
+- **AND** saved choices SHALL apply on reload and across tabs
+
+#### Scenario: Reviewing the cookie component demo
+
+- **WHEN** a visitor opens `/cookie-banner`
+- **THEN** only the simulated banner SHALL render
+- **AND** real showroom collection SHALL be disabled on this route
+- **AND** entering and leaving the demo SHALL isolate its simulated Google commands
+  from the live tag
+- **AND** accepting the demo SHALL NOT grant showroom consent
+
 ### Requirement: Discoverable showroom examples
 
 New UI items/modules SHALL have working demos using `ShowroomPreview` for sizing,

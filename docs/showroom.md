@@ -171,6 +171,30 @@ This configuration stays under `src/` and is never registered or imported by
 portable components. Consuming projects own their page descriptions, domains,
 indexing decisions, and social metadata.
 
+## Site cookie preferences
+
+The root shell mounts the existing CookieBanner with a separate
+`forge-registry-cookie-consent` storage key and a footer Cookie settings action.
+The `/cookie-banner` component demo keeps its own banner and simulated consent.
+Entering or leaving it reloads the document so its simulated Google queue never
+reaches a real tag. It cannot grant consent for the showroom. Only statistics are
+offered, with marketing disabled. `SiteConsent` connects the existing consent analytics loader
+to the Registry Website stream `G-BW401E4QH9` (GA4 property `565838655`). No Google
+tag is fetched before statistics consent. Refusal or withdrawal disables this
+destination, including while visiting the simulated cookie-banner demo. Loading
+failures leave the site usable; saving preferences again retries the tag.
+
+TanStack captures the browser History methods before the consent-loaded Google
+tag can observe navigation. The host therefore disables the initial automatic
+pageview and sends one `page_view` per visited pathname after consent and route
+rendering, excluding the cookie demo, query strings and fragments. Verify that initial and client-side
+navigation, including Back and Forward, each emit one pageview with the rendered
+page title when upgrading the router or Google setup. The stream's Enhanced
+Measurement page-change option is enabled as checked on 2026-11-26.
+This is showroom host wiring, not a registry item or a change to customer sites.
+Check the deployed site and GA4 Realtime separately after deployment; pushing a
+branch does not validate receipt.
+
 ## Registry search
 
 The shared header opens a search dialog from every showroom page, using its search

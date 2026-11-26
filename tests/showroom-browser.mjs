@@ -1,7 +1,18 @@
 import { chromium as playwrightChromium } from "playwright";
 
 // Keep the existing page.shell alias while all demos share the main document.
-function showroomPage(page, javaScriptEnabled = true) {
+async function showroomPage(page, javaScriptEnabled = true) {
+  // Demo regressions start with optional cookies declined; site-consent tests use fresh contexts.
+  await page.addInitScript(() => {
+    try {
+      const key = "forge-registry-cookie-consent";
+      if (!localStorage.getItem(key))
+        localStorage.setItem(
+          key,
+          JSON.stringify({ necessary: true, analytics: false, marketing: false }),
+        );
+    } catch {}
+  });
   return new Proxy(page, {
     get(target, key) {
       if (key === "shell") return target;
