@@ -66,6 +66,15 @@ selection; font and System controls are excluded.
 - **AND** key management stays development-only and accepts only the configured local showroom origin
 - **AND** the guide distinguishes its disposable data from the browser demos and production authentication
 
+#### Scenario: Previewing both Agents connection choices in the public showroom
+
+- **WHEN** a reviewer opens Agents Settings in a production build
+- **THEN** External assistant and Model settings tabs remain visible
+- **AND** Model settings explains the shared intranet connection and accepts only the sample key `demo`
+- **AND** External assistant simulates creating, copying, replacing, expiring and revoking a one-hour token without contacting an MCP endpoint
+- **AND** the example URL and token are clearly identified as non-functional examples
+- **AND** closing the dialog clears the displayed token while retaining only its expiry in browser-session storage
+
 ### Requirement: Barebones mailing examples
 
 Mailing SHALL preview verification, password reset, invitation and email change,
