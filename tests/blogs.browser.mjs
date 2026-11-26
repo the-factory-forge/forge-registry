@@ -180,6 +180,21 @@ await suite("Blogs browser", async () => {
     assert.ok(await title.isEditable());
     assert.equal(await title.inputValue(), "Unsaved title");
   });
+  await test("preview navigation opens category management in the current language", async (t) => {
+    const page = await preview(t, "/fr/blogs");
+    const nav = page.getByRole("navigation", { name: "Preview navigation" });
+    const link = nav.getByRole("link", { name: "Categories", exact: true });
+    for (const mode of ["Read-only", "Administrator"]) {
+      const control = page.getByLabel(mode, { exact: true });
+      await control.click();
+      await link.waitFor({ state: "hidden" });
+      await control.click();
+    }
+    await link.click();
+    await page.waitForURL("**/fr/admin/blogs/categories");
+    await page.getByRole("heading", { name: "Catégories", exact: true }).waitFor();
+    assert.deepEqual(await nav.locator('[aria-current="page"]').allTextContents(), ["Categories"]);
+  });
   await test("editor category shortcut opens management only for administrators", async (t) => {
     const page = await preview(t, `/en/admin/blogs/${existing}`);
     const link = page.getByRole("link", { name: "Manage categories", exact: true });
@@ -356,7 +371,9 @@ await suite("Blogs browser", async () => {
     assert.equal(await row.getByRole("cell").nth(2).textContent(), "Ideas & practice, Design");
     const draft = page.getByRole("row").filter({ hasText: "An idea for tomorrow" });
     assert.equal(await draft.getByRole("cell").nth(2).textContent(), "—");
-    const categories = page.getByRole("link", { name: "Categories", exact: true });
+    const categories = page
+      .getByRole("main")
+      .getByRole("link", { name: "Categories", exact: true });
     assert.equal(await categories.innerText(), "Categories");
     await page.getByLabel("Administrator", { exact: true }).uncheck();
     await categories.waitFor({ state: "hidden" });

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Link as RouterLink,
   useLoaderData,
   useMatch,
   useNavigate,
@@ -82,6 +83,7 @@ function usePreview() {
   }, [mock, editor, admin, readOnly, fail, missingImages, historyEnabled]);
   return {
     mock,
+    actor: readOnly ? null : { id: editor, admin },
     historyEnabled,
     setHistoryEnabled,
     exampleRevision,
@@ -147,7 +149,16 @@ export function BlogsPreviewProvider({ children }: { children: ReactNode }) {
         navigation={
           <>
             <Link href={`/${locale}/blogs`}>Public blog</Link>
-            <Link href={`/${locale}/admin/blogs`}>Manage posts</Link>
+            <RouterLink
+              to="/$locale/admin/blogs/$"
+              params={{ locale, _splat: "" }}
+              activeOptions={{ exact: segments[0] === "categories" }}
+            >
+              Manage posts
+            </RouterLink>
+            {blogCapabilities(state.actor).manageCategories && (
+              <Link href={`/${locale}/admin/blogs/categories`}>Categories</Link>
+            )}
           </>
         }
         controls={
@@ -366,8 +377,7 @@ export function BlogsAdminPreview() {
   const order = useShowroomTableSort("blog", BLOG_SORT_FIELDS);
   const { search, setSearch, page, setPage } = useShowroomTablePage("blog");
   const root = `/${routeLocale}/admin/blogs`,
-    actor = state.readOnly ? null : { id: state.editor, admin: state.admin },
-    capabilities = blogCapabilities(actor);
+    capabilities = blogCapabilities(state.actor);
   const common = {
     className: previewClassName,
     assetUrl: state.mock.assetUrl,
@@ -420,7 +430,7 @@ export function BlogsAdminPreview() {
           { id: "jordan", name: "Jordan Lee" },
           { id: "alex", name: "Alex Morgan" },
         ]}
-        capabilities={blogCapabilities(actor, article?.shared.author?.id)}
+        capabilities={blogCapabilities(state.actor, article?.shared.author?.id)}
         imageDimensions={
           state.cropImages
             ? { thumbnail: { width: 1200, height: 675 }, banner: { width: 1200, height: 675 } }
@@ -470,7 +480,7 @@ export function BlogsAdminPreview() {
     <BlogsPage
       {...order}
       {...common}
-      capabilitiesForArticle={(post) => blogCapabilities(actor, post.author?.id)}
+      capabilitiesForArticle={(post) => blogCapabilities(state.actor, post.author?.id)}
       data={{
         items: sortBlogItems(items, order.sort, locale).slice((page - 1) * 6, page * 6),
         total: items.length,
