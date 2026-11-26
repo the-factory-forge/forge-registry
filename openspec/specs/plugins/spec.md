@@ -3126,7 +3126,8 @@ the server companion’s administrator-managed website model connection.
 - **THEN** a dialog offers OpenAI, Anthropic and DeepSeek
 - **AND** the administrator supplies an API key, loads account models and saves one model for the website
 - **AND** settings reads, model listing, saving and disconnecting require fresh server-side administrator authorization
-- **AND** provider keys are encrypted on the server with a separate host secret and never returned to the browser or stored in chats, URLs or browser storage
+- **AND** provider keys are encrypted on the server with a key held separately from the database and never returned to the browser or stored in chats, URLs or browser storage
+- **AND** hosts can derive the encryption key from an existing random server secret without configuring another secret
 - **AND** saving validates the key and model before replacing the previous connection
 - **AND** omitting the key retains it only for the same provider
 - **AND** subsequent model requests use the saved connection through the existing approval-gated chat service

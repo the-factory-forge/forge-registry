@@ -143,21 +143,28 @@ models, select one and Save. One active connection serves the website's staff;
 this is not a per-user key collection. Existing chats keep their operations and
 approval records. Saved settings are used on subsequent model requests.
 
-`@forge/agents-server` exports `createAgentsModelConnection`,
+`@forge/agents-server` exports `deriveModelEncryptionKey`, `createAgentsModelConnection`,
 `createAgentsConnectionStore` and the additive `agentsModelConnection` table.
 Compose that table into the host schema and generate/review its migration before
 enabling settings. Each website must use its own database, as with the other
-plugin tables. Set a stable, random 32-byte encryption key in server-only secret
-configuration, separate from PostgreSQL. Do not regenerate it on process startup;
-back it up with the deployment's secrets. Losing or replacing it requires entering
-the provider key again. Stored API keys use AES-256-GCM, bound to the provider and
-model. They are never returned by settings reads or stored in chat history.
+plugin tables. Derive the encryption key from the host's existing random server
+secret with `deriveModelEncryptionKey`, using `BETTER_AUTH_SECRET` for Better Auth
+hosts. This requires no additional environment variable or Better Auth dependency.
+The helper requires at least 32 bytes and uses HKDF-SHA256 with the context
+`forge/agents-model-connection/v1`. Keep the root secret stable and stored separately
+from PostgreSQL. Replacing it requires re-entering the provider key or explicitly
+re-encrypting the credentials first; conversations are not encrypted by this key.
+Existing hosts may keep passing their separate 32-byte `encryptionKey`. Switching
+from `AGENTS_ENCRYPTION_KEY` to derivation requires re-entering the provider key once;
+removing that variable alone does not migrate existing ciphertext. Stored API keys
+use AES-256-GCM, bound to the provider and model. They are never returned by settings
+reads or stored in chat history.
 
 ```ts
 // Server only: resolve fresh administrator access, never a browser role flag.
 const connection = createAgentsModelConnection({
   store: createAgentsConnectionStore(db),
-  encryptionKey: Buffer.from(env.AGENTS_ENCRYPTION_KEY, "base64"),
+  encryptionKey: deriveModelEncryptionKey(env.BETTER_AUTH_SECRET),
   authorize: async (context) => (await resolveStaff(context))?.role === "admin",
 });
 const agents = createAgentsService({

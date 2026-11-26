@@ -9,6 +9,7 @@ export {
 } from "@/components/plugins/agents/server/store.server";
 export {
   createAgentsModelConnection,
+  deriveModelEncryptionKey,
   type AgentsConnectionOptions,
   type AgentsConnectionStore,
   type AgentStoredConnection,

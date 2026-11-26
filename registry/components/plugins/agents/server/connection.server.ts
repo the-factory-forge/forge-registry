@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 
 import {
   listAgentModels,
@@ -12,6 +12,13 @@ import {
   type AgentModelSettings,
   type AgentsSettingsClient,
 } from "@/components/plugins/agents/types";
+
+/** Derive model encryption from an existing random server secret, such as BETTER_AUTH_SECRET. */
+export function deriveModelEncryptionKey(secret: string) {
+  if (Buffer.byteLength(secret) < 32) throw new AgentsError("INVALID");
+  // Keep model encryption separate from authentication and MCP key encryption.
+  return Buffer.from(hkdfSync("sha256", secret, "", "forge/agents-model-connection/v1", 32));
+}
 
 export interface AgentStoredConnection extends AgentModelSettings {
   encryptedToken: string;

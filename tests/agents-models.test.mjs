@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import test from "node:test";
 
 import { fixture, send } from "./agents/fixture.mjs";
-const { createAgentsModelConnection } =
+const { createAgentsModelConnection, deriveModelEncryptionKey } =
   await import("../registry/components/plugins/agents/server/connection.server.ts");
 
 function setup() {
@@ -277,5 +277,48 @@ await test("truncated, failed and parallel tool streams never execute a proposed
     assert.equal(saved.running, false);
     assert.equal(saved.canResume, true);
     assert.equal(f.state.writes, 0);
+  }
+});
+
+await test("model encryption rejects empty and short root secrets", () => {
+  for (const secret of ["", "short"]) {
+    assert.throws(() => deriveModelEncryptionKey(secret), { code: "INVALID" });
+  }
+});
+
+await test("derived encryption survives restart and allows replacing legacy or rotated credentials", async (t) => {
+  const secret = "isolated-model-encryption-test-secret-at-least-32-bytes";
+  const fetch = t.mock.method(globalThis, "fetch", async () =>
+    Response.json({ data: [{ id: "deepseek-chat" }] }),
+  );
+  for (const oldKey of [randomBytes(32), deriveModelEncryptionKey(`${secret}-old`)]) {
+    const s = setup();
+    const client = (encryptionKey) =>
+      createAgentsModelConnection({ ...s.options, encryptionKey }).client("admin");
+    await client(oldKey).save({
+      provider: "deepseek",
+      model: "deepseek-chat",
+      token: "example-old-api-key",
+    });
+    const original = await s.store.get();
+    const current = client(deriveModelEncryptionKey(secret));
+    const calls = fetch.mock.callCount();
+    await assert.rejects(current.models({ provider: "deepseek" }), { code: "RUNTIME" });
+    assert.equal(fetch.mock.callCount(), calls);
+    assert.deepEqual(await s.store.get(), original);
+    await current.save({
+      provider: "deepseek",
+      model: "deepseek-chat",
+      token: "example-new-api-key",
+    });
+    assert.ok(!JSON.stringify(await s.store.get()).includes("example-new-api-key"));
+    const restarted = client(deriveModelEncryptionKey(secret));
+    assert.deepEqual(await restarted.models({ provider: "deepseek" }), [
+      { id: "deepseek-chat", label: "deepseek-chat" },
+    ]);
+    assert.equal(
+      fetch.mock.calls.at(-1).arguments[1].headers.Authorization,
+      "Bearer example-new-api-key",
+    );
   }
 });
