@@ -1,18 +1,10 @@
 "use client";
 
 import { Markdown } from "@tanstack/markdown/react";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  ChevronDownIcon,
-  SearchIcon,
-  UserRound,
-  XIcon,
-} from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowUpRight, CalendarDays, UserRound } from "lucide-react";
 
 import { BackLink } from "@/components/back-link";
-import { IconTooltip } from "@/components/icon-tooltip";
+import { CategorySidebar } from "@/components/category-sidebar";
 import { Image } from "@/components/image";
 import { Link } from "@/components/link";
 import { blogsLabels } from "@/components/plugins/blogs/labels";
@@ -23,9 +15,9 @@ import type {
   BlogsAppearanceProps,
 } from "@/components/plugins/blogs/types";
 import { assetIdFromUrl, MAX_MARKDOWN_BYTES, safeAssetUrl } from "@/components/plugins/blogs/utils";
+import { PublicListingHeader } from "@/components/public-listing-header";
 import { cn } from "@/components/utils/cn";
-import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
-import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
 export interface BlogMarkdownProps extends Pick<
   BlogsAppearanceProps,
@@ -112,54 +104,10 @@ export function BlogIndexPage({
   formatDate = defaultDate,
   className,
 }: BlogIndexPageProps) {
-  const [categoriesOpen, setCategoriesOpen] = usePanelPreference(
-    viewPreferenceKey("blogs", "listing", "categories"),
-  );
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const composing = useRef(false);
-  useEffect(() => () => clearTimeout(searchTimer.current), [actionHref, categoryId, search]);
-  function scheduleSearch(input: HTMLInputElement) {
-    clearTimeout(searchTimer.current);
-    if (composing.current || input.value === search) return;
-    const form = input.form;
-    searchTimer.current = setTimeout(() => form?.requestSubmit(), 300);
-  }
   const labels = { ...blogsLabels, ...overrides },
     pages = Math.max(1, Math.ceil(data.total / data.pageSize));
   const clearCategoryLabel =
     overrides?.clearCategory ?? overrides?.allCategories ?? blogsLabels.clearCategory;
-  const clearCategory = categoryId && (
-    <IconTooltip label={clearCategoryLabel}>
-      <BlogLink
-        href={categoryHref(null)}
-        aria-label={clearCategoryLabel}
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring lg:size-8"
-      >
-        <XIcon aria-hidden="true" className="size-4 shrink-0" />
-      </BlogLink>
-    </IconTooltip>
-  );
-  const categoryNavigation = (
-    <nav aria-label={labels.categories} className="space-y-3">
-      {categories
-        .filter((c) => c.translations[locale] && (data.categoryCounts[c.id] ?? 0) > 0)
-        .map((c) => (
-          <BlogLink
-            key={c.id}
-            href={categoryHref(c.id)}
-            aria-current={categoryId === c.id ? "page" : undefined}
-            className={cn(
-              "block text-sm hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:font-semibold aria-[current=page]:text-primary",
-              c.parentId
-                ? "ml-2 border-l border-border py-1 pl-4 text-muted-foreground aria-[current=page]:border-primary"
-                : "font-semibold text-foreground",
-            )}
-          >
-            {labels.categoryCount(c.translations[locale].name, data.categoryCounts[c.id] ?? 0)}
-          </BlogLink>
-        ))}
-    </nav>
-  );
   return (
     <section
       className={cn(
@@ -167,76 +115,30 @@ export function BlogIndexPage({
         className,
       )}
     >
-      <header className="flex flex-col gap-4 border-b border-border pb-8 sm:flex-row sm:items-center">
-        <h1 className="min-w-0 flex-1 font-serif text-4xl font-semibold tracking-tight wrap-anywhere sm:text-5xl">
-          {labels.publicTitle}
-        </h1>
-        <form
-          onKeyDownCapture={submitFormOnShortcut}
-          action={actionHref}
-          method="get"
-          className="w-full max-w-lg sm:w-1/2 sm:shrink-0"
-          onSubmit={() => clearTimeout(searchTimer.current)}
-        >
-          <label className="sr-only" htmlFor="factory-blog-search">
-            {labels.search}
-          </label>
-          <div className="relative h-11 min-w-0 flex-1 rounded-xl border border-border/70 bg-background transition-[border-color,box-shadow] duration-200 focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/15 hover:border-input motion-reduce:transition-none">
-            <SearchIcon
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              id="factory-blog-search"
-              type="search"
-              name="search"
-              defaultValue={search}
-              onChange={(event) => scheduleSearch(event.currentTarget)}
-              onCompositionStart={() => {
-                composing.current = true;
-                clearTimeout(searchTimer.current);
-              }}
-              onCompositionEnd={(event) => {
-                composing.current = false;
-                scheduleSearch(event.currentTarget);
-              }}
-              placeholder={`${labels.search}...`}
-              className="h-full w-full min-w-0 appearance-none rounded-xl border-0 bg-transparent py-1 pr-3 pl-11 text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
-            />
-          </div>
-          {categoryId && <input type="hidden" name="category" value={categoryId} />}
-        </form>
-      </header>
+      <PublicListingHeader
+        title={labels.publicTitle}
+        search={{ label: labels.search, value: search, actionHref, categoryId }}
+      />
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <aside className="relative rounded-3xl border border-border lg:order-last lg:p-5">
-          <details className="group lg:hidden" open={categoriesOpen}>
-            <summary
-              onClick={(event) => {
-                event.preventDefault();
-                setCategoriesOpen(!categoriesOpen);
-              }}
-              className={cn(
-                "flex min-h-14 cursor-pointer list-none items-center justify-between gap-2 rounded-3xl p-4 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden",
-                categoryId && "pr-14",
-              )}
-            >
-              <h2 className="font-serif text-base font-semibold">{labels.popularCategories}</h2>
-              <ChevronDownIcon
-                aria-hidden="true"
-                className="size-4 shrink-0 group-open:rotate-180"
-              />
-            </summary>
-            <div className="px-4 pb-4">{categoryNavigation}</div>
-          </details>
-          {clearCategory && <div className="absolute top-2 right-2 lg:hidden">{clearCategory}</div>}
-          <div className="hidden lg:block">
-            <div className="mb-5 flex min-h-8 items-center justify-between gap-2">
-              <h2 className="font-serif text-xl font-semibold">{labels.popularCategories}</h2>
-              {clearCategory}
-            </div>
-            {categoryNavigation}
-          </div>
-        </aside>
+        <CategorySidebar
+          categories={categories
+            .filter((c) => c.translations[locale] && (data.categoryCounts[c.id] ?? 0) > 0)
+            .map((c) => ({
+              id: c.id,
+              parentId: c.parentId,
+              label: labels.categoryCount(
+                c.translations[locale].name,
+                data.categoryCounts[c.id] ?? 0,
+              ),
+            }))}
+          categoryId={categoryId}
+          categoryHref={categoryHref}
+          linkComponent={BlogLink}
+          title={labels.popularCategories}
+          navigationLabel={labels.categories}
+          clearLabel={clearCategoryLabel}
+          preferenceKey={viewPreferenceKey("blogs", "listing", "categories")}
+        />
         <div className="space-y-8">
           {error ? (
             <p role="alert">{error}</p>

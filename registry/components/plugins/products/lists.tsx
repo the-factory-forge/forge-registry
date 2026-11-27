@@ -1,24 +1,19 @@
 "use client";
 
 import { PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
-import {
-  Fragment,
-  useRef,
-  type ComponentType,
-  type MouseEventHandler,
-  type ReactNode,
-} from "react";
+import { useRef, type ComponentType, type MouseEventHandler, type ReactNode } from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
+import { CategorySidebar } from "@/components/category-sidebar";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { Link, type LinkProps } from "@/components/link";
 import { LoadingBadge, useLoadingActivity } from "@/components/loading-indicator";
-import { NativeSelect } from "@/components/native-select";
 import {
   productCategoryName,
   productCategoryNames,
+  productCatalogSearchLimit,
   type ProductCategory,
   defaultProductSort,
   productPriceFormat,
@@ -35,6 +30,7 @@ import {
   type ProductListProps,
 } from "@/components/plugins/products/presentation";
 import { ProductGallery } from "@/components/plugins/products/product-media";
+import { PublicListingHeader } from "@/components/public-listing-header";
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { StatusToggle } from "@/components/status-toggle";
 import { TableSearch } from "@/components/table-search";
@@ -53,6 +49,7 @@ import {
   tablePageClass,
 } from "@/components/utils/table-styles";
 import { useOptimisticAction } from "@/components/utils/use-optimistic-action";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
 function ListState({
   loading,
@@ -185,6 +182,8 @@ export function ProductDetail({
 }
 
 export interface ProductCatalogProps extends ProductListProps {
+  search?: string;
+  onSearchChange?: (search: string) => void;
   categories?: readonly ProductCategory[];
   categoryId?: string;
   onCategoryChange?: (id: string | undefined) => void;
@@ -193,6 +192,8 @@ export interface ProductCatalogProps extends ProductListProps {
   linkComponent?: ComponentType<LinkProps>;
 }
 export function ProductCatalog({
+  search = "",
+  onSearchChange,
   categories,
   categoryId,
   onCategoryChange,
@@ -213,78 +214,94 @@ export function ProductCatalog({
   const format = productPriceFormat(currency, locale);
   useLoadingActivity(Boolean(loading));
   return (
-    <section className={cn("min-w-0 space-y-5", className)}>
-      <h1 className="text-3xl font-semibold tracking-tight">{labels.catalog}</h1>
-      {onCategoryChange && !!categories?.length && (
-        <label className="grid max-w-md gap-1 text-sm font-medium">
-          {labels.categories}
-          <NativeSelect
-            className="min-h-10 rounded-lg border border-input bg-background px-3"
-            value={categoryId ?? ""}
-            onChange={(e) => onCategoryChange(e.target.value || undefined)}
-          >
-            <option value="">{labels.allCategories}</option>
-            {categories
-              .filter((c) => !c.parentId)
-              .map((parent) => (
-                <Fragment key={parent.id}>
-                  <option value={parent.id}>{productCategoryName(parent, locale)}</option>
-                  {categories
-                    .filter((c) => c.parentId === parent.id)
-                    .map((child) => (
-                      <option key={child.id} value={child.id}>
-                        {productCategoryName(parent, locale)} / {productCategoryName(child, locale)}
-                      </option>
-                    ))}
-                </Fragment>
-              ))}
-          </NativeSelect>
-        </label>
-      )}
-      <ListState {...{ loading, error, onRetry, labels }} />
-      {!error &&
-        !loading &&
-        (products.length ? (
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {products.map((p) => (
-              <li
-                key={p.id}
-                className="relative min-w-0 space-y-3 rounded-2xl border border-border bg-card p-5 text-card-foreground"
-              >
-                {p.media?.thumbnail && (
-                  <Image
-                    src={imageUrl?.(p.media.thumbnail.src) ?? p.media.thumbnail.src}
-                    alt={p.media.thumbnail.alt}
-                    width={600}
-                    height={400}
-                    className="aspect-3/2 w-full rounded-lg object-cover"
-                  />
-                )}
-                <ProductOverview
-                  product={p}
-                  format={format}
-                  heading={
-                    <h2 className="min-w-0 text-xl font-semibold wrap-anywhere">
-                      {getProductHref ? (
-                        <HostLink
-                          href={getProductHref(p)}
-                          className="rounded-sm after:absolute after:inset-0 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-                        >
-                          {p.name}
-                        </HostLink>
-                      ) : (
-                        p.name
-                      )}
-                    </h2>
-                  }
-                />
-              </li>
+    <section className={cn("min-w-0 space-y-10", className)}>
+      <PublicListingHeader
+        key={locale}
+        title={labels.catalog}
+        search={
+          onSearchChange && {
+            label: labels.search,
+            value: search,
+            categoryId,
+            maxLength: productCatalogSearchLimit,
+            onSearchChange,
+          }
+        }
+      />
+      <div
+        className={cn(
+          "grid items-start gap-10",
+          onCategoryChange && !!categories?.length && "lg:grid-cols-[minmax(0,1fr)_16rem]",
+        )}
+      >
+        {onCategoryChange && !!categories?.length && (
+          <CategorySidebar
+            categories={categories
+              .filter((category) => !category.parentId)
+              .flatMap((parent) => [
+                parent,
+                ...categories.filter((child) => child.parentId === parent.id),
+              ])
+              .map((category) => ({
+                id: category.id,
+                parentId: category.parentId,
+                label: productCategoryName(category, locale),
+              }))}
+            categoryId={categoryId}
+            onCategoryChange={onCategoryChange}
+            title={labels.categories}
+            navigationLabel={labels.categories}
+            clearLabel={labels.allCategories}
+            preferenceKey={viewPreferenceKey("products", "catalog", "categories")}
+          />
+        )}
+        <div className="min-w-0 space-y-5">
+          <ListState {...{ loading, error, onRetry, labels }} />
+          {!error &&
+            !loading &&
+            (products.length ? (
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {products.map((p) => (
+                  <li
+                    key={p.id}
+                    className="relative min-w-0 space-y-3 rounded-2xl border border-border bg-card p-5 text-card-foreground"
+                  >
+                    {p.media?.thumbnail && (
+                      <Image
+                        src={imageUrl?.(p.media.thumbnail.src) ?? p.media.thumbnail.src}
+                        alt={p.media.thumbnail.alt}
+                        width={600}
+                        height={400}
+                        className="aspect-3/2 w-full rounded-lg object-cover"
+                      />
+                    )}
+                    <ProductOverview
+                      product={p}
+                      format={format}
+                      heading={
+                        <h2 className="min-w-0 text-xl font-semibold wrap-anywhere">
+                          {getProductHref ? (
+                            <HostLink
+                              href={getProductHref(p)}
+                              className="rounded-sm after:absolute after:inset-0 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                            >
+                              {p.name}
+                            </HostLink>
+                          ) : (
+                            p.name
+                          )}
+                        </h2>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <output>{search || categoryId ? labels.searchEmpty : labels.catalogEmpty}</output>
             ))}
-          </ul>
-        ) : (
-          <p>{labels.catalogEmpty}</p>
-        ))}
-      {!error && !loading && pagination}
+          {!error && !loading && pagination}
+        </div>
+      </div>
     </section>
   );
 }

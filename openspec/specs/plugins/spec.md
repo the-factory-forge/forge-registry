@@ -91,13 +91,21 @@ Products SHALL supply a staff directory, a shared create/edit form, a public cat
 
 - **WHEN** authorized staff manage product categories
 - **THEN** they can create or rename main categories and their direct subcategories with translated names and a primary-language fallback
+- **AND** Products and Blogs share the staff category manager layout, with a category tree and an inline editor for each plugin’s own fields
 - **AND** a stale write fails, an assigned category cannot move or be deleted, and a category with children cannot move below another category or be deleted
 - **WHEN** staff select subcategories across several branches for a product
 - **THEN** their parents are selected too, clearing a parent clears its children, and the assignments apply across product languages
 - **AND** an existing or new product may have no assignments
 - **WHEN** a visitor filters the catalog by a category
 - **THEN** only published products in that category appear, each once, before pagination, and the URL restores the selection on reload and history navigation
+- **AND** the catalog uses the shared public category sidebar to show nested categories and clear the active filter
 - **AND** product categories and assignments are independent of Blogs
+
+#### Scenario: Searching published products
+
+- **WHEN** a visitor searches the catalog
+- **THEN** search matches the displayed product name case-insensitively, respects the selected category, and filters published results before pagination
+- **AND** search resets pagination while the URL restores the term and category on reload and history navigation
 
 #### Scenario: Editing product translations
 

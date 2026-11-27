@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   catalogProduct,
   defaultProductSort,
+  productCatalogSearchLimit,
   productInputSchema,
   productLocaleSchema,
   productCategorySelection,
@@ -176,43 +177,75 @@ export function createProductsService<Context>({ db, authorize }: ProductsServic
 
   return {
     async publicList(
-      query: ProductPageQuery & { locale?: string; categoryId?: string } = {},
+      query: ProductPageQuery & { locale?: string; categoryId?: string; search?: string } = {},
     ): Promise<ProductPage<CatalogProduct>> {
-      const { cursor, pageSize, locale, categoryId } = parse(
+      const { cursor, pageSize, locale, categoryId, search } = parse(
         pageQuery.extend({
           locale: productLocaleSchema.optional(),
           categoryId: idSchema.optional(),
+          search: z.string().trim().max(productCatalogSearchLimit).default(""),
         }),
         query,
       );
       const order = [asc(products.sortName), asc(products.id)];
+      const scope = and(
+        eq(products.published, true),
+        categoryId
+          ? exists(
+              db
+                .select({ id: assignments.productId })
+                .from(assignments)
+                .where(
+                  and(
+                    eq(assignments.categoryId, categoryId),
+                    eq(assignments.productId, products.id),
+                  ),
+                ),
+            )
+          : undefined,
+      );
+
+      let localizedIds: string[] | undefined;
+      if (search && locale) {
+        // Localized names live in JSON. Scan bounded batches before paging matches.
+        localizedIds = [];
+        const term = search.toLowerCase();
+        const batchSize = 100;
+        let skipped = 0;
+        for (let offset = 0; localizedIds.length <= pageSize; offset += batchSize) {
+          const candidates = await db
+            .select({ id: products.id, name: products.name, translations: products.translations })
+            .from(products)
+            .where(scope)
+            .orderBy(...order)
+            .offset(offset)
+            .limit(batchSize);
+          for (const candidate of candidates) {
+            const name = candidate.translations[locale]?.name ?? candidate.name;
+            if (!name.toLowerCase().includes(term)) continue;
+            if (skipped < cursor) {
+              skipped++;
+              continue;
+            }
+            localizedIds.push(candidate.id);
+            if (localizedIds.length > pageSize) break;
+          }
+          if (candidates.length < batchSize) break;
+        }
+      }
+
       // Page product IDs first so multiple assignments never consume extra places.
-      const ids = db
-        .select({ id: products.id })
-        .from(products)
-        .where(
-          and(
-            eq(products.published, true),
-            categoryId
-              ? exists(
-                  db
-                    .select({ id: assignments.productId })
-                    .from(assignments)
-                    .where(
-                      and(
-                        eq(assignments.productId, products.id),
-                        eq(assignments.categoryId, categoryId),
-                      ),
-                    ),
-                )
-              : undefined,
-          ),
-        )
-        .orderBy(...order)
-        .offset(cursor)
-        .limit(pageSize + 1);
+      const ids =
+        localizedIds ??
+        db
+          .select({ id: products.id })
+          .from(products)
+          .where(and(scope, search ? ilike(products.name, containsPattern(search)) : undefined))
+          .orderBy(...order)
+          .offset(cursor)
+          .limit(pageSize + 1);
       const rows = await publicRows()
-        .where(inArray(products.id, ids))
+        .where(and(localizedIds ? scope : undefined, inArray(products.id, ids)))
         .orderBy(...order);
       return page(
         collectProducts(rows).map((row) => catalogProduct(row, locale)),

@@ -296,7 +296,7 @@ await test("Products search restores the directory and count from its URL", asyn
   await stage.getByRole("heading", { name: "Edit product" }).waitFor();
   await page.goBack();
   await stage.getByRole("button", { name: "Clear product search" }).click();
-  await stage.getByText("2 products", { exact: true }).waitFor();
+  await stage.getByText("3 products", { exact: true }).waitFor();
 });
 
 await test("Published product deep links resolve IDs and slugs with or without a locale", async (t) => {
@@ -395,17 +395,70 @@ await test("Product categories can be managed, assigned across branches and clea
   const nav = page.getByRole("navigation", { name: "Preview navigation" });
   await nav.getByRole("link", { name: "Categories" }).click();
   await page.waitForURL(base + "/en/admin/products/categories");
-  const dialog = page.getByRole("dialog");
-  await stage.getByRole("button", { name: "Create", exact: true }).click();
-  await dialog.getByRole("textbox", { name: "Name (English)" }).fill("Gifts");
-  await dialog.getByRole("textbox", { name: "Name (Français)" }).fill("Cadeaux");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await stage.getByRole("button", { name: "Gifts", exact: true }).waitFor();
-  await stage.getByRole("button", { name: "Create", exact: true }).click();
-  await dialog.getByRole("combobox", { name: "Parent category" }).selectOption({ label: "Gifts" });
-  await dialog.getByRole("textbox", { name: "Name (English)" }).fill("Gift sets");
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
-  await stage.getByRole("button", { name: "Gift sets", exact: true }).waitFor();
+  const tree = stage.getByRole("navigation", { name: "Categories", exact: true });
+  const editor = stage
+    .locator("form")
+    .filter({ has: page.getByRole("heading", { name: /category/i, level: 2 }) });
+  const name = editor.getByRole("textbox", { name: "Name (English)" });
+  const save = editor.getByRole("button", { name: "Save", exact: true });
+  const create = stage.getByRole("button", { name: "Create", exact: true });
+  const select = (name) => tree.getByRole("button", { name, exact: true });
+  await editor.getByRole("heading", { name: "New category" }).waitFor();
+  assert.ok((await editor.boundingBox()).x > (await tree.boundingBox()).x);
+  await name.fill("Stationery");
+  await save.click();
+  await editor
+    .getByRole("alert")
+    .getByText("This name is already used under the same parent.")
+    .waitFor();
+  assert.equal(await name.inputValue(), "Stationery");
+
+  await name.fill("Gifts");
+  await editor.getByRole("textbox", { name: "Name (Français)" }).fill("Cadeaux");
+  await name.press("Control+Enter");
+  await select("Gifts").waitFor();
+  assert.equal(await select("Gifts").getAttribute("aria-current"), "page");
+  await editor.getByRole("heading", { name: "Edit category" }).waitFor();
+  await create.click();
+  assert.equal(await name.inputValue(), "");
+  await editor.getByRole("combobox", { name: "Parent category" }).selectOption({ label: "Gifts" });
+  await name.fill("Gift sets");
+  await save.click();
+  await select("Gift sets").waitFor();
+  await select("Gifts").click();
+  assert.equal(await editor.getByRole("button", { name: "Delete category" }).isDisabled(), true);
+  await select("Gift sets").click();
+  await name.fill("Gift boxes");
+  await save.click();
+  await select("Gift boxes").waitFor();
+  await name.fill("Gift sets");
+  await save.click();
+  await select("Gift sets").waitFor();
+
+  await create.click();
+  await name.fill("Temporary category");
+  await save.click();
+  await select("Temporary category").waitFor();
+  const remove = editor.getByRole("button", { name: "Delete category" });
+  const destructive = await remove.evaluate((button) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--destructive)";
+    button.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  });
+  const color = () => remove.evaluate((button) => getComputedStyle(button).color);
+  assert.equal(await color(), destructive);
+  await remove.hover();
+  assert.equal(await color(), destructive);
+  await remove.focus();
+  assert.equal(await color(), destructive);
+  await remove.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Delete category" });
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await select("Temporary category").waitFor({ state: "hidden" });
+  await editor.getByRole("heading", { name: "New category" }).waitFor();
   await nav.getByRole("link", { name: "Staff directory" }).click();
   await stage.getByRole("link", { name: "Linen notebook", exact: true }).click();
   const check = (name) => stage.getByRole("checkbox", { name, exact: true });
@@ -425,26 +478,112 @@ await test("Product categories can be managed, assigned across branches and clea
   await stage.getByText("Stationery, Notebooks, Gifts, Gift sets").waitFor();
 });
 
-await test("Public category filters retain the locale and survive reload and browser history", async (t) => {
+await test("The category sidebar filters products and restores selection across reload and history", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
-  const page = await browser.newPage();
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
-  await page.goto(base + "/fr/products?ref=demo#catalog");
-  const select = page.getByRole("combobox", { name: "Categories", exact: true });
-  const child = select.getByRole("option", { name: "Papeterie / Carnets" });
-  const id = await child.getAttribute("value");
-  await select.selectOption(id);
-  await page.waitForURL((u) => u.searchParams.get("category") === id);
+  await page.goto(base + "/fr/products");
+
+  const navigation = page.getByRole("navigation", { name: "Categories", exact: true });
+  const parent = navigation.getByRole("button", { name: "Papeterie", exact: true });
+  const child = navigation.getByRole("button", { name: "Carnets", exact: true });
+  const notebook = page.getByRole("link", { name: "Carnet en lin", exact: true });
+  const ruler = page.getByRole("link", { name: "Règle en érable", exact: true });
+  const clear = page.getByRole("button", { name: "All categories", exact: true });
+  await ruler.click();
+  await page.waitForURL(base + "/fr/products/maple-ruler");
+  await page.getByRole("heading", { name: "Règle en érable", level: 1 }).waitFor();
+  const rulerPhoto = page.getByRole("img", {
+    name: "Pale maple ruler with engraved metric markings",
+  });
+  await rulerPhoto.waitFor();
+  await page.waitForFunction(
+    (img) => img.complete && img.naturalWidth > 0,
+    await rulerPhoto.elementHandle(),
+  );
+  await page.goBack();
+  await ruler.waitFor();
+  assert.ok((await navigation.boundingBox()).x > (await notebook.boundingBox()).x);
+  assert.ok((await child.boundingBox()).x > (await parent.boundingBox()).x);
+
+  await child.press("Enter");
+  await page.waitForURL((u) => u.searchParams.has("category"));
+  const filtered = page.url();
+  assert.equal(new URL(filtered).pathname, "/fr/products");
+  await ruler.waitFor({ state: "hidden" });
+  await notebook.waitFor();
+  await page.goto(filtered + "&ref=demo#catalog");
+  await page.reload();
+  assert.equal(await child.getAttribute("aria-pressed"), "true");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const summary = page.locator("aside summary").filter({ hasText: "Categories" });
+  await navigation.waitFor({ state: "hidden" });
+  await clear.waitFor();
+  assert.ok((await summary.boundingBox()).y < (await notebook.boundingBox()).y);
+  await summary.press("Enter");
+  await child.waitFor();
+  await clear.press("Enter");
+  await page.waitForURL((u) => !u.searchParams.has("category"));
   assert.equal(new URL(page.url()).searchParams.get("ref"), "demo");
   assert.equal(new URL(page.url()).hash, "#catalog");
-  await page.reload();
-  assert.equal(await select.inputValue(), id);
-  await page.getByRole("link", { name: "Carnet en lin" }).waitFor();
-  await select.selectOption("");
-  await page.waitForURL((u) => !u.searchParams.has("category"));
   await page.goBack();
-  assert.equal(await select.inputValue(), id);
+  await page.waitForURL(filtered + "&ref=demo#catalog");
+  assert.equal(await child.getAttribute("aria-pressed"), "true");
   await page.goForward();
-  assert.equal(await select.inputValue(), "");
+  assert.equal(await child.getAttribute("aria-pressed"), "false");
+  await page.reload();
+  await navigation.waitFor();
+  await clear.waitFor({ state: "hidden" });
+  await navigation.getByRole("button", { name: "Règles", exact: true }).click();
+  await notebook.waitFor({ state: "hidden" });
+  await ruler.waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
+
+await test("Catalog search matches localized names, combines with categories and restores URL state", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+  await page.goto(base + "/fr/products?ref=demo&catalogPage=3#catalog");
+  const title = page.getByRole("heading", { name: "Product catalog", level: 1 });
+  const search = page.getByRole("searchbox", { name: "Search products" });
+  const notebook = page.getByRole("link", { name: "Carnet en lin" });
+  const category = page.getByRole("button", { name: "Carnets", exact: true });
+  assert.ok((await search.boundingBox()).x > (await title.boundingBox()).x);
+  await search.fill("notebook");
+  await page.waitForURL((url) => url.searchParams.get("catalogSearch") === "notebook");
+  await page.getByText("No matching products.").waitFor();
+  assert.equal(new URL(page.url()).searchParams.get("catalogPage"), null);
+
+  await category.click();
+  await page.waitForURL((url) => url.searchParams.has("category"));
+  await search.fill("CARNET");
+  await search.press("Enter");
+  await page.waitForURL((url) => url.searchParams.get("catalogSearch") === "CARNET");
+  const filtered = page.url();
+  assert.equal(new URL(filtered).searchParams.get("ref"), "demo");
+  assert.equal(new URL(filtered).hash, "#catalog");
+  assert.ok(new URL(filtered).searchParams.has("category"));
+  await notebook.waitFor();
+
+  await page.reload();
+  assert.equal(await search.inputValue(), "CARNET");
+  await page.goBack();
+  await page.getByText("No matching products.").waitFor();
+  assert.equal(await search.inputValue(), "notebook");
+  await page.goForward();
+  await page.waitForURL(filtered);
+  await notebook.waitFor();
+  assert.equal(await search.inputValue(), "CARNET");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.ok((await search.boundingBox()).y > (await title.boundingBox()).y);
+  await search.fill("");
+  await page.waitForURL((url) => !url.searchParams.has("catalogSearch"));
+  assert.ok(new URL(page.url()).searchParams.has("category"));
+  await notebook.waitFor();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });

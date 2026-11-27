@@ -1,27 +1,33 @@
 "use client";
 
-import { Dialog } from "@base-ui/react/dialog";
-import { PlusIcon, SaveIcon, XIcon } from "lucide-react";
-import { useRef, useState, type ComponentType, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+  type Ref,
+} from "react";
 
 import { ActionToastProvider, useActionToast } from "@/components/action-toast";
-import { BackLink } from "@/components/back-link";
-import { IconTooltip } from "@/components/icon-tooltip";
+import {
+  CategoryEditorForm,
+  CategoryLanguageFields,
+  CategoryManager,
+  categoryInputClass,
+} from "@/components/category-manager";
 import type { LinkProps } from "@/components/link";
 import { NativeSelect } from "@/components/native-select";
 import {
   productCategoryName,
   type ProductCategoriesClient,
   type ProductCategory,
+  type ProductCategoryInput,
 } from "@/components/plugins/products/model";
-import {
-  productButtonClass,
-  productPrimaryClass,
-  productsLabels,
-  type ProductsLabels,
-} from "@/components/plugins/products/presentation";
+import { productsLabels, type ProductsLabels } from "@/components/plugins/products/presentation";
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
-import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
+import { buttonClass, primaryClass } from "@/components/utils/table-controls";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
 
 export function ProductCategoryTree({
@@ -63,6 +69,7 @@ export interface ProductCategoriesPageProps {
   labels?: ProductsLabels;
   backHref: string;
   linkComponent?: ComponentType<LinkProps>;
+  className?: string;
   /** Supply callbacks that update host data only to authorized category managers. */
   onSave?: ProductCategoriesClient["saveCategory"];
   onDelete?: ProductCategoriesClient["deleteCategory"];
@@ -82,13 +89,24 @@ function Categories({
   locales,
   backHref,
   linkComponent,
+  className,
   labels: overrides,
   onSave,
   onDelete,
 }: ProductCategoriesPageProps) {
   const labels = { ...productsLabels, ...overrides };
-  const [editing, setEditing] = useState<ProductCategory | "new" | null>(null);
+  const [editor, setEditor] = useState<{ key: number; category?: ProductCategory }>({ key: 0 });
+  const current = editor.category;
+  const notify = useActionToast();
+  const save = useMutationAction(useMemo(() => ({ onSave, editor }), [onSave, editor]));
+  function select(category?: ProductCategory) {
+    setEditor(({ key }) => ({ key: key + 1, category }));
+  }
   const root = useRef<HTMLElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    if (editor.key) heading.current?.focus();
+  }, [editor.key]);
   const deletion = useRecordDeletion({
     items: categories,
     getName: (c) => productCategoryName(c, locale),
@@ -98,9 +116,11 @@ function Categories({
         const category = categories.find((c) => c.id === id);
         if (!category) return;
         await onDelete(id, category.version);
+        select();
       }),
     label: labels.deleteCategory,
     returnFocus: root,
+    disabled: save.pending,
     labels: {
       deleteDescription: labels.deleteDescription,
       cancel: labels.cancel,
@@ -111,198 +131,186 @@ function Categories({
       actionError: labels.categoryDeleteError,
     },
   });
-  const edit = (category: ProductCategory) => (
-    <div className="flex items-center justify-between gap-3">
-      {onSave ? (
-        <button
-          type="button"
-          className="min-h-10 cursor-pointer rounded-sm text-start font-medium underline underline-offset-4 focus-visible:outline-ring"
-          onClick={() => setEditing(category)}
-        >
-          {productCategoryName(category, locale)}
-        </button>
-      ) : (
-        <span>{productCategoryName(category, locale)}</span>
-      )}
-      {onDelete && (
-        <RecordDeleteButton
-          disabled={deletion.pending || categories.some((c) => c.parentId === category.id)}
-          label={labels.deleteCategory}
-          onClick={(e) => deletion.open(category.id, e.currentTarget)}
-        />
-      )}
-    </div>
-  );
+  const pending = save.pending || deletion.pending;
+  const selectCurrent = (id: string) => {
+    if (current?.id !== id) select(deletion.items.find((category) => category.id === id));
+  };
   return (
-    <section ref={root} tabIndex={-1} className="mx-auto max-w-2xl space-y-5">
-      <BackLink href={backHref} linkComponent={linkComponent}>
-        {labels.back}
-      </BackLink>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{labels.categories}</h1>
-        {onSave && (
-          <button type="button" className={productPrimaryClass} onClick={() => setEditing("new")}>
-            <PlusIcon className="size-4" aria-hidden="true" />
-            {labels.createAction}
-          </button>
-        )}
-      </header>
-      {deletion.items.length ? (
-        <ProductCategoryTree categories={deletion.items} render={edit} />
-      ) : (
-        <p>{labels.noCategories}</p>
-      )}
-      {editing && onSave && (
-        <CategoryDialog
-          key={editing === "new" ? "new" : editing.id}
-          current={editing === "new" ? undefined : editing}
-          {...{ categories, locales, labels, onSave }}
-          onClose={() => setEditing(null)}
-        />
-      )}
+    <CategoryManager
+      rootRef={root}
+      className={className}
+      categories={deletion.items.map((category) => ({
+        id: category.id,
+        parentId: category.parentId,
+        name: productCategoryName(category, locale),
+      }))}
+      selectedId={current?.id}
+      onSelect={selectCurrent}
+      title={labels.categories}
+      backLabel={labels.back}
+      backHref={backHref}
+      linkComponent={linkComponent}
+      onCreate={onSave ? () => select() : undefined}
+      createLabel={labels.createAction}
+      emptyLabel={labels.noCategories}
+      disabled={pending}
+    >
+      <ProductCategoryEditor
+        key={editor.key}
+        {...{ current, categories, locales, labels, pending }}
+        headingRef={heading}
+        error={save.error}
+        onCancel={() => select()}
+        onSave={
+          onSave &&
+          ((input) =>
+            void save.run(
+              () => onSave(input, current && { id: current.id, version: current.version }),
+              (result) => {
+                notify(labels.categorySaved);
+                select(result);
+              },
+            ))
+        }
+        actions={
+          current &&
+          onDelete && (
+            <RecordDeleteButton
+              disabled={pending || categories.some((category) => category.parentId === current.id)}
+              label={labels.deleteCategory}
+              onClick={(event) => deletion.open(current.id, event.currentTarget)}
+            />
+          )
+        }
+      />
       {deletion.dialog}
-    </section>
+    </CategoryManager>
   );
 }
 
-function CategoryDialog({
+function ProductCategoryEditor({
   current,
   categories,
   locales,
   labels,
+  pending,
+  error,
   onSave,
-  onClose,
+  onCancel,
+  actions,
+  headingRef,
 }: {
   current?: ProductCategory;
   categories: readonly ProductCategory[];
   locales: ProductCategoriesPageProps["locales"];
   labels: typeof productsLabels;
-  onSave: ProductCategoriesClient["saveCategory"];
-  onClose: () => void;
+  pending: boolean;
+  error: unknown;
+  onSave?: (input: ProductCategoryInput) => void;
+  onCancel: () => void;
+  actions?: ReactNode;
+  headingRef: Ref<HTMLHeadingElement>;
 }) {
   const [name, setName] = useState(current?.name ?? "");
   const [translations, setTranslations] = useState(current?.translations ?? {});
   const [parentId, setParentId] = useState(current?.parentId ?? "");
-  const action = useMutationAction(onSave);
-  const notify = useActionToast();
-  const code =
-    action.error && typeof action.error === "object" && "code" in action.error
-      ? action.error.code
-      : undefined;
-  const inputClass =
-    "min-h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground focus-visible:outline-ring";
+  const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+  const [primary, ...secondary] = locales;
+  const primaryField = (
+    <label className="grid min-w-0 gap-1 text-sm sm:col-span-2">
+      {labels.name}
+      <input
+        aria-label={primary ? `${labels.name} (${primary.name})` : undefined}
+        className={categoryInputClass}
+        required
+        maxLength={150}
+        lang={primary?.code}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+    </label>
+  );
   return (
-    <Dialog.Root
-      open
-      onOpenChange={(open) => {
-        if (!open && !action.pending) onClose();
+    <CategoryEditorForm
+      title={current ? labels.editCategory : labels.newCategory}
+      headingRef={headingRef}
+      disabled={!onSave || pending}
+      actions={actions}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (pending) return;
+        onSave?.({
+          name,
+          parentId: parentId || null,
+          translations: Object.fromEntries(
+            Object.entries(translations).filter(([, value]) => value.trim()),
+          ),
+        });
       }}
+      feedback={
+        Boolean(error) && (
+          <p role="alert" className="text-sm text-destructive">
+            {code === "CATEGORY_IN_USE"
+              ? labels.categoryInUse
+              : code === "CATEGORY_NAME_TAKEN"
+                ? labels.categoryNameTaken
+                : code === "CONFLICT"
+                  ? labels.categoryConflict
+                  : labels.saveError}
+          </p>
+        )
+      }
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-xl border border-border bg-card p-5 text-card-foreground shadow-xl">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <Dialog.Title className="text-lg font-semibold">
-              {current ? labels.editCategory : labels.newCategory}
-            </Dialog.Title>
-            <IconTooltip label={labels.close}>
-              <Dialog.Close
-                disabled={action.pending}
-                className={productButtonClass}
-                aria-label={labels.close}
-              >
-                <XIcon aria-hidden="true" />
-              </Dialog.Close>
-            </IconTooltip>
-          </div>
-          <form
-            onKeyDownCapture={submitFormOnShortcut}
-            onSubmit={(e) => {
-              e.preventDefault();
-              void action.run(
-                () =>
-                  onSave(
-                    {
-                      name,
-                      parentId: parentId || null,
-                      translations: Object.fromEntries(
-                        Object.entries(translations).filter(([, v]) => v.trim()),
-                      ),
-                    },
-                    current && { id: current.id, version: current.version },
-                  ),
-                () => {
-                  notify(labels.categorySaved);
-                  onClose();
-                },
-              );
-            }}
-          >
-            <fieldset disabled={action.pending} className="space-y-4">
-              <label className="grid gap-1">
-                {labels.parentCategory}
-                <NativeSelect
-                  className={inputClass}
-                  value={parentId}
-                  disabled={!!current && categories.some((c) => c.parentId === current.id)}
-                  onChange={(e) => setParentId(e.target.value)}
-                >
-                  <option value="">{labels.mainCategory}</option>
-                  {categories
-                    .filter((c) => !c.parentId && c.id !== current?.id)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </NativeSelect>
-              </label>
-              <label className="grid gap-1">
-                {labels.name}
-                {locales[0] && ` (${locales[0].name})`}
-                <input
-                  className={inputClass}
-                  required
-                  maxLength={150}
-                  lang={locales[0]?.code}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              {locales.slice(1).map((l) => (
-                <label key={l.code} className="grid gap-1">
-                  {labels.name} ({l.name})
-                  <input
-                    className={inputClass}
-                    maxLength={150}
-                    lang={l.code}
-                    value={translations[l.code] ?? ""}
-                    onChange={(e) => setTranslations({ ...translations, [l.code]: e.target.value })}
-                  />
-                </label>
-              ))}
-              {Boolean(action.error) && (
-                <p role="alert" className="text-sm text-destructive">
-                  {code === "CATEGORY_IN_USE"
-                    ? labels.categoryInUse
-                    : code === "CATEGORY_NAME_TAKEN"
-                      ? labels.categoryNameTaken
-                      : code === "CONFLICT"
-                        ? labels.categoryConflict
-                        : labels.saveError}
-                </p>
-              )}
-              <div className="flex justify-end gap-2">
-                <Dialog.Close className={productButtonClass}>{labels.cancel}</Dialog.Close>
-                <button type="submit" className={productPrimaryClass}>
-                  <SaveIcon className="size-4" aria-hidden="true" />
-                  {labels.save}
-                </button>
-              </div>
-            </fieldset>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      <label className="grid gap-1 text-sm">
+        {labels.parentCategory}
+        <NativeSelect
+          className={categoryInputClass}
+          value={parentId}
+          disabled={!!current && categories.some((category) => category.parentId === current.id)}
+          onChange={(event) => setParentId(event.target.value)}
+        >
+          <option value="">{labels.mainCategory}</option>
+          {categories
+            .filter((category) => !category.parentId && category.id !== current?.id)
+            .map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+        </NativeSelect>
+      </label>
+      {primary ? (
+        <CategoryLanguageFields name={primary.name}>{primaryField}</CategoryLanguageFields>
+      ) : (
+        primaryField
+      )}
+      {secondary.map(({ code, name }) => (
+        <CategoryLanguageFields key={code} name={name}>
+          <label className="grid min-w-0 gap-1 text-sm sm:col-span-2">
+            {labels.name}
+            <input
+              aria-label={`${labels.name} (${name})`}
+              className={categoryInputClass}
+              maxLength={150}
+              lang={code}
+              value={translations[code] ?? ""}
+              onChange={(event) => setTranslations({ ...translations, [code]: event.target.value })}
+            />
+          </label>
+        </CategoryLanguageFields>
+      ))}
+      {onSave && (
+        <div className="flex flex-wrap gap-2">
+          <button type="submit" className={primaryClass}>
+            {labels.save}
+          </button>
+          {(current || name || parentId || Object.values(translations).some(Boolean)) && (
+            <button type="button" className={buttonClass} onClick={onCancel}>
+              {labels.cancel}
+            </button>
+          )}
+        </div>
+      )}
+    </CategoryEditorForm>
   );
 }
