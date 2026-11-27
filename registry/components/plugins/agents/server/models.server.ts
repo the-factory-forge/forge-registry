@@ -23,7 +23,7 @@ async function request(
   path: string,
   signal: AbortSignal,
   body?: unknown,
-) {
+): Promise<Response> {
   const response = await fetch(`${origins[provider]}${path}`, {
     method: body ? "POST" : "GET",
     redirect: "error",
@@ -37,6 +37,27 @@ async function request(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
+    const streamed = z.object({ stream: z.literal(true) }).safeParse(body);
+    if (
+      provider === "openai" &&
+      path === "/responses" &&
+      response.status === 400 &&
+      streamed.success
+    ) {
+      const error = z.object({ error: z.object({ param: z.literal("stream") }) }).safeParse(
+        await response
+          .clone()
+          .json()
+          .catch(() => null),
+      );
+      if (error.success) {
+        await response.body?.cancel();
+        return request(provider, token, path, signal, {
+          ...z.record(z.string(), z.unknown()).parse(body),
+          stream: false,
+        });
+      }
+    }
     await response.body?.cancel();
     throw new AgentsError("RUNTIME");
   }
@@ -144,10 +165,173 @@ const anthropicEvent = z.object({
     .optional(),
 });
 
+const responseItem = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("reasoning"),
+      id: z.string(),
+      summary: z.array(z.object({ type: z.literal("summary_text"), text: z.string() })),
+      encrypted_content: z.string(),
+    })
+    .loose(),
+  z
+    .object({
+      type: z.literal("message"),
+      role: z.literal("assistant"),
+      content: z.array(
+        z.discriminatedUnion("type", [
+          z.object({ type: z.literal("output_text"), text: z.string() }).loose(),
+          z.object({ type: z.literal("refusal"), refusal: z.string() }).loose(),
+        ]),
+      ),
+      phase: z.enum(["commentary", "final_answer"]).nullish(),
+    })
+    .loose(),
+  z
+    .object({
+      type: z.literal("function_call"),
+      call_id: z.string().min(1),
+      name: z.string().min(1),
+      arguments: z.string().max(1024 * 1024),
+    })
+    .loose(),
+]);
+const providerContext = z.object({
+  value: z.object({
+    provider: z.literal("openai"),
+    model: z.string(),
+    output: z.array(responseItem),
+  }),
+  replaces: z.array(z.string()),
+});
+const responseResult = z.object({ status: z.literal("completed"), output: z.array(responseItem) });
+
+async function* streamOpenAiModel(
+  connection: ModelConnection,
+  input: Parameters<AgentRuntime["stream"]>[0],
+): ReturnType<AgentRuntime["stream"]> {
+  const contexts = new Map<string, z.infer<typeof providerContext>>();
+  const replaced = new Set<string>();
+  for (const entry of input.messages) {
+    const context = providerContext.safeParse(entry.providerContext);
+    if (!context.success || context.data.value.model !== connection.model) continue;
+    contexts.set(entry.id, context.data);
+    for (const id of context.data.replaces) replaced.add(id);
+  }
+  const messages: unknown[] = [];
+  for (const entry of input.messages) {
+    if (replaced.has(entry.id)) continue;
+    const context = contexts.get(entry.id);
+    if (context) messages.push(...context.value.output);
+    if (entry.role === "tool" && entry.tool) {
+      const { callId, name, input: args } = entry.tool;
+      if (!context)
+        messages.push({
+          type: "function_call",
+          call_id: callId,
+          name,
+          arguments: JSON.stringify(args),
+        });
+      messages.push({ type: "function_call_output", call_id: callId, output: entry.text });
+    } else if (!context) {
+      messages.push({
+        role: entry.role === "assistant" ? "assistant" : "user",
+        content:
+          entry.text +
+          (entry.attachments.length ? `\nAttachments: ${JSON.stringify(entry.attachments)}` : ""),
+      });
+    }
+  }
+  const signal = AbortSignal.any([input.signal, AbortSignal.timeout(90000)]);
+  try {
+    const response = await request("openai", connection.token, "/responses", signal, {
+      model: connection.model,
+      instructions: input.instructions,
+      input: messages,
+      stream: true,
+      store: false,
+      include: ["reasoning.encrypted_content"],
+      max_output_tokens: 4096,
+      ...(input.tools.length
+        ? {
+            parallel_tool_calls: false,
+            tools: input.tools.map((tool) => ({
+              type: "function",
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.inputSchema,
+              strict: false,
+            })),
+          }
+        : {}),
+    });
+    let output: z.infer<typeof responseItem>[] | undefined;
+    if (response.headers.get("content-type")?.includes("application/json")) {
+      const value: unknown = await response.json();
+      if (
+        z
+          .object({
+            status: z.literal("incomplete"),
+            incomplete_details: z.object({ reason: z.literal("max_output_tokens") }),
+          })
+          .safeParse(value).success
+      )
+        throw new AgentsError("LIMIT");
+      output = responseResult.parse(value).output;
+      for (const item of output)
+        if (item.type === "message")
+          for (const content of item.content)
+            yield {
+              type: "text",
+              text: content.type === "output_text" ? content.text : content.refusal,
+            };
+    } else
+      for await (const raw of events(response)) {
+        signal.throwIfAborted();
+        const { type } = z.object({ type: z.string() }).parse(raw);
+        if (type === "response.output_text.delta" || type === "response.refusal.delta")
+          yield { type: "text", text: z.object({ delta: z.string() }).parse(raw).delta };
+        if (type === "response.completed")
+          output = z.object({ response: responseResult }).parse(raw).response.output;
+        if (type === "response.incomplete") {
+          const incomplete = z
+            .object({
+              response: z.object({
+                incomplete_details: z.object({ reason: z.string() }).nullish(),
+              }),
+            })
+            .parse(raw);
+          throw new AgentsError(
+            incomplete.response.incomplete_details?.reason === "max_output_tokens"
+              ? "LIMIT"
+              : "RUNTIME",
+          );
+        }
+        if (type === "response.failed" || type === "error") throw new AgentsError("RUNTIME");
+      }
+    if (!output) throw new AgentsError("RUNTIME");
+    const calls = output.filter((item) => item.type === "function_call");
+    if (calls.length > 1) throw new AgentsError("RUNTIME");
+    const call = calls[0];
+    const args: unknown = call ? JSON.parse(call.arguments) : undefined;
+    yield {
+      type: "provider-context",
+      value: { provider: "openai", model: connection.model, output },
+    };
+    if (call) yield { type: "tool", callId: call.call_id, name: call.name, input: args };
+  } catch (error) {
+    throw error instanceof AgentsError ? error : new AgentsError("RUNTIME");
+  }
+}
+
 export async function* streamAgentModel(
   connection: ModelConnection,
   input: Parameters<AgentRuntime["stream"]>[0],
 ): ReturnType<AgentRuntime["stream"]> {
+  if (connection.provider === "openai") {
+    yield* streamOpenAiModel(connection, input);
+    return;
+  }
   const { provider, model, token } = connection;
   const claude = provider === "anthropic";
   const signal = AbortSignal.any([input.signal, AbortSignal.timeout(90000)]);
@@ -205,11 +389,8 @@ export async function* streamAgentModel(
     model,
     stream: true,
     messages: claude ? messages : [{ role: "system", content: input.instructions }, ...messages],
-    ...(claude
-      ? { system: input.instructions, max_tokens: 4096 }
-      : provider === "deepseek"
-        ? { max_tokens: 4096 }
-        : { max_completion_tokens: 4096 }),
+    max_tokens: 4096,
+    ...(claude ? { system: input.instructions } : {}),
     ...(provider === "deepseek" ? { thinking: { type: "disabled" } } : {}),
     ...(tools.length
       ? {

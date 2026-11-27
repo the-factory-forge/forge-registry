@@ -188,7 +188,8 @@ await test("Agents: file cropping, approved previews, mobile themes and deletion
     .getByRole("region", { name: "Update sample record", exact: true })
     .getByRole("img")
     .waitFor();
-  await page.getByRole("button", { name: "Delete conversation", exact: true }).click();
+  await page.getByRole("button", { name: "Conversations", exact: true }).click();
+  await page.getByRole("button", { name: /^Delete conversation:/ }).click();
   const dialog = page.getByRole("dialog", { name: "Delete this conversation?", exact: true });
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
@@ -202,7 +203,7 @@ await test("Agents: deletion errors stay inside the confirmation dialog", async 
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await page.getByText(/The sample record is/).waitFor();
   await page.getByLabel("Simulate failure", { exact: true }).check();
-  await page.getByRole("button", { name: "Delete conversation", exact: true }).click();
+  await page.getByRole("button", { name: /^Delete conversation:/ }).click();
   const dialog = page.getByRole("dialog", { name: "Delete this conversation?", exact: true });
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await dialog
@@ -212,7 +213,7 @@ await test("Agents: deletion errors stay inside the confirmation dialog", async 
   assert.equal(await dialog.getByRole("button", { name: "Delete", exact: true }).isEnabled(), true);
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByLabel("Simulate failure", { exact: true }).uncheck();
-  await page.getByRole("button", { name: "Delete conversation", exact: true }).click();
+  await page.getByRole("button", { name: /^Delete conversation:/ }).click();
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("textbox", { name: "Message", exact: true }).waitFor();
 });
@@ -327,7 +328,7 @@ await test("Agents: history always lists all plugins and opens each chat in its 
   assert.deepEqual(
     await history
       .getByRole("list")
-      .getByRole("button")
+      .locator('button:not([aria-label^="Delete conversation:"])')
       .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))),
     ["list employee records", "list blog records"],
   );

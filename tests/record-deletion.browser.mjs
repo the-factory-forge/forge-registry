@@ -56,7 +56,7 @@ for (const kind of ["customers", "projects"]) {
       .waitFor();
     await page.evaluate(() => window.deletionTest.changeView());
     await dialog(page).waitFor({ state: "hidden" });
-    await trigger(page, kind).click();
+    await trigger(row(page, "Renamed Alpha"), kind).click();
     await page.evaluate(() => window.deletionTest.remove("alpha"));
     await dialog(page).waitFor({ state: "hidden" });
     await page.locator("section[tabindex='-1']:focus").waitFor();

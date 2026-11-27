@@ -17,7 +17,9 @@ export interface AgentRuntime {
     tools: readonly { name: string; description: string; inputSchema: unknown }[];
     signal: AbortSignal;
   }): AsyncIterable<
-    { type: "text"; text: string } | { type: "tool"; name: string; input: unknown; callId?: string }
+    | { type: "text"; text: string }
+    | { type: "provider-context"; value: unknown }
+    | { type: "tool"; name: string; input: unknown; callId?: string }
   >;
 }
 export interface AgentFiles {
@@ -64,6 +66,7 @@ export interface AgentStoredAction extends AgentAction {
   input: unknown;
   snapshot: string;
   expiresAt?: string;
+  providerContext?: AgentMessage["providerContext"];
 }
 export interface AgentConnection {
   id: string;

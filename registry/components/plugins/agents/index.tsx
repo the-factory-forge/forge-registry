@@ -96,6 +96,7 @@ export interface AgentsPageProps {
   className?: string;
 }
 export function AgentsPage(props: AgentsPageProps) {
+  const [focusAfterDelete, setFocusAfterDelete] = useState(false);
   const [identity, setIdentity] = useState({
     client: props.client,
     settings: props.settings,
@@ -121,6 +122,8 @@ export function AgentsPage(props: AgentsPageProps) {
         setOperations={setOperations}
         history={history}
         setHistory={setHistory}
+        focusAfterDelete={focusAfterDelete}
+        setFocusAfterDelete={setFocusAfterDelete}
       />
     </ActionToastProvider>
   );
@@ -709,6 +712,8 @@ function AgentsContent({
   setOperations,
   history,
   setHistory,
+  focusAfterDelete,
+  setFocusAfterDelete,
 }: AgentsPageProps & {
   drafts: AgentDrafts;
   setDrafts: Dispatch<SetStateAction<AgentDrafts>>;
@@ -716,6 +721,8 @@ function AgentsContent({
   setOperations: Dispatch<SetStateAction<AgentOperation[]>>;
   history: AgentConversationSummary[];
   setHistory: Dispatch<SetStateAction<AgentConversationSummary[]>>;
+  focusAfterDelete: boolean;
+  setFocusAfterDelete: Dispatch<SetStateAction<boolean>>;
 }) {
   const labels = { ...agentsLabels, ...overrides };
   const notify = useActionToast();
@@ -742,7 +749,9 @@ function AgentsContent({
   const streaming = localStreaming || !!reply?.running;
   const stream = reply?.running ? reply.text : localStream;
   const [revision, setRevision] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting] = useState<AgentConversationSummary | null>(null);
+  const deleteTrigger = useRef<HTMLButtonElement | null>(null);
+  const composer = useRef<HTMLTextAreaElement | null>(null);
   const [crop, setCrop] = useState<File | null>(null);
   const [attachmentOption, setAttachmentOption] = useState("0");
   const [failedFile, setFailedFile] = useState<File | null>(null);
@@ -751,7 +760,7 @@ function AgentsContent({
     setWasActive(active);
     if (!active) {
       setCrop(null);
-      setDeleting(false);
+      setDeleting(null);
     }
   }
   const controller = useRef<AbortController | null>(null);
@@ -774,6 +783,12 @@ function AgentsContent({
       [key]: { ...(current[key] ?? { text: "", attachments: [] }), requestId: undefined, ...value },
     }));
   useLoadingActivity(loading);
+  useEffect(() => {
+    if (!loading && !conversationId && focusAfterDelete) {
+      composer.current?.focus();
+      setFocusAfterDelete(false);
+    }
+  }, [loading, conversationId, focusAfterDelete, setFocusAfterDelete]);
   useEffect(() => {
     const request = ++generation.current;
     const availableOperations = client.operations();
@@ -1034,38 +1049,65 @@ function AgentsContent({
                     {historyGroup(chat.updatedAt)}
                   </h3>
                 )}
-                <IconTooltip label={chat.title || labels.untitled}>
-                  <button
-                    type="button"
-                    aria-label={chat.title || labels.untitled}
-                    aria-describedby={`${uid}-history-${chat.id}`}
-                    aria-current={chat.id === conversationId ? "page" : undefined}
-                    className={cn(
-                      button,
-                      "w-full min-w-0 items-start justify-start text-start",
-                      chat.id === conversationId
-                        ? "bg-primary/15 text-foreground"
-                        : "hover:bg-muted",
-                    )}
-                    onClick={() => {
-                      setHistoryOpen(false);
-                      onSelectionChange({ operationId: chat.operationId, conversationId: chat.id });
-                    }}
-                  >
-                    <span className="mt-0.5">
-                      <OperationIcon id={chat.operationId} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate">{chat.title || labels.untitled}</span>
-                      <span
-                        id={`${uid}-history-${chat.id}`}
-                        className="mt-1 block text-xs text-muted-foreground"
-                      >
-                        {operations.find((operation) => operation.id === chat.operationId)?.label}
+                <div
+                  className={cn(
+                    "flex min-w-0 items-start rounded-md",
+                    chat.id === conversationId && "bg-primary/15 text-foreground",
+                  )}
+                >
+                  <IconTooltip label={chat.title || labels.untitled}>
+                    <button
+                      type="button"
+                      aria-label={chat.title || labels.untitled}
+                      aria-describedby={`${uid}-history-${chat.id}`}
+                      aria-current={chat.id === conversationId ? "page" : undefined}
+                      className={cn(
+                        button,
+                        "min-w-0 flex-1 items-start justify-start text-start hover:bg-muted",
+                      )}
+                      onClick={() => {
+                        setHistoryOpen(false);
+                        onSelectionChange({
+                          operationId: chat.operationId,
+                          conversationId: chat.id,
+                        });
+                      }}
+                    >
+                      <span className="mt-0.5">
+                        <OperationIcon id={chat.operationId} />
                       </span>
-                    </span>
-                  </button>
-                </IconTooltip>
+                      <span className="min-w-0">
+                        <span className="block truncate">{chat.title || labels.untitled}</span>
+                        <span
+                          id={`${uid}-history-${chat.id}`}
+                          className="mt-1 block text-xs text-muted-foreground"
+                        >
+                          {operations.find((operation) => operation.id === chat.operationId)?.label}
+                        </span>
+                      </span>
+                    </button>
+                  </IconTooltip>
+                  <IconTooltip label={labels.deleteConversation}>
+                    <button
+                      type="button"
+                      className={cn(button, destructiveActionClass, "size-10 shrink-0 px-0")}
+                      aria-label={`${labels.deleteConversation}: ${chat.title || labels.untitled}`}
+                      disabled={
+                        blocked ||
+                        (!!externalGeneration?.running &&
+                          externalGeneration.conversationId === chat.id)
+                      }
+                      onClick={(event) => {
+                        deleteTrigger.current = event.currentTarget;
+                        setError("");
+                        setLoadError(null);
+                        setDeleting(chat);
+                      }}
+                    >
+                      <Trash2Icon aria-hidden="true" className="size-4" />
+                    </button>
+                  </IconTooltip>
+                </div>
               </li>
             ))}
           </ul>
@@ -1308,6 +1350,7 @@ function AgentsContent({
               {labels.message}
             </label>
             <textarea
+              ref={composer}
               id={`${uid}-message`}
               rows={2}
               maxLength={32000}
@@ -1430,23 +1473,6 @@ function AgentsContent({
                     </NativeSelect>
                   </div>
                 )}
-                {conversation && (
-                  <IconTooltip label={labels.deleteConversation}>
-                    <button
-                      type="button"
-                      className={cn(button, destructiveActionClass)}
-                      aria-label={labels.deleteConversation}
-                      disabled={blocked}
-                      onClick={() => {
-                        setError("");
-                        setLoadError(null);
-                        setDeleting(true);
-                      }}
-                    >
-                      <Trash2Icon aria-hidden="true" className="size-4" />
-                    </button>
-                  </IconTooltip>
-                )}
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {conversation?.canResume && !waiting && (
@@ -1506,14 +1532,19 @@ function AgentsContent({
         />
       )}
       <Dialog.Root
-        open={active && deleting}
+        open={active && !!deleting}
         onOpenChange={(open) => {
-          if (!busy) setDeleting(open);
+          if (!busy && !open) setDeleting(null);
         }}
       >
         <Dialog.Portal>
           <Dialog.Backdrop className="fixed inset-0 z-50 bg-dark/50" />
-          <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-lg border border-border bg-popover p-6 text-popover-foreground">
+          <Dialog.Popup
+            finalFocus={() =>
+              deleteTrigger.current?.isConnected ? deleteTrigger.current : composer.current
+            }
+            className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-lg border border-border bg-popover p-6 text-popover-foreground"
+          >
             <div className="flex items-start justify-between gap-3">
               <Dialog.Title className="text-lg font-semibold">{labels.deleteTitle}</Dialog.Title>
               <IconTooltip label={labels.close}>
@@ -1524,6 +1555,9 @@ function AgentsContent({
             </div>
             <Dialog.Description className="text-sm text-muted-foreground">
               {labels.deleteDescription}
+              <span className="mt-2 block truncate font-medium text-foreground">
+                {deleting?.title || labels.untitled}
+              </span>
             </Dialog.Description>
             {errorText && (
               <p role="alert" className="text-sm text-destructive">
@@ -1540,10 +1574,22 @@ function AgentsContent({
                 disabled={busy}
                 onClick={() =>
                   void run(async (request) => {
-                    await client.remove(conversationId!);
+                    if (!deleting) return;
+                    const target = deleting;
+                    await client.remove(target.id);
                     if (current(request)) {
-                      setDeleting(false);
-                      onSelectionChange({ operationId, conversationId: null });
+                      setHistory((history) => history.filter((chat) => chat.id !== target.id));
+                      setDrafts((drafts) => {
+                        const next = { ...drafts };
+                        delete next[target.id];
+                        return next;
+                      });
+                      setDeleting(null);
+                      if (target.id === conversationId) {
+                        setConversation(null);
+                        setFocusAfterDelete(true);
+                        onSelectionChange({ operationId, conversationId: null });
+                      }
                     }
                   })
                 }

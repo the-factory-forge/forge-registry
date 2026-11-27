@@ -103,6 +103,7 @@ await suite("Drive browser", async () => {
           colorScheme,
           reducedMotion: "reduce",
         });
+        await page.getByText("Additional private images", { exact: true }).click();
         await page.locator('[aria-busy="false"] table').waitFor();
         const breadcrumbs = page.getByRole("navigation", {
           name: "Folder navigation",
@@ -396,7 +397,12 @@ await suite("Drive browser", async () => {
       .filter({ hasText: "Storage is unavailable" })
       .waitFor();
     await page.getByLabel("Directory state").selectOption("loading");
-    await page.getByRole("table").getByRole("status").filter({ hasText: "Loading" }).waitFor();
+    await page
+      .locator("#factory-showroom-preview")
+      .getByRole("status")
+      .filter({ hasText: "Loading" })
+      .first()
+      .waitFor();
     await page.getByLabel("Directory state").selectOption("ready");
     await page.getByRole("link", { name: "Nested", exact: true }).waitFor();
     await page.getByRole("link", { name: "Customer directory", exact: true }).click();

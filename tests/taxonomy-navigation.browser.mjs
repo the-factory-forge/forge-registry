@@ -71,7 +71,10 @@ async function editor(t, config, create = false, fail = false) {
   page.on("pageerror", (error) => errors.push(error.message));
   t.after(() => assert.deepEqual(errors, []));
   await page.goto(base + config.directory);
-  await page.getByRole("link", { name: config.link, exact: true }).click();
+  await page
+    .getByRole("main", { name: "Component preview", exact: true })
+    .getByRole("link", { name: config.link, exact: true })
+    .click();
   if (fail) await page.getByLabel("Simulate action failures", { exact: true }).check();
   await config.open(page, create);
   await config.input(page).waitFor();

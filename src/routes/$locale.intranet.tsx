@@ -104,12 +104,19 @@ function IntranetExample() {
         groups={groups}
         footerItems={[
           {
+            id: "agents",
+            label: "Agents",
+            href: `/${locale}/agents`,
+            icon: <pluginIcons.agents />,
+          },
+          {
             id: "supports",
             label: "Support",
             href: `/${locale}/intranet/supports`,
             icon: <pluginIcons.supports />,
           },
         ]}
+        labels={{ footerNavigation: "Agents and Support" }}
         pathname={pathname}
         profileHref="#profile"
         version={`v${version}`}

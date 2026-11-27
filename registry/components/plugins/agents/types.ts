@@ -34,6 +34,8 @@ export interface AgentMessage {
   download?: boolean;
   /** Lets provider adapters reconstruct the matching assistant tool call and tool result. */
   tool?: { callId: string; name: string; input: unknown };
+  /** Server-only provider output replacing the listed assistant messages during replay. */
+  providerContext?: { value: unknown; replaces: string[] };
 }
 export interface AgentPreview {
   title: string;

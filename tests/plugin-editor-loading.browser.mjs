@@ -62,7 +62,7 @@ for (const {
       await page.goto(base + route);
       if (width === 390) {
         await page.getByRole("button", { name: "Dark mode", exact: true }).click();
-        await page.getByRole("button", { name: "Settings" }).click();
+        await page.getByRole("button", { name: "Settings", exact: true }).click();
       }
       const stage = page.locator("#factory-showroom-preview");
       const title = stage.getByRole("heading", { name: heading, exact: true });
