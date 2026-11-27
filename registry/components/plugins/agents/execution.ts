@@ -56,6 +56,7 @@ export function actionMessage(action: AgentStoredAction, text: string): AgentMes
     text: `${action.tool}: ${text}`,
     attachments: [],
     tool: { callId: action.callId, name: action.tool, input: action.input },
+    providerContext: action.providerContext,
   };
 }
 

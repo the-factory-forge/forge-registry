@@ -73,7 +73,13 @@ function publicConversation(record: AgentRecord): AgentConversation {
     operationId: record.operationId,
     title: record.title,
     updatedAt: record.updatedAt,
-    messages: record.messages,
+    messages: record.messages.map(({ id, role, text, attachments, download }) => ({
+      id,
+      role,
+      text,
+      attachments,
+      download,
+    })),
     actions: record.actions.map(({ id, messageId, preview, status, result, resultHref }) => ({
       id,
       messageId,
@@ -278,6 +284,7 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
       for (let step = 0; step < 12; step++) {
         const record = await checkRun();
         let called = false;
+        let providerContext: unknown;
         for await (const event of runtime.stream({
           instructions: input.locale
             ? `${operation.instructions} Current interface locale: ${input.locale}. Use it as the default reply language for ambiguous greetings, test messages or nonsensical text. Adapt when the user clearly uses or explicitly requests another language. Determine the user's language from user messages, not previous assistant replies or tool output.`
@@ -299,6 +306,10 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
           signal,
         })) {
           await checkRun();
+          if (event.type === "provider-context") {
+            providerContext = event.value;
+            continue;
+          }
           if (event.type === "text") {
             if (typeof event.text !== "string" || partial.length + event.text.length > 128000)
               throw new AgentsError("LIMIT");
@@ -323,6 +334,11 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
             await checkRun();
             await change(conversationId, ownerId, (current) => {
               if (current.run?.id !== runId) throw new AgentsError("BUSY");
+              if (providerContext !== undefined)
+                prepared.providerContext = {
+                  value: providerContext,
+                  replaces: current.messages.slice(record.messages.length).map((entry) => entry.id),
+                };
               current.actions.push(prepared);
             });
             completed = true;
@@ -334,6 +350,11 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
             if (current.run?.id !== runId) throw new AgentsError("BUSY");
             const entry = message("tool", `${tool.name}: ${toolResult(result)}`);
             entry.tool = { callId, name: tool.name, input: args };
+            if (providerContext !== undefined)
+              entry.providerContext = {
+                value: providerContext,
+                replaces: current.messages.slice(record.messages.length).map((entry) => entry.id),
+              };
             if (tool.download) {
               entry.download = true;
               current.downloads[entry.id] = { tool: tool.name, input: args };
@@ -345,6 +366,17 @@ export function createAgentsService<Context>(options: AgentsServiceOptions<Conte
         }
         await flush();
         if (!called) {
+          if (providerContext !== undefined)
+            await change(conversationId, ownerId, (current) => {
+              if (current.run?.id !== runId) throw new AgentsError("BUSY");
+              if (current.messages.length > record.messages.length)
+                current.messages.at(-1)!.providerContext = {
+                  value: providerContext,
+                  replaces: current.messages
+                    .slice(record.messages.length, -1)
+                    .map((entry) => entry.id),
+                };
+            });
           completed = true;
           return;
         }

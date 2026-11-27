@@ -202,7 +202,12 @@ listing has a 15-second timeout. DeepSeek thinking is disabled because this
 baseline history does not persist reasoning blocks. Files retain the existing
 metadata-only model contract; image inference is not added.
 
-The adapters use [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),
+OpenAI uses Responses and retains ordered output, assistant phases and encrypted
+reasoning on the server through read results and reviewed writes. This context is
+not returned in public conversations. An explicit rejection of streaming retries
+once without streaming; other provider failures do not trigger that retry.
+
+The adapters use [OpenAI Responses](https://developers.openai.com/api/docs/guides/migrate-to-responses),
 [Anthropic Messages streaming](https://platform.claude.com/docs/en/build-with-claude/streaming)
 and [DeepSeek Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/).
 Hosts may continue supplying a custom `AgentRuntime` instead. Adoption does not
@@ -262,6 +267,11 @@ retry, action approvals and attachments. Chats are private; shared conversations
 and agent-key authentication are not included. The current history list shows
 the latest 100 chats per operation; older chats remain reachable by their direct
 URL. Add cursor paging in hosts needing larger histories.
+
+Each history row has its own confirmed delete action. Deleting an inactive chat
+keeps the open conversation and its draft. Hosts place Agents in the existing
+secondary sidebar navigation above the account separator, before Support when
+installed, and clear matching host activity after a successful deletion.
 
 ## Links to completed records
 

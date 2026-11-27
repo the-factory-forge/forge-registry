@@ -114,6 +114,11 @@ export function AdminLayout({
         pathname={pathname}
         profileHref="/account"
         onSignOut={onSignOut}
+        footerItems={[
+          { id: "agents", label: "Agents", href: "/agents" },
+          { id: "supports", label: "Support", href: "/supports" },
+        ]}
+        labels={{ footerNavigation: "Agents and Support" }}
         groups={[
           {
             id: "workspace",

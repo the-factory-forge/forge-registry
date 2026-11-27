@@ -3139,6 +3139,22 @@ the server companion’s administrator-managed website model connection.
 - **AND** the centered reading column does not reduce the horizontal scroll target
 - **AND** the header and composer remain in place without scrolling the surrounding page
 
+#### Scenario: Deleting from private history
+
+- **WHEN** staff select the delete control beside a saved chat
+- **THEN** confirmation targets that row without selecting it or adding a delete control to the composer
+- **AND** deleting another chat preserves the open conversation and its draft
+- **AND** cancellation restores focus to the row; deleting the active chat focuses the new composer
+- **AND** running or unresolved operations retain their existing deletion guards and failures remain retryable in confirmation
+
+#### Scenario: OpenAI reasoning and tool round trips
+
+- **WHEN** the website selects an OpenAI text model supporting function tools
+- **THEN** its adapter uses Responses without forcing one model's reasoning setting on other models
+- **AND** ordered provider output, encrypted reasoning and assistant phases survive reads and reviewed writes without becoming public chat metadata
+- **AND** rejected, incomplete or malformed output cannot yield a tool for execution
+- **AND** an explicit unsupported-stream rejection can fall back once to a non-streaming response
+
 #### Scenario: Configuring the website model
 
 - **WHEN** an administrator opens Settings beside the page title

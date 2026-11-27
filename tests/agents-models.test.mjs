@@ -50,6 +50,43 @@ function stream(events, done = true) {
   );
 }
 function reply(provider, tool = false) {
+  if (provider === "openai")
+    return stream(
+      [
+        { type: "response.output_text.delta", delta: "Réponse." },
+        {
+          type: "response.completed",
+          response: {
+            status: "completed",
+            output: [
+              {
+                type: "reasoning",
+                id: "reasoning_1",
+                summary: [],
+                encrypted_content: "opaque-reasoning",
+              },
+              {
+                type: "message",
+                role: "assistant",
+                phase: tool ? "commentary" : "final_answer",
+                content: [{ type: "output_text", text: "Réponse." }],
+              },
+              ...(tool
+                ? [
+                    {
+                      type: "function_call",
+                      call_id: "call_1",
+                      name: "save",
+                      arguments: '{"value":"changed"}',
+                    },
+                  ]
+                : []),
+            ],
+          },
+        },
+      ],
+      false,
+    );
   if (provider === "anthropic")
     return stream(
       [
@@ -159,10 +196,20 @@ for (const provider of ["openai", "anthropic", "deepseek"]) {
     const chat = await f.create();
     const proposed = await send(f.client, chat.id, "Change it", { locale: "fr" });
     const firstRequest = JSON.parse(calls.at(-1).options.body);
+    if (provider === "openai") {
+      assert.ok(calls.at(-1).url.endsWith("/responses"));
+      assert.equal(firstRequest.store, false);
+      assert.equal(firstRequest.parallel_tool_calls, false);
+      assert.equal(firstRequest.reasoning, undefined);
+      assert.ok(!JSON.stringify(proposed.chat).includes("opaque-reasoning"));
+    }
     assert.ok(
-      (provider === "anthropic" ? firstRequest.system : firstRequest.messages[0].content).includes(
-        "Current interface locale: fr.",
-      ),
+      (provider === "openai"
+        ? firstRequest.instructions
+        : provider === "anthropic"
+          ? firstRequest.system
+          : firstRequest.messages[0].content
+      ).includes("Current interface locale: fr."),
     );
     assert.equal(proposed.chat.actions[0].status, "pending");
     assert.equal(f.state.writes, 0);
@@ -176,8 +223,21 @@ for (const provider of ["openai", "anthropic", "deepseek"]) {
     const resumed = await send(f.client, chat.id, "", { resume: true, locale: "de" });
     assert.equal(resumed.chat.messages.at(-1).text, "Réponse.");
     const request = JSON.parse(calls.at(-1).options.body);
+    if (provider === "openai") {
+      assert.deepEqual(
+        request.input.slice(1).map((item) => item.type),
+        ["reasoning", "message", "function_call", "function_call_output"],
+      );
+      assert.equal(request.input[1].encrypted_content, "opaque-reasoning");
+      assert.equal(request.input[2].phase, "commentary");
+    }
     assert.equal(request.model, model);
-    const instructions = provider === "anthropic" ? request.system : request.messages[0].content;
+    const instructions =
+      provider === "openai"
+        ? request.instructions
+        : provider === "anthropic"
+          ? request.system
+          : request.messages[0].content;
     assert.ok(instructions.includes("Current interface locale: de."));
     assert.ok(!instructions.includes("Current interface locale: fr."));
     assert.ok(instructions.includes(`Configured AI provider: ${provider}`));
@@ -185,8 +245,12 @@ for (const provider of ["openai", "anthropic", "deepseek"]) {
     assert.ok(instructions.includes("current employee's permissions"));
     assert.ok(!instructions.includes("example-private-key"));
     assert.ok(
-      JSON.stringify(request.messages).includes(
-        provider === "anthropic" ? "tool_result" : "tool_call_id",
+      JSON.stringify(provider === "openai" ? request.input : request.messages).includes(
+        provider === "openai"
+          ? "function_call_output"
+          : provider === "anthropic"
+            ? "tool_result"
+            : "tool_call_id",
       ),
     );
     assert.ok(!JSON.stringify(f.store.records.get(chat.id)).includes("example-private-key"));
@@ -259,13 +323,18 @@ await test("truncated, failed and parallel tool streams never execute a proposed
   let mode = "truncated";
   t.mock.method(globalThis, "fetch", async (url) => {
     if (url.includes("/models")) return Response.json({ data: [{ id: "example" }] });
-    if (mode === "failed") return stream([{ error: { message: "private error" } }]);
+    if (mode === "failed") return stream([{ type: "response.failed" }], false);
     const tools = [
-      { index: 0, id: "call_1", function: { name: "save", arguments: '{"value":"changed"}' } },
+      { type: "function_call", call_id: "call_1", name: "save", arguments: '{"value":"changed"}' },
     ];
     if (mode === "parallel")
-      tools.push({ index: 1, id: "call_2", function: { name: "save", arguments: "{}" } });
-    return stream([{ choices: [{ delta: { tool_calls: tools } }] }], false);
+      tools.push({ type: "function_call", call_id: "call_2", name: "save", arguments: "{}" });
+    return stream(
+      mode === "parallel"
+        ? [{ type: "response.completed", response: { status: "completed", output: tools } }]
+        : [{ type: "response.output_item.added", item: tools[0] }],
+      false,
+    );
   });
   await s.admin.save({ provider: "openai", model: "example", token: "example-key" });
   for (mode of ["truncated", "failed", "parallel"]) {
@@ -278,6 +347,91 @@ await test("truncated, failed and parallel tool streams never execute a proposed
     assert.equal(saved.canResume, true);
     assert.equal(f.state.writes, 0);
   }
+});
+
+await test("OpenAI retries only an explicitly rejected stream and preserves token-limit failures", async (t) => {
+  const { streamAgentModel } =
+    await import("../registry/components/plugins/agents/server/models.server.ts");
+  const connection = { provider: "openai", model: "example-pro", token: "fixture-key" };
+  let mode = "no-stream";
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    const body = JSON.parse(options.body);
+    calls.push(body);
+    assert.equal(url, "https://api.openai.com/v1/responses");
+    if (mode === "invalid") return Response.json({ error: { param: "model" } }, { status: 400 });
+    if (body.stream) return Response.json({ error: { param: "stream" } }, { status: 400 });
+    if (mode === "limit")
+      return Response.json({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output: [],
+      });
+    return Response.json({
+      status: "completed",
+      output: [
+        {
+          type: "message",
+          role: "assistant",
+          phase: "final_answer",
+          content: [{ type: "output_text", text: "Été" }],
+        },
+      ],
+    });
+  });
+  const result = await Array.fromAsync(streamAgentModel(connection, input));
+  assert.deepEqual(
+    result.filter((event) => event.type === "text"),
+    [{ type: "text", text: "Été" }],
+  );
+  assert.deepEqual(
+    calls.map((body) => body.stream),
+    [true, false],
+  );
+  mode = "invalid";
+  await assert.rejects(Array.fromAsync(streamAgentModel(connection, input)), { code: "RUNTIME" });
+  assert.equal(calls.length, 3);
+  mode = "limit";
+  await assert.rejects(Array.fromAsync(streamAgentModel(connection, input)), { code: "LIMIT" });
+});
+
+await test("OpenAI read context stays private and is replayed before its tool result", async (t) => {
+  const { streamAgentModel } =
+    await import("../registry/components/plugins/agents/server/models.server.ts");
+  const connection = { provider: "openai", model: "gpt-6-luna", token: "fixture-key" };
+  const reasoning = {
+    type: "reasoning",
+    id: "read-reasoning",
+    summary: [],
+    encrypted_content: "private-encrypted-reasoning",
+  };
+  const tool = { type: "function_call", call_id: "read-call", name: "get", arguments: "{}" };
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (_url, options) => {
+    if (requests++ === 0)
+      return stream(
+        [
+          {
+            type: "response.completed",
+            response: { status: "completed", output: [reasoning, tool] },
+          },
+        ],
+        false,
+      );
+    const body = JSON.parse(options.body);
+    assert.deepEqual(body.input.slice(1), [
+      reasoning,
+      tool,
+      { type: "function_call_output", call_id: "read-call", output: 'get: {"value":"before"}' },
+    ]);
+    return reply("openai");
+  });
+  const f = fixture({ runtime: { stream: (value) => streamAgentModel(connection, value) } });
+  const chat = await f.create();
+  const result = await send(f.client, chat.id, "read");
+  assert.equal(f.state.reads, 1);
+  assert.equal(result.chat.messages.at(-1).text, "Réponse.");
+  assert.ok(!JSON.stringify(result.chat).includes("private-encrypted-reasoning"));
 });
 
 await test("model encryption rejects empty and short root secrets", () => {
