@@ -91,13 +91,21 @@ Products SHALL supply a staff directory, a shared create/edit form, a public cat
 
 - **WHEN** authorized staff manage product categories
 - **THEN** they can create or rename main categories and their direct subcategories with translated names and a primary-language fallback
+- **AND** Products and Blogs share the staff category manager layout, with a category tree and an inline editor for each plugin’s own fields
 - **AND** a stale write fails, an assigned category cannot move or be deleted, and a category with children cannot move below another category or be deleted
 - **WHEN** staff select subcategories across several branches for a product
 - **THEN** their parents are selected too, clearing a parent clears its children, and the assignments apply across product languages
 - **AND** an existing or new product may have no assignments
 - **WHEN** a visitor filters the catalog by a category
 - **THEN** only published products in that category appear, each once, before pagination, and the URL restores the selection on reload and history navigation
+- **AND** the catalog uses the shared public category sidebar to show nested categories and clear the active filter
 - **AND** product categories and assignments are independent of Blogs
+
+#### Scenario: Searching published products
+
+- **WHEN** a visitor searches the catalog
+- **THEN** search matches the displayed product name case-insensitively, respects the selected category, and filters published results before pagination
+- **AND** search resets pagination while the URL restores the term and category on reload and history navigation
 
 #### Scenario: Editing product translations
 
@@ -1053,6 +1061,56 @@ the optimistic mutation isolation requirement.
 - **WHEN** a host supplies project content for a customer
 - **THEN** the customer's Projects section renders that content
 - **AND** the host owns fetching, authorization, persistence and navigation
+
+### Requirement: Offers plugin
+
+Staff SHALL create, price and issue an offer for a Customers profile. The directory and customer section SHALL reuse one table with controlled search, status, paging and sort. The server SHALL enforce customer ownership, access and write versions.
+
+Offer references SHALL display as `#of-N`, where `N` is the assigned number. The directory SHALL accept the displayed reference in search.
+
+#### Scenario: Offer addresses and letterhead
+
+- **WHEN** staff open an offer detail screen
+- **THEN** the sender and recipient address blocks are visible only when printing the detail or viewing the issued PDF
+- **AND** the editor, printed detail and PDF address the recipient by company name, falling back to the contact name, followed by postal address lines only
+- **AND** issue captures both addresses and places the sender on the left, the recipient lower on the right and the host’s supplied logo above the sender on the first PDF page
+
+#### Scenario: Offer actions
+
+- **WHEN** staff open an offer with available actions
+- **THEN** the detail groups those actions in a right sidebar that stacks above the document on narrow screens
+- **AND** pending offers show Accept and Decline with thumb-up and thumb-down icons when the host permits a decision
+
+#### Scenario: Editing an offer in its detail view
+
+- **WHEN** staff with draft permissions open an offer
+- **THEN** its title, dates, line fields, notes and terms keep their document presentation until activated for editing
+- **AND** hover and keyboard focus reveal the edit and calendar icons and the line remove control, with controls also reachable by touch
+- **AND** staff can add a line from the plus button beyond Net, remove lines or reorder them by dragging the position number or pressing Up/Down on the focused number
+- **AND** row hover or keyboard focus reveals separate Up and Down buttons that move the line one position, with the same buttons available on touch devices
+- **AND** local changes update the calculated amounts and reveal Cancel and Save draft. Cancel discards those changes and saving checks the version captured at the first change
+- **AND** the Actions card omits the Edit link and requires confirmation for authorized offer deletion
+
+#### Scenario: Preview, download or email an issued offer
+
+- **WHEN** staff open the issued copy and the host provides PDF or delivery controls
+- **THEN** the detail places those controls in a PDF card below any Actions card
+- **AND** Preview opens the issued PDF, Download saves that same file and Email uses authorized delivery when available
+
+#### Scenario: Issue and revise
+
+- **WHEN** staff issue a saved draft with priced lines
+- **THEN** the offer becomes pending with its current customer details and one frozen A4 PDF
+- **AND** subsequent edits retain the offer number and preserve the issued copy until reissue
+- **AND** staff can accept or decline a pending offer, while reissue restores pending and clears its sent indicator
+
+#### Scenario: Quote a catalog product and send the result
+
+- **WHEN** staff add a product, save the offer and later change the catalog price
+- **THEN** the offer keeps the copied terms and its per-line discounted net and rounded tax
+- **AND** authorized delivery sends the issued PDF to the captured recipient and records success only after transport acceptance
+- **AND** failed delivery remains retryable for that issuance
+- **AND** the offer detail shows a Sent badge beside Email in the PDF card only after delivery is recorded
 
 ### Requirement: Projects plugin
 

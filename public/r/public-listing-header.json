@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "public-listing-header",
+  "title": "Public listing header",
+  "description": "Responsive public listing title with optional debounced search.",
+  "dependencies": [
+    "lucide-react"
+  ],
+  "registryDependencies": [
+    "@forge/dialog-submit"
+  ],
+  "files": [
+    {
+      "path": "registry/components/public-listing-header.tsx",
+      "content": "\"use client\";\n\nimport { SearchIcon } from \"lucide-react\";\nimport { useEffect, useId, useRef } from \"react\";\n\nimport { submitFormOnShortcut } from \"@/components/utils/dialog-submit\";\n\nexport interface PublicListingHeaderProps {\n  title: string;\n  search?: {\n    label: string;\n    value: string;\n    categoryId?: string;\n    maxLength?: number;\n  } & (\n    | { actionHref: string; onSearchChange?: never }\n    | { actionHref?: never; onSearchChange: (value: string) => void }\n  );\n}\n\nexport function PublicListingHeader({ title, search }: PublicListingHeaderProps) {\n  const inputId = `factory-public-search-${useId()}`;\n  const inputRef = useRef<HTMLInputElement>(null);\n  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);\n  const composing = useRef(false);\n  const { value, actionHref, categoryId } = search ?? {};\n\n  useEffect(() => {\n    if (inputRef.current && value !== undefined && inputRef.current.value !== value) {\n      inputRef.current.value = value;\n    }\n  }, [value]);\n  useEffect(() => () => clearTimeout(timer.current), [actionHref, categoryId, value]);\n\n  function scheduleSearch(input: HTMLInputElement) {\n    clearTimeout(timer.current);\n    if (composing.current || input.value === value) return;\n    const form = input.form;\n    timer.current = setTimeout(() => form?.requestSubmit(), 300);\n  }\n\n  return (\n    <header className=\"flex flex-col gap-4 border-b border-border pb-8 sm:flex-row sm:items-center\">\n      <h1 className=\"min-w-0 flex-1 font-serif text-4xl font-semibold tracking-tight wrap-anywhere sm:text-5xl\">\n        {title}\n      </h1>\n      {search && (\n        <form\n          onKeyDownCapture={submitFormOnShortcut}\n          action={actionHref}\n          method=\"get\"\n          className=\"w-full max-w-lg sm:w-1/2 sm:shrink-0\"\n          onSubmit={(event) => {\n            clearTimeout(timer.current);\n            if (!search.onSearchChange) return;\n            event.preventDefault();\n            const next = inputRef.current?.value.trim() ?? \"\";\n            if (next !== value) search.onSearchChange(next);\n          }}\n        >\n          <label className=\"sr-only\" htmlFor={inputId}>\n            {search.label}\n          </label>\n          <div className=\"relative h-11 min-w-0 flex-1 rounded-xl border border-border/70 bg-background transition-[border-color,box-shadow] duration-200 focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/15 hover:border-input motion-reduce:transition-none\">\n            <SearchIcon\n              aria-hidden=\"true\"\n              className=\"pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground\"\n            />\n            <input\n              ref={inputRef}\n              id={inputId}\n              type=\"search\"\n              name=\"search\"\n              defaultValue={value}\n              maxLength={search.maxLength}\n              onChange={(event) => scheduleSearch(event.currentTarget)}\n              onCompositionStart={() => {\n                composing.current = true;\n                clearTimeout(timer.current);\n              }}\n              onCompositionEnd={(event) => {\n                composing.current = false;\n                scheduleSearch(event.currentTarget);\n              }}\n              placeholder={`${search.label}...`}\n              className=\"h-full w-full min-w-0 appearance-none rounded-xl border-0 bg-transparent py-1 pr-3 pl-11 text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm\"\n            />\n          </div>\n          {actionHref && categoryId && <input type=\"hidden\" name=\"category\" value={categoryId} />}\n        </form>\n      )}\n    </header>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/public-listing-header.tsx"
+    }
+  ],
+  "type": "registry:ui"
+}

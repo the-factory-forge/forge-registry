@@ -266,6 +266,11 @@
       )
       0;
   }
+  /* Let supporting controls use the space between the document and preview settings. */
+  .showroom-stage:has(.showroom-page-with-sidebar aside) {
+    width: auto;
+    max-width: calc(var(--showroom-max-width) + 24rem);
+  }
 }
 
 .showroom-stage,

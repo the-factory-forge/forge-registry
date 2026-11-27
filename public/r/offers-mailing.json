@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "offers-mailing",
+  "title": "Offers–Mailing",
+  "description": "Send an issued PDF to its frozen recipient through Forge Mailing.",
+  "dependencies": [],
+  "registryDependencies": [
+    "@forge/offers",
+    "@forge/mailing"
+  ],
+  "files": [
+    {
+      "path": "registry/components/connectors/offers-mailing/server.ts",
+      "content": "import { renderEmail, type MailingBrand } from \"@/components/plugins/mailing\";\nimport type { OutgoingEmail } from \"@/components/plugins/mailing/resend.server\";\nimport { formatOfferNumber, type IssuedOffer } from \"@/components/plugins/offers/model\";\nexport function createOfferMailer(options: {\n  brand: MailingBrand;\n  deliver: (email: OutgoingEmail) => Promise<void>;\n  copy?: (offer: IssuedOffer) => { subject: string; message: string };\n}) {\n  return async (offer: IssuedOffer, pdf: Uint8Array) => {\n    const { subject, message } = options.copy?.(offer) ?? {\n      subject: offer.content.title,\n      message: \"Your offer is attached as a PDF.\",\n    };\n    const body = await renderEmail({\n      brand: options.brand,\n      locale: offer.locale,\n      heading: subject,\n      preview: message,\n      paragraphs: [message],\n      details: [{ label: \"Number\", value: formatOfferNumber(offer.number) }],\n    });\n    await options.deliver({\n      id: \"offer/\" + offer.token,\n      to: offer.recipient.email,\n      subject,\n      ...body,\n      attachments: [{ filename: \"offer-\" + offer.number + \".pdf\", content: pdf }],\n    });\n  };\n}\n",
+      "type": "registry:lib",
+      "target": "@components/connectors/offers-mailing/server.ts"
+    }
+  ],
+  "type": "registry:block"
+}

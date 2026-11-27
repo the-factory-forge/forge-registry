@@ -29,6 +29,11 @@ import {
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
+import {
+  CategoryEditorForm,
+  CategoryLanguageFields,
+  categoryInputClass,
+} from "@/components/category-manager";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
@@ -1293,17 +1298,14 @@ function BlogCategoryEditorContent({
         }}
         onSave={() => void submit(undefined, true)}
       />
-      <form
-        onKeyDownCapture={submitFormOnShortcut}
-        ref={form}
-        onSubmit={(e) => void submit(e)}
-        className={cn(cardClass, "space-y-5")}
-      >
-        <header className="flex items-start justify-between gap-3">
-          <h2 className="min-w-0 text-lg font-semibold">
-            {base ? labels.edit : labels.newCategory}
-          </h2>
-          {base && !disabled && (
+      <CategoryEditorForm
+        formRef={form}
+        onSubmit={(event) => void submit(event)}
+        title={base ? labels.edit : labels.newCategory}
+        disabled={disabled || action.pending}
+        actions={
+          base &&
+          !disabled && (
             <ConfirmDelete
               labels={labels}
               title={labels.deleteCategoryTitle}
@@ -1315,75 +1317,70 @@ function BlogCategoryEditorContent({
               }
               onDeleted={onDeleted}
             />
-          )}
-        </header>
-        <fieldset disabled={disabled || action.pending} className="space-y-5">
-          <label className="block space-y-2 text-sm">
-            <span>{labels.parent}</span>
-            <NativeSelect
-              className={inputClass}
-              value={parentId}
-              onChange={(e) => setParent(e.target.value)}
-            >
-              <option value="">{labels.noParent}</option>
-              {categories
-                .filter((c) => !c.parentId && c.id !== base?.id)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {Object.values(c.translations)[0]?.name}
-                  </option>
-                ))}
-            </NativeSelect>
-          </label>
-          {locales.map((locale) => (
-            <fieldset
-              key={locale.code}
-              className="grid gap-4 rounded-2xl border border-border p-4 sm:grid-cols-2"
-            >
-              <legend className="px-2 text-sm font-medium">{locale.name}</legend>
-              <label className="space-y-2 text-sm">
-                <span>{labels.categoryName}</span>
-                <input
-                  className={inputClass}
-                  maxLength={150}
-                  value={translations[locale.code]?.name ?? ""}
-                  onChange={(e) =>
-                    setTranslations((t) => ({
-                      ...t,
-                      [locale.code]: {
-                        name: e.target.value,
-                        slug:
-                          !t[locale.code]?.slug ||
-                          t[locale.code].slug === slugify(t[locale.code].name)
-                            ? slugify(e.target.value)
-                            : t[locale.code].slug,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span>{labels.slug}</span>
-                <input
-                  className={inputClass}
-                  maxLength={120}
-                  value={translations[locale.code]?.slug ?? ""}
-                  onChange={(e) =>
-                    setTranslations((t) => ({
-                      ...t,
-                      [locale.code]: { name: t[locale.code]?.name ?? "", slug: e.target.value },
-                    }))
-                  }
-                />
-              </label>
-            </fieldset>
-          ))}
-          <button className={primaryClass}>
-            {action.pending ? labels.pending : labels.saveCategory}
-          </button>
-        </fieldset>
-        <Feedback {...action.feedback} />
-      </form>
+          )
+        }
+        feedback={<Feedback {...action.feedback} />}
+      >
+        <label className="block space-y-2 text-sm">
+          <span>{labels.parent}</span>
+          <NativeSelect
+            className={categoryInputClass}
+            value={parentId}
+            onChange={(e) => setParent(e.target.value)}
+          >
+            <option value="">{labels.noParent}</option>
+            {categories
+              .filter((c) => !c.parentId && c.id !== base?.id)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {Object.values(c.translations)[0]?.name}
+                </option>
+              ))}
+          </NativeSelect>
+        </label>
+        {locales.map((locale) => (
+          <CategoryLanguageFields key={locale.code} name={locale.name}>
+            <label className="space-y-2 text-sm">
+              <span>{labels.categoryName}</span>
+              <input
+                className={categoryInputClass}
+                maxLength={150}
+                value={translations[locale.code]?.name ?? ""}
+                onChange={(e) =>
+                  setTranslations((t) => ({
+                    ...t,
+                    [locale.code]: {
+                      name: e.target.value,
+                      slug:
+                        !t[locale.code]?.slug ||
+                        t[locale.code].slug === slugify(t[locale.code].name)
+                          ? slugify(e.target.value)
+                          : t[locale.code].slug,
+                    },
+                  }))
+                }
+              />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span>{labels.slug}</span>
+              <input
+                className={categoryInputClass}
+                maxLength={120}
+                value={translations[locale.code]?.slug ?? ""}
+                onChange={(e) =>
+                  setTranslations((t) => ({
+                    ...t,
+                    [locale.code]: { name: t[locale.code]?.name ?? "", slug: e.target.value },
+                  }))
+                }
+              />
+            </label>
+          </CategoryLanguageFields>
+        ))}
+        <button className={primaryClass}>
+          {action.pending ? labels.pending : labels.saveCategory}
+        </button>
+      </CategoryEditorForm>
     </>
   );
 }

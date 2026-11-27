@@ -140,6 +140,12 @@ await suite("Customers browser", async () => {
 
   await test("creation validates contact fields without collecting a password", async (t) => {
     const page = await preview(t, "/new");
+    const storage = () =>
+      page.evaluate(() => ({
+        local: Object.entries(localStorage),
+        session: Object.entries(sessionStorage),
+      }));
+    const initialStorage = await storage();
     const submit = page.getByRole("button", { name: "Create", exact: true });
     await submit.click();
     await page.getByRole("alert").filter({ hasText: "Enter a full name" }).waitFor();
@@ -173,7 +179,7 @@ await suite("Customers browser", async () => {
     assert.equal(await page.getByRole("button", { name: "Hide password", exact: true }).count(), 0);
     assert.equal(await page.locator('input[type="password"]').count(), 0);
     assert.equal(await page.getByText(/invitation/i).count(), 0);
-    assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
+    assert.deepEqual(await storage(), initialStorage);
     await page.getByRole("link", { name: "Customers", exact: true }).click();
     await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
     assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);

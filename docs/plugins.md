@@ -39,6 +39,7 @@ the guides below own integration details and the specs own acceptance criteria.
 | [`supports`](../registry/components/plugins/supports/AGENTS.md)         | Sortable staff ticket queue, Markdown discussion, images and close/cancel/reopen actions                                                                               | `supports-storage`                   | [Support tickets](./supports.md)                                                      |
 | [`employees`](../registry/components/plugins/employees/AGENTS.md)       | Admin-only employee accounts, editing, verification and host-supplied website visibility                                                                               | `employees-server`                   | [Employee UI](./intranet-auth.md#employee-ui), [photos and retention](./employees.md) |
 | [`customers`](../registry/components/plugins/customers/AGENTS.md)       | Customer contact/company records, editable verification badges and composition of Projects/Sync                                                                        | `customers-storage`                  | [Customers](./customers.md)                                                           |
+| [`offers`](../registry/components/plugins/offers/AGENTS.md)             | Customer offers, issued PDFs, staff decisions and email delivery                                                                                                       | `offers-storage`, `offers-pdf`       | [Offers](./offers.md)                                                                 |
 | [`projects`](../registry/components/plugins/projects/AGENTS.md)         | Basic project forms, editable status badges, host-owned customer relationships and Details/Drive views                                                                 | `projects-storage`                   | [Projects](./projects.md)                                                             |
 | [`drive`](../registry/components/plugins/drive/AGENTS.md)               | Scoped file browser, folder action menus, file/directory uploads, duplication and opt-in trash/restoration                                                             | `drive-storage`                      | [Drive](./drive.md)                                                                   |
 | [`blogs`](../registry/components/plugins/blogs/AGENTS.md)               | Multilingual Markdown articles with one draft and five publications per language in PostgreSQL, private S3 illustrations, cropped covers, categories and public search | `blogs-storage`                      | [Blogs](./blogs.md)                                                                   |
@@ -300,8 +301,8 @@ configured default, or `{ field: "id", direction: "asc" }`. Map `id` to the
 table’s UUID column.
 Validate the field and direction, order all matching rows with a stable
 tie-breaker, then take the page. The [table example](https://registry.the-corner.swiss/table-pagination)
-uses UUID order. The [Support queue](./supports.md#host-routes-and-navigation)
-defaults to the last update.
+and the [Support queue](./supports.md#host-routes-and-navigation) default to the
+last update, newest first.
 
 | Record table                      | Default order                                      |
 | --------------------------------- | -------------------------------------------------- |

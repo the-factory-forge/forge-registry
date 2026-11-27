@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "offers-products",
+  "title": "Offers–Products",
+  "description": "Copy catalog descriptions and prices into offer lines.",
+  "dependencies": [],
+  "registryDependencies": [
+    "@forge/offers",
+    "@forge/products",
+    "@forge/native-select"
+  ],
+  "files": [
+    {
+      "path": "registry/components/connectors/offers-products/index.tsx",
+      "content": "import { NativeSelect } from \"@/components/native-select\";\nimport { emptyLine, type OfferLine } from \"@/components/plugins/offers/model\";\nimport type { CatalogProduct } from \"@/components/plugins/products/model\";\nexport function productLine(product: CatalogProduct): OfferLine {\n  return {\n    ...emptyLine(),\n    description: [product.name, product.description].filter(Boolean).join(\"\\n\").slice(0, 2000),\n    priceMinor: product.priceMinor ?? 0,\n  };\n}\n/** Supply the authorized, localized catalog in the same currency as the offer. */\nexport function OfferProductPicker({\n  products,\n  onAdd,\n  label = \"Add product\",\n}: {\n  products: readonly CatalogProduct[];\n  onAdd: (line: OfferLine) => void;\n  label?: string;\n}) {\n  return (\n    <NativeSelect\n      aria-label={label}\n      value=\"\"\n      onChange={(event) => {\n        const p = products.find((item) => item.id === event.target.value);\n        if (p) onAdd(productLine(p));\n      }}\n    >\n      <option value=\"\">{label}</option>\n      {products.map((p) => (\n        <option key={p.id} value={p.id}>\n          {p.name}\n        </option>\n      ))}\n    </NativeSelect>\n  );\n}\n",
+      "type": "registry:component",
+      "target": "@components/connectors/offers-products/index.tsx"
+    }
+  ],
+  "type": "registry:block"
+}

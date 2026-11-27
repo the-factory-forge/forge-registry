@@ -9,6 +9,8 @@ there is no runtime loader or universal synchronization protocol.
 | Item                                         | Connects                                 | Example                                                                  | Guide                            |
 | -------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------ | -------------------------------- |
 | `customers-bexio`                            | Customers and the Bexio contact API      | [Showcase](https://registry.the-corner.swiss/connectors/customers-bexio) | [Setup](./customers-bexio.md)    |
+| `offers-products`                            | Offers and Products                      | [Showcase](/connectors/offers-products)                                  | [Setup](./offers.md)             |
+| `offers-mailing`                             | Offers and Mailing                       | [Showcase](/connectors/offers-mailing)                                   | [Setup](./offers.md)             |
 | `projects-drive`                             | Projects and Forge Drive                 | [Showcase](https://registry.the-corner.swiss/connectors/projects-drive)  | [Setup](./projects-drive.md)     |
 | `supports-github` / `supports-github-server` | Supports and private GitHub issues       | [Showcase](https://registry.the-corner.swiss/connectors/supports-github) | [Setup](./supports-github.md)    |
 | `agents-webmcp` / `agents-webmcp-server`     | Browser assistants and Agents operations | Installed plugin admin previews                                          | [Setup and testing](./webmcp.md) |

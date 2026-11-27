@@ -16,12 +16,14 @@ The item includes Base UI and Lucide dependencies and the Forge `cn` and
 The plugin needs React and Tailwind 4 with standard semantic theme tokens;
 it does not depend on the showroom CSS, providers, or framework.
 
+When Offers is installed, hosts can add a customer-scoped Offers section and creation link. See [Offers integration](./offers.md#ui-and-routes).
+
 ## Pages and host integration
 
 | Component            | Required host inputs                                                                        | Optional integration                                                                                                                         |
 | -------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CustomersPage`      | `customers`, `search`, `onSearchChange`, `createHref`, `getCustomerHref(customer, section)` | `loading`, `error`, `onDelete(id)`, `onSetVerified(id, verified)`, `onImpersonate(id)`, `toolbar`, `syncColumn: { label, render(customer) }` |
-| `CustomerDetailPage` | `customer`, `backHref`, `sectionHrefs`, `onSave(values)`                                    | `section` (defaults to `about`), `onDelete(id)`, `emailChangeDescription`, `projectsContent`, `syncContent`                                  |
+| `CustomerDetailPage` | `customer`, `backHref`, `sectionHrefs`, `onSave(values)`                                    | `section` (defaults to `about`), `onDelete(id)`, `emailChangeDescription`, `projectsContent`, `offersContent`, `syncContent`                 |
 | `CustomerNewPage`    | `backHref`, `onCreate(values)`                                                              | —                                                                                                                                            |
 
 Every page accepts `className`, `labels: Partial<CustomersLabels>`, and

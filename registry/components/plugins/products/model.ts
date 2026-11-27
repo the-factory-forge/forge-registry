@@ -164,6 +164,8 @@ export function validateProductCategory(
 export const productSortFields = ["name", "priceMinor", "published"] as const;
 export type ProductSort = TableSort<(typeof productSortFields)[number]>;
 export const defaultProductSort: ProductSort = { field: "name", direction: "asc" };
+export const productCatalogSearchLimit = 250;
+
 export interface ProductPageQuery {
   cursor?: string;
   pageSize?: number;

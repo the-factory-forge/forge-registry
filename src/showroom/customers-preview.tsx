@@ -11,6 +11,7 @@ import {
   type CustomerFormValues,
 } from "@/components/plugins/customers";
 import { CUSTOMER_SORT_FIELDS } from "@/components/plugins/customers/types";
+import { OffersDirectory } from "@/showroom/offers-preview";
 import { usePluginsPreview } from "@/showroom/plugins-preview";
 import { CustomerProjectsPreview } from "@/showroom/projects-preview";
 import { useShowroomTableSort } from "@/showroom/routing";
@@ -32,6 +33,10 @@ export function CustomersPreview() {
   const onDelete = state.showActions
     ? async (id: string) => {
         await beforeAction();
+        if (state.offers.some((o) => o.customerId === id)) {
+          state.setNotice("This customer has offers.");
+          throw new Error("Customer owns offers");
+        }
         if (state.projects.some((project) => project.ownerId === id)) {
           state.setNotice(
             "Reassign or delete this customer's projects before deleting the customer.",
@@ -73,7 +78,11 @@ export function CustomersPreview() {
 
   if (customerId) {
     const customer = customers.find((entry) => entry.id === customerId);
-    if (!customer || (tab && tab !== "projects") || (params.segments?.length ?? 0) > 2)
+    if (
+      !customer ||
+      (tab && tab !== "projects" && tab !== "offers") ||
+      (params.segments?.length ?? 0) > 2
+    )
       return (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold">Customer page not found</h1>
@@ -84,11 +93,17 @@ export function CustomersPreview() {
       );
     const detailAppearance = {
       className: "showroom-page",
-      section: tab === "projects" ? ("projects" as const) : ("about" as const),
+      section:
+        tab === "offers"
+          ? ("offers" as const)
+          : tab === "projects"
+            ? ("projects" as const)
+            : ("about" as const),
       backHref: base,
       sectionHrefs: {
         about: `${base}/${customerId}`,
         projects: `${base}/${customerId}/projects`,
+        offers: `${base}/${customerId}/offers`,
       },
       linkComponent: Link,
     };
@@ -106,6 +121,7 @@ export function CustomersPreview() {
             current.map((entry) => (entry.id === customerId ? { ...entry, ...values } : entry)),
           );
         }}
+        offersContent={<OffersDirectory customerId={customerId} />}
         projectsContent={
           state.showProjects ? (
             <CustomerProjectsPreview customerId={customerId} />

@@ -255,6 +255,28 @@ export const examples = (
       ],
     },
     {
+      href: "/en/offers",
+      category: "Plugin",
+      title: "Offers",
+      icon: pluginIcons.offers,
+      description: "Price customer offers, issue PDFs and track acceptance.",
+      keywords: ["quotes", "customers", "offers", "estimates", "pdf"],
+    },
+    {
+      href: "/connectors/offers-products",
+      category: "Connector",
+      title: "Offers–Products",
+      description: "Copy catalog prices and descriptions into offer lines.",
+      keywords: ["offers", "catalog"],
+    },
+    {
+      href: "/connectors/offers-mailing",
+      category: "Connector",
+      title: "Offers–Mailing",
+      description: "Email the issued offer as a PDF attachment.",
+      keywords: ["offers", "pdf", "email"],
+    },
+    {
       href: "/en/products",
       category: "Plugin",
       title: "Products",

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useActionToast } from "@/components/action-toast";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { NativeSelect } from "@/components/native-select";
+import { blogDefaultSort } from "@/components/plugins/blogs/types";
 import {
   iconButtonClass,
   inputClass,
@@ -16,9 +17,14 @@ import {
 import { RecordDeleteButton, useRecordDeletion } from "@/components/record-deletion";
 import { TablePagination } from "@/components/table-pagination";
 import { matchesTableSearch, TableSearch } from "@/components/table-search";
+import {
+  TableBulkDelete,
+  TableSelectionCheckbox,
+  useTableSelection,
+} from "@/components/table-selection";
 import { TableSortHeader, useTableSort } from "@/components/table-sort";
 import { cn } from "@/components/utils/cn";
-import { sortTableRows } from "@/components/utils/table-sort-state";
+import { initialSortDirection, sortTableRows } from "@/components/utils/table-sort-state";
 import {
   tableActionCellClass,
   tableActionHeaderClass,
@@ -46,6 +52,7 @@ const initialPosts = [
   author: ["Alex Morgan", "Zoë Martin", "Sam Rivera"][index % 3],
   category: ["Ideas", "Studio notes", "Working together"][index % 3],
   status: index % 2 === 0 ? "Published" : "Draft",
+  updatedAt: `2026-09-${String(10 - index).padStart(2, "0")}T00:00:00.000Z`,
 }));
 
 const postSortField = z.enum({
@@ -53,11 +60,12 @@ const postSortField = z.enum({
   Author: "author",
   Category: "category",
   Status: "status",
+  Updated: "updatedAt",
 });
 const postSortFields = postSortField.options;
 const postSortQuery = z.object({
   sort: postSortField,
-  direction: z.enum(["asc", "desc"]).default("asc"),
+  direction: z.enum(["asc", "desc"]).optional(),
 });
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
@@ -72,26 +80,29 @@ function TablePaginationExample() {
     postPage: requestedPage = 1,
     cursor = 0,
     sort: field,
-    direction = "asc",
+    direction,
   } = Route.useSearch();
   const navigate = Route.useNavigate();
   const headers = useTableSort(
     {
-      sort: field ? { field, direction } : undefined,
-      onSortChange: (next, source) =>
+      sort: field && direction ? { field, direction } : undefined,
+      onSortChange: (next, source) => {
+        const isDefault =
+          next.field === blogDefaultSort.field && next.direction === blogDefaultSort.direction;
         void navigate({
           search: (previous) => ({
             ...previous,
-            sort: next.field,
-            direction: next.direction,
+            sort: isDefault ? undefined : next.field,
+            direction: isDefault ? undefined : next.direction,
             postPage: source === "restore" ? previous.postPage : undefined,
           }),
           hash: true,
           resetScroll: false,
           replace: source === "restore",
-        }),
+        });
+      },
     },
-    undefined,
+    blogDefaultSort,
     undefined,
     { key: "table-pagination-posts", fields: postSortFields },
   );
@@ -110,12 +121,13 @@ function TablePaginationExample() {
   const notify = useActionToast();
   const [state, setState] = useState("ready");
   const disabled = state === "loading" || state === "error";
+  const deletePost = async (id: string) => {
+    setPosts((current) => current.filter((post) => post.id !== id));
+  };
   const deletion = useRecordDeletion({
     items: posts,
     getName: (post) => post.title,
-    onDelete: async (id) => {
-      setPosts((current) => current.filter((post) => post.id !== id));
-    },
+    onDelete: deletePost,
     label: "Delete post",
     disabled,
     returnFocus,
@@ -133,13 +145,19 @@ function TablePaginationExample() {
     state === "empty"
       ? []
       : deletion.items.filter((post) => matchesTableSearch(search, post.title)),
-    headers.value,
+    headers.value ?? blogDefaultSort,
     (post, column) => post[column],
     (post) => post.id,
   );
   const total = orderedPosts.length;
   const pageCount = Math.max(1, Math.ceil(total / 3));
   const page = Math.min(requestedPage, pageCount);
+  const pagePosts = orderedPosts.slice((page - 1) * 3, page * 3);
+  const selection = useTableSelection(
+    pagePosts,
+    JSON.stringify([search, page, headers.value ?? blogDefaultSort, state]),
+  );
+  const actionsDisabled = disabled || deletion.pending || selection.pending;
   return (
     <ShowroomPreview
       navigation={<Link href="/table-search">Independent table searches</Link>}
@@ -164,9 +182,9 @@ function TablePaginationExample() {
     >
       <div className="space-y-6">
         <ShowroomIntro title="Table search, sorting & pagination">
-          Search the posts or select a column heading to sort. Either change returns to the first
-          page. Row actions stay pinned on the right as you scroll horizontally. Sample edits and
-          deletions reset on reload.
+          Posts start with the most recently updated. Search or sort to return to the first page.
+          Select posts on the current page to delete them together. Sample edits and deletions reset
+          on reload.
         </ShowroomIntro>
         <section
           className={tablePanelClass}
@@ -202,24 +220,55 @@ function TablePaginationExample() {
             <table className={cn(tableClass, "min-w-[56rem]")}>
               <thead>
                 <tr className={tableRowClass}>
+                  <th scope="col" className="w-10 p-2">
+                    <TableSelectionCheckbox
+                      label="Select all posts on this page"
+                      checked={selection.all}
+                      mixed={selection.mixed}
+                      disabled={actionsDisabled || !pagePosts.length}
+                      onChange={selection.toggleAll}
+                    />
+                  </th>
                   {Object.entries(postSortField.enum).map(([label, column]) => (
                     <TableSortHeader key={column} field={column} label={label} {...headers} />
                   ))}
                   <th scope="col" className={tableActionHeaderClass}>
-                    <span className="sr-only">Actions</span>
+                    <div className="flex justify-end">
+                      <span className="sr-only">Actions</span>
+                      <TableBulkDelete
+                        selection={selection}
+                        getName={(post) => post.title}
+                        onDelete={(post) => deletePost(post.id)}
+                        disabled={disabled || deletion.pending}
+                        description="Delete these posts from this example?"
+                        labels={{
+                          deleteSelected: "Delete selected posts",
+                          bulkDeleteTitle: "Delete selected posts?",
+                          bulkDeleted: "Selected posts deleted",
+                        }}
+                      />
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {total === 0 ? (
                   <tr>
-                    <td colSpan={5} className={tableCellClass}>
+                    <td colSpan={7} className={tableCellClass}>
                       <output>{state === "empty" ? "No posts." : "No matches."}</output>
                     </td>
                   </tr>
                 ) : (
-                  orderedPosts.slice((page - 1) * 3, page * 3).map((post) => (
+                  pagePosts.map((post) => (
                     <tr key={post.id} className={tableRowClass}>
+                      <td className="w-10 p-2">
+                        <TableSelectionCheckbox
+                          label={`Select ${post.title}`}
+                          checked={selection.selected.some((selected) => selected.id === post.id)}
+                          disabled={actionsDisabled}
+                          onChange={(checked) => selection.toggle(post.id, checked)}
+                        />
+                      </td>
                       <td className={cn(tableCellClass, "min-w-64 font-medium")}>{post.title}</td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>{post.author}</td>
                       <td className={cn(tableCellClass, "whitespace-nowrap")}>{post.category}</td>
@@ -236,6 +285,9 @@ function TablePaginationExample() {
                           {post.status}
                         </span>
                       </td>
+                      <td className={cn(tableCellClass, "whitespace-nowrap")}>
+                        <time dateTime={post.updatedAt}>{post.updatedAt.slice(0, 10)}</time>
+                      </td>
                       <td className={tableActionCellClass}>
                         <div className={tableActionsClass}>
                           <IconTooltip label={`Edit ${post.title}`}>
@@ -244,7 +296,7 @@ function TablePaginationExample() {
                               className={iconButtonClass}
                               aria-label={`Edit ${post.title}`}
                               aria-haspopup="dialog"
-                              disabled={disabled || deletion.pending}
+                              disabled={actionsDisabled}
                               onClick={(event) => {
                                 editTrigger.current = event.currentTarget;
                                 setEditing(post);
@@ -257,7 +309,7 @@ function TablePaginationExample() {
                           </IconTooltip>
                           <RecordDeleteButton
                             label={`Delete ${post.title}`}
-                            disabled={disabled || deletion.pending}
+                            disabled={actionsDisabled}
                             onClick={(event) => deletion.open(post.id, event.currentTarget)}
                           />
                         </div>
@@ -283,7 +335,7 @@ function TablePaginationExample() {
             label="Blog post pages"
             previousDisabled={page <= 1}
             nextDisabled={page >= pageCount}
-            disabled={disabled || deletion.pending}
+            disabled={actionsDisabled}
             onPrevious={() => setPage(page - 1)}
             onNext={() => setPage(page + 1)}
           />
@@ -346,9 +398,10 @@ function TablePaginationExample() {
                     setInvalid(true);
                     return;
                   }
+                  const updatedAt = new Date().toISOString();
                   setPosts((current) =>
                     current.map((post) =>
-                      post.id === editing?.id ? { ...post, title: parsed.data } : post,
+                      post.id === editing?.id ? { ...post, title: parsed.data, updatedAt } : post,
                     ),
                   );
                   setEditing(null);
@@ -400,7 +453,11 @@ function TablePaginationExample() {
 export const Route = createFileRoute("/table-pagination")({
   validateSearch: (search) => {
     const sort = postSortQuery.safeParse(search).data;
-    return { ...searchSchema.parse(search), sort: sort?.sort, direction: sort?.direction };
+    return {
+      ...searchSchema.parse(search),
+      sort: sort?.sort,
+      direction: sort && (sort.direction ?? initialSortDirection(sort.sort, blogDefaultSort)),
+    };
   },
   head: ({ match }) =>
     showroomHead({

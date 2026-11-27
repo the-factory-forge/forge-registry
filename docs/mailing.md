@@ -72,6 +72,7 @@ await sendResendEmail(
 ```
 
 `OutgoingEmail` includes `to`, `subject`, `text`, optional `html` and optional `id`.
+Optional `attachments` contain a filename and server-supplied byte content. The Resend transport encodes these bytes for the provider. [Offers](./offers.md) uses this to deliver the issued PDF.
 The separate server entrypoint is not exported by the browser-safe renderer.
 The host keeps credentials behind its framework's server boundary and supplies
 validated recipients. Installation does not configure a provider or send email.

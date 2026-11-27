@@ -82,7 +82,11 @@ export function directoryAgentOperations(
       async remove(id) {
         await mutate();
         customer(id);
-        if (state.projects.some((row) => row.ownerId === id)) throw new AgentsError("FORBIDDEN");
+        if (
+          state.projects.some((row) => row.ownerId === id) ||
+          state.offers.some((row) => row.customerId === id)
+        )
+          throw new AgentsError("FORBIDDEN");
         state.setCustomers((rows) => rows.filter((row) => row.id !== id));
       },
       async resendInvitation(id) {

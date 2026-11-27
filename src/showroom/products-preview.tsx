@@ -6,6 +6,7 @@ import {
   ProductDirectory,
   ProductCategoriesPage,
   productCategorySelection,
+  productCatalogSearchLimit,
   validateProductCategory,
   ProductsError,
   type ProductCategory,
@@ -44,6 +45,10 @@ const spread = {
   src: "/showroom/products/linen-notebook-open.jpg",
   alt: "Open notebook showing blank pages and a stitched binding",
 };
+const rulerPhoto = {
+  src: "/showroom/products/maple-ruler.jpg",
+  alt: "Pale maple ruler with engraved metric markings",
+};
 const uploadedPhotos = new Map<string, string>();
 export function previewProductImageUrl(src: string) {
   return uploadedPhotos.get(src) ?? src;
@@ -57,6 +62,7 @@ async function uploadPreviewPhoto(file: File) {
 }
 const stationery = "00000000-0000-4000-8000-000000000001";
 const notebooks = "00000000-0000-4000-8000-000000000002";
+const rulers = "00000000-0000-4000-8000-000000000003";
 const sampleCategories: ProductCategory[] = [
   {
     id: stationery,
@@ -71,6 +77,13 @@ const sampleCategories: ProductCategory[] = [
     parentId: stationery,
     name: "Notebooks",
     translations: { fr: "Carnets" },
+  },
+  {
+    id: rulers,
+    version: 1,
+    parentId: stationery,
+    name: "Rulers",
+    translations: { fr: "Règles" },
   },
 ];
 const samples: Product[] = [
@@ -97,6 +110,31 @@ const samples: Product[] = [
       },
     },
     priceMinor: 1800,
+    published: true,
+  },
+  {
+    id: "22964586-c4e4-40b5-9841-40be4bb076dd",
+    version: 1,
+    name: "Maple ruler",
+    categoryIds: [stationery, rulers],
+    slug: "maple-ruler",
+    media: { thumbnail: rulerPhoto, banner: rulerPhoto },
+    description: "A solid maple ruler with engraved metric markings.",
+    characteristics: [
+      { label: "Length", value: "30 cm" },
+      { label: "Material", value: "Maple" },
+    ],
+    translations: {
+      fr: {
+        name: "Règle en érable",
+        description: "Une règle en érable massif aux graduations gravées.",
+        characteristics: [
+          { label: "Longueur", value: "30 cm" },
+          { label: "Matière", value: "Érable" },
+        ],
+      },
+    },
+    priceMinor: 900,
     published: true,
   },
   {
@@ -268,14 +306,20 @@ export function ProductsPreview({ staff = false }: { staff?: boolean }) {
   );
   const publicCategories = categories.filter((c) => publishedIds.has(c.id));
   const categoryId = publicCategories.find((c) => c.id === query.category)?.id;
-  const searchText = search.trim().toLocaleLowerCase(locale);
+  const trimmedSearch = search.trim();
+  const activeSearch =
+    !staff && trimmedSearch.length > productCatalogSearchLimit ? "" : trimmedSearch;
+  const searchText = activeSearch.toLocaleLowerCase(locale);
   const rows = sortTableRows(
     view === "empty"
       ? []
       : products.filter((p) =>
           staff
             ? p.name.toLocaleLowerCase(locale).includes(searchText)
-            : p.published && (!categoryId || p.categoryIds?.includes(categoryId)),
+            : p.published &&
+              (!categoryId || p.categoryIds?.includes(categoryId)) &&
+              (!searchText ||
+                catalogProduct(p, locale).name.toLocaleLowerCase(locale).includes(searchText)),
         ),
     staff ? (sorting.sort ?? defaultProductSort) : defaultProductSort,
     (p, field) => (field === "published" ? Number(p.published) : p[field]),
@@ -348,6 +392,7 @@ export function ProductsPreview({ staff = false }: { staff?: boolean }) {
     >
       {isCategories ? (
         <ProductCategoriesPage
+          className="showroom-page"
           categories={categories}
           locales={productLocales}
           locale={locale}
@@ -387,6 +432,8 @@ export function ProductsPreview({ staff = false }: { staff?: boolean }) {
         />
       ) : (
         <ProductCatalog
+          search={activeSearch}
+          onSearchChange={setSearch}
           categories={publicCategories}
           categoryId={categoryId}
           onCategoryChange={(id) => update({ category: id, catalogPage: undefined })}

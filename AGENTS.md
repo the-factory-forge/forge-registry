@@ -15,6 +15,21 @@ back to the original checkout, leave it uncommitted and preserve existing edits.
 Remove the worktree only after verification; keep it if transfer is blocked.
 Push only when explicitly requested. These rules also apply to delegated agents.
 
+## Before creating a registry item
+
+For every new component, connector, layout, page or plugin, check the following
+before implementation.
+
+1. Search `registry/registry.json` and `registry/components/` by purpose as well
+   as name. Inspect likely matches and their callers. Reuse, compose or extend
+   an existing item when it covers the requested behavior.
+2. Check whether an existing [connector](docs/connectors.md) supports the
+   requested workflow. If a new connector would help, name the plugin and the
+   other plugin, library or service it would connect, and explain the use case.
+3. Consider whether customers could use or install parts of the request
+   independently. Split out a part when it has a concrete use case of its own,
+   such as a layout shared by two pages or a connector installed separately.
+
 ## Barebones scope and confirmation
 
 Everything added to this library must be **barebones**: the smallest complete

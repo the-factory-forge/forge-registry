@@ -51,6 +51,7 @@ import { Route as BlogsLocaleBlogsSplatRouteImport } from './routes/_blogs.$loca
 import { Route as MenusLocaleMenusSplatRouteImport } from './routes/_menus.$locale.menus.$'
 import { Route as PluginsLocaleCustomersSplatRouteImport } from './routes/_plugins.$locale.customers.$'
 import { Route as PluginsLocaleDriveSplatRouteImport } from './routes/_plugins.$locale.drive.$'
+import { Route as PluginsLocaleOffersSplatRouteImport } from './routes/_plugins.$locale.offers.$'
 import { Route as PluginsLocaleProjectsSplatRouteImport } from './routes/_plugins.$locale.projects.$'
 import { Route as ProductsLocaleProductsIdentifierRouteImport } from './routes/_products.$locale.products_.$identifier'
 import { Route as ReservationsLocaleReservationsSplatRouteImport } from './routes/_reservations.$locale.reservations.$'
@@ -265,6 +266,12 @@ const PluginsLocaleDriveSplatRoute = PluginsLocaleDriveSplatRouteImport.update({
   path: '/$locale/drive/$',
   getParentRoute: () => PluginsRoute,
 } as any)
+const PluginsLocaleOffersSplatRoute =
+  PluginsLocaleOffersSplatRouteImport.update({
+    id: '/$locale/offers/$',
+    path: '/$locale/offers/$',
+    getParentRoute: () => PluginsRoute,
+  } as any)
 const PluginsLocaleProjectsSplatRoute =
   PluginsLocaleProjectsSplatRouteImport.update({
     id: '/$locale/projects/$',
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
+  '/$locale/offers/$': typeof PluginsLocaleOffersSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/$locale/products/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
@@ -397,6 +405,7 @@ export interface FileRoutesByTo {
   '/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
+  '/$locale/offers/$': typeof PluginsLocaleOffersSplatRoute
   '/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/$locale/products/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
@@ -450,6 +459,7 @@ export interface FileRoutesById {
   '/_menus/$locale/menus/$': typeof MenusLocaleMenusSplatRoute
   '/_plugins/$locale/customers/$': typeof PluginsLocaleCustomersSplatRoute
   '/_plugins/$locale/drive/$': typeof PluginsLocaleDriveSplatRoute
+  '/_plugins/$locale/offers/$': typeof PluginsLocaleOffersSplatRoute
   '/_plugins/$locale/projects/$': typeof PluginsLocaleProjectsSplatRoute
   '/_products/$locale/products_/$identifier': typeof ProductsLocaleProductsIdentifierRoute
   '/_reservations/$locale/reservations/$': typeof ReservationsLocaleReservationsSplatRoute
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
     | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
+    | '/$locale/offers/$'
     | '/$locale/projects/$'
     | '/$locale/products/$identifier'
     | '/$locale/reservations/$'
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/$locale/menus/$'
     | '/$locale/customers/$'
     | '/$locale/drive/$'
+    | '/$locale/offers/$'
     | '/$locale/projects/$'
     | '/$locale/products/$identifier'
     | '/$locale/reservations/$'
@@ -596,6 +608,7 @@ export interface FileRouteTypes {
     | '/_menus/$locale/menus/$'
     | '/_plugins/$locale/customers/$'
     | '/_plugins/$locale/drive/$'
+    | '/_plugins/$locale/offers/$'
     | '/_plugins/$locale/projects/$'
     | '/_products/$locale/products_/$identifier'
     | '/_reservations/$locale/reservations/$'
@@ -942,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PluginsLocaleDriveSplatRouteImport
       parentRoute: typeof PluginsRoute
     }
+    '/_plugins/$locale/offers/$': {
+      id: '/_plugins/$locale/offers/$'
+      path: '/$locale/offers/$'
+      fullPath: '/$locale/offers/$'
+      preLoaderRoute: typeof PluginsLocaleOffersSplatRouteImport
+      parentRoute: typeof PluginsRoute
+    }
     '/_plugins/$locale/projects/$': {
       id: '/_plugins/$locale/projects/$'
       path: '/$locale/projects/$'
@@ -1028,12 +1048,14 @@ const MenusRouteWithChildren = MenusRoute._addFileChildren(MenusRouteChildren)
 interface PluginsRouteChildren {
   PluginsLocaleCustomersSplatRoute: typeof PluginsLocaleCustomersSplatRoute
   PluginsLocaleDriveSplatRoute: typeof PluginsLocaleDriveSplatRoute
+  PluginsLocaleOffersSplatRoute: typeof PluginsLocaleOffersSplatRoute
   PluginsLocaleProjectsSplatRoute: typeof PluginsLocaleProjectsSplatRoute
 }
 
 const PluginsRouteChildren: PluginsRouteChildren = {
   PluginsLocaleCustomersSplatRoute: PluginsLocaleCustomersSplatRoute,
   PluginsLocaleDriveSplatRoute: PluginsLocaleDriveSplatRoute,
+  PluginsLocaleOffersSplatRoute: PluginsLocaleOffersSplatRoute,
   PluginsLocaleProjectsSplatRoute: PluginsLocaleProjectsSplatRoute,
 }
 

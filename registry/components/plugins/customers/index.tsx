@@ -404,7 +404,7 @@ function CustomerDetailPageContent(
         )}
       </header>
       <nav aria-label={labels.sections} className="flex overflow-x-auto border-b border-border">
-        {(["about", "projects", "sync"] as const).map((tab: CustomerSection) => {
+        {(["about", "projects", "offers", "sync"] as const).map((tab: CustomerSection) => {
           const href = sectionHrefs[tab];
           if (!href) return null;
           return (
@@ -461,6 +461,8 @@ function CustomerDetailPageContent(
       ) : ready ? (
         section === "projects" ? (
           ready.projectsContent
+        ) : section === "offers" ? (
+          ready.offersContent
         ) : (
           ready.syncContent
         )

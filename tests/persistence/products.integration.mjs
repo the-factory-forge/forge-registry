@@ -8,6 +8,7 @@ import postgres from "postgres";
 
 const { createProductsService } =
   await import("../../registry/components/plugins/products/server/index.ts");
+const { products } = await import("../../registry/components/plugins/products/server/schema.ts");
 import { initializeStorage } from "./migrations.mjs";
 
 async function fixture(t) {
@@ -23,14 +24,15 @@ async function fixture(t) {
   await root`create schema ${root(ns)}`;
   await initializeStorage(pool, ["products"]);
   const permissions = new Set(["read", "create", "edit", "publish"]);
+  const db = drizzle({ client: pool });
   const service = createProductsService({
-    db: drizzle({ client: pool }),
+    db,
     authorize: async (ctx, action) => ctx === "staff" && permissions.has(action),
   });
   const staff = service.client("staff"),
     other = service.client("visitor");
   const rejects = (promise, code) => assert.rejects(promise, (e) => e.code === code);
-  return { permissions, service, staff, other, rejects };
+  return { db, permissions, service, staff, other, rejects };
 }
 
 await test("Products PostgreSQL publishing lifecycle, bounded public reads, competing writes and deletion", async (t) => {
@@ -157,6 +159,24 @@ await test("Products PostgreSQL publishing lifecycle, bounded public reads, comp
     saved.id,
   );
   assert.equal((await staff.get(privateRow.id)).published, false);
+  const catalogSearch = await service.publicList({
+    search: "  BRIco  ",
+    locale: "fr",
+    pageSize: 1,
+  });
+  assert.deepEqual(
+    catalogSearch.items.map((p) => p.name),
+    ["Abricotier"],
+  );
+  assert.equal(catalogSearch.nextCursor, null);
+  assert.deepEqual((await service.publicList({ search: "birch", locale: "fr" })).items, []);
+  assert.deepEqual(
+    (await service.publicList({ search: "apricot", locale: "fr" })).items.map((p) => p.name),
+    ["apricot"],
+  );
+  for (const search of ["%", "private"]) {
+    assert.deepEqual((await service.publicList({ search })).items, []);
+  }
   const filtered = await staff.list({ search: "bIr", pageSize: 1 });
   assert.deepEqual(
     filtered.items.map((p) => p.id),
@@ -230,6 +250,11 @@ await test("Products owns a two-level taxonomy and filters published assignments
     );
     assert.equal(page.nextCursor, null);
   }
+  assert.deepEqual((await service.publicList({ categoryId: paper.id, search: "gift" })).items, []);
+  assert.equal(
+    (await service.publicList({ categoryId: paper.id, search: "pad" })).items[0].id,
+    record.id,
+  );
   const writes = await Promise.allSettled(
     ["Small pads", "Large pads"].map((name) =>
       staff.saveCategory({ name, parentId: paper.id }, pads),
@@ -250,4 +275,38 @@ await test("Products owns a two-level taxonomy and filters published assignments
   await staff.deleteCategory(books.id, books.version);
   await staff.deleteCategory(paper.id, paper.version);
   await rejects(other.deleteCategory(gifts.id, gifts.version), "FORBIDDEN");
+});
+
+await test("Localized product search pages matches after scanning past a batch of other products", async (t) => {
+  const { db, service } = await fixture(t);
+  await db.insert(products).values([
+    ...Array.from({ length: 100 }, (_, index) => ({
+      name: `A-${index}`,
+      published: true,
+    })),
+    {
+      name: "B",
+      published: true,
+      translations: { fr: { name: "Petit carnet", description: "", characteristics: [] } },
+    },
+    {
+      name: "C",
+      published: true,
+      translations: { fr: { name: "Grand carnet", description: "", characteristics: [] } },
+    },
+  ]);
+
+  const query = { search: "carnet", locale: "fr", pageSize: 1 };
+  const first = await service.publicList(query);
+  assert.deepEqual(
+    first.items.map((product) => product.name),
+    ["Petit carnet"],
+  );
+  assert.equal(first.nextCursor, "1");
+  const next = await service.publicList({ ...query, cursor: first.nextCursor });
+  assert.deepEqual(
+    next.items.map((product) => product.name),
+    ["Grand carnet"],
+  );
+  assert.equal(next.nextCursor, null);
 });

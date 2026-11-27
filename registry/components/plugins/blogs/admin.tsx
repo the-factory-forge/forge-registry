@@ -14,6 +14,7 @@ import {
 
 import { ActionToastProvider } from "@/components/action-toast";
 import { BackLink } from "@/components/back-link";
+import { CategoryManager } from "@/components/category-manager";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
@@ -605,98 +606,49 @@ function BlogCategoriesPageContent({
     [suppliedClient],
   );
   const [selected, setSelected] = useState<string | null>(null);
-  const childrenByParent = new Map<string, BlogCategory[]>();
-  for (const category of categories) {
-    if (!category.parentId) continue;
-    const children = childrenByParent.get(category.parentId) ?? [];
-    children.push(category);
-    childrenByParent.set(category.parentId, children);
-  }
-  const categoryButton = (category: BlogCategory) => (
-    <button
-      type="button"
-      aria-current={selected === category.id ? "page" : undefined}
-      className={cn(
-        buttonClass,
-        "w-full min-w-0 justify-start text-left wrap-anywhere whitespace-normal aria-[current=page]:bg-primary/10 aria-[current=page]:font-semibold aria-[current=page]:text-primary",
-        category.parentId ? "font-normal text-muted-foreground" : "font-semibold",
-      )}
-      disabled={optimistic.pending || category.id.startsWith("pending-")}
-      onClick={() => setSelected(category.id)}
-    >
-      {Object.values(category.translations)[0]?.name}
-    </button>
-  );
   return (
-    <section className={cn(pageClass, className)}>
-      <BackLink linkComponent={BlogLink} href={backHref}>
-        {labels.back}
-      </BackLink>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-serif text-3xl font-semibold">{labels.categories}</h1>
-        {capabilities.manageCategories && (
-          <button
-            className={primaryClass}
-            disabled={optimistic.pending}
-            onClick={() => setSelected(null)}
-          >
-            <PlusIcon className="size-4 shrink-0" aria-hidden="true" />
-            {labels.createAction ?? labels.newCategory}
-          </button>
-        )}
-      </header>
-      <Feedback message={optimistic.error ? labels.error : undefined} error />
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <nav aria-label={labels.categories} className={cn(cardClass, "self-start")}>
-          <ul className="space-y-2">
-            {categories
-              .filter((category) => !category.parentId)
-              .map((parent) => {
-                const children = childrenByParent.get(parent.id) ?? [];
-                return (
-                  <li key={parent.id}>
-                    {categoryButton(parent)}
-                    {children.length > 0 && (
-                      <ul
-                        className={cn(
-                          "mt-1 ml-3 space-y-1 border-l border-border pl-2",
-                          children.some((child) => child.id === selected) && "border-primary",
-                        )}
-                      >
-                        {children.map((child) => (
-                          <li key={child.id}>{categoryButton(child)}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-          </ul>
-        </nav>
-        <BlogCategoryEditor
-          blockedNavigation={blockedNavigation}
-          onNavigationStateChange={onNavigationStateChange}
-          key={selected ?? "new"}
-          category={
-            categories.find((c) => c.id === selected) ??
-            suppliedCategories.find((c) => c.id === selected)
-          }
-          categories={categories}
-          locales={locales}
-          client={client}
-          disabled={!capabilities.manageCategories}
-          labels={labels}
-          onSaved={(category, leaving) => {
-            if (!leaving) setSelected(category.id);
-            onChanged();
-          }}
-          onDeleted={() => {
-            setSelected(null);
-            onChanged();
-          }}
-        />
-      </div>
-    </section>
+    <CategoryManager
+      categories={categories.map((category) => ({
+        id: category.id,
+        parentId: category.parentId,
+        name: Object.values(category.translations)[0]?.name ?? "",
+        disabled: category.id.startsWith("pending-"),
+      }))}
+      selectedId={selected}
+      onSelect={setSelected}
+      title={labels.categories}
+      backLabel={labels.back}
+      backHref={backHref}
+      linkComponent={BlogLink}
+      onCreate={capabilities.manageCategories ? () => setSelected(null) : undefined}
+      createLabel={labels.createAction ?? labels.newCategory}
+      disabled={optimistic.pending}
+      className={className}
+      feedback={<Feedback message={optimistic.error ? labels.error : undefined} error />}
+    >
+      <BlogCategoryEditor
+        blockedNavigation={blockedNavigation}
+        onNavigationStateChange={onNavigationStateChange}
+        key={selected ?? "new"}
+        category={
+          categories.find((c) => c.id === selected) ??
+          suppliedCategories.find((c) => c.id === selected)
+        }
+        categories={categories}
+        locales={locales}
+        client={client}
+        disabled={!capabilities.manageCategories}
+        labels={labels}
+        onSaved={(category, leaving) => {
+          if (!leaving) setSelected(category.id);
+          onChanged();
+        }}
+        onDeleted={() => {
+          setSelected(null);
+          onChanged();
+        }}
+      />
+    </CategoryManager>
   );
 }
 export function BlogsPage(props: BlogsPageProps) {

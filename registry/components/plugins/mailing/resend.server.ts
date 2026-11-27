@@ -3,6 +3,7 @@ export interface OutgoingEmail {
   subject: string;
   text: string;
   html?: string;
+  attachments?: readonly { filename: string; content: Uint8Array }[];
   /** Stable notification ID; reuse it on retries. */
   id?: string;
 }
@@ -26,6 +27,10 @@ export async function sendResendEmail(
       subject: email.subject,
       text: email.text,
       html: email.html,
+      attachments: email.attachments?.map(({ filename, content }) => ({
+        filename,
+        content: Buffer.from(content).toString("base64"),
+      })),
     }),
     signal: AbortSignal.timeout(10_000),
   });

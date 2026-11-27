@@ -4,7 +4,7 @@ import type { LinkProps } from "@/components/link";
 import type { CustomersLabels } from "@/components/plugins/customers/labels";
 import type { TableSort, TableSortProps } from "@/components/utils/table-sort-state";
 
-export type CustomerSection = "about" | "projects" | "sync";
+export type CustomerSection = "about" | "projects" | "offers" | "sync";
 
 export interface CustomerFormValues {
   name: string;
@@ -67,11 +67,15 @@ export interface CustomerDetailPageProps extends CustomersAppearanceProps {
   customer: Customer;
   section?: CustomerSection;
   backHref: string;
-  sectionHrefs: Record<Exclude<CustomerSection, "sync">, string> & { sync?: string };
+  sectionHrefs: Record<Exclude<CustomerSection, "sync" | "offers">, string> & {
+    sync?: string;
+    offers?: string;
+  };
   onSave: (values: CustomerFormValues) => Promise<void>;
   onDelete?: (customerId: string) => Promise<void>;
   onSetVerified?: (customerId: string, verified: boolean) => Promise<void>;
   emailChangeDescription?: string;
+  offersContent?: ReactNode;
   projectsContent?: ReactNode;
   syncContent?: ReactNode;
 }

@@ -20,9 +20,11 @@ import {
   type DriveBrowserView,
   type DriveSpace,
 } from "@/components/plugins/drive";
+import type { Offer, OfferInput } from "@/components/plugins/offers/model";
 import type { Project } from "@/components/plugins/projects";
 import { directoryAgentOperations } from "@/showroom/directory-agent-operations";
 import { createDriveMock } from "@/showroom/drive-mock";
+import { sampleOffers } from "@/showroom/offers-samples";
 import { PluginWebMcp } from "@/showroom/plugin-webmcp";
 import { ShowroomLink as Link, useShowroomParams } from "@/showroom/routing";
 import { previewDataNotice, ShowroomPreview } from "@/showroom/showroom-preview";
@@ -48,6 +50,35 @@ function usePreviewState() {
   useEffect(() => () => driveMock.dispose(), [driveMock]);
   const [showDrive, setShowDrive] = useState(true);
   const [customers, setCustomers] = useState(initialCustomers);
+  const [offers, setOffers] = useState(() => sampleOffers(initialCustomers));
+  const currentOffers = useRef(offers);
+  const nextOfferNumber = useRef(Math.max(0, ...offers.map((o) => o.number)) + 1);
+  function replaceOffers(next: Offer[]) {
+    currentOffers.current = next;
+    setOffers(next);
+  }
+  function updateOffer(id: string, version: number, change: (offer: Offer) => Offer | null) {
+    const current = currentOffers.current.find((o) => o.id === id);
+    if (!current || current.version !== version) throw new Error("CONFLICT");
+    const next = change(current);
+    replaceOffers(currentOffers.current.flatMap((o) => (o.id === id ? (next ? [next] : []) : [o])));
+  }
+  function addOffer(id: string, customerId: string, draft: OfferInput) {
+    replaceOffers([
+      ...currentOffers.current,
+      {
+        id,
+        customerId,
+        draft,
+        number: nextOfferNumber.current++,
+        currency: "CHF",
+        issued: null,
+        version: 1,
+        status: "draft",
+        sentAt: null,
+      },
+    ]);
+  }
   const [projects, setProjects] = useState<Project[]>([
     {
       id: "website",
@@ -117,6 +148,9 @@ function usePreviewState() {
     if (failActions) throw new Error("Simulated host failure");
   }
   return {
+    offers,
+    addOffer,
+    updateOffer,
     driveMock,
     driveClient,
     onDriveViewChange,
@@ -188,6 +222,9 @@ export function PluginsPreviewProvider({ children }: { children: ReactNode }) {
           <>
             <Link href={`/${locale}/customers`} className="underline">
               Customer directory
+            </Link>
+            <Link href={`/${locale}/offers`} className="underline">
+              Offers directory
             </Link>
             <Link href={`/${locale}/projects`} className="underline">
               Project directory

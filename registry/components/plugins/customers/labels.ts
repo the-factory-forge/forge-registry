@@ -21,6 +21,7 @@ export const customerLabels = {
   sections: "Customer sections",
   about: "About",
   projects: "Projects",
+  offers: "Offers",
   sync: "Sync",
   verification: (name: string) => `Email verification for ${name}`,
   verified: "Verified",
@@ -62,4 +63,7 @@ export const customerLabels = {
   deleted: "Customer deleted.",
 };
 
-export type CustomersLabels = Omit<typeof customerLabels, "close"> & { close?: string };
+export type CustomersLabels = Omit<typeof customerLabels, "close" | "offers"> & {
+  close?: string;
+  offers?: string;
+};

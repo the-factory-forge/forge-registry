@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
@@ -45,6 +45,8 @@ const connectors = {
 };
 export const Route = createFileRoute("/connectors/$connector")({
   beforeLoad: ({ params }) => {
+    if (params.connector === "offers-products") throw redirect({ href: "/en/offers/studio/edit" });
+    if (params.connector === "offers-mailing") throw redirect({ href: "/en/offers/studio" });
     if (!Object.hasOwn(connectors, params.connector)) throw notFound();
   },
   validateSearch: z.object({
