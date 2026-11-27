@@ -107,7 +107,7 @@ void test("Drive rename previews the new name and rolls back with the input reta
 });
 
 void test("menu order changes before save and rolls back on failure", async (t) => {
-  const page = await preview(t, "/en/admin/menus");
+  const page = await preview(t, "/en/admin/menus/items");
   await page.getByLabel("Simulate action failures").check();
   const names = page.locator("tbody tr td:nth-child(2)");
   const handle = page.getByRole("button", {

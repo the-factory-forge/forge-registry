@@ -173,7 +173,13 @@ await suite("Customers browser", async () => {
     assert.equal(await page.getByRole("button", { name: "Hide password", exact: true }).count(), 0);
     assert.equal(await page.locator('input[type="password"]').count(), 0);
     assert.equal(await page.getByText(/invitation/i).count(), 0);
-    assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
+    assert.deepEqual(
+      await page.evaluate(() => ({
+        local: Object.keys(localStorage),
+        session: Object.keys(sessionStorage),
+      })),
+      { local: ["forge-registry-cookie-consent"], session: [] },
+    );
     await page.getByRole("link", { name: "Customers", exact: true }).click();
     await page.getByRole("heading", { name: "Customers", exact: true }).waitFor();
     assert.equal(await page.getByRole("row").filter({ hasText: "Taylor Casey" }).count(), 1);

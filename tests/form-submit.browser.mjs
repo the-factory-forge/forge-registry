@@ -24,7 +24,7 @@ for (const [shortcut, width] of [
     await page.goto(`${baseURL}/en/agents?operation=blogs`);
     const message = page.getByRole("textbox", { name: "Message", exact: true });
     await message.fill("Shortcut message");
-    await message.press("Enter");
+    await message.press("Shift+Enter");
     assert.equal(await message.inputValue(), "Shortcut message\n");
     assert.equal(new URL(page.url()).searchParams.has("conversation"), false);
     await message.press(shortcut);

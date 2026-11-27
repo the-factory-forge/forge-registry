@@ -264,7 +264,7 @@ await test("support navigation, URL history, validation and pending dialog guard
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${base}/en/intranet`);
   await page
-    .getByRole("navigation", { name: "Support navigation" })
+    .getByRole("navigation", { name: "Agents and Support" })
     .getByRole("link", { name: "Support", exact: true })
     .click();
   const table = page.getByRole("table");
