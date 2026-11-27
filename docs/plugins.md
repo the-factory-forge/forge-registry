@@ -300,8 +300,8 @@ configured default, or `{ field: "id", direction: "asc" }`. Map `id` to the
 table’s UUID column.
 Validate the field and direction, order all matching rows with a stable
 tie-breaker, then take the page. The [table example](https://registry.the-corner.swiss/table-pagination)
-uses UUID order. The [Support queue](./supports.md#host-routes-and-navigation)
-defaults to the last update.
+and the [Support queue](./supports.md#host-routes-and-navigation) default to the
+last update, newest first.
 
 | Record table                      | Default order                                      |
 | --------------------------------- | -------------------------------------------------- |

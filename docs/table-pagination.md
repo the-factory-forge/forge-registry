@@ -37,8 +37,8 @@ The component uses Tailwind 4 utilities and installs `cn` and `table-styles`;
 it does not depend on showroom CSS or change host data or authorization.
 
 The [showroom example](https://registry.the-corner.swiss/table-pagination) includes
-a [sortable post table](./plugins.md#table-sorting) with sticky edit/delete actions, numbered and cursor
-paging, and loading, empty and error states. Scroll the table horizontally on a
+a [sortable post table](./plugins.md#table-sorting) with page-scoped selection, sticky edit/delete actions,
+numbered and cursor paging, and loading, empty and error states. Scroll the table horizontally on a
 narrow screen: the Actions heading and row controls stay pinned at the right edge.
 Use `tableActionHeaderClass` and `tableActionCellClass` from
 `@/components/utils/table-styles` for this behavior at every viewport width.

@@ -5,7 +5,7 @@ import { chromium } from "./showroom-browser.mjs";
 
 const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 
-void test("a table starts in UUID order and remembers the last column direction", async (t) => {
+void test("the post table defaults to newest updates first and remembers the last column direction", async (t) => {
   const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
   t.after(() => browser.close());
   const context = await browser.newContext();
@@ -13,10 +13,11 @@ void test("a table starts in UUID order and remembers the last column direction"
   await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1#posts`);
   const posts = page.getByRole("region", { name: "Blog posts", exact: true });
   const title = posts.getByRole("button", { name: "Title", exact: true });
-  const first = posts.locator("tbody tr:first-child td:first-child");
+  const first = posts.locator("tbody tr:first-child td:nth-child(2)");
   const active = posts.locator("th[aria-sort]");
   await first.getByText("An idea for tomorrow", { exact: true }).waitFor();
-  assert.equal(await active.count(), 0);
+  assert.equal(await active.getAttribute("aria-sort"), "descending");
+  assert.equal(await active.getByRole("button", { name: "Updated", exact: true }).count(), 1);
   await title.click();
   await first.getByText("A fresh perspective", { exact: true }).waitFor();
   assert.equal(await active.getAttribute("aria-sort"), "ascending");
@@ -41,7 +42,8 @@ void test("a table starts in UUID order and remembers the last column direction"
   await page.goBack();
   await page.goBack();
   await first.getByText("An idea for tomorrow", { exact: true }).waitFor();
-  assert.equal(await active.count(), 0);
+  assert.equal(await active.getAttribute("aria-sort"), "descending");
+  assert.equal(await active.getByRole("button", { name: "Updated", exact: true }).count(), 1);
   const reopened = await context.newPage();
   await reopened.goto(`${baseURL}/table-search`);
   await reopened.goto(`${baseURL}/table-pagination?postPage=2&cursor=1#posts`);
@@ -53,6 +55,14 @@ void test("a table starts in UUID order and remembers the last column direction"
   await reopened.close();
   await page.goto(`${baseURL}/table-pagination?sort=title&direction=sideways`);
   await first.getByText("A fresh perspective", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "ascending");
+  const updated = posts.getByRole("button", { name: "Updated", exact: true });
+  await updated.click();
+  await first.getByText("Make room for better ideas", { exact: true }).waitFor();
+  assert.equal(await active.getAttribute("aria-sort"), "descending");
+  assert(!new URL(page.url()).searchParams.has("sort"));
+  await updated.click();
+  await first.getByText("Small improvements", { exact: true }).waitFor();
   assert.equal(await active.getAttribute("aria-sort"), "ascending");
 });
 
@@ -221,7 +231,7 @@ void test("post actions preserve confirmation, validation and the last-page boun
   const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
   t.after(() => browser.close());
   const page = await browser.newPage();
-  await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1`);
+  await page.goto(`${baseURL}/table-pagination?postPage=2&cursor=1&sort=status`);
   const nav = page.getByRole("navigation", { name: "Blog post pages", exact: true });
   await nav.getByText("2/3", { exact: true }).waitFor();
   await nav.getByRole("button", { name: "Next page" }).click();
@@ -269,4 +279,38 @@ void test("post actions preserve confirmation, validation and the last-page boun
   assert.equal(await remove.count(), 0);
   await page.goto(`${baseURL}/table-pagination?postPage=invalid&cursor=-1&q=123`);
   await nav.getByText("1/3", { exact: true }).waitFor();
+});
+
+void test("post selection is limited to the current page and bulk deletion requires confirmation", async (t) => {
+  const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(`${baseURL}/table-pagination`);
+  const posts = page.getByRole("region", { name: "Blog posts", exact: true });
+  const selectAll = posts.getByRole("checkbox", { name: "Select all posts on this page" });
+  const bulk = (count) =>
+    posts.getByRole("button", { name: `Delete selected posts (${count})`, exact: true });
+  const nav = posts.getByRole("navigation", { name: "Blog post pages" });
+  assert.equal(await bulk(0).isDisabled(), true);
+  await posts.getByRole("checkbox", { name: "Select Make room for better ideas" }).press("Space");
+  assert.equal(await selectAll.evaluate((checkbox) => checkbox.indeterminate), true);
+  await nav.getByRole("button", { name: "Next page" }).click();
+  await nav.getByText("2/3", { exact: true }).waitFor();
+  assert.equal(await bulk(0).isDisabled(), true);
+  await selectAll.check();
+  await bulk(3).click();
+  const dialog = page.getByRole("dialog", { name: "Delete selected posts?" });
+  assert.deepEqual(await dialog.getByRole("listitem").allTextContents(), [
+    "An idea for tomorrow",
+    "Working together",
+    "A fresh perspective",
+  ]);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await bulk(3).click();
+  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await nav.getByText("4 posts", { exact: true }).waitFor();
+  assert.deepEqual(await posts.locator("tbody tr td:nth-child(2)").allTextContents(), [
+    "Small improvements",
+  ]);
+  assert.equal(await bulk(0).isDisabled(), true);
 });
