@@ -58,11 +58,11 @@ await test("Offers share the customer directory, preserve URL filters and issue 
     .selectOption({ label: "Linen notebook" });
   await page.getByRole("button", { name: "Save draft" }).click();
   const actions = page.getByRole("complementary", { name: "Actions", exact: true });
-  const pdf = page.getByRole("complementary", { name: "PDF", exact: true });
-  assert.equal(await pdf.count(), 0);
+  const pdfHeading = actions.getByRole("heading", { name: "PDF", exact: true });
+  assert.equal(await pdfHeading.count(), 0);
   await actions.getByRole("button", { name: "Issue", exact: true }).click();
-  await pdf.getByRole("link", { name: "Preview", exact: true }).waitFor();
-  const emailPdf = pdf.getByRole("button", { name: "Email", exact: true });
+  await actions.getByRole("link", { name: "Preview", exact: true }).waitFor();
+  const emailPdf = actions.getByRole("button", { name: "Email", exact: true });
   const sentBadge = emailPdf.locator("..").getByText("Sent", { exact: true });
   assert.equal(await page.getByText("Unsent", { exact: true }).count(), 0);
   assert.equal(await sentBadge.count(), 0);
@@ -78,9 +78,7 @@ await test("Offers share the customer directory, preserve URL filters and issue 
   const scroller = await lineItems.locator("..").boundingBox();
   const grossAmount = await gross.boundingBox();
   assert.ok(grossAmount.x + grossAmount.width <= scroller.x + scroller.width);
-  const pdfPanel = await pdf.boundingBox();
-  assert.ok(panel.y + panel.height <= pdfPanel.y, "PDF sits below Actions");
-  assert.ok(pdfPanel.y + pdfPanel.height <= lines.y, "Both cards sit above the mobile document");
+  assert.ok(panel.y + panel.height <= lines.y, "The combined card sits above the mobile document");
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await actions.getByRole("button", { name: "Accept", exact: true }).click();
   await page.getByText("Accepted", { exact: true }).waitFor();
@@ -102,6 +100,12 @@ await test("Offers share the customer directory, preserve URL filters and issue 
   await quantity.click();
   await quantityInput.fill("2");
   assert.notEqual(await net.textContent(), initialNet);
+  const toggle = page.getByRole("button", { name: "Actions", exact: true });
+  await toggle.click();
+  assert.equal(await actions.count(), 0);
+  assert.notEqual(await net.textContent(), initialNet);
+  await toggle.click();
+  await actions.waitFor();
   await cancel.click();
   assert.equal(await net.textContent(), initialNet);
   assert.equal(await save.count(), 0);
@@ -175,7 +179,10 @@ await test("Contenteditable offer fields keep column widths stable across viewpo
 await test("Offer actions sit beside the document and support keyboard decisions", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
-  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1600, height: 900 },
+    reducedMotion: "reduce",
+  });
   await page.goto(base + "/en/offers/studio");
   const offerDocument = page.getByRole("region", { name: "Studio website", exact: true });
   await offerDocument.getByRole("heading", { name: "Studio website", exact: true }).waitFor();
@@ -190,9 +197,9 @@ await test("Offer actions sit beside the document and support keyboard decisions
   await lineItems.getByRole("row", { name: /Gross.*2,116.60/ }).waitFor();
   assert.equal(await lineItems.getByRole("columnheader").last().textContent(), "Actions");
   const actions = page.getByRole("complementary", { name: "Actions", exact: true });
-  const pdf = page.getByRole("complementary", { name: "PDF", exact: true });
-  const preview = pdf.getByRole("link", { name: "Preview", exact: true });
-  const downloadLink = pdf.getByRole("link", { name: "Download", exact: true });
+  const pdfHeading = actions.getByRole("heading", { name: "PDF", exact: true });
+  const preview = actions.getByRole("link", { name: "Preview", exact: true });
+  const downloadLink = actions.getByRole("link", { name: "Download", exact: true });
   await preview.waitFor();
   assert.equal(await preview.getAttribute("target"), "_blank");
   assert.equal(await preview.getAttribute("href"), await downloadLink.getAttribute("href"));
@@ -202,10 +209,48 @@ await test("Offer actions sit beside the document and support keyboard decisions
   assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
   assert.match(bytes.toString("latin1"), /\/Subtype \/Image\b/);
   const panel = await actions.boundingBox();
-  const pdfPanel = await pdf.boundingBox();
+  const offerDetail = offerDocument.locator("xpath=ancestor::article[1]");
+  assert.equal(await offerDetail.getByRole("complementary").count(), 1);
   assert.equal(panel.y, documentPanel.y, "Actions align with the top of the document");
-  assert.equal(panel.x, pdfPanel.x);
-  assert.ok(panel.y + panel.height <= pdfPanel.y, "PDF sits below Actions");
+  const toggle = offerDetail.getByRole("button", { name: "Actions", exact: true });
+  const toggleBox = await toggle.boundingBox();
+  assert.ok(Math.abs(toggleBox.x + toggleBox.width - panel.x - panel.width) < 1);
+  assert.ok(toggleBox.y + toggleBox.height <= panel.y);
+  assert.equal(status.y + status.height / 2, toggleBox.y + toggleBox.height / 2);
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  assert.equal(await toggle.getAttribute("aria-controls"), await actions.getAttribute("id"));
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await actions.count(), 0);
+  const collapsedToggle = await toggle.boundingBox();
+  const collapsedStatus = await page.getByText("Pending", { exact: true }).boundingBox();
+  assert.equal(collapsedToggle.width, 32);
+  assert.equal(collapsedToggle.height, 32);
+  assert.equal(
+    collapsedStatus.y + collapsedStatus.height / 2,
+    collapsedToggle.y + collapsedToggle.height / 2,
+  );
+  assert.ok((await offerDocument.boundingBox()).width > documentPanel.width);
+  assert.ok(await toggle.evaluate((element) => document.activeElement === element));
+  await page.keyboard.press("Space");
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  await actions.waitFor();
+  await page.setViewportSize({ width: 1600, height: 330 });
+  await page.evaluate(() => window.scrollTo(0, 250));
+  const stickyPanel = await actions.boundingBox();
+  const stickyToggle = await toggle.boundingBox();
+  const sectionHeader = actions.getByRole("heading", { name: "Actions" }).locator("..");
+  const border = await actions.evaluate((element) => {
+    element.scrollTop = 36;
+    return { top: element.clientTop, scroll: element.scrollTop };
+  });
+  assert.ok(stickyToggle.y >= 0 && stickyToggle.y + stickyToggle.height < stickyPanel.y);
+  assert.ok(border.top > 0 && border.scroll > 16);
+  assert.equal((await actions.boundingBox()).y, stickyPanel.y);
+  assert.equal((await sectionHeader.boundingBox()).y, stickyPanel.y + border.top);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 0));
   const lines = await page.getByRole("table", { name: "Line items" }).boundingBox();
   const sender = page.getByRole("heading", { name: "Sender", exact: true });
   const recipient = page.getByRole("heading", { name: "Recipient", exact: true });
@@ -228,6 +273,7 @@ await test("Offer actions sit beside the document and support keyboard decisions
   const acceptBox = await accept.boundingBox();
   assert.ok(deleteBox.x >= actionsHeading.x + actionsHeading.width);
   assert.ok(deleteBox.y + deleteBox.height <= acceptBox.y);
+  assert.ok(acceptBox.y + acceptBox.height <= (await pdfHeading.boundingBox()).y);
   await accept.focus();
   await page.keyboard.press("Tab");
   assert.ok(await decline.evaluate((button) => button === document.activeElement));

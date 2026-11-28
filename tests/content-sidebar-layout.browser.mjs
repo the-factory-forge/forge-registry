@@ -164,12 +164,17 @@ void test("Details shows its tooltip only while the button is icon-only", async 
 void test("sidebar choices survive re-entry and remain scoped to their plugin", async (t) => {
   const page = await preview(t);
   const details = page.getByRole("button", { name: "Details", exact: true });
+  const actions = page.getByRole("button", { name: "Actions", exact: true });
   const history = page.getByRole("button", { name: "History", exact: true });
   const article = base + "/en/admin/blogs/b1000000-0000-4000-8000-000000000001";
+  const offer = base + "/en/offers/studio";
   const expectOpen = (toggle, open) =>
     toggle.and(page.locator(`[aria-expanded="${open}"]`)).waitFor();
 
   await details.click();
+  await page.goto(offer);
+  await expectOpen(actions, true);
+  await actions.click();
   await page.goto(article);
   await expectOpen(history, false);
   await history.click();
@@ -178,6 +183,16 @@ void test("sidebar choices survive re-entry and remain scoped to their plugin", 
   await expectOpen(history, false);
   await page.goForward();
   await expectOpen(history, true);
+
+  await page.goto(offer);
+  await expectOpen(actions, false);
+  await actions.click();
+  await page.reload();
+  await expectOpen(actions, true);
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("forge:offers:detail:actions")),
+    "open",
+  );
 
   await page.goto(article);
   await expectOpen(history, true);

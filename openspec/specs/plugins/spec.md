@@ -1078,7 +1078,11 @@ Offer references SHALL display as `#of-N`, where `N` is the assigned number. The
 #### Scenario: Offer actions
 
 - **WHEN** staff open an offer with available actions
-- **THEN** the detail groups those actions in a right sidebar that stacks above the document on narrow screens
+- **THEN** the detail groups those actions in a right sidebar that defaults open, remembers the user’s choice across offers and stacks above the document on narrow screens
+- **AND** the status badge and Actions toggle share a vertical center
+- **AND** on wide screens the toolbar remains visible and the sidebar border stays in place while the panel contents scroll beneath their sticky section headings
+- **AND** the toggle opens or closes the sidebar immediately, reveals its label with the button width while open and collapses to an accessible icon button while closed
+- **AND** closing the sidebar expands the document to full width and preserves unsaved edits
 - **AND** pending offers show Accept and Decline with thumb-up and thumb-down icons when the host permits a decision
 
 #### Scenario: Editing an offer in its detail view
@@ -1094,7 +1098,7 @@ Offer references SHALL display as `#of-N`, where `N` is the assigned number. The
 #### Scenario: Preview, download or email an issued offer
 
 - **WHEN** staff open the issued copy and the host provides PDF or delivery controls
-- **THEN** the detail places those controls in a PDF card below any Actions card
+- **THEN** the detail places those controls in a PDF section within the same sidebar card as any other offer actions
 - **AND** Preview opens the issued PDF, Download saves that same file and Email uses authorized delivery when available
 
 #### Scenario: Issue and revise
@@ -1110,7 +1114,7 @@ Offer references SHALL display as `#of-N`, where `N` is the assigned number. The
 - **THEN** the offer keeps the copied terms and its per-line discounted net and rounded tax
 - **AND** authorized delivery sends the issued PDF to the captured recipient and records success only after transport acceptance
 - **AND** failed delivery remains retryable for that issuance
-- **AND** the offer detail shows a Sent badge beside Email in the PDF card only after delivery is recorded
+- **AND** the offer detail shows a Sent badge beside Email in the PDF section only after delivery is recorded
 
 ### Requirement: Projects plugin
 

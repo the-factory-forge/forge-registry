@@ -3,6 +3,7 @@ import {
   DownloadIcon,
   EyeIcon,
   MailIcon,
+  PanelRightIcon,
   Trash2Icon,
   SendIcon,
   ThumbsDownIcon,
@@ -60,9 +61,12 @@ import {
   tableCellClass,
   tableRowClass,
 } from "@/components/utils/table-styles";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
-const sidebarCardClass = "rounded-xl border border-border bg-card p-4 text-card-foreground";
-const sidebarHeadingClass = "mb-2 border-b border-border pb-3 text-sm font-semibold";
+const sidebarCardClass =
+  "rounded-xl border border-border bg-card px-4 pb-4 text-card-foreground @min-[64rem]/content-sidebar:max-h-[calc(100dvh-var(--intranet-top-offset,0rem)-2rem)] @min-[64rem]/content-sidebar:overflow-y-auto";
+const sidebarHeadingClass =
+  "sticky top-[var(--offer-host-offset)] z-10 bg-card text-sm font-semibold @min-[64rem]/content-sidebar:top-0 supports-backdrop-filter:bg-card/60 supports-backdrop-filter:backdrop-blur-sm";
 const sidebarControlsClass = "flex flex-wrap gap-1 @min-[64rem]/content-sidebar:flex-col";
 const sidebarButtonClass = cn(buttonClass, "justify-start text-start");
 
@@ -142,7 +146,7 @@ function OfferDetailContent({
   const saveAction = useCustomerAction(l.failed, offer.id);
   const recipient = reviewingDraft ? customer : offer.issued!.recipient;
   const titleId = `factory-offer-title-${useId()}`;
-  const headingId = `factory-offer-sidebar-${useId()}`;
+  const sidebarId = `factory-offer-sidebar-${useId()}`;
   const issued = reviewingDraft ? null : offer.issued;
   const issue = reviewingDraft && onIssue;
   const decide = issued && offer.status === "pending" && onDecision;
@@ -252,31 +256,80 @@ function OfferDetailContent({
   }
 
   return (
-    <article className="@container/offer-detail space-y-4">
+    <article className="@container/offer-detail space-y-4 [--offer-host-offset:var(--intranet-top-offset,0rem)] [--offer-toolbar-clearance:--spacing(12)]">
       <BackLink href={backHref} linkComponent={A}>
         {l.back}
       </BackLink>
-      <header
-        className={cn(
-          "flex flex-wrap items-start gap-2",
-          hasSidebar && "@min-[64rem]/offer-detail:me-[23.5rem]",
-        )}
-      >
-        <p className="font-semibold">{formatOfferNumber(offer.number)}</p>
-        <div className="ms-auto">
-          <OfferBadge status={reviewingDraft ? "draft" : offer.status} labels={l} />
-        </div>
-      </header>
       <ContentSidebarLayout
+        className="[--intranet-top-offset:calc(var(--offer-host-offset)+var(--offer-toolbar-clearance))]"
+        defaultOpen
+        preferenceKey={viewPreferenceKey("offers", "detail", "actions")}
+        renderHeader={(open, setOpen) => (
+          <header
+            className={cn(
+              "flex flex-wrap items-center gap-2",
+              hasSidebar &&
+                "@min-[64rem]/offer-detail:sticky @min-[64rem]/offer-detail:top-[calc(var(--offer-host-offset)+1rem)] @min-[64rem]/offer-detail:z-20 @min-[64rem]/offer-detail:bg-background @min-[64rem]/offer-detail:supports-backdrop-filter:bg-background/80 @min-[64rem]/offer-detail:supports-backdrop-filter:backdrop-blur-sm print:static",
+            )}
+          >
+            <p className="font-semibold">{formatOfferNumber(offer.number)}</p>
+            <div className="ms-auto flex items-center">
+              <OfferBadge status={reviewingDraft ? "draft" : offer.status} labels={l} />
+            </div>
+            {hasSidebar && (
+              <div
+                className={cn(
+                  "flex shrink-0 justify-end print:hidden",
+                  open && "@min-[64rem]/offer-detail:ms-4 @min-[64rem]/offer-detail:w-[22rem]",
+                )}
+              >
+                <IconTooltip label={l.actions}>
+                  <button
+                    type="button"
+                    aria-label={l.actions}
+                    aria-expanded={open}
+                    aria-controls={open ? sidebarId : undefined}
+                    className={cn(
+                      open ? cn(primaryClass, "border border-primary") : outlineButtonClass,
+                      "gap-0 px-2.75 md:px-1.75",
+                    )}
+                    onClick={() => setOpen(!open)}
+                  >
+                    <PanelRightIcon className="shrink-0" aria-hidden="true" />
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "grid motion-safe:transition-[grid-template-columns] motion-safe:duration-150",
+                        open ? "grid-cols-[1fr] ease-out" : "grid-cols-[0fr] ease-in",
+                      )}
+                    >
+                      <span className="min-w-0 overflow-hidden whitespace-nowrap">
+                        <span className="ps-2">{l.actions}</span>
+                      </span>
+                    </span>
+                  </button>
+                </IconTooltip>
+              </div>
+            )}
+          </header>
+        )}
         sidebar={
           hasSidebar ? (
-            <div className="space-y-4">
+            <aside
+              id={sidebarId}
+              aria-labelledby={sidebarId + (hasActions ? "-actions" : "-send")}
+              className={sidebarCardClass}
+            >
               {hasActions && (
-                <aside aria-labelledby={headingId + "-actions"} className={sidebarCardClass}>
+                <div className="pt-4">
                   <header
-                    className={cn(sidebarHeadingClass, "flex items-center justify-between gap-2")}
+                    className={cn(
+                      sidebarHeadingClass,
+                      "flex items-center justify-between gap-2",
+                      (issue || decide) && "mb-2 border-b border-border pb-3",
+                    )}
                   >
-                    <h2 id={headingId + "-actions"}>{l.actions}</h2>
+                    <h2 id={sidebarId + "-actions"}>{l.actions}</h2>
                     {onDelete && (
                       <RecordDeleteButton
                         label={l.deleteOffer}
@@ -319,11 +372,14 @@ function OfferDetailContent({
                         </button>
                       ))}
                   </div>
-                </aside>
+                </div>
               )}
               {hasSend && (
-                <aside aria-labelledby={headingId + "-send"} className={sidebarCardClass}>
-                  <h2 id={headingId + "-send"} className={sidebarHeadingClass}>
+                <div className={hasActions ? "mt-6" : "pt-4"}>
+                  <h2
+                    id={sidebarId + "-send"}
+                    className={cn(sidebarHeadingClass, "mb-2 border-b border-border pb-3")}
+                  >
                     {l.sendHeading}
                   </h2>
                   <div className={sidebarControlsClass}>
@@ -378,10 +434,14 @@ function OfferDetailContent({
                       </div>
                     )}
                   </div>
-                </aside>
+                </div>
               )}
-              {!draft && <Feedback feedback={action.feedback} />}
-            </div>
+              {!draft && action.feedback && (
+                <div className="mt-3">
+                  <Feedback feedback={action.feedback} />
+                </div>
+              )}
+            </aside>
           ) : undefined
         }
       >
