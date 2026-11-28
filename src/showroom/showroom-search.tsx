@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/components/utils/cn";
+import { useMediaQuery } from "@/components/utils/use-media-query";
 import { examples } from "@/showroom/examples";
 import { ShowroomLink } from "@/showroom/routing";
 
@@ -13,6 +14,7 @@ const iconButtonClass =
   "inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
 export function ShowroomSearch() {
+  const shortcutVisible = useMediaQuery("(min-width: 64rem)");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +68,7 @@ export function ShowroomSearch() {
 
   return (
     <Dialog.Root open={open} onOpenChange={changeOpen}>
-      <IconTooltip label="Search registry (⌘K / Ctrl+K)">
+      <IconTooltip label="Search registry (⌘K / Ctrl+K)" disabled={shortcutVisible}>
         <Dialog.Trigger
           aria-label="Search registry"
           aria-keyshortcuts="Meta+K Control+K"

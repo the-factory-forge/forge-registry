@@ -53,6 +53,7 @@ import { cn } from "@/components/utils/cn";
 import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { pluginIcons } from "@/components/utils/plugin-icons";
+import { useMediaQuery } from "@/components/utils/use-media-query";
 
 export type * from "@/components/plugins/agents/types";
 export { AgentsError } from "@/components/plugins/agents/types";
@@ -727,6 +728,7 @@ function AgentsContent({
   const labels = { ...agentsLabels, ...overrides };
   const notify = useActionToast();
   const uid = `factory-agents-${useId()}`;
+  const attachLabelVisible = useMediaQuery("(min-width: 40rem)");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [today] = useState(() => {
     const date = new Date();
@@ -1055,38 +1057,36 @@ function AgentsContent({
                     chat.id === conversationId && "bg-primary/15 text-foreground",
                   )}
                 >
-                  <IconTooltip label={chat.title || labels.untitled}>
-                    <button
-                      type="button"
-                      aria-label={chat.title || labels.untitled}
-                      aria-describedby={`${uid}-history-${chat.id}`}
-                      aria-current={chat.id === conversationId ? "page" : undefined}
-                      className={cn(
-                        button,
-                        "min-w-0 flex-1 items-start justify-start text-start hover:bg-muted",
-                      )}
-                      onClick={() => {
-                        setHistoryOpen(false);
-                        onSelectionChange({
-                          operationId: chat.operationId,
-                          conversationId: chat.id,
-                        });
-                      }}
-                    >
-                      <span className="mt-0.5">
-                        <OperationIcon id={chat.operationId} />
+                  <button
+                    type="button"
+                    aria-label={chat.title || labels.untitled}
+                    aria-describedby={`${uid}-history-${chat.id}`}
+                    aria-current={chat.id === conversationId ? "page" : undefined}
+                    className={cn(
+                      button,
+                      "min-w-0 flex-1 items-start justify-start text-start hover:bg-muted",
+                    )}
+                    onClick={() => {
+                      setHistoryOpen(false);
+                      onSelectionChange({
+                        operationId: chat.operationId,
+                        conversationId: chat.id,
+                      });
+                    }}
+                  >
+                    <span className="mt-0.5">
+                      <OperationIcon id={chat.operationId} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{chat.title || labels.untitled}</span>
+                      <span
+                        id={`${uid}-history-${chat.id}`}
+                        className="mt-1 block text-xs text-muted-foreground"
+                      >
+                        {operations.find((operation) => operation.id === chat.operationId)?.label}
                       </span>
-                      <span className="min-w-0">
-                        <span className="block truncate">{chat.title || labels.untitled}</span>
-                        <span
-                          id={`${uid}-history-${chat.id}`}
-                          className="mt-1 block text-xs text-muted-foreground"
-                        >
-                          {operations.find((operation) => operation.id === chat.operationId)?.label}
-                        </span>
-                      </span>
-                    </button>
-                  </IconTooltip>
+                    </span>
+                  </button>
                   <IconTooltip label={labels.deleteConversation}>
                     <button
                       type="button"
@@ -1431,7 +1431,7 @@ function AgentsContent({
             )}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex max-w-full flex-wrap items-center gap-2">
-                <IconTooltip label={labels.attach}>
+                <IconTooltip label={labels.attach} disabled={attachLabelVisible}>
                   <button
                     type="button"
                     className={outline}

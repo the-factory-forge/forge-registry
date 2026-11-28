@@ -171,21 +171,19 @@ export function OfferLinePosition({
     >
       {controls ? (
         <div className="flex items-center print:contents">
-          <IconTooltip label={labels.reorderLine}>
-            <button
-              type="button"
-              aria-label={labels.reorderLine + " " + position}
-              aria-keyshortcuts="ArrowUp ArrowDown"
-              className={cn(
-                buttonClass,
-                "-ms-1.5 touch-none px-1.5 font-normal select-none enabled:cursor-grab enabled:active:cursor-grabbing disabled:opacity-100 print:contents",
-              )}
-              disabled={!controls.moveUp && !controls.moveDown}
-              {...controls.handle}
-            >
-              <span>{position}</span>
-            </button>
-          </IconTooltip>
+          <button
+            type="button"
+            aria-label={labels.reorderLine + " " + position}
+            aria-keyshortcuts="ArrowUp ArrowDown"
+            className={cn(
+              buttonClass,
+              "-ms-1.5 touch-none px-1.5 font-normal select-none enabled:cursor-grab enabled:active:cursor-grabbing disabled:opacity-100 print:contents",
+            )}
+            disabled={!controls.moveUp && !controls.moveDown}
+            {...controls.handle}
+          >
+            <span>{position}</span>
+          </button>
           <div className="flex group-hover/offer-line:pointer-events-auto group-hover/offer-line:opacity-100 has-[:focus-visible]:opacity-100 print:hidden [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0">
             {[
               { label: labels.up, Icon: ArrowUpIcon, move: controls.moveUp },

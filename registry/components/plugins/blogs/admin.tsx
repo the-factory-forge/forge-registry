@@ -128,6 +128,7 @@ function BlogsPageContent({
   ...sortProps
 }: BlogsPageProps) {
   useLoadingActivity(!!loading);
+  const tableId = `factory-blog-table-${useId()}`;
   const labels = { ...blogsLabels, ...overrides };
   const optimistic = useOptimisticAction(suppliedData, useContext(BlogEditorClient));
   const complete = suppliedData.total <= suppliedData.items.length;
@@ -368,7 +369,6 @@ function BlogsPageContent({
                         <BlogLink
                           href={editHref(post.id)}
                           className="block max-w-48 truncate text-foreground hover:underline md:max-w-72"
-                          title={post.title}
                         >
                           {post.title}
                         </BlogLink>
@@ -379,12 +379,14 @@ function BlogsPageContent({
                         </p>
                       </td>
                       <td className={cn(tableCellClass, "min-w-48 whitespace-nowrap")}>
-                        <div className="flex flex-nowrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                           {post.translations.map((t) => (
                             <StatusBadge
                               key={t.locale}
                               type={canPublish ? "button" : undefined}
-                              title={labels[t.status]}
+                              aria-describedby={
+                                canPublish ? `${tableId}-${post.id}-${t.locale}` : undefined
+                              }
                               aria-label={
                                 canPublish
                                   ? `${labels.publicationStatus}: ${t.locale.toUpperCase()}`
@@ -412,7 +414,10 @@ function BlogsPageContent({
                               )}
                             >
                               {t.locale.toUpperCase()}
-                              <span className="sr-only"> · {labels[t.status]}</span>
+                              <span aria-hidden="true">·</span>
+                              <span id={`${tableId}-${post.id}-${t.locale}`}>
+                                {labels[t.status]}
+                              </span>
                             </StatusBadge>
                           ))}
                         </div>

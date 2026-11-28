@@ -166,7 +166,7 @@ when creating or modifying action toolbars. Refresh/reload uses `RefreshCwIcon`,
 settings/configuration uses `SettingsIcon`, and new/create/add entry points use
 `PlusIcon`, all from Lucide. Refresh controls are icon-only with a translated accessible name
 and `IconTooltip`. Settings and create controls keep their translated visible
-label, with the icon before it; omit duplicate tooltips for text buttons.
+label, with the icon before it; omit tooltips on buttons and action links with visible text, numbers or keyboard shortcuts. Apply the same rule at each responsive breakpoint and in each toggle state.
 Use `size-4 shrink-0`, inherit the control's text color, and set `aria-hidden="true"`.
 Keep existing button/link variants, focus styles and responsive wrapping.
 

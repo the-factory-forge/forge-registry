@@ -282,7 +282,6 @@ function SendButton({
         aria-busy={mutation.pending}
         aria-haspopup={action === "export" && canWrite ? "dialog" : undefined}
         aria-label={badge ? `${labels.pendingStatus} – ${hint}` : undefined}
-        title={badge && canWrite ? hint : undefined}
         className={
           badge
             ? cn(

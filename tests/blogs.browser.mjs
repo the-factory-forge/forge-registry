@@ -405,7 +405,7 @@ await suite("Blogs browser", async () => {
         await page.shell.getByRole("button", { name: "Dark mode", exact: true }).click();
       const link = row.getByRole("link", { name: title, exact: true });
       const category = row.getByRole("cell").nth(2).locator("p");
-      assert.equal(await link.getAttribute("title"), title);
+      assert.equal(await link.getAttribute("title"), null);
       assert.deepEqual(
         (await category.getAttribute("title")).split(", ").sort(),
         [categoryName, "Design"].sort(),
@@ -989,8 +989,8 @@ await suite("Blogs browser", async () => {
         });
         assert.deepEqual(
           await row
-            .locator(`[title="${label}"]`)
-            .first()
+            .getByRole("button", { name: "Publication status: EN", exact: true })
+            .filter({ hasText: label })
             .evaluate((node) => {
               const style = getComputedStyle(node);
               return [style.backgroundColor, style.color];

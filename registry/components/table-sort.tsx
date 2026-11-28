@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 
 import { cn } from "@/components/utils/cn";
@@ -122,6 +122,7 @@ export function TableSortHeader<Field extends string>({
   labels: overrides,
   className,
 }: TableSortHeaderProps<Field>) {
+  const hintId = `factory-sort-hint-${useId()}`;
   const labels = { ...tableSortLabels, ...overrides };
   const active = value ?? defaultSort;
   const selected = active?.field === field;
@@ -153,10 +154,13 @@ export function TableSortHeader<Field extends string>({
         <button
           type="button"
           className="group/sort inline-flex min-h-10 w-full cursor-pointer items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring in-[.text-right]:justify-end"
-          title={next.direction === "asc" ? labels.sortAscending : labels.sortDescending}
+          aria-describedby={hintId}
           onClick={() => onValueChange(next)}
         >
           {content}
+          <span id={hintId} hidden>
+            {next.direction === "asc" ? labels.sortAscending : labels.sortDescending}
+          </span>
         </button>
       ) : (
         <span className="inline-flex items-center gap-1.5">{content}</span>

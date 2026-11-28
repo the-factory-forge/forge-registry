@@ -12,6 +12,12 @@
       "content": "\"use client\";\n\nimport { Tooltip } from \"@base-ui/react/tooltip\";\nimport type { ReactElement } from \"react\";\n\nexport interface IconTooltipProps {\n  label?: string;\n  disabled?: boolean;\n  children: ReactElement;\n}\n\n/** Compose with the existing control so its semantics, ref and layout stay intact. */\nexport function IconTooltip({ label, disabled, children }: IconTooltipProps) {\n  if (!label) return children;\n\n  return (\n    <Tooltip.Root disabled={disabled}>\n      <Tooltip.Trigger render={children} />\n      <Tooltip.Portal>\n        <Tooltip.Positioner sideOffset={8} className=\"z-[110]\">\n          <Tooltip.Popup\n            role=\"tooltip\"\n            className=\"max-w-[min(20rem,calc(100vw-2rem))] rounded-md bg-popover px-3 py-2 text-xs break-words text-popover-foreground shadow-md dark:border dark:border-border dark:shadow-none\"\n          >\n            {label}\n          </Tooltip.Popup>\n        </Tooltip.Positioner>\n      </Tooltip.Portal>\n    </Tooltip.Root>\n  );\n}\n",
       "type": "registry:component",
       "target": "@components/icon-tooltip.tsx"
+    },
+    {
+      "path": "registry/components/utils/use-media-query.ts",
+      "content": "\"use client\";\n\nimport { useCallback, useSyncExternalStore } from \"react\";\n\nexport function useMediaQuery(query: string) {\n  const subscribe = useCallback(\n    (notify: () => void) => {\n      const media = window.matchMedia(query);\n      media.addEventListener(\"change\", notify);\n      return () => media.removeEventListener(\"change\", notify);\n    },\n    [query],\n  );\n\n  return useSyncExternalStore(\n    subscribe,\n    () => window.matchMedia(query).matches,\n    () => false,\n  );\n}\n",
+      "type": "registry:lib",
+      "target": "@components/utils/use-media-query.ts"
     }
   ],
   "type": "registry:ui"

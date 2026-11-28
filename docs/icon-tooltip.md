@@ -14,6 +14,8 @@ import { IconTooltip } from "@/components/icon-tooltip";
 </IconTooltip>;
 ```
 
+Use tooltips only on icon-only controls. Visible text, numbers and keyboard shortcuts count as labels. Screen-reader-only text keeps an icon-only control accessible.
+
 Pass one existing control as `children` and its translated accessible name as
 `label`. The control retains its styles, semantics, ref, focus and event handlers.
 Custom link/button adapters must forward the ref and DOM props to their control.
@@ -21,7 +23,8 @@ No extra layout element or application provider is required. Omit `label` only
 when a shared control renders visible action text instead of an icon-only action.
 For a button that switches between text and icon-only states, pass a stable
 `label` and set `disabled` while the text is visible. This keeps focus on the
-same button as its appearance changes.
+same button as its appearance changes. For responsive labels, use the same media query
+as the label’s visibility breakpoint.
 
 Tooltips open on pointer hover and keyboard focus, close with Escape or activation,
 and use a portal to avoid clipping inside tables, dialogs and search fields.

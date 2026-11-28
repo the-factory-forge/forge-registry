@@ -133,6 +133,11 @@
           "path": "registry/components/icon-tooltip.tsx",
           "type": "registry:component",
           "target": "@components/icon-tooltip.tsx"
+        },
+        {
+          "path": "registry/components/utils/use-media-query.ts",
+          "type": "registry:lib",
+          "target": "@components/utils/use-media-query.ts"
         }
       ],
       "dependencies": ["@base-ui/react"]

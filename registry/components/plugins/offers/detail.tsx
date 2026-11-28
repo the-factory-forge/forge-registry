@@ -283,7 +283,7 @@ function OfferDetailContent({
                   open && "@min-[64rem]/offer-detail:ms-4 @min-[64rem]/offer-detail:w-[22rem]",
                 )}
               >
-                <IconTooltip label={l.actions}>
+                <IconTooltip label={l.actions} disabled={open}>
                   <button
                     type="button"
                     aria-label={l.actions}

@@ -70,6 +70,7 @@ import { moveMenuEntry, useMenuDrag } from "@/components/plugins/menus/use-menu-
 import { StatusToggle } from "@/components/status-toggle";
 import { TableSearch, matchesTableSearch } from "@/components/table-search";
 import { cn } from "@/components/utils/cn";
+import { useMediaQuery } from "@/components/utils/use-media-query";
 import { useMutationAction } from "@/components/utils/use-optimistic-action";
 import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
 
@@ -1162,6 +1163,7 @@ function MenuWorkspaceSection({
     initialSettingsMenuId,
     linkComponent: Link,
   } = useWorkspace();
+  const settingsLabelVisible = useMediaQuery("(min-width: 40rem)");
   const [sharedCategory, setSharedCategory] = useState<string>();
   const notify = useActionToast();
   const section = useRef<HTMLElement>(null);
@@ -1314,15 +1316,17 @@ function MenuWorkspaceSection({
             <EyeIcon aria-hidden="true" className="size-4" />
             {copy("Preview")}
           </Link>
-          <button
-            className={outlineButton}
-            disabled={!hydrated || pending}
-            onClick={() => setSettings((value) => !value)}
-            aria-expanded={settingsOpen}
-          >
-            <SettingsIcon aria-hidden="true" className="size-4" />
-            <span className="sr-only sm:not-sr-only">{copy("Settings")}</span>
-          </button>
+          <IconTooltip label={copy("Settings")} disabled={settingsLabelVisible}>
+            <button
+              className={outlineButton}
+              disabled={!hydrated || pending}
+              onClick={() => setSettings((value) => !value)}
+              aria-expanded={settingsOpen}
+            >
+              <SettingsIcon aria-hidden="true" className="size-4" />
+              <span className="sr-only sm:not-sr-only">{copy("Settings")}</span>
+            </button>
+          </IconTooltip>
           {menu.kind !== "weekly" && (
             <Actions label={copy("+ Category")}>
               <Dropdown.Item onClick={() => setAdding("new")}>
@@ -1335,29 +1339,26 @@ function MenuWorkspaceSection({
               </Dropdown.Item>
             </Actions>
           )}
-          <span title={stateText}>
-            <StatusToggle
-              label={`${copy("Menu publication")} ${rootName(menu, locale, baseLocale)}`}
-              pressed={menu.published}
-              disabled={pending || !hydrated}
-              onPressedChange={(published) =>
-                void run(() => client.saveCard({ ...menu, published }))
-              }
-              className={cn(
-                "min-h-11 md:min-h-6",
-                menu.published
-                  ? "bg-status-success text-status-success-foreground"
-                  : "bg-status-not-started text-status-not-started-foreground",
-              )}
-            >
-              {menu.published ? copy("Published") : copy("Unpublished")}
-            </StatusToggle>
-          </span>
+          <StatusToggle
+            label={`${copy("Menu publication")} ${rootName(menu, locale, baseLocale)}`}
+            pressed={menu.published}
+            disabled={pending || !hydrated}
+            onPressedChange={(published) => void run(() => client.saveCard({ ...menu, published }))}
+            className={cn(
+              "min-h-11 md:min-h-6",
+              menu.published
+                ? "bg-status-success text-status-success-foreground"
+                : "bg-status-not-started text-status-not-started-foreground",
+            )}
+          >
+            {menu.published ? copy("Published") : copy("Unpublished")}
+          </StatusToggle>
         </div>
       </header>
       {(menu.startDate || menu.endDate) && (
         <p className="mb-3 text-sm text-muted-foreground tabular-nums">
           {menu.startDate ?? ""} – {menu.endDate ?? ""}
+          {menu.published && ` · ${stateText}`}
         </p>
       )}
       {localized(menu.translations, locale, baseLocale).description && (

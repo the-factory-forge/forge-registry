@@ -130,6 +130,54 @@ void test("plugin icon tooltips use translated names and calendar navigation sti
   assert.deepEqual(errors, []);
 });
 
+void test("responsive controls dismiss their icon hint when the label becomes visible", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  page.setDefaultTimeout(10000);
+  for (const [path, name, label, breakpoint] of [
+    ["/table-pagination", "Search registry", "Search registry (⌘K / Ctrl+K)", 1024],
+    ["/en/agents?operation=blogs", "Attach file", "Attach file", 640],
+    ["/en/admin/menus", "Settings", "Settings", 640],
+  ]) {
+    await page.setViewportSize({ width: breakpoint - 1, height: 900 });
+    await page.goto(baseURL + path);
+    const scope =
+      path === "/en/admin/menus" ? page.locator("[data-menu-workspace-section]").first() : page;
+    const button = scope.getByRole("button", { name, exact: true });
+    const tooltip = page.getByRole("tooltip", { name: label, exact: true });
+    await button.hover();
+    await tooltip.waitFor();
+    await page.setViewportSize({ width: breakpoint, height: 900 });
+    await tooltip.waitFor({ state: "hidden" });
+    assert.equal(await button.getAttribute("data-base-ui-tooltip-trigger"), null);
+    await page.setViewportSize({ width: breakpoint - 1, height: 900 });
+    await page.mouse.move(0, 0);
+    await button.focus();
+    await button.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await tooltip.waitFor();
+    await button.press("Escape");
+  }
+});
+
+void test("Offers shows the Actions hint only when collapsed and keeps numbered reorder handles tooltip-free", async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(baseURL + "/en/offers/studio");
+  const actions = page.getByRole("button", { name: "Actions", exact: true });
+  assert.equal(await actions.getAttribute("aria-expanded"), "true");
+  assert.equal(await actions.getAttribute("data-base-ui-tooltip-trigger"), null);
+  const handle = page.getByRole("button", { name: "Reorder line 1", exact: true });
+  assert.equal(await handle.getAttribute("data-base-ui-tooltip-trigger"), null);
+  await actions.click();
+  await page.mouse.move(0, 0);
+  await hint(page, actions, "Actions");
+  await actions.press("Enter");
+  assert.equal(await actions.getAttribute("data-base-ui-tooltip-trigger"), null);
+});
+
 void test("touch activation works without an extra tooltip tap", async (t) => {
   const browser = await chromium.launch();
   t.after(() => browser.close());
