@@ -48,7 +48,7 @@ export const offerLabels = {
   sendHeading: "PDF",
   preview: "Preview",
   pdf: "Download",
-  send: "Email",
+  send: "Send",
   totals: "Totals",
   editing: "Edit offer",
   issued: "Issued offer",

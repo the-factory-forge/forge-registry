@@ -1099,7 +1099,7 @@ Offer references SHALL display as `#of-N`, where `N` is the assigned number. The
 
 - **WHEN** staff open the issued copy and the host provides PDF or delivery controls
 - **THEN** the detail places those controls in a PDF section within the same sidebar card as any other offer actions
-- **AND** Preview opens the issued PDF, Download saves that same file and Email uses authorized delivery when available
+- **AND** Preview opens the issued PDF, Download saves that same file and Send uses authorized delivery when available
 
 #### Scenario: Issue and revise
 
@@ -1114,7 +1114,7 @@ Offer references SHALL display as `#of-N`, where `N` is the assigned number. The
 - **THEN** the offer keeps the copied terms and its per-line discounted net and rounded tax
 - **AND** authorized delivery sends the issued PDF to the captured recipient and records success only after transport acceptance
 - **AND** failed delivery remains retryable for that issuance
-- **AND** the offer detail shows a Sent badge beside Email in the PDF section only after delivery is recorded
+- **AND** the offer detail shows a Sent badge beside Send in the PDF section only after delivery is recorded
 
 ### Requirement: Projects plugin
 

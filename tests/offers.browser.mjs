@@ -62,13 +62,13 @@ await test("Offers share the customer directory, preserve URL filters and issue 
   assert.equal(await pdfHeading.count(), 0);
   await actions.getByRole("button", { name: "Issue", exact: true }).click();
   await actions.getByRole("link", { name: "Preview", exact: true }).waitFor();
-  const emailPdf = actions.getByRole("button", { name: "Email", exact: true });
-  const sentBadge = emailPdf.locator("..").getByText("Sent", { exact: true });
+  const sendPdf = actions.getByRole("button", { name: "Send", exact: true });
+  const sentBadge = sendPdf.locator("..").getByText("Sent", { exact: true });
   assert.equal(await page.getByText("Unsent", { exact: true }).count(), 0);
   assert.equal(await sentBadge.count(), 0);
-  await emailPdf.click();
+  await sendPdf.click();
   await sentBadge.waitFor();
-  assert.ok(await emailPdf.isDisabled());
+  assert.ok(await sendPdf.isDisabled());
   const panel = await actions.boundingBox();
   assert.equal(await page.getByRole("heading", { name: "Sender", exact: true }).count(), 0);
   assert.equal(await page.getByRole("heading", { name: "Recipient", exact: true }).count(), 0);
@@ -115,7 +115,7 @@ await test("Offers share the customer directory, preserve URL filters and issue 
   await page.getByRole("heading", { name: /Updated order/ }).waitFor();
   await actions.getByRole("button", { name: "Reissue" }).click();
   await actions.getByRole("button", { name: "Decline", exact: true }).waitFor();
-  assert.ok(await emailPdf.isEnabled());
+  assert.ok(await sendPdf.isEnabled());
   assert.equal(await sentBadge.count(), 0);
 });
 
