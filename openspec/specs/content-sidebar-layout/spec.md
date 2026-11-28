@@ -8,7 +8,7 @@ Provide a reusable page arrangement for primary content and supporting controls 
 
 ### Requirement: Content and supporting panel layout
 
-The registry SHALL distribute a framework-neutral layout with primary content, optional toolbar and optional supporting panel. Callers SHALL own labels, semantics, content and visibility state. The layout SHALL preserve primary content state when a panel appears or disappears.
+The registry SHALL distribute a framework-neutral layout with primary content, optional toolbar and optional supporting panel. Callers SHALL own labels, semantics and content, and MAY supply visibility state. The layout SHALL preserve primary content state when a panel appears or disappears.
 
 #### Scenario: Desktop supporting panel
 
@@ -21,6 +21,22 @@ The registry SHALL distribute a framework-neutral layout with primary content, o
 - **WHEN** the caller omits or closes the panel
 - **THEN** the content uses the available width and any supplied toolbar stays above it
 - **AND** existing field values and content state are preserved
+
+### Requirement: Sidebar visibility preference
+
+The layout SHALL accept a default visibility and a view-scoped preference key.
+Core actions SHALL default open and supplementary information SHALL default closed.
+
+#### Scenario: Returning to a plugin view
+
+- **WHEN** the user explicitly opens or closes the panel and revisits the view
+- **THEN** the saved choice takes precedence over the configured default for that view
+- **AND** other views keep their own preferences
+
+#### Scenario: Missing or unavailable storage
+
+- **WHEN** the browser has no valid preference or denies access to storage
+- **THEN** the panel starts at the configured default and can be toggled during the visit
 
 ### Requirement: Accessible panel scrolling
 

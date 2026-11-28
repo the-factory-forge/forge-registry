@@ -272,8 +272,7 @@ Build keys with `viewPreferenceKey` from `@/components/utils/view-preference`.
 For example, `forge:blogs:editor:history` applies across articles and languages,
 and `forge:intranet-sidebar:desktop:navigation` applies across intranet routes.
 
-Save a value only when the user chooses a non-default. Returning to the default
-removes that key. These choices are shared by visits in the same browser profile
+Content sidebar panels remember both explicit choices, including a choice matching the initial default. For other view preferences, save a value only when the user chooses a non-default. Returning those preferences to the default removes their key. These choices are shared by visits in the same browser profile
 and origin. URL filters, record edits and modal workflows retain their existing owners.
 
 ## Table sorting

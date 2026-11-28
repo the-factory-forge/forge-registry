@@ -19,6 +19,9 @@ Pass one existing control as `children` and its translated accessible name as
 Custom link/button adapters must forward the ref and DOM props to their control.
 No extra layout element or application provider is required. Omit `label` only
 when a shared control renders visible action text instead of an icon-only action.
+For a button that switches between text and icon-only states, pass a stable
+`label` and set `disabled` while the text is visible. This keeps focus on the
+same button as its appearance changes.
 
 Tooltips open on pointer hover and keyboard focus, close with Escape or activation,
 and use a portal to avoid clipping inside tables, dialogs and search fields.

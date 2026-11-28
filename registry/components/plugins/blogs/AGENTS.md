@@ -30,6 +30,8 @@ for the affected flow.
 
 ## Change boundaries
 
+History starts closed because reviewing revisions is optional while editing. Remember the choice across articles and languages. An explicit History URL state takes precedence. Follow the [content sidebar guidance](../../layouts/content-sidebar-layout/AGENTS.md).
+
 Article/language changes start a different draft session. Replacing a client
 invalidates old asynchronous completions while preserving unsaved inputs. Follow
 the guide's editor and history lifecycle before changing navigation or callbacks.

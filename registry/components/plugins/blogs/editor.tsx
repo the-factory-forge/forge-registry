@@ -37,7 +37,10 @@ import {
 import { IconTooltip } from "@/components/icon-tooltip";
 import { Image } from "@/components/image";
 import { ImageCropDialog, type ImageCropSize, type ImageCropLabels } from "@/components/image-crop";
-import { ContentSidebarLayout } from "@/components/layouts/content-sidebar-layout";
+import {
+  ContentSidebarLayout,
+  useContentSidebarPreference,
+} from "@/components/layouts/content-sidebar-layout";
 import { Link } from "@/components/link";
 import { useLoadingActivity } from "@/components/loading-indicator";
 import { NativeSelect } from "@/components/native-select";
@@ -95,7 +98,7 @@ import { cn } from "@/components/utils/cn";
 import { destructiveActionClass } from "@/components/utils/destructive-action";
 import { submitFormOnShortcut } from "@/components/utils/dialog-submit";
 import { editorActionsClass, useEditorValidation } from "@/components/utils/editor-form";
-import { usePanelPreference, viewPreferenceKey } from "@/components/utils/view-preference";
+import { viewPreferenceKey } from "@/components/utils/view-preference";
 
 export interface BlogEditPageProps extends BlogsAppearanceProps {
   /** Covers are cropped by default; false retains original uploads. */
@@ -379,6 +382,8 @@ function BlogDetailsCard({
   );
 }
 
+export const blogHistoryPreferenceKey = viewPreferenceKey("blogs", "editor", "history");
+
 function EditorForm({
   client,
   article,
@@ -414,8 +419,9 @@ function EditorForm({
   const labels = { ...blogsLabels, ...overrides },
     id = `factory-blog-form-${useId()}`,
     textarea = useRef<HTMLTextAreaElement>(null);
-  const [localHistoryOpen, setLocalHistoryOpen] = usePanelPreference(
-    viewPreferenceKey("blogs", "editor", "history"),
+  const [preferredHistoryOpen, setPreferredHistoryOpen] = useContentSidebarPreference(
+    blogHistoryPreferenceKey,
+    false,
   );
   const [localSelection, setLocalSelection] = useState<
     Pick<BlogEditorView, "versionId" | "compare">
@@ -423,13 +429,19 @@ function EditorForm({
     versionId: null,
     compare: false,
   });
-  const historyOpen = view?.state.historyOpen ?? localHistoryOpen;
+  const [historyDismissed, setHistoryDismissed] = useState(false);
+  const historyOpen = view?.state.historyOpen ?? (preferredHistoryOpen && !historyDismissed);
+  function chooseHistoryOpen(open: boolean) {
+    setPreferredHistoryOpen(open);
+    setHistoryDismissed(false);
+    view?.onChange({ historyOpen: open });
+  }
   function changeHistory(change: Partial<Omit<BlogEditorView, "locale">>) {
     if (view) {
       view.onChange(change);
     } else {
-      const { historyOpen, ...selection } = change;
-      if (historyOpen !== undefined) setLocalHistoryOpen(historyOpen);
+      const { historyOpen: nextOpen, ...selection } = change;
+      if (nextOpen === false && historyOpen) setHistoryDismissed(true);
       setLocalSelection((previous) => ({ ...previous, ...selection }));
     }
   }
@@ -744,7 +756,7 @@ function EditorForm({
         ref={historyTrigger}
         aria-label={labels.history}
         aria-expanded={historyOpen}
-        onClick={() => changeHistory({ historyOpen: !historyOpen })}
+        onClick={() => chooseHistoryOpen(!historyOpen)}
       >
         <HistoryIcon className="size-4 shrink-0" aria-hidden="true" />
       </button>
@@ -824,7 +836,7 @@ function EditorForm({
               }}
               onRetry={history.retry}
               onClose={() => {
-                changeHistory({ historyOpen: false });
+                chooseHistoryOpen(false);
                 historyTrigger.current?.focus();
               }}
               disabled={pending}

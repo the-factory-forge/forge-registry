@@ -64,6 +64,9 @@ Reading another repository does not authorize unrelated changes there.
 
 ## Task guides
 
+Keep each plugin’s usage rules and interaction defaults in its own `AGENTS.md`.
+When adding or changing a content sidebar, follow the [layout guidance](registry/components/layouts/content-sidebar-layout/AGENTS.md).
+
 | Task                                              | Read before editing                                                                                                                                                                                                                                                       |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Reusable source or components                     | [CONTRIBUTING.md](CONTRIBUTING.md), the affected item and its imports/consumers; preserve names and public props unless a breaking change is requested                                                                                                                    |

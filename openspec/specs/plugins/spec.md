@@ -1643,7 +1643,7 @@ with chronological history and detailed comparison.
 
 #### Scenario: Opening and closing History
 
-- **GIVEN** History starts closed at every viewport width in the default editor view
+- **GIVEN** History defaults closed at every viewport width and remembers the user’s choice across articles and languages
 - **WHEN** staff open it through its toggle or restore a view with History open
 - **THEN** the icon-only toggle has a filled primary treatment and exposes `aria-expanded="true"`
 - **AND** it sits beside the publication status in the editor and in the toolbar when reviewing history, with a translated accessible name and tooltip
@@ -1653,6 +1653,7 @@ with chronological history and detailed comparison.
 
 - **WHEN** a host binds the editor view to its URL and staff open, reload or traverse a deep link
 - **THEN** the editor restores the article language, History visibility, selected retained snapshot and comparison mode
+- **AND** a fresh visit without explicit History visibility restores the saved choice, defaulting to closed
 - **AND** the default language, closed panel, editable draft and read mode are omitted from the URL
 - **AND** a language switch resets the snapshot and comparison while keeping History visibility
 - **AND** browser history changes that switch language or enter a different snapshot retain draft navigation protection

@@ -1047,7 +1047,7 @@
       "type": "registry:block",
       "title": "Content Sidebar Layout",
       "description": "Responsive content with optional toolbar and a sticky, independently scrolling supporting panel.",
-      "registryDependencies": ["@forge/cn"],
+      "registryDependencies": ["@forge/cn", "@forge/view-preference"],
       "files": [
         {
           "path": "registry/components/layouts/content-sidebar-layout.tsx",

@@ -195,8 +195,9 @@ backdrop. Exact shadow values live in the sidecar.
 
 Frost sticky content headers, action footers and pinned table cells. Use their
 semantic background token as the opaque fallback. Where backdrop filtering is
-supported, use `backdrop-blur-sm` and the same token at 80% opacity. Main
-navigation and sidebars use opaque surfaces.
+supported, use `backdrop-blur-sm` and the same token at 80% opacity by default.
+Sticky section headings inside scrolling sidebars use 60% opacity so rows remain
+visible underneath. Main navigation and sidebar shells use opaque surfaces.
 
 ## Shapes
 

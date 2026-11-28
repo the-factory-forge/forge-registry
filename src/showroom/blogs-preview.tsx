@@ -14,6 +14,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useId,
   useSyncExternalStore,
@@ -34,9 +35,11 @@ import {
   blogCapabilities,
   type BlogEditorView,
 } from "@/components/plugins/blogs";
+import { blogHistoryPreferenceKey } from "@/components/plugins/blogs/editor";
 import { BLOG_SORT_FIELDS } from "@/components/plugins/blogs/types";
 import { articleListItem, sortBlogItems } from "@/components/plugins/blogs/utils";
 import { publicRecordPath } from "@/components/utils/public-identifier";
+import { readViewPreference } from "@/components/utils/view-preference";
 import { isLocale } from "@/lib/i18n/config";
 import { blogsPreviewCropLabels, blogsPreviewLabels } from "@/showroom/blogs-labels";
 import { blogLocales } from "@/showroom/blogs-mock";
@@ -368,6 +371,24 @@ export function BlogsAdminPreview() {
   const currentArticle = initialLoad
     ? undefined
     : state.mock.all().find((article) => article.id === segments[0]);
+  const articleId = currentArticle?.id;
+  const restoredArticle = useRef<string>(undefined);
+  const historyParam = (query as Record<string, unknown>).history;
+  useEffect(() => {
+    // Seed a fresh visit once. Back and Forward within the editor then follow the URL.
+    if (restoredArticle.current === articleId) return;
+    restoredArticle.current = articleId;
+    if (!articleId || typeof historyParam === "boolean") return;
+    if (readViewPreference(blogHistoryPreferenceKey) === "open") {
+      void navigate({
+        to: ".",
+        search: (previous) => ({ ...previous, history: true }),
+        hash: true,
+        resetScroll: false,
+        replace: true,
+      });
+    }
+  }, [articleId, historyParam, navigate]);
   const [lastArticle, setLastArticle] = useState(currentArticle);
   if (
     currentArticle &&

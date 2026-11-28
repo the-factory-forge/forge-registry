@@ -5,15 +5,16 @@ import type { ReactElement } from "react";
 
 export interface IconTooltipProps {
   label?: string;
+  disabled?: boolean;
   children: ReactElement;
 }
 
 /** Compose with the existing control so its semantics, ref and layout stay intact. */
-export function IconTooltip({ label, children }: IconTooltipProps) {
+export function IconTooltip({ label, disabled, children }: IconTooltipProps) {
   if (!label) return children;
 
   return (
-    <Tooltip.Root>
+    <Tooltip.Root disabled={disabled}>
       <Tooltip.Trigger render={children} />
       <Tooltip.Portal>
         <Tooltip.Positioner sideOffset={8} className="z-[110]">

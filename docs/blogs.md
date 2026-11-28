@@ -613,13 +613,18 @@ The showroom restores the editor view from its URL. It records `lang` for a
 non-default article language, `history=true` for the open panel, `version` for
 a retained snapshot UUID, and `compare=true` for comparison. Comparison without
 a version uses the working draft. The default URL opens the editable draft in
-the route's default article language with History closed. A language switch
+the route's default article language. History starts closed on the first visit.
+On a fresh visit, an explicit `history=true` or `history=false` takes precedence
+over the saved browser choice. A language switch
 clears the version and comparison and keeps the panel state.
 
 Hosts can bind their router through `BlogEditPage.view` using a validated
 `state: BlogEditorView` and an `onChange` callback that merges the supplied
 partial state into the current view. Omit defaults and preserve unrelated
-search, the hash and scroll position when updating the URL. When `view` is
+search, the hash and scroll position when updating the URL. To restore History
+on entry, read `blogHistoryPreferenceKey` from the editor module and use a saved
+`open` choice only when the URL has no explicit visibility. Replace the current
+history entry when restoring. When `view` is
 omitted, History keeps its existing browser preference across visits and the
 editor keeps language and version selections locally. The mobile listing also
 remembers whether its category panel is open.
@@ -664,8 +669,8 @@ Changed metadata, including title, slug and summary, uses two stacked rows with
 the same treatments as Markdown. Accessible removed/added text supplements color.
 Every comparison block has a visible label; the Markdown block has its own
 heading and accessible section name, using the existing translated Markdown label.
-Unsaved input has a preview without a saved number. Mobile starts collapsed and
-returns focus to the selected content. Each saved version has a right-aligned
+Unsaved input has a preview without a saved number. Selecting a version on mobile closes the panel and
+moves focus to the selected content. This temporary close preserves the saved preference. Each saved version has a right-aligned
 actions menu with Compare and, when permitted, Delete. Publish appears first
 for the current saved draft when the user can publish and has no unsaved changes.
 When the selected language has no live publication, the first row also offers

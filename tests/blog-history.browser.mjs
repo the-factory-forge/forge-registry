@@ -298,6 +298,10 @@ void test("history trigger distinguishes open and closed states in both themes a
         assert.deepEqual(await appearance(), open);
         if (width < 1024) {
           await select(page, "Draft");
+          assert.equal(
+            await page.evaluate(() => localStorage.getItem("forge:blogs:editor:history")),
+            "open",
+          );
           assert.equal(await trigger.getAttribute("aria-expanded"), "false");
           assert.deepEqual(await appearance(), closed);
         }
@@ -420,7 +424,7 @@ void test("history examples target every open post and give English and French i
     const id = article.slice(0, -1) + number;
     await page.goto(`${base}/en/admin/blogs/${id}`);
     await page.locator('[data-preview-ready="true"]').waitFor();
-    await page.getByRole("button", { name: "History", exact: true }).click();
+    await panel(page).waitFor();
     const title = await page.getByRole("textbox", { name: "Title", exact: true }).inputValue();
     await loadExample(page);
     await counts(page, 5, 1);
@@ -460,7 +464,7 @@ void test("history examples target every open post and give English and French i
     const untouchedTitle =
       number === 1 ? "A quieter kind of productivity" : "Make room for better ideas";
     await page.getByRole("link", { name: `Edit: ${untouchedTitle}`, exact: true }).click();
-    await page.getByRole("button", { name: "History", exact: true }).click();
+    await panel(page).waitFor();
     await counts(page, number === 1 ? 1 : 2, 0);
   }
 });
@@ -1224,6 +1228,5 @@ void test("history keeps loaded rows during read failure and a new article expla
   await page.getByRole("link", { name: "Create", exact: true }).click();
   await page.getByRole("textbox", { name: "Title *", exact: true }).fill("Empty history example");
   await page.getByRole("button", { name: "Create draft", exact: true }).click();
-  await page.getByRole("button", { name: "History", exact: true }).click();
   await page.getByText("No saved versions in this language yet.", { exact: true }).waitFor();
 });

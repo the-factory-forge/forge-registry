@@ -42,10 +42,25 @@ for (const width of [1440, 390]) {
       const panel = page.getByRole("complementary", { name: "Project details", exact: true });
       const content = page.getByRole("region", { name: "Project brief", exact: true });
       const overview = page.getByRole("textbox", { name: "Overview", exact: true });
+      if (width >= 1024) {
+        const panelBox = await panel.boundingBox();
+        const contentBox = await content.boundingBox();
+        const triggerBox = await trigger.boundingBox();
+        assert.equal(panelBox.y, contentBox.y);
+        assert.ok(triggerBox.y + triggerBox.height < panelBox.y);
+      }
+      const expandedTriggerWidth = (await trigger.boundingBox()).width;
       await overview.fill("Keep this working draft");
       const expandedWidth = (await content.boundingBox()).width;
       await trigger.click();
       await panel.waitFor({ state: "hidden" });
+      const collapsedTrigger = await trigger.boundingBox();
+      const collapsedSize = width >= 768 ? 32 : 40;
+      assert.equal(collapsedTrigger.width, collapsedSize);
+      assert.equal(collapsedTrigger.height, collapsedSize);
+      assert.ok(collapsedTrigger.width < expandedTriggerWidth);
+      assert.equal(await trigger.getAttribute("aria-expanded"), "false");
+      assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
       assert.equal(await overview.inputValue(), "Keep this working draft");
       if (width >= 1024) assert.ok((await content.boundingBox()).width > expandedWidth);
       await trigger.click();
@@ -53,17 +68,41 @@ for (const width of [1440, 390]) {
       assert.equal(await overview.inputValue(), "Keep this working draft");
       await page.getByRole("checkbox", { name: "Long panel", exact: true }).check();
       await scroll(page, width >= 1024 ? 500 : 0);
-      const viewport = panel.locator("..");
-      const metrics = await viewport.evaluate((element) => ({
+      const metrics = await panel.evaluate((element) => ({
         height: element.clientHeight,
+        borderTop: element.clientTop,
         scrollHeight: element.scrollHeight,
         top: element.getBoundingClientRect().top,
         bottom: element.getBoundingClientRect().bottom,
       }));
+      const review = panel.getByRole("heading", { name: "Ready for review", exact: true });
+      const handover = panel.getByRole("heading", { name: "Ready for handover", exact: true });
+      const stickyTop = width >= 1024 ? metrics.top + metrics.borderTop : 56;
+      const scrollChecklist = async (distance) => {
+        if (width >= 1024) {
+          await panel.evaluate(async (element, top) => {
+            element.scrollTop = top;
+            await new Promise(requestAnimationFrame);
+          }, distance);
+        } else {
+          await scroll(page, distance);
+        }
+      };
+      const reviewStart = (await review.boundingBox()).y - stickyTop;
+      const handoverStart = (await handover.boundingBox()).y - stickyTop;
+      await scrollChecklist(reviewStart + 80);
+      assert.equal((await review.boundingBox()).y, stickyTop);
+      await scrollChecklist(handoverStart + 40);
+      assert.equal((await handover.boundingBox()).y, stickyTop);
+      const previousHeading = await review.boundingBox();
+      assert.ok(previousHeading.y + previousHeading.height <= stickyTop);
       if (width >= 1024) {
         assert.equal((await trigger.boundingBox()).y, 72);
         assert.ok(metrics.bottom <= 884);
         assert.ok(metrics.scrollHeight > metrics.height);
+        assert.ok(metrics.borderTop > 0);
+        assert.ok(await panel.evaluate((element) => element.scrollTop > 0));
+        assert.equal((await panel.boundingBox()).y, metrics.top);
         await panel.getByRole("checkbox").last().focus();
         const last = await panel
           .getByRole("checkbox")
@@ -90,6 +129,95 @@ for (const width of [1440, 390]) {
     });
   }
 }
+
+void test("Details shows its tooltip only while the button is icon-only", async (t) => {
+  const page = await preview(t);
+  const details = page.getByRole("button", { name: "Details", exact: true });
+  const tooltip = page.getByRole("tooltip", { name: "Details", exact: true });
+
+  await details.click();
+  await page.mouse.move(0, 0);
+  await details.hover();
+  await tooltip.waitFor();
+  await details.press("Escape");
+  await tooltip.waitFor({ state: "hidden" });
+  await page.mouse.move(0, 0);
+  await details.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await tooltip.waitFor();
+
+  await page.keyboard.press("Enter");
+  await tooltip.waitFor({ state: "hidden" });
+  assert.equal(await details.getAttribute("aria-expanded"), "true");
+  assert.ok(await details.evaluate((button) => button === document.activeElement));
+  await page.clock.install();
+  await details.hover();
+  await page.clock.runFor(1000);
+  assert.equal(await tooltip.count(), 0);
+  await page.mouse.move(0, 0);
+  await details.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.clock.runFor(1000);
+  assert.equal(await tooltip.count(), 0);
+});
+
+void test("sidebar choices survive re-entry and remain scoped to their plugin", async (t) => {
+  const page = await preview(t);
+  const details = page.getByRole("button", { name: "Details", exact: true });
+  const history = page.getByRole("button", { name: "History", exact: true });
+  const article = base + "/en/admin/blogs/b1000000-0000-4000-8000-000000000001";
+  const expectOpen = (toggle, open) =>
+    toggle.and(page.locator(`[aria-expanded="${open}"]`)).waitFor();
+
+  await details.click();
+  await page.goto(article);
+  await expectOpen(history, false);
+  await history.click();
+  await page.waitForURL((url) => url.searchParams.get("history") === "true");
+  await page.goBack();
+  await expectOpen(history, false);
+  await page.goForward();
+  await expectOpen(history, true);
+
+  await page.goto(article);
+  await expectOpen(history, true);
+  await page.goto(article + "?history=false");
+  await expectOpen(history, false);
+  await page.goto(article);
+  await expectOpen(history, true);
+  await page.getByRole("button", { name: "Close history", exact: true }).click();
+  await expectOpen(history, false);
+  await page.goto(base + "/content-sidebar-layout");
+  await expectOpen(details, false);
+  await page.goto(article);
+  await expectOpen(history, false);
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem("forge:blogs:editor:history")),
+    "closed",
+  );
+});
+
+void test("Details falls back to its default with invalid storage and remains usable with storage blocked", async (t) => {
+  const page = await preview(t);
+  const details = page.getByRole("button", { name: "Details", exact: true });
+  await page.evaluate(() =>
+    localStorage.setItem("forge:showroom:content-sidebar-layout:details", "invalid"),
+  );
+  await page.reload();
+  assert.equal(await details.getAttribute("aria-expanded"), "true");
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    });
+  });
+  await page.reload();
+  await details.click();
+  assert.equal(await details.getAttribute("aria-expanded"), "false");
+  await details.click();
+  assert.equal(await details.getAttribute("aria-expanded"), "true");
+});
 
 void test("layout is discoverable under All and Layout and opens its example", async (t) => {
   const page = await preview(t);

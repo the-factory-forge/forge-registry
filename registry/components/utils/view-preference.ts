@@ -17,13 +17,22 @@ export function viewPreferenceKey(
 const changeEvent = "forge:view-preference";
 const serverSnapshot = () => null;
 
+export function readViewPreference(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 export function useViewPreference<T extends string>(
-  key: string,
+  key: string | undefined,
   defaultValue: T,
   values: readonly T[],
 ) {
   const subscribe = useCallback(
     (notify: () => void) => {
+      if (key === undefined) return () => {};
       const onStorage = (event: StorageEvent) => {
         if (event.key === key || event.key === null) notify();
       };
@@ -38,22 +47,20 @@ export function useViewPreference<T extends string>(
   );
   const stored = useSyncExternalStore(
     subscribe,
-    () => {
-      try {
-        return localStorage.getItem(key);
-      } catch {
-        return null;
-      }
-    },
+    () => (key === undefined ? null : readViewPreference(key)),
     serverSnapshot,
   );
-  const [fallback, setFallback] = useState<{ key: string; value: T }>();
+  const [fallback, setFallback] = useState<{ key: string | undefined; value: T }>();
   const value =
-    fallback?.key === key
+    fallback && fallback.key === key
       ? fallback.value
       : (values.find((choice) => choice === stored) ?? defaultValue);
   const setValue = useCallback(
     (next: T) => {
+      if (key === undefined) {
+        setFallback({ key, value: next });
+        return;
+      }
       try {
         if (next === defaultValue) localStorage.removeItem(key);
         else localStorage.setItem(key, next);
