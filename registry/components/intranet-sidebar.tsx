@@ -166,18 +166,22 @@ export function IntranetSidebarProvider({
   );
 }
 
-export type IntranetSidebarToggleProps = React.ComponentProps<"button">;
+export type IntranetSidebarToggleProps = React.ComponentProps<"button"> & {
+  /** Set for custom children consisting solely of an icon. */
+  iconOnly?: boolean;
+};
 
 export function IntranetSidebarToggle({
   className,
   onClick,
   children,
+  iconOnly = children == null,
   "aria-label": label = defaultLabels.toggle,
   ...props
 }: IntranetSidebarToggleProps) {
   const { id, isMobile, open, mobileOpen, toggle, triggerRef } = useIntranetSidebar();
   return (
-    <IconTooltip label={label}>
+    <IconTooltip label={label} disabled={!iconOnly}>
       <button
         type="button"
         data-sidebar="trigger"
@@ -268,7 +272,7 @@ export function IntranetSidebar({
     <>
       <header
         className={cn(
-          "flex h-12 shrink-0 items-center px-4",
+          "sticky top-0 z-10 flex h-12 shrink-0 items-center bg-sidebar px-4 backdrop-blur-sm after:absolute after:inset-x-2 after:bottom-0 after:border-t after:border-sidebar-border supports-[backdrop-filter]:bg-sidebar/80",
           (togglePlacement === "sidebar" || isMobile) && "pr-12",
         )}
       >
@@ -285,13 +289,12 @@ export function IntranetSidebar({
               {brand.logo}
             </span>
           )}
-          <span className="truncate text-base font-semibold" title={brand.name}>
-            {brand.name}
-          </span>
+          <span className="truncate text-base font-semibold">{brand.name}</span>
         </LinkComponent>
       </header>
-      <div className="mx-2 border-t border-sidebar-border" />
+      {/* Let links scroll behind the brand while preserving room for the first group. */}
       <SidebarNavigation
+        className="-mt-12 scroll-pt-14 pt-14"
         groups={groups}
         pathname={pathname}
         linkComponent={LinkComponent}
@@ -410,7 +413,7 @@ export function IntranetSidebar({
                 <Dialog.Close
                   aria-label={labels.close}
                   className={cn(
-                    "absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
+                    "absolute top-2 right-2 z-20 flex size-8 cursor-pointer items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:cursor-not-allowed aria-disabled:cursor-not-allowed data-disabled:cursor-not-allowed",
                     sidebarFocusClassName,
                   )}
                 >

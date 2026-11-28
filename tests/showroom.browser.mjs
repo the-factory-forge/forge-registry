@@ -14,7 +14,7 @@ await suite("Showroom browser", async () => {
     await browser?.close();
   });
 
-  await test("intranet Drive badge describes its sample count and preserves navigation", async (t) => {
+  await test("intranet groups all plugins and preserves Drive badge navigation", async (t) => {
     const context = await browser.newContext();
     t.after(() => context.close());
     const page = await context.newPage();
@@ -23,9 +23,23 @@ await suite("Showroom browser", async () => {
       await page.goto(`${baseURL}/en/intranet`);
       if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
       const navigation = page.getByRole("navigation", { name: "Side navigation", exact: true });
-      const drive = navigation
-        .getByRole("region", { name: "Plugins", exact: true })
-        .getByRole("link", { name: "Drive 3 unreviewed changes" });
+      const expectedGroups = {
+        Workspace: ["Overview", "Documents", "Drive 3 unreviewed changes"],
+        Business: ["Customers", "Projects", "Offers", "Reservations"],
+        Website: ["Blogs", "Menus", "Products"],
+        Administration: ["Employees", "Auth", "Mailing"],
+      };
+      for (const [name, labels] of Object.entries(expectedGroups)) {
+        const group = navigation.getByRole("region", { name, exact: true });
+        assert.equal(await group.getByRole("link").count(), labels.length);
+        for (const label of labels) {
+          assert.equal(await group.getByRole("link", { name: label, exact: true }).count(), 1);
+        }
+      }
+      const footer = page.getByRole("navigation", { name: "Agents and Support" });
+      assert.equal(await footer.getByRole("link", { name: "Agents", exact: true }).count(), 1);
+      assert.equal(await footer.getByRole("link", { name: "Support", exact: true }).count(), 1);
+      const drive = navigation.getByRole("link", { name: "Drive 3 unreviewed changes" });
       await drive.waitFor({ state: "visible" });
       assert.equal(await navigation.getByText("My account", { exact: true }).count(), 0);
       assert.equal(await navigation.getByRole("link", { name: "Profile settings" }).count(), 0);
@@ -35,7 +49,7 @@ await suite("Showroom browser", async () => {
       await page.getByText("Current destination: #drive").waitFor();
       if (width < 768) await page.getByRole("button", { name: "Toggle side navigation" }).click();
       assert.equal(await drive.getAttribute("aria-current"), "page");
-      assert.equal(await page.getByRole("link", { name: "Team", exact: true }).count(), 1);
+      assert.equal(await navigation.getByRole("link", { name: "Team", exact: true }).count(), 0);
     }
   });
 
@@ -503,7 +517,7 @@ await suite("Showroom browser", async () => {
     const context = await browser.newContext();
     t.after(() => context.close());
     const page = await context.newPage();
-    for (const path of ["/en/projects", "/en/login", "/en/intranet#team"]) {
+    for (const path of ["/en/projects", "/en/login", "/en/intranet#drive"]) {
       await page.goto(baseURL + path);
       await page.locator('[data-preview-ready="true"]').waitFor();
       await page.keyboard.press("Tab");

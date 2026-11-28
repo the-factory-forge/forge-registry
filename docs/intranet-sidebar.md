@@ -240,7 +240,9 @@ host's route content already supplies its own `main` landmark.
 For a custom navbar, set `togglePlacement="external"` and render
 `<IntranetSidebarToggle />` in that navbar, inside the same provider. Its
 `aria-label`, classes, and icon children can be customized. `tc-website` uses this
-arrangement; the navbar itself remains site-owned.
+arrangement; the navbar itself remains site-owned. The default icon has a tooltip.
+When supplying a custom icon as the only child, pass `iconOnly` to keep the
+translated tooltip. Custom text buttons use their visible label.
 
 For TanStack Router, pass a stable adapter declared outside the layout component:
 
@@ -268,8 +270,12 @@ Run `pnpm dev` and open `/en/intranet-sidebar` at the printed URL. The showroom 
 profile data and hash navigation. It demonstrates a configurable customer name,
 both toggle placements, nested links, and simulated sign-out success/failure.
 The `/en/intranet` demo also includes linked parent navigation, a custom topbar,
-and a Plugins group with a Drive entry showing 3 sample unreviewed changes in a pending status badge.
-Badge content, counts and translations belong to the host; use its semantic status
+and all registry plugins organized by use. Workspace contains Overview, Documents, and Drive.
+Business contains Customers, Projects, Offers, and Reservations. Website contains Blogs,
+Menus, and Products. Administration contains Employees, Auth, and Mailing.
+Agents and Support stay pinned above the profile. Drive shows 3 sample unreviewed
+changes in a pending status badge.
+Badge content, counts and translations belong to the host. Use its semantic status
 tokens and include an accessible description when only a number is visible.
 Run `pnpm test` for the navigation matching regression checks (Node 22.18+).
 

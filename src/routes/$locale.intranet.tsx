@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileTextIcon, HomeIcon, UsersIcon } from "lucide-react";
+import { FileTextIcon, HomeIcon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 
 import type { IntranetNavGroup } from "@/components/intranet-sidebar";
@@ -10,44 +10,102 @@ import { ShowroomIntro, ShowroomPreview } from "@/showroom/showroom-preview";
 
 import { version } from "../../package.json";
 
-const groups: IntranetNavGroup[] = [
-  {
-    id: "workspace",
-    label: "Workspace",
-    items: [
-      { id: "overview", label: "Overview", href: "#overview", icon: <HomeIcon /> },
-      { id: "team", label: "Team", href: "#team", icon: <UsersIcon /> },
-      {
-        id: "documents",
-        label: "Documents",
-        href: "#documents",
-        icon: <FileTextIcon />,
-        items: [
-          { id: "handbook", label: "Handbook", href: "#documents/handbook" },
-          { id: "policies", label: "Policies", href: "#documents/policies" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "plugins",
-    label: "Plugins",
-    items: [
-      {
-        id: "drive",
-        label: "Drive",
-        href: "#drive",
-        icon: <pluginIcons.drive />,
-        badge: (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-status-pending px-2 py-0.5 text-xs font-medium text-status-pending-foreground">
-            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />3
-            <span className="sr-only"> unreviewed changes</span>
-          </span>
-        ),
-      },
-    ],
-  },
-];
+function intranetGroups(locale: string): IntranetNavGroup[] {
+  return [
+    {
+      id: "workspace",
+      label: "Workspace",
+      items: [
+        { id: "overview", label: "Overview", href: "#overview", icon: <HomeIcon /> },
+        {
+          id: "documents",
+          label: "Documents",
+          href: "#documents",
+          icon: <FileTextIcon />,
+          items: [
+            { id: "handbook", label: "Handbook", href: "#documents/handbook" },
+            { id: "policies", label: "Policies", href: "#documents/policies" },
+          ],
+        },
+        {
+          id: "drive",
+          label: "Drive",
+          href: "#drive",
+          icon: <pluginIcons.drive />,
+          badge: (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-status-pending px-2 py-0.5 text-xs font-medium text-status-pending-foreground">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />3
+              <span className="sr-only"> unreviewed changes</span>
+            </span>
+          ),
+        },
+      ],
+    },
+    {
+      id: "business",
+      label: "Business",
+      items: [
+        {
+          id: "customers",
+          label: "Customers",
+          href: `/${locale}/customers`,
+          icon: <pluginIcons.customers />,
+        },
+        {
+          id: "projects",
+          label: "Projects",
+          href: `/${locale}/projects`,
+          icon: <pluginIcons.projects />,
+        },
+        { id: "offers", label: "Offers", href: `/${locale}/offers`, icon: <pluginIcons.offers /> },
+        {
+          id: "reservations",
+          label: "Reservations",
+          href: `/${locale}/admin/reservations`,
+          icon: <pluginIcons.reservations />,
+        },
+      ],
+    },
+    {
+      id: "website",
+      label: "Website",
+      items: [
+        {
+          id: "blogs",
+          label: "Blogs",
+          href: `/${locale}/admin/blogs`,
+          icon: <pluginIcons.blogs />,
+        },
+        {
+          id: "menus",
+          label: "Menus",
+          href: `/${locale}/admin/menus`,
+          icon: <pluginIcons.menus />,
+        },
+        {
+          id: "products",
+          label: "Products",
+          href: `/${locale}/admin/products`,
+          icon: <pluginIcons.products />,
+        },
+      ],
+    },
+    {
+      id: "administration",
+      label: "Administration",
+      items: [
+        {
+          id: "employees",
+          label: "Employees",
+          href: `/${locale}/employees`,
+          icon: <pluginIcons.employees />,
+        },
+        { id: "auth", label: "Auth", href: `/${locale}/account`, icon: <pluginIcons.auth /> },
+        { id: "mailing", label: "Mailing", href: "/mailing", icon: <pluginIcons.mailing /> },
+      ],
+    },
+  ];
+}
 
 function subscribePath(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -101,7 +159,7 @@ function IntranetExample() {
       <IntranetShell
         brand={{ name: "Acme workspace", href: "#overview" }}
         user={{ name: "Alex Morgan", email: "alex@example.com" }}
-        groups={groups}
+        groups={intranetGroups(locale)}
         footerItems={[
           {
             id: "agents",
